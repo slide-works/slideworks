@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react';
 import { SlideHeading } from '../blocks/SlideHeading';
 import { Reveal } from '../Reveal';
 import type { LayoutProps } from '../slots';
 import styles from './RulesLayout.module.css';
 
 // A headline over 1–4 rules, each a large outline numeral beside a title and
-// text. With reveal 'one-by-one' rule n appears at step n.
+// text. With reveal 'one-by-one' rule n appears at step n;
+// otherwise every rule shows from the start (at 0).
 export function RulesLayout({ slots, step }: LayoutProps<'rules'>) {
   const { kicker, headline, rules, reveal } = slots;
   return (
@@ -14,7 +14,13 @@ export function RulesLayout({ slots, step }: LayoutProps<'rules'>) {
       <div data-testid="rules-body" className="sw-body">
         <ol className={styles.rules}>
           {rules.map((rule, i) => (
-            <Item key={i} at={reveal === 'one-by-one' ? i + 1 : null} step={step}>
+            <Reveal
+              key={i}
+              as="li"
+              at={reveal === 'one-by-one' ? i + 1 : 0}
+              step={step}
+              className={styles.rule}
+            >
               <span data-testid="rules-number" className={styles.number} aria-hidden>
                 {i + 1}
               </span>
@@ -26,22 +32,10 @@ export function RulesLayout({ slots, step }: LayoutProps<'rules'>) {
                   {rule.text}
                 </p>
               </div>
-            </Item>
+            </Reveal>
           ))}
         </ol>
       </div>
     </div>
-  );
-}
-
-// One rule, a list item: revealed at its step, or shown from the start when
-// `at` is null.
-function Item({ at, step, children }: { at: number | null; step: number; children: ReactNode }) {
-  return at === null ? (
-    <li className={styles.rule}>{children}</li>
-  ) : (
-    <Reveal as="li" at={at} step={step} className={styles.rule}>
-      {children}
-    </Reveal>
   );
 }
