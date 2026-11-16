@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatValue, linear, niceStep, niceTicks } from './scale';
+import { formatValue, linear, niceStep, niceTicks, tickLabels } from './scale';
 
 describe('niceTicks', () => {
   it('covers 0 to 11 in steps of 2', () => {
@@ -72,5 +72,56 @@ describe('formatValue', () => {
     expect(
       [11, 2500, 1_200_000, -1_000_000_000, 0.25, 0.30000000000000004].map(formatValue),
     ).toEqual(['11', '2.5K', '1.2M', '-1B', '0.25', '0.3']);
+  });
+});
+
+describe('tickLabels', () => {
+  // Every tick label on an axis is different, whatever the range.
+  it.each([
+    ['a narrow band at large magnitude', 101_400, 102_300],
+    ['a narrow band in the millions', 4_120_000, 4_190_000],
+    ['a narrow band near the top of the range', 999_999_000, 1_000_000_000],
+    ['the whole range', -1_000_000_000, 1_000_000_000],
+    ['small fractions', 0.001, 0.0042],
+    ['tenths', 0, 0.7],
+    ['negative values', -0.9, -0.2],
+    ['negative thousands', -102_300, -101_400],
+    ['a range crossing zero', -35, 60],
+    ['thousands crossing zero', -1_500, 2_250],
+    ['a step of a fraction of the unit', 1_000, 1_001],
+  ])('are unique for %s', (_, min, max) => {
+    const labels = tickLabels(niceTicks(min, max));
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  it('take their precision from the step', () => {
+    expect(tickLabels(niceTicks(101_400, 102_300))).toEqual([
+      '101.4K',
+      '101.6K',
+      '101.8K',
+      '102K',
+      '102.2K',
+      '102.4K',
+    ]);
+    expect(tickLabels(niceTicks(-1_000_000_000, 1_000_000_000))).toEqual([
+      '-1B',
+      '-0.5B',
+      '0',
+      '0.5B',
+      '1B',
+    ]);
+    expect(tickLabels(niceTicks(0, 11))).toEqual(['0', '2', '4', '6', '8', '10', '12']);
+    expect(tickLabels(niceTicks(-35, 60))).toEqual(['-40', '-20', '0', '20', '40', '60']);
+  });
+
+  it('stay in plain numbers when the step is tiny for the unit', () => {
+    expect(tickLabels(niceTicks(1_000, 1_001))).toEqual([
+      '1,000',
+      '1,000.2',
+      '1,000.4',
+      '1,000.6',
+      '1,000.8',
+      '1,001',
+    ]);
   });
 });

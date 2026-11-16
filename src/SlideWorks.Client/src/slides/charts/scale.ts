@@ -48,7 +48,36 @@ const COMPACT = new Intl.NumberFormat('en', {
   maximumSignificantDigits: 3,
 });
 
-// A short label for a tick or value: 11, 2.5K, 1.2M, 0.25.
+// A short label for a value over a bar: 11, 2.5K, 1.2M, 0.25.
 export function formatValue(value: number): string {
   return COMPACT.format(clean(value));
+}
+
+const UNITS = [
+  { scale: 1e9, suffix: 'B' },
+  { scale: 1e6, suffix: 'M' },
+  { scale: 1e3, suffix: 'K' },
+] as const;
+
+// A tick label whose precision comes from the axis step, so ticks a step apart
+// never read the same: 101.4K, 101.6K, 101.8K rather than 101K, 102K, 102K.
+// `largest` is the largest tick's magnitude: every tick on an axis shares its
+// compact unit (K, M or B), unless the step is under a hundredth of that unit,
+// when the labels stay in plain numbers.
+export function formatTick(value: number, step: number, largest: number): string {
+  const unit = UNITS.find((u) => largest >= u.scale && step >= u.scale / 100) ?? {
+    scale: 1,
+    suffix: '',
+  };
+  const scaled = clean(value / unit.scale) + 0; // + 0 turns -0 into 0
+  if (scaled === 0) return '0';
+  const digits = Math.max(0, Math.ceil(-Math.log10(clean(step / unit.scale)) - 1e-9));
+  const number = new Intl.NumberFormat('en', { maximumFractionDigits: digits }).format(scaled);
+  return number + unit.suffix;
+}
+
+// The labels for an axis's ticks: one per value, no two the same.
+export function tickLabels(ticks: Ticks): string[] {
+  const largest = Math.max(...ticks.values.map(Math.abs));
+  return ticks.values.map((value) => formatTick(value, ticks.step, largest));
 }
