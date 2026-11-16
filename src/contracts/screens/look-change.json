@@ -1,0 +1,126 @@
+{
+  "request": {
+    "template": "workshop",
+    "palette": "ember",
+    "logo": "img_logo0001",
+    "draft": true,
+    "chrome": {
+      "tracker": false,
+      "footer": "date",
+      "progress": true
+    }
+  },
+  "response": {
+    "look": {
+      "template": {
+        "name": "workshop",
+        "label": "Workshop",
+        "layouts": [
+          "title",
+          "divider",
+          "bullets",
+          "two-column",
+          "practice",
+          "compare",
+          "quote",
+          "image",
+          "table",
+          "numbered-cards",
+          "rules",
+          "cards",
+          "close"
+        ],
+        "chrome": {
+          "tracker": true,
+          "footer": "author",
+          "progress": true,
+          "deepDivesOnDivider": true,
+          "draft": true
+        },
+        "type": {
+          "head": "Plus Jakarta Sans",
+          "body": "Inter",
+          "headWeight": 800,
+          "headTracking": "-0.025em"
+        },
+        "shape": {
+          "radius": {
+            "sm": 10,
+            "md": 12,
+            "lg": 16,
+            "xl": 18
+          },
+          "shadow": "0 1px 2px rgb(15 23 42 / 0.06), 0 14px 36px rgb(15 23 42 / 0.09)"
+        },
+        "ornament": "dots",
+        "titleArt": "waves"
+      },
+      "palette": {
+        "name": "ember",
+        "label": "Ember",
+        "tokens": {
+          "paper": "#faf7f2",
+          "card": "#ffffff",
+          "chip": "#f3ede4",
+          "grid": "#e9e1d6",
+          "ink": "#1c1917",
+          "muted": "#6b6058",
+          "accent": "#c2410c",
+          "accent-dark": "#7c2d12",
+          "accent-light": "#fdebdd",
+          "accent-glow": "#fdba74",
+          "accent-past": "#f3c3a0",
+          "on-accent": "#ffffff",
+          "good": "#15803d",
+          "good-soft": "#dcfce7",
+          "good-ink": "#166534",
+          "bad": "#b91c1c",
+          "bad-soft": "#fee2e2",
+          "bad-ink": "#991b1b",
+          "warn": "#b45309",
+          "warn-soft": "#fef3c7",
+          "warn-ink": "#92400e",
+          "dd": "#6d28d9",
+          "on-dd": "#ffffff",
+          "dd-on-night": "#c4b5fd",
+          "night": "#1c1412",
+          "night-ink": "#ffffff",
+          "night-2": "#e7dcd3",
+          "night-muted": "#a8998d",
+          "night-line": "#4a3b33",
+          "night-glow": "rgb(194 65 12)",
+          "number-from": "#fed7aa",
+          "number-to": "#ea580c",
+          "stamp": "#fcd34d",
+          "panel-accent": "#c2410c",
+          "panel-accent-ink": "#ffffff",
+          "panel-positive": "#166534",
+          "panel-positive-ink": "#ffffff",
+          "panel-negative": "#991b1b",
+          "panel-negative-ink": "#ffffff",
+          "panel-inverse": "#1c1412",
+          "panel-inverse-ink": "#ffffff"
+        }
+      },
+      "logo": {
+        "url": "/api/images/img_logo0001"
+      },
+      "draft": true,
+      "footerDateLabel": "16 Nov 2026",
+      "chromeOverrides": {
+        "tracker": false,
+        "footer": "date",
+        "progress": true
+      },
+      "contrast": {
+        "pass": true,
+        "lowest": {
+          "pair": "headline-accent",
+          "ratio": 4.9,
+          "bar": 3.0
+        }
+      }
+    },
+    "warnings": ["Slide 7: layout 'gantt' is not in the 'workshop' template"]
+  }
+}

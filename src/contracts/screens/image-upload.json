@@ -1,0 +1,12 @@
+{
+  "request": {
+    "name": "logo.png",
+    "contentType": "image/png"
+  },
+  "response": {
+    "image": "img_logo0001",
+    "uploadUrl": "https://slideworks.example/api/uploads/upl_9f3k2m",
+    "method": "PUT",
+    "expiresInSeconds": 600
+  }
+}
