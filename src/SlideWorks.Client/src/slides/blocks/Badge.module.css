@@ -1,0 +1,15 @@
+/* The badge block (the mockup's .badge.acc), in canvas px: a 16 px/1 bold
+   uppercase pill in 7/14 px padding. It has no tone slot, so it always takes
+   the accent; the mockup's green and orange badges are not offered. */
+.badge {
+  display: inline-block;
+  max-width: 100%;
+  padding: 7px 14px;
+  overflow-wrap: anywhere;
+  border-radius: var(--sw-radius-pill);
+  background: var(--sw-accent-light);
+  color: var(--sw-accent-dark);
+  font: 700 16px/1 var(--sw-font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}

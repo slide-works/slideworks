@@ -1,0 +1,44 @@
+/* .cards3: three equal columns 32 px apart (539 px each), whatever the number
+   of cards. An .rcard is 34/36 px padding round an optional badge, a
+   34 px/1.15 title (18 px above, 12 px below), 24 px/1.4 muted text and its
+   chips, 10 px apart and 22 px under the text. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  padding: 34px 36px;
+  border-radius: var(--sw-radius-lg);
+  background: var(--sw-card);
+  box-shadow: var(--sw-lift);
+}
+
+.title {
+  margin: 18px 0 12px;
+  overflow-wrap: anywhere;
+  font: 700 34px/1.15 var(--sw-font-head);
+}
+
+/* Without a badge the title starts at the card's padding. */
+.title:first-child {
+  margin-top: 0;
+}
+
+.text {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--sw-muted);
+  font: 400 24px/1.4 var(--sw-font-body);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}

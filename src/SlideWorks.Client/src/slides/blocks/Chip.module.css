@@ -1,0 +1,13 @@
+/* The chip block (the mockup's .chip), in canvas px: 19 px/1 medium text in
+   9/16 px padding on the chip grey. The layout that places chips sets the gap
+   between them. */
+.chip {
+  display: inline-block;
+  max-width: 100%;
+  padding: 9px 16px;
+  overflow-wrap: anywhere;
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-chip);
+  color: var(--sw-ink);
+  font: 500 19px/1 var(--sw-font-body);
+}
