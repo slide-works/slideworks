@@ -27,7 +27,6 @@ export function DeckHeader({ view, onShare }: DeckHeaderProps) {
         {sharingLabel(view.sharing)}
       </span>
       <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-        <LaterButton label="Theme" feature="SW-2" />
         <LaterButton label="Check slides" feature="SW-3" />
         <LaterButton label="Presenter view" feature="SW-4" />
         {view.isOwner && (
