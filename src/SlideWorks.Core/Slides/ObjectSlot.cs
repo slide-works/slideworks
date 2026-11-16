@@ -59,11 +59,11 @@ public sealed class ObjectSlot(IReadOnlyList<SlotField> fields, IReadOnlyList<st
         {
             if (!seen.Add(name))
             {
-                validation.Fail($"{path}.{name}", "duplicate field");
+                validation.Fail($"{path}.{EchoText.Of(name)}", "duplicate field");
             }
             else if (!Fields.Any(f => string.Equals(f.Name, name, StringComparison.Ordinal)))
             {
-                validation.Fail($"{path}.{name}", "unknown field");
+                validation.Fail($"{path}.{EchoText.Of(name)}", "unknown field");
             }
         }
 

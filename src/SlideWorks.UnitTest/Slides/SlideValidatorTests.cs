@@ -368,6 +368,34 @@ public class SlideValidatorTests
         result.Error.ShouldBe("close.headline: too long to fit: it wraps to about 5 lines at the close slide's size, and at most 4 fit");
     }
 
+    [Test]
+    public void Validate_WhenUnknownFieldNameIsHuge_ShouldEchoAShortEscapedName()
+    {
+        var name = "line\\none" + new string('k', 1_000_000);
+
+        var result = Validate("quote", $$"""{ "quote": "q", "attribution": "a", "{{name}}": 1 }""");
+
+        result.Error.ShouldBe("quote.line\\none" + new string('k', 32) + "…: unknown field");
+    }
+
+    [Test]
+    public void Validate_WhenEnumValueIsHuge_ShouldEchoAShortEscapedValue()
+    {
+        var value = "\\u0000" + new string('v', 1_000_000);
+
+        var result = Validate("bullets", $$"""{ "headline": "h", "items": ["i"], "callout": { "text": "t", "tone": "{{value}}" } }""");
+
+        result.Error.ShouldBe("bullets.callout.tone: expected one of 'good', 'bad', 'info' (got '\\u0000" + new string('v', 39) + "…')");
+    }
+
+    [Test]
+    public void Validate_WhenUnknownLayoutIsHuge_ShouldEchoAShortName()
+    {
+        var result = SlideValidator.Validate(new string('x', 1_000_000), default);
+
+        result.Error.ShouldStartWith("layout: unknown layout '" + new string('x', 40) + "…' (known: title,");
+    }
+
     private static SlideValidationResult Validate(string layout, string slots)
     {
         using var document = JsonDocument.Parse(slots);

@@ -12,7 +12,7 @@ public static class SlideValidator
         var definition = LayoutCatalogue.Find(layout);
         if (definition is null)
         {
-            validation.Fail("layout", $"unknown layout '{layout}' (known: {string.Join(", ", LayoutCatalogue.LayoutNames)})");
+            validation.Fail("layout", $"unknown layout '{EchoText.Of(layout ?? "")}' (known: {string.Join(", ", LayoutCatalogue.LayoutNames)})");
         }
         else
         {

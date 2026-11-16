@@ -28,7 +28,7 @@ public sealed class EnumSlot(params string[] values) : ISlotType
         var text = value.GetString();
         if (!Values.Contains(text, StringComparer.Ordinal))
         {
-            validation.Fail(path, $"expected {Expected} (got '{text}')");
+            validation.Fail(path, $"expected {Expected} (got '{EchoText.Of(text!)}')");
         }
     }
 }
