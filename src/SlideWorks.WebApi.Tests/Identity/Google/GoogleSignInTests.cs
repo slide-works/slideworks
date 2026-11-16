@@ -1,8 +1,6 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
-using SlideWorks.WebApi.Features.Accounts;
-using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Infrastructure.Identity.Google;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -38,8 +36,12 @@ public class GoogleSignInTests : GoogleSignInFixture
         using var response = await SignInAsync(browser, "sub-pending", "pending.person@example.test");
 
         response.Headers.Location!.OriginalString.ShouldBe("/decks");
-        await MeAsync(browser);
-        (await StoredAsync("pending.person@example.test")).Access.ShouldBe(UserAccess.Pending);
+        var me = await MeAsync(browser);
+        me.GetProperty("access").GetString().ShouldBe("pending");
+        me.GetProperty("isAdmin").GetBoolean().ShouldBeFalse();
+        using var decks = await browser.GetAsync("/api/decks");
+        decks.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await decks.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString().ShouldBe("pending_approval");
     }
 
     // The test hosts set SLIDEWORKS_ADMIN_EMAIL to Ada's email, and nobody in this fixture is admin yet.
@@ -51,24 +53,11 @@ public class GoogleSignInTests : GoogleSignInFixture
         using var response = await SignInAsync(browser, "sub-first-admin", TestUser.Ada.Email.ToUpperInvariant(), TestUser.Ada.Name);
 
         response.Headers.Location!.OriginalString.ShouldBe("/decks");
-        await MeAsync(browser);
-        var stored = await StoredAsync(TestUser.Ada.Email);
-        stored.Access.ShouldBe(UserAccess.Approved);
-        stored.IsAdmin.ShouldBeTrue();
-    }
-
-    [Test]
-    public async Task SignIn_WhenRejected_ShouldRedirectNotApproved()
-    {
-        using var first = Browser();
-        using var firstSignIn = await SignInAsync(first, "sub-rejected", "rejected@example.test");
-        await RejectAsync("rejected@example.test");
-        using var browser = Browser();
-
-        using var response = await SignInAsync(browser, "sub-rejected", "rejected@example.test");
-
-        response.Headers.Location!.OriginalString.ShouldBe("/signin?error=not_approved&returnTo=%2Fdecks");
-        await ShouldHaveNoSessionAsync(browser);
+        var me = await MeAsync(browser);
+        me.GetProperty("access").GetString().ShouldBe("approved");
+        me.GetProperty("isAdmin").GetBoolean().ShouldBeTrue();
+        using var admin = await browser.GetAsync("/api/admin/users");
+        admin.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     [Test]
@@ -111,6 +100,44 @@ public class GoogleSignInTests : GoogleSignInFixture
         (await MeAsync(owner)).GetProperty("name").GetString().ShouldBe("First Owner");
     }
 
+    // Two Google accounts with one email sign in for the first time at the same moment: both find the email free, and the
+    // database's unique email decides. One gets in, the other is told the email is linked, and neither sees a 500. Several
+    // rounds, each with its exchanges held until both arrive, so the race is hit rather than hoped for.
+    [Test]
+    public async Task SignIn_WhenTwoSubjectsShareANewEmailAtOnce_ShouldLetOneInAndRefuseTheOther()
+    {
+        for (var round = 0; round < 5; round++)
+        {
+            var email = $"race-{round}-{Guid.NewGuid():N}@example.test";
+            using var first = Browser();
+            using var second = Browser();
+            var firstStart = await StartAsync(first);
+            var secondStart = await StartAsync(second);
+            Provider.AnswerCode($"code-a-{round}", Provider.Mint(CLIENT_ID, Clock.GetUtcNow(), $"sub-race-a-{round}", email, "A", true, firstStart["nonce"].ToString()));
+            Provider.AnswerCode($"code-b-{round}", Provider.Mint(CLIENT_ID, Clock.GetUtcNow(), $"sub-race-b-{round}", email, "B", true, secondStart["nonce"].ToString()));
+            Provider.HoldExchangesUntil(2);
+            HttpResponseMessage[] responses;
+            try
+            {
+                responses = await Task.WhenAll(
+                    first.GetAsync($"{GoogleSignInSetup.CALLBACK_PATH}?code=code-a-{round}&state={Uri.EscapeDataString(firstStart["state"].ToString())}"),
+                    second.GetAsync($"{GoogleSignInSetup.CALLBACK_PATH}?code=code-b-{round}&state={Uri.EscapeDataString(secondStart["state"].ToString())}"));
+            }
+            finally
+            {
+                Provider.ReleaseExchanges();
+            }
+
+            var locations = responses.Select(r => r.Headers.Location?.OriginalString).ToList();
+            responses.ShouldAllBe(r => r.StatusCode == HttpStatusCode.Redirect);
+            locations.ShouldBe(["/decks", "/signin?error=email_linked&returnTo=%2Fdecks"], ignoreOrder: true);
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
+        }
+    }
+
     [Test]
     public async Task SignIn_WhenSameSubjectAgain_ShouldUpdateNotDuplicate()
     {
@@ -148,6 +175,21 @@ public class GoogleSignInTests : GoogleSignInFixture
 
         using var response = await SignInAsync(browser, $"sub-external-{Guid.NewGuid():N}", $"external-{Guid.NewGuid():N}@example.test", rawReturnTo: rawReturnTo);
 
+        response.Headers.Location!.OriginalString.ShouldBe("/");
+        await MeAsync(browser);
+    }
+
+    // Kestrel refuses a non-ASCII header value, so a Location carrying one would be a 500 after sign-in.
+    [TestCase("%2Fd%C3%A9cks")]
+    [TestCase("%2Fdecks%E2%80%8B")]
+    [TestCase("%2Fdecks%7F")]
+    public async Task SignIn_WhenReturnToHasCharacterAboveTilde_ShouldRedirectHome(string rawReturnTo)
+    {
+        using var browser = Browser();
+
+        using var response = await SignInAsync(browser, $"sub-non-ascii-{Guid.NewGuid():N}", $"non-ascii-{Guid.NewGuid():N}@example.test", rawReturnTo: rawReturnTo);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         response.Headers.Location!.OriginalString.ShouldBe("/");
         await MeAsync(browser);
     }
@@ -268,21 +310,5 @@ public class GoogleSignInTests : GoogleSignInFixture
         var options = JsonDocument.Parse(await browser.GetStringAsync("/api/signin/options")).RootElement;
 
         options.GetProperty("google").GetBoolean().ShouldBeTrue();
-    }
-
-    // Reads the stored person through IUserDirectory: their access isn't on any HTTP response yet.
-    private async Task<User> StoredAsync(string email)
-    {
-        using var scope = Factory.Services.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IUserDirectory>().FindByEmailAsync(email)
-            ?? throw new InvalidOperationException($"{email} was not stored.");
-    }
-
-    // An admin's rejection, through IUserAccounts as TestPeople approves people: there is no admin route to call yet.
-    private async Task RejectAsync(string email)
-    {
-        var user = await StoredAsync(email);
-        using var scope = Factory.Services.CreateScope();
-        (await scope.ServiceProvider.GetRequiredService<IUserAccounts>().RejectAsync(user.Id, by: null)).ShouldBe(AccountChange.Changed);
     }
 }

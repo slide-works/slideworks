@@ -14,7 +14,9 @@ public class EfUserDirectory(AppDbContext db, TimeProvider clock, IConfiguration
     private const int SQLITE_CONSTRAINT = 19;
 
     // Two first sign-ins for one subject can race: both find nothing and both insert. The loser's insert breaks the
-    // unique index, so it starts again, finds the winner's row and updates it.
+    // unique index, so it starts again, finds the winner's row and updates it. Two subjects with one new email can race
+    // the same way past the caller's email check; then the loser's email belongs to the winner, and it gets
+    // EmailLinkedException rather than a second unique-index failure.
     public async Task<User> UpsertAsync(string googleSubject, string email, string name, string? pictureUrl)
     {
         try
@@ -24,6 +26,11 @@ public class EfUserDirectory(AppDbContext db, TimeProvider clock, IConfiguration
         catch (DbUpdateException error) when (error.InnerException is SqliteException { SqliteErrorCode: SQLITE_CONSTRAINT })
         {
             db.ChangeTracker.Clear();
+            var owner = await FindByEmailAsync(email);
+            if (owner != null && owner.GoogleSubject != googleSubject)
+            {
+                throw new EmailLinkedException();
+            }
             return await UpsertOnceAsync(googleSubject, email, name, pictureUrl);
         }
     }

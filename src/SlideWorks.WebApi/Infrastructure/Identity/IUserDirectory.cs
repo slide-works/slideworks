@@ -10,7 +10,8 @@ public interface IUserDirectory
     const string ADMIN_EMAIL_SETTING = "SLIDEWORKS_ADMIN_EMAIL";
 
     // Creates the person on first sign-in as Pending, and updates their email, name and picture on later ones. It never
-    // changes Access or IsAdmin, except for the ADMIN_EMAIL_SETTING bootstrap.
+    // changes Access or IsAdmin, except for the ADMIN_EMAIL_SETTING bootstrap. Throws EmailLinkedException when the email
+    // belongs to a person with another Google subject.
     Task<User> UpsertAsync(string googleSubject, string email, string name, string? pictureUrl);
 
     // Case-insensitive.

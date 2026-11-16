@@ -52,13 +52,15 @@ public sealed class GoogleSignInEvents(IUserDirectory users, ILogger<GoogleSignI
             return;
         }
         var owner = await users.FindByEmailAsync(email);
-        if (owner != null && owner.GoogleSubject != subject)
+        var user = owner != null && owner.GoogleSubject != subject
+            ? null
+            : await UpsertAsync(subject, email, claims);
+        if (user == null)
         {
             logger.LogWarning("Google sign-in refused: the email belongs to a person with another Google subject");
             context.Response.Redirect(SignInErrors.SignInPath(SignInErrors.EMAIL_LINKED, returnTo));
             return;
         }
-        var user = await users.UpsertAsync(subject, email, claims.FindFirstValue(NAME_CLAIM) ?? email, claims.FindFirstValue(PICTURE_CLAIM));
         // A pending person gets a session, and the app sends them to wait for approval. A rejected one gets none.
         if (user.Access == UserAccess.Rejected)
         {
@@ -88,5 +90,18 @@ public sealed class GoogleSignInEvents(IUserDirectory users, ILogger<GoogleSignI
         context.HandleResponse();
         context.Response.Redirect(SignInErrors.SignInPath(SignInErrors.FAILED, ReturnTo.LocalOrHome(context.Properties?.RedirectUri)));
         return Task.CompletedTask;
+    }
+
+    // Null when the email was free at TicketReceived's email check, but another Google subject's first sign-in took it in between.
+    private async Task<User?> UpsertAsync(string subject, string email, ClaimsPrincipal claims)
+    {
+        try
+        {
+            return await users.UpsertAsync(subject, email, claims.FindFirstValue(NAME_CLAIM) ?? email, claims.FindFirstValue(PICTURE_CLAIM));
+        }
+        catch (EmailLinkedException)
+        {
+            return null;
+        }
     }
 }

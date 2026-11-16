@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
@@ -9,7 +10,7 @@ namespace SlideWorks.WebApi.Tests.Identity.Google;
 // Stands in for Google at the HTTP boundary: the handler behind the app's "google-sign-in" named client, which carries
 // discovery, the signing keys and the code exchange. Only the socket is fake; the app's OpenID Connect handler checks
 // state, PKCE, nonce, signature, issuer, audience and expiry exactly as it would against Google. One RSA key signs every
-// ID token Mint makes, and /token answers with NextIdToken.
+// ID token Mint makes, and /token answers with the token given for that code by AnswerCode, or else with NextIdToken.
 public sealed class TestIdentityProvider : HttpMessageHandler
 {
     public const string ISSUER = "https://accounts.google.com";
@@ -22,12 +23,34 @@ public sealed class TestIdentityProvider : HttpMessageHandler
     private const string TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 
     private readonly RSA _key = RSA.Create(2048);
+    private readonly ConcurrentDictionary<string, string> _idTokensByCode = new();
+    private TaskCompletionSource? _heldExchanges;
+    private int _exchangesToHold;
+    private int _exchangesWaiting;
 
     // What /token answers with on the next code exchange.
     public string? NextIdToken { get; set; }
 
     // The form of the last POST to /token.
     public IReadOnlyDictionary<string, string>? LastTokenRequest { get; private set; }
+
+    // What /token answers with when the code exchanged is code, so parallel sign-ins each get their own ID token.
+    public void AnswerCode(string code, string idToken) => _idTokensByCode[code] = idToken;
+
+    // Holds each code exchange until count of them are waiting, then answers them all at once, so parallel sign-ins reach
+    // the app's own code at the same moment. Call ReleaseExchanges when done.
+    public void HoldExchangesUntil(int count)
+    {
+        _exchangesToHold = count;
+        _exchangesWaiting = 0;
+        _heldExchanges = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    public void ReleaseExchanges()
+    {
+        _heldExchanges?.TrySetResult();
+        _heldExchanges = null;
+    }
 
     // A signed RS256 ID token as Google issues it, for clientId, valid for an hour from now.
     public string Mint(string clientId, DateTimeOffset now, string subject, string email, string? name, bool emailVerified, string nonce, string? picture = null)
@@ -90,10 +113,20 @@ public sealed class TestIdentityProvider : HttpMessageHandler
         if (request.Method == HttpMethod.Post && url == TOKEN_ENDPOINT)
         {
             var form = await request.Content!.ReadAsStringAsync(cancellationToken);
-            LastTokenRequest = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(form).ToDictionary(field => field.Key, field => field.Value.ToString());
+            var fields = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(form).ToDictionary(field => field.Key, field => field.Value.ToString());
+            LastTokenRequest = fields;
+            if (_heldExchanges is { } held)
+            {
+                if (Interlocked.Increment(ref _exchangesWaiting) >= _exchangesToHold)
+                {
+                    held.TrySetResult();
+                }
+                await Task.WhenAny(held.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellationToken));
+            }
+            var idToken = fields.TryGetValue("code", out var code) && _idTokensByCode.TryGetValue(code, out var forCode) ? forCode : NextIdToken;
             return Json(new Dictionary<string, object>
             {
-                ["id_token"] = NextIdToken ?? "",
+                ["id_token"] = idToken ?? "",
                 ["access_token"] = "unused",
                 ["token_type"] = "Bearer",
                 ["expires_in"] = 3600,
