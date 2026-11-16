@@ -1,5 +1,4 @@
 using Microsoft.Playwright.NUnit;
-using SlideWorks.AcceptanceTests.Pages;
 
 namespace SlideWorks.AcceptanceTests;
 
@@ -13,11 +12,4 @@ public abstract class AcceptanceTest : PageTest
         BaseURL = AcceptanceApp.BaseUrl,
         ViewportSize = new ViewportSize { Width = 1280, Height = 800 },
     };
-
-    protected async Task<NotesPage> OpenNotesPageAsync()
-    {
-        var login = new LoginPage(Page);
-        await login.GoToAsync();
-        return await login.SignInAsync(AcceptanceApp.TOKEN);
-    }
 }

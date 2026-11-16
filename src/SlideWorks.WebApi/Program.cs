@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.WebApi;
 using SlideWorks.WebApi.Data;
-using SlideWorks.WebApi.Infrastructure;
+using SlideWorks.WebApi.Infrastructure.Identity;
+using SlideWorks.WebApi.Infrastructure.Setup;
 using SlideWorks.WebApi.Realtime;
 using Serilog;
 
@@ -47,8 +48,15 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSignalR();
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddHttpContextAccessor();
+// Authentication and MCP each live in their own setup file (Infrastructure/Setup/).
+builder.Services.AddSlideWorksAuth();
+builder.Services.AddSlideWorksMcp();
 
 var app = builder.Build();
+
+// Fail at startup, not on the first link, when SLIDEWORKS_PUBLIC_URL is missing outside Development.
+app.Services.GetRequiredService<IPublicUrls>();
 
 // Single-instance app: apply migrations on startup, no orchestration needed.
 using (var scope = app.Services.CreateScope())
@@ -56,7 +64,7 @@ using (var scope = app.Services.CreateScope())
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
 }
 
-app.UseMiddleware<BearerTokenAuthMiddleware>();
+app.UseSlideWorksAuth();
 
 // SPA assets ship inside wwwroot (built there by src/SlideWorks.Client). Static files
 // sit behind the fail-closed check but outside the /api token guard: the shell is
@@ -70,6 +78,7 @@ var version = ApiMarker.Assembly
     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
 app.MapGet("/health", () => Results.Ok(new { status = "ok", version }));
 app.MapControllers();
+app.MapSlideWorksMcp();
 // WebSockets only: a long-polling connection would carry the token in the URL of
 // every poll. Live updates for decks; see Realtime/DeckHub.cs.
 app.MapHub<DeckHub>(DeckHub.PATH, options => options.Transports = HttpTransportType.WebSockets);

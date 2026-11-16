@@ -13,14 +13,16 @@ public class TokenAuthTests : ApiTestFixture
         ["SLIDEWORKS_API_EXTRA_TOKENS"] = "dashboard-token, other-token,",
     };
 
+    // No /api route is mapped between the Notes sample's removal and the first deck routes, so an accepted token
+    // reaches the /api fallback's 404; a refused one stops at the guard's 401.
     [TestCase(TEST_TOKEN)]
     [TestCase("dashboard-token")]
     [TestCase("other-token")]
-    public async Task Api_WhenPresentedAnyConfiguredToken_Returns200(string token)
+    public async Task Api_WhenPresentedAnyConfiguredToken_PassesTheGuard(string token)
     {
-        var response = await GetNotesAsync(token);
+        var response = await GetApiAsync(token);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     [TestCase(null)]
@@ -29,7 +31,7 @@ public class TokenAuthTests : ApiTestFixture
     [TestCase("dashboard-token, other-token")]
     public async Task Api_WhenPresentedAnythingElse_Returns401(string? token)
     {
-        var response = await GetNotesAsync(token);
+        var response = await GetApiAsync(token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
@@ -40,18 +42,18 @@ public class TokenAuthTests : ApiTestFixture
     {
         using var client = Factory.CreateClient();
 
-        var response = await client.GetAsync($"/api/notes?access_token={TEST_TOKEN}");
+        var response = await client.GetAsync($"/api/anything?access_token={TEST_TOKEN}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
-    private async Task<HttpResponseMessage> GetNotesAsync(string? token)
+    private async Task<HttpResponseMessage> GetApiAsync(string? token)
     {
         using var client = Factory.CreateClient();
         if (token != null)
         {
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         }
-        return await client.GetAsync("/api/notes");
+        return await client.GetAsync("/api/anything");
     }
 }
