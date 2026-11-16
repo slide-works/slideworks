@@ -21,6 +21,31 @@ public class PublicUrlsTests : ApiTestFixture
     }
 
     [Test]
+    public void Deck_WhenStepWithoutSlide_ShouldThrow()
+    {
+        var urls = Factory.Services.GetRequiredService<IPublicUrls>();
+
+        Should.Throw<ArgumentException>(() => urls.Deck("Ab3dEf6hIj9k", "ship-smaller", step: 1));
+    }
+
+    [Test]
+    public void Base_WhenPublicUrlConfigured_ShouldIgnoreAForgedHost()
+    {
+        var urls = Factory.Services.GetRequiredService<IPublicUrls>();
+        var accessor = Factory.Services.GetRequiredService<IHttpContextAccessor>();
+        accessor.HttpContext = RequestTo("attacker.example");
+        try
+        {
+            urls.Base.ShouldBe("http://localhost");
+            urls.Mcp.ShouldBe("http://localhost/mcp");
+        }
+        finally
+        {
+            accessor.HttpContext = null;
+        }
+    }
+
+    [Test]
     public void Startup_WhenProductionWithoutPublicUrl_ShouldFail()
     {
         var dbPath = TestAppFactory.NewDatabasePath();

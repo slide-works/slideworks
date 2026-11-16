@@ -36,6 +36,10 @@ public class PublicUrls : IPublicUrls
 
     public string Deck(string id, string slug, int? slide = null, int? step = null)
     {
+        if (slide == null && step != null)
+        {
+            throw new ArgumentException("A step needs a slide: the link is #{slide}.{step}.", nameof(step));
+        }
         var url = $"{Base}/d/{Uri.EscapeDataString(id)}/{Uri.EscapeDataString(slug)}";
         if (slide == null)
         {

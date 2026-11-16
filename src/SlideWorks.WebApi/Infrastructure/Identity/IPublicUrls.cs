@@ -10,6 +10,6 @@ public interface IPublicUrls
     // {Base}/mcp, the MCP endpoint and the one OAuth resource.
     string Mcp { get; }
 
-    // {Base}/d/{id}/{slug}, plus #{slide} or #{slide}.{step} when given.
+    // {Base}/d/{id}/{slug}, plus #{slide} or #{slide}.{step} when given. A step without a slide throws ArgumentException.
     string Deck(string id, string slug, int? slide = null, int? step = null);
 }

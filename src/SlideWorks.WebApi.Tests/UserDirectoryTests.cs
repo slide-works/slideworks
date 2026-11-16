@@ -32,6 +32,24 @@ public class UserDirectoryTests : ApiTestFixture
         (await FindByEmailAsync("ALEX@team.example"))!.Id.ShouldBe(user.Id);
     }
 
+    [Test]
+    public async Task Upsert_WhenFirstSignInsForOneSubjectRace_ShouldStoreOnePerson()
+    {
+        // SQLite's async calls complete synchronously, so each upsert runs on its own thread, released together, to
+        // make the find-then-insert steps interleave.
+        using var start = new Barrier(4);
+        var upserts = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
+        {
+            start.SignalAndWait();
+            return UpsertAsync(TestUser.Mira.GoogleSubject, TestUser.Mira.Email, TestUser.Mira.Name, null);
+        }));
+
+        var users = await Task.WhenAll(upserts);
+
+        users.Select(u => u.Id).Distinct().Count().ShouldBe(1);
+        (await FindByEmailAsync(TestUser.Mira.Email))!.Id.ShouldBe(users[0].Id);
+    }
+
     private async Task<Features.Accounts.User> UpsertAsync(string subject, string email, string name, string? pictureUrl)
     {
         using var scope = Factory.Services.CreateScope();
