@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import { SlideFrame } from '../SlideFrame';
+import { cardFitFixture } from '../layouts/CardLayouts.fixtures';
 import { SlideHeading } from './SlideHeading';
 
 // The shared kicker and headline, inside the real frame with a body under it.
@@ -62,3 +63,28 @@ test('without a kicker the headline starts at the content box top', async ({ mou
   expect(headline.height).toBeCloseTo(64 * 1.08, 0);
   expect((await top(page, 'body')).top).toBeCloseTo(150 + 69.12 + 46, 0);
 });
+
+// The longest headlines the limits accept (80 characters, the max fixtures'),
+// in Title Case and in wide letters (capitals and M and W). SlideFit budgets
+// every content body from y = 376, under a kicker and at most two headline
+// lines, so each must still take exactly two.
+for (const [kind, name] of [
+  ['title case', 'numberedCardsTitleCase'],
+  ['wide', 'numberedCardsWide'],
+] as const) {
+  test(`an 80-character ${kind} headline takes two lines and the body starts at y = 376`, async ({
+    mount,
+    page,
+  }) => {
+    const { kicker, headline: text } = cardFitFixture(name).slots;
+    expect(text).toHaveLength(80);
+    await mount(slide(kicker, text));
+    await page.evaluate(() => document.fonts.ready);
+
+    await expect(page.getByRole('heading', { level: 2 })).toHaveText(text);
+    const headline = await top(page, 'rules-headline');
+    expect(headline.top).toBe(192);
+    expect(headline.height).toBeCloseTo(2 * 64 * 1.08, 0);
+    expect((await top(page, 'body')).top).toBeCloseTo(376, 0);
+  });
+}
