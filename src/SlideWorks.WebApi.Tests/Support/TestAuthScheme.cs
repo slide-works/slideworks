@@ -62,6 +62,7 @@ public sealed class TestAuthScheme(
         return AuthenticateResult.Success(new AuthenticationTicket(SessionPrincipal.For(user, NAME), NAME));
     }
 
+    // With both a test cookie and a real sw-session, the forward skips the real Cookies handler, so sw-session survives.
     public Task SignOutAsync(AuthenticationProperties? properties)
     {
         Response.Cookies.Delete(COOKIE);

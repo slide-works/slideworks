@@ -4,8 +4,10 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests;
 
-// Sign-out end to end in a real browser: the user menu's Sign out posts /api/signout through the real BFF, and the
-// session is gone for the SPA, for the API and across a reload.
+// Sign-out end to end in a real browser: the user menu's Sign out posts /api/signout, and the session is gone for the
+// SPA, for the API and across a reload. The client, the write guard, the policy and the controller are real, but on the
+// server it is the test scheme that ends the session (it deletes sw-test-user); the real sw-session sign-out is covered
+// by WebApi.Tests Identity/Google/SignOutTests.
 public partial class UserMenuSignOutTests : AcceptanceTest
 {
     [Test]

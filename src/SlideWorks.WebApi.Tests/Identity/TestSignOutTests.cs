@@ -24,7 +24,7 @@ public class TestSignOutTests : ApiTestFixture
 
         using var response = await browser.PostAsync("/api/signout", content: null);
 
-        response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.NoContent);
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         jar.GetCookies(baseAddress)[TestAuthScheme.COOKIE].ShouldBeNull();
         using var after = await browser.GetAsync("/api/me");
         after.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
