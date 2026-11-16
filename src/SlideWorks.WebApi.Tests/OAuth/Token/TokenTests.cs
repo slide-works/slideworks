@@ -1,0 +1,312 @@
+using System.Net;
+using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Features.OAuth.Stores;
+using SlideWorks.WebApi.Tests.OAuth.Authorize;
+using SlideWorks.WebApi.Tests.Support;
+
+namespace SlideWorks.WebApi.Tests.OAuth.Token;
+
+// POST /oauth/token and POST /oauth/revoke (D20): a code becomes an access and refresh token once, bound to its client,
+// redirect URI, PKCE verifier and resource; refresh rotates and a replay ends the family; revoke ends it too, and /mcp
+// stops taking the token. Every response is no-store, and every refusal is an RFC 6749 error body.
+[TestFixture]
+public class TokenTests : ApiTestFixture
+{
+    private HttpClient _anonymous = null!;
+    private TokenEndpoint _endpoint = null!;
+    private string _clientId = null!;
+    private string _otherClientId = null!;
+
+    protected override TestUser SignedInAs => TestUser.Anonymous;
+
+    [OneTimeSetUp]
+    public async Task RegisterClients()
+    {
+        _anonymous = ClientFor(TestUser.Anonymous);
+        _endpoint = new TokenEndpoint(Factory, _anonymous);
+        _clientId = await OAuthFlow.RegisterAsync(_anonymous, "Claude");
+        _otherClientId = await OAuthFlow.RegisterAsync(_anonymous, "Another Agent");
+    }
+
+    [OneTimeTearDown]
+    public void DisposeAnonymous() => _anonymous.Dispose();
+
+    [Test]
+    public async Task Token_WhenValidCodeAndVerifier_ShouldReturnAccessAndRefresh()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var response = await _endpoint.RedeemAsync(_clientId, code);
+
+        var body = await TokenEndpoint.OkBodyAsync(response);
+        body.GetProperty("token_type").GetString().ShouldBe("Bearer");
+        body.GetProperty("expires_in").GetInt32().ShouldBe(3600);
+        body.GetProperty("scope").GetString().ShouldBe("decks");
+        var access = body.GetProperty("access_token").GetString().ShouldNotBeNull();
+        var refresh = body.GetProperty("refresh_token").GetString().ShouldNotBeNull();
+        access.Length.ShouldBeGreaterThanOrEqualTo(43);
+        refresh.ShouldNotBe(access);
+        var agent = await ValidateAsync(access);
+        agent.ShouldNotBeNull();
+        agent.Email.ShouldBe(TestUser.Sam.Email);
+        agent.ClientName.ShouldBe("Claude");
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.OK);
+    }
+
+    // A client that leaves resource out gets the one resource there is (RFC 8707), as /oauth/authorize does.
+    [Test]
+    public async Task Token_WhenResourceLeftOut_ShouldBindToMcp()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var body = await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code, ("resource", null)));
+
+        (await _endpoint.McpStatusAsync(body.GetProperty("access_token").GetString()!)).ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Test]
+    public async Task Token_WhenWrongVerifier_ShouldReturnInvalidGrant()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var response = await _endpoint.RedeemAsync(_clientId, code, ("code_verifier", new string('a', 43)));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_grant");
+    }
+
+    [Test]
+    public async Task Token_WhenWrongClient_ShouldReturnInvalidGrant()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var response = await _endpoint.RedeemAsync(_otherClientId, code);
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_grant");
+    }
+
+    [Test]
+    public async Task Token_WhenWrongRedirect_ShouldReturnInvalidGrant()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var response = await _endpoint.RedeemAsync(_clientId, code, ("redirect_uri", "http://127.0.0.1:33418/elsewhere"));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_grant");
+    }
+
+    [Test]
+    public async Task Token_WhenWrongResource_ShouldReturnInvalidTarget()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var response = await _endpoint.RedeemAsync(_clientId, code, ("resource", "https://elsewhere.example/mcp"));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_target");
+    }
+
+    [Test]
+    public async Task Token_WhenUnknownClient_ShouldReturnInvalidClient()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var response = await _endpoint.RedeemAsync("no-such-client", code);
+
+        (await TokenEndpoint.ErrorAsync(response, HttpStatusCode.Unauthorized)).ShouldBe("invalid_client");
+    }
+
+    [TestCase("code")]
+    [TestCase("client_id")]
+    [TestCase("redirect_uri")]
+    [TestCase("code_verifier")]
+    [TestCase("grant_type")]
+    public async Task Token_WhenParameterMissing_ShouldReturnInvalidRequest(string parameter)
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var response = await _endpoint.RedeemAsync(_clientId, code, (parameter, null));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+    }
+
+    [Test]
+    public async Task Token_WhenGrantTypeUnsupported_ShouldReturnUnsupportedGrantType()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var response = await _endpoint.RedeemAsync(_clientId, code, ("grant_type", "password"));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("unsupported_grant_type");
+    }
+
+    // RFC 6749 section 4.1.2: a code is single use, and presenting it again revokes what it was redeemed for.
+    [Test]
+    public async Task Token_WhenCodeReused_ShouldReturnInvalidGrant()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+        var first = await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code));
+
+        var again = await _endpoint.RedeemAsync(_clientId, code);
+
+        (await TokenEndpoint.ErrorAsync(again)).ShouldBe("invalid_grant");
+        (await _endpoint.McpStatusAsync(first.GetProperty("access_token").GetString()!)).ShouldBe(HttpStatusCode.Unauthorized);
+        (await TokenEndpoint.ErrorAsync(await _endpoint.RefreshAsync(_clientId, first.GetProperty("refresh_token").GetString()!)))
+            .ShouldBe("invalid_grant");
+    }
+
+    // A replay of a code that never got tokens (its first redeem failed a binding) has nothing to revoke, and other
+    // families are left alone.
+    [Test]
+    public async Task Token_WhenRefusedCodeReused_ShouldLeaveOtherTokensAlone()
+    {
+        var (access, _) = await _endpoint.TokensAsync(_clientId);
+        var code = await _endpoint.CodeAsync(_clientId);
+        await _endpoint.RedeemAsync(_clientId, code, ("code_verifier", new string('a', 43)));
+
+        (await TokenEndpoint.ErrorAsync(await _endpoint.RedeemAsync(_clientId, code))).ShouldBe("invalid_grant");
+
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Test]
+    public async Task Token_WhenSameCodeRedeemedInParallel_ShouldIssueOnce()
+    {
+        const int attempts = 20;
+        var code = await _endpoint.CodeAsync(_clientId);
+        using var start = new Barrier(attempts);
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, attempts).Select(_ => Task.Factory.StartNew(
+            () =>
+            {
+                start.SignalAndWait(TimeSpan.FromSeconds(30)).ShouldBeTrue("every attempt should reach the start line");
+                return _endpoint.RedeemAsync(_clientId, code);
+            },
+            CancellationToken.None,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default).Unwrap()));
+
+        responses.Count(r => r.StatusCode == HttpStatusCode.OK).ShouldBe(1);
+        foreach (var refused in responses.Where(r => r.StatusCode != HttpStatusCode.OK))
+        {
+            (await TokenEndpoint.ErrorAsync(refused)).ShouldBe("invalid_grant");
+        }
+    }
+
+    [Test]
+    public async Task Refresh_ShouldRotate()
+    {
+        var (access, refresh) = await _endpoint.TokensAsync(_clientId);
+
+        var body = await TokenEndpoint.OkBodyAsync(await _endpoint.RefreshAsync(_clientId, refresh));
+
+        var rotatedAccess = body.GetProperty("access_token").GetString().ShouldNotBeNull();
+        var rotatedRefresh = body.GetProperty("refresh_token").GetString().ShouldNotBeNull();
+        rotatedAccess.ShouldNotBe(access);
+        rotatedRefresh.ShouldNotBe(refresh);
+        body.GetProperty("token_type").GetString().ShouldBe("Bearer");
+        body.GetProperty("expires_in").GetInt32().ShouldBe(3600);
+        body.GetProperty("scope").GetString().ShouldBe("decks");
+        (await _endpoint.McpStatusAsync(rotatedAccess)).ShouldBe(HttpStatusCode.OK);
+        await TokenEndpoint.OkBodyAsync(await _endpoint.RefreshAsync(_clientId, rotatedRefresh));
+    }
+
+    [Test]
+    public async Task Refresh_WhenOldTokenReused_ShouldRevokeFamily()
+    {
+        var (_, refresh) = await _endpoint.TokensAsync(_clientId);
+        var rotated = await TokenEndpoint.OkBodyAsync(await _endpoint.RefreshAsync(_clientId, refresh));
+
+        var replay = await _endpoint.RefreshAsync(_clientId, refresh);
+
+        (await TokenEndpoint.ErrorAsync(replay)).ShouldBe("invalid_grant");
+        (await _endpoint.McpStatusAsync(rotated.GetProperty("access_token").GetString()!)).ShouldBe(HttpStatusCode.Unauthorized);
+        (await TokenEndpoint.ErrorAsync(await _endpoint.RefreshAsync(_clientId, rotated.GetProperty("refresh_token").GetString()!)))
+            .ShouldBe("invalid_grant");
+    }
+
+    // D4: another client's attempt neither spends the token nor revokes the family.
+    [Test]
+    public async Task Refresh_WhenOtherClient_ShouldReturnInvalidGrant()
+    {
+        var (access, refresh) = await _endpoint.TokensAsync(_clientId);
+
+        var response = await _endpoint.RefreshAsync(_otherClientId, refresh);
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_grant");
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.OK);
+        await TokenEndpoint.OkBodyAsync(await _endpoint.RefreshAsync(_clientId, refresh));
+    }
+
+    [Test]
+    public async Task Revoke_ShouldStopMcpAccess()
+    {
+        var (access, refresh) = await _endpoint.TokensAsync(_clientId);
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.OK);
+
+        var response = await _endpoint.RevokeAsync(access);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.Unauthorized);
+        (await TokenEndpoint.ErrorAsync(await _endpoint.RefreshAsync(_clientId, refresh))).ShouldBe("invalid_grant");
+    }
+
+    [Test]
+    public async Task Revoke_WhenGivenTheRefreshToken_ShouldEndTheFamily()
+    {
+        var (access, refresh) = await _endpoint.TokensAsync(_clientId);
+
+        (await _endpoint.RevokeAsync(refresh)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    // RFC 7009 section 2.2: an invalid token still gets 200.
+    [Test]
+    public async Task Revoke_WhenUnknownToken_ShouldReturn200()
+    {
+        var response = await _endpoint.RevokeAsync("not-a-token");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.CacheControl!.NoStore.ShouldBeTrue();
+    }
+
+    [Test]
+    public async Task Revoke_WhenNoToken_ShouldReturnInvalidRequest()
+    {
+        var response = await _anonymous.PostAsync("/oauth/revoke", new FormUrlEncodedContent([]));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+    }
+
+    [Test]
+    public async Task Mcp_WhenAccessTokenExpired_ShouldReturn401()
+    {
+        var (access, _) = await _endpoint.TokensAsync(_clientId);
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.OK);
+
+        Clock.Advance(TimeSpan.FromHours(1) + TimeSpan.FromSeconds(1));
+
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Test]
+    public async Task Token_ResponseShouldBeNoStore()
+    {
+        var ok = await _endpoint.RedeemAsync(_clientId, await _endpoint.CodeAsync(_clientId));
+        var refused = await _endpoint.RedeemAsync(_clientId, "not-a-code");
+
+        foreach (var response in new[] { ok, refused })
+        {
+            response.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
+            response.Headers.Pragma.ToString().ShouldBe("no-cache");
+            response.Content.Headers.ContentType!.MediaType.ShouldBe("application/json");
+        }
+        ok.StatusCode.ShouldBe(HttpStatusCode.OK);
+        refused.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    private async Task<AgentPrincipal?> ValidateAsync(string accessToken)
+    {
+        using var scope = Factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<IAgentTokens>().ValidateAsync(accessToken, OAuthFlow.Resource);
+    }
+}
