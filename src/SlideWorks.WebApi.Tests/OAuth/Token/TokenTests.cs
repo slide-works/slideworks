@@ -190,11 +190,15 @@ public class TokenTests : ApiTestFixture
             TaskCreationOptions.LongRunning,
             TaskScheduler.Default).Unwrap()));
 
-        responses.Count(r => r.StatusCode == HttpStatusCode.OK).ShouldBe(1);
+        var winner = responses.Where(r => r.StatusCode == HttpStatusCode.OK).ShouldHaveSingleItem();
         foreach (var refused in responses.Where(r => r.StatusCode != HttpStatusCode.OK))
         {
             (await TokenEndpoint.ErrorAsync(refused)).ShouldBe("invalid_grant");
         }
+        // Every loser found the code spent after the winner's spend and issue committed together, so each revoked what it
+        // was spent for (RFC 6749 section 4.1.2), the winner's tokens included.
+        var access = (await TokenEndpoint.OkBodyAsync(winner)).GetProperty("access_token").GetString()!;
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.Unauthorized);
     }
 
     [Test]
