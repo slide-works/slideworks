@@ -1,15 +1,31 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
-import type { DeckPageView, SharingRequest } from '../api/types';
+import type { DeckPageView, LooksView, SharingRequest } from '../api/types';
 import { AppRoutes } from '../AppRoutes';
 import { GoTo } from '../test-support/GoTo';
 import { LocationProbe } from '../test-support/LocationProbe';
+import {
+  PALETTES,
+  TEMPLATES,
+  looksPaletteOf,
+  looksTemplateOf,
+} from '../test-support/fixtures/lookViewOf';
 import { deckPage, me, sharing } from '../test-support/fixtures/screens';
 import { stubApi } from '../test-support/stubApi';
 import { stubDeckHub } from '../test-support/stubDeckHub';
 
 const route = { hooksConfig: { route: `/decks/${deckPage.id}` } };
 const deckPath = `/api/decks/${deckPage.id}`;
+
+// The owner's deck page shows the Look panel, which reads the catalogue from GET /api/looks.
+const looks: LooksView = {
+  templates: TEMPLATES.map(looksTemplateOf),
+  palettes: PALETTES.map(looksPaletteOf),
+};
+
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/looks', (route) => route.fulfill({ json: looks }));
+});
 
 // A response held until release(), to land answers out of order.
 function gate() {
