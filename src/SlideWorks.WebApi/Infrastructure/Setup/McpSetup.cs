@@ -14,7 +14,9 @@ public static class McpSetup
             .AddScheme<AuthenticationSchemeOptions, AgentBearerHandler>(AgentPolicy.SCHEME, _ => { });
         services.AddAuthorizationBuilder()
             .AddPolicy(AgentPolicy.NAME, policy => policy.AddAuthenticationSchemes(AgentPolicy.SCHEME).RequireAuthenticatedUser());
-        services.AddMcpServer()
+        // An empty tool collection still answers tools/list (with []), so the server serves tools before the first
+        // [McpServerToolType] class exists. ??= keeps the collection the discovered tools were put in.
+        services.AddMcpServer(options => options.ToolCollection ??= [])
             .WithHttpTransport(options => options.Stateless = true)
             .WithToolsFromAssembly(ApiMarker.Assembly);
         return services;
