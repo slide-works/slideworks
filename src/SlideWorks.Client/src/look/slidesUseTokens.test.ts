@@ -82,6 +82,20 @@ describe('slides use tokens', () => {
     expect(missing).toEqual([]);
   });
 
+  it('gives every palette token its default palette value in tokens.css', () => {
+    const defaults = palettesJson.palettes.find((palette) => palette.isDefault)!.tokens;
+    const declared = Object.fromEntries(
+      [...tokensCss.matchAll(/--sw-([a-z0-9-]+)\s*:\s*([^;]+);/g)].map(([, key, value]) => [
+        key,
+        value.trim(),
+      ]),
+    );
+    const differ = Object.entries(defaults)
+      .filter(([key, value]) => declared[key] !== value)
+      .map(([key, value]) => `${key}: tokens.css ${declared[key]}, palette ${value}`);
+    expect(differ).toEqual([]);
+  });
+
   it.each([
     ['a hex colour in CSS', '.bar {\n  color: #fff;\n}'],
     ['a long hex colour in TSX', "const style = { color: '#2f5bea' };"],
