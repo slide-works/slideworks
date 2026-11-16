@@ -2,9 +2,6 @@ using System.Text.RegularExpressions;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
-// Journeys are named for the story they tell, not Subject_When_Should, so AG0005 is off for this file.
-#pragma warning disable AG0005
-
 namespace SlideWorks.AcceptanceTests.Journeys;
 
 // The sign-up approval loop in two browsers: the person (this test's own Page) and Ada, the admin, in a second browser
@@ -13,7 +10,7 @@ namespace SlideWorks.AcceptanceTests.Journeys;
 public partial class SignUpApprovalJourneys : AcceptanceTest
 {
     [Test]
-    public async Task PendingPersonRequestsAccessAndAdminApproves()
+    public async Task SignUp_WhenAdminApprovesPendingPerson_ShouldLetThemIntoDecks()
     {
         var person = TestUser.NewPending();
         await SignIn.AsAsync(Page, person);
@@ -29,6 +26,7 @@ public partial class SignUpApprovalJourneys : AcceptanceTest
         var row = admin.Row(person.Email);
         await Expect(row).ToHaveCountAsync(1);
         await Expect(admin.Badge).ToBeVisibleAsync();
+        // A one-off read: it relies on the acceptance tests not running in parallel, so nobody else's request changes the count.
         var before = int.Parse(await admin.Badge.InnerTextAsync());
 
         await AdminUsersPage.Approve(row).ClickAsync();
@@ -51,7 +49,7 @@ public partial class SignUpApprovalJourneys : AcceptanceTest
     }
 
     [Test]
-    public async Task AdminRevokesPersonAndTheirSessionEnds()
+    public async Task Revoke_WhenPersonIsSignedIn_ShouldEndTheirSession()
     {
         var person = TestUser.NewPending();
         await SignIn.AsAsync(Page, person);
@@ -73,6 +71,7 @@ public partial class SignUpApprovalJourneys : AcceptanceTest
         await AdminUsersPage.Revoke(row).ClickAsync();
         await AdminUsersPage.ConfirmRevoke(row).ClickAsync();
         await Expect(AdminUsersPage.Revoke(row)).ToHaveCountAsync(0);
+        await Expect(AdminUsersPage.Access(row)).ToHaveTextAsync("rejected");
 
         await decks.GotoAsync();
         await new SignInPage(Page).ShouldBeShownWithReturnToAsync(DecksPage.PATH);
@@ -80,7 +79,7 @@ public partial class SignUpApprovalJourneys : AcceptanceTest
     }
 
     [Test]
-    public async Task RejectedPersonCannotGetBackIn()
+    public async Task SignIn_WhenPersonWasRejected_ShouldStaySignedOut()
     {
         var person = TestUser.NewPending();
         await SignIn.AsAsync(Page, person);
@@ -95,11 +94,13 @@ public partial class SignUpApprovalJourneys : AcceptanceTest
         await Expect(row).ToHaveCountAsync(1);
         await AdminUsersPage.Reject(row).ClickAsync();
         await Expect(AdminUsersPage.Reject(row)).ToHaveCountAsync(0);
+        await Expect(AdminUsersPage.Access(row)).ToHaveTextAsync("rejected");
 
         await decks.GotoAsync();
         await new SignInPage(Page).ShouldBeShownWithReturnToAsync(DecksPage.PATH);
 
-        // Signing in again with the test scheme changes nothing: they stay signed out.
+        // Signing in again with the test scheme re-reads the person, who is still rejected, so they stay signed out. The real
+        // Google sign-in path is covered by B1's not_approved test.
         await SignIn.AsAsync(Page, person);
         await decks.GotoAsync();
         await new SignInPage(Page).ShouldBeShownWithReturnToAsync(DecksPage.PATH);
@@ -122,9 +123,9 @@ public partial class SignUpApprovalJourneys : AcceptanceTest
         public ValueTask DisposeAsync() => context.DisposeAsync();
     }
 
-    [GeneratedRegex(@"/pending$")]
+    [GeneratedRegex($"{PendingPage.PATH}$")]
     private static partial Regex PendingUrl();
 
-    [GeneratedRegex(@"/decks$")]
+    [GeneratedRegex($"{DecksPage.PATH}$")]
     private static partial Regex DecksUrl();
 }
