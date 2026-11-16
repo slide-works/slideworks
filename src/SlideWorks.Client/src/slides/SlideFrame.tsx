@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { DeepDiveMark } from './chrome/DeepDiveMark';
+import { DraftStamp } from './chrome/DraftStamp';
 import { PartTracker } from './chrome/PartTracker';
 import { ProgressBar } from './chrome/ProgressBar';
 import { SlideFooter } from './chrome/SlideFooter';
@@ -25,14 +27,19 @@ export type SlideFrameProps = {
   children: ReactNode;
 };
 
-// TODO: draws SW-1's chrome and ignores look, deepDive and titleStamp; the
-// template's chrome, the deep-dive marks and the logo replace it.
-//
-// The default theme's frame around a slide (D4, D5): a light surface for content
-// slides and a dark one for title, divider and close, the accent strip on top,
-// the part tracker and footer on content slides, and the progress bar on every
-// slide. Dark slides carry no tracker (the divider shows the journey instead)
-// and no footer. The frame is a flex column inside the theme's padding, and
+// The deck's frame around a slide (D4, D5; SW-2 mockup sections 04 and 05):
+// a light surface for content slides and a dark one for title, divider and
+// close, the top strip, then the template's chrome after the deck's
+// overrides (look.template.chrome):
+// - the part tracker on content slides, when the chrome has it;
+// - the footer on content slides, with the author or the server's date label,
+//   the draft chip and the deck's logo, unless the chrome turns it off;
+// - the progress bar on every slide, when the chrome has it;
+// - the draft stamp on the title slide of a draft deck, unless the title slot
+//   has its own stamp, which the title layout draws instead;
+// - on a deep dive, the top strip in the deep-dive colour and the pill.
+// Dark slides carry no tracker (the divider shows the journey instead) and no
+// footer. The frame is a flex column inside the theme's padding, and
 // chrome.css defines the seam every layout uses:
 // - `sw-layout` goes on the layout's root element, the frame's flex item. It
 //   fills the content box, x 120–1800 and y 150–960, as a flex column.
@@ -48,21 +55,38 @@ export function SlideFrame({
   total,
   deckTitle,
   author,
+  look,
+  deepDive,
+  titleStamp,
   children,
 }: SlideFrameProps) {
+  const { chrome } = look.template;
+  const meta = chrome.footer === 'date' ? look.footerDateLabel : author;
   return (
     <div
       className="sw-frame"
       data-testid="slide-frame"
       data-layout={layout}
       data-dark={dark ? 'true' : 'false'}
+      data-deep-dive={deepDive ? 'true' : 'false'}
     >
-      {!dark && parts.length > 0 ? <PartTracker parts={parts} part={part} /> : null}
+      {!dark && chrome.tracker && parts.length > 0 ? (
+        <PartTracker parts={parts} part={part} />
+      ) : null}
+      {deepDive ? <DeepDiveMark /> : null}
       {children}
-      {dark ? null : (
-        <SlideFooter number={number} total={total} deckTitle={deckTitle} author={author} />
+      {layout === 'title' && look.draft && titleStamp === null ? <DraftStamp /> : null}
+      {dark || chrome.footer === 'off' ? null : (
+        <SlideFooter
+          number={number}
+          total={total}
+          deckTitle={deckTitle}
+          meta={meta}
+          logoUrl={look.logo?.url ?? null}
+          draft={look.draft}
+        />
       )}
-      <ProgressBar number={number} total={total} />
+      {chrome.progress ? <ProgressBar number={number} total={total} /> : null}
     </div>
   );
 }
