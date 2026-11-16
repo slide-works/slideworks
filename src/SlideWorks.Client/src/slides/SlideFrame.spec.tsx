@@ -345,6 +345,42 @@ test('the logo renders at the end of the footer, after the draft chip', async ({
   });
 });
 
+test('a footer line too long for its row ends in an ellipsis on one line', async ({
+  mount,
+  page,
+}) => {
+  // The longest title and author the server accepts, on a draft deck with a logo.
+  await mount(
+    slide({
+      deckTitle: 'T'.repeat(120),
+      author: 'A'.repeat(80),
+      look: talkWith({}, { draft: true, logo: { url: '/api/images/logo-1' } }),
+    }),
+  );
+
+  const text = page.getByTestId('slide-footer-text');
+  const box = await text.boundingBox();
+  expect(box).toMatchObject({ y: 1023, height: 17 });
+  const chip = await page.getByTestId('draft-chip').boundingBox();
+  expect(box!.x + box!.width).toBeLessThanOrEqual(chip!.x);
+  await expect(text).toHaveCSS('text-overflow', 'ellipsis');
+  expect(await text.evaluate((e) => e.scrollWidth > e.clientWidth)).toBe(true);
+});
+
+test('a dark slide draws the progress bar in the accent glow, softened', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount(slide());
+  const bar = page.getByTestId('slide-progress');
+  await expect(bar).toHaveCSS('background-color', await tokenColour(page, '--sw-accent'));
+  await expect(bar).toHaveCSS('opacity', '1');
+
+  await component.update(slide({ layout: 'title', dark: true, part: null, number: 1 }));
+  await expect(bar).toHaveCSS('background-color', await tokenColour(page, '--sw-accent-glow'));
+  await expect(bar).toHaveCSS('opacity', '0.7');
+});
+
 // A slide under a palette, through lookStyle as SlideRenderer applies it.
 function themed(palette: string, props: Partial<Omit<SlideFrameProps, 'children'>> = {}) {
   const look = lookViewOf('talk', palette);

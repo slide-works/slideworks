@@ -1,9 +1,10 @@
-/* The default theme's slide chrome (D4, D5), in canvas px on the 1920×1080
+/* The template's slide chrome (D4, D5), in canvas px on the 1920×1080
    slide. Geometry the layouts rely on:
    - content box: 150 px top, 120 px sides and bottom (the tokens' padding);
      a layout's body may run 36 px into the bottom padding, to y = 996;
    - footer text: 17 px, line height 1, 40 px from the bottom, so y = 1023–1040;
-     the draft chip and logo are centred on that line and overflow it;
+     the draft chip and logo are centred on that line and overflow it, and a
+     line too long for the space left of them ends in an ellipsis;
    - part tracker: 40 px from the top, 120 px in from each side;
    - progress bar: the bottom 5 px, from x = 0;
    - deep-dive pill: 98 px from the top, 120 px in, between the tracker
@@ -120,8 +121,16 @@
   color: var(--sw-accent-dark);
 }
 
+.sw-footer-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .sw-footer-end {
   display: flex;
+  flex: none;
   gap: 18px;
   align-items: center;
 }
@@ -185,4 +194,11 @@
   left: 0;
   height: var(--sw-progress-bar);
   background: var(--sw-accent);
+}
+
+/* On a dark slide the bar is the accent's glow, softened, as the night
+   surface needs. */
+.sw-frame[data-dark='true'] .sw-progress {
+  background: var(--sw-accent-glow);
+  opacity: 0.7;
 }

@@ -14,11 +14,12 @@ type SlideFooterProps = {
 // "3 / 16 · Ship smaller · Sam Rivera" along the bottom of a content slide,
 // with the draft chip and the deck's logo on the right (mockup section 04).
 // The row is one 17 px text line; the chip and logo are centred on it and
-// overflow it, so the text line stays at y = 1023 whatever they hold.
+// overflow it, so the text line stays at y = 1023 whatever they hold. A
+// line too long for the space left of them is cut short with an ellipsis.
 export function SlideFooter({ number, total, deckTitle, meta, logoUrl, draft }: SlideFooterProps) {
   return (
     <div className="sw-footer" data-testid="slide-footer">
-      <span data-testid="slide-footer-text">
+      <span className="sw-footer-text" data-testid="slide-footer-text">
         <b>{number}</b> / {total} · {deckTitle}
         {meta === null ? null : ` · ${meta}`}
       </span>
