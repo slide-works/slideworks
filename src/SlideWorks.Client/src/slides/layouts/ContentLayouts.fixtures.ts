@@ -21,16 +21,3 @@ export const FIT_FIXTURES = Object.fromEntries(
     (CONTENT_LAYOUTS as readonly string[]).includes(fixture.layout),
   ),
 ) as Record<string, FitFixture>;
-
-const PROSE =
-  'The team ships a small slice of work to customers every week, and the ' +
-  'feedback arrives in days rather than quarters, so the risk shows up early ' +
-  'while it is still cheap to change course and nobody has to guess how far ' +
-  'along the work really is.';
-
-// Ordinary prose of exactly `length` characters, starting with a capital.
-export function fill(length: number): string {
-  let text = '';
-  while (text.length < length) text += (text ? ' ' : '') + PROSE;
-  return text.slice(0, length).trimEnd().padEnd(length, 'e');
-}
