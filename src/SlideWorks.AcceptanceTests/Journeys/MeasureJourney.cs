@@ -99,8 +99,9 @@ public class MeasureJourney : AcceptanceTest
         await Expect(player.Player).ToBeVisibleAsync();
         await Expect(player.Image(IMAGE_SLIDE)).ToHaveAttributeAsync("src", new Regex("/api/images/img_"));
         await player.FontsReadyAsync();
+        await player.ImageLoadedAsync(IMAGE_SLIDE);
 
-        var fit = await player.FitAsync();
+        var fit = await Eventually.ReadAsync(player.FitAsync, f => IsEven(f) && f.Width <= 1920.5);
         (fit.Width / fit.Height).ShouldBe(1920.0 / 1080, 0.01);
         fit.Width.ShouldBeLessThanOrEqualTo(1920.5);
 
@@ -110,7 +111,7 @@ public class MeasureJourney : AcceptanceTest
             await Expect(player.Count).ToHaveTextAsync($"{number} / {SLIDES}");
             await Expect(player.Layer(number)).ToHaveAttributeAsync("data-active", "true");
             await Expect(player.Slide(number)).ToHaveAttributeAsync("data-layout", LAYOUTS[number - 1]);
-            overflow.AddRange((await player.OverflowAsync(number)).Select(o => $"slide {number} ({LAYOUTS[number - 1]}): {o}"));
+            overflow.AddRange((await OverflowSettledAsync(player, number)).Select(o => $"slide {number} ({LAYOUTS[number - 1]}): {o}"));
             if (number == BULLETS_SLIDE)
             {
                 for (var step = 0; step < BULLETS_STEPS; step++)
@@ -153,8 +154,11 @@ public class MeasureJourney : AcceptanceTest
         await Expect(player.Player).ToBeVisibleAsync();
         await Expect(player.Count).ToHaveTextAsync($"1 / {SLIDES}");
         await player.FontsReadyAsync();
+        await player.ImageLoadedAsync(IMAGE_SLIDE);
 
-        var fit = await player.FitAsync();
+        var fit = await Eventually.ReadAsync(
+            player.FitAsync,
+            f => IsEven(f) && f.Left >= -0.5 && f.Right <= 390.5 && f.ScrollWidth <= f.ViewportWidth);
         (fit.Width / fit.Height).ShouldBe(1920.0 / 1080, 0.01);
         fit.Left.ShouldBeGreaterThanOrEqualTo(-0.5);
         fit.Right.ShouldBeLessThanOrEqualTo(390.5);
@@ -162,7 +166,7 @@ public class MeasureJourney : AcceptanceTest
         var overflow = new List<string>();
         for (var number = 1; number <= SLIDES; number++)
         {
-            overflow.AddRange((await player.OverflowAsync(number)).Select(o => $"phone, slide {number} ({LAYOUTS[number - 1]}): {o}"));
+            overflow.AddRange((await OverflowSettledAsync(player, number)).Select(o => $"phone, slide {number} ({LAYOUTS[number - 1]}): {o}"));
         }
         overflow.ShouldBeEmpty();
 
@@ -170,6 +174,13 @@ public class MeasureJourney : AcceptanceTest
         await Expect(player.Count).ToHaveTextAsync($"2 / {SLIDES}");
         await Expect(player.Layer(2)).ToHaveAttributeAsync("data-active", "true");
     }
+
+    // The canvas keeps 16:9 as it scales.
+    private static bool IsEven(PlayerPage.CanvasFit fit) => Math.Abs(fit.Width / fit.Height - 1920.0 / 1080) <= 0.01;
+
+    // The overflow probe, retried while layout settles; the last reading is what the test asserts.
+    private static Task<string[]> OverflowSettledAsync(PlayerPage player, int number) =>
+        Eventually.ReadAsync(() => player.OverflowAsync(number), found => found.Length == 0);
 
     private static Task<JsonElement> AddAsync(AgentSession agent, string deck, string layout, object slots, int? part = null, int? position = null)
     {

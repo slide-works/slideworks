@@ -24,9 +24,10 @@ namespace SlideWorks.AcceptanceTests;
 [SetUpFixture]
 public class AcceptanceApp
 {
-    private string _dbPath = null!;
-    private string _dataPath = null!;
-    private WebApplicationFactory<ApiMarker> _factory = null!;
+    // Null until StartApp gets that far: a start that fails part way still has StopApp clean up what it made.
+    private string? _dbPath;
+    private string? _dataPath;
+    private WebApplicationFactory<ApiMarker>? _factory;
 
     public static string BaseUrl { get; private set; } = null!;
 
@@ -56,18 +57,32 @@ public class AcceptanceApp
         _factory.StartServer();
         Services = _factory.Services;
 
-        AssertBundleIsBuilt();
+        AssertBundleIsBuilt(_factory);
     }
 
+    // NUnit runs this even when StartApp threw, so each step allows for what was never made, and the files go even if
+    // the host fails to stop.
     [OneTimeTearDown]
     public void StopApp()
     {
-        _factory.Dispose();
-        foreach (var suffix in new[] { "", "-shm", "-wal" })
+        try
         {
-            File.Delete(_dbPath + suffix);
+            _factory?.Dispose();
         }
-        Directory.Delete(_dataPath, recursive: true);
+        finally
+        {
+            if (_dbPath != null)
+            {
+                foreach (var suffix in new[] { "", "-shm", "-wal" })
+                {
+                    File.Delete(_dbPath + suffix);
+                }
+            }
+            if (_dataPath != null && Directory.Exists(_dataPath))
+            {
+                Directory.Delete(_dataPath, recursive: true);
+            }
+        }
     }
 
     // A port nothing is listening on: bind port 0, read what the OS picked, and let it go for Kestrel to take.
@@ -79,9 +94,9 @@ public class AcceptanceApp
     }
 
     // The tests drive the shipped bundle, not a dev server, so it has to exist first.
-    private void AssertBundleIsBuilt()
+    private static void AssertBundleIsBuilt(WebApplicationFactory<ApiMarker> factory)
     {
-        var webRoot = _factory.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        var webRoot = factory.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
         File.Exists(Path.Combine(webRoot ?? string.Empty, "index.html")).ShouldBeTrue(
             "The SPA bundle is missing. Build the client first: cd src/SlideWorks.Client && pnpm install && pnpm run build "
             + "(it emits into src/SlideWorks.WebApi/wwwroot).");

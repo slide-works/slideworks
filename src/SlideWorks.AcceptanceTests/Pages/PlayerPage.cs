@@ -114,6 +114,11 @@ public sealed class PlayerPage(IPage page)
     public async Task GotoAsync(string deckId, string? slug = null, string hash = "") =>
         await page.GotoAsync(PathFor(deckId, slug) + hash);
 
+    // Waits in the browser until slide {number}'s image has loaded and decoded, and fails if it can't (a broken image
+    // rejects decode()). The overflow probe counts an image that hasn't loaded, so call this before probing.
+    public async Task ImageLoadedAsync(int number) =>
+        (await Image(number).EvaluateAsync<int>("img => img.decode().then(() => img.naturalWidth)")).ShouldBeGreaterThan(0);
+
     // What slide {number} draws outside its frame or past its footer; empty when it fits.
     public Task<string[]> OverflowAsync(int number) => Slide(number).EvaluateAsync<string[]>(OVERFLOW_PROBE);
 
