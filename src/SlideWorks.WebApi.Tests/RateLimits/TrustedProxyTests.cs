@@ -52,11 +52,12 @@ public class TrustedProxyTests : ApiTestFixture
         (await _probe.SendAsync(endpoint, "::ffff:10.0.0.1", "198.51.100.4")).ShouldBe(RateLimitProbe.Served(endpoint));
     }
 
-    // A caller outside the trusted list, including the address next to the single trusted one, can't pick its own key.
+    // A caller outside the trusted list, including the address next to the single trusted one and loopback (which the
+    // framework would trust by default), can't pick its own key.
     [Test]
     public async Task Limit_WhenForwardedForFromUntrustedSource_ShouldIgnoreIt(
         [Values] LimitedEndpoint endpoint,
-        [Values("203.0.113.9", "2001:db8:ffff::2")] string remote)
+        [Values("203.0.113.9", "2001:db8:ffff::2", "127.0.0.1", "::1")] string remote)
     {
         var callers = Enumerable.Range(1, RateLimitProbe.BudgetOf(endpoint) + 1)
             .Select(i => ((string?)remote, (string?)$"198.51.100.{i}"))
