@@ -16,10 +16,10 @@ public static class TrustedProxiesSetup
 {
     public const string CONFIG_KEY = "SLIDEWORKS_TRUSTED_PROXIES";
 
-    // First in the pipeline, so everything after it, the rate limits included, sees the client's address.
-    public static WebApplication UseSlideWorksTrustedProxies(this WebApplication app)
+    // First in the pipeline, so everything after it, the rate limits included, sees the client's address. networks comes
+    // from Parse, which Program.cs calls before the migrations so a bad entry stops startup first.
+    public static WebApplication UseSlideWorksTrustedProxies(this WebApplication app, IReadOnlyList<IPNetwork> networks)
     {
-        var networks = Parse(app.Configuration[CONFIG_KEY]);
         if (networks.Count == 0)
         {
             return app;

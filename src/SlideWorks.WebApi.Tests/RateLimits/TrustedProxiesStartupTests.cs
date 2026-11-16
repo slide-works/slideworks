@@ -4,7 +4,7 @@ using SlideWorks.WebApi.Infrastructure.Setup;
 namespace SlideWorks.WebApi.Tests.RateLimits;
 
 // A SLIDEWORKS_TRUSTED_PROXIES entry that isn't a CIDR or a single address stops startup with a message naming it,
-// rather than trusting nothing (or everything) without a word.
+// rather than trusting nothing (or everything) without a word, and before the migrations touch the database.
 [TestFixture]
 public class TrustedProxiesStartupTests
 {
@@ -22,6 +22,7 @@ public class TrustedProxiesStartupTests
             var error = Should.Throw<Exception>(() => factory.Services);
 
             AllMessages(error).ShouldContain($"{TrustedProxiesSetup.CONFIG_KEY} has '", Case.Sensitive);
+            File.Exists(dbPath).ShouldBeFalse("a bad value must stop startup before the migrations create the database");
         }
         finally
         {

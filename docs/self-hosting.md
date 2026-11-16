@@ -100,7 +100,7 @@ The rate limits count an IPv4 client by its address and an IPv6 client by its /6
 SLIDEWORKS_TRUSTED_PROXIES=172.18.0.0/16
 ```
 
-When you trust a whole Docker network like this, don't publish port 8080 on every interface, or bind it to localhost only (`127.0.0.1:8080:8080`, as `docker-compose.yml` does). The proxy is then the only public way in. Under rootless Docker or Docker Desktop, a request sent straight to a published 8080 can arrive from an address inside the trusted network, and its own `X-Forwarded-For` would then pick its rate-limit key.
+When you trust a whole Docker network like this, either don't publish port 8080 at all, or publish it on localhost only (`127.0.0.1:8080:8080`, as `docker-compose.yml` does). Never publish it on every interface. The proxy is then the only way in from outside the host. Under rootless Docker or Docker Desktop, a request sent straight to a published 8080 can arrive from an address inside the trusted network, and its own `X-Forwarded-For` would then pick its rate-limit key.
 
 A Caddy example:
 
