@@ -17,7 +17,8 @@ import { stubDeckHub } from '../test-support/stubDeckHub';
 const route = { hooksConfig: { route: `/decks/${deckPage.id}` } };
 const deckPath = `/api/decks/${deckPage.id}`;
 
-// The owner's deck page shows the Look panel, which reads the catalogue from GET /api/looks.
+// The owner's deck page shows the Look panel, which reads the catalogue from GET /api/looks
+// and shows the deck's logo.
 const looks: LooksView = {
   templates: TEMPLATES.map(looksTemplateOf),
   palettes: PALETTES.map(looksPaletteOf),
@@ -25,6 +26,9 @@ const looks: LooksView = {
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/looks', (route) => route.fulfill({ json: looks }));
+  await page.route(`**${deckPage.look.logo!.url}`, (route) =>
+    route.fulfill({ path: 'src/test-support/fixtures/sample-image.png', contentType: 'image/png' }),
+  );
 });
 
 // A response held until release(), to land answers out of order.
