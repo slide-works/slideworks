@@ -35,12 +35,13 @@
 }
 
 /* The part's deep dives (the mockup's .dd-list), under the journey: an
-   uppercase 17 px label, then each headline in a pill outlined in the
-   deep-dive colour, 14 px apart. */
+   uppercase 17 px label, then the list, each headline in a pill outlined in
+   the deep-dive colour, 14 px apart. A pill is one line of at most 700 px, cut
+   off with an ellipsis, so the list's height is a whole number of 43 px rows;
+   DividerLayout.tsx drops pills (into '+N more') until it ends at y 996. */
 .deepDives {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: baseline;
   gap: 14px;
   margin-top: 50px;
   color: var(--sw-night-muted);
@@ -50,19 +51,27 @@
 }
 
 .deepDivesLabel {
+  flex: none;
   margin: 0;
 }
 
 .deepDiveList {
-  display: contents;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 
 .deepDiveList li {
-  max-width: 100%;
+  max-width: 700px;
   padding: 11px 18px;
-  overflow-wrap: anywhere;
+  overflow: hidden;
   border: 2px solid var(--sw-dd);
   border-radius: 999px;
   color: var(--sw-dd-on-night);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }

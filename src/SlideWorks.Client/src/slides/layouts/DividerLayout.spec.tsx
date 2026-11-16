@@ -77,6 +77,88 @@ test("a workshop divider lists its own part's deep dives under the journey", asy
   expect(box!.y + box!.height).toBeLessThanOrEqual(996);
 });
 
+// The worst cases for the list's fit: a two-line title, a sub and a four-part
+// journey above it.
+function crowded(deepDives: DeepDive[]): { slide: RenderableSlide; deck: SlideDeck } {
+  return {
+    slide: {
+      number: 7,
+      layout: 'divider',
+      part: 2,
+      deepDive: false,
+      slots: {
+        title: 'Slice the work thin enough to ship every week',
+        sub: 'How to cut work so each piece reaches a customer.',
+      },
+    },
+    deck: {
+      ...deckOn('workshop', deepDives),
+      parts: ['The cost', 'Slice it', 'Ship it', 'Keep going'],
+    },
+  };
+}
+
+function headlineOf(length: number, i: number): string {
+  return `${i + 1} ${'Deep dive headline words '.repeat(12)}`.slice(0, length);
+}
+
+const WORST_CASES: { name: string; deepDives: DeepDive[] }[] = [
+  {
+    name: 'three 78-character headlines',
+    deepDives: [0, 1, 2].map((i) => ({ part: 2, number: 8 + i, headline: headlineOf(78, i) })),
+  },
+  {
+    name: 'eight 16-character headlines',
+    deepDives: [0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({
+      part: 2,
+      number: 8 + i,
+      headline: headlineOf(16, i),
+    })),
+  },
+  {
+    name: 'one 266-character quote headline',
+    deepDives: [{ part: 2, number: 8, headline: headlineOf(266, 0) }],
+  },
+];
+
+for (const { name, deepDives } of WORST_CASES) {
+  test(`the deep-dive list ends by y 996 with one-line pills: ${name}`, async ({ mount, page }) => {
+    const { slide, deck } = crowded(deepDives);
+    await mount(<SlideRenderer slide={slide} deck={deck} total={16} step={0} />);
+
+    const list = page.getByTestId('divider-deep-dives');
+    await expect(list).toBeVisible();
+    await expect(page.getByTestId('divider-title')).toHaveCSS('font-size', '104px');
+    const title = await page.getByTestId('divider-title').boundingBox();
+    expect(title!.height).toBeGreaterThan(104 * 1.02 * 1.5);
+
+    // Every pill shown, and the '+N more' pill, is one 17 px line high.
+    const pills = list.locator('li');
+    await expect(pills.first()).toBeVisible();
+    for (const pill of await pills.all()) {
+      const box = await pill.boundingBox();
+      expect(box!.height).toBeLessThan(17 * 2 + 22);
+      expect(box!.width).toBeLessThanOrEqual(700);
+    }
+
+    // Every deep dive is counted: shown, or in '+N more'.
+    const shown = await list.getByTestId('divider-deep-dive').count();
+    const more = list.getByTestId('divider-deep-dives-more');
+    const hidden = (await more.count()) === 0 ? 0 : Number(/\d+/.exec(await more.innerText())![0]);
+    expect(shown + hidden).toBe(deepDives.length);
+    expect(shown).toBeLessThanOrEqual(6);
+
+    const box = await list.boundingBox();
+    expect(box!.y + box!.height).toBeLessThanOrEqual(996);
+  });
+}
+
+test("the deep-dive list is labelled by 'Deep dives'", async ({ mount, page }) => {
+  await mount(<SlideRenderer slide={divider(2)} deck={deckOn('workshop')} total={16} step={0} />);
+  await expect(page.getByRole('list', { name: 'Deep dives' })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Deep dives' }).getByRole('listitem')).toHaveCount(2);
+});
+
 test('a talk divider lists no deep dives', async ({ mount, page }) => {
   await mount(<SlideRenderer slide={divider(2)} deck={deckOn('talk')} total={16} step={0} />);
   await expect(page.getByTestId('layout-divider')).toBeVisible();
