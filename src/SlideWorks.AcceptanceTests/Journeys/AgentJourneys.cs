@@ -38,12 +38,10 @@ public class AgentJourneys : AcceptanceTest
         await using var agent = await AgentSession.ConnectAsync(_oauth, Page, TestUser.Sam);
         var deckId = await CreateDeckAsync(agent, "Live Activity");
         var deck = new DeckPage(Page);
-        var joined = DeckHubJoin.Watch(Page);
 
         await deck.GotoAsync(deckId);
         await Expect(deck.SlideCount).ToHaveTextAsync("0 slides");
         await Expect(deck.ActivityRows.First).ToContainTextAsync("Claude created the deck");
-        await joined();
         await AddQuoteAsync(agent, deckId, "Small batches make feedback cheap.");
 
         await Expect(deck.SlideCount).ToHaveTextAsync("1 slide");
@@ -51,6 +49,28 @@ public class AgentJourneys : AcceptanceTest
         await Expect(deck.ActivityRows).ToHaveCountAsync(2);
         await Expect(deck.ActivityRows.First).ToContainTextAsync("Claude added slide 1 (quote)");
         await Expect(deck.ActivityRows.First).ToContainTextAsync("via MCP add_slide");
+    }
+
+    // A change that lands after the deck page's first read but before it has joined the deck on /hubs/deck sends no
+    // event to the page. The page re-reads once it has joined, so the change still shows. The join is held by holding
+    // the hub's negotiate request.
+    [Test]
+    public async Task DeckPageShowsChangeMadeBeforeItJoined_WhenAgentChangesDeckWhileJoinIsHeld_ShouldShowItOnceJoined()
+    {
+        await using var agent = await AgentSession.ConnectAsync(_oauth, Page, TestUser.Sam);
+        var deckId = await CreateDeckAsync(agent, "Before The Join");
+        var deck = new DeckPage(Page);
+        var hub = await HeldNegotiate.RouteAsync(Page);
+
+        await deck.GotoAsync(deckId);
+        await Expect(deck.SlideCount).ToHaveTextAsync("0 slides");
+        await hub.AskedAsync(1);
+        await AddQuoteAsync(agent, deckId, "Joined late, still current.");
+        hub.Release();
+
+        await Expect(deck.SlideCount).ToHaveTextAsync("1 slide");
+        await Expect(deck.Thumbnails).ToHaveCountAsync(1);
+        await Expect(deck.ActivityRows.First).ToContainTextAsync("Claude added slide 1 (quote)");
     }
 
     [Test]
@@ -62,11 +82,9 @@ public class AgentJourneys : AcceptanceTest
         await AddQuoteAsync(agent, deckId, "Second, this one goes.");
         await AddQuoteAsync(agent, deckId, "Third, keep this one too.");
         var deck = new DeckPage(Page);
-        var joined = DeckHubJoin.Watch(Page);
 
         await deck.GotoAsync(deckId);
         await Expect(deck.Thumbnails).ToHaveCountAsync(3);
-        await joined();
         var deleted = await agent.CallAsync("delete_slide", new { deck = deckId, slide = 2 });
         deleted.GetProperty("slides").GetInt32().ShouldBe(2);
 
