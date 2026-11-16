@@ -18,7 +18,7 @@ public partial class SignInSmokeTests : AcceptanceTest
         await Expect(Page.GetByTestId("decks-page")).ToBeVisibleAsync();
         // The user menu shows the initials of the person /api/me returned, so the browser really is signed in as Sam Rivera.
         await Expect(Page.GetByTestId("user-menu")).ToHaveTextAsync("SR");
-        Page.Url.ShouldEndWith("/decks");
+        await Expect(Page).ToHaveURLAsync(Decks());
     }
 
     [Test]
@@ -28,9 +28,12 @@ public partial class SignInSmokeTests : AcceptanceTest
 
         await Expect(Page).ToHaveURLAsync(SignInWithReturnToDecks());
         await Expect(Page.GetByTestId("signin-page")).ToBeVisibleAsync();
-        (await Page.GetByTestId("app-shell").CountAsync()).ShouldBe(0);
+        await Expect(Page.GetByTestId("app-shell")).ToHaveCountAsync(0);
     }
 
     [GeneratedRegex(@"/signin\?returnTo=%2Fdecks$")]
     private static partial Regex SignInWithReturnToDecks();
+
+    [GeneratedRegex(@"/decks$")]
+    private static partial Regex Decks();
 }
