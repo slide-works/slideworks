@@ -210,6 +210,7 @@ describe('screen JSON examples', () => {
     expect(sorted(decksLibrary.connect)).toEqual(['mcpUrl', 'show']);
   });
 
+  // red until SW-64: deck-page.json gained revision, look and deepDive (SW-2 L6)
   it('deck-page.json matches DeckPageView', () => {
     expect(sorted(deckPage)).toEqual(DECK_PAGE);
     expect(deckPage.id).toMatch(DECK_ID);
@@ -226,6 +227,7 @@ describe('screen JSON examples', () => {
     }
   });
 
+  // red until SW-64: deck-play.json gained look and deepDive (SW-2 L6)
   it('deck-play.json matches DeckPlayView: title, practice and close, with no notes', () => {
     expect(sorted(deckPlay)).toEqual(DECK_PLAY);
     expect(deckPlay.id).toMatch(DECK_ID);
