@@ -88,8 +88,8 @@ public class McpToolErrorsTests : ApiTestFixture
         json.GetProperty("presenterId").GetGuid().ShouldBe(agent.PresenterId);
         json.GetProperty("email").GetString().ShouldBe(TestUser.Mira.Email);
         json.GetProperty("name").GetString().ShouldBe("Review Bot");
-        json.GetProperty("kind").GetString().ShouldBe("Agent");
-        json.GetProperty("via").GetString().ShouldBe("Mcp");
+        json.GetProperty("kind").GetString().ShouldBe("agent");
+        json.GetProperty("via").GetString().ShouldBe("mcp");
     }
 
     // POSTs tools/call to /mcp as an agent and returns the JSON-RPC result exactly as it came over the wire.

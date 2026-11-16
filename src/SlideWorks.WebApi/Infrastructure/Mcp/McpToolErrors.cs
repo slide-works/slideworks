@@ -13,7 +13,7 @@ public static class McpToolErrors
 {
     private static readonly JsonSerializerOptions JSON = new(JsonSerializerDefaults.Web)
     {
-        Converters = { new JsonStringEnumConverter() },
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false) },
     };
 
     public static async Task<CallToolResult> Run<T>(Func<Task<T>> work)

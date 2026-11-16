@@ -22,15 +22,6 @@ namespace SlideWorks.WebApi.Tests.Contracts;
 [TestFixture]
 public class ScreenRecordShapeTests : ApiTestFixture
 {
-    private static readonly string[] LIBRARY_NULLABLE =
-        ["decks[].subtitle", "decks[].lastChange", "sharedWithMe[].subtitle", "sharedWithMe[].lastChange"];
-
-    private static readonly JsonShapeOptions DECK_PAGE_SHAPE = new()
-    {
-        NullablePaths = ["slides[].part", "slides[].headline", "slides[].notes", "activity[].tool"],
-        OpaquePaths = ["slides[].slots"],
-    };
-
     [Test]
     public void DecksLibrary_ShouldMatchContract()
     {
@@ -39,35 +30,35 @@ public class ScreenRecordShapeTests : ApiTestFixture
             [
                 new DeckRow("7Kq2xYp9LmQa", "ship-smaller", "Ship smaller", "Team offsite · draft", 16,
                     LastChange.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "add_slide", "added slide 16")),
-                    "link", 0, "2 min ago", "/d/7Kq2xYp9LmQa/ship-smaller"),
+                    DeckSharing.Link, 0, "2 min ago", "/d/7Kq2xYp9LmQa/ship-smaller"),
                 new DeckRow("Q4pRv8sT2wXz", "q4-platform-review", "Q4 platform review", "Leadership update", 22,
                     LastChange.From(Entry("You", ActorKind.Person, ActorVia.Web, null, "changed sharing")),
-                    "named", 3, "1 h ago", "/d/Q4pRv8sT2wXz/q4-platform-review"),
+                    DeckSharing.Named, 3, "1 h ago", "/d/Q4pRv8sT2wXz/q4-platform-review"),
             ],
             [
                 SharedDeckRow.From(
                     new DeckRow("Ob3nWk1Jn9Ef", "onboarding-week-one", "Onboarding: week one", "For new joiners", 12,
                         LastChange.From(Entry("Cursor", ActorKind.Agent, ActorVia.Mcp, "set_notes", "updated notes")),
-                        "named", 5, "Yesterday", "/d/Ob3nWk1Jn9Ef/onboarding-week-one"),
+                        DeckSharing.Named, 5, "Yesterday", "/d/Ob3nWk1Jn9Ef/onboarding-week-one"),
                     "Alex Chen"),
             ],
             new ConnectAgent(Show: true, McpUrl: "https://slideworks.example/mcp"));
 
         var json = Serialise(view);
 
-        JsonShape.AssertMatches(json, "decks-library.json", LIBRARY_NULLABLE);
+        JsonShape.AssertMatches(json, "decks-library.json", ScreenShapes.DecksLibrary);
         SameJson(json, example).ShouldBeTrue(Differs(json, example));
     }
 
     [Test]
     public void DecksLibrary_WhenOptionalFieldsAreNull_ShouldMatchContract()
     {
-        var row = new DeckRow("7Kq2xYp9LmQa", "ship-smaller", "Ship smaller", null, 0, null, "private", 0, "just now", "/d/7Kq2xYp9LmQa/ship-smaller");
+        var row = new DeckRow("7Kq2xYp9LmQa", "ship-smaller", "Ship smaller", null, 0, null, DeckSharing.Private, 0, "just now", "/d/7Kq2xYp9LmQa/ship-smaller");
         var view = new DecksLibraryView([row], [SharedDeckRow.From(row, "Alex Chen")], new ConnectAgent(false, "https://slideworks.example/mcp"));
 
         var json = Serialise(view);
 
-        JsonShape.AssertMatches(json, "decks-library.json", LIBRARY_NULLABLE);
+        JsonShape.AssertMatches(json, "decks-library.json", ScreenShapes.DecksLibrary);
         json.GetProperty("sharedWithMe")[0].GetProperty("lastChange").ValueKind.ShouldBe(JsonValueKind.Null);
         json.GetProperty("decks")[0].GetProperty("sharing").GetString().ShouldBe("private");
     }
@@ -106,7 +97,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
 
         var json = Serialise(view);
 
-        JsonShape.AssertMatches(json, "deck-page.json", DECK_PAGE_SHAPE);
+        JsonShape.AssertMatches(json, "deck-page.json", ScreenShapes.DeckPage);
         SameJson(json, example).ShouldBeTrue(Differs(json, example));
     }
 
@@ -121,7 +112,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
 
         var json = Serialise(view);
 
-        JsonShape.AssertMatches(json, "deck-page.json", DECK_PAGE_SHAPE);
+        JsonShape.AssertMatches(json, "deck-page.json", ScreenShapes.DeckPage);
         json.GetProperty("slides")[0].GetProperty("headline").ValueKind.ShouldBe(JsonValueKind.Null);
         json.GetProperty("activity")[0].GetProperty("actorKind").GetString().ShouldBe("person");
         json.GetProperty("activity")[0].GetProperty("via").GetString().ShouldBe("web");
@@ -168,16 +159,16 @@ public class ScreenRecordShapeTests : ApiTestFixture
     {
         var example = Example("sharing.json");
         var view = new SharingView(
-            "named",
+            DeckSharing.Named,
             ["alex@team.example", "mira@team.example"],
             "https://slideworks.example/d/7Kq2xYp9LmQa/ship-smaller",
             SharingLastChange.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "set_sharing", "changed sharing"), "just now"));
 
         var json = Serialise(view);
 
-        JsonShape.AssertMatches(json, "sharing.json", "lastChange");
+        JsonShape.AssertMatches(json, "sharing.json", ScreenShapes.Sharing);
         SameJson(json, example).ShouldBeTrue(Differs(json, example));
-        JsonShape.AssertMatches(Serialise(view with { LastChange = null, Viewers = [] }), "sharing.json", "lastChange");
+        JsonShape.AssertMatches(Serialise(view with { LastChange = null, Viewers = [] }), "sharing.json", ScreenShapes.Sharing);
     }
 
     // The PUT body is { level, viewers }, read with the app's JSON options.
@@ -186,8 +177,18 @@ public class ScreenRecordShapeTests : ApiTestFixture
     {
         var update = JsonSerializer.Deserialize<SharingUpdate>("""{ "level": "named", "viewers": ["alex@team.example"] }""", AppJsonOptions())!;
 
-        update.Level.ShouldBe("named");
+        update.Level.ShouldBe(DeckSharing.Named);
         update.Viewers.ShouldBe(["alex@team.example"]);
+    }
+
+    // An enum is read by its wire name only: a number, or a number in a string, is not a level.
+    [TestCase("1")]
+    [TestCase("\"1\"")]
+    public void SharingUpdate_WhenLevelIsANumber_ShouldBeRefused(string level)
+    {
+        var body = $$"""{ "level": {{level}}, "viewers": [] }""";
+
+        Should.Throw<JsonException>(() => JsonSerializer.Deserialize<SharingUpdate>(body, AppJsonOptions()));
     }
 
     // GET /api/me is real already: the shape test checks the response, and the record with every field set.
@@ -196,7 +197,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
     {
         var response = await Client.GetFromJsonAsync<JsonElement>("/api/me");
 
-        JsonShape.AssertMatches(response, "me.json", "pictureUrl");
+        JsonShape.AssertMatches(response, "me.json", ScreenShapes.Me);
         var record = Serialise(new MeView("sam@team.example", "Sam Rivera", "https://slideworks.example/avatars/sam-rivera.png"));
         JsonShape.AssertMatches(record, "me.json");
         SameJson(record, Example("me.json")).ShouldBeTrue(Differs(record, Example("me.json")));

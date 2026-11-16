@@ -8,7 +8,7 @@ public sealed record SharedDeckRow(
     string? Subtitle,
     int SlideCount,
     LastChange? LastChange,
-    string Sharing,
+    DeckSharing Sharing,
     int ViewerCount,
     string UpdatedLabel,
     string PlayUrl,

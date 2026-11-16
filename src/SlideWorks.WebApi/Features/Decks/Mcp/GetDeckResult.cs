@@ -1,4 +1,3 @@
-using System.Text.Json;
 using SlideWorks.WebApi.Features.Slides;
 
 namespace SlideWorks.WebApi.Features.Decks.Mcp;
@@ -11,7 +10,7 @@ public sealed record GetDeckResult(
     string? Subtitle,
     string? Author,
     IReadOnlyList<string> Parts,
-    string Sharing,
+    DeckSharing Sharing,
     string Url,
     IReadOnlyList<GetDeckSlide> Slides)
 {
@@ -23,7 +22,7 @@ public sealed record GetDeckResult(
             deck.Subtitle,
             deck.Author,
             DeckParts.Read(deck),
-            JsonNamingPolicy.CamelCase.ConvertName(deck.Sharing.ToString()),
+            deck.Sharing,
             url,
             slides.Select(GetDeckSlide.From).ToList());
 }

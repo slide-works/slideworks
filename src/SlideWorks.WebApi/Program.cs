@@ -47,7 +47,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 // Realtime: DeckHub, fed by IDeckEvents through DeckEventsRelay (Realtime/).
 builder.Services.AddSignalR();
 builder.Services.AddControllers()
-    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase, allowIntegerValues: false)));
 builder.Services.AddHttpContextAccessor();
 // Authentication and MCP each live in their own setup file (Infrastructure/Setup/).
 builder.Services.AddSlideWorksAuth();
