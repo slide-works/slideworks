@@ -279,6 +279,56 @@ public class SlideValidatorTests
     }
 
     [Test]
+    public void Validate_WhenTableCellsWrapInNarrowColumns_ShouldSayTheyDoNotFit()
+    {
+        // 16 characters is about 240 px of 27 px text, so each cell wraps in a sixth of the table.
+        var row = """["the feedback arr", "change every day", "the feedback arr", "change every day", "the feedback arr", "change every day"]""";
+        var rows = string.Join(", ", Enumerable.Repeat(row, 6));
+
+        var result = Validate("table", $$"""{ "headline": "h", "columns": ["a", "b", "c", "d", "e", "f"], "rows": [{{rows}}] }""");
+
+        result.Error.ShouldStartWith("table.rows: too much text to fit on the slide");
+    }
+
+    [Test]
+    public void Validate_WhenTableCellsBreakBeforeALongWord_ShouldSayTheyDoNotFit()
+    {
+        // 24 characters fill a quarter of the table, but the line can only break before the long word.
+        var row = """["documentation infrastruc", "documentation infrastruc", "documentation infrastruc", "documentation infrastruc"]""";
+        var rows = string.Join(", ", Enumerable.Repeat(row, 6));
+
+        var result = Validate("table", $$"""{ "headline": "h", "columns": ["a", "b", "c", "d"], "rows": [{{rows}}] }""");
+
+        result.Error.ShouldStartWith("table.rows: too much text to fit on the slide");
+    }
+
+    [Test]
+    public void Validate_WhenWordsWrapToMoreLinesThanTheirLength_ShouldCountTheWrappedLines()
+    {
+        // 28 characters would pack into 2 lines of a sixth of the table, but no two of the words share a line.
+        var cell = "\"shipments deadlines releases\"";
+        var row = "[" + string.Join(", ", Enumerable.Repeat(cell, 6)) + "]";
+        var rows = string.Join(", ", Enumerable.Repeat(row, 4));
+
+        var result = Validate("table", $$"""{ "headline": "h", "columns": ["a", "b", "c", "d", "e", "f"], "rows": [{{rows}}] }""");
+
+        result.Error.ShouldStartWith("table.rows: too much text to fit on the slide");
+    }
+
+    [Test]
+    public void Validate_WhenTableCellsAreShortPhrases_ShouldFit()
+    {
+        var row = """["Under a day", "Minutes", "Flip a flag", "Same week", { "text": "Great", "tone": "info" }]""";
+        var rows = string.Join(", ", Enumerable.Repeat(row, 6));
+
+        var result = Validate("table", $$"""
+            { "headline": "h", "columns": ["Slice size", "Review time", "Rollback", "Customer feedback", "Verdict"], "rows": [{{rows}}] }
+            """);
+
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Test]
     public void Validate_WhenPracticeDoCardsWrapPastTheSlide_ShouldSayTheyDoNotFit()
     {
         var item = $$"""{ "lead": "{{new string('x', 50)}}", "text": "{{new string('y', 120)}}" }""";

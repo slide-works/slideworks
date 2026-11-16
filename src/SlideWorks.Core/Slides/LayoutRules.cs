@@ -120,11 +120,12 @@ internal static class LayoutRules
             return;
         }
 
-        // table.st: 1680 px across the columns, 30 px cell padding each side, 27 px/1.3 cells with 22 px
-        // top and bottom padding; the header is 17 px uppercase with letter-spacing.
+        // table.st: 1680 px across the columns (taken as an even split), 30 px cell padding each side,
+        // 27 px/1.3 cells with 22 px top and bottom padding and a 1 px top border; the header is 17 px/1
+        // uppercase with letter-spacing in the same padding.
         var cellWidth = (1680.0 / columns) - 60;
         var header = slots.GetProperty("columns").EnumerateArray().Max(c => SlideFit.Lines(c.GetString()!, cellWidth, 17, 0.75)) * 17;
-        var body = rows.EnumerateArray().Sum(row => 45 + (row.EnumerateArray().Max(c => SlideFit.Lines(SlideFit.Words(c), cellWidth, 27, SlideFit.BODY_EM)) * 35.1));
+        var body = rows.EnumerateArray().Sum(row => 45 + (row.EnumerateArray().Max(c => SlideFit.Lines(SlideFit.Words(c), cellWidth, 27, SlideFit.CELL_EM)) * 35.1));
         SlideFit.Check(44 + header + body, $"{path}.rows", validation);
     }
 

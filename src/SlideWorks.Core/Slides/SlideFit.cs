@@ -4,9 +4,10 @@ using System.Text.Json;
 namespace SlideWorks.Core.Slides;
 
 // Rough text fitting against the default theme's 1920×1080 slide (design/sw-1-foundation mockups).
-// A line holds width / (font size × average glyph width) characters: about 0.5 em for the Inter body
-// text and 0.56 em for the bold Plus Jakarta Sans headings. The estimates err on the side of wrapping
-// early, so a slide that passes fits.
+// A line holds width / (font size × average glyph width) whole characters: about 0.5 em for the Inter
+// body text, 0.56 em for the bold Plus Jakarta Sans headings and for table cells (rendered cells fill
+// to about 0.55 em). Text wraps word by word, as the browser breaks it, and spaces count as whole
+// characters. The estimates err on the side of wrapping early, so a slide that passes fits.
 internal static class SlideFit
 {
     // Content slides: the 1680×810 box under the 150 px top padding, less the kicker (42 px), a two-line
@@ -17,8 +18,35 @@ internal static class SlideFit
     public const double BODY_EM = 0.5;
     public const double HEAD_EM = 0.56;
 
-    public static int Lines(string text, double width, double fontSize, double em) =>
-        Math.Max(1, (int)Math.Ceiling(TextSlot.Length(text) * fontSize * em / width));
+    public const double CELL_EM = 0.56;
+
+    // Greedy word wrap: a word that doesn't fit after the last one starts the next line, and a word
+    // longer than a whole line breaks across lines.
+    public static int Lines(string text, double width, double fontSize, double em)
+    {
+        var perLine = Math.Max(1, (int)(width / (fontSize * em)));
+        var lines = 1;
+        var used = 0;
+        foreach (var length in text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Select(TextSlot.Length))
+        {
+            if (used > 0 && used + 1 + length <= perLine)
+            {
+                used += 1 + length;
+                continue;
+            }
+
+            if (used > 0)
+            {
+                lines++;
+            }
+
+            var extra = (length - 1) / perLine;
+            lines += extra;
+            used = length - (extra * perLine);
+        }
+
+        return lines;
+    }
 
     // The words of a text-or-object item: "text", or the lead and text of {lead, text}, or a cell's text.
     public static string Words(JsonElement item) => item.ValueKind == JsonValueKind.String
