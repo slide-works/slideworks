@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/experimental-ct-react';
-import type { Page } from 'playwright/test';
+import type { Locator, Page } from 'playwright/test';
 import { sampleDeck } from '../../test-support/fixtures/screens';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { SlideDeck } from '../slots';
@@ -58,6 +58,15 @@ async function lineCount(page: Page, testId: string, lineHeight: number): Promis
     .getByTestId(testId)
     .evaluate((element: Element) => (element as HTMLElement).offsetHeight);
   return Math.round(height / (size * lineHeight));
+}
+
+// How many 18 px/1.25 lines each journey part name takes.
+async function nameLines(names: Locator): Promise<number[]> {
+  await names.page().evaluate(() => document.fonts.ready);
+  const heights = await names.evaluateAll((elements) =>
+    elements.map((element) => (element as HTMLElement).offsetHeight),
+  );
+  return heights.map((height) => Math.round(height / (18 * 1.25)));
 }
 
 type Box = { left: number; top: number; right: number; bottom: number };
@@ -215,6 +224,12 @@ test('quote and attribution', async ({ mount, page }) => {
   );
   await expect(page.getByTestId('quote-attribution')).toHaveText('Team lead, payments squad');
   await expect(page.getByTestId('slide-footer')).toBeVisible();
+  // The quote opens with the shared Kicker block: 20 px/1 at the content top.
+  const frame = (await page.getByTestId('slide-frame').boundingBox())!;
+  const kicker = (await page.getByTestId('quote-kicker').boundingBox())!;
+  expect(kicker.y - frame.y).toBe(150);
+  expect(kicker.height).toBe(20);
+  expect(await fontSize(page, 'quote-kicker')).toBe(20);
 });
 
 test('big number value caption source', async ({ mount, page }) => {
@@ -290,6 +305,30 @@ test('the value fits once a thumbnail that starts at scale 0 gets its scale', as
   expect(box.x + box.width).toBeLessThanOrEqual(column.x + column.width);
 });
 
+test('the value fits once a thumbnail hidden for 2 s is shown', async ({ mount, page }) => {
+  // A slide inside a display: none container has no layout size to fit
+  // against, so the fit waits for one however long that takes; it used to
+  // give up after about a second.
+  const slide = { ...sample(4), slots: { ...(sample(4).slots as object), value: '888888' } };
+  await mount(
+    <div data-testid="thumb" style={{ display: 'none' }}>
+      {render(slide as RenderableSlide)}
+    </div>,
+  );
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(2000);
+  expect(await fontSize(page, 'big-number-value')).toBe(300);
+
+  await page.getByTestId('thumb').evaluate((thumb: HTMLElement) => {
+    thumb.style.display = 'block';
+  });
+
+  await expect.poll(() => fontSize(page, 'big-number-value')).toBeLessThan(300);
+  const column = (await page.getByTestId('big-number-column').boundingBox())!;
+  const box = (await page.getByTestId('big-number-value').boundingBox())!;
+  expect(box.x + box.width).toBeLessThanOrEqual(column.x + column.width);
+});
+
 test('each layout root carries the sw-layout seam, and big-number its sw-body', async ({
   mount,
   page,
@@ -344,6 +383,39 @@ test.describe('max-length text stays inside 1920x1080', () => {
       expect(stamp.y + stamp.height).toBeLessThanOrEqual(kicker.y);
     });
 
+    if (letters === 'wide letters') {
+      // Every slot at its longest in capital W alone, the widest text there is:
+      // the subtitle then takes four lines at 52 px and pushed the byline to
+      // y 1055 before it had a fit.
+      test('title in capital W', async ({ mount, page }) => {
+        const w = (length: number) => 'W'.repeat(length);
+        await mount(
+          render({
+            number: 1,
+            layout: 'title',
+            part: null,
+            slots: {
+              kicker: w(40),
+              title: w(34),
+              subtitle: w(100),
+              tagline: w(90),
+              author: w(60),
+              affiliation: w(60),
+              stamp: w(16),
+            },
+          }),
+        );
+
+        const box = await drawnBox(page, 'layout-title', '[data-testid="block-stamp"]');
+        expectInsideContent(box);
+        // The subtitle is held to three lines, from 52 px down to 36 px.
+        const size = await fontSize(page, 'title-subtitle');
+        expect(size).toBeLessThan(52);
+        expect(size).toBeGreaterThanOrEqual(36);
+        expect(await lineCount(page, 'title-subtitle', 1.15)).toBeLessThanOrEqual(3);
+      });
+    }
+
     test(`divider with eight long parts in ${letters}`, async ({ mount, page }) => {
       const parts = Array.from({ length: 8 }, () => text(40));
       await mount(
@@ -363,6 +435,14 @@ test.describe('max-length text stays inside 1920x1080', () => {
       // A long part name is cut to two lines; the whole name is its title.
       const name = page.getByTestId('journey-part').first().locator('b');
       await expect(name).toHaveAttribute('title', parts[0]);
+      const names = page.getByTestId('journey-part').locator('b');
+      expect(Math.max(...(await nameLines(names)))).toBeLessThanOrEqual(2);
+      // The probe: unclamped, the same names run past two lines, so the
+      // measure above would catch a lost clamp.
+      await names.evaluateAll((elements) => {
+        for (const element of elements) (element as HTMLElement).style.webkitLineClamp = '99';
+      });
+      expect(Math.max(...(await nameLines(names)))).toBeGreaterThan(2);
     });
 
     test(`close in ${letters}`, async ({ mount, page }) => {
