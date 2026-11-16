@@ -48,6 +48,9 @@ public partial class SharingJourneys : AcceptanceTest
         await dialog.Save.ClickAsync();
         await Expect(deck.SharingLevel).ToHaveTextAsync("1 named viewer");
 
+        // Leave the deck page before swapping the session: a re-read it still has out (on join, or on the DeckChanged the
+        // save publishes) could land after the swap and send the page away, aborting the next navigation.
+        await Page.GotoAsync("about:blank");
         await Page.Context.ClearCookiesAsync();
         await SignIn.AsAsync(Page, TestUser.Alex);
         var decks = new DecksPage(Page);
@@ -62,6 +65,7 @@ public partial class SharingJourneys : AcceptanceTest
         await Expect(Page).ToHaveURLAsync(new Regex($"/d/{deckId}/"));
         await Expect(player.Player).ToHaveAttributeAsync("aria-label", title);
 
+        await Page.GotoAsync("about:blank");
         await Page.Context.ClearCookiesAsync();
         await SignIn.AsAsync(Page, TestUser.Mira);
         await player.GotoAsync(deckId);
