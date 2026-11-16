@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Realtime;
+using SlideWorks.WebApi.Tests.Sharing;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Realtime;
 
 // /hubs/deck end to end: an event published on IDeckEvents reaches, over a real WebSocket, the connections that joined
-// its deck and no others.
+// its deck and no others. JoinDeck checks IDeckAccess, so the decks joined here are real ones their joiner owns
+// (DeckHubAccessTests covers who else may join).
 [TestFixture]
 [CancelAfter(30000)]
 public class DeckHubTests : ApiTestFixture
@@ -30,7 +32,7 @@ public class DeckHubTests : ApiTestFixture
     [Test]
     public async Task Publish_WhenEventOnBus_ShouldReachConnectionsThatJoinedThatDeckOnly()
     {
-        var (deckA, deckB) = (TestDeckIds.New(), TestDeckIds.New());
+        var (deckA, deckB) = (await OwnDeckAsync(Client), await OwnDeckAsync(Client));
         var onA = await JoinedAsync(deckA);
         var onB = await JoinedAsync(deckB);
         var notJoined = await ConnectAsync();
@@ -49,7 +51,7 @@ public class DeckHubTests : ApiTestFixture
     [Test]
     public async Task Publish_WhenEventOnBus_ShouldSendTheTypeDiscriminatedJson()
     {
-        var deck = TestDeckIds.New();
+        var deck = await OwnDeckAsync(Client);
         var receiver = await JoinedAsync(deck);
 
         await Bus.PublishAsync(new DeckChanged(deck));
@@ -62,7 +64,7 @@ public class DeckHubTests : ApiTestFixture
     [Test]
     public async Task LeaveDeck_WhenCalled_ShouldStopThatDecksEvents()
     {
-        var (left, kept) = (TestDeckIds.New(), TestDeckIds.New());
+        var (left, kept) = (await OwnDeckAsync(Client), await OwnDeckAsync(Client));
         var leaver = await JoinedAsync(left, kept);
         await leaver.Connection.InvokeAsync("LeaveDeck", left);
 
@@ -72,8 +74,8 @@ public class DeckHubTests : ApiTestFixture
         DeckIdOf(await leaver.NextAsync()).ShouldBe(kept);
     }
 
-    // Anyone may connect (K1): a viewer of a link-shared deck has no session. JoinDeck decides, and for now it refuses
-    // an anonymous caller exactly as it would an unknown deck.
+    // Anyone may connect (K1): a viewer of a link-shared deck has no session. JoinDeck decides, and refuses an unknown
+    // deck.
     [Test]
     public async Task DeckHub_WhenAnonymousJoins_ShouldThrowDeckNotFound()
     {
@@ -85,11 +87,12 @@ public class DeckHubTests : ApiTestFixture
         refused.Message.ShouldContain(DeckHub.DECK_NOT_FOUND);
     }
 
-    // The anonymous join is refused by JoinDeck, not by the connection: a signed-in connection still joins.
+    // The anonymous join is refused by JoinDeck, not by the connection: a signed-in connection still joins its own deck.
     [Test]
     public async Task Connect_WhenSignedInAsAnotherPerson_ShouldJoinAndReceive()
     {
-        var deck = TestDeckIds.New();
+        using var alexClient = ClientFor(TestUser.Alex);
+        var deck = await OwnDeckAsync(alexClient);
         var alex = await HubReceiver.StartAsync(Factory, TestUser.Alex);
         _receivers.Add(alex);
         await alex.Connection.InvokeAsync("JoinDeck", deck);
@@ -98,6 +101,8 @@ public class DeckHubTests : ApiTestFixture
 
         DeckIdOf(await alex.NextAsync()).ShouldBe(deck);
     }
+
+    private static Task<string> OwnDeckAsync(HttpClient owner) => SharingApi.CreateDeckAsync(owner, "Live deck");
 
     private async Task<HubReceiver> ConnectAsync()
     {
