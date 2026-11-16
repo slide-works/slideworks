@@ -9,7 +9,7 @@ import styles from './DividerLayout.module.css';
 export function DividerLayout({ slots, deck }: LayoutProps<'divider'>) {
   const part = useSlidePart();
   return (
-    <div data-testid="layout-divider" className={styles.divider}>
+    <div data-testid="layout-divider" className={`sw-layout ${styles.divider}`}>
       {part !== null ? (
         <p data-testid="divider-number" className={styles.number}>
           {String(part).padStart(2, '0')}

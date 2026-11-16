@@ -6,7 +6,7 @@ import styles from './CloseLayout.module.css';
 export function CloseLayout({ slots }: LayoutProps<'close'>) {
   const lines = slots.headline.split('\n');
   return (
-    <div data-testid="layout-close" className={styles.close}>
+    <div data-testid="layout-close" className={`sw-layout ${styles.close}`}>
       <h2 data-testid="close-headline" className={styles.heading}>
         {lines.map((line, index) => (
           <span key={index} data-testid="close-line" className={styles.line}>

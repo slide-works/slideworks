@@ -216,6 +216,20 @@ test('big number shrinks a 6-digit value to fit its column', async ({ mount, pag
   expectInsideContent(await drawnBox(page, 'layout-big-number'));
 });
 
+test('each layout root carries the sw-layout seam, and big-number its sw-body', async ({
+  mount,
+  page,
+}) => {
+  const layouts = { 1: 'title', 2: 'divider', 4: 'big-number', 6: 'quote', 16: 'close' };
+  for (const [number, layout] of Object.entries(layouts)) {
+    const component = await mount(render(sample(Number(number))));
+    await expect(page.getByTestId(`layout-${layout}`)).toHaveClass(/(^| )sw-layout( |$)/);
+    await component.unmount();
+  }
+  await mount(render(sample(4)));
+  await expect(page.locator('[data-testid="layout-big-number"] > .sw-body')).toHaveCount(1);
+});
+
 test.describe('max-length text stays inside 1920x1080', () => {
   test('title', async ({ mount, page }) => {
     await mount(

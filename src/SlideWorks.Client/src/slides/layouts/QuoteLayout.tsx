@@ -5,7 +5,7 @@ import styles from './QuoteLayout.module.css';
 // layout adds the quotation marks.
 export function QuoteLayout({ slots }: LayoutProps<'quote'>) {
   return (
-    <div data-testid="layout-quote" className={styles.body}>
+    <div data-testid="layout-quote" className={`sw-layout ${styles.body}`}>
       {slots.kicker !== undefined ? (
         <p data-testid="quote-kicker" className={styles.kicker}>
           {slots.kicker}

@@ -1,11 +1,4 @@
 /* The quote slide (the mockup's .quote), in canvas px. */
-.body {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-}
-
 .kicker {
   margin: 0 0 22px;
   color: var(--sw-accent);

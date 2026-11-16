@@ -1,11 +1,7 @@
-/* The title slide (the mockup's .sw.title), in canvas px. The frame is dark and
-   centres nothing itself, so this body fills it and centres its content. */
+/* The title slide (the mockup's .sw.title), in canvas px. The root also has the
+   frame's sw-layout class, which makes it fill the frame as a flex column. */
 .title {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
   justify-content: center;
-  min-height: 0;
   padding-left: 40px;
 }
 

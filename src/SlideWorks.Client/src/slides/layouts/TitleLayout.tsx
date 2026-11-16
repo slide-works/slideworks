@@ -47,7 +47,7 @@ export function TitleLayout({ slots }: LayoutProps<'title'>) {
   const { kicker, title, subtitle, tagline, author, affiliation, stamp } = slots;
   const titleRef = useTwoLineTitle(title);
   return (
-    <div data-testid="layout-title" className={styles.title}>
+    <div data-testid="layout-title" className={`sw-layout ${styles.title}`}>
       {stamp !== undefined ? <Stamp text={stamp} /> : null}
       <div className={styles.dots} aria-hidden="true">
         <i />

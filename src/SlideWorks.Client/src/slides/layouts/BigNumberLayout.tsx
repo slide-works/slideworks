@@ -61,7 +61,7 @@ export function BigNumberLayout({ slots }: LayoutProps<'big-number'>) {
   const [number, unit] = splitValue(value);
   const { columnRef, valueRef } = useFitToColumn(value);
   return (
-    <div data-testid="layout-big-number" className={styles.body}>
+    <div data-testid="layout-big-number" className={`sw-layout ${styles.body}`}>
       {kicker !== undefined ? (
         <p data-testid="big-number-kicker" className={styles.kicker}>
           {kicker}
@@ -70,7 +70,7 @@ export function BigNumberLayout({ slots }: LayoutProps<'big-number'>) {
       <h2 data-testid="big-number-headline" className={styles.headline}>
         {headline}
       </h2>
-      <div className={styles.grid}>
+      <div className={`sw-body ${styles.grid}`}>
         <div ref={columnRef} data-testid="big-number-column" className={styles.column}>
           <span ref={valueRef} data-testid="big-number-value" className={styles.value}>
             {number}
