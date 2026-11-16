@@ -94,6 +94,22 @@ public class AgentTokensContractTests : OAuthContractFixture
         (await RefreshAsync(tokens.RefreshToken, other.ClientId)).ShouldBeNull();
     }
 
+    // D4: a refresh by the wrong client is refused without spending the token or revoking the family, so it is not a way
+    // for another client to knock the owner's agent out.
+    [Test]
+    public async Task Refresh_WhenAnotherClientTriedFirst_ShouldStillRotateForTheOwner()
+    {
+        var (client, _, tokens) = await IssueTokensAsync();
+        var other = await RegisterClientAsync("Another Agent");
+        (await RefreshAsync(tokens.RefreshToken, other.ClientId)).ShouldBeNull();
+
+        (await ValidateAsync(tokens.AccessToken)).ShouldNotBeNull("the family should not be revoked");
+        var rotated = await RefreshAsync(tokens.RefreshToken, client.ClientId);
+
+        rotated.ShouldNotBeNull("the refresh token should not be spent");
+        (await ValidateAsync(rotated.AccessToken)).ShouldNotBeNull();
+    }
+
     [Test]
     public async Task Refresh_WhenGivenTheAccessToken_ShouldReturnNull()
     {

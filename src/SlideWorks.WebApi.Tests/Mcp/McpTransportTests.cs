@@ -117,14 +117,40 @@ public class McpTransportTests : ApiTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
+    // Two Authorization headers are ambiguous, so neither is trusted, even when both carry the valid token.
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Mcp_WhenTwoAuthorizationHeaders_ShouldReturn401(bool bothValid)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var second = bothValid ? agent.Tokens.AccessToken : "junk";
+
+        using var response = await PostInitializeAsync(request =>
+            request.Headers.TryAddWithoutValidation("Authorization", [$"Bearer {agent.Tokens.AccessToken}", $"Bearer {second}"]).ShouldBeTrue());
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    // The token is read from the Authorization header only, never from the query string, where it would end up in logs.
+    [Test]
+    public async Task Mcp_WhenTokenOnlyInTheQueryString_ShouldReturn401()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        using var response = await PostInitializeAsync(path: $"/mcp?access_token={Uri.EscapeDataString(agent.Tokens.AccessToken)}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        response.Headers.WwwAuthenticate.ToString().ShouldBe(RESOURCE_METADATA);
+    }
+
     private static Action<HttpRequestMessage> Bearer(string token)
         => request => request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
     // A bare client: the fixture's Client is signed in as a person, which must not be in play here.
-    private async Task<HttpResponseMessage> PostInitializeAsync(Action<HttpRequestMessage>? configure = null)
+    private async Task<HttpResponseMessage> PostInitializeAsync(Action<HttpRequestMessage>? configure = null, string path = "/mcp")
     {
         using var http = Factory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/mcp")
+        using var request = new HttpRequestMessage(HttpMethod.Post, path)
         {
             Content = new StringContent(
                 """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}""",
