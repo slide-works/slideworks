@@ -1,0 +1,123 @@
+/* The 1200×630 share card (SW-2 mockups, section 09). Every colour and font is
+   a --sw- token: the deck's look on a deck card, tokens.css's defaults on the
+   generic one. */
+.card {
+  position: relative;
+  box-sizing: border-box;
+  width: 1200px;
+  height: 630px;
+  overflow: hidden;
+  padding: 64px 72px;
+  display: flex;
+  flex-direction: column;
+  color: var(--sw-night-ink);
+  font-family: var(--sw-font-body);
+  background:
+    radial-gradient(
+      700px 480px at 92% 120%,
+      color-mix(in srgb, var(--sw-night-glow) 55%, transparent),
+      transparent 62%
+    ),
+    var(--sw-night);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 10px;
+  background: var(--sw-accent);
+}
+
+.art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.art path {
+  fill: none;
+  stroke: var(--sw-accent-glow);
+  stroke-width: 2.4;
+}
+
+.card > :not(.art) {
+  position: relative;
+  z-index: 1;
+}
+
+.kicker {
+  font: 700 22px/1 var(--sw-font-body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sw-accent-glow);
+}
+
+.title {
+  margin: 26px 0 0;
+  font-family: var(--sw-font-head);
+  font-size: 110px;
+  line-height: 1;
+  font-weight: var(--sw-head-weight, 800);
+  letter-spacing: calc(var(--sw-head-tracking, -0.025em) * 1.4);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.subtitle {
+  margin: 22px 0 0;
+  max-width: 950px;
+  font: 400 34px/1.3 var(--sw-font-body);
+  color: var(--sw-night-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 32px;
+  font: 500 24px/1 var(--sw-font-body);
+  color: var(--sw-night-2);
+}
+
+.footer b {
+  color: var(--sw-night-ink);
+  font-weight: 700;
+}
+
+.swatch {
+  display: flex;
+  gap: 8px;
+}
+
+.swatch i {
+  width: 64px;
+  height: 36px;
+  border-radius: 5px;
+  background: var(--sw-paper);
+  box-shadow: inset 0 4px 0 var(--sw-accent);
+  opacity: 0.9;
+}
+
+.swatch i:nth-child(2) {
+  opacity: 0.7;
+}
+
+.swatch i:nth-child(3) {
+  opacity: 0.5;
+}
+
+.logo {
+  height: 40px;
+  width: auto;
+}
