@@ -3,22 +3,28 @@ services:
     build: .
     ports:
       - "8080:8080"
+    # Set the values in an untracked .env next to this file. docs/self-hosting.md
+    # describes every setting.
     environment:
-      # Set in an untracked .env next to this file. Empty/unset token means the
-      # app fails closed (everything except /health rejected).
-      - SLIDEWORKS_API_TOKEN=${SLIDEWORKS_API_TOKEN:-}
-      - SLIDEWORKS_API_EXTRA_TOKENS=${SLIDEWORKS_API_EXTRA_TOKENS:-}
-      - SLIDEWORKS_DB_PATH=/data/slide-works.db
       # Required: the URL people and agents reach SlideWorks at (links, MCP and
-      # OAuth metadata are built from it). The app refuses to start without it.
+      # OAuth metadata and the sign-in callback are built from it). The app
+      # refuses to start without it.
       - SLIDEWORKS_PUBLIC_URL=${SLIDEWORKS_PUBLIC_URL:-}
-      # Console only until these are set; on the home stack Seq is
-      # http://seq:5341 on arrnet.
+      # Sign in with Google: on only when both are set. Register
+      # <SLIDEWORKS_PUBLIC_URL>/signin-google as the client's redirect URI.
+      - SLIDEWORKS_GOOGLE_CLIENT_ID=${SLIDEWORKS_GOOGLE_CLIENT_ID:-}
+      - SLIDEWORKS_GOOGLE_CLIENT_SECRET=${SLIDEWORKS_GOOGLE_CLIENT_SECRET:-}
+      # The first admin's Google email, honoured only while no admin exists.
+      - SLIDEWORKS_ADMIN_EMAIL=${SLIDEWORKS_ADMIN_EMAIL:-}
+      - SLIDEWORKS_DB_PATH=/data/slide-works.db
+      # Uploaded images go under images/<deck id>/ here.
+      - SLIDEWORKS_DATA_PATH=/data
+      # Console only until SLIDEWORKS_SEQ_URL is set.
       - SLIDEWORKS_SEQ_URL=${SLIDEWORKS_SEQ_URL:-}
       - SLIDEWORKS_SEQ_API_KEY=${SLIDEWORKS_SEQ_API_KEY:-}
     volumes:
-      # Named volume: stays on the WSL2 ext4 disk. Never switch this to a bind
-      # mount on a NAS/Windows path — SQLite corrupts over 9p/SMB under lock
+      # Named volume on a local disk. Never switch this to a bind mount on a
+      # network share (NFS, SMB, 9p): SQLite corrupts there under lock
       # contention. Back it up with `sqlite3 .backup` instead.
       - slide-works-data:/data
 
