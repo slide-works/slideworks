@@ -1,5 +1,8 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Features.Accounts;
+using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Infrastructure.Identity.Google;
 
 namespace SlideWorks.WebApi.Tests.Identity.Google;
@@ -22,6 +25,34 @@ public class GoogleSignInTests : GoogleSignInFixture
         me.GetProperty("email").GetString().ShouldBe("new.person@example.test");
         me.GetProperty("name").GetString().ShouldBe("New Person");
         me.GetProperty("pictureUrl").GetString().ShouldBe("https://images.example/p.png");
+    }
+
+    // A first sign-in asks for access: the person is stored Pending and still gets a session, so the app can show them
+    // the waiting page and let them sign out.
+    [Test]
+    public async Task SignIn_WhenNewEmail_ShouldCreatePendingUser()
+    {
+        using var browser = Browser();
+
+        using var response = await SignInAsync(browser, "sub-pending", "pending.person@example.test");
+
+        response.Headers.Location!.OriginalString.ShouldBe("/decks");
+        await MeAsync(browser);
+        (await StoredAsync("pending.person@example.test")).Access.ShouldBe(UserAccess.Pending);
+    }
+
+    [Test]
+    public async Task SignIn_WhenRejected_ShouldRedirectNotApproved()
+    {
+        using var first = Browser();
+        using var firstSignIn = await SignInAsync(first, "sub-rejected", "rejected@example.test");
+        await RejectAsync("rejected@example.test");
+        using var browser = Browser();
+
+        using var response = await SignInAsync(browser, "sub-rejected", "rejected@example.test");
+
+        response.Headers.Location!.OriginalString.ShouldBe("/signin?error=not_approved&returnTo=%2Fdecks");
+        await ShouldHaveNoSessionAsync(browser);
     }
 
     [Test]
@@ -221,5 +252,21 @@ public class GoogleSignInTests : GoogleSignInFixture
         var options = JsonDocument.Parse(await browser.GetStringAsync("/api/signin/options")).RootElement;
 
         options.GetProperty("google").GetBoolean().ShouldBeTrue();
+    }
+
+    // Reads the stored person through IUserDirectory: their access isn't on any HTTP response yet.
+    private async Task<User> StoredAsync(string email)
+    {
+        using var scope = Factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<IUserDirectory>().FindByEmailAsync(email)
+            ?? throw new InvalidOperationException($"{email} was not stored.");
+    }
+
+    // An admin's rejection, through IUserAccounts as TestPeople approves people: there is no admin route to call yet.
+    private async Task RejectAsync(string email)
+    {
+        var user = await StoredAsync(email);
+        using var scope = Factory.Services.CreateScope();
+        (await scope.ServiceProvider.GetRequiredService<IUserAccounts>().RejectAsync(user.Id, by: null)).ShouldBe(AccountChange.Changed);
     }
 }

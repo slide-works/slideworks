@@ -19,6 +19,20 @@ public class SignOutTests : GoogleSignInFixture
         await ShouldHaveNoSessionAsync(browser);
     }
 
+    // Every Google sign-in above is a new, pending person, so this is the pending case; it names it so a later policy
+    // that admits only approved people can't take sign-out away from them.
+    [Test]
+    public async Task SignOut_WhenPending_ShouldWork()
+    {
+        using var browser = Browser();
+        using var signIn = await SignInAsync(browser, "sub-pending-out", "pending.out@example.test");
+
+        using var response = await browser.PostAsync("/api/signout", content: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        await ShouldHaveNoSessionAsync(browser);
+    }
+
     [Test]
     public async Task SignOut_WhenFromAnotherSite_ShouldBeRefusedAndKeepSession()
     {

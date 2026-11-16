@@ -3,6 +3,7 @@ using Agoda.IoC.Core;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using SlideWorks.WebApi.Features.Accounts;
 
 namespace SlideWorks.WebApi.Infrastructure.Identity.Google;
 
@@ -58,17 +59,17 @@ public sealed class GoogleSignInEvents(IUserDirectory users, ILogger<GoogleSignI
             return;
         }
         var user = await users.UpsertAsync(subject, email, claims.FindFirstValue(NAME_CLAIM) ?? email, claims.FindFirstValue(PICTURE_CLAIM));
-        // TODO: built by hand until SessionPrincipal.For lands; it replaces this and adds the access claims.
-        var session = new ClaimsPrincipal(new ClaimsIdentity(
-            [
-                new Claim(SlideWorksClaims.PRESENTER_ID, user.Id.ToString()),
-                new Claim(SlideWorksClaims.EMAIL, user.Email),
-                new Claim(SlideWorksClaims.NAME, user.Name),
-                new Claim(SlideWorksClaims.ACTOR_KIND, nameof(ActorKind.Person)),
-            ],
-            CookieAuthenticationDefaults.AuthenticationScheme));
+        // A pending person gets a session, and the app sends them to wait for approval. A rejected one gets none.
+        if (user.Access == UserAccess.Rejected)
+        {
+            logger.LogInformation("Google sign-in refused: the account is rejected");
+            context.Response.Redirect(SignInErrors.SignInPath(SignInErrors.NOT_APPROVED, returnTo));
+            return;
+        }
         await context.HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme, session, new AuthenticationProperties { IsPersistent = true });
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            SessionPrincipal.For(user, CookieAuthenticationDefaults.AuthenticationScheme),
+            new AuthenticationProperties { IsPersistent = true });
         context.Response.Redirect(returnTo);
     }
 

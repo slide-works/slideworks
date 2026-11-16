@@ -15,6 +15,9 @@ public static class SignInErrors
     // The email already belongs to a person who signs in with another Google account.
     public const string EMAIL_LINKED = "email_linked";
 
+    // An admin rejected (or revoked) this account.
+    public const string NOT_APPROVED = "not_approved";
+
     // /signin?error={error}&returnTo={returnTo}, so trying again still comes back to where the person was going.
     public static string SignInPath(string error, string returnTo)
         => $"/signin?error={Uri.EscapeDataString(error)}&returnTo={Uri.EscapeDataString(returnTo)}";
