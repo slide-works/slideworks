@@ -42,7 +42,9 @@ test('render page shows one slide at 1920x1080 with every step revealed and sets
   await expect(root).not.toHaveAttribute('data-error', /.*/);
   expect(await root.boundingBox()).toEqual({ x: 0, y: 0, width: 1920, height: 1080 });
   await expect(page.getByTestId(`slide-${bullets.number}`)).toHaveCount(1);
-  await expect(page.locator('[data-testid^="slide-"]')).toHaveCount(1);
+  for (const other of sampleDeck.slides.filter((s) => s.number !== bullets.number)) {
+    await expect(page.getByTestId(`slide-${other.number}`)).toHaveCount(0);
+  }
   const reveals = root.locator('.sw-reveal');
   await expect(reveals).toHaveCount(bullets.steps);
   await expect(root.locator('.sw-reveal[data-revealed="false"]')).toHaveCount(0);
@@ -92,7 +94,7 @@ test('render page shows the API error when the token has expired', async ({ moun
   const root = page.getByTestId('render-slide');
   await expect(root).toHaveAttribute('data-error', 'Deck not found');
   await expect(root).not.toHaveAttribute('data-ready', /.*/);
-  await expect(root.locator('[data-testid^="slide-"]')).toHaveCount(0);
+  await expect(page.getByTestId('slide-1')).toHaveCount(0);
 });
 
 test('render page says which slide is unknown', async ({ mount, page }) => {

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import { AppRoutes } from './AppRoutes';
 import { LocationProbe } from './test-support/LocationProbe';
-import { adminUsers, me } from './test-support/fixtures/screens';
+import { adminUsers, me, sampleDeck } from './test-support/fixtures/screens';
 import { stubApi } from './test-support/stubApi';
 
 test('signed out → /signin', async ({ mount, page }) => {
@@ -89,7 +89,11 @@ test('/pending renders without the shell', async ({ mount, page }) => {
 });
 
 test('render route renders without sign-in', async ({ mount, page }) => {
-  await stubApi(page, { '/api/me': { status: 401, json: { error: 'Not signed in' } } });
+  await stubApi(page, {
+    '/api/me': { status: 401, json: { error: 'Not signed in' } },
+    '/api/render/7Kq2xYp9LmQa/session': { json: {} },
+    '/api/render/7Kq2xYp9LmQa': { json: { ...sampleDeck, id: '7Kq2xYp9LmQa' } },
+  });
   await mount(
     <LocationProbe>
       <AppRoutes />
