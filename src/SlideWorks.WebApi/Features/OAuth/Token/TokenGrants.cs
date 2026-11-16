@@ -1,4 +1,5 @@
 using Agoda.IoC.Core;
+using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.OAuth.Stores;
 using SlideWorks.WebApi.Infrastructure.Identity;
 
@@ -7,7 +8,7 @@ namespace SlideWorks.WebApi.Features.OAuth.Token;
 // The token endpoint's grants and the revoke endpoint. Clients are public (no secret), so client_id names the client and
 // the code's PKCE verifier or the refresh token proves it. Tokens never reach a log or an error description.
 [RegisterPerRequest]
-public class TokenGrants(IOAuthClients clients, IOAuthCodes codes, IAgentTokens tokens, IPublicUrls urls)
+public class TokenGrants(AppDbContext db, IOAuthClients clients, IOAuthCodes codes, IAgentTokens tokens, IPublicUrls urls)
 {
     public const string AUTHORIZATION_CODE = "authorization_code";
     public const string REFRESH_TOKEN = "refresh_token";
@@ -26,7 +27,9 @@ public class TokenGrants(IOAuthClients clients, IOAuthCodes codes, IAgentTokens 
         => string.IsNullOrEmpty(request.Token) ? throw Invalid("invalid_request", "token is required.") : tokens.RevokeAsync(request.Token);
 
     // The code is spent by any redeem that gets that far, even one that fails a binding. Presenting a code that was
-    // already redeemed revokes the tokens issued from it (RFC 6749 section 4.1.2).
+    // already redeemed revokes the tokens issued from it (RFC 6749 section 4.1.2). The spend and the issue share one write
+    // transaction (SQLite's BEGIN IMMEDIATE), so a replay that finds the code spent waits until the tokens it was spent
+    // for exist, and its revoke always ends them.
     private async Task<TokenResponseView> RedeemCodeAsync(TokenRequest request)
     {
         var code = Required(request.Code, "code");
@@ -34,13 +37,17 @@ public class TokenGrants(IOAuthClients clients, IOAuthCodes codes, IAgentTokens 
         var verifier = Required(request.CodeVerifier, "code_verifier");
         var clientId = await KnownClientAsync(request.ClientId);
         RequireOurResource(request);
+        await using var transaction = await db.Database.BeginTransactionAsync();
         var grant = await codes.RedeemAsync(code, clientId, redirectUri, verifier, urls.Mcp);
         if (grant == null)
         {
             await tokens.RevokeIssuedForCodeAsync(code);
+            await transaction.CommitAsync();
             throw Invalid("invalid_grant", "The code is invalid, expired or already used, or doesn't match this client, redirect_uri or code_verifier.");
         }
-        return View(await tokens.IssueForCodeAsync(code, grant));
+        var pair = await tokens.IssueForCodeAsync(code, grant);
+        await transaction.CommitAsync();
+        return View(pair);
     }
 
     private async Task<TokenResponseView> RefreshAsync(TokenRequest request)
