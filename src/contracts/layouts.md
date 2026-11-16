@@ -19,13 +19,13 @@ Error paths name the failing field with 0-based indexes, such as `practice.do[2]
 | [`big-number`](#big-number) | no | none | One number that carries the slide, with a caption, a detail and a source. |
 | [`quote`](#quote) | no | none | A quotation with its attribution. |
 | [`image`](#image) | no | none | A headline over one large image, with optional points beside it and a caption. |
-| [`table`](#table) | no | none | A table of 2–6 columns and 1–8 rows. A cell can carry a tone, and one row can be highlighted. |
+| [`table`](#table) | no | none | A table of 2–6 columns and 1–6 rows. A cell can carry a tone, and one row can be highlighted. |
 | [`chart`](#chart) | no | none | A line or bar chart of 1–3 series, with an optional marker line and caption. |
-| [`gantt`](#gantt) | no | none | A timeline of 1–6 rows across 2–8 columns. Each bar has a status: done, slips, stopped or ship. |
-| [`numbered-cards`](#numbered-cards) | no | one per `cards` item when `reveal` is `one-by-one` | 2–6 numbered cards, each a title and text. Can reveal one card per step. |
-| [`rules`](#rules) | no | one per `rules` item when `reveal` is `one-by-one` | 1–5 numbered rules, each a title and text. Can reveal one rule per step. |
-| [`cards`](#cards) | no | one per `cards` item when `reveal` is `one-by-one` | 1–4 cards, each with an optional badge, a title, text and chips. Can reveal one card per step. |
-| [`close`](#close) | yes | none | Closing slide (dark): a headline of up to three lines, with an optional sub and author. |
+| [`gantt`](#gantt) | no | none | A timeline of 1–5 rows across 2–8 columns. Each bar has a status: done, slips, stopped or ship. |
+| [`numbered-cards`](#numbered-cards) | no | one per `cards` item when `reveal` is `one-by-one` | 2–4 numbered cards, each a title and text. Can reveal one card per step. |
+| [`rules`](#rules) | no | one per `rules` item when `reveal` is `one-by-one` | 1–4 numbered rules, each a title and text. Can reveal one rule per step. |
+| [`cards`](#cards) | no | one per `cards` item when `reveal` is `one-by-one` | 1–3 cards, each with an optional badge, a title, text and chips. Can reveal one card per step. |
+| [`close`](#close) | yes | none | Closing slide (dark): a short headline of up to three written lines, with an optional sub and author. |
 
 ## title
 
@@ -34,9 +34,9 @@ Opening slide (dark): the deck's title with a kicker, subtitle, tagline, byline 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `title` | text | yes | up to 60 chars |  |
-| `subtitle` | text | no | up to 120 chars |  |
-| `tagline` | text | no | up to 100 chars |  |
+| `title` | text | yes | up to 34 chars | Set at 168 px: two lines at most |
+| `subtitle` | text | no | up to 100 chars |  |
+| `tagline` | text | no | up to 90 chars |  |
 | `author` | text | no | up to 60 chars | The presenter's name |
 | `affiliation` | text | no | up to 60 chars | The presenter's team or organisation |
 | `stamp` | block `stamp` | no | up to 16 chars |  |
@@ -47,8 +47,8 @@ Section divider (dark) that opens a part. Its number and the journey come from t
 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
-| `title` | text | yes | up to 60 chars |  |
-| `sub` | text | no | up to 120 chars |  |
+| `title` | text | yes | up to 44 chars | Set at 104 px: two lines at most |
+| `sub` | text | no | up to 80 chars |  |
 
 ## bullets
 
@@ -57,7 +57,7 @@ A headline over 1–8 points, each plain text or a bold lead plus text. Can reve
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 100 chars |  |
+| `headline` | text | yes | up to 80 chars |  |
 | `items` | list of text or object | yes | 1–8 items; each text up to 200 chars | Each point is a string, or {lead, text} for a bold lead-in |
 | `items[].lead` | text | yes | up to 60 chars |  |
 | `items[].text` | text | yes | up to 160 chars |  |
@@ -73,7 +73,7 @@ A headline over two columns. Each column holds a list of points, a paragraph or 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 100 chars |  |
+| `headline` | text | yes | up to 80 chars |  |
 | `left` | object | yes | exactly one of `items`, `text`, `image` | Exactly one of items, text or image |
 | `left.title` | text | no | up to 50 chars |  |
 | `left.items` | list of text or object | no | 1–6 items; each text up to 120 chars |  |
@@ -100,7 +100,7 @@ A practice: what to do, what comes back and what to avoid, with an optional call
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 100 chars |  |
+| `headline` | text | yes | up to 80 chars |  |
 | `do` | list of object | yes | 1–5 items |  |
 | `do[].lead` | text | yes | up to 50 chars |  |
 | `do[].text` | text | yes | up to 120 chars |  |
@@ -117,7 +117,7 @@ Two panels side by side: the failure mode and the success mode.
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 100 chars |  |
+| `headline` | text | yes | up to 80 chars |  |
 | `failure` | object | yes |  |  |
 | `failure.label` | text | yes | up to 24 chars | The panel's tag, such as 'Failure mode' |
 | `failure.title` | text | yes | up to 50 chars |  |
@@ -136,8 +136,8 @@ One number that carries the slide, with a caption, a detail and a source.
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 100 chars |  |
-| `value` | text | yes | up to 8 chars | The number with a short unit, such as '11 wks' or '42%' |
+| `headline` | text | yes | up to 80 chars |  |
+| `value` | text | yes | up to 6 chars | The number with a short unit, such as '11 wks' or '42%'; the layout sets a unit smaller than the number |
 | `caption` | text | yes | up to 120 chars |  |
 | `detail` | text | no | up to 200 chars |  |
 | `source` | text | no | up to 100 chars | Where the number comes from, without a 'Source:' prefix |
@@ -159,26 +159,26 @@ A headline over one large image, with optional points beside it and a caption.
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 100 chars |  |
+| `headline` | text | yes | up to 80 chars |  |
 | `image` | image `{image, alt}` | yes |  |  |
 | `image.image` | text | yes | up to 64 chars | The image id that upload_image returned |
 | `image.alt` | text | yes | up to 200 chars | What the image shows, for screen readers |
-| `points` | list of text | no | 1–4 items; each up to 120 chars |  |
+| `points` | list of text | no | 1–4 items; each up to 80 chars |  |
 | `caption` | text | no | up to 140 chars |  |
 
 ## table
 
-A table of 2–6 columns and 1–8 rows. A cell can carry a tone, and one row can be highlighted.
+A table of 2–6 columns and 1–6 rows. A cell can carry a tone, and one row can be highlighted.
 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 100 chars |  |
+| `headline` | text | yes | up to 80 chars |  |
 | `columns` | list of text | yes | 2–6 items; each up to 30 chars |  |
-| `rows` | list of list of text or object | yes | 1–8 items; each 2–6 items; each text up to 40 chars | Each row has one cell per column |
+| `rows` | list of list of text or object | yes | 1–6 items; each 2–6 items; each text up to 40 chars | Each row has one cell per column |
 | `rows[][].text` | text | yes | up to 40 chars |  |
 | `rows[][].tone` | `good` or `warn` or `bad` or `info` | yes |  | Draws the cell as a badge in this tone |
-| `highlightRow` | whole number | no | 1 to 8 | The 1-based number of the row to highlight |
+| `highlightRow` | whole number | no | 1 to 6 | The 1-based number of the row to highlight |
 
 ## chart
 
@@ -187,7 +187,7 @@ A line or bar chart of 1–3 series, with an optional marker line and caption.
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 100 chars |  |
+| `headline` | text | yes | up to 80 chars |  |
 | `kind` | `line` or `bar` | yes |  |  |
 | `xLabels` | list of text | yes | 2–12 items; each up to 12 chars |  |
 | `series` | list of object | yes | 1–3 items |  |
@@ -201,14 +201,14 @@ A line or bar chart of 1–3 series, with an optional marker line and caption.
 
 ## gantt
 
-A timeline of 1–6 rows across 2–8 columns. Each bar has a status: done, slips, stopped or ship.
+A timeline of 1–5 rows across 2–8 columns. Each bar has a status: done, slips, stopped or ship.
 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 100 chars |  |
+| `headline` | text | yes | up to 80 chars |  |
 | `columns` | list of text | yes | 2–8 items; each up to 16 chars |  |
-| `rows` | list of object | yes | 1–6 items |  |
+| `rows` | list of object | yes | 1–5 items |  |
 | `rows[].label` | text | yes | up to 30 chars |  |
 | `rows[].start` | whole number | yes | 1 to 8 | The 1-based column the bar starts in |
 | `rows[].end` | whole number | yes | 1 to 8 | The 1-based column the bar ends in (inclusive) |
@@ -218,39 +218,39 @@ A timeline of 1–6 rows across 2–8 columns. Each bar has a status: done, slip
 
 ## numbered-cards
 
-2–6 numbered cards, each a title and text. Can reveal one card per step.
+2–4 numbered cards, each a title and text. Can reveal one card per step.
 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 100 chars |  |
-| `cards` | list of object | yes | 2–6 items |  |
-| `cards[].title` | text | yes | up to 50 chars |  |
+| `headline` | text | yes | up to 80 chars |  |
+| `cards` | list of object | yes | 2–4 items |  |
+| `cards[].title` | text | yes | up to 40 chars |  |
 | `cards[].text` | text | yes | up to 140 chars |  |
 | `reveal` | `all` or `one-by-one` | no |  | 'one-by-one' shows one item per step; 'all' (the default) shows them all at once |
 
 ## rules
 
-1–5 numbered rules, each a title and text. Can reveal one rule per step.
+1–4 numbered rules, each a title and text. Can reveal one rule per step.
 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 100 chars |  |
-| `rules` | list of object | yes | 1–5 items |  |
+| `headline` | text | yes | up to 80 chars |  |
+| `rules` | list of object | yes | 1–4 items |  |
 | `rules[].title` | text | yes | up to 60 chars |  |
-| `rules[].text` | text | yes | up to 140 chars |  |
+| `rules[].text` | text | yes | up to 110 chars |  |
 | `reveal` | `all` or `one-by-one` | no |  | 'one-by-one' shows one item per step; 'all' (the default) shows them all at once |
 
 ## cards
 
-1–4 cards, each with an optional badge, a title, text and chips. Can reveal one card per step.
+1–3 cards, each with an optional badge, a title, text and chips. Can reveal one card per step.
 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 100 chars |  |
-| `cards` | list of object | yes | 1–4 items |  |
+| `headline` | text | yes | up to 80 chars |  |
+| `cards` | list of object | yes | 1–3 items |  |
 | `cards[].badge` | block `badge` | no | up to 20 chars |  |
 | `cards[].title` | text | yes | up to 50 chars |  |
 | `cards[].text` | text | yes | up to 140 chars |  |
@@ -259,12 +259,12 @@ A timeline of 1–6 rows across 2–8 columns. Each bar has a status: done, slip
 
 ## close
 
-Closing slide (dark): a headline of up to three lines, with an optional sub and author.
+Closing slide (dark): a short headline of up to three written lines, with an optional sub and author.
 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
-| `headline` | text | yes | up to 90 chars, line breaks allowed | Use \n for a line break, at most 3 lines |
-| `sub` | text | no | up to 140 chars |  |
+| `headline` | text | yes | up to 80 chars, line breaks allowed | Set at 112 px, about 22 characters a line: use \n for a line break, at most 3 written and 4 shown lines |
+| `sub` | text | no | up to 110 chars |  |
 | `author` | text | no | up to 60 chars |  |
 
 ## Inline blocks

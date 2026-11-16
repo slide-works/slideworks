@@ -60,7 +60,7 @@ public sealed class LayoutDefinition
     public void Validate(JsonElement slots, SlotValidation validation)
     {
         Slots.Validate(slots, Name, validation);
-        if (validation.Errors.Count == 0)
+        if (validation.ErrorCount == 0)
         {
             _rules?.Invoke(slots, Name, validation);
         }

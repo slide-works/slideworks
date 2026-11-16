@@ -7,7 +7,7 @@ public class LayoutsDocTests
     public void LayoutsDoc_ShouldMatchCatalogue()
     {
         var path = ContractFiles.PathOf("layouts.md");
-        var rendered = LayoutsDoc.Render();
+        var rendered = LayoutsDoc.Render().ReplaceLineEndings("\n");
         if (Environment.GetEnvironmentVariable("UPDATE_LAYOUTS_DOC") == "1")
         {
             File.WriteAllText(path, rendered);

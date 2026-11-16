@@ -37,9 +37,9 @@ public sealed class ImageSlot : ISlotType
             return;
         }
 
-        var before = validation.Errors.Count;
+        var before = validation.ErrorCount;
         _shape.Validate(value, path, validation);
-        if (validation.Errors.Count != before)
+        if (validation.ErrorCount != before)
         {
             return;
         }

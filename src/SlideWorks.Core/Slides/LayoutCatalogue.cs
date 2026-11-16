@@ -1,11 +1,13 @@
 namespace SlideWorks.Core.Slides;
 
 // The 16 layouts and 5 inline blocks (K2, D8). Names and slot fields are frozen in the plan's
-// section 4; the limits are sized to fit the 1920×1080 cards of the default theme.
+// section 4. The limits come from the mockup CSS so that a slide at its limits fits 1920×1080: a
+// headline wraps to at most two lines, and where counts times lengths could overflow, a fit rule in
+// LayoutRules checks the text the slide actually has.
 public static class LayoutCatalogue
 {
     private const int KICKER = 40;
-    private const int HEADLINE = 100;
+    private const int HEADLINE = 80;
 
     private const string REVEAL = "'one-by-one' shows one item per step; 'all' (the default) shows them all at once";
 
@@ -32,17 +34,17 @@ public static class LayoutCatalogue
         new("title", "Opening slide (dark): the deck's title with a kicker, subtitle, tagline, byline and an optional stamp.", true,
         [
             Opt("kicker", new TextSlot(KICKER)),
-            Req("title", new TextSlot(60)),
-            Opt("subtitle", new TextSlot(120)),
-            Opt("tagline", new TextSlot(100)),
+            Req("title", new TextSlot(34), "Set at 168 px: two lines at most"),
+            Opt("subtitle", new TextSlot(100)),
+            Opt("tagline", new TextSlot(90)),
             Opt("author", new TextSlot(60), "The presenter's name"),
             Opt("affiliation", new TextSlot(60), "The presenter's team or organisation"),
             Opt("stamp", new BlockSlot(Stamp)),
         ]),
         new("divider", "Section divider (dark) that opens a part. Its number and the journey come from the deck's parts and the slide's part.", true,
         [
-            Req("title", new TextSlot(60)),
-            Opt("sub", new TextSlot(120)),
+            Req("title", new TextSlot(44), "Set at 104 px: two lines at most"),
+            Opt("sub", new TextSlot(80)),
         ]),
         new("bullets", "A headline over 1–8 points, each plain text or a bold lead plus text. Can reveal one point per step.", false,
         [
@@ -51,14 +53,14 @@ public static class LayoutCatalogue
             Req("items", new ListSlot(LeadOrText(200, 60, 160), 1, 8), "Each point is a string, or {lead, text} for a bold lead-in"),
             Opt("reveal", Reveal(), REVEAL),
             Opt("callout", new BlockSlot(Callout)),
-        ], stepsFrom: "items"),
+        ], stepsFrom: "items", rules: LayoutRules.Bullets),
         new("two-column", "A headline over two columns. Each column holds a list of points, a paragraph or an image.", false,
         [
             Opt("kicker", new TextSlot(KICKER)),
             Req("headline", new TextSlot(HEADLINE)),
             Req("left", Column(), "Exactly one of items, text or image"),
             Req("right", Column(), "Exactly one of items, text or image"),
-        ]),
+        ], rules: LayoutRules.TwoColumn),
         new("practice", "A practice: what to do, what comes back and what to avoid, with an optional callout.", false,
         [
             Opt("kicker", new TextSlot(KICKER)),
@@ -67,19 +69,19 @@ public static class LayoutCatalogue
             Req("comes_back", new ListSlot(new TextSlot(100), 0, 4), "What the team gets back; may be empty"),
             Req("avoid", new ListSlot(new TextSlot(100), 0, 4), "What to avoid; may be empty"),
             Opt("callout", new BlockSlot(Callout)),
-        ]),
+        ], rules: LayoutRules.Practice),
         new("compare", "Two panels side by side: the failure mode and the success mode.", false,
         [
             Opt("kicker", new TextSlot(KICKER)),
             Req("headline", new TextSlot(HEADLINE)),
             Req("failure", ComparePanel()),
             Req("success", ComparePanel()),
-        ]),
+        ], rules: LayoutRules.Compare),
         new("big-number", "One number that carries the slide, with a caption, a detail and a source.", false,
         [
             Opt("kicker", new TextSlot(KICKER)),
             Req("headline", new TextSlot(HEADLINE)),
-            Req("value", new TextSlot(8), "The number with a short unit, such as '11 wks' or '42%'"),
+            Req("value", new TextSlot(6), "The number with a short unit, such as '11 wks' or '42%'; the layout sets a unit smaller than the number"),
             Req("caption", new TextSlot(120)),
             Opt("detail", new TextSlot(200)),
             Opt("source", new TextSlot(100), "Where the number comes from, without a 'Source:' prefix"),
@@ -95,16 +97,16 @@ public static class LayoutCatalogue
             Opt("kicker", new TextSlot(KICKER)),
             Req("headline", new TextSlot(HEADLINE)),
             Req("image", new ImageSlot()),
-            Opt("points", new ListSlot(new TextSlot(120), 1, 4)),
+            Opt("points", new ListSlot(new TextSlot(80), 1, 4)),
             Opt("caption", new TextSlot(140)),
         ]),
-        new("table", "A table of 2–6 columns and 1–8 rows. A cell can carry a tone, and one row can be highlighted.", false,
+        new("table", "A table of 2–6 columns and 1–6 rows. A cell can carry a tone, and one row can be highlighted.", false,
         [
             Opt("kicker", new TextSlot(KICKER)),
             Req("headline", new TextSlot(HEADLINE)),
             Req("columns", new ListSlot(new TextSlot(30), 2, 6)),
-            Req("rows", new ListSlot(new ListSlot(TableCell(), 2, 6), 1, 8), "Each row has one cell per column"),
-            Opt("highlightRow", new NumberSlot(1, 8, true), "The 1-based number of the row to highlight"),
+            Req("rows", new ListSlot(new ListSlot(TableCell(), 2, 6), 1, 6), "Each row has one cell per column"),
+            Opt("highlightRow", new NumberSlot(1, 6, true), "The 1-based number of the row to highlight"),
         ], rules: LayoutRules.Table),
         new("chart", "A line or bar chart of 1–3 series, with an optional marker line and caption.", false,
         [
@@ -121,7 +123,7 @@ public static class LayoutCatalogue
                 Req("x", new NumberSlot(1, 12, false), "1 is the first xLabel; 3.5 sits between the third and the fourth"),
                 Req("label", new TextSlot(20))), "A dashed vertical line with a label"),
         ], rules: LayoutRules.Chart),
-        new("gantt", "A timeline of 1–6 rows across 2–8 columns. Each bar has a status: done, slips, stopped or ship.", false,
+        new("gantt", "A timeline of 1–5 rows across 2–8 columns. Each bar has a status: done, slips, stopped or ship.", false,
         [
             Opt("kicker", new TextSlot(KICKER)),
             Req("headline", new TextSlot(HEADLINE)),
@@ -131,24 +133,24 @@ public static class LayoutCatalogue
                 Req("start", new NumberSlot(1, 8, true), "The 1-based column the bar starts in"),
                 Req("end", new NumberSlot(1, 8, true), "The 1-based column the bar ends in (inclusive)"),
                 Req("status", new EnumSlot("done", "slips", "stopped", "ship"), "'ship' draws a ship marker instead of a bar"),
-                Opt("note", new TextSlot(40), "Text on the bar; defaults to the status")), 1, 6)),
+                Opt("note", new TextSlot(40), "Text on the bar; defaults to the status")), 1, 5)),
             Opt("caption", new TextSlot(140)),
         ], rules: LayoutRules.Gantt),
-        new("numbered-cards", "2–6 numbered cards, each a title and text. Can reveal one card per step.", false,
+        new("numbered-cards", "2–4 numbered cards, each a title and text. Can reveal one card per step.", false,
         [
             Opt("kicker", new TextSlot(KICKER)),
             Req("headline", new TextSlot(HEADLINE)),
-            Req("cards", new ListSlot(Obj(Req("title", new TextSlot(50)), Req("text", new TextSlot(140))), 2, 6)),
+            Req("cards", new ListSlot(Obj(Req("title", new TextSlot(40)), Req("text", new TextSlot(140))), 2, 4)),
             Opt("reveal", Reveal(), REVEAL),
         ], stepsFrom: "cards"),
-        new("rules", "1–5 numbered rules, each a title and text. Can reveal one rule per step.", false,
+        new("rules", "1–4 numbered rules, each a title and text. Can reveal one rule per step.", false,
         [
             Opt("kicker", new TextSlot(KICKER)),
             Req("headline", new TextSlot(HEADLINE)),
-            Req("rules", new ListSlot(Obj(Req("title", new TextSlot(60)), Req("text", new TextSlot(140))), 1, 5)),
+            Req("rules", new ListSlot(Obj(Req("title", new TextSlot(60)), Req("text", new TextSlot(110))), 1, 4)),
             Opt("reveal", Reveal(), REVEAL),
         ], stepsFrom: "rules"),
-        new("cards", "1–4 cards, each with an optional badge, a title, text and chips. Can reveal one card per step.", false,
+        new("cards", "1–3 cards, each with an optional badge, a title, text and chips. Can reveal one card per step.", false,
         [
             Opt("kicker", new TextSlot(KICKER)),
             Req("headline", new TextSlot(HEADLINE)),
@@ -156,13 +158,13 @@ public static class LayoutCatalogue
                 Opt("badge", new BlockSlot(Badge)),
                 Req("title", new TextSlot(50)),
                 Req("text", new TextSlot(140)),
-                Req("chips", new ListSlot(new BlockSlot(Chip), 0, 4), "May be empty")), 1, 4)),
+                Req("chips", new ListSlot(new BlockSlot(Chip), 0, 4), "May be empty")), 1, 3)),
             Opt("reveal", Reveal(), REVEAL),
         ], stepsFrom: "cards"),
-        new("close", "Closing slide (dark): a headline of up to three lines, with an optional sub and author.", true,
+        new("close", "Closing slide (dark): a short headline of up to three written lines, with an optional sub and author.", true,
         [
-            Req("headline", new TextSlot(90, lineBreaks: true), "Use \\n for a line break, at most 3 lines"),
-            Opt("sub", new TextSlot(140)),
+            Req("headline", new TextSlot(80, lineBreaks: true), "Set at 112 px, about 22 characters a line: use \\n for a line break, at most 3 written and 4 shown lines"),
+            Opt("sub", new TextSlot(110)),
             Opt("author", new TextSlot(60)),
         ], rules: LayoutRules.Close),
     ];

@@ -38,7 +38,10 @@ public sealed class ListSlot(ISlotType item, int minItems, int maxItems) : ISlot
         }
         else if (count > MaxItems)
         {
+            // Don't walk an oversized list: its items can't be stored anyway, and checking them would
+            // let the size of the request set the cost of the check.
             validation.Fail(path, $"at most {Items(MaxItems)}");
+            return;
         }
 
         var index = 0;

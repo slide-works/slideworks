@@ -19,6 +19,6 @@ public static class SlideValidator
             definition.Validate(slots, validation);
         }
 
-        return new SlideValidationResult(validation.Errors.ToArray(), validation.Errors.Count == 0 ? validation.ImageIds.ToArray() : []);
+        return new SlideValidationResult(validation.Errors.ToArray(), validation.ErrorCount == 0 ? validation.ImageIds.ToArray() : []);
     }
 }

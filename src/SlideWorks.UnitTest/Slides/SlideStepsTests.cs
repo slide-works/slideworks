@@ -20,18 +20,24 @@ public class SlideStepsTests
         Count(layout, slots).ShouldBe(0);
     }
 
-    [TestCase("numbered-cards", "cards")]
-    [TestCase("cards", "cards")]
-    [TestCase("rules", "rules")]
-    public void Count_WhenCardsOneByOne_ShouldEqualCardCount(string layout, string list)
+    [TestCase("numbered-cards", "cards", """{ "title": "t", "text": "x" }""")]
+    [TestCase("cards", "cards", """{ "title": "t", "text": "x", "chips": [] }""")]
+    [TestCase("rules", "rules", """{ "title": "t", "text": "x" }""")]
+    public void Count_WhenCardsOneByOne_ShouldEqualCardCount(string layout, string list, string card)
     {
-        Count(layout, $$"""{ "{{list}}": [{}, {}], "reveal": "one-by-one" }""").ShouldBe(2);
+        var slots = $$"""{ "headline": "h", "{{list}}": [{{card}}, {{card}}], "reveal": "one-by-one" }""";
+        SlideValidator.Validate(layout, JsonDocument.Parse(slots).RootElement).Errors.ShouldBeEmpty();
+
+        Count(layout, slots).ShouldBe(2);
     }
 
     [Test]
     public void Count_WhenLayoutHasNoRevealList_ShouldBeZero()
     {
-        Count("compare", """{ "reveal": "one-by-one", "items": ["a"] }""").ShouldBe(0);
+        Count("compare", """
+            { "headline": "h", "failure": { "label": "l", "title": "t", "points": ["p"] },
+              "success": { "label": "l", "title": "t", "points": ["p"] } }
+            """).ShouldBe(0);
     }
 
     [Test]

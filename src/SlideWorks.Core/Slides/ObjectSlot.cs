@@ -53,9 +53,18 @@ public sealed class ObjectSlot(IReadOnlyList<SlotField> fields, IReadOnlyList<st
             return;
         }
 
-        foreach (var unknown in value.EnumerateObject().Where(p => !Fields.Any(f => string.Equals(f.Name, p.Name, StringComparison.Ordinal))))
+        // A repeated name would be read last-wins here and first-wins (or throw) elsewhere, so refuse it.
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var name in value.EnumerateObject().Select(property => property.Name))
         {
-            validation.Fail($"{path}.{unknown.Name}", "unknown field");
+            if (!seen.Add(name))
+            {
+                validation.Fail($"{path}.{name}", "duplicate field");
+            }
+            else if (!Fields.Any(f => string.Equals(f.Name, name, StringComparison.Ordinal)))
+            {
+                validation.Fail($"{path}.{name}", "unknown field");
+            }
         }
 
         foreach (var field in Fields)

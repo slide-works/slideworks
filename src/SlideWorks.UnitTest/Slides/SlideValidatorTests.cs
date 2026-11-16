@@ -81,7 +81,7 @@ public class SlideValidatorTests
     {
         var result = Validate("big-number", """{ "headline": "Lead time", "value": "eleven weeks", "caption": "Median" }""");
 
-        result.Error.ShouldBe("big-number.value: at most 8 characters (got 12)");
+        result.Error.ShouldBe("big-number.value: at most 6 characters (got 12)");
     }
 
     [Test]
@@ -198,6 +198,124 @@ public class SlideValidatorTests
         var result = Validate("quote", """{ "foo": 1 }""");
 
         result.Errors.ShouldBe(["quote.foo: unknown field", "quote.quote: required", "quote.attribution: required"]);
+    }
+
+    [Test]
+    public void Validate_WhenListIsFarOverItsMaximum_ShouldNotCheckItsItems()
+    {
+        var items = string.Join(", ", Enumerable.Repeat("1", 200_000));
+
+        var result = Validate("bullets", $$"""{ "headline": "h", "items": [{{items}}] }""");
+
+        result.Errors.ShouldBe(["bullets.items: at most 8 items"]);
+    }
+
+    [Test]
+    public void Validate_WhenManyErrors_ShouldKeepTheFirstTwentyAndCountTheRest()
+    {
+        var fields = string.Join(", ", Enumerable.Range(1, 500).Select(i => $"\"f{i}\": 1"));
+
+        var result = Validate("quote", $$"""{ {{fields}}, "quote": "q", "attribution": "a" }""");
+
+        result.Errors.Count.ShouldBe(21);
+        result.Errors[0].ShouldBe("quote.f1: unknown field");
+        result.Errors[^1].ShouldBe("…and 480 more");
+    }
+
+    [Test]
+    public void Validate_WhenFieldIsRepeated_ShouldNameTheDuplicate()
+    {
+        var result = Validate("quote", """{ "quote": 5, "quote": "ok", "attribution": "a" }""");
+
+        result.Error.ShouldBe("quote.quote: duplicate field");
+    }
+
+    [TestCase("a\\u0000b", "quote.quote: control characters are not allowed")]
+    [TestCase("one\\u2028two", "quote.quote: line breaks are not allowed here")]
+    [TestCase("\\u200B\\u200B ", "quote.quote: must not be empty")]
+    public void Validate_WhenTextHasHiddenCharacters_ShouldRefuseIt(string jsonQuote, string error)
+    {
+        Validate("quote", $$"""{ "quote": "{{jsonQuote}}", "attribution": "a" }""").Error.ShouldBe(error);
+    }
+
+    [Test]
+    public void Validate_WhenCombiningMarksPadOneCharacter_ShouldCapTheRawLength()
+    {
+        var padded = "a" + string.Concat(Enumerable.Repeat("\\u0301", 5_000));
+
+        var result = Validate("quote", $$"""{ "quote": "q", "attribution": "{{padded}}" }""");
+
+        result.Error.ShouldStartWith("quote.attribution: at most 80 characters");
+    }
+
+    [Test]
+    public void Validate_WhenBulletsWrapPastTheSlide_ShouldSayTheyDoNotFit()
+    {
+        var items = string.Join(", ", Enumerable.Repeat($"\"{new string('x', 199)}\"", 8));
+
+        var result = Validate("bullets", $$"""{ "headline": "h", "items": [{{items}}] }""");
+
+        result.Error.ShouldStartWith("bullets.items: too much text to fit on the slide");
+    }
+
+    [Test]
+    public void Validate_WhenEightOneLineBullets_ShouldFit()
+    {
+        var items = string.Join(", ", Enumerable.Repeat($"\"{new string('x', 60)}\"", 8));
+
+        Validate("bullets", $$"""{ "headline": "h", "items": [{{items}}] }""").IsValid.ShouldBeTrue();
+    }
+
+    [Test]
+    public void Validate_WhenTableCellsWrapPastTheSlide_ShouldSayTheyDoNotFit()
+    {
+        var cell = $"\"{new string('x', 40)}\"";
+        var row = "[" + string.Join(", ", Enumerable.Repeat(cell, 6)) + "]";
+        var rows = string.Join(", ", Enumerable.Repeat(row, 6));
+
+        var result = Validate("table", $$"""{ "headline": "h", "columns": ["a", "b", "c", "d", "e", "f"], "rows": [{{rows}}] }""");
+
+        result.Error.ShouldStartWith("table.rows: too much text to fit on the slide");
+    }
+
+    [Test]
+    public void Validate_WhenPracticeDoCardsWrapPastTheSlide_ShouldSayTheyDoNotFit()
+    {
+        var item = $$"""{ "lead": "{{new string('x', 50)}}", "text": "{{new string('y', 120)}}" }""";
+        var doItems = string.Join(", ", Enumerable.Repeat(item, 5));
+
+        var result = Validate("practice", $$"""{ "headline": "h", "do": [{{doItems}}], "comes_back": [], "avoid": [] }""");
+
+        result.Error.ShouldStartWith("practice.do: too much text to fit on the slide");
+    }
+
+    [Test]
+    public void Validate_WhenComparePanelWrapsPastTheSlide_ShouldNameThePanel()
+    {
+        var points = string.Join(", ", Enumerable.Repeat($"\"{new string('x', 90)}\"", 4));
+        var panel = $$"""{ "label": "l", "title": "{{new string('t', 50)}}", "sub": "{{new string('s', 100)}}", "points": [{{points}}] }""";
+
+        var result = Validate("compare", $$"""{ "headline": "h", "failure": {{panel}}, "success": { "label": "l", "title": "t", "points": ["p"] } }""");
+
+        result.Error.ShouldStartWith("compare.failure: too much text to fit on the slide");
+    }
+
+    [Test]
+    public void Validate_WhenTwoColumnItemsWrapPastTheSlide_ShouldNameTheColumn()
+    {
+        var items = string.Join(", ", Enumerable.Repeat($"\"{new string('x', 120)}\"", 6));
+
+        var result = Validate("two-column", $$"""{ "headline": "h", "left": { "items": [{{items}}] }, "right": { "text": "t" } }""");
+
+        result.Error.ShouldStartWith("two-column.left: too much text to fit on the slide");
+    }
+
+    [Test]
+    public void Validate_WhenCloseHeadlineWrapsToFiveLines_ShouldSayItDoesNotFit()
+    {
+        var result = Validate("close", $$"""{ "headline": "{{new string('x', 50)}}\n{{new string('y', 25)}}" }""");
+
+        result.Error.ShouldBe("close.headline: too long to fit: it wraps to about 5 lines at the close slide's size, and at most 4 fit");
     }
 
     private static SlideValidationResult Validate(string layout, string slots)
