@@ -4,9 +4,11 @@ using System.Text.Json;
 namespace SlideWorks.Core.Slides;
 
 // Rough text fitting against the default theme's 1920×1080 slide (design/sw-1-foundation mockups).
-// A line holds width / (font size × average glyph width) whole characters: about 0.5 em for the Inter
-// body text, 0.56 em for the bold Plus Jakarta Sans headings and for table cells (rendered cells fill
-// to about 0.55 em). Text wraps word by word, as the browser breaks it, and spaces count as whole
+// A line holds width / (font size × average glyph width) whole characters: 0.56 em for the Inter body
+// text, for the bold Plus Jakarta Sans headings and for table cells (rendered cells fill to about
+// 0.55 em). Body text is measured at 0.56, not its 0.47 em average, because Title Case runs at
+// 0.54 em (0.56 for a bold lead) and must fit too (SW-117). Lines dense with acronyms or all in
+// capitals (0.62–0.65 em) can still overflow. Text wraps word by word, as the browser breaks it, and spaces count as whole
 // characters. The estimates err on the side of wrapping early, so a slide that passes fits.
 internal static class SlideFit
 {
@@ -15,7 +17,7 @@ internal static class SlideFit
     // 120 px bottom padding and still clear the footer, which starts at y = 1023.
     public const double BODY_HEIGHT = 620;
 
-    public const double BODY_EM = 0.5;
+    public const double BODY_EM = 0.56;
     public const double HEAD_EM = 0.56;
 
     public const double CELL_EM = 0.56;
