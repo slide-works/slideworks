@@ -11,10 +11,16 @@ import styles from './DividerLayout.module.css';
 const TITLE_FIT: FitBudget = { start: 104, floor: 64, lines: 2, lineHeight: 1.02 };
 
 // A section divider (dark) that opens a part: the part's number, the title, an
-// optional sub, and the journey through the deck's parts. The number is the
-// slide's part, so a divider outside any part shows none.
+// optional sub, the journey through the deck's parts and, when the template's
+// chrome lists them (deepDivesOnDivider), the headlines of the part's deep
+// dives. The number is the slide's part, so a divider outside any part shows
+// none, and lists none.
 export function DividerLayout({ slots, deck }: LayoutProps<'divider'>) {
   const part = useSlidePart();
+  const deepDives =
+    deck.look.template.chrome.deepDivesOnDivider && part !== null
+      ? deck.deepDives.filter((deepDive) => deepDive.part === part)
+      : [];
   const titleRef = useRef<HTMLHeadingElement>(null);
   useFitText(titleRef, TITLE_FIT, slots.title);
   return (
@@ -33,6 +39,18 @@ export function DividerLayout({ slots, deck }: LayoutProps<'divider'>) {
         </p>
       ) : null}
       {deck.parts.length > 0 ? <Journey parts={deck.parts} part={part} /> : null}
+      {deepDives.length > 0 ? (
+        <div data-testid="divider-deep-dives" className={styles.deepDives}>
+          <p className={styles.deepDivesLabel}>Deep dives</p>
+          <ul className={styles.deepDiveList}>
+            {deepDives.map((deepDive) => (
+              <li key={deepDive.number} data-testid="divider-deep-dive">
+                {deepDive.headline}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }
