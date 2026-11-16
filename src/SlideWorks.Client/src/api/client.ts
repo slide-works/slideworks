@@ -1,7 +1,8 @@
 // Single fetch wrapper for all API calls. The session is the browser's cookie, sent on same-origin requests only, and
 // the browser adds Origin and Sec-Fetch-Site itself, which the server's cross-site write guard checks. It parses the
 // API's { error } body on failure, and a 401 from any call mid-session (an expired cookie) goes to the registered
-// handler, which by default sends the person to sign in and back.
+// handler, which by default sends the person to sign in and back. A 403 { error: 'pending_approval' } goes to its own
+// handler, which by default sends the person to /pending.
 
 export class ApiError extends Error {
   constructor(
@@ -34,6 +35,21 @@ export function setOnUnauthorized(handler: () => void): void {
   onUnauthorized = handler;
 }
 
+const PENDING_PATH = '/pending';
+const PENDING_APPROVAL_ERROR = 'pending_approval';
+
+// Sends a person whose account isn't approved yet to /pending. Already there, it stays put.
+export function redirectToPending(location: Pick<Location, 'pathname' | 'assign'>): void {
+  if (location.pathname === PENDING_PATH) return;
+  location.assign(PENDING_PATH);
+}
+
+let onPendingApproval: () => void = () => redirectToPending(window.location);
+
+export function setOnPendingApproval(handler: () => void): void {
+  onPendingApproval = handler;
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const response = await fetch(path, {
     method,
@@ -46,7 +62,15 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     throw new ApiError(await errorMessage(response), 401);
   }
   if (!response.ok) {
-    throw new ApiError(await errorMessage(response), response.status);
+    const message = await errorMessage(response);
+    if (
+      response.status === 403 &&
+      message === PENDING_APPROVAL_ERROR &&
+      path !== SESSION_CHECK_PATH
+    ) {
+      onPendingApproval();
+    }
+    throw new ApiError(message, response.status);
   }
   return response.status === 204 ? (undefined as T) : response.json();
 }

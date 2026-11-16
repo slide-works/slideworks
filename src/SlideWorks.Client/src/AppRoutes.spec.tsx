@@ -45,3 +45,41 @@ test('player route renders without sign-in', async ({ mount, page }) => {
   await expect(page.getByTestId('player-page')).toBeVisible();
   await expect(page.getByTestId('location')).toHaveText('/d/7Kq2xYp9LmQa/ship-smaller');
 });
+
+test('pending person on /decks lands on /pending', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { json: { ...me, access: 'pending' } } });
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    { hooksConfig: { route: '/decks' } },
+  );
+  await expect(page.getByTestId('pending-page')).toBeAttached();
+  await expect(page.getByTestId('location')).toHaveText('/pending');
+});
+
+test('approved person stays on /decks', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { json: me } });
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    { hooksConfig: { route: '/decks' } },
+  );
+  await expect(page.getByTestId('decks-page')).toBeVisible();
+  await expect(page.getByTestId('location')).toHaveText('/decks');
+});
+
+test('/admin/users renders inside the shell', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { json: { ...me, isAdmin: true } } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/admin/users' } });
+  await expect(page.getByTestId('app-shell')).toBeVisible();
+  await expect(page.getByTestId('admin-users-page')).toBeAttached();
+});
+
+test('/pending renders without the shell', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { json: { ...me, access: 'pending' } } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/pending' } });
+  await expect(page.getByTestId('pending-page')).toBeAttached();
+  await expect(page.getByTestId('app-shell')).toHaveCount(0);
+});

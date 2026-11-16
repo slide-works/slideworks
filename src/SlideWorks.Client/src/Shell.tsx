@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router-dom';
 import type { MeView } from './api/types';
+import { AdminLink } from './components/AdminLink';
 import { UserMenu } from './components/UserMenu';
 
 // The layout every signed-in page renders inside: the top bar, then the routed page.
@@ -20,6 +21,7 @@ export function Shell({ me }: { me: MeView }) {
               Decks
             </Link>
           </nav>
+          <AdminLink me={me} />
           <div data-testid="user-menu" className="ml-auto">
             <UserMenu me={me} />
           </div>

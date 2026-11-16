@@ -47,6 +47,7 @@ export function App() {
         </main>
       );
     case 'signedIn':
+      if (session.me.access === 'pending') return <Navigate to="/pending" replace />;
       return <Shell me={session.me} />;
   }
 }
