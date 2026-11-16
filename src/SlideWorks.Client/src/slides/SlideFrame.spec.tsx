@@ -42,7 +42,15 @@ test('title slide is dark without tracker or footer', async ({ mount, page }) =>
 
   const frame = page.getByTestId('slide-frame');
   await expect(frame).toHaveAttribute('data-dark', 'true');
-  await expect(frame).toHaveCSS('color', 'rgb(255, 255, 255)');
+  const nightInk = await frame.evaluate((element) => {
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--sw-night-ink)';
+    element.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  });
+  await expect(frame).toHaveCSS('color', nightInk);
   await expect(page.getByTestId('part-tracker')).toHaveCount(0);
   await expect(page.getByTestId('slide-footer')).toHaveCount(0);
   await expect(page.getByTestId('slide-progress')).toHaveCount(1);
@@ -115,6 +123,47 @@ test('chrome sits where the layouts expect it, in canvas px', async ({ mount, pa
     y: 1075,
     height: 5,
   });
+});
+
+// A content layout built from the seam: a 180 px header (42 px kicker and
+// 138 px headline), then a body whose 620 px block (SlideFit.BODY_HEIGHT)
+// runs to 150 + 180 + 46 + 620 = 996.
+function seamLayout() {
+  return (
+    <SlideFrame layout="bullets" dark={false} part={2} number={3} total={16} {...deck}>
+      <div className="sw-layout" data-testid="seam-layout">
+        <div style={{ height: 180, flexShrink: 0 }} />
+        <div className="sw-body" data-testid="seam-body">
+          <div style={{ height: 620 }} data-testid="seam-content" />
+        </div>
+      </div>
+    </SlideFrame>
+  );
+}
+
+test('layout root fills the content box and the body runs to y = 996', async ({ mount, page }) => {
+  await mount(seamLayout());
+
+  expect(await page.getByTestId('seam-layout').boundingBox()).toEqual({
+    x: 120,
+    y: 150,
+    width: 1680,
+    height: 810,
+  });
+  const content = await page.getByTestId('seam-content').boundingBox();
+  expect(content).toMatchObject({ y: 376, height: 620 });
+  const contentBottom = content!.y + content!.height;
+  expect(contentBottom).toBe(996);
+
+  // Not clipped: the point just above the body's end is the body's content.
+  const hit = await page.evaluate(
+    () => document.elementFromPoint(960, 990)?.getAttribute('data-testid') ?? null,
+  );
+  expect(hit).toBe('seam-content');
+
+  const footer = await page.getByTestId('slide-footer').boundingBox();
+  expect(contentBottom).toBeLessThan(footer!.y);
+  expect(footer!.y).toBe(1023);
 });
 
 test('screenshot: content and title chrome', async ({ mount, page }) => {

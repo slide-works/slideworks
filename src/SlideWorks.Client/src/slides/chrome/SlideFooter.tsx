@@ -1,5 +1,3 @@
-import './chrome.css';
-
 type SlideFooterProps = {
   number: number;
   total: number;

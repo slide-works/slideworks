@@ -1,5 +1,3 @@
-import './chrome.css';
-
 type ProgressBarProps = {
   number: number;
   total: number;

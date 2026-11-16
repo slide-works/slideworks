@@ -4,7 +4,11 @@
      a layout's body may run 36 px into the bottom padding, to y = 996;
    - footer text: 17 px, line height 1, 40 px from the bottom, so y = 1023–1040;
    - part tracker: 40 px from the top, 120 px in from each side;
-   - progress bar: the bottom 5 px, from x = 0. */
+   - progress bar: the bottom 5 px, from x = 0.
+   The layout seam: every layout's root element takes .sw-layout, so it fills
+   the content box (x 120–1800, y 150–960) as the frame's flex item; a content
+   layout's body under its kicker and headline takes .sw-body, which fills the
+   remaining height and is not clipped, so its content may run to y = 996. */
 
 .sw-frame {
   position: relative;
@@ -31,6 +35,21 @@
   box-sizing: border-box;
 }
 
+/* Every layout's root element: the frame's one flow child. */
+.sw-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* A content layout's body, under the kicker and headline (the mockup's .bd). */
+.sw-body {
+  flex: 1;
+  min-height: 0;
+  margin-top: var(--sw-space-5);
+}
+
 /* The accent strip across the top of every slide. */
 .sw-frame::before {
   content: '';
@@ -49,7 +68,7 @@
   right: var(--sw-slide-pad-x);
   left: var(--sw-slide-pad-x);
   display: flex;
-  gap: 8px;
+  gap: var(--sw-space-1);
   margin: 0;
   padding: 0;
   list-style: none;

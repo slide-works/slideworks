@@ -1,5 +1,3 @@
-import './chrome.css';
-
 type PartTrackerProps = {
   parts: string[];
   // The current slide's part (1-based), or null when it belongs to none.
