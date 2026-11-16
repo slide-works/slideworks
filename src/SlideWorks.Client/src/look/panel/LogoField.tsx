@@ -12,10 +12,16 @@ export type LogoFieldProps = {
 // because an SVG can carry script.
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const WRONG_TYPE = 'Choose a PNG, JPEG, WebP or GIF image.';
+const LIMITS = 'PNG, JPEG, WebP or GIF, up to 10 MB.';
+const UNREACHABLE = "Can't reach SlideWorks.";
+const BAD_UPLOAD_URL =
+  "The upload didn't start: SlideWorks gave an upload address outside /api/uploads/.";
+const UPLOADS_PATH = '/api/uploads/';
 
 // Uploads a logo the way upload_image does: POST /api/decks/{id}/images for an image id and a one-time upload URL,
 // then PUT the file's bytes to that URL, then hand the id to onChange, which saves it with the deck's look. A failed
-// step shows the server's error and leaves the current logo as it is.
+// step shows the server's error (or "Can't reach SlideWorks." when the network fails) and leaves the current logo
+// as it is.
 export function LogoField({ deckId, logo, onChange }: LogoFieldProps) {
   const inputId = useId();
   const hintId = useId();
@@ -34,18 +40,27 @@ export function LogoField({ deckId, logo, onChange }: LogoFieldProps) {
     }
     setBusy(true);
     setError(null);
+    let uploaded: string | null = null;
     try {
       const body: ImageUploadRequest = { name: file.name, contentType: file.type };
-      const started = await api.post<ImageUploadResult>(`/api/decks/${deckId}/images`, body);
-      await putBytes(started, file);
-      onChange(started.image);
+      const started = await api.post<ImageUploadResult>(
+        `/api/decks/${encodeURIComponent(deckId)}/images`,
+        body,
+      );
+      const path = uploadPathOf(started.uploadUrl);
+      if (path === null) {
+        setError(BAD_UPLOAD_URL);
+      } else {
+        await putBytes(path, started.method, file);
+        uploaded = started.image;
+      }
     } catch (failure) {
-      if (!(failure instanceof ApiError)) throw failure;
-      setError(failure.message);
+      setError(failure instanceof ApiError ? failure.message : UNREACHABLE);
     } finally {
       setBusy(false);
       resetInput();
     }
+    if (uploaded !== null) onChange(uploaded);
   }
 
   // Clears the picked file, so picking the same file again after an error tries again.
@@ -94,13 +109,12 @@ export function LogoField({ deckId, logo, onChange }: LogoFieldProps) {
         onChange={upload}
       />
       <p id={hintId} className="text-ink-muted">
-        {logo ? 'Choose a file to replace it.' : 'PNG, JPEG, WebP or GIF, up to 10 MB.'}
+        {logo ? `Choose a file to replace it: ${LIMITS}` : LIMITS}
       </p>
-      {busy ? (
-        <p role="status" data-testid="logo-field-busy" className="text-ink-muted">
-          Uploading…
-        </p>
-      ) : null}
+      {/* Mounted empty and filled while busy, so screen readers announce the change. */}
+      <p role="status" data-testid="logo-field-busy" className="text-ink-muted">
+        {busy ? 'Uploading…' : ''}
+      </p>
       {error ? (
         <p id={errorId} role="alert" data-testid="logo-field-error" className="text-bad">
           {error}
@@ -110,10 +124,23 @@ export function LogoField({ deckId, logo, onChange }: LogoFieldProps) {
   );
 }
 
-// PUTs the file's raw bytes to the one-time upload URL. The token in the URL is the credential, so no cookie is sent.
-async function putBytes(started: ImageUploadResult, file: File): Promise<void> {
-  const response = await fetch(started.uploadUrl, {
-    method: started.method,
+// The upload URL is absolute on the server's public base URL, which needn't be the page's origin (Vite dev, a second
+// hostname), and the server sends no CORS headers. So the PUT goes to the URL's path and query on the page's own
+// origin, and only when that path is under /api/uploads/: nothing else gets the file.
+function uploadPathOf(uploadUrl: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(uploadUrl, window.location.origin);
+  } catch {
+    return null;
+  }
+  return url.pathname.startsWith(UPLOADS_PATH) ? url.pathname + url.search : null;
+}
+
+// PUTs the file's raw bytes to the one-time upload path. The token in it is the credential, so no cookie is sent.
+async function putBytes(path: string, method: string, file: File): Promise<void> {
+  const response = await fetch(path, {
+    method,
     credentials: 'omit',
     headers: { 'Content-Type': file.type },
     body: file,
