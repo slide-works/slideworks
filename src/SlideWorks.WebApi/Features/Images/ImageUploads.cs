@@ -5,6 +5,7 @@ using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
+using SlideWorks.WebApi.Features.Render;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -28,6 +29,7 @@ public class ImageUploads(
     IDeckEvents events,
     IPublicUrls urls,
     ImageStore store,
+    RenderSessions renderSessions,
     TimeProvider clock)
 {
     public const string TOOL = "upload_image";
@@ -109,7 +111,8 @@ public class ImageUploads(
     public async Task<StoredImage> OpenAsync(string imageId)
     {
         var image = await db.DeckImages.AsNoTracking().SingleOrDefaultAsync(i => i.Id == imageId && i.UploadedAt != null);
-        if (image == null || !await access.CanViewAsync(image.DeckId, actor))
+        // A headless render page reads its own deck's images with its render token (L9), whoever the deck is shared with.
+        if (image == null || (!renderSessions.AllowsImagesOf(image.DeckId) && !await access.CanViewAsync(image.DeckId, actor)))
         {
             throw new NotFoundException(IMAGE_NOT_FOUND);
         }

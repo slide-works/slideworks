@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.WebApi;
 using SlideWorks.WebApi.Data;
+using SlideWorks.Core.Rendering;
 using SlideWorks.WebApi.Infrastructure.Identity;
+using SlideWorks.WebApi.Infrastructure.Rendering;
 using SlideWorks.WebApi.Infrastructure.Setup;
 using SlideWorks.WebApi.Realtime;
 using Serilog;
@@ -52,11 +54,15 @@ builder.Services.AddHttpContextAccessor();
 // Authentication and MCP each live in their own setup file (Infrastructure/Setup/).
 builder.Services.AddSlideWorksAuth();
 builder.Services.AddSlideWorksMcp();
+// Render tokens (L9): Core's RenderTokens with its key from configuration.
+builder.Services.AddSlideWorksRendering();
 
 var app = builder.Build();
 
 // Fail at startup, not on the first link, when SLIDEWORKS_PUBLIC_URL is missing outside Development.
 app.Services.GetRequiredService<IPublicUrls>();
+// The same for the render token key (RenderTokens:Key).
+app.Services.GetRequiredService<IRenderTokens>();
 
 // Single-instance app: apply migrations on startup, no orchestration needed.
 using (var scope = app.Services.CreateScope())
