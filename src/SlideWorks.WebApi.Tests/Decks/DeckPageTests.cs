@@ -12,6 +12,7 @@ namespace SlideWorks.WebApi.Tests.Decks;
 [TestFixture]
 public class DeckPageTests : ApiTestFixture
 {
+    // red until SW-63: deck-play.json and deck-page.json gained look, revision and deepDive (SW-2 L6)
     [Test]
     public async Task Get_ShouldReturnSlidesNotesActivityMatchingShape()
     {

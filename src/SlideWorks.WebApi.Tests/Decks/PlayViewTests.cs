@@ -20,6 +20,7 @@ public class PlayViewTests : ApiTestFixture
         OpaquePaths = ["slides[].slots"],
     };
 
+    // red until SW-63: deck-play.json and deck-page.json gained look, revision and deepDive (SW-2 L6)
     [Test]
     public async Task Get_WhenOwner_ShouldMatchShapeAndOmitNotes()
     {
@@ -62,6 +63,7 @@ public class PlayViewTests : ApiTestFixture
         (await Client.GetAsync($"/api/images/{image}")).StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
+    // red until SW-63: deck-play.json and deck-page.json gained look, revision and deepDive (SW-2 L6)
     [Test]
     public async Task Get_WhenNoAuthorAndNoSlides_ShouldStillMatchShape()
     {

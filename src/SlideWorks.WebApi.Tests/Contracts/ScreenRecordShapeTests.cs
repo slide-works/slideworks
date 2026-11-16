@@ -64,6 +64,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
         json.GetProperty("decks")[0].GetProperty("sharing").GetString().ShouldBe("private");
     }
 
+    // red until SW-63: deck-play.json and deck-page.json gained look, revision and deepDive (SW-2 L6)
     [Test]
     public void DeckPage_ShouldMatchContract()
     {
@@ -103,6 +104,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
         SameJson(json, example).ShouldBeTrue(Differs(json, example));
     }
 
+    // red until SW-63: deck-play.json and deck-page.json gained look, revision and deepDive (SW-2 L6)
     [Test]
     public void DeckPage_WhenOptionalFieldsAreNull_ShouldMatchContract()
     {
