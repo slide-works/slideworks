@@ -118,3 +118,16 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker build -t slide-works src
       - run: docker image ls slide-works
+      # Smoke the built image as it ships (non-root app user): it starts, and its Chromium renders a share card. An
+      # unknown deck gets the generic card, so this needs no seeded data.
+      - name: container smoke
+        run: |
+          docker run -d --name smoke -p 8080:8080 \
+            -e RenderTokens__Key="$(head -c 48 /dev/urandom | base64 | tr -d '/+=' | head -c 48)" \
+            -e SLIDEWORKS_PUBLIC_URL=http://127.0.0.1:8080 slide-works
+          for i in $(seq 1 60); do curl -sf -m 2 http://127.0.0.1:8080/health >/dev/null && break; sleep 1; done
+          code=$(curl -s -m 60 -o card.png -w '%{http_code} %{content_type}' http://127.0.0.1:8080/api/cards/smoke.png)
+          echo "card: $code"
+          docker logs smoke | tail -20
+          test "$code" = "200 image/png"
+          python3 -c "import struct;d=open('card.png','rb').read(24);assert d[:8]==b'\x89PNG\r\n\x1a\n';assert struct.unpack('>II',d[16:24])==(1200,630),d[16:24]"
