@@ -1,6 +1,7 @@
 services:
   slide-works:
     build: .
+    restart: unless-stopped
     ports:
       - "8080:8080"
     # Set the values in an untracked .env next to this file. docs/self-hosting.md
@@ -25,7 +26,8 @@ services:
     volumes:
       # Named volume on a local disk. Never switch this to a bind mount on a
       # network share (NFS, SMB, 9p): SQLite corrupts there under lock
-      # contention. Back it up with `sqlite3 .backup` instead.
+      # contention. Compose names it src_slide-works-data when run from src/;
+      # docs/self-hosting.md (Storage) has the backup command.
       - slide-works-data:/data
 
 volumes:

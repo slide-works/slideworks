@@ -56,7 +56,7 @@ Static analysis (SonarAnalyzer.CSharp and Agoda.Analyzers) applies to every proj
 
 ## Realtime
 
-Live updates go over one SignalR hub on WebSockets, the same shape ShipLean and Codex use:
+Live updates go over one SignalR hub on WebSockets:
 
 ```
 publisher → IDeckEvents (in-process bus) → DeckEventsRelay → DeckHub group "deck:<id>" → subscribeToDeck → screen
@@ -79,7 +79,7 @@ Every setting is an environment variable. [`docs/self-hosting.md`](docs/self-hos
 | `SLIDEWORKS_DB_PATH` | SQLite file, default `/data/slide-works.db`. The cookie keys live in `slide-works-keys/` next to it |
 | `SLIDEWORKS_DATA_PATH` | Data folder for uploaded images (under `images/<deck id>/`), default `/data` |
 | `SLIDEWORKS_SEQ_URL`, `SLIDEWORKS_SEQ_API_KEY` | Also log to Seq when set; console only otherwise |
-| `SLIDEWORKS_TRUSTED_PROXIES` | Coming in SW-141: proxy CIDRs whose `X-Forwarded-For` gives the client IP for the OAuth rate limits |
+| `SLIDEWORKS_TRUSTED_PROXIES` | Not implemented yet. Planned: proxy CIDRs whose `X-Forwarded-For` gives the client IP for the OAuth rate limits |
 
 `GET /health` is anonymous and reports the commit the image was built from.
 
@@ -102,10 +102,12 @@ cd src/SlideWorks.Client && pnpm run test-ct   # functional assertions; screensh
 Screenshot assertions (`toHaveScreenshot()`) will likely fail on your machine even on unchanged code: the fonts installed there don't match the container the baselines were generated in. Never commit a baseline made outside that container. CI's `playwright` job runs in it, and a missing baseline makes the job write the image and attach it to the `playwright-report` artifact as `<name>-actual.png`; check it, then commit it as `<spec>.spec.tsx-snapshots/<name>-linux.png`. Or regenerate inside the same image locally:
 
 ```bash
-cd src/SlideWorks.Client
-docker run --rm -v "$PWD":/work -w /work mcr.microsoft.com/playwright:v1.62.0-resolute \
+cd src
+docker run --rm -v "$PWD":/work -w /work/SlideWorks.Client mcr.microsoft.com/playwright:v1.62.0-resolute \
   bash -c "corepack enable && pnpm install --frozen-lockfile && pnpm exec playwright test -c playwright-ct.config.ts --update-snapshots=all"
 ```
+
+It mounts all of `src/`, not just the client, because the component tests import `@contracts` from `src/contracts`. The container runs as root, so the files it writes in `node_modules` and the snapshot folders end up owned by root.
 
 ## Deploy
 

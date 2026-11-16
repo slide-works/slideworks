@@ -22,7 +22,7 @@ Every setting is an environment variable with the `SLIDEWORKS_` prefix.
 | `SLIDEWORKS_DATA_PATH` | No | The data folder for uploaded images. Default `/data`. Images are stored under `images/<deck id>/`. |
 | `SLIDEWORKS_SEQ_URL` | No | Also send logs to this Seq server. Without it, logs go to the console only (`docker logs`). |
 | `SLIDEWORKS_SEQ_API_KEY` | No | The Seq API key, when your Seq server needs one. |
-| `SLIDEWORKS_TRUSTED_PROXIES` | No (coming in SW-141) | The proxy addresses, as a comma-separated list of CIDRs, whose `X-Forwarded-For` header SlideWorks trusts for the client IP. Unset by default. See [Behind a TLS proxy](#behind-a-tls-proxy). |
+| `SLIDEWORKS_TRUSTED_PROXIES` | No (not implemented yet) | Planned: the proxy addresses, as a comma-separated list of CIDRs, whose `X-Forwarded-For` header SlideWorks trusts for the client IP. Unset by default. See [Behind a TLS proxy](#behind-a-tls-proxy). |
 
 The image listens on port 8080 over plain HTTP and runs as a non-root user. `GET /health` is anonymous and reports the commit the image was built from.
 
@@ -63,7 +63,15 @@ Migrations run on startup, so a new image upgrades the database itself.
 
 ### Storage
 
-- The database, the cookie keys and the images all live on the `/data` volume. Back it up as a unit. For a consistent database copy while the app runs, use `sqlite3 /data/slide-works.db ".backup /backup/slide-works.db"`.
+- The database, the cookie keys and the images all live on the `/data` volume. Back it up as a unit. The runtime image has no `sqlite3`, so take a consistent copy while the app runs from a throwaway container that mounts the volume and a host folder. Compose prefixes the volume name with the project name, which is the folder name, so from `src/` the volume is `src_slide-works-data` (`docker volume ls` shows it). From `src/`:
+
+  ```bash
+  mkdir -p backup
+  docker run --rm -v src_slide-works-data:/data -v "$PWD/backup":/backup alpine sh -c \
+    "apk add --no-cache sqlite >/dev/null && sqlite3 /data/slide-works.db '.backup /backup/slide-works.db' && cp -r /data/slide-works-keys /backup/ && if [ -d /data/images ]; then cp -r /data/images /backup/; fi"
+  ```
+
+  That writes `backup/slide-works.db` plus copies of the cookie keys and any images, owned by root. `.backup` is safe while SlideWorks is writing; copying the `.db` file directly is not.
 - Keep `/data` on a local disk, such as a named Docker volume. Never bind-mount it onto a network share (NFS, SMB or 9p), because SQLite's locking corrupts the file there.
 - SlideWorks is a single process. Its live updates and rate limits are held in memory, so don't run two instances against one volume.
 
@@ -77,7 +85,7 @@ Run SlideWorks behind a proxy that ends TLS and forwards plain HTTP to port 8080
 
 `SLIDEWORKS_PUBLIC_URL` is the source of truth for the app's scheme and host. SlideWorks never reads `X-Forwarded-Proto`, `X-Forwarded-Host` or the `Host` header to decide its own address, so a forged header can't change a link, the OAuth metadata or the sign-in callback. If the proxy serves `https://slides.example.com`, set exactly that, and the session cookie is `Secure` even though the container sees plain HTTP.
 
-`SLIDEWORKS_TRUSTED_PROXIES` (coming in SW-141) is the one exception, and it covers the client IP only. The IP is used only for the per-caller rate limits on `/oauth/register`, `/oauth/token` and `/oauth/revoke`. Behind a proxy, set it to the proxy's address, such as `172.18.0.0/16` for a proxy on the same Docker network. Otherwise every request arrives from the proxy, and every client shares one rate-limit budget. When it's set, SlideWorks reads one hop of `X-Forwarded-For`, and only on requests that come from those addresses. Scheme and host still come only from `SLIDEWORKS_PUBLIC_URL`.
+The client IP is used only for the per-caller rate limits on `/oauth/register`, `/oauth/token` and `/oauth/revoke`. Behind a proxy every request arrives from the proxy's address, so every client shares one rate-limit budget. `SLIDEWORKS_TRUSTED_PROXIES` is not implemented yet, and setting it has no effect today. When it lands, it will name the proxy addresses whose `X-Forwarded-For` header gives the client IP (one hop, and only on requests from those addresses). Scheme and host will still come only from `SLIDEWORKS_PUBLIC_URL`.
 
 A Caddy example:
 
