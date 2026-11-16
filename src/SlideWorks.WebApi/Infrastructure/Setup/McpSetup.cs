@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication;
+using ModelContextProtocol.Server;
 using SlideWorks.WebApi.Infrastructure.Mcp;
 
 namespace SlideWorks.WebApi.Infrastructure.Setup;
@@ -22,6 +23,15 @@ public static class McpSetup
             .WithToolsFromAssembly(ApiMarker.Assembly)
             .WithMessageFilters(filters => filters.AddIncomingFilter(McpArgumentCheck.Unreadable))
             .WithRequestFilters(filters => filters.AddCallToolFilter(McpArgumentCheck.Filter));
+        // After the SDK has put every tool in the collection: close and tighten each inputSchema, which both the agent's
+        // model and McpArgumentCheck read.
+        services.PostConfigure<McpServerOptions>(options =>
+        {
+            foreach (var tool in options.ToolCollection ?? [])
+            {
+                McpToolSchemas.Tighten(tool.ProtocolTool);
+            }
+        });
         return services;
     }
 

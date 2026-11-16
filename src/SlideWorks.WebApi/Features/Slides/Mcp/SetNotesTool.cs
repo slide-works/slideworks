@@ -9,7 +9,7 @@ namespace SlideWorks.WebApi.Features.Slides.Mcp;
 public sealed class SetNotesTool
 {
     [McpServerTool(Name = SlideEdits.SET_NOTES_TOOL)]
-    [Description("Set the speaker notes of one or more slides in a deck you own, in one change. Viewers never see notes. Empty text clears a slide's notes. Each slide listed gets a new revision. Returns the slides' numbers and the new revision.")]
+    [Description("Set the speaker notes of one or more slides in a deck you own, in one change. Viewers never see notes. Send text: null (or empty text) to clear a slide's notes. Each slide listed gets a new revision. Returns the slides' numbers and the new revision.")]
     public Task<CallToolResult> SetNotes(
         SlideEdits edits,
         [Description("The deck's id.")] string deck,

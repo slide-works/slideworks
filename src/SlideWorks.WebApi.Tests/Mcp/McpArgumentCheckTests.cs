@@ -15,6 +15,8 @@ public class McpArgumentCheckTests : ApiTestFixture
 {
     private const string NOTES_NOT_A_LIST = "notes: must be a list of objects with slide and text";
 
+    private const string BOGUS = "bogus: unknown argument";
+
     // Each case runs against a deck holding one quote slide "A" (revision 1, no notes, private, no viewers).
     [TestCase("set_notes", """{"deck":"{deck}","notes":"Say hi."}""", NOTES_NOT_A_LIST)]
     [TestCase("set_notes", """{"deck":"{deck}","notes":{"slide":1,"text":"Say hi."}}""", NOTES_NOT_A_LIST)]
@@ -43,6 +45,29 @@ public class McpArgumentCheckTests : ApiTestFixture
     [TestCase("create_deck", """{"title":42}""", "title: must be text")]
     [TestCase("create_deck", """{"title":"T","parts":"One"}""", "parts: must be a list of text")]
     [TestCase("create_deck", """{"title":"T","parts":["One",2]}""", "parts: must be a list of text")]
+    [TestCase("set_sharing", """{"deck":"{deck}","level":"named","viewers":[null]}""", "viewers: must be a list of email addresses")]
+    [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":"B"}""", "slots: must be an object")]
+    [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":["B"]}""", "slots: must be an object")]
+    [TestCase("update_slide", """{"deck":"{deck}","slide":1,"revision":1,"slots":"B"}""", "slots: must be an object")]
+    // An argument or entry field the schema doesn't name is refused, not silently dropped: a misspelt optional argument
+    // would otherwise be a wrong write that reports OK.
+    [TestCase("set_sharing", """{"deck":"{deck}","level":"named","viewer":["alex@team.example"]}""", "viewer: unknown argument")]
+    [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"B","attribution":"Sam"},"positon":1}""", "positon: unknown argument")]
+    [TestCase("set_notes", """{"deck":"{deck}","notes":[{"slide":1,"text":"Say hi.","x":2}]}""", "notes[0].x: unknown field")]
+    [TestCase("set_notes", """{"deck":"{deck}","notes":[{"slide":1,"text":"Say hi."},{"slide":1,"text":"y","bogus":2}]}""", "notes[1].bogus: unknown field")]
+    [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"B","attribution":"Sam"},"bogus":1}""", BOGUS)]
+    [TestCase("delete_slide", """{"deck":"{deck}","slide":1,"bogus":1}""", BOGUS)]
+    [TestCase("move_slide", """{"deck":"{deck}","slide":1,"to":1,"bogus":1}""", BOGUS)]
+    [TestCase("set_notes", """{"deck":"{deck}","notes":[{"slide":1,"text":"Say hi."}],"bogus":1}""", BOGUS)]
+    [TestCase("update_slide", """{"deck":"{deck}","slide":1,"revision":1,"slots":{"quote":"B","attribution":"Sam"},"bogus":1}""", BOGUS)]
+    [TestCase("set_sharing", """{"deck":"{deck}","level":"named","viewers":["alex@team.example"],"bogus":1}""", BOGUS)]
+    [TestCase("upload_image", """{"deck":"{deck}","name":"story-map.png","contentType":"image/png","bogus":1}""", BOGUS)]
+    [TestCase("create_deck", """{"title":"T","bogus":1}""", BOGUS)]
+    [TestCase("get_deck", """{"deck":"{deck}","bogus":1}""", BOGUS)]
+    [TestCase("get_deck_url", """{"deck":"{deck}","bogus":1}""", BOGUS)]
+    [TestCase("list_blocks", """{"bogus":1}""", BOGUS)]
+    [TestCase("list_decks", """{"bogus":1}""", BOGUS)]
+    [TestCase("list_layouts", """{"bogus":1}""", BOGUS)]
     public async Task Call_WhenArgumentMissingOrMistypedOnTheWire_ShouldReturnToolErrorNamingItAndChangeNothing(string tool, string argumentsJson, string expected)
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
@@ -67,13 +92,15 @@ public class McpArgumentCheckTests : ApiTestFixture
 
     // An escaped lone surrogate (half an emoji) can't become a .NET string, and the SDK reads a call's params before any
     // call-tool filter runs, so without McpArgumentCheck.Unreadable every one of these is JSON-RPC -32603.
-    [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"Ship it \ud83d","attribution":"Sam"}}""", "slots: text is not valid UTF-16")]
+    [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"Ship it \ud83d","attribution":"Sam"}}""", "slots.quote: text is not valid UTF-16")]
     [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"\ud83d":"x","quote":"B","attribution":"Sam"}}""", "slots: text is not valid UTF-16")]
     [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"B","attribution":"Sam"},"notes":"\ude80 lift-off"}""", "notes: text is not valid UTF-16")]
     [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"B","attribution":"Sam"},"extra":"\ud83d"}""", "extra: text is not valid UTF-16")]
     [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"B","attribution":"Sam"},"\ud83d":"x"}""", "arguments: text is not valid UTF-16")]
-    [TestCase("set_notes", """{"deck":"{deck}","notes":[{"slide":1,"text":"\ud83d\ud83d"}]}""", "notes: text is not valid UTF-16")]
-    [TestCase("set_sharing", """{"deck":"{deck}","level":"named","viewers":["alex\ud83d@team.example"]}""", "viewers: text is not valid UTF-16")]
+    [TestCase("set_notes", """{"deck":"{deck}","notes":[{"slide":1,"text":"\ud83d\ud83d"}]}""", "notes[0].text: text is not valid UTF-16")]
+    [TestCase("set_notes", """{"deck":"{deck}","notes":[{"slide":1,"text":"a"},{"slide":1,"text":"b"},{"slide":1,"text":"\ud83d\ud83d"}]}""", "notes[2].text: text is not valid UTF-16")]
+    [TestCase("set_notes", """{"deck":"{deck}","notes":[{"slide":1,"\ud83d":"x","text":"a"}]}""", "notes[0]: text is not valid UTF-16")]
+    [TestCase("set_sharing", """{"deck":"{deck}","level":"named","viewers":["alex\ud83d@team.example"]}""", "viewers[0]: text is not valid UTF-16")]
     [TestCase("create_deck", """{"title":"\ud83d"}""", "title: text is not valid UTF-16")]
     public async Task Call_WhenArgumentHasLoneSurrogateOnTheWire_ShouldReturnToolErrorNamingItAndChangeNothing(string tool, string argumentsJson, string expected)
     {
@@ -130,8 +157,9 @@ public class McpArgumentCheckTests : ApiTestFixture
         (await SlidesAsync(agent, deck))[0].GetProperty("notes").ValueKind.ShouldBe(JsonValueKind.Null);
     }
 
-    // What an agent's model reads: slots and notes required with no default, notes a list of slide/text objects, viewers
-    // an optional list of strings.
+    // What an agent's model reads: slots and notes required with no default, slots an object, notes a list of slide/text
+    // objects, viewers an optional list of email addresses that can't be null, and no argument or notes field the schema
+    // doesn't name.
     [Test]
     public async Task ToolsList_ShouldAdvertiseRequiredAndTypedParameters()
     {
@@ -154,8 +182,18 @@ public class McpArgumentCheckTests : ApiTestFixture
         notes.GetProperty("items").GetProperty("properties").GetProperty("slide").GetProperty("type").GetRawText().ShouldBe("\"integer\"");
         var viewers = Property(schemas["set_sharing"], "viewers");
         viewers.GetProperty("type").GetRawText().ShouldBe("""["array","null"]""");
-        viewers.GetProperty("items").GetProperty("type").GetRawText().ShouldBe("""["string","null"]""");
-        viewers.GetProperty("format").GetString().ShouldBe("email");
+        viewers.GetProperty("items").GetProperty("type").GetRawText().ShouldBe("\"string\"");
+        viewers.GetProperty("items").GetProperty("format").GetString().ShouldBe("email");
+        viewers.TryGetProperty("format", out _).ShouldBeFalse();
+        Property(schemas["add_slide"], "slots").GetProperty("type").GetRawText().ShouldBe("\"object\"");
+        Property(schemas["update_slide"], "slots").GetProperty("type").GetRawText().ShouldBe("\"object\"");
+        Property(schemas["add_slide"], "slots").TryGetProperty("additionalProperties", out _).ShouldBeFalse();
+        notes.GetProperty("items").GetProperty("additionalProperties").ValueKind.ShouldBe(JsonValueKind.False);
+        schemas.Count.ShouldBe(13);
+        foreach (var (tool, schema) in schemas)
+        {
+            schema.GetProperty("additionalProperties").ValueKind.ShouldBe(JsonValueKind.False, tool);
+        }
     }
 
     private static async Task<int> DeckCountAsync(McpTestClient agent)

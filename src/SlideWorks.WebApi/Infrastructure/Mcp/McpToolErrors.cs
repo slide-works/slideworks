@@ -18,6 +18,8 @@ public static class McpToolErrors
 
     public static async Task<CallToolResult> Run<T>(Func<Task<T>> work)
     {
+        // The SDK has bound the arguments by now; from here on a JsonException is a bug, not an argument error.
+        McpArgumentCheck.ArgumentsBound();
         try
         {
             var json = JsonSerializer.SerializeToElement(await work(), JSON);

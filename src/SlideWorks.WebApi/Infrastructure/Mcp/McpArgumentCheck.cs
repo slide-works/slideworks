@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Protocol;
@@ -8,13 +9,18 @@ namespace SlideWorks.WebApi.Infrastructure.Mcp;
 // Every tool call's arguments, checked against the tool's own advertised inputSchema before the SDK binds them. A missing,
 // null or wrongly typed argument gets a tool error that names it ("layout: required", "notes[0].slide: must be a whole
 // number"), the K-style text the services use, not the SDK's generic "An error occurred invoking 'add_slide'.". That
-// lets the tools keep strict, typed schemas. McpSetup registers both halves:
+// lets the tools keep strict, typed schemas. An argument or entry field the schema doesn't name is refused too
+// ("viewer: unknown argument", "notes[0].x: unknown field"), wherever the schema says additionalProperties: false, which
+// McpToolSchemas puts on every object schema that lists its properties. McpSetup registers both halves:
 // - Unreadable, an incoming message filter. The SDK converts a tools/call's params to CallToolRequestParams before any
 //   call-tool filter runs, and an escaped lone surrogate ("\ud83d") can't become a .NET string, so that conversion throws
-//   and the agent gets JSON-RPC -32603. This filter finds the argument first, empties the arguments so the conversion
-//   succeeds, and leaves the refusal in the message's Items for Filter.
+//   and the agent gets JSON-RPC -32603. This filter finds the deepest path holding it first ("notes[2].text"), empties the
+//   arguments so the conversion succeeds, and leaves the refusal in the message's Items for Filter.
 // - Filter, a call-tool filter. It returns that refusal, or the first argument the schema refuses. A binding failure
-//   the schema can't predict, such as a whole number too big for an int, is still a tool error.
+//   the schema can't predict, such as a whole number too big for an int, is still a tool error. Only a binding failure:
+//   McpToolErrors.Run calls ArgumentsBound as the tool body starts, and an exception after that is a bug, rethrown for
+//   the SDK to log ("threw an unhandled exception") and report as one, never mistaken for an argument error after a
+//   write may have committed.
 // The services keep their own checks: they cover what the schema leaves open (an explicit null in a nullable list, the
 // slots inside a layout) and callers that don't come through MCP.
 public static class McpArgumentCheck
@@ -25,14 +31,26 @@ public static class McpArgumentCheck
 
     private const string UNREADABLE_TEXT = "text is not valid UTF-16";
 
+    // Set by Filter around each call; McpToolErrors.Run flips it once the SDK has bound the arguments.
+    private static readonly AsyncLocal<StrongBox<bool>?> BOUND = new();
+
+    // The tool body has started: the SDK bound the arguments. Every tool calls this through McpToolErrors.Run.
+    public static void ArgumentsBound()
+    {
+        if (BOUND.Value is { } bound)
+        {
+            bound.Value = true;
+        }
+    }
+
     public static McpMessageHandler Unreadable(McpMessageHandler next)
         => (context, cancellationToken) =>
         {
             if (context.JsonRpcMessage is JsonRpcRequest { Method: RequestMethods.ToolsCall, Params: JsonObject call }
                 && call["arguments"] is JsonObject arguments
-                && UnreadableArgument(arguments) is { } name)
+                && UnreadablePath(arguments, "arguments", top: true) is { } path)
             {
-                context.Items[UNREADABLE_KEY] = $"{name}: {UNREADABLE_TEXT}";
+                context.Items[UNREADABLE_KEY] = $"{path}: {UNREADABLE_TEXT}";
                 call["arguments"] = new JsonObject();
             }
             return next(context, cancellationToken);
@@ -46,29 +64,47 @@ public static class McpArgumentCheck
             {
                 return McpToolErrors.Refusal(refusal);
             }
+            var bound = new StrongBox<bool>();
+            BOUND.Value = bound;
             try
             {
                 return await next(context, cancellationToken);
             }
-            catch (Exception error) when (error is JsonException or ArgumentException { ParamName: "arguments" })
+            catch (Exception error) when (!bound.Value && error is JsonException or ArgumentException { ParamName: "arguments" })
             {
-                // The SDK's binder: a JsonException for a value it can't convert, an ArgumentException naming
-                // "arguments" for a missing parameter. Tool bodies run inside McpToolErrors.Run and throw neither.
+                // The SDK's binder, before the tool body started: a JsonException for a value it can't convert, an
+                // ArgumentException naming "arguments" for a missing parameter.
                 return McpToolErrors.Refusal(BINDING_FAILED);
             }
         };
 
-    // The first argument whose JSON holds text that isn't valid UTF-16 (writing it out unescapes every string in it, and
-    // that is what throws), "arguments" when an argument's own name is the bad text, or null when all of it reads.
-    private static string? UnreadableArgument(JsonObject arguments)
+    // The deepest path whose JSON holds text that isn't valid UTF-16 (reading a name or writing out a value unescapes
+    // it, and that is what throws): "notes[2].text" for a value, the object's own path ("notes[0]", or "arguments" at the
+    // top) when one of its names is the bad text, or null when all of it reads.
+    private static string? UnreadablePath(JsonNode? node, string path, bool top = false)
     {
-        try
+        switch (node)
         {
-            return arguments.FirstOrDefault(argument => !Readable(argument.Value)).Key;
-        }
-        catch (InvalidOperationException)
-        {
-            return "arguments";
+            case JsonObject properties:
+                try
+                {
+                    foreach (var (name, value) in properties)
+                    {
+                        if (UnreadablePath(value, top ? name : $"{path}.{name}") is { } found)
+                        {
+                            return found;
+                        }
+                    }
+                    return null;
+                }
+                catch (InvalidOperationException)
+                {
+                    return path;
+                }
+            case JsonArray entries:
+                return entries.Select((entry, index) => UnreadablePath(entry, $"{path}[{index}]")).FirstOrDefault(found => found != null);
+            default:
+                return Readable(node) ? null : path;
         }
     }
 
@@ -89,8 +125,8 @@ public static class McpArgumentCheck
         => context.MatchedPrimitive is McpServerTool tool ? Check(tool.ProtocolTool.InputSchema, context.Params?.Arguments) : null;
 
     // The tool's own schema: every required argument present and not null (unless its type allows null), then every
-    // argument the schema describes, in the order sent. Arguments the schema doesn't name are left to the SDK, which
-    // ignores them.
+    // argument in the order sent: one the schema doesn't name is refused when the schema is closed (additionalProperties:
+    // false), and one it describes is checked against that.
     private static string? Check(JsonElement schema, IDictionary<string, JsonElement>? arguments)
     {
         arguments ??= new Dictionary<string, JsonElement>();
@@ -103,7 +139,7 @@ public static class McpArgumentCheck
         }
         foreach (var (name, value) in arguments)
         {
-            if (Property(schema, name) is { } property && CheckValue(name, value, property) is { } error)
+            if (CheckNamed(schema, name, name, value, "unknown argument") is { } error)
             {
                 return error;
             }
@@ -140,7 +176,7 @@ public static class McpArgumentCheck
         }
         foreach (var property in value.EnumerateObject())
         {
-            if (Property(schema, property.Name) is { } propertySchema && CheckValue($"{path}.{property.Name}", property.Value, propertySchema) is { } error)
+            if (CheckNamed(schema, property.Name, $"{path}.{property.Name}", property.Value, "unknown field") is { } error)
             {
                 return error;
             }
@@ -227,6 +263,19 @@ public static class McpArgumentCheck
         => schema.TryGetProperty("properties", out var properties) && properties.ValueKind == JsonValueKind.Object && properties.TryGetProperty(name, out var property)
             ? property
             : null;
+
+    // One named argument or field: checked against its schema, or refused as unknown when the schema is closed.
+    private static string? CheckNamed(JsonElement schema, string name, string path, JsonElement value, string unknown)
+    {
+        if (Property(schema, name) is { } property)
+        {
+            return CheckValue(path, value, property);
+        }
+        return Closed(schema) ? $"{path}: {unknown}" : null;
+    }
+
+    private static bool Closed(JsonElement schema)
+        => schema.TryGetProperty("additionalProperties", out var additional) && additional.ValueKind == JsonValueKind.False;
 
     private static bool AllowsNull(JsonElement? schema) => schema is { } given && Types(given).Contains("null");
 }
