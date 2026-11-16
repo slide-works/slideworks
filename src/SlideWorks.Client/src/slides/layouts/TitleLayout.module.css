@@ -1,7 +1,9 @@
 /* The title slide (the mockup's .sw.title), in canvas px. The root also has the
    frame's sw-layout class, which makes it fill the frame as a flex column. */
+/* Safe centring: content taller than the box overflows downwards, into the
+   room above the footer (to y 996), never up past the content top at y 150. */
 .title {
-  justify-content: center;
+  justify-content: safe center;
   padding-left: 40px;
 }
 
@@ -41,7 +43,7 @@
 
 .heading {
   margin: 0;
-  /* The size is set by the two-line fit in TitleLayout.tsx, from 168 px down. */
+  /* The size is set by the two-line fit in TitleLayout.tsx, from 168 px to 96 px. */
   font: 800 168px/0.95 var(--sw-font-head);
   letter-spacing: -0.04em;
   text-wrap: balance;

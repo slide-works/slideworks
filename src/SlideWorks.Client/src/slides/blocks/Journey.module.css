@@ -35,7 +35,7 @@
   left: 0;
   width: 20px;
   height: 20px;
-  border: 2px solid #475569;
+  border: 2px solid var(--sw-night-line);
   border-radius: 50%;
   background: var(--sw-night);
 }
@@ -48,13 +48,19 @@
 
 /* The current part: a glowing dot. */
 .part[data-state='on']::before {
-  border-color: #c3d0ff;
-  background: #8ea5ff;
-  box-shadow: 0 0 0 8px rgb(142 165 255 / 0.2);
+  border-color: var(--sw-accent-past);
+  background: var(--sw-accent-glow);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--sw-accent-glow) 20%, transparent);
 }
 
+/* A name runs to two lines at most and ends in an ellipsis past that; the
+   whole name is in the title attribute. Eight 40-character names of capital W
+   would otherwise run to seven lines each. */
 .name {
-  display: block;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow-wrap: anywhere;
   color: var(--sw-night-2);
   font: 700 18px/1.25 var(--sw-font-body);
@@ -65,7 +71,7 @@
 .number {
   display: block;
   margin-top: 12px;
-  color: #64748b;
+  color: var(--sw-night-muted);
   font: 400 18px/1 var(--sw-font-body);
 }
 

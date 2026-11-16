@@ -1,7 +1,9 @@
 /* The close slide (the mockup's .sw.close), in canvas px. */
 .close {
   align-items: flex-start;
-  justify-content: center;
+  /* Safe centring: content taller than the box overflows downwards, into the
+     room above the footer (to y 996), never up past the content top at y 150. */
+  justify-content: safe center;
   padding-left: 40px;
 }
 
@@ -9,6 +11,7 @@
   max-width: 1400px;
   margin: 0;
   overflow-wrap: anywhere;
+  /* The size is set by the four-line fit in CloseLayout.tsx, from 112 px to 60 px. */
   font: 800 112px/1.02 var(--sw-font-head);
   letter-spacing: -0.035em;
 }
@@ -25,8 +28,9 @@
   padding: 28px 36px;
   overflow-wrap: anywhere;
   border-radius: 14px;
-  background: rgb(125 150 255 / 0.14);
-  color: #dbe3ff;
+  /* The mockup's rgb(125 150 255 / 0.14) and #dbe3ff, from the nearest tokens. */
+  background: color-mix(in srgb, var(--sw-accent-glow) 14%, transparent);
+  color: var(--sw-accent-light);
   font: 700 36px/1.35 var(--sw-font-head);
 }
 

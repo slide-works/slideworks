@@ -1,13 +1,20 @@
 /* The divider slide (the mockup's .sw.divider), in canvas px. */
+/* Safe centring: content taller than the box overflows downwards, into the
+   room above the footer (to y 996), never up past the content top at y 150. */
 .divider {
-  justify-content: center;
+  justify-content: safe center;
   padding-left: 40px;
 }
 
 .number {
   align-self: flex-start;
   margin: 0;
-  background: linear-gradient(180deg, #c3d0ff, #5b7cff);
+  /* The mockup's #c3d0ff to #5b7cff, from the nearest theme tokens. */
+  background: linear-gradient(
+    180deg,
+    var(--sw-accent-past),
+    color-mix(in srgb, var(--sw-accent) 60%, var(--sw-accent-glow))
+  );
   background-clip: text;
   color: transparent;
   font: 800 240px/0.9 var(--sw-font-head);
@@ -18,6 +25,7 @@
   max-width: 1300px;
   margin: 40px 0 0;
   overflow-wrap: anywhere;
+  /* The size is set by the two-line fit in DividerLayout.tsx, from 104 px to 64 px. */
   font: 800 104px/1.02 var(--sw-font-head);
   letter-spacing: -0.035em;
   text-wrap: balance;

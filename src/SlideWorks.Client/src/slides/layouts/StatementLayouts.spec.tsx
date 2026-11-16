@@ -34,39 +34,90 @@ function fill(length: number): string {
   return text.slice(0, length).trimEnd().padEnd(length, 'm');
 }
 
+// Text of exactly `length` characters in the widest letters: capitals, mostly
+// W and M, in words a line can still break between.
+function wide(length: number): string {
+  const words = ['WWWWWW', 'MAXIMUM', 'WMW', 'MMMMMM', 'WOMBAT', 'WWW'];
+  let text = '';
+  for (let i = 0; text.length < length; i++) text += (text ? ' ' : '') + words[i % words.length];
+  return text.slice(0, length).trimEnd().padEnd(length, 'W');
+}
+
+// The font size an element is drawn at, in px.
+async function fontSize(page: Page, testId: string): Promise<number> {
+  await page.evaluate(() => document.fonts.ready);
+  return page
+    .getByTestId(testId)
+    .evaluate((element: Element) => parseFloat(getComputedStyle(element).fontSize));
+}
+
+// How many lines of `lineHeight` × its font size an element takes.
+async function lineCount(page: Page, testId: string, lineHeight: number): Promise<number> {
+  const size = await fontSize(page, testId);
+  const height = await page
+    .getByTestId(testId)
+    .evaluate((element: Element) => (element as HTMLElement).offsetHeight);
+  return Math.round(height / (size * lineHeight));
+}
+
 type Box = { left: number; top: number; right: number; bottom: number };
 
 // The extent of everything a layout draws, in canvas px from the slide's top
 // left: every element's box and every run of text (text that overflows its
-// element is caught by its own rects).
-async function drawnBox(page: Page, layoutTestId: string): Promise<Box> {
+// element is caught by its own rects). Text hidden by an ancestor that clips
+// its overflow, such as a clamped journey name, is cut to that ancestor's box.
+// Elements matching `exclude` (and what is inside them) are left out.
+async function drawnBox(page: Page, layoutTestId: string, exclude?: string): Promise<Box> {
   await page.evaluate(() => document.fonts.ready);
-  return page.getByTestId(layoutTestId).evaluate((root: Element) => {
+  return page.getByTestId(layoutTestId).evaluate((root: Element, excluded: string | undefined) => {
     const slide = root.closest('[data-layout]')!.getBoundingClientRect();
     const box = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
-    const add = (rect: DOMRect) => {
-      if (rect.width === 0 && rect.height === 0) return;
+    const skip = (element: Element | null) =>
+      excluded !== undefined && element?.closest(excluded) != null;
+    const add = (rect: { left: number; top: number; right: number; bottom: number }) => {
+      if (rect.right - rect.left <= 0 && rect.bottom - rect.top <= 0) return;
       box.left = Math.min(box.left, rect.left - slide.left);
       box.top = Math.min(box.top, rect.top - slide.top);
       box.right = Math.max(box.right, rect.right - slide.left);
       box.bottom = Math.max(box.bottom, rect.bottom - slide.top);
     };
-    for (const element of root.querySelectorAll('*')) add(element.getBoundingClientRect());
+    for (const element of root.querySelectorAll('*')) {
+      if (!skip(element)) add(element.getBoundingClientRect());
+    }
+    // A line's glyphs can rise a little above its line box (a 20 px/1 kicker,
+    // the 240 px/0.9 part number) while the ink stays inside it, so the top is
+    // taken from the boxes, as in ContentLayouts.spec.tsx.
+    const boxTop = box.top;
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+      if (skip(node.parentElement)) continue;
+      const clips: DOMRect[] = [];
+      for (let el = node.parentElement; el !== null && el !== root; el = el.parentElement) {
+        if (getComputedStyle(el).overflow !== 'visible') clips.push(el.getBoundingClientRect());
+      }
       const range = document.createRange();
       range.selectNodeContents(node);
-      for (const rect of range.getClientRects()) add(rect);
+      for (const rect of range.getClientRects()) {
+        let { left, top, right, bottom } = rect;
+        for (const clip of clips) {
+          left = Math.max(left, clip.left);
+          top = Math.max(top, clip.top);
+          right = Math.min(right, clip.right);
+          bottom = Math.min(bottom, clip.bottom);
+        }
+        if (right > left && bottom > top) add({ left, top, right, bottom });
+      }
     }
-    return box;
-  });
+    return { ...box, top: boxTop };
+  }, exclude);
 }
 
-// The content box is x 120–1800; a body may run to y = 996, above the footer at 1023.
-function expectInsideContent(box: Box, top = 150) {
+// The content box is x 120–1800 from y = 150; a body may run to y = 996,
+// above the footer at 1023.
+function expectInsideContent(box: Box) {
   expect(box.left).toBeGreaterThanOrEqual(120);
   expect(box.right).toBeLessThanOrEqual(1800);
-  expect(box.top).toBeGreaterThanOrEqual(top);
+  expect(box.top).toBeGreaterThanOrEqual(150);
   expect(box.bottom).toBeLessThanOrEqual(996);
 }
 
@@ -86,8 +137,7 @@ test('title renders kicker title subtitle author stamp', async ({ mount, page })
   await expect(layout.getByTestId('block-stamp')).toHaveText('Draft');
   await expect(page.getByTestId('slide-frame')).toHaveAttribute('data-dark', 'true');
   // A sample title keeps the mockup's size.
-  await page.evaluate(() => document.fonts.ready);
-  await expect(layout.getByTestId('title-title')).toHaveAttribute('data-font-size', '168');
+  expect(await fontSize(page, 'title-title')).toBe(168);
 });
 
 test('title leaves out the slots it is not given', async ({ mount, page }) => {
@@ -186,9 +236,10 @@ test('big number value caption source', async ({ mount, page }) => {
   await expect(page.getByTestId('big-number-source')).toHaveText(
     'Source: Delivery data Jan–Oct, 12 launches.',
   );
-  // A value that fits keeps the mockup's size.
-  await page.evaluate(() => document.fonts.ready);
-  await expect(value).toHaveAttribute('data-font-size', '300');
+  // A value that fits keeps the mockup's size, and so do the caption and detail.
+  expect(await fontSize(page, 'big-number-value')).toBe(300);
+  expect(await fontSize(page, 'big-number-caption')).toBe(40);
+  expect(await fontSize(page, 'big-number-detail')).toBe(28);
 });
 
 test('big number shrinks a 6-digit value to fit its column', async ({ mount, page }) => {
@@ -201,11 +252,8 @@ test('big number shrinks a 6-digit value to fit its column', async ({ mount, pag
 
   const value = page.getByTestId('big-number-value');
   await expect(value).toHaveText('888888');
-  await page.evaluate(() => document.fonts.ready);
-  await expect
-    .poll(async () => Number(await value.getAttribute('data-font-size')))
-    .toBeLessThan(300);
-  const size = Number(await value.getAttribute('data-font-size'));
+  const size = await fontSize(page, 'big-number-value');
+  expect(size).toBeLessThan(300);
   expect(size).toBeGreaterThanOrEqual(120);
 
   const column = (await page.getByTestId('big-number-column').boundingBox())!;
@@ -214,6 +262,32 @@ test('big number shrinks a 6-digit value to fit its column', async ({ mount, pag
   expect(box.x).toBeGreaterThanOrEqual(column.x);
   expect(box.x + box.width).toBeLessThanOrEqual(column.x + column.width);
   expectInsideContent(await drawnBox(page, 'layout-big-number'));
+});
+
+test('the value fits once a thumbnail that starts at scale 0 gets its scale', async ({
+  mount,
+  page,
+}) => {
+  // The deck page's thumbnail draws the slide at scale(0) until it knows its
+  // width, so the fit waits for a box that measures more than 0.
+  const slide = { ...sample(4), slots: { ...(sample(4).slots as object), value: '888888' } };
+  await mount(
+    <div data-testid="thumb" style={{ transform: 'scale(0)', transformOrigin: '0 0' }}>
+      {render(slide as RenderableSlide)}
+    </div>,
+  );
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
+  );
+  await page.getByTestId('thumb').evaluate((thumb: HTMLElement) => {
+    thumb.style.transform = 'scale(0.25)';
+  });
+
+  await expect.poll(() => fontSize(page, 'big-number-value')).toBeLessThan(300);
+  const column = (await page.getByTestId('big-number-column').boundingBox())!;
+  const box = (await page.getByTestId('big-number-value').boundingBox())!;
+  expect(box.x + box.width).toBeLessThanOrEqual(column.x + column.width);
 });
 
 test('each layout root carries the sw-layout seam, and big-number its sw-body', async ({
@@ -230,101 +304,125 @@ test('each layout root carries the sw-layout seam, and big-number its sw-body', 
   await expect(page.locator('[data-testid="layout-big-number"] > .sw-body')).toHaveCount(1);
 });
 
+// Each layout at its slots' longest lengths (layouts.md), once in prose and once
+// in the widest letters. Everything drawn stays inside x 120–1800 and y 150–996;
+// the title's stamp, which sits in the top margin, is checked on its own.
 test.describe('max-length text stays inside 1920x1080', () => {
-  test('title', async ({ mount, page }) => {
-    await mount(
-      render({
-        number: 1,
-        layout: 'title',
-        part: null,
-        slots: {
-          kicker: fill(40),
-          title: fill(34),
-          subtitle: fill(100),
-          tagline: fill(90),
-          author: fill(60),
-          affiliation: fill(60),
-          stamp: 'M'.repeat(16),
-        },
-      }),
-    );
+  for (const [letters, text] of [
+    ['prose', fill],
+    ['wide letters', wide],
+  ] as const) {
+    test(`title in ${letters}`, async ({ mount, page }) => {
+      await mount(
+        render({
+          number: 1,
+          layout: 'title',
+          part: null,
+          slots: {
+            kicker: text(40),
+            title: text(34),
+            subtitle: text(100),
+            tagline: text(90),
+            author: text(60),
+            affiliation: text(60),
+            stamp: 'M'.repeat(16),
+          },
+        }),
+      );
 
-    expectInsideContent(await drawnBox(page, 'layout-title'), 0);
-    // A wide 34-character title is held to two lines.
-    const title = page.getByTestId('title-title');
-    const size = Number(await title.getAttribute('data-font-size'));
-    expect(size).toBeGreaterThanOrEqual(96);
-    expect((await title.boundingBox())!.height).toBeLessThanOrEqual(2 * size * 0.95 + 1);
-    const stamp = (await page.getByTestId('block-stamp').boundingBox())!;
-    expect(stamp.x + stamp.width).toBeLessThanOrEqual(1800 + 4);
-    expect(stamp.y).toBeGreaterThanOrEqual(8);
-    // The stamp sits above the content, clear of the title text.
-    const kicker = (await page.getByTestId('title-kicker').boundingBox())!;
-    expect(stamp.y + stamp.height).toBeLessThanOrEqual(kicker.y);
-  });
+      expectInsideContent(await drawnBox(page, 'layout-title', '[data-testid="block-stamp"]'));
+      // The title is held to two lines, from 168 px down to 96 px.
+      const size = await fontSize(page, 'title-title');
+      expect(size).toBeGreaterThanOrEqual(96);
+      expect(await lineCount(page, 'title-title', 0.95)).toBeLessThanOrEqual(2);
+      if (letters === 'wide letters') expect(size).toBeLessThan(168);
+      const stamp = (await page.getByTestId('block-stamp').boundingBox())!;
+      expect(stamp.x + stamp.width).toBeLessThanOrEqual(1800 + 4);
+      expect(stamp.y).toBeGreaterThanOrEqual(8);
+      // The stamp sits above the content, clear of the title text.
+      const kicker = (await page.getByTestId('title-kicker').boundingBox())!;
+      expect(stamp.y + stamp.height).toBeLessThanOrEqual(kicker.y);
+    });
 
-  test('divider with eight long parts', async ({ mount, page }) => {
-    const parts = Array.from({ length: 8 }, () => fill(40));
-    await mount(
-      render(
-        { number: 2, layout: 'divider', part: 8, slots: { title: fill(44), sub: fill(80) } },
-        { ...deck, parts },
-      ),
-    );
+    test(`divider with eight long parts in ${letters}`, async ({ mount, page }) => {
+      const parts = Array.from({ length: 8 }, () => text(40));
+      await mount(
+        render(
+          { number: 2, layout: 'divider', part: 8, slots: { title: text(44), sub: text(80) } },
+          { ...deck, parts },
+        ),
+      );
 
-    await expect(page.getByTestId('divider-number')).toHaveText('08');
-    expectInsideContent(await drawnBox(page, 'layout-divider'), 0);
-  });
+      await expect(page.getByTestId('divider-number')).toHaveText('08');
+      expectInsideContent(await drawnBox(page, 'layout-divider'));
+      // The title is held to two lines, from 104 px down to 64 px.
+      const size = await fontSize(page, 'divider-title');
+      expect(size).toBeGreaterThanOrEqual(64);
+      expect(await lineCount(page, 'divider-title', 1.02)).toBeLessThanOrEqual(2);
+      if (letters === 'wide letters') expect(size).toBeLessThan(104);
+      // A long part name is cut to two lines; the whole name is its title.
+      const name = page.getByTestId('journey-part').first().locator('b');
+      await expect(name).toHaveAttribute('title', parts[0]);
+    });
 
-  test('close', async ({ mount, page }) => {
-    // Three written lines that wrap to four shown lines, the validator's limit.
-    const headline =
-      'Pick one story today.\nShip half by Friday.\nThen tell us what you learned there';
-    expect(headline.length).toBe(78);
-    await mount(
-      render({
-        number: 16,
-        layout: 'close',
-        part: 4,
-        slots: { headline, sub: fill(110), author: fill(60) },
-      }),
-    );
+    test(`close in ${letters}`, async ({ mount, page }) => {
+      // The longest headline the validator accepts: three written lines that it
+      // estimates at four shown lines.
+      const headline =
+        letters === 'prose'
+          ? 'Pick one story today.\nShip half by Friday.\nThen tell us what you learned there'
+          : `${'W'.repeat(22)}\n${'W'.repeat(22)}\n${'W'.repeat(17)} ${'W'.repeat(16)}`;
+      expect(headline.length).toBeLessThanOrEqual(80);
+      await mount(
+        render({
+          number: 16,
+          layout: 'close',
+          part: 4,
+          slots: { headline, sub: text(110), author: text(60) },
+        }),
+      );
 
-    expectInsideContent(await drawnBox(page, 'layout-close'), 0);
-  });
+      expectInsideContent(await drawnBox(page, 'layout-close'));
+      // The headline is held to four lines, from 112 px down to 60 px.
+      const size = await fontSize(page, 'close-headline');
+      expect(size).toBeGreaterThanOrEqual(60);
+      expect(await lineCount(page, 'close-headline', 1.02)).toBeLessThanOrEqual(4);
+      if (letters === 'wide letters') expect(size).toBeLessThan(112);
+    });
 
-  test('quote', async ({ mount, page }) => {
-    await mount(
-      render({
-        number: 6,
-        layout: 'quote',
-        part: 1,
-        slots: { kicker: fill(40), quote: fill(280), attribution: fill(80) },
-      }),
-    );
+    test(`quote in ${letters}`, async ({ mount, page }) => {
+      await mount(
+        render({
+          number: 6,
+          layout: 'quote',
+          part: 1,
+          slots: { kicker: text(40), quote: text(280), attribution: text(80) },
+        }),
+      );
 
-    expectInsideContent(await drawnBox(page, 'layout-quote'));
-  });
+      expectInsideContent(await drawnBox(page, 'layout-quote'));
+    });
 
-  test('big-number', async ({ mount, page }) => {
-    await mount(
-      render({
-        number: 4,
-        layout: 'big-number',
-        part: 1,
-        slots: {
-          kicker: fill(40),
-          headline: fill(80),
-          value: '888888',
-          caption: fill(120),
-          detail: fill(200),
-          source: fill(100),
-        },
-      }),
-    );
+    test(`big-number in ${letters}`, async ({ mount, page }) => {
+      await mount(
+        render({
+          number: 4,
+          layout: 'big-number',
+          part: 1,
+          slots: {
+            kicker: text(40),
+            headline: text(80),
+            value: letters === 'prose' ? '888888' : 'WWWWWW',
+            caption: text(120),
+            detail: text(200),
+            source: text(100),
+          },
+        }),
+      );
 
-    expectInsideContent(await drawnBox(page, 'layout-big-number'));
-  });
+      expectInsideContent(await drawnBox(page, 'layout-big-number'));
+    });
+  }
 });
 
 test('screenshot: title, divider, close, quote and big-number', async ({ mount, page }) => {

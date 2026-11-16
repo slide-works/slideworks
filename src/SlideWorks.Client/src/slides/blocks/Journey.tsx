@@ -29,7 +29,9 @@ export function Journey({ parts, part }: { parts: string[]; part: number | null 
             aria-current={state === 'on' ? 'step' : undefined}
             className={styles.part}
           >
-            <b className={styles.name}>{name}</b>
+            <b className={styles.name} title={name}>
+              {name}
+            </b>
             <span className={styles.number}>Part {index + 1}</span>
           </li>
         );

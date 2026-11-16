@@ -1,11 +1,23 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useRef } from 'react';
+import { SlideHeading } from '../blocks/SlideHeading';
 import type { LayoutProps } from '../slots';
+import { useFitText, type FitBudget } from '../useFitText';
 import styles from './BigNumberLayout.module.css';
 
-// The value's size in the mockup, and the smallest it shrinks to. Six of the
-// widest characters still fit the 820 px column at the floor.
-const VALUE_PX = 300;
-const VALUE_FLOOR_PX = 120;
+// The value is set at 300 px and shrinks to fit its 820 px column, never below
+// 120 px: six of the widest characters still fit the column there.
+const VALUE_FIT: FitBudget = { start: 300, floor: 120, width: true };
+
+// The caption and detail are set from the text column's font size: a 40 px
+// caption over a 28 px detail. Capitals or wide letters at the longest lengths
+// run taller than the body, so the column shrinks until it fits the body's
+// height (the grid, which takes the space left under the headline), never
+// below a 28 px caption.
+const TEXT_FIT: FitBudget = { start: 40, floor: 28, maxHeight: bodyHeight };
+
+function bodyHeight(text: HTMLElement): number {
+  return text.parentElement?.clientHeight ?? Infinity;
+}
 
 // '11 wks' → ['11', ' wks'], '42%' → ['42', '%'], '$4.2M' → ['$4.2', 'M'].
 // A value without a digit is all number.
@@ -14,70 +26,26 @@ function splitValue(value: string): [string, string] {
   return match ? [match[1], match[2]] : [value, ''];
 }
 
-// Sets the value's font size so it fits its column: the mockup's size when it
-// fits, otherwise scaled down in proportion, never below the floor. It compares
-// the value's width with the column's, both measured under the same transform,
-// so the player's scaling doesn't change the result. It fits again once the
-// web fonts have loaded.
-function useFitToColumn(value: string) {
-  const columnRef = useRef<HTMLDivElement>(null);
-  const valueRef = useRef<HTMLSpanElement>(null);
-
-  useLayoutEffect(() => {
-    let active = true;
-    const fit = () => {
-      const column = columnRef.current;
-      const text = valueRef.current;
-      if (!active || column === null || text === null) return;
-      const room = column.getBoundingClientRect().width;
-      const width = () => text.getBoundingClientRect().width;
-      let size = VALUE_PX;
-      text.style.fontSize = `${size}px`;
-      if (width() > room) {
-        size = Math.max(VALUE_FLOOR_PX, Math.floor((VALUE_PX * room) / width()));
-        text.style.fontSize = `${size}px`;
-        // Rounding and kerning can leave a pixel or two over.
-        while (width() > room && size > VALUE_FLOOR_PX) {
-          size -= 2;
-          text.style.fontSize = `${size}px`;
-        }
-      }
-      text.dataset.fontSize = String(size);
-    };
-    fit();
-    void document.fonts.ready.then(fit);
-    return () => {
-      active = false;
-    };
-  }, [value]);
-
-  return { columnRef, valueRef };
-}
-
 // One number that carries the slide, with a caption, a detail and a source.
 // The value's unit is drawn smaller than the number.
 export function BigNumberLayout({ slots }: LayoutProps<'big-number'>) {
   const { kicker, headline, value, caption, detail, source } = slots;
   const [number, unit] = splitValue(value);
-  const { columnRef, valueRef } = useFitToColumn(value);
+  const valueRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  useFitText(valueRef, VALUE_FIT, value);
+  useFitText(textRef, TEXT_FIT, `${caption}\n${detail ?? ''}`);
   return (
-    <div data-testid="layout-big-number" className={`sw-layout ${styles.body}`}>
-      {kicker !== undefined ? (
-        <p data-testid="big-number-kicker" className={styles.kicker}>
-          {kicker}
-        </p>
-      ) : null}
-      <h2 data-testid="big-number-headline" className={styles.headline}>
-        {headline}
-      </h2>
+    <div data-testid="layout-big-number" className="sw-layout">
+      <SlideHeading layout="big-number" kicker={kicker} headline={headline} />
       <div className={`sw-body ${styles.grid}`}>
-        <div ref={columnRef} data-testid="big-number-column" className={styles.column}>
+        <div data-testid="big-number-column" className={styles.column}>
           <span ref={valueRef} data-testid="big-number-value" className={styles.value}>
             {number}
             {unit !== '' ? <small className={styles.unit}>{unit}</small> : null}
           </span>
         </div>
-        <div className={styles.text}>
+        <div ref={textRef} data-testid="big-number-text" className={styles.text}>
           <p data-testid="big-number-caption" className={styles.caption}>
             {caption}
           </p>
