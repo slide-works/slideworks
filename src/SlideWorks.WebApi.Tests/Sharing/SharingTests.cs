@@ -182,6 +182,9 @@ public class SharingTests : ApiTestFixture
     [TestCase("""{ "viewers": [] }""", "level: must be \"private\", \"link\" or \"named\"")]
     [TestCase("""{ "level": "named" }""", "viewers: must be a list of email addresses")]
     [TestCase("""{ "level": "named", "viewers": [1] }""", "viewers: must be a list of email addresses")]
+    [TestCase("", "body: expected JSON { level, viewers }")]
+    [TestCase("not json", "body: expected JSON { level, viewers }")]
+    [TestCase("[]", "body: expected JSON { level, viewers }")]
     public async Task Put_WhenFieldMissingOrWrongType_ShouldReturn400Error(string json, string error)
     {
         var deck = await SharingApi.CreateDeckAsync(Client);
@@ -242,6 +245,38 @@ public class SharingTests : ApiTestFixture
         ]);
         activity[1].GetProperty("tool").ValueKind.ShouldBe(JsonValueKind.Null);
         activity[1].GetProperty("via").GetString().ShouldBe("web");
+    }
+
+    // The owner can always open their own deck, so naming themselves is dropped: not stored, not counted.
+    [Test]
+    public async Task Put_WhenOwnerNamesThemselves_ShouldDropTheirEmail()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client, "Owner named");
+
+        var view = await SharingApi.PutOkAsync(Client, deck, "named", $" {TestUser.Sam.Email.ToUpperInvariant()} ", TestUser.Alex.Email);
+        var library = await Client.GetFromJsonAsync<JsonElement>("/api/decks");
+
+        view.GetProperty("viewers").EnumerateArray().Select(v => v.GetString()).ShouldBe([TestUser.Alex.Email]);
+        var row = library.GetProperty("decks").EnumerateArray().Single(r => r.GetProperty("id").GetString() == deck);
+        row.GetProperty("viewerCount").GetInt32().ShouldBe(1);
+        row.GetProperty("lastChange").GetProperty("summary").GetString().ShouldBe($"changed sharing: Private → Named people (+{TestUser.Alex.Email})");
+    }
+
+    // The activity summary (and the library's lastChange.summary) names the first three changed emails, each cut to 40
+    // characters, and counts the rest, so a whole-list swap stays short.
+    [Test]
+    public async Task Put_WhenManyViewersChange_ShouldCapTheActivitySummary()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        var before = Enumerable.Range(0, 50).Select(i => $"before-{i:00}-with-a-rather-long-local-part@a-long-team-domain.example").ToArray();
+        var after = Enumerable.Range(0, 50).Select(i => $"after-{i:00}-with-a-rather-long-local-part@a-long-team-domain.example").ToArray();
+        await SharingApi.PutOkAsync(Client, deck, "link", before);
+
+        await SharingApi.PutOkAsync(Client, deck, "named", after);
+        var summary = (await DeckSeed.ActivityAsync(Client, deck))[0].GetProperty("summary").GetString()!;
+
+        summary.ShouldBe("changed sharing: Anyone with the link → Named people (+after-00-with-a-rather-long-local-part…, +after-01-with-a-rather-long-local-part…, +after-02-with-a-rather-long-local-part… and 97 more)");
+        summary.Length.ShouldBeLessThanOrEqualTo(200);
     }
 
     // sharedWithMe on GET /api/decks (DeckQueries): decks shared with the caller by name, whatever the case of the email

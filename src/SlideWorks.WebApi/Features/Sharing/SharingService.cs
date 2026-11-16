@@ -37,6 +37,12 @@ public class SharingService(
 
     private const string SUMMARY_PREFIX = "changed sharing: ";
 
+    // The summary names at most this many added or removed emails, each cut to EMAIL_SHOWN characters, and counts the
+    // rest, so it stays under about 200 characters however long the list (the library repeats it as lastChange.summary).
+    private const int CHANGES_SHOWN = 3;
+
+    private const int EMAIL_SHOWN = 40;
+
     // The wire names (camelCase, as every enum goes on the wire), matched case-sensitively.
     private static readonly IReadOnlyDictionary<string, DeckSharing> LEVELS = new Dictionary<string, DeckSharing>(StringComparer.Ordinal)
     {
@@ -55,7 +61,7 @@ public class SharingService(
     public async Task<SharingView> UpdateAsync(string deckId, SharingUpdate update)
     {
         await RequireOwnerAsync(deckId);
-        return await SetAsync(deckId, update.Level, ViewerEmails.NormalizeAll(update.Viewers), tool: null);
+        return await SetAsync(deckId, update.Level, ViewerEmails.NormalizeAll(update.Viewers, actor.Email), tool: null);
     }
 
     // set_sharing: the level by its wire name; leaving viewers out keeps the list as it is.
@@ -63,7 +69,7 @@ public class SharingService(
     {
         await RequireOwnerAsync(deckId);
         var parsed = level != null && LEVELS.TryGetValue(level, out var known) ? known : throw new BadRequestException(LEVEL_INVALID);
-        return await SetAsync(deckId, parsed, viewers == null ? null : ViewerEmails.NormalizeAll(viewers), TOOL);
+        return await SetAsync(deckId, parsed, viewers == null ? null : ViewerEmails.NormalizeAll(viewers, actor.Email), TOOL);
     }
 
     private async Task<SharingView> SetAsync(string deckId, DeckSharing level, IReadOnlyList<string>? viewers, string? tool)
@@ -100,15 +106,27 @@ public class SharingService(
     {
         var added = after.Except(before, StringComparer.Ordinal).ToList();
         var removed = before.Except(after, StringComparer.Ordinal).ToList();
-        var viewers = added.Count + removed.Count == 0
-            ? ""
-            : $" ({string.Join(", ", added.Select(e => "+" + e).Concat(removed.Select(e => "-" + e)))})";
+        var viewers = ViewerChanges(added.Select(e => "+" + e).Concat(removed.Select(e => "-" + e)).ToList());
         if (from != to)
         {
             return $"{SUMMARY_PREFIX}{Label(from)} → {Label(to)}{viewers}";
         }
         return viewers.Length == 0 ? null : $"{SUMMARY_PREFIX}{Label(to)}{viewers}";
     }
+
+    // " (+alex@team.example, -mira@team.example and 12 more)", or "" when the list didn't change.
+    private static string ViewerChanges(IReadOnlyList<string> changes)
+    {
+        if (changes.Count == 0)
+        {
+            return "";
+        }
+        var shown = string.Join(", ", changes.Take(CHANGES_SHOWN).Select(Shorten));
+        var more = changes.Count > CHANGES_SHOWN ? $" and {changes.Count - CHANGES_SHOWN} more" : "";
+        return $" ({shown}{more})";
+    }
+
+    private static string Shorten(string change) => change.Length <= EMAIL_SHOWN ? change : change[..(EMAIL_SHOWN - 1)] + "…";
 
     // The dialog's words for each level.
     private static string Label(DeckSharing level) => level switch
