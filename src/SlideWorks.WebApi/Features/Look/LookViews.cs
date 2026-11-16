@@ -33,7 +33,7 @@ public static class LookViews
             DisplayDate.Day(now));
     }
 
-    private static Template TemplateOf(Deck deck, ITemplateCatalogue templates)
+    public static Template TemplateOf(Deck deck, ITemplateCatalogue templates)
         => templates.Find(deck.Template) ?? throw new InvalidOperationException($"Deck {deck.Id} has an unknown template '{deck.Template}'.");
 
     private static Palette PaletteOf(Deck deck, IPaletteCatalogue palettes)

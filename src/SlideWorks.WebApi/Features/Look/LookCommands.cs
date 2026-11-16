@@ -124,9 +124,6 @@ public class LookCommands(
             .OrderBy(s => s.Position)
             .Select(s => new { s.Position, s.Layout })
             .ToListAsync();
-        return layouts
-            .Where(s => !template.Allows(s.Layout))
-            .Select(s => $"Slide {s.Position + 1}: layout '{s.Layout}' is not in the '{template.Name}' template")
-            .ToList();
+        return layouts.SelectMany(s => LayoutWarnings.For(template, s.Position + 1, s.Layout)).ToList();
     }
 }

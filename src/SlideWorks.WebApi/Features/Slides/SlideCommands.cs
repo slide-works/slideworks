@@ -1,10 +1,12 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
+using SlideWorks.Core.Look;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
+using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -22,6 +24,7 @@ public class SlideCommands(
     IActivityLog activity,
     IDeckEvents events,
     IPublicUrls urls,
+    ITemplateCatalogue templates,
     TimeProvider clock)
 {
     public const string ADD_TOOL = "add_slide";
@@ -67,16 +70,18 @@ public class SlideCommands(
                 Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes,
                 Steps = SlideSteps.Count(request.Layout, slots),
                 Revision = deck.Revision,
+                DeepDive = request.DeepDive ?? false,
             };
             db.Slides.Add(slide);
             await db.SaveChangesAsync();
-            await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, ADD_TOOL, $"added slide {position + 1} ({slide.Layout})"));
+            await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, ADD_TOOL, $"added slide {position + 1} ({slide.Layout}){(slide.DeepDive ? " as a deep dive" : "")}"));
             await transaction.CommitAsync();
         }
 
         await events.PublishAsync(new DeckChanged(deck.Id));
         var number = slide.Position + 1;
-        return new AddSlideResult(number, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, number));
+        var warnings = LayoutWarnings.For(LookViews.TemplateOf(deck, templates), number, slide.Layout);
+        return new AddSlideResult(number, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, number), warnings);
     }
 
     // The 0-based position for a 1-based number, which may be one past the last slide.
