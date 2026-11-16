@@ -58,9 +58,12 @@ export function DeckPage() {
 
   useEffect(() => {
     firstRead.current = read();
-    // Leaving this deck (or the page) makes every read still in flight stale.
+    // Leaving this deck (or the page) makes every read still in flight stale,
+    // and drops a join still waiting on this first read, so an unmounted page
+    // sends no re-read.
     return () => {
       latest.current += 1;
+      firstRead.current = Promise.resolve();
     };
   }, [read]);
 

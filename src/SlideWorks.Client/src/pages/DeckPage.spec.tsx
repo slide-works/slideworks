@@ -293,6 +293,46 @@ test('deck page waits for its first read before the join re-reads', async ({ mou
   expect(reads).toBe(2);
 });
 
+// A join that lands while the first read is out must not re-read once the page
+// has gone: the first read answering after unmount starts nothing.
+test('deck page sends no re-read after it unmounts with a join waiting on its first read', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page);
+  const first = gate();
+  let answered = false;
+  let reads = 0;
+  let meReads = 0;
+  await page.route('**/api/me', (route) => {
+    meReads += 1;
+    return route.fulfill({ json: me });
+  });
+  await page.route(`**${deckPath}`, async (route) => {
+    reads += 1;
+    if (reads === 1) {
+      await first.opened;
+      await route.fulfill({ json: deckPage });
+      answered = true;
+      return;
+    }
+    return route.fulfill({ json: longerDeck });
+  });
+  const component = await mount(<AppRoutes />, route);
+  await expect.poll(() => hub.joined).toEqual([deckPage.id]);
+  await settle(page);
+  expect(reads).toBe(1);
+  const meBefore = meReads;
+
+  await component.unmount();
+  first.release();
+  await expect.poll(() => answered).toBe(true);
+  await settle(page);
+
+  expect(reads).toBe(1);
+  expect(meReads).toBe(meBefore);
+});
+
 test('deck page re-reads when a reconnect joins again', async ({ mount, page }) => {
   const hub = await stubDeckHub(page);
   let reads = 0;

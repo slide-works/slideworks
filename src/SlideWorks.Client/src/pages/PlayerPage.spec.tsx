@@ -225,6 +225,46 @@ test('player page waits for its first read before the join re-reads', async ({ m
   expect(reads).toBe(2);
 });
 
+// A join that lands while the first read is out must not re-read once the page
+// has gone. Every read answers 404 here, so a stray re-read would also ask
+// /api/me whether to offer sign-in.
+test('player page sends no re-read after it unmounts with a join waiting on its first read', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page);
+  const first = gate();
+  let answered = false;
+  let reads = 0;
+  let meReads = 0;
+  await page.route('**/api/me', (route) => {
+    meReads += 1;
+    return route.fulfill(signedOut);
+  });
+  await page.route(`**${playPath}`, async (route) => {
+    reads += 1;
+    if (reads === 1) {
+      await first.opened;
+      await route.fulfill({ status: 404, json: { error: 'Deck not found' } });
+      answered = true;
+      return;
+    }
+    return route.fulfill({ status: 404, json: { error: 'Deck not found' } });
+  });
+  const component = await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
+  await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
+  await settle(page);
+  expect(reads).toBe(1);
+
+  await component.unmount();
+  first.release();
+  await expect.poll(() => answered).toBe(true);
+  await settle(page);
+
+  expect(reads).toBe(1);
+  expect(meReads).toBe(0);
+});
+
 test('player page re-reads when a reconnect joins again', async ({ mount, page }) => {
   const hub = await stubDeckHub(page);
   let reads = 0;
