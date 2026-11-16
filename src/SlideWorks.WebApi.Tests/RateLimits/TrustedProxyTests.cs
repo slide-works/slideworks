@@ -77,6 +77,19 @@ public class TrustedProxyTests : ApiTestFixture
         (await _probe.SendAllAsync(endpoint, callers)).ShouldBe(RateLimitProbe.BudgetThenRefused(endpoint, callers.Count));
     }
 
+    // One hop even when the address the proxy forwarded is itself inside a trusted network: the client can't extend the
+    // chain by writing more entries in front of it.
+    [TestCase(LimitedEndpoint.Token)]
+    [TestCase(LimitedEndpoint.Registration)]
+    public async Task Limit_WhenForwardedClientIsItselfATrustedAddress_ShouldStillReadOnlyOneHop(LimitedEndpoint endpoint)
+    {
+        var callers = Enumerable.Range(1, RateLimitProbe.BudgetOf(endpoint) + 1)
+            .Select(i => ((string?)PROXY, (string?)$"203.0.113.{i}, 10.0.0.7"))
+            .ToList();
+
+        (await _probe.SendAllAsync(endpoint, callers)).ShouldBe(RateLimitProbe.BudgetThenRefused(endpoint, callers.Count));
+    }
+
     // The framework would trust X-Forwarded-For on a connection with no remote address; SlideWorks doesn't.
     [TestCase(LimitedEndpoint.Token)]
     [TestCase(LimitedEndpoint.Registration)]
