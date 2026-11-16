@@ -17,4 +17,18 @@ export default tseslint.config(
   // exports `plugins` as a legacy string array, which ESLint 10's flat
   // config rejects; the properly-shaped flat variant lives under `.flat`.
   reactHooks.configs.flat['recommended-latest'],
+  {
+    rules: {
+      // Slot text is plain text (D12): render it as React text nodes. Never
+      // inject HTML, and never parse Markdown or HTML out of slot text.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message:
+            'dangerouslySetInnerHTML is banned: render text as plain React text nodes (slot text is never HTML).',
+        },
+      ],
+    },
+  },
 );

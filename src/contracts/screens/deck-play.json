@@ -1,0 +1,74 @@
+{
+  "id": "7Kq2xYp9LmQa",
+  "slug": "ship-smaller",
+  "title": "Ship smaller",
+  "author": "Sam Rivera",
+  "parts": ["The cost", "Slice it", "Ship it", "Make it stick"],
+  "slides": [
+    {
+      "number": 1,
+      "layout": "title",
+      "part": 1,
+      "steps": 0,
+      "slots": {
+        "kicker": "Team offsite · 2026",
+        "title": "Ship smaller",
+        "subtitle": "Why small batches beat big plans, and how to start on Monday",
+        "tagline": "One change a day beats one launch a quarter.",
+        "author": "Sam Rivera",
+        "affiliation": "Product Engineering",
+        "stamp": "Draft"
+      }
+    },
+    {
+      "number": 2,
+      "layout": "practice",
+      "part": 2,
+      "steps": 0,
+      "slots": {
+        "kicker": "Slice it",
+        "headline": "Slice by what a customer can do, not by layer",
+        "do": [
+          {
+            "lead": "Start from one user action",
+            "text": "and build every layer it needs, thinly."
+          },
+          {
+            "lead": "Hard-code the second case.",
+            "text": "Generalise when the third one arrives."
+          },
+          {
+            "lead": "Ship behind a flag",
+            "text": "to one team first, then widen."
+          },
+          {
+            "lead": "Write the demo sentence first:",
+            "text": "\"Now a customer can …\""
+          }
+        ],
+        "comes_back": [
+          "Feedback in days, not quarters.",
+          "A merge that's small enough to review in one sitting."
+        ],
+        "avoid": [
+          "\"API first, UI later.\" That's two batches, not two slices."
+        ],
+        "callout": {
+          "tone": "bad",
+          "text": "If a slice can't be demoed to a customer, it isn't a slice yet."
+        }
+      }
+    },
+    {
+      "number": 3,
+      "layout": "close",
+      "part": 4,
+      "steps": 0,
+      "slots": {
+        "headline": "Pick one story.\nShip half of it by Friday.",
+        "sub": "Then tell us what you learned at the next demo.",
+        "author": "Sam Rivera · Product Engineering"
+      }
+    }
+  ]
+}

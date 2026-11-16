@@ -8,6 +8,8 @@ WORKDIR /source/SlideWorks.Client
 COPY SlideWorks.Client/package.json SlideWorks.Client/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY SlideWorks.Client/ ./
+# The shared contracts (screen JSON, sample deck) the client imports as @contracts/*.
+COPY contracts/ ../contracts/
 RUN pnpm run build
 
 # Stage 2: publish the API with the SPA already inside wwwroot, so the

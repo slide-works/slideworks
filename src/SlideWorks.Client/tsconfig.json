@@ -13,7 +13,10 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    // The shared contracts (screen JSON, sample deck) live at the repo's src/contracts.
+    "paths": { "@contracts/*": ["../contracts/*"] }
   },
   "include": ["src", "vite.config.ts", "playwright-ct.config.ts", "playwright"]
 }

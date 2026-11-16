@@ -1,5 +1,6 @@
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, devices } from '@playwright/experimental-ct-react';
+import { contractsDir } from './vite.config';
 
 export default defineConfig({
   testDir: './src',
@@ -20,6 +21,7 @@ export default defineConfig({
     // registered here too or component screenshots render unstyled.
     ctViteConfig: {
       plugins: [tailwindcss()],
+      resolve: { alias: { '@contracts': contractsDir } },
     },
   },
 });
