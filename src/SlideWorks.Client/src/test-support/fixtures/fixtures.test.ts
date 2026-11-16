@@ -267,6 +267,9 @@ const CONTRAST_PAIRS = keys<Record<ContrastPair, true>>({
   'badge-positive': true,
   'badge-negative': true,
   'dark-subtitle': true,
+  'soft-accent': true,
+  'soft-inverse': true,
+  'deep-dive-list': true,
 });
 const LOOKS = keys<LooksView>({ templates: true, palettes: true });
 const LOOKS_TEMPLATE = keys<LooksTemplate>({

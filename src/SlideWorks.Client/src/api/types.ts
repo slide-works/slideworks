@@ -263,7 +263,10 @@ export type ContrastPair =
   | 'panel-inverse'
   | 'badge-positive'
   | 'badge-negative'
-  | 'dark-subtitle';
+  | 'dark-subtitle'
+  | 'soft-accent'
+  | 'soft-inverse'
+  | 'deep-dive-list';
 
 // A palette's contrast check: whether every pair meets its bar, and the pair
 // closest to (or furthest below) its bar.

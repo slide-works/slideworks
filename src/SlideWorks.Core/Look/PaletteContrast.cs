@@ -1,6 +1,8 @@
 namespace SlideWorks.Core.Look;
 
 // The contrast test every palette passes (L2, SW-2's "Contrast test"). The pair names are frozen.
+// soft-accent, soft-inverse and deep-dive-list were added after (L2 amended in SW-72's fix round): the soft
+// accent and inverse panels' text, and the divider's deep-dive pills on the dark slide.
 public static class PaletteContrast
 {
     private const double TEXT = 4.5;
@@ -21,6 +23,9 @@ public static class PaletteContrast
         ("badge-positive", "good-ink", "good-soft", TEXT),
         ("badge-negative", "bad-ink", "bad-soft", TEXT),
         ("dark-subtitle", "night-2", "night", TEXT),
+        ("soft-accent", "accent-dark", "accent-light", TEXT),
+        ("soft-inverse", "night-ink", "night", TEXT),
+        ("deep-dive-list", "dd-on-night", "night", TEXT),
     ];
 
     public static IReadOnlyList<ContrastCheck> Check(Palette palette) =>

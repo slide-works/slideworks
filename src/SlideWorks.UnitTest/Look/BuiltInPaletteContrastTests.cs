@@ -9,6 +9,7 @@ public class BuiltInPaletteContrastTests
     [
         "body", "secondary", "card-bold", "headline-accent", "on-accent", "deep-dive-pill", "panel-accent",
         "panel-positive", "panel-negative", "panel-inverse", "badge-positive", "badge-negative", "dark-subtitle",
+        "soft-accent", "soft-inverse", "deep-dive-list",
     ];
 
     private static IEnumerable<string> PaletteNames() => new PaletteCatalogue().All.Select(p => p.Name);
