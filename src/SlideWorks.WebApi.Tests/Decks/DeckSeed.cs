@@ -28,13 +28,15 @@ public static class DeckSeed
     public static Task<JsonElement> AddQuoteAsync(McpTestClient agent, string deck, string quote, int? position = null)
         => AddSlideAsync(agent, deck, "quote", JsonSerializer.Serialize(new { quote, attribution = "Sam Rivera" }), position: position);
 
-    // The sample deck's slides (K3) that need no uploaded image: every one but the two-column slide with its picture.
-    public static IReadOnlyList<JsonElement> SampleSlidesWithoutImages()
+    // The image id the sample deck's two-column slide names (K3, K11). A test uploads a real image and swaps its id in.
+    public const string SAMPLE_IMAGE_ID = "img_sample0001";
+
+    // Every slide of the sample deck (K3), in order.
+    public static IReadOnlyList<JsonElement> SampleSlides()
     {
         var path = Path.Combine(Support.JsonShape.ScreensDirectory(), "..", "sample-deck.json");
         using var sample = JsonDocument.Parse(File.ReadAllText(path));
         return sample.RootElement.GetProperty("slides").EnumerateArray()
-            .Where(slide => !slide.GetProperty("slots").GetRawText().Contains("\"image\"", StringComparison.Ordinal))
             .Select(slide => slide.Clone())
             .ToList();
     }

@@ -39,6 +39,7 @@ public static class TestAppFactory
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["SLIDEWORKS_DB_PATH"] = dbPath,
+                    ["SLIDEWORKS_DATA_PATH"] = DataPathFor(dbPath),
                     ["SLIDEWORKS_PUBLIC_URL"] = PUBLIC_URL,
                     [IUserDirectory.ADMIN_EMAIL_SETTING] = TestUser.Ada.Email,
                 });
@@ -64,11 +65,19 @@ public static class TestAppFactory
     public static string NewDatabasePath() =>
         Path.Combine(Path.GetTempPath(), $"slide-works-tests-{Guid.NewGuid():N}.db");
 
+    // The data folder (uploaded images) of the host whose database is dbPath, next to it in the temp folder.
+    public static string DataPathFor(string dbPath) => dbPath + "-data";
+
     public static void DeleteDatabase(string dbPath)
     {
         foreach (var suffix in new[] { "", "-shm", "-wal" })
         {
             File.Delete(dbPath + suffix);
+        }
+        var dataPath = DataPathFor(dbPath);
+        if (Directory.Exists(dataPath))
+        {
+            Directory.Delete(dataPath, recursive: true);
         }
     }
 }

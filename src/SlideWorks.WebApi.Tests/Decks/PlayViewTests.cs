@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Tests.Dtos;
+using SlideWorks.WebApi.Tests.Images;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -24,7 +25,8 @@ public class PlayViewTests : ApiTestFixture
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent, "Ship smaller", DeckSeed.SAMPLE_PARTS, "Sam Rivera");
-        var sample = DeckSeed.SampleSlidesWithoutImages();
+        var sample = DeckSeed.SampleSlides();
+        var image = await ImageSeed.UploadAsync(agent, Factory, deck, ImageSeed.SamplePng());
         foreach (var slide in sample)
         {
             var part = slide.GetProperty("part");
@@ -32,7 +34,7 @@ public class PlayViewTests : ApiTestFixture
                 agent,
                 deck,
                 slide.GetProperty("layout").GetString()!,
-                slide.GetProperty("slots").GetRawText(),
+                slide.GetProperty("slots").GetRawText().Replace(DeckSeed.SAMPLE_IMAGE_ID, image, StringComparison.Ordinal),
                 part.ValueKind == JsonValueKind.Null ? null : part.GetInt32(),
                 notes: "SECRET-SPEAKER-NOTE");
         }
@@ -56,6 +58,8 @@ public class PlayViewTests : ApiTestFixture
         {
             SlideValidator.Validate(slide.GetProperty("layout").GetString()!, slide.GetProperty("slots")).Errors.ShouldBeEmpty();
         }
+        slides.SelectMany(s => SlideValidator.Validate(s.GetProperty("layout").GetString()!, s.GetProperty("slots")).ImageIds).ShouldBe([image]);
+        (await Client.GetAsync($"/api/images/{image}")).StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     [Test]
