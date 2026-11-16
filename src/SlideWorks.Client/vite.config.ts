@@ -27,9 +27,10 @@ export default defineConfig({
       '/api': API_PROXY,
       // The realtime hubs (DeckHub), over WebSockets.
       '/hubs': { ...API_PROXY, ws: true },
-      // Agents: the MCP endpoint, the OAuth server and its discovery documents.
+      // Agents: the MCP endpoint, the OAuth server and its discovery documents. Only the server's OAuth routes are
+      // proxied: /oauth/consent is the SPA's consent page, which Vite serves.
       '/mcp': API_PROXY,
-      '/oauth': API_PROXY,
+      '^/oauth/(register|authorize|token|revoke)(/|\\?|$)': API_PROXY,
       '/.well-known': API_PROXY,
       // Server-side sign-in: /signin/<provider> starts it and /signin-google is the provider's callback. /signin itself
       // is the SPA's sign-in page, which Vite serves, so only paths below it are proxied.

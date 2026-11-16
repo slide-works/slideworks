@@ -13,16 +13,22 @@ public class WriteRouteTableTests : ApiTestFixture
     private static readonly string[] SAFE_METHODS = [HttpMethods.Get, HttpMethods.Head, HttpMethods.Options, HttpMethods.Trace];
 
     // Route-pattern prefixes outside /api that may take writes.
-    private static readonly string[] ALLOWED_OUTSIDE_API =
+    private static readonly string[] ALLOWED_PREFIXES_OUTSIDE_API =
     [
         // Agents with bearer tokens; a cookie is never accepted there.
         "/mcp",
         // OAuth form posts from agents, anonymous by design.
         "/oauth/",
-        // The deck hub: negotiate and the WebSocket. JoinDeck decides who joins.
+    ];
+
+    // Exact route patterns outside /api that may take writes. Nothing under /signin is here: sign-in starts with a GET
+    // and its provider callback is handled inside UseAuthentication, so an unguarded write there would be a login-CSRF
+    // hole.
+    private static readonly string[] ALLOWED_EXACT_OUTSIDE_API =
+    [
+        // The deck hub (MapHub maps the hub and its negotiate endpoint). JoinDeck decides who joins.
         "/hubs/deck",
-        // Server-side sign-in and its provider callbacks.
-        "/signin",
+        "/hubs/deck/negotiate",
         // The /hubs catch-all that answers 404, so unknown hubs don't get the SPA shell.
         "/hubs/{**path}",
     ];
@@ -35,7 +41,8 @@ public class WriteRouteTableTests : ApiTestFixture
             .Where(AcceptsWrites)
             .Select(endpoint => "/" + (endpoint.RoutePattern.RawText ?? "").TrimStart('/'))
             .Where(pattern => !pattern.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) && !pattern.Equals("/api", StringComparison.OrdinalIgnoreCase))
-            .Where(pattern => !ALLOWED_OUTSIDE_API.Any(allowed => pattern.StartsWith(allowed, StringComparison.OrdinalIgnoreCase)))
+            .Where(pattern => !ALLOWED_PREFIXES_OUTSIDE_API.Any(allowed => pattern.StartsWith(allowed, StringComparison.OrdinalIgnoreCase)))
+            .Where(pattern => !ALLOWED_EXACT_OUTSIDE_API.Contains(pattern, StringComparer.OrdinalIgnoreCase))
             .Distinct()
             .ToList();
 
