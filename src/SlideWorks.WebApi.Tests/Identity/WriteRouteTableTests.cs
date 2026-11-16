@@ -15,8 +15,8 @@ public class WriteRouteTableTests : ApiTestFixture
     // Route-pattern prefixes outside /api that may take writes.
     private static readonly string[] ALLOWED_PREFIXES_OUTSIDE_API =
     [
-        // Agents with bearer tokens; a cookie is never accepted there.
-        "/mcp",
+        // Agents with bearer tokens; a cookie is never accepted there. /mcp itself is in the exact list, so /mcpx doesn't pass.
+        "/mcp/",
         // OAuth form posts from agents, anonymous by design.
         "/oauth/",
     ];
@@ -26,6 +26,8 @@ public class WriteRouteTableTests : ApiTestFixture
     // hole.
     private static readonly string[] ALLOWED_EXACT_OUTSIDE_API =
     [
+        // The MCP endpoint (see /mcp/ above).
+        "/mcp",
         // The deck hub (MapHub maps the hub and its negotiate endpoint). JoinDeck decides who joins.
         "/hubs/deck",
         "/hubs/deck/negotiate",
