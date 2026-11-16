@@ -27,6 +27,9 @@ public class AcceptanceApp
 
     public static string BaseUrl { get; private set; } = null!;
 
+    // The running app's container, for the seams an OAuth flow ends in (see AgentSeed). Never for the database.
+    public static IServiceProvider Services { get; private set; } = null!;
+
     [OneTimeSetUp]
     public void StartApp()
     {
@@ -46,6 +49,7 @@ public class AcceptanceApp
         });
         _factory.UseKestrel(options => options.Listen(IPAddress.Loopback, port));
         _factory.StartServer();
+        Services = _factory.Services;
 
         AssertBundleIsBuilt();
     }

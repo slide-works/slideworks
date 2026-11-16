@@ -37,12 +37,15 @@ public partial class DeckPageTests : AcceptanceTest
     public async Task PlayerPage_WhenSlugMissing_ShouldMoveToCanonicalSlugKeepingHash()
     {
         var id = await CreateDeckAsync(TestUser.Sam, $"Kickoff {Guid.NewGuid():N}");
+        // Three slides, so #3 is a real position: a redirect that dropped the hash would leave the player on #1.
+        await AgentSeed.AddQuotesAsync(TestUser.Sam, id, "One change a day.", "Small batches win.", "Ship half by Friday.");
         var player = new PlayerPage(Page);
 
-        await player.GotoAsync(id, hash: "#1");
+        await player.GotoAsync(id, hash: "#3");
 
-        await Expect(Page).ToHaveURLAsync(new Regex($"/d/{id}/kickoff-[0-9a-f]{{32}}#1$"));
+        await Expect(Page).ToHaveURLAsync(new Regex($"/d/{id}/kickoff-[0-9a-f]{{32}}#3$"));
         await Expect(player.Player).ToBeVisibleAsync();
+        await Expect(player.Slide(3)).ToContainTextAsync("Ship half by Friday.");
     }
 
     [Test]
