@@ -46,6 +46,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             user.HasIndex(u => u.Email).IsUnique();
             user.HasIndex(u => u.GoogleSubject).IsUnique();
+            user.Property(u => u.Access).HasConversion<string>();
         });
 
         modelBuilder.Entity<Deck>(deck =>

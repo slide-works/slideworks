@@ -39,8 +39,12 @@ public abstract class OAuthContractFixture : ApiTestFixture
         await call(scope.ServiceProvider.GetRequiredService<TStore>());
     }
 
+    // The person signs in through TestPeople, as every test seam does, so Sam, Alex and Mira are approved.
     protected async Task<Guid> PresenterAsync(TestUser user)
-        => (await UseAsync<IUserDirectory, Features.Accounts.User>(d => d.UpsertAsync(user.GoogleSubject, user.Email, user.Name, null))).Id;
+    {
+        using var scope = Factory.Services.CreateScope();
+        return (await TestPeople.SignInAsync(scope.ServiceProvider, user)).Id;
+    }
 
     protected Task<OAuthClient> RegisterClientAsync(string name = "Claude")
         => UseAsync<IOAuthClients, OAuthClient>(c => c.RegisterAsync(new ClientRegistration(name, [REDIRECT])));

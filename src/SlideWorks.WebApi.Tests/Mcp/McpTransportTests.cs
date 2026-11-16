@@ -1,13 +1,9 @@
 using System.Net;
 using System.Net.Http.Headers;
-using System.Security.Claims;
 using System.Text;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using SlideWorks.WebApi.Features.OAuth.Stores;
-using SlideWorks.WebApi.Infrastructure.Identity;
+using SlideWorks.WebApi.Tests.Identity;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Mcp;
@@ -32,7 +28,7 @@ public class McpTransportTests : ApiTestFixture
     [Test]
     public async Task Mcp_WhenCookieOnly_ShouldReturn401()
     {
-        var cookie = await SessionCookieForAsync(TestUser.Sam);
+        var cookie = await SessionCookies.ForAsync(Factory, TestUser.Sam);
         using (var http = Factory.CreateClient())
         using (var me = new HttpRequestMessage(HttpMethod.Get, "/api/me"))
         {
@@ -161,23 +157,5 @@ public class McpTransportTests : ApiTestFixture
         request.Headers.Accept.ParseAdd("text/event-stream");
         configure?.Invoke(request);
         return await http.SendAsync(request);
-    }
-
-    // A real session cookie of the app's Cookies scheme for the person, as sign-in would set it.
-    private async Task<string> SessionCookieForAsync(TestUser user)
-    {
-        using var scope = Factory.Services.CreateScope();
-        var person = await scope.ServiceProvider.GetRequiredService<IUserDirectory>().UpsertAsync(user.GoogleSubject, user.Email, user.Name, null);
-        var options = Factory.Services.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>().Get(CookieAuthenticationDefaults.AuthenticationScheme);
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(
-            [
-                new Claim(SlideWorksClaims.PRESENTER_ID, person.Id.ToString()),
-                new Claim(SlideWorksClaims.EMAIL, person.Email),
-                new Claim(SlideWorksClaims.NAME, person.Name),
-                new Claim(SlideWorksClaims.ACTOR_KIND, nameof(ActorKind.Person)),
-            ],
-            CookieAuthenticationDefaults.AuthenticationScheme));
-        var ticket = new AuthenticationTicket(principal, CookieAuthenticationDefaults.AuthenticationScheme);
-        return $"{options.Cookie.Name}={options.TicketDataFormat.Protect(ticket)}";
     }
 }

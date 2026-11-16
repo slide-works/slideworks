@@ -15,4 +15,11 @@ public static class SlideWorksClaims
 
     // "Person" or "Agent".
     public const string ACTOR_KIND = "slideworks:actor_kind";
+
+    // A person's UserAccess: "Pending" or "Approved". A rejected person has no principal. Absent for an agent, which only
+    // ever acts for an approved presenter.
+    public const string ACCESS = "slideworks:access";
+
+    // "true" for an admin, and absent otherwise.
+    public const string IS_ADMIN = "slideworks:is_admin";
 }

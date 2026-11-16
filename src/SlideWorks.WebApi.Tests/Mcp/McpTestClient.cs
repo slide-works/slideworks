@@ -10,7 +10,7 @@ using SlideWorks.WebApi.Tests.Support;
 namespace SlideWorks.WebApi.Tests.Mcp;
 
 // An MCP client connected to a test host's /mcp as an agent acting for a TestUser. It takes the seams an OAuth flow would
-// end in: the person is upserted through IUserDirectory, a client registered through IOAuthClients, and a token issued
+// end in: the person signs in through TestPeople, a client registered through IOAuthClients, and a token issued
 // through IAgentTokens.IssueAsync, all from the app's own container. Requests go through the factory's in-memory handler.
 public sealed class McpTestClient : IAsyncDisposable
 {
@@ -44,7 +44,7 @@ public sealed class McpTestClient : IAsyncDisposable
         }
         using var scope = factory.Services.CreateScope();
         var services = scope.ServiceProvider;
-        var person = await services.GetRequiredService<IUserDirectory>().UpsertAsync(user.GoogleSubject, user.Email, user.Name, null);
+        var person = await TestPeople.SignInAsync(services, user);
         var oauthClient = await services.GetRequiredService<IOAuthClients>().RegisterAsync(new ClientRegistration(clientName, [REDIRECT]));
         var mcpUrl = services.GetRequiredService<IPublicUrls>().Mcp;
         var tokens = await services.GetRequiredService<IAgentTokens>().IssueAsync(new CodeGrant(oauthClient.ClientId, person.Id, SCOPE, mcpUrl));

@@ -23,6 +23,16 @@ namespace SlideWorks.WebApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Access")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("AccessChangedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("AccessChangedBy")
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("CreatedAt")
                         .HasColumnType("INTEGER");
 
@@ -33,6 +43,9 @@ namespace SlideWorks.WebApi.Migrations
                     b.Property<string>("GoogleSubject")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .IsRequired()

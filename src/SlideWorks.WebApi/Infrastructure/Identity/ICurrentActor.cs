@@ -1,3 +1,5 @@
+using SlideWorks.WebApi.Features.Accounts;
+
 namespace SlideWorks.WebApi.Infrastructure.Identity;
 
 // Who is calling, for the current request (K1). It reads the SlideWorksClaims on the request's principal, so it is the
@@ -20,4 +22,10 @@ public interface ICurrentActor
 
     // Web for a person, Mcp for an agent.
     ActorVia Via { get; }
+
+    // The person's access, Approved for an agent (its presenter is always approved), and null when anonymous.
+    UserAccess? Access { get; }
+
+    // True only for a person who is an admin. False for an agent and when anonymous.
+    bool IsAdmin { get; }
 }

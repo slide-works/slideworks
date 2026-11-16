@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
+using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests;
@@ -15,7 +16,8 @@ public static class TestAppFactory
     public const string PUBLIC_URL = "http://localhost";
 
     // In-memory config is added after appsettings.*.json, so these values win
-    // over the Development defaults.
+    // over the Development defaults. SLIDEWORKS_ADMIN_EMAIL is Ada's, so she is the admin from her first sign-in; a
+    // fixture overrides it through extraConfig (to "" for a server with no admin).
     //
     // namedHandlers stubs an outbound HttpClient by its named-client name: the code
     // under test is the production one, only the socket is different, so there is
@@ -38,6 +40,7 @@ public static class TestAppFactory
                 {
                     ["SLIDEWORKS_DB_PATH"] = dbPath,
                     ["SLIDEWORKS_PUBLIC_URL"] = PUBLIC_URL,
+                    [IUserDirectory.ADMIN_EMAIL_SETTING] = TestUser.Ada.Email,
                 });
                 if (extraConfig != null)
                 {

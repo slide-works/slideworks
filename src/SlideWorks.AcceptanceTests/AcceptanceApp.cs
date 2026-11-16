@@ -6,13 +6,15 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi;
+using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests;
 
 // Starts the real BFF once for the whole run, on a real Kestrel port a browser can reach: the production Program.cs,
 // the production DI and the SPA bundle that `pnpm run build` emitted into SlideWorks.WebApi/wwwroot. Only the database
-// file is the test's own, and the test sign-in scheme is added so SignIn.AsAsync can sign a browser in as a TestUser.
+// file is the test's own, the test sign-in scheme is added so SignIn.AsAsync can sign a browser in as a TestUser, and
+// SLIDEWORKS_ADMIN_EMAIL is Ada's, so she is the admin from her first sign-in.
 // Browsers and the SPA never see a fake.
 //
 // The port is reserved before the host starts, so SLIDEWORKS_PUBLIC_URL can name it: links, OAuth metadata, the MCP
@@ -38,6 +40,7 @@ public class AcceptanceApp
                 {
                     ["SLIDEWORKS_DB_PATH"] = _dbPath,
                     ["SLIDEWORKS_PUBLIC_URL"] = BaseUrl,
+                    [IUserDirectory.ADMIN_EMAIL_SETTING] = TestUser.Ada.Email,
                 }));
             builder.ConfigureTestServices(TestAuthScheme.AddTo);
         });

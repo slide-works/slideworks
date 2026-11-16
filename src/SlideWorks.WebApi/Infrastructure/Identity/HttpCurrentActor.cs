@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Agoda.IoC.Core;
+using SlideWorks.WebApi.Features.Accounts;
 
 namespace SlideWorks.WebApi.Infrastructure.Identity;
 
@@ -28,6 +29,24 @@ public class HttpCurrentActor : ICurrentActor
     public ActorKind Kind => Enum.TryParse<ActorKind>(_principal.FindFirstValue(SlideWorksClaims.ACTOR_KIND), out var kind) ? kind : ActorKind.Person;
 
     public ActorVia Via => Kind == ActorKind.Agent ? ActorVia.Mcp : ActorVia.Web;
+
+    public UserAccess? Access
+    {
+        get
+        {
+            if (!IsSignedIn)
+            {
+                return null;
+            }
+            if (Kind == ActorKind.Agent)
+            {
+                return UserAccess.Approved;
+            }
+            return Enum.TryParse<UserAccess>(_principal.FindFirstValue(SlideWorksClaims.ACCESS), out var access) ? access : null;
+        }
+    }
+
+    public bool IsAdmin => IsSignedIn && Kind == ActorKind.Person && _principal.FindFirstValue(SlideWorksClaims.IS_ADMIN) == SessionPrincipal.IS_ADMIN_VALUE;
 
     private string NameClaim => Kind == ActorKind.Agent ? SlideWorksClaims.AGENT_CLIENT_NAME : SlideWorksClaims.NAME;
 }
