@@ -32,6 +32,16 @@ async function loadDeck(id: string, token: string): Promise<Load> {
   return { state: 'loaded', view: (await response.json()) as DeckPlayView };
 }
 
+// The image's id, the last segment of its /api/images/{id} path (L9).
+function imageIdOf(image: HTMLImageElement): string {
+  const src = image.getAttribute('src') ?? '';
+  return new URL(src, window.location.href).pathname.split('/').pop() ?? src;
+}
+
+// One animation frame, so the fonts the slide uses have started loading
+// before document.fonts.ready is read.
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
 // Resolves once every image under root has loaded; rejects with the first
 // image that fails.
 function imagesLoaded(root: HTMLElement): Promise<void> {
@@ -40,8 +50,7 @@ function imagesLoaded(root: HTMLElement): Promise<void> {
     images.map(
       (image) =>
         new Promise<void>((resolve, reject) => {
-          const failed = () =>
-            reject(new Error(`Rendering failed: image ${image.getAttribute('src') ?? ''}`));
+          const failed = () => reject(new Error(`Rendering failed: image ${imageIdOf(image)}`));
           if (image.complete) {
             if (image.naturalWidth > 0) resolve();
             else failed();
@@ -59,7 +68,8 @@ function imagesLoaded(root: HTMLElement): Promise<void> {
 // gate and with no realtime subscription. The render token comes only from the
 // fragment (#token=…), never the query string, and is removed from the address
 // bar at once. data-ready="true" is set once fonts and images have loaded, or
-// data-error with the reason.
+// data-error with the reason, which is also drawn as text in the root so a
+// screenshot of a failed page shows why.
 export function RenderPage() {
   const { id = '', n } = useParams();
   const hash = useLocation().hash;
@@ -110,10 +120,12 @@ export function RenderPage() {
     const element = root.current;
     if (!slide || !element) return;
     let live = true;
-    Promise.all([document.fonts.ready, imagesLoaded(element)]).then(
-      () => live && setReady({ ok: true }),
-      (error: Error) => live && setReady({ ok: false, error: error.message }),
-    );
+    nextFrame()
+      .then(() => Promise.all([document.fonts.ready, imagesLoaded(element)]))
+      .then(
+        () => live && setReady({ ok: true }),
+        (error: Error) => live && setReady({ ok: false, error: error.message }),
+      );
     return () => {
       live = false;
     };
@@ -139,7 +151,12 @@ export function RenderPage() {
       className="overflow-hidden"
       style={{ width: 1920, height: 1080 }}
     >
-      {slide && slideDeck && view && (
+      {error !== undefined && (
+        <p data-testid="render-error" className="m-0 p-16 text-5xl">
+          {error}
+        </p>
+      )}
+      {!error && slide && slideDeck && view && (
         <SlideRenderer
           slide={slide}
           deck={slideDeck}

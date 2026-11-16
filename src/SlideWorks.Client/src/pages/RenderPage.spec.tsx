@@ -94,7 +94,11 @@ test('render page shows the API error when the token has expired', async ({ moun
   const root = page.getByTestId('render-slide');
   await expect(root).toHaveAttribute('data-error', 'Deck not found');
   await expect(root).not.toHaveAttribute('data-ready', /.*/);
-  await expect(page.getByTestId('slide-1')).toHaveCount(0);
+  // The screenshot shows why: the error is drawn as text, and nothing else is.
+  await expect(page.getByTestId('render-error')).toBeVisible();
+  await expect(page.getByTestId('render-error')).toHaveText('Deck not found');
+  await expect(root.locator(':scope > *')).toHaveCount(1);
+  await expect(root.locator('[data-testid^="slide"]')).toHaveCount(0);
 });
 
 test('render page says which slide is unknown', async ({ mount, page }) => {
