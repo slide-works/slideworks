@@ -19,6 +19,10 @@ export type MeView = {
   adminMissing: boolean;
 };
 
+// GET /api/signin/options: what the sign-in page offers. google is false while
+// sign-in isn't set up on the server.
+export type SignInOptionsView = { google: boolean };
+
 // GET /api/admin/users
 export type AdminUserRow = {
   id: string;

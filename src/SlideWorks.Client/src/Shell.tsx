@@ -1,14 +1,6 @@
 import { Link, Outlet } from 'react-router-dom';
 import type { MeView } from './api/types';
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0].toUpperCase())
-    .join('');
-}
+import { UserMenu } from './components/UserMenu';
 
 // The layout every signed-in page renders inside: the top bar, then the routed page.
 export function Shell({ me }: { me: MeView }) {
@@ -29,12 +21,7 @@ export function Shell({ me }: { me: MeView }) {
             </Link>
           </nav>
           <div data-testid="user-menu" className="ml-auto">
-            <span
-              title={me.name}
-              className="grid h-7 w-7 place-items-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent-dark"
-            >
-              {initials(me.name)}
-            </span>
+            <UserMenu me={me} />
           </div>
         </div>
       </header>
