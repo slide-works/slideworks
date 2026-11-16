@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Http.Json;
+using SlideWorks.WebApi.Tests.Dtos;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Identity;
@@ -114,7 +116,7 @@ public class CrossSiteWriteGuardTests : ApiTestFixture
     }
 
     // With no Origin and no session there is nothing for another site to ride on (an upload by token is the case K1
-    // names), so the guard lets it through to authorization, which refuses it here because no such endpoint is open.
+    // names), so the guard lets it through to the anonymous upload endpoint, which refuses the unknown token itself.
     [Test]
     public async Task Put_WhenAnonymousWithNoOrigin_ShouldPassTheGuard()
     {
@@ -122,7 +124,8 @@ public class CrossSiteWriteGuardTests : ApiTestFixture
 
         var response = await bare.SendAsync(Write(HttpMethod.Put, origin: null, path: "/api/uploads/some-token"));
 
-        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe("Upload not found");
     }
 
     [Test]
