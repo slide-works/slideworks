@@ -39,6 +39,15 @@ public class LookRulesTests
         LookRules.PaletteAfter(talk, "ember", new LookChange(Palette: "plum")).ShouldBe("plum");
     }
 
+    [Test]
+    public void PaletteAfter_WhenLockingTemplateNamesNoPalette_ShouldThrow()
+    {
+        var broken = new TemplateCatalogue().Default with { Name = "broken", LockPalette = true, Palette = null };
+
+        Should.Throw<InvalidOperationException>(() => LookRules.PaletteAfter(broken, "cobalt", new LookChange()))
+            .Message.ShouldBe("Template 'broken' locks its palette but names none");
+    }
+
     private static (string?, string?) Names(LookResult result)
     {
         result.Error.ShouldBeNull();

@@ -47,8 +47,11 @@ public sealed class LookRules(ITemplateCatalogue templates, IPaletteCatalogue pa
 
     // The palette a deck has after an allowed change to target: a locking template's own palette,
     // else the change's palette, else the one it had.
+    // A template that locks its palette must name one; a catalogue that breaks this is a defect, so it throws.
     public static string PaletteAfter(Template target, string currentPalette, LookChange change) =>
-        target.LockPalette ? target.Palette! : change.Palette ?? currentPalette;
+        target.LockPalette
+            ? target.Palette ?? throw new InvalidOperationException($"Template '{target.Name}' locks its palette but names none")
+            : change.Palette ?? currentPalette;
 
     private string? CheckPalette(Template template, string? paletteName)
     {

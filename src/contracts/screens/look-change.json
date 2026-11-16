@@ -31,8 +31,8 @@
           "close"
         ],
         "chrome": {
-          "tracker": true,
-          "footer": "author",
+          "tracker": false,
+          "footer": "date",
           "progress": true,
           "deepDivesOnDivider": true,
           "draft": true
@@ -115,9 +115,9 @@
       "contrast": {
         "pass": true,
         "lowest": {
-          "pair": "headline-accent",
-          "ratio": 4.9,
-          "bar": 3.0
+          "pair": "on-accent",
+          "ratio": 5.2,
+          "bar": 4.5
         }
       }
     },
