@@ -72,13 +72,18 @@ public partial class OpenGraphTests : ApiTestFixture
     [Test]
     public async Task Get_WhenTitleHoldsMarkup_ShouldEncodeIt()
     {
-        var deck = await CreateDeckAsync("<script>alert(\"x\")</script> & co", "link");
+        const string title = "T\" content=\"x\"></title><script>alert(\"x\")</script> & co";
+        var deck = await CreateDeckAsync(title, "link");
 
         var (html, tags) = await PageAsync($"/d/{deck}/x");
 
         html.ShouldNotContain("<script>alert");
+        html.ShouldNotContain("\" content=\"x\"");
+        html.ShouldNotContain("</title><script>");
         html.ShouldContain("&lt;script&gt;");
-        tags["og:title"].ShouldBe("<script>alert(\"x\")</script> & co");
+        html.ShouldContain("&lt;/title&gt;");
+        html.ShouldContain("&quot;");
+        tags["og:title"].ShouldBe(title);
     }
 
     private async Task<(string Html, Dictionary<string, string> Tags)> PageAsync(string path)

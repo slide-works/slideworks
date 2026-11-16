@@ -51,6 +51,16 @@ public class AnonymousRoutesTests : ApiTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
+    [TestCase("/api/cards/abc.png")]
+    public async Task Head_WhenAnonymousAndSignInRequiredElsewhere_ShouldReturn200(string path)
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await anonymous.SendAsync(new HttpRequestMessage(HttpMethod.Head, path));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
     // The control: the fallback policy is really in force for an endpoint that isn't marked anonymous. The bearer token
     // only gets the request past the static token guard while that guard exists. Whether the refusal is a challenge
     // redirect or a 401 depends on which scheme answers it, so either counts. A 200, or the /api fallback's 404, would
