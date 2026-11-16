@@ -192,8 +192,8 @@ public class ScreenRecordShapeTests : ApiTestFixture
         Should.Throw<JsonException>(() => JsonSerializer.Deserialize<SharingUpdate>(body, AppJsonOptions()));
     }
 
-    // GET /api/me is real already: the shape test checks the response, and the record with every field set. The response's
-    // access values are placeholders until the real ones land, so only its shape is checked.
+    // GET /api/me is real already: the shape test checks the response
+    // for shape only, and the record with every field set.
     [Test]
     public async Task Me_ShouldMatchContract()
     {

@@ -186,7 +186,10 @@ describe('screen JSON examples', () => {
 
   it('admin-users.json matches AdminUsersView', () => {
     expect(sorted(adminUsers)).toEqual(ADMIN_USERS);
-    adminUsers.users.forEach((row) => expect(sorted(row)).toEqual(ADMIN_USER_ROW));
+    adminUsers.users.forEach((row) => {
+      expect(sorted(row)).toEqual(ADMIN_USER_ROW);
+      expect(['pending', 'approved', 'rejected']).toContain(row.access);
+    });
     expect(adminUsers.users.map((row) => row.access)).toEqual(
       expect.arrayContaining(['pending', 'approved', 'rejected']),
     );

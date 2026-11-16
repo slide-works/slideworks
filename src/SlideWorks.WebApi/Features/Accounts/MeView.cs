@@ -10,4 +10,8 @@ public sealed record MeView(
     string Access,
     bool IsAdmin,
     int PendingRequests,
-    bool AdminMissing);
+    bool AdminMissing)
+{
+    public static MeView From(User user, string access, bool isAdmin, int pendingRequests, bool adminMissing) =>
+        new(user.Email, user.Name, user.PictureUrl, access, isAdmin, pendingRequests, adminMissing);
+}
