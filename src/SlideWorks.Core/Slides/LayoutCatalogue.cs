@@ -34,7 +34,7 @@ public static class LayoutCatalogue
         new("title", "Opening slide (dark): the deck's title with a kicker, subtitle, tagline, byline and an optional stamp.", true,
         [
             Opt("kicker", new TextSlot(KICKER)),
-            Req("title", new TextSlot(34), "Set at 168 px: two lines at most"),
+            Req("title", new TextSlot(34), "Set at 168 px: two lines at most, shrinking to 96 px to keep them"),
             Opt("subtitle", new TextSlot(100)),
             Opt("tagline", new TextSlot(90)),
             Opt("author", new TextSlot(60), "The presenter's name"),
@@ -43,7 +43,7 @@ public static class LayoutCatalogue
         ]),
         new("divider", "Section divider (dark) that opens a part. Its number and the journey come from the deck's parts and the slide's part.", true,
         [
-            Req("title", new TextSlot(44), "Set at 104 px: two lines at most"),
+            Req("title", new TextSlot(44), "Set at 104 px: two lines at most, shrinking to 64 px to keep them"),
             Opt("sub", new TextSlot(80)),
         ]),
         new("bullets", "A headline over 1–8 points, each plain text or a bold lead plus text. Can reveal one point per step.", false,
@@ -163,7 +163,7 @@ public static class LayoutCatalogue
         ], stepsFrom: "cards"),
         new("close", "Closing slide (dark): a short headline of up to three written lines, with an optional sub and author.", true,
         [
-            Req("headline", new TextSlot(80, lineBreaks: true), "Set at 112 px, about 22 characters a line: use \\n for a line break, at most 3 written and 4 shown lines"),
+            Req("headline", new TextSlot(80, lineBreaks: true), "Set at 112 px, about 22 characters a line: use \\n for a line break, at most 3 written and 4 shown lines; it shrinks to 60 px to keep 4 lines"),
             Opt("sub", new TextSlot(110)),
             Opt("author", new TextSlot(60)),
         ], rules: LayoutRules.Close),
