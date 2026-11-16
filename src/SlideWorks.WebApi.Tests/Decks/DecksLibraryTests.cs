@@ -50,7 +50,7 @@ public class DecksLibraryTests : ApiTestFixture
         lastChange.GetProperty("actor").GetString().ShouldBe(TestUser.Sam.Name);
         lastChange.GetProperty("actorKind").GetString().ShouldBe("person");
         lastChange.GetProperty("via").GetString().ShouldBe("web");
-        lastChange.GetProperty("summary").GetString().ShouldBe("created the deck from the talk template with the Cobalt palette");
+        lastChange.GetProperty("summary").GetString().ShouldBe("Created from the talk template with the Cobalt palette");
 
         body.ShouldContain("\"sharing\":\"private\"", Case.Sensitive);
         body.ShouldContain("\"actorKind\":\"person\"", Case.Sensitive);
