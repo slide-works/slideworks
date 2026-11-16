@@ -419,7 +419,24 @@ public class TokenTests : ApiTestFixture
         var response = await _anonymous.PostAsync("/oauth/revoke", multipart);
 
         (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        response.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
         (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.OK);
+    }
+
+    // A form over the framework's limits (here 1,025 values, one more than it reads) is the client's mistake: 400
+    // invalid_request, still no-store, not a 500. The code isn't spent.
+    [Test]
+    public async Task Token_WhenFormOverTheFrameworkLimits_ShouldReturnInvalidRequest()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+        var fields = RedeemFields(code);
+        fields.AddRange(Enumerable.Range(0, 1_025 - fields.Count).Select(i => KeyValuePair.Create($"extra{i}", "x")));
+
+        var response = await _anonymous.PostAsync("/oauth/token", new FormUrlEncodedContent(fields));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        response.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
+        await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code));
     }
 
     // A charset parameter on the right media type is fine.

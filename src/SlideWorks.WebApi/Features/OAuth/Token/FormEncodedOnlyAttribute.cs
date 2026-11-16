@@ -24,7 +24,18 @@ public sealed class FormEncodedOnlyAttribute : Attribute, IAsyncResourceFilter, 
             context.Result = Refuse($"Send the parameters as {FORM_URL_ENCODED}.");
             return;
         }
-        var form = await request.ReadFormAsync(context.HttpContext.RequestAborted);
+        IFormCollection form;
+        try
+        {
+            form = await request.ReadFormAsync(context.HttpContext.RequestAborted);
+        }
+        catch (InvalidDataException)
+        {
+            // Over the framework's form limits (value count, key or value length). Thrown here, in a resource filter, it
+            // would never reach OAuthTokenError and end as a 500 without no-store.
+            context.Result = Refuse("The form is too large.");
+            return;
+        }
         var repeated = form.FirstOrDefault(f => f.Value.Count > 1).Key;
         if (repeated != null)
         {
