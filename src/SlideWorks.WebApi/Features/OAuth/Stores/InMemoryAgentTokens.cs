@@ -1,5 +1,6 @@
 using Agoda.IoC.Core;
 using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Features.Accounts;
 
 namespace SlideWorks.WebApi.Features.OAuth.Stores;
 
@@ -20,8 +21,19 @@ public class InMemoryAgentTokens(TimeProvider clock, IServiceScopeFactory scopes
     }
 
     // The checks, the use mark and the replay revocation happen under one lock, as one conditional update would in SQL.
-    public Task<AgentTokenPair?> RefreshAsync(string refreshToken, string clientId)
+    // The presenter's access is read first and a refusal changes nothing, so re-approval makes an unexpired refresh token
+    // work again; only a revoke kills tokens.
+    public async Task<AgentTokenPair?> RefreshAsync(string refreshToken, string clientId)
     {
+        Guid? presenterId;
+        lock (_gate)
+        {
+            presenterId = _tokens.TryGetValue(OAuthSecrets.Hash(refreshToken), out var known) ? known.PresenterId : null;
+        }
+        if (presenterId != null && !await IsApprovedAsync(presenterId.Value))
+        {
+            return null;
+        }
         var now = clock.GetUtcNow();
         lock (_gate)
         {
@@ -31,15 +43,15 @@ public class InMemoryAgentTokens(TimeProvider clock, IServiceScopeFactory scopes
                 || row.ClientId != clientId
                 || row.ExpiresAt <= now)
             {
-                return Task.FromResult<AgentTokenPair?>(null);
+                return null;
             }
             if (row.UsedAt != null)
             {
                 RevokeFamily(row.FamilyId, now);
-                return Task.FromResult<AgentTokenPair?>(null);
+                return null;
             }
             row.UsedAt = now;
-            return Task.FromResult<AgentTokenPair?>(IssuePair(row.FamilyId, row.ClientId, row.PresenterId, row.Scope, row.Resource));
+            return (IssuePair(row.FamilyId, row.ClientId, row.PresenterId, row.Scope, row.Resource));
         }
     }
 
@@ -63,7 +75,7 @@ public class InMemoryAgentTokens(TimeProvider clock, IServiceScopeFactory scopes
         using var scope = scopes.CreateScope();
         var client = await scope.ServiceProvider.GetRequiredService<IOAuthClients>().FindAsync(row.ClientId);
         var presenter = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Users.FindAsync(row.PresenterId);
-        return client == null || presenter == null ? null : new AgentPrincipal(presenter.Id, presenter.Email, client.ClientName);
+        return client == null || presenter is not { Access: UserAccess.Approved } ? null : new AgentPrincipal(presenter.Id, presenter.Email, client.ClientName);
     }
 
     public Task RevokeAsync(string token)
@@ -76,6 +88,26 @@ public class InMemoryAgentTokens(TimeProvider clock, IServiceScopeFactory scopes
             }
         }
         return Task.CompletedTask;
+    }
+
+    public Task RevokeAllForPresenterAsync(Guid presenterId)
+    {
+        var now = clock.GetUtcNow();
+        lock (_gate)
+        {
+            foreach (var familyId in _tokens.Values.Where(t => t.PresenterId == presenterId).Select(t => t.FamilyId).Distinct().ToList())
+            {
+                RevokeFamily(familyId, now);
+            }
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task<bool> IsApprovedAsync(Guid presenterId)
+    {
+        using var scope = scopes.CreateScope();
+        var presenter = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Users.FindAsync(presenterId);
+        return presenter is { Access: UserAccess.Approved };
     }
 
     // Callers hold _gate.
