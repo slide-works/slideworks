@@ -40,6 +40,26 @@ public class SlideValidatorTests
         result.Error.ShouldBe("practice.do[2].lead: required");
     }
 
+    // An escaped lone surrogate (half an emoji) in a field name, slot text or an enum value can't be read as a .NET
+    // string. It must come back as a validation error, not an exception (a 500 through the write path).
+    [TestCase("""{ "quote": "Ship it \ud83d", "attribution": "Sam" }""")]
+    [TestCase("""{ "quote": "Ship it.", "attribution": "Sam", "\udc00": "x" }""")]
+    [TestCase("""{ "quote": "Ship it.", "attribution": "Sam", "kicker": ["\ud83d"] }""")]
+    public void Validate_WhenTextHasLoneSurrogate_ShouldSayItIsNotValidUtf16(string slots)
+    {
+        var result = Validate("quote", slots);
+
+        result.Error.ShouldBe("slots: text is not valid UTF-16");
+    }
+
+    [Test]
+    public void Validate_WhenEnumValueHasLoneSurrogate_ShouldSayItIsNotValidUtf16()
+    {
+        var result = Validate("bullets", """{ "headline": "Ship", "items": ["a"], "reveal": "\ud83dall" }""");
+
+        result.Error.ShouldBe("slots: text is not valid UTF-16");
+    }
+
     [Test]
     public void Validate_WhenRequiredTopLevelSlotMissing_ShouldNameIt()
     {
