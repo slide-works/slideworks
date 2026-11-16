@@ -16,6 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Features\Render\PreviewInstructions.md" LogicalName="SlideWorks.WebApi.Features.Render.PreviewInstructions.md" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\SlideWorks.Core\SlideWorks.Core.csproj" />
   </ItemGroup>
 

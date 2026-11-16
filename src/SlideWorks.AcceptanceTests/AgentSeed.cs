@@ -29,7 +29,7 @@ public static class AgentSeed
         }
     }
 
-    private static async Task<McpClient> ConnectAsync(TestUser presenter)
+    public static async Task<McpClient> ConnectAsync(TestUser presenter)
     {
         using var scope = AcceptanceApp.Services.CreateScope();
         var services = scope.ServiceProvider;
