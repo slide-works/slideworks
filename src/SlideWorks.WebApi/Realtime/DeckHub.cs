@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace SlideWorks.WebApi.Realtime;
@@ -7,18 +8,23 @@ namespace SlideWorks.WebApi.Realtime;
 // JSON (src/SlideWorks.Client/src/realtime/deckEvents.ts). It receives nothing for a deck it has not joined.
 // LeaveDeck(deckId) stops that deck's events; a closed connection leaves every deck. Joining twice is harmless.
 //
-// Who may connect is BearerTokenAuthMiddleware, which guards /hubs as it guards /api. JoinDeck has no per-deck check yet
-// because there are no decks or accounts yet: when SW-1 adds them, JoinDeck checks the caller may view the deck and
-// refuses one they can't with a HubException, the same as an unknown deck.
+// Anyone may connect (K1): a viewer of a deck shared by link has no session. The connection is authenticated by the
+// session cookie when there is one, and JoinDeck decides who may follow which deck, refusing an unknown deck and a
+// forbidden one with the same HubException so the two can't be told apart.
+[AllowAnonymous]
 public sealed class DeckHub : Hub
 {
     public const string PATH = "/hubs/deck";
 
     public const string EVENT_METHOD = "deckEvent";
 
-    public static string GroupName(Guid deckId) => $"deck:{deckId}";
+    public const string DECK_NOT_FOUND = "Deck not found";
 
-    public Task JoinDeck(Guid deckId) => Groups.AddToGroupAsync(Context.ConnectionId, GroupName(deckId));
+    public static string GroupName(string deckId) => $"deck:{deckId}";
 
-    public Task LeaveDeck(Guid deckId) => Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(deckId));
+    // TODO: check the caller may view the deck through IDeckAccess, which lets anonymous viewers follow a deck shared by
+    // link. Until then only a signed-in person may join, and an anonymous caller is refused as if the deck didn't exist.
+    public Task JoinDeck(string deckId) => Groups.AddToGroupAsync(Context.ConnectionId, GroupName(deckId));
+
+    public Task LeaveDeck(string deckId) => Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(deckId));
 }

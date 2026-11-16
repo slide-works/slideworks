@@ -28,7 +28,7 @@ public class DeckHubTests : ApiTestFixture
     [Test]
     public async Task Publish_WhenEventOnBus_ShouldReachConnectionsThatJoinedThatDeckOnly()
     {
-        var (deckA, deckB) = (Guid.NewGuid(), Guid.NewGuid());
+        var (deckA, deckB) = (TestDeckIds.New(), TestDeckIds.New());
         var onA = await JoinedAsync(deckA);
         var onB = await JoinedAsync(deckB);
         var notJoined = await ConnectAsync();
@@ -47,20 +47,20 @@ public class DeckHubTests : ApiTestFixture
     [Test]
     public async Task Publish_WhenEventOnBus_ShouldSendTheTypeDiscriminatedJson()
     {
-        var deck = Guid.NewGuid();
+        var deck = TestDeckIds.New();
         var receiver = await JoinedAsync(deck);
 
         await Bus.PublishAsync(new DeckChanged(deck));
 
         var received = await receiver.NextAsync();
         received.GetProperty("type").GetString().ShouldBe("deckChanged");
-        received.GetProperty("deckId").GetGuid().ShouldBe(deck);
+        received.GetProperty("deckId").GetString()!.ShouldBe(deck);
     }
 
     [Test]
     public async Task LeaveDeck_WhenCalled_ShouldStopThatDecksEvents()
     {
-        var (left, kept) = (Guid.NewGuid(), Guid.NewGuid());
+        var (left, kept) = (TestDeckIds.New(), TestDeckIds.New());
         var leaver = await JoinedAsync(left, kept);
         await leaver.Connection.InvokeAsync("LeaveDeck", left);
 
@@ -86,7 +86,7 @@ public class DeckHubTests : ApiTestFixture
         return receiver;
     }
 
-    private async Task<HubReceiver> JoinedAsync(params Guid[] decks)
+    private async Task<HubReceiver> JoinedAsync(params string[] decks)
     {
         var receiver = await ConnectAsync();
         foreach (var deck in decks)
@@ -96,5 +96,5 @@ public class DeckHubTests : ApiTestFixture
         return receiver;
     }
 
-    private static Guid DeckIdOf(JsonElement deckEvent) => deckEvent.GetProperty("deckId").GetGuid();
+    private static string DeckIdOf(JsonElement deckEvent) => deckEvent.GetProperty("deckId").GetString()!;
 }

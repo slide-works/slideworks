@@ -63,7 +63,6 @@ export function subscribeToDeck(
   { connect = createDeckConnection, retryDelaysMs = RETRY_DELAYS_MS }: SubscribeOptions = {},
 ): () => void {
   const connection = connect();
-  const wanted = deckId.toLowerCase();
   let stopped = false;
   let retry: ReturnType<typeof setTimeout> | undefined;
 
@@ -76,7 +75,7 @@ export function subscribeToDeck(
   };
 
   connection.on(EVENT_METHOD, (event: unknown) => {
-    if (!stopped && isDeckEvent(event) && event.deckId.toLowerCase() === wanted) onEvent(event);
+    if (!stopped && isDeckEvent(event) && event.deckId === deckId) onEvent(event);
   });
   connection.onreconnected(() => {
     if (!stopped) void join();

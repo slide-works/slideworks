@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DeckEvent } from './deckEvents';
 import { subscribeToDeck, type RealtimeConnection } from './deckSubscription';
 
-const deck = '0199a000-0000-7000-8000-000000000012';
+const deck = 'abcDEF123xyz';
 const changed: DeckEvent = { type: 'deckChanged', deckId: deck };
 
 // A hub connection that does what the test tells it to.
@@ -46,14 +46,14 @@ describe('subscribeToDeck', () => {
     expect(received).toEqual([changed]);
   });
 
-  it('matches the deck id whatever its case', async () => {
+  // Deck ids are case-sensitive base62, so an id that differs only in case is another deck.
+  it('ignores a deck id that differs only in case', async () => {
     const hub = fakeConnection();
     const received: DeckEvent[] = [];
-    subscribeToDeck(deck.toUpperCase(), (event) => received.push(event), {
-      connect: () => hub.connection,
-    });
+    subscribeToDeck(deck, (event) => received.push(event), { connect: () => hub.connection });
     await vi.advanceTimersByTimeAsync(0);
 
+    hub.deliver({ ...changed, deckId: deck.toUpperCase() });
     hub.deliver(changed);
 
     expect(received).toEqual([changed]);
@@ -65,7 +65,7 @@ describe('subscribeToDeck', () => {
     subscribeToDeck(deck, (event) => received.push(event), { connect: () => hub.connection });
     await vi.advanceTimersByTimeAsync(0);
 
-    hub.deliver({ ...changed, deckId: '0199a000-0000-7000-8000-000000000099' });
+    hub.deliver({ ...changed, deckId: 'otherDeck0099' });
     hub.deliver('hello');
     hub.deliver(null);
 
