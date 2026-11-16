@@ -69,7 +69,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
     public void DeckPage_ShouldMatchContract()
     {
         var example = Example("deck-page.json");
-        var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]" };
+        var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]", Template = "workshop", Palette = "cobalt" };
         var slides = example.GetProperty("slides").EnumerateArray()
             .Select((slide, position) => DeckPageSlide.From(deck, new Slide
             {
@@ -108,7 +108,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
     [Test]
     public void DeckPage_WhenOptionalFieldsAreNull_ShouldMatchContract()
     {
-        var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]" };
+        var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]", Template = "workshop", Palette = "cobalt" };
         var slide = DeckPageSlide.From(deck, new Slide { DeckId = deck.Id, Layout = "bullets", SlotsJson = """{ "items": ["One"] }""" });
         var view = new DeckPageView(deck.Id, deck.Slug, deck.Title, null, false, "/d/7Kq2xYp9LmQa/ship-smaller",
             SharingSummary.From(DeckSharing.Private, 0), [], [slide],
@@ -235,7 +235,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
     }
 
     private static DeckPageSlide Slide(string layout, string slots, int position = 0) => DeckPageSlide.From(
-        new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]" },
+        new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]", Template = "workshop", Palette = "cobalt" },
         new Slide { DeckId = "7Kq2xYp9LmQa", Position = position, Layout = layout, SlotsJson = slots });
 
     private static ActivityEntryRow Entry(string actor, ActorKind kind, ActorVia via, string? tool, string summary) => new()

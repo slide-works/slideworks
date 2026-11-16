@@ -113,10 +113,23 @@ namespace SlideWorks.WebApi.Migrations
                     b.Property<string>("Author")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ChromeJson")
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("CreatedAt")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("Draft")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LogoImageId")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Palette")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PartsJson")
@@ -135,6 +148,10 @@ namespace SlideWorks.WebApi.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Subtitle")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Template")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
@@ -369,6 +386,9 @@ namespace SlideWorks.WebApi.Migrations
                     b.Property<string>("DeckId")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("DeepDive")
+                        .HasColumnType("INTEGER");
 
                     b.Property<long?>("DeletedAt")
                         .HasColumnType("INTEGER");
