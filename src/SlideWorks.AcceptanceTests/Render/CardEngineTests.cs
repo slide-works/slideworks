@@ -53,7 +53,7 @@ public class CardEngineTests
     [Test]
     public async Task Engine_CardWithALogoRenders()
     {
-        // red until SW-81 (and set_look's logo, SW-68)
+        // red until SW-81
         var deck = await CreateLinkDeckAsync("cobalt");
         await using (var agent = await ConnectAsync(TestUser.Sam))
         {

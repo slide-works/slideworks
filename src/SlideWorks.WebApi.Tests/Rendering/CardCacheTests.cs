@@ -119,7 +119,6 @@ public class CardCacheTests : ApiTestFixture
                 await SharingApi.PutOkAsync(Client, deck, "link");
                 break;
             default:
-                // red until SW-68
                 using (var response = await Client.PutAsJsonAsync($"/api/decks/{deck}/look", new { palette = "ember" }))
                 {
                     response.EnsureSuccessStatusCode();
