@@ -6,7 +6,7 @@ import { deepDiveNumbers } from './panel/deepDiveNumbers';
 import { LogoField } from './panel/LogoField';
 import { PaletteRow } from './panel/PaletteRow';
 import { ShareCardPreview } from './panel/ShareCardPreview';
-import { useLooks } from './panel/useLooks';
+import { useLooks } from './useLooks';
 
 export type LookPanelProps = { deck: DeckPageView; onSaved(look: DeckPageLook): void };
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ApiError, api } from '../../api/client';
-import type { LooksView } from '../../api/types';
+import { ApiError, api } from '../api/client';
+import type { LooksView } from '../api/types';
 
 export type LooksLoad =
   { kind: 'loading' } | { kind: 'loaded'; looks: LooksView } | { kind: 'failed'; message: string };

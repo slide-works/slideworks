@@ -1,5 +1,5 @@
 import sampleDeckJson from '@contracts/sample-deck.json' with { type: 'json' };
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { ApiError, api } from '../api/client';
 import type {
   CreateDeckRequest,
@@ -9,8 +9,10 @@ import type {
   LooksTemplate,
   LooksView,
 } from '../api/types';
+import { ModalDialog } from '../components/sharing/ModalDialog';
 import { LookPreview } from './LookPreview';
 import { lookOf } from './lookOf';
+import { useLooks } from './useLooks';
 
 export type NewDeckDialogProps = {
   open: boolean;
@@ -24,9 +26,6 @@ const PREVIEW_SLIDES = sampleDeck.slides.filter((slide) => [1, 8].includes(slide
 
 // GET /api/looks carries no date, so the preview's footer has none (no Date in the SPA).
 const NO_FOOTER_DATE = '';
-
-type Catalogue =
-  { kind: 'loading' } | { kind: 'loaded'; looks: LooksView } | { kind: 'failed'; message: string };
 
 type Choice = { template: LooksTemplate; palette: LooksPalette };
 
@@ -46,7 +45,7 @@ function defaultChoice(looks: LooksView): Choice | null {
 const errorText = (error: unknown) =>
   error instanceof ApiError ? error.message : "Can't reach SlideWorks.";
 
-// "+ New deck": a title, a template and a palette from GET /api/looks (a static
+// "+ New deck", a modal <dialog> (the page behind is inert, Tab wraps, Esc closes): a title, a template and a palette from GET /api/looks (a static
 // catalogue, SW-2 D20), with a live preview of two sample slides under the
 // chosen look. A template that locks its palette greys the palette out. Create
 // POSTs {title, template, palette} to /api/decks; a failed create shows the
@@ -57,40 +56,27 @@ export function NewDeckDialog({ open, onClose, onCreated }: NewDeckDialogProps) 
 }
 
 function OpenDialog({ onClose, onCreated }: Omit<NewDeckDialogProps, 'open'>) {
-  const [catalogue, setCatalogue] = useState<Catalogue>({ kind: 'loading' });
-  const [choice, setChoice] = useState<Choice | null>(null);
+  const catalogue = useLooks();
+  // The person's own pick; until they make one, the catalogue's defaults.
+  const [picked, setPicked] = useState<Choice | null>(null);
   const [title, setTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    let active = true;
-    api.get<LooksView>('/api/looks').then(
-      (looks) => {
-        if (!active) return;
-        setCatalogue({ kind: 'loaded', looks });
-        setChoice(defaultChoice(looks));
-      },
-      (failure: unknown) => active && setCatalogue({ kind: 'failed', message: errorText(failure) }),
-    );
-    return () => {
-      active = false;
-    };
-  }, []);
-
   const looks = catalogue.kind === 'loaded' ? catalogue.looks : null;
+  const choice = picked ?? (looks ? defaultChoice(looks) : null);
   const locked = choice !== null && choice.template.lockedPalette !== null;
 
   const chooseTemplate = (template: LooksTemplate) => {
     if (!looks || !choice) return;
     const forced = template.lockedPalette === null ? undefined : paletteFor(looks, template);
-    setChoice({ template, palette: forced ?? choice.palette });
+    setPicked({ template, palette: forced ?? choice.palette });
   };
 
   const choosePalette = (name: string) => {
     const palette = looks?.palettes.find((entry) => entry.name === name);
-    if (palette && choice) setChoice({ ...choice, palette });
+    if (palette && choice) setPicked({ ...choice, palette });
   };
 
   const create = async (event: FormEvent) => {
@@ -113,23 +99,19 @@ function OpenDialog({ onClose, onCreated }: Omit<NewDeckDialogProps, 'open'>) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-40 grid place-items-center overflow-y-auto bg-ink/40 p-4"
-      onKeyDown={(event) => event.key === 'Escape' && onClose()}
+    <ModalDialog
+      labelledBy="new-deck-heading"
+      describedBy="new-deck-hint"
+      testId="new-deck-dialog"
+      widthClassName="max-w-4xl"
+      onClose={onClose}
     >
-      <form
-        data-testid="new-deck-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="new-deck-heading"
-        className="panel grid w-full max-w-4xl gap-0 bg-panel shadow-lg"
-        onSubmit={create}
-      >
+      <form className="grid max-h-[calc(100dvh-3rem)] gap-0 overflow-y-auto" onSubmit={create}>
         <header className="flex flex-wrap items-baseline gap-3 border-b border-edge px-5 py-3">
           <h2 id="new-deck-heading" className="text-base font-bold text-ink">
             New deck
           </h2>
-          <span className="text-meta text-ink-muted">
+          <span id="new-deck-hint" className="text-meta text-ink-muted">
             An agent makes the same choices with <code>create_deck {'{template, palette}'}</code>.
           </span>
         </header>
@@ -152,6 +134,16 @@ function OpenDialog({ onClose, onCreated }: Omit<NewDeckDialogProps, 'open'>) {
                 onChange={(event) => setTitle(event.target.value)}
               />
             </label>
+
+            {catalogue.kind === 'loading' && (
+              <p
+                role="status"
+                data-testid="new-deck-looks-loading"
+                className="text-meta text-ink-muted"
+              >
+                Loading templates and palettes…
+              </p>
+            )}
 
             {catalogue.kind === 'failed' && (
               <p role="alert" data-testid="new-deck-looks-error" className="text-meta text-bad">
@@ -275,6 +267,6 @@ function OpenDialog({ onClose, onCreated }: Omit<NewDeckDialogProps, 'open'>) {
           </button>
         </footer>
       </form>
-    </div>
+    </ModalDialog>
   );
 }

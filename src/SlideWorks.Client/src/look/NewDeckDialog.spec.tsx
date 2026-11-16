@@ -135,6 +135,67 @@ test('cancel and Escape close it', async ({ mount, page }) => {
   await expect.poll(() => closed).toBe(2);
 });
 
+test('Tab and Shift+Tab wrap inside the dialog and never reach the page behind', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { '/api/looks': { json: looks } });
+  await mount(
+    <div>
+      <button type="button" data-testid="behind">
+        Behind
+      </button>
+      <NewDeckDialog open onClose={noop} onCreated={noop} />
+    </div>,
+  );
+
+  await expect(page.getByTestId('new-deck-create')).toBeEnabled();
+  await page.getByTestId('new-deck-create').focus();
+  await page.keyboard.press('Tab');
+  await expect(page.getByTestId('new-deck-title')).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(page.getByTestId('new-deck-create')).toBeFocused();
+
+  // A full lap of tab stops stays inside the dialog.
+  for (let stop = 0; stop < 8; stop += 1) {
+    await page.keyboard.press('Tab');
+    await expect(page.getByTestId('behind')).not.toBeFocused();
+    expect(
+      await page.evaluate(() =>
+        Boolean(document.activeElement?.closest('[data-testid="new-deck-dialog"]')),
+      ),
+    ).toBe(true);
+  }
+});
+
+test('Escape closes it wherever focus is inside it', async ({ mount, page }) => {
+  await stubApi(page, { '/api/looks': { json: looks } });
+  let closed = 0;
+  await mount(<NewDeckDialog open onClose={() => (closed += 1)} onCreated={noop} />);
+
+  await page.getByTestId('new-deck-palette').focus();
+  await page.keyboard.press('Escape');
+  await expect.poll(() => closed).toBe(1);
+
+  // Focus on nothing in particular: a click on the heading text.
+  await page.getByRole('heading', { name: 'New deck' }).click();
+  await page.keyboard.press('Escape');
+  await expect.poll(() => closed).toBe(2);
+});
+
+test('while the catalogue loads it says so and Create waits', async ({ mount, page }) => {
+  await page.route('**/api/looks', () => {
+    // Never answered: the catalogue stays loading.
+  });
+  await mount(<NewDeckDialog open onClose={noop} onCreated={noop} />);
+
+  await expect(page.getByTestId('new-deck-looks-loading')).toHaveText(
+    'Loading templates and palettes…',
+  );
+  await expect(page.getByTestId('new-deck-looks-loading')).toHaveRole('status');
+  await expect(page.getByTestId('new-deck-create')).toBeDisabled();
+});
+
 test('closed, it renders nothing and loads nothing', async ({ mount, page }) => {
   const requests: string[] = [];
   page.on('request', (request) => {
