@@ -1,0 +1,23 @@
+services:
+  slide-works:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Set in an untracked .env next to this file. Empty/unset token means the
+      # app fails closed (everything except /health rejected).
+      - SLIDEWORKS_API_TOKEN=${SLIDEWORKS_API_TOKEN:-}
+      - SLIDEWORKS_API_EXTRA_TOKENS=${SLIDEWORKS_API_EXTRA_TOKENS:-}
+      - SLIDEWORKS_DB_PATH=/data/slide-works.db
+      # Console only until these are set; on the home stack Seq is
+      # http://seq:5341 on arrnet.
+      - SLIDEWORKS_SEQ_URL=${SLIDEWORKS_SEQ_URL:-}
+      - SLIDEWORKS_SEQ_API_KEY=${SLIDEWORKS_SEQ_API_KEY:-}
+    volumes:
+      # Named volume: stays on the WSL2 ext4 disk. Never switch this to a bind
+      # mount on a NAS/Windows path — SQLite corrupts over 9p/SMB under lock
+      # contention. Back it up with `sqlite3 .backup` instead.
+      - slide-works-data:/data
+
+volumes:
+  slide-works-data:

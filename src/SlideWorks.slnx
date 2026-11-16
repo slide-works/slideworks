@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="SlideWorks.AcceptanceTests/SlideWorks.AcceptanceTests.csproj" />
+  <Project Path="SlideWorks.Core/SlideWorks.Core.csproj" />
+  <Project Path="SlideWorks.UnitTest/SlideWorks.UnitTest.csproj" />
+  <Project Path="SlideWorks.WebApi/SlideWorks.WebApi.csproj" />
+  <Project Path="SlideWorks.WebApi.Tests/SlideWorks.WebApi.Tests.csproj" />
+</Solution>

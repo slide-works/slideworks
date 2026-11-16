@@ -1,0 +1,12 @@
+.git
+**/bin
+**/obj
+**/node_modules
+**/.pnpm-store
+**/TestResults
+# Always built fresh by the frontend stage; a stale local build must not leak in.
+SlideWorks.WebApi/wwwroot
+*.db
+*.db-shm
+*.db-wal
+*:Zone.Identifier
