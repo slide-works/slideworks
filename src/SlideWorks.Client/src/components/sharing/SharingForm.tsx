@@ -98,10 +98,12 @@ export function SharingForm({ deckId, view, onCancel, onSaved }: SharingFormProp
         Agents signed in as you can change this too, with <code>set_sharing</code>. Every change
         appears in the deck's activity list with the agent's name.
         {view.lastChange && (
-          <span data-testid="sharing-last-change">
+          <>
             {' '}
-            <b>Last change:</b> {view.lastChange.actor}, {view.lastChange.atLabel}.
-          </span>
+            <span data-testid="sharing-last-change">
+              <b>Last change:</b> {view.lastChange.actor}, {view.lastChange.atLabel}.
+            </span>
+          </>
         )}
       </p>
 
