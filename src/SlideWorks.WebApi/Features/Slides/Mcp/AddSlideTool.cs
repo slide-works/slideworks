@@ -15,7 +15,7 @@ public sealed class AddSlideTool
         SlideCommands commands,
         [Description("The deck's id.")] string deck,
         [Description("The layout's name, such as title, bullets or practice.")] string layout,
-        [Description("The layout's slots as a JSON object.")] JsonElement slots,
+        [Description("The layout's slots as a JSON object. Required.")] JsonElement? slots = null,
         [Description("The 1-based part this slide belongs to, or leave it out for none.")] int? part = null,
         [Description("The 1-based number the new slide takes; later slides move down. Leave it out to add the slide at the end.")] int? position = null,
         [Description("Speaker notes. Viewers never see them.")] string? notes = null)

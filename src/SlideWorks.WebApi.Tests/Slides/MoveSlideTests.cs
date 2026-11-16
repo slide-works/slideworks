@@ -11,6 +11,8 @@ namespace SlideWorks.WebApi.Tests.Slides;
 [CancelAfter(60000)]
 public class MoveSlideTests : ApiTestFixture
 {
+    private const int ROUNDS = 5;
+
     [Test]
     public async Task Move_WhenToEarlierPosition_ShouldRenumber()
     {
@@ -66,15 +68,34 @@ public class MoveSlideTests : ApiTestFixture
         (await DeckSeed.ActivityAsync(Client, deck)).Count.ShouldBe(4);
     }
 
-    // Ten agents, each in its own MCP session, move and delete on one deck at once. The per-deck lock (taking the deck's
-    // next revision first) must leave live positions 1..n with no gaps, give each call its own revision and record
-    // exactly one activity entry per call.
+    // D3: moving a slide to its own number is a change like any other move.
     [Test]
+    public async Task Move_WhenToOwnPosition_ShouldStampSlideAndLogOnce()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckOfQuotesAsync(agent, "A", "B", "C");
+
+        var moved = await OkAsync(agent, "move_slide", new { deck, slide = 2, to = 2 });
+
+        moved.GetProperty("slide").GetInt32().ShouldBe(2);
+        moved.GetProperty("revision").GetInt64().ShouldBe(4);
+        var slides = await SlidesAsync(agent, deck);
+        Quotes(slides).ShouldBe(["A", "B", "C"]);
+        Revisions(slides).ShouldBe([1, 4, 3]);
+        var activity = await DeckSeed.ActivityAsync(Client, deck);
+        activity.Count.ShouldBe(1 + 3 + 1);
+        activity[0].GetProperty("summary").GetString().ShouldBe("moved slide 2 to 2");
+    }
+
+    // Ten agents, each in its own MCP session, move and delete on one deck at once, for several rounds on a fresh deck
+    // each, because one burst can miss a race. The write transaction (BEGIN IMMEDIATE) must leave live positions 1..n
+    // with no gaps, give each call its own revision and record exactly one activity entry per call.
+    [Test]
+    [CancelAfter(120000)]
     public async Task MoveAndDelete_WhenTenAgentsAtOnce_ShouldKeepPositionsGaplessAndLogEachCall()
     {
         await using var seeder = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var quotes = Enumerable.Range(1, 15).Select(n => $"S{n:00}").ToArray();
-        var deck = await DeckOfQuotesAsync(seeder, quotes);
         var agents = new List<McpTestClient>();
         try
         {
@@ -83,21 +104,25 @@ public class MoveSlideTests : ApiTestFixture
                 agents.Add(await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam, $"Agent {i}"));
             }
 
-            var results = await Task.WhenAll(agents.Select((agent, i) => i % 2 == 0
-                ? OkAsync(agent, "delete_slide", new { deck, slide = 1 })
-                : OkAsync(agent, "move_slide", new { deck, slide = 3, to = 1 })));
+            for (var round = 0; round < ROUNDS; round++)
+            {
+                var deck = await DeckOfQuotesAsync(seeder, quotes);
+                var results = await Task.WhenAll(agents.Select((agent, i) => i % 2 == 0
+                    ? OkAsync(agent, "delete_slide", new { deck, slide = 1 })
+                    : OkAsync(agent, "move_slide", new { deck, slide = 3, to = 1 })));
 
-            results.Select(r => r.GetProperty("revision").GetInt64()).Order().ShouldBe(Enumerable.Range(16, 10).Select(n => (long)n));
-            var slides = await SlidesAsync(seeder, deck);
-            Numbers(slides).ShouldBe(Enumerable.Range(1, 10));
-            Quotes(slides).Distinct().Count().ShouldBe(10);
-            Quotes(slides).ShouldBeSubsetOf(quotes);
-            Revisions(slides).ShouldAllBe(revision => revision <= 25);
-            var activity = await DeckSeed.ActivityAsync(Client, deck);
-            activity.Count.ShouldBe(1 + 15 + 10);
-            activity.Count(e => e.GetProperty("tool").GetString() == "delete_slide").ShouldBe(5);
-            activity.Count(e => e.GetProperty("tool").GetString() == "move_slide").ShouldBe(5);
-            activity.Take(10).Select(e => e.GetProperty("actor").GetString()).ShouldBe(Enumerable.Range(0, 10).Select(i => $"Agent {i}"), ignoreOrder: true);
+                results.Select(r => r.GetProperty("revision").GetInt64()).Order().ShouldBe(Enumerable.Range(16, 10).Select(n => (long)n));
+                var slides = await SlidesAsync(seeder, deck);
+                Numbers(slides).ShouldBe(Enumerable.Range(1, 10));
+                Quotes(slides).Distinct().Count().ShouldBe(10);
+                Quotes(slides).ShouldBeSubsetOf(quotes);
+                Revisions(slides).ShouldAllBe(revision => revision <= 25);
+                var activity = await DeckSeed.ActivityAsync(Client, deck);
+                activity.Count.ShouldBe(1 + 15 + 10);
+                activity.Count(e => e.GetProperty("tool").GetString() == "delete_slide").ShouldBe(5);
+                activity.Count(e => e.GetProperty("tool").GetString() == "move_slide").ShouldBe(5);
+                activity.Take(10).Select(e => e.GetProperty("actor").GetString()).ShouldBe(Enumerable.Range(0, 10).Select(i => $"Agent {i}"), ignoreOrder: true);
+            }
         }
         finally
         {

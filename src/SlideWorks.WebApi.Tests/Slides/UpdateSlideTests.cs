@@ -13,6 +13,8 @@ namespace SlideWorks.WebApi.Tests.Slides;
 [CancelAfter(30000)]
 public class UpdateSlideTests : ApiTestFixture
 {
+    private const int RACE_ROUNDS = 5;
+
     [Test]
     public async Task Update_WhenRevisionCurrent_ShouldReplaceSlotsAndBumpRevision()
     {
@@ -160,5 +162,48 @@ public class UpdateSlideTests : ApiTestFixture
         var slides = await SlidesAsync(agent, deck);
         Quotes(slides).ShouldBe(["B", "C"]);
         Revisions(slides).ShouldBe([4, 4]);
+    }
+
+    // Ten agents read slide 2 at revision 2 and update it at once, for several rounds on a fresh deck each. Exactly one
+    // wins; the rest are told the slide changed, and nothing of theirs is kept.
+    [Test]
+    [CancelAfter(120000)]
+    public async Task Update_WhenTenAgentsRaceOnOneRevision_ShouldLetExactlyOneWin()
+    {
+        await using var seeder = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var agents = new List<McpTestClient>();
+        try
+        {
+            for (var i = 0; i < 10; i++)
+            {
+                agents.Add(await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam, $"Agent {i}"));
+            }
+
+            for (var round = 0; round < RACE_ROUNDS; round++)
+            {
+                var deck = await DeckOfQuotesAsync(seeder, "A", "B");
+                var slots = agents.Select((_, i) => JsonDocument.Parse($$"""{ "quote": "Q{{i}}", "attribution": "Sam" }""")).ToList();
+
+                var calls = await Task.WhenAll(agents.Select((agent, i) => agent.CallToolAsync("update_slide", new { deck, slide = 2, revision = 2L, slots = slots[i].RootElement })));
+
+                calls.Count(call => !call.IsError).ShouldBe(1, string.Join(" | ", calls.Select(call => call.Json.ToString())));
+                calls.Where(call => call.IsError).Select(call => call.Json.GetString())
+                    .ShouldAllBe(text => text == "Slide 2 changed since revision 2; read it again with get_deck");
+                var winner = calls.Single(call => !call.IsError).Json;
+                winner.GetProperty("revision").GetInt64().ShouldBe(3);
+                var slides = await SlidesAsync(seeder, deck);
+                Revisions(slides).ShouldBe([1, 3]);
+                Quotes(slides).Last()!.ShouldMatch("^Q[0-9]$");
+                (await DeckSeed.ActivityAsync(Client, deck)).Count.ShouldBe(1 + 2 + 1);
+                slots.ForEach(slot => slot.Dispose());
+            }
+        }
+        finally
+        {
+            foreach (var agent in agents)
+            {
+                await agent.DisposeAsync();
+            }
+        }
     }
 }

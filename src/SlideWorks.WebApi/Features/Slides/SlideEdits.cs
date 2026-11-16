@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.Core.Slides;
@@ -14,8 +13,8 @@ using SlideWorks.WebApi.Realtime;
 namespace SlideWorks.WebApi.Features.Slides;
 
 // Changes to slides that already exist (K5, K6): update_slide, move_slide, delete_slide and set_notes. Each one runs in
-// one transaction that first takes the deck's next revision, so edits to one deck run one at a time; stamps every slide
-// it changes or renumbers with that revision; records one activity entry (K7); and publishes one DeckChanged (K9).
+// one transaction (EF opens it with SQLite's BEGIN IMMEDIATE, which is what makes writes run one at a time) that first
+// takes the deck's next revision; stamps every slide it changes or renumbers with that revision; records one activity entry (K7); and publishes one DeckChanged (K9).
 // Slide numbers are 1-based among the live slides, and live positions stay 0..n-1 with no gaps.
 [RegisterPerRequest]
 public class SlideEdits(
@@ -33,8 +32,6 @@ public class SlideEdits(
     public const string DELETE_TOOL = "delete_slide";
     public const string SET_NOTES_TOOL = "set_notes";
 
-    private const int NOTES_MAX_LENGTH = 4000;
-
     // Refused with a conflict when the slide at that number no longer carries the revision the caller read.
     public Task<UpdateSlideResult> UpdateAsync(UpdateSlideRequest request)
         => EditAsync(request.Deck, UPDATE_TOOL, async deck =>
@@ -46,12 +43,13 @@ public class SlideEdits(
                 throw new ConflictException($"Slide {request.Slide} changed since revision {request.Revision}; read it again with get_deck");
             }
             var layout = request.Layout ?? slide.Layout;
-            await ValidateAsync(deck.Id, layout, request.Slots);
-            CheckPart(request.Part, DeckParts.Read(deck).Count);
+            var slots = SlideChecks.RequireSlots(request.Slots);
+            await SlideChecks.ValidateAsync(images, deck.Id, layout, slots);
+            SlideChecks.CheckPart(request.Part, DeckParts.Read(deck).Count);
 
             slide.Layout = layout;
-            slide.SlotsJson = SlideJson.ForStorage(request.Slots);
-            slide.Steps = SlideSteps.Count(layout, request.Slots);
+            slide.SlotsJson = SlideJson.ForStorage(slots);
+            slide.Steps = SlideSteps.Count(layout, slots);
             slide.Part = request.Part ?? slide.Part;
             slide.Revision = deck.Revision;
             await db.SaveChangesAsync();
@@ -101,11 +99,12 @@ public class SlideEdits(
             return (new DeleteSlideResult(slide, count - 1, deck.Revision), $"deleted slide {slide} ({deleted.Layout})");
         });
 
-    // Sets the notes of every slide listed, as one change with one activity entry.
-    public Task<SetNotesResult> SetNotesAsync(string deckId, IReadOnlyList<SlideNote> notes)
+    // Sets the notes of every slide listed, as one change with one activity entry. The tool passes notes and its entries
+    // as it bound them, so a missing list or a null entry is refused here with a message naming it.
+    public Task<SetNotesResult> SetNotesAsync(string deckId, IReadOnlyList<SlideNote?>? given)
         => EditAsync(deckId, SET_NOTES_TOOL, async deck =>
         {
-            CheckNotes(notes, await Live(deck.Id).CountAsync());
+            var notes = CheckNotes(given, await Live(deck.Id).CountAsync());
             var positions = notes.Select(note => note.Slide - 1).ToList();
             var slides = await Live(deck.Id).Where(s => positions.Contains(s.Position)).ToDictionaryAsync(s => s.Position);
             foreach (var note in notes)
@@ -130,8 +129,9 @@ public class SlideEdits(
         T result;
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
-            // Taking the deck's next revision first also takes SQLite's write lock, so edits to one deck run one at a time.
-            // A refused edit throws before the commit, so the revision it took is rolled back with everything else.
+            // BEGIN IMMEDIATE has already taken the database's write lock; taking the deck's next revision first is the
+            // convention, not what serialises the edits. A refused edit throws before the commit, so the revision it took
+            // is rolled back with everything else.
             await db.Decks.Where(d => d.Id == deckId)
                 .ExecuteUpdateAsync(set => set.SetProperty(d => d.Revision, d => d.Revision + 1).SetProperty(d => d.UpdatedAt, clock.GetUtcNow()));
             var deck = await db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);
@@ -155,79 +155,32 @@ public class SlideEdits(
         throw new BadRequestException(count == 0 ? $"{field}: the deck has no slides" : $"{field}: must be between 1 and {count}");
     }
 
-    private static void CheckNotes(IReadOnlyList<SlideNote> notes, int count)
+    private static IReadOnlyList<SlideNote> CheckNotes(IReadOnlyList<SlideNote?>? notes, int count)
     {
+        if (notes == null)
+        {
+            throw new BadRequestException("notes: required");
+        }
         if (notes.Count == 0)
         {
             throw new BadRequestException("notes: list at least one slide");
         }
         var seen = new HashSet<int>();
+        var checkedNotes = new List<SlideNote>(notes.Count);
         for (var index = 0; index < notes.Count; index++)
         {
-            var note = notes[index];
+            var note = notes[index] ?? throw new BadRequestException($"notes[{index}]: must be an object with slide and text");
+            checkedNotes.Add(note);
             CheckNumber(note.Slide, count, $"notes[{index}].slide");
             if (!seen.Add(note.Slide))
             {
                 throw new BadRequestException($"notes[{index}].slide: slide {note.Slide} is listed twice");
             }
-            if (note.Text is { Length: > NOTES_MAX_LENGTH })
+            if (note.Text is { Length: > SlideChecks.NOTES_MAX_LENGTH })
             {
-                throw new BadRequestException($"notes[{index}].text: at most {NOTES_MAX_LENGTH} characters");
+                throw new BadRequestException($"notes[{index}].text: at most {SlideChecks.NOTES_MAX_LENGTH} characters");
             }
         }
-    }
-
-    private async Task ValidateAsync(string deckId, string layout, JsonElement slots)
-    {
-        var validation = SlideValidator.Validate(layout, slots);
-        if (!validation.IsValid)
-        {
-            throw new BadRequestException(validation.Error);
-        }
-        foreach (var imageId in validation.ImageIds)
-        {
-            if (!await images.ExistsAsync(deckId, imageId))
-            {
-                throw new BadRequestException($"{ImagePath(slots, layout, imageId) ?? $"{layout}.image"}: unknown image {imageId}");
-            }
-        }
-    }
-
-    private static void CheckPart(int? part, int parts)
-    {
-        if (part == null || (part >= 1 && part <= parts))
-        {
-            return;
-        }
-        throw new BadRequestException(parts == 0 ? "part: the deck has no parts" : $"part: must be between 1 and {parts}");
-    }
-
-    // The path of the image slot that holds imageId, in the validator's form: "image.image", "two-column.left.image".
-    // The same walk as SlideCommands', which keeps its own private copy.
-    private static string? ImagePath(JsonElement element, string path, string imageId)
-    {
-        if (element.ValueKind == JsonValueKind.Array)
-        {
-            return element.EnumerateArray().Select((item, index) => ImagePath(item, $"{path}[{index}]", imageId)).FirstOrDefault(found => found != null);
-        }
-        if (element.ValueKind != JsonValueKind.Object)
-        {
-            return null;
-        }
-        foreach (var property in element.EnumerateObject())
-        {
-            if (property.Value.ValueKind == JsonValueKind.Object
-                && property.Value.TryGetProperty("image", out var id) && id.ValueKind == JsonValueKind.String && id.ValueEquals(imageId)
-                && property.Value.TryGetProperty("alt", out _))
-            {
-                return $"{path}.{property.Name}";
-            }
-            var found = ImagePath(property.Value, $"{path}.{property.Name}", imageId);
-            if (found != null)
-            {
-                return found;
-            }
-        }
-        return null;
+        return checkedNotes;
     }
 }

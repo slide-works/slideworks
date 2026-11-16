@@ -16,7 +16,7 @@ public sealed class UpdateSlideTool
         [Description("The deck's id.")] string deck,
         [Description("The slide's 1-based number, as get_deck gave it.")] int slide,
         [Description("The slide's revision, as get_deck gave it.")] long revision,
-        [Description("The slide's complete new slots as a JSON object; they replace the old ones.")] JsonElement slots,
+        [Description("The slide's complete new slots as a JSON object; they replace the old ones. Required.")] JsonElement? slots = null,
         [Description("A new layout's name, or leave it out to keep the slide's layout.")] string? layout = null,
         [Description("A new 1-based part, or leave it out to keep the slide's part.")] int? part = null)
         => McpToolErrors.Run(() => edits.UpdateAsync(new UpdateSlideRequest(deck, slide, revision, slots, layout, part)));
