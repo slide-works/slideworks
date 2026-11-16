@@ -34,6 +34,12 @@ const ACCENT = 'rgb(47, 91, 234)';
 const ACCENT_DARK = 'rgb(30, 58, 138)';
 const ACCENT_LIGHT = 'rgb(228, 234, 253)';
 
+// A palette token from the deck's look, as a computed colour.
+function rgbOf(hex: string) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 type Box = { left: number; top: number; right: number; bottom: number };
 
 // What the layout draws, in canvas px from the slide's top left: every run of
@@ -115,7 +121,11 @@ test('numbered-cards renders the sample slide', async ({ mount, page }) => {
   );
   await expect(layout.getByRole('listitem')).toHaveCount(4);
   await expect(layout.getByTestId('numbered-cards-number')).toHaveText(['1', '2', '3', '4']);
-  await expect(layout.getByTestId('numbered-cards-number').first()).toHaveCSS('color', ACCENT);
+  // The sample slide is a deep dive, so its numerals are in the deep-dive colour.
+  await expect(layout.getByTestId('numbered-cards-number').first()).toHaveCSS(
+    'color',
+    rgbOf(deck.look.palette.tokens.dd),
+  );
   await expect(layout.getByRole('heading', { level: 3 })).toHaveText([
     'Who notices?',
     "What's the thinnest version?",
@@ -131,6 +141,43 @@ test('numbered-cards renders the sample slide', async ({ mount, page }) => {
   const last = await layout.getByRole('listitem').nth(3).boundingBox();
   expect(first!.y).toBe(last!.y);
   expect(first!.x).toBeLessThan(last!.x);
+});
+
+test('a deep dive draws the kicker and the numerals in the deep-dive colour', async ({
+  mount,
+  page,
+}) => {
+  const { tokens } = deck.look.palette;
+  // The sample slide is a deep dive; the same slide without the flag first.
+  const component = await mount(render({ ...sample(13), deepDive: false }));
+  const layout = page.getByTestId('layout-numbered-cards');
+  await expect(layout.getByTestId('numbered-cards-kicker')).toHaveCSS(
+    'color',
+    rgbOf(tokens.accent),
+  );
+  await expect(layout.getByTestId('numbered-cards-number').first()).toHaveCSS(
+    'color',
+    rgbOf(tokens.accent),
+  );
+
+  await component.update(render(sample(13)));
+  await expect(page.getByTestId('slide-frame')).toHaveAttribute('data-deep-dive', 'true');
+  await expect(layout.getByTestId('numbered-cards-kicker')).toHaveCSS('color', rgbOf(tokens.dd));
+  for (let i = 0; i < 4; i++) {
+    await expect(layout.getByTestId('numbered-cards-number').nth(i)).toHaveCSS(
+      'color',
+      rgbOf(tokens.dd),
+    );
+  }
+  // The footer numeral and the progress bar keep the accent.
+  await expect(page.getByTestId('slide-footer-text').locator('b')).toHaveCSS(
+    'color',
+    rgbOf(tokens['accent-dark']),
+  );
+  await expect(page.getByTestId('slide-progress')).toHaveCSS(
+    'background-color',
+    rgbOf(tokens.accent),
+  );
 });
 
 test('numbered cards one-by-one', async ({ mount, page }) => {
