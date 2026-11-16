@@ -10,7 +10,7 @@ export function BulletsLayout({ slots, step }: LayoutProps<'bullets'>) {
   const { kicker, headline, items, reveal, callout } = slots;
   const oneByOne = reveal === 'one-by-one';
   return (
-    <div data-testid="layout-bullets" className={`sw-layout ${styles.layout}`}>
+    <div data-testid="layout-bullets" className="sw-layout">
       {kicker !== undefined ? (
         <p data-testid="bullets-kicker" className={styles.kicker}>
           {kicker}
@@ -19,7 +19,7 @@ export function BulletsLayout({ slots, step }: LayoutProps<'bullets'>) {
       <h2 data-testid="bullets-headline" className={styles.headline}>
         {headline}
       </h2>
-      <div data-testid="bullets-body" className={`sw-body ${styles.body}`}>
+      <div data-testid="bullets-body" className="sw-body">
         <ul className={styles.items}>
           {items.map((item, i) =>
             oneByOne ? (

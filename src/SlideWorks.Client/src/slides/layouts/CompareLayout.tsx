@@ -6,7 +6,7 @@ import styles from './CompareLayout.module.css';
 export function CompareLayout({ slots }: LayoutProps<'compare'>) {
   const { kicker, headline, failure, success } = slots;
   return (
-    <div data-testid="layout-compare" className={`sw-layout ${styles.layout}`}>
+    <div data-testid="layout-compare" className="sw-layout">
       {kicker !== undefined ? (
         <p data-testid="compare-kicker" className={styles.kicker}>
           {kicker}
@@ -15,7 +15,7 @@ export function CompareLayout({ slots }: LayoutProps<'compare'>) {
       <h2 data-testid="compare-headline" className={styles.headline}>
         {headline}
       </h2>
-      <div data-testid="compare-body" className={`sw-body ${styles.body} ${styles.panels}`}>
+      <div data-testid="compare-body" className={`sw-body ${styles.panels}`}>
         <Panel testId="compare-failure" tone="bad" side={failure} />
         <Panel testId="compare-success" tone="good" side={success} />
       </div>

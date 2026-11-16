@@ -1,12 +1,7 @@
 /* The kicker and headline every content slide opens with: 20 px/1 kicker with
    22 px under it (42 px) and a 64 px/1.08 headline of up to two lines, then the
-   body 46 px below. The server's fit check (SlideFit) assumes these sizes. */
-.layout {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-}
+   body (.sw-body, 46 px below). The server's fit check (SlideFit) assumes these
+   sizes. The root (.sw-layout) and body (.sw-body) rules are the frame's. */
 
 .kicker {
   margin: 0 0 22px;
@@ -23,14 +18,6 @@
   font: 800 64px/1.08 var(--sw-font-head);
   letter-spacing: -0.025em;
   text-wrap: balance;
-}
-
-.body {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-  margin-top: 46px;
 }
 
 /* .cmp: two 820 px panels 40 px apart. A panel has a 10 px top border in its

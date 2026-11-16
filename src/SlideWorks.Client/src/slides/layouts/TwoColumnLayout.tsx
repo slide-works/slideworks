@@ -6,7 +6,7 @@ import styles from './TwoColumnLayout.module.css';
 export function TwoColumnLayout({ slots }: LayoutProps<'two-column'>) {
   const { kicker, headline, left, right } = slots;
   return (
-    <div data-testid="layout-two-column" className={`sw-layout ${styles.layout}`}>
+    <div data-testid="layout-two-column" className="sw-layout">
       {kicker !== undefined ? (
         <p data-testid="two-column-kicker" className={styles.kicker}>
           {kicker}
@@ -15,7 +15,7 @@ export function TwoColumnLayout({ slots }: LayoutProps<'two-column'>) {
       <h2 data-testid="two-column-headline" className={styles.headline}>
         {headline}
       </h2>
-      <div data-testid="two-column-body" className={`sw-body ${styles.body} ${styles.columns}`}>
+      <div data-testid="two-column-body" className={`sw-body ${styles.columns}`}>
         <Column side="left" column={left} />
         <Column side="right" column={right} />
       </div>
