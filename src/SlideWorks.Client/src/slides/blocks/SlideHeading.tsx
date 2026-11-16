@@ -1,4 +1,5 @@
 import type { LayoutName } from '../slots';
+import { Kicker } from './Kicker';
 import styles from './SlideHeading.module.css';
 
 type SlideHeadingProps = {
@@ -14,11 +15,7 @@ type SlideHeadingProps = {
 export function SlideHeading({ layout, kicker, headline }: SlideHeadingProps) {
   return (
     <>
-      {kicker !== undefined ? (
-        <p data-testid={`${layout}-kicker`} className={styles.kicker}>
-          {kicker}
-        </p>
-      ) : null}
+      <Kicker testId={`${layout}-kicker`} text={kicker} />
       <h2 data-testid={`${layout}-headline`} className={styles.headline}>
         {headline}
       </h2>

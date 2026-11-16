@@ -1,0 +1,10 @@
+/* The small uppercase line over a content slide's headline or quote (the
+   mockup's .kicker), in canvas px: 20 px/1 with 22 px under it, 42 px in all.
+   SlideHeading's sizes, and so the server's fit check (SlideFit), assume it. */
+.kicker {
+  margin: 0 0 22px;
+  color: var(--sw-accent);
+  font: 700 20px/1 var(--sw-font-body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}

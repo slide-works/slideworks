@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import headingStyles from '../blocks/SlideHeading.module.css';
+import { Kicker } from '../blocks/Kicker';
 import type { LayoutProps } from '../slots';
 import { useFitText, type FitBudget } from '../useFitText';
 import styles from './QuoteLayout.module.css';
@@ -10,18 +10,14 @@ import styles from './QuoteLayout.module.css';
 const QUOTE_FIT: FitBudget = { start: 62, floor: 36, lines: 7, lineHeight: 1.22 };
 
 // A quotation with its attribution. The slot holds the words only, so the
-// layout adds the quotation marks. The kicker is the shared content kicker; a
-// quote has no headline, so it takes SlideHeading's kicker style, not the block.
+// layout adds the quotation marks. A quote has no headline, so it opens with
+// the Kicker block alone, not SlideHeading.
 export function QuoteLayout({ slots }: LayoutProps<'quote'>) {
   const quoteRef = useRef<HTMLQuoteElement>(null);
   useFitText(quoteRef, QUOTE_FIT, slots.quote);
   return (
     <div data-testid="layout-quote" className="sw-layout">
-      {slots.kicker !== undefined ? (
-        <p data-testid="quote-kicker" className={headingStyles.kicker}>
-          {slots.kicker}
-        </p>
-      ) : null}
+      <Kicker testId="quote-kicker" text={slots.kicker} />
       <figure className={styles.figure}>
         <blockquote ref={quoteRef} data-testid="quote-text" className={styles.quote}>
           {`“${slots.quote}”`}
