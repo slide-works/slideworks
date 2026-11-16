@@ -80,14 +80,10 @@ public class ScreenRecordShapeTests : ApiTestFixture
                 Layout = slide.GetProperty("layout").GetString()!,
                 Part = slide.GetProperty("part").GetInt32(),
                 SlotsJson = slide.GetProperty("slots").GetRawText(),
-                Notes = slide.GetProperty("notes").GetString(),
+                Notes = StoredNotes(slide),
                 Steps = slide.GetProperty("steps").GetInt32(),
                 DeepDive = slide.GetProperty("deepDive").GetBoolean(),
-            }) with
-            {
-                // The page prefixes a deep dive's notes on read (D16); the example holds a deep dive's notes unprefixed.
-                Notes = slide.GetProperty("notes").GetString(),
-            })
+            }))
             .ToList();
         var view = new DeckPageView(
             deck.Id,
@@ -266,6 +262,17 @@ public class ScreenRecordShapeTests : ApiTestFixture
         Factory.Services.GetRequiredService<IOptions<JsonOptions>>().Value.JsonSerializerOptions;
 
     private JsonElement Serialise<T>(T record) => JsonSerializer.SerializeToElement(record, AppJsonOptions());
+
+    // The example shows notes as the owner reads them (D16): a deep dive's notes carry the skip prefix on read, and the
+    // stored notes never do. Strip the prefix to get what the database holds, so the record test pins the prefix.
+    private static string? StoredNotes(JsonElement slide)
+    {
+        var notes = slide.GetProperty("notes").GetString();
+        const string PREFIX = "Deep dive. Skip if short of time. ";
+        return slide.GetProperty("deepDive").GetBoolean() && notes!.StartsWith(PREFIX, StringComparison.Ordinal)
+            ? notes[PREFIX.Length..]
+            : notes;
+    }
 
     private static JsonElement Example(string file) =>
         JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(Path.Combine(JsonShape.ScreensDirectory(), file)));
