@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests;
@@ -10,25 +11,28 @@ public partial class SignInSmokeTests : AcceptanceTest
     [Test]
     public async Task SignedInPresenter_WhenOpeningDecks_ShouldSeeShell()
     {
+        var decks = new DecksPage(Page);
         await SignIn.AsAsync(Page, TestUser.Sam);
 
-        await Page.GotoAsync("/decks");
+        await decks.GotoAsync();
 
-        await Expect(Page.GetByTestId("app-shell")).ToBeVisibleAsync();
-        await Expect(Page.GetByTestId("decks-page")).ToBeVisibleAsync();
+        await Expect(decks.Shell).ToBeVisibleAsync();
+        await Expect(decks.Library).ToBeVisibleAsync();
         // The user menu shows the initials of the person /api/me returned, so the browser really is signed in as Sam Rivera.
-        await Expect(Page.GetByTestId("user-menu")).ToHaveTextAsync("SR");
+        await Expect(decks.UserMenu).ToHaveTextAsync("SR");
         await Expect(Page).ToHaveURLAsync(Decks());
     }
 
     [Test]
     public async Task SignedOutVisitor_WhenOpeningDecks_ShouldLandOnSignIn()
     {
-        await Page.GotoAsync("/decks");
+        var decks = new DecksPage(Page);
+
+        await decks.GotoAsync();
 
         await Expect(Page).ToHaveURLAsync(SignInWithReturnToDecks());
-        await Expect(Page.GetByTestId("signin-page")).ToBeVisibleAsync();
-        await Expect(Page.GetByTestId("app-shell")).ToHaveCountAsync(0);
+        await Expect(new SignInPage(Page).Root).ToBeVisibleAsync();
+        await Expect(decks.Shell).ToHaveCountAsync(0);
     }
 
     [GeneratedRegex(@"/signin\?returnTo=%2Fdecks$")]
