@@ -64,28 +64,30 @@ using (var scope = app.Services.CreateScope())
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
 }
 
-app.UseSlideWorksAuth();
-
 // SPA assets ship inside wwwroot (built there by src/SlideWorks.Client). Static files
-// sit behind the fail-closed check but outside the /api token guard: the shell is
-// public, the data it fetches is not.
+// come before authentication: a request for a file matches no endpoint, so a fallback
+// "must be signed in" policy would otherwise refuse the anonymous player its bundle.
+// The shell is public, the data it fetches is not.
 app.UseStaticFiles();
+
+app.UseSlideWorksAuth();
 
 // The Docker build stamps the commit into the informational version
 // (-p:SourceRevisionId=$SOURCE_COMMIT, "1.0.0+<sha>"), so /health names the
 // running build rather than a static 1.0.0 every image shares.
 var version = ApiMarker.Assembly
     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
-app.MapGet("/health", () => Results.Ok(new { status = "ok", version }));
+app.MapGet("/health", () => Results.Ok(new { status = "ok", version })).AllowAnonymous();
 app.MapControllers();
 app.MapSlideWorksMcp();
 // WebSockets only: a long-polling connection would carry the token in the URL of
 // every poll. Live updates for decks; see Realtime/DeckHub.cs.
 app.MapHub<DeckHub>(DeckHub.PATH, options => options.Transports = HttpTransportType.WebSockets);
 // Unknown routes fall back to the SPA for client-side routing, except under
-// /api and /hubs, which must keep returning 404 rather than the SPA shell.
+// /api and /hubs, which must keep returning 404 rather than the SPA shell. The shell
+// is anonymous: the player (/d/:id/:slug) opens for viewers who never sign in.
 app.MapFallback("/api/{**path}", () => Results.NotFound());
 app.MapFallback("/hubs/{**path}", () => Results.NotFound());
-app.MapFallbackToFile("index.html");
+app.MapFallbackToFile("index.html").AllowAnonymous();
 
 await app.RunAsync();
