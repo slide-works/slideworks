@@ -43,7 +43,7 @@ public class SlideEdits(
                 throw new ConflictException($"Slide {request.Slide} changed since revision {request.Revision}; read it again with get_deck");
             }
             var layout = request.Layout ?? slide.Layout;
-            var slots = SlideChecks.RequireSlots(request.Slots);
+            var slots = request.Slots;
             await SlideChecks.ValidateAsync(images, deck.Id, layout, slots);
             SlideChecks.CheckPart(request.Part, DeckParts.Read(deck).Count);
 
