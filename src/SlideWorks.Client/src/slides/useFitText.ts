@@ -14,14 +14,9 @@ export type FitBudget = {
   // At most this tall, in canvas px, read from the layout on each fit. Pass a
   // function declared outside the component, so it stays the same function.
   maxHeight?: (element: HTMLElement) => number;
-  // Also no wider than its parent.
+  // Also no wider than its parent. The element must be a block or inline-block.
   width?: boolean;
 };
-
-// A box that measures 0 is waiting for its scale: the deck page's thumbnail
-// renders at scale(0) until it knows its width. The fit waits a frame at a
-// time for it, up to this many frames, and fits again once fonts load.
-const MAX_WAIT_FRAMES = 60;
 
 // The largest whole size from `floor` to `start` that `fits`, or `floor` when
 // none does. It tries `start` first, then halves the range, so it measures
@@ -38,11 +33,31 @@ export function largestFit(start: number, floor: number, fits: (size: number) =>
   return low;
 }
 
+// An element's used width in layout px. Unlike its bounding box, it ignores
+// transforms, so a slide drawn at scale(0) measures the same as at scale(1).
+function layoutWidth(element: Element): number {
+  return parseFloat(getComputedStyle(element).width);
+}
+
+// Whether the element is no wider than its parent, in layout px; through their
+// boxes (both under the same transform) when either has no used width.
+function fitsParentWidth(element: HTMLElement, parent: HTMLElement): boolean {
+  const own = layoutWidth(element);
+  const room = layoutWidth(parent);
+  if (Number.isFinite(own) && Number.isFinite(room)) return own <= room;
+  return element.getBoundingClientRect().width <= parent.getBoundingClientRect().width;
+}
+
 // Fits the text in `ref` to its budget by setting its font size. It fits on
 // mount, again after document.fonts.ready, and again when `text` or the budget
-// changes; never on any other render. Heights are layout px (offsetHeight), so
-// the player's scaling doesn't change them; the width check compares the
-// element's box with its parent's, both under the same transform.
+// changes; never on any other render.
+//
+// Every measure is in layout px (offsetHeight, used widths), so the player's
+// scaling and the deck page's thumbnail, which draws the slide at scale(0)
+// until it knows its width, don't change it. A box with no layout size (inside
+// a display: none or zero-width container) can't be measured: the fit then
+// waits for it with a ResizeObserver, however long that takes, and fits once
+// the box has a size.
 export function useFitText(ref: RefObject<HTMLElement | null>, budget: FitBudget, text: string) {
   const { start, floor, lines, lineHeight = 1, maxHeight, width = false } = budget;
 
@@ -50,8 +65,9 @@ export function useFitText(ref: RefObject<HTMLElement | null>, budget: FitBudget
     const element = ref.current;
     if (element === null) return;
     let active = true;
-    let frame = 0;
-    let waited = 0;
+    // Set only while the box has no size; one observer however often the fit
+    // is asked for meanwhile (on mount, and again when fonts load).
+    let waiting: ResizeObserver | null = null;
 
     const fits = (size: number) => {
       element.style.fontSize = `${size}px`;
@@ -60,24 +76,22 @@ export function useFitText(ref: RefObject<HTMLElement | null>, budget: FitBudget
       if (lines !== undefined && height > lines * lineHeight * size + 1) return false;
       if (maxHeight !== undefined && height > maxHeight(element)) return false;
       if (width && element.parentElement !== null) {
-        return (
-          element.getBoundingClientRect().width <=
-          element.parentElement.getBoundingClientRect().width
-        );
+        return fitsParentWidth(element, element.parentElement);
       }
       return true;
     };
 
     const fit = () => {
       if (!active) return;
-      const box = element.getBoundingClientRect();
-      if (box.width === 0 || box.height === 0) {
-        if (waited < MAX_WAIT_FRAMES) {
-          waited += 1;
-          frame = requestAnimationFrame(fit);
+      if (element.offsetWidth === 0 || element.offsetHeight === 0) {
+        if (waiting === null) {
+          waiting = new ResizeObserver(fit);
+          waiting.observe(element);
         }
         return;
       }
+      waiting?.disconnect();
+      waiting = null;
       element.style.fontSize = `${largestFit(start, floor, fits)}px`;
     };
 
@@ -85,7 +99,7 @@ export function useFitText(ref: RefObject<HTMLElement | null>, budget: FitBudget
     void document.fonts.ready.then(fit);
     return () => {
       active = false;
-      cancelAnimationFrame(frame);
+      waiting?.disconnect();
     };
   }, [ref, text, start, floor, lines, lineHeight, maxHeight, width]);
 }
