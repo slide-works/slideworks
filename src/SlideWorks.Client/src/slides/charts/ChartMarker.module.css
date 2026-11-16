@@ -1,0 +1,12 @@
+/* A dashed accent-dark marker with a 20 px bold label. */
+.marker {
+  stroke: var(--sw-accent-dark);
+  stroke-width: 2;
+  stroke-dasharray: 6 8;
+}
+
+.markerLabel {
+  fill: var(--sw-accent-dark);
+  font-size: 20px;
+  font-weight: 700;
+}
