@@ -1,10 +1,12 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.Core;
+using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks.Mcp;
 using SlideWorks.WebApi.Features.Decks.Views;
+using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -15,7 +17,15 @@ namespace SlideWorks.WebApi.Features.Decks;
 // read is an AsNoTracking projection, deleted slides never count or show, and time labels are formatted here from
 // TimeProvider. The deck page is the owner's: anyone else, viewers included, gets 404 "Deck not found".
 [RegisterPerRequest]
-public class DeckQueries(AppDbContext db, ICurrentActor actor, IDeckAccess access, IActivityLog activity, IPublicUrls urls, TimeProvider clock)
+public class DeckQueries(
+    AppDbContext db,
+    ICurrentActor actor,
+    IDeckAccess access,
+    IActivityLog activity,
+    IPublicUrls urls,
+    TimeProvider clock,
+    ITemplateCatalogue templates,
+    IPaletteCatalogue palettes)
 {
     public const int ACTIVITY_MAX = 50;
 
@@ -42,10 +52,12 @@ public class DeckQueries(AppDbContext db, ICurrentActor actor, IDeckAccess acces
             deck.Slug,
             deck.Title,
             deck.Author,
+            deck.Revision,
             IsOwner: true,
             DeckLinks.Play(deck.Id, deck.Slug),
             SharingSummary.From(deck.Sharing, viewerCount),
             DeckParts.Read(deck),
+            LookViews.ForPage(deck, templates, palettes),
             slides.Select(slide => DeckPageSlide.From(deck, slide)).ToList(),
             entries.Select(entry => ActivityRow.From(entry, DisplayDate.Ago(entry.At, now))).ToList());
     }

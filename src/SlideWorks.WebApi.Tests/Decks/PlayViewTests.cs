@@ -14,13 +14,8 @@ namespace SlideWorks.WebApi.Tests.Decks;
 [TestFixture]
 public class PlayViewTests : ApiTestFixture
 {
-    private static readonly JsonShapeOptions PLAY_SHAPE = new()
-    {
-        NullablePaths = ["author", "slides[].part"],
-        OpaquePaths = ["slides[].slots"],
-    };
+    private static readonly JsonShapeOptions PLAY_SHAPE = ScreenShapes.DeckPlay;
 
-    // red until SW-63: deck-play.json and deck-page.json gained look, revision and deepDive (SW-2 L6)
     [Test]
     public async Task Get_WhenOwner_ShouldMatchShapeAndOmitNotes()
     {
@@ -63,7 +58,6 @@ public class PlayViewTests : ApiTestFixture
         (await Client.GetAsync($"/api/images/{image}")).StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    // red until SW-63: deck-play.json and deck-page.json gained look, revision and deepDive (SW-2 L6)
     [Test]
     public async Task Get_WhenNoAuthorAndNoSlides_ShouldStillMatchShape()
     {

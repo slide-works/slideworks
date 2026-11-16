@@ -6,11 +6,13 @@ namespace SlideWorks.WebApi.Features.Decks.Views;
 // One slide on the deck page, notes included (the page is the owner's). Number is 1-based. Headline is the slide's
 // one-line name in the list: its headline slot where the layout has one, title.title, divider.title, or the first 80
 // characters of quote.quote; null only when the layout has no text that fits. Link is root-relative:
-// /d/{id}/{slug}#{number}. Slots are the stored slots, whose shape depends on the layout.
+// /d/{id}/{slug}#{number}. Slots are the stored slots, whose shape depends on the layout. Notes read with the deep-dive
+// prefix while DeepDive is set (D16).
 public sealed record DeckPageSlide(
     int Number,
     string Layout,
     int? Part,
+    bool DeepDive,
     string? Headline,
     int Steps,
     string? Notes,
@@ -27,9 +29,10 @@ public sealed record DeckPageSlide(
             number,
             slide.Layout,
             slide.Part,
+            slide.DeepDive,
             HeadlineOf(slide.Layout, slots),
             slide.Steps,
-            slide.Notes,
+            DeckNotes.Of(slide),
             DeckLinks.Slide(deck.Id, deck.Slug, number),
             slots);
     }

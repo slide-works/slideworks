@@ -36,7 +36,7 @@ public partial class DecksLibraryTests : AcceptanceTest
 
         var row = decks.Row(title);
         await Expect(row).ToHaveCountAsync(1);
-        await Expect(DecksPage.LastChange(row)).ToHaveTextAsync("You · created the deck");
+        await Expect(DecksPage.LastChange(row)).ToHaveTextAsync("You · created the deck from the talk template with the Cobalt palette");
         await Expect(DecksPage.Sharing(row)).ToHaveTextAsync("Private");
         await Expect(DecksPage.Present(row)).ToHaveAttributeAsync("href", PlayUrl());
         await Expect(decks.Error).ToHaveCountAsync(0);
