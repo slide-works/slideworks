@@ -79,8 +79,12 @@ jobs:
           package_json_file: src/SlideWorks.Client/package.json
       - run: pnpm install --frozen-lockfile
       # A screenshot spec with no committed baseline writes one here instead of failing; a baseline that exists but
-      # differs still fails. Baselines are only ever made in this container, never on a laptop.
+      # differs still fails. Baselines are only ever made in this container, never on a laptop. Playwright writes a
+      # missing baseline but still fails that test, so the first run may fail, and the second reruns only its failed
+      # tests, now with the written baselines: what fails there fails the job.
       - run: pnpm run test-ct --update-snapshots=missing
+        continue-on-error: true
+      - run: pnpm run test-ct --last-failed
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
