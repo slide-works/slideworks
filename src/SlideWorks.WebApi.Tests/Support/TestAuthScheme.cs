@@ -17,11 +17,15 @@ namespace SlideWorks.WebApi.Tests.Support;
 // scheme signs them out. The app's Cookies scheme forwards here only when a request names a test user,
 // so a request without one is still signed out by the real scheme, with its real 401.
 //
+// The forward covers sign-out too, so POST /api/signout lands here for a test user: it deletes the sw-test-user cookie, and
+// the browser's next request is signed out as a real session's would be. A person named by the X-Test-User header can't
+// be signed out: the client sends the header again on every request.
+//
 // This file also compiles into the acceptance project, so it uses only what both test projects reference.
 public sealed class TestAuthScheme(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
     ILoggerFactory logger,
-    UrlEncoder encoder) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+    UrlEncoder encoder) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder), IAuthenticationSignOutHandler
 {
     public const string NAME = "Test";
 
@@ -56,6 +60,12 @@ public sealed class TestAuthScheme(
             return AuthenticateResult.NoResult();
         }
         return AuthenticateResult.Success(new AuthenticationTicket(SessionPrincipal.For(user, NAME), NAME));
+    }
+
+    public Task SignOutAsync(AuthenticationProperties? properties)
+    {
+        Response.Cookies.Delete(COOKIE);
+        return Task.CompletedTask;
     }
 
     private static string? NamedEmail(HttpRequest request)
