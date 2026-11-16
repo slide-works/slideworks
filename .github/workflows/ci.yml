@@ -84,7 +84,7 @@ jobs:
       # tests, now with the written baselines: what fails there fails the job.
       - run: pnpm run test-ct --update-snapshots=missing
         continue-on-error: true
-      - run: pnpm run test-ct --last-failed
+      - run: pnpm run test-ct --last-failed --pass-with-no-tests
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
