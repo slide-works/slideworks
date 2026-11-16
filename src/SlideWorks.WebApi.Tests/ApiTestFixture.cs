@@ -9,10 +9,6 @@ namespace SlideWorks.WebApi.Tests;
 // as SignedInAs. Prerequisite data is created through the public API only, never by reaching into the database.
 public abstract class ApiTestFixture
 {
-    // No longer accepted anywhere: the static token is gone. AnonymousRoutesTests still sends it on its control request,
-    // where it is ignored.
-    protected const string TEST_TOKEN = "integration-test-token";
-
     private string _dbPath = null!;
     private WebApplicationFactory<ApiMarker> _factory = null!;
 
