@@ -6,6 +6,14 @@ public interface IAgentTokens
     // Starts a family: an access token (OAuthLifetimes.AccessToken) and a refresh token (OAuthLifetimes.RefreshToken).
     Task<AgentTokenPair> IssueAsync(CodeGrant grant);
 
+    // IssueAsync for the code that was just redeemed into this grant: the family is tied to the code, so presenting the
+    // code again can end it (RevokeIssuedForCodeAsync).
+    Task<AgentTokenPair> IssueForCodeAsync(string code, CodeGrant grant);
+
+    // RFC 6749 section 4.1.2: a code presented again after it was redeemed revokes the family issued from it. A code that
+    // never got tokens (unknown, unredeemed or refused) changes nothing.
+    Task RevokeIssuedForCodeAsync(string code);
+
     // Atomic. Marks the refresh token used and issues a new pair in its family. Null when the token is unknown, expired,
     // revoked, not a refresh token or for another client, and when the presenter is not Approved. That last check comes
     // first and changes nothing: the token is not used and the family is not revoked, so re-approval makes an unexpired
