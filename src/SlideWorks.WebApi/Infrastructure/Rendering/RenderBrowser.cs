@@ -35,8 +35,10 @@ public sealed class RenderBrowser : IAsyncDisposable
                 _playwright ??= await Playwright.CreateAsync();
                 _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
             }
-            catch (PlaywrightException e)
+            catch (Exception e) when (e is not OperationCanceledException)
             {
+                // PlaywrightException from Chromium, or Win32Exception/IOException when the driver's node can't start
+                // (missing, or not executable for this user). Neither message carries a render URL or token.
                 // The driver may be what died, so the next launch starts a new one.
                 _playwright?.Dispose();
                 _playwright = null;
