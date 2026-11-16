@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import { AppRoutes } from './AppRoutes';
 import { LocationProbe } from './test-support/LocationProbe';
-import { adminUsers, me, sampleDeck } from './test-support/fixtures/screens';
+import { adminUsers, card as cardView, me, sampleDeck } from './test-support/fixtures/screens';
 import { stubApi } from './test-support/stubApi';
 
 test('signed out → /signin', async ({ mount, page }) => {
@@ -135,7 +135,12 @@ test('generic card route renders without sign-in or token', async ({ mount, page
 });
 
 test("a deck's card route renders without sign-in", async ({ mount, page }) => {
-  await stubApi(page, { '/api/me': { status: 401, json: { error: 'Not signed in' } } });
+  await stubApi(page, {
+    '/api/me': { status: 401, json: { error: 'Not signed in' } },
+    '/api/render/7Kq2xYp9LmQa/card': {
+      json: { ...cardView, look: { ...cardView.look, logo: null } },
+    },
+  });
   await mount(<AppRoutes />, { hooksConfig: { route: '/card/7Kq2xYp9LmQa#token=abc.def' } });
   const card = page.getByTestId('share-card');
   await expect(card).toHaveAttribute('data-deck-id', '7Kq2xYp9LmQa');

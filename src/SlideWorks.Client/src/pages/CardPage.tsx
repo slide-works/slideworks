@@ -15,9 +15,21 @@ import styles from './CardPage.module.css';
 // The logo isn't loaded through POST /api/render/{id}/session and the sw_render
 // cookie: the server's engine opens this page at its loopback address, and the
 // cross-site write guard refuses a POST whose Origin isn't the public URL.
+//
+// The token is read once and removed from the address bar, as RenderPage does.
 export function CardPage() {
   const { id } = useParams();
-  const token = new URLSearchParams(useLocation().hash.slice(1)).get('token');
+  const hash = useLocation().hash;
+  const [token] = useState(() => new URLSearchParams(hash.slice(1)).get('token'));
+  useEffect(() => {
+    if (window.location.hash) {
+      window.history.replaceState(
+        window.history.state,
+        '',
+        window.location.pathname + window.location.search,
+      );
+    }
+  }, []);
   if (id === undefined) return <ShareCard deckId={undefined} card={undefined} error={undefined} />;
   return <DeckCard key={`${id}#${token ?? ''}`} deckId={id} token={token} />;
 }
@@ -71,9 +83,14 @@ async function readCard(
   const logoUrl = card.generic ? undefined : card.look.logo?.url;
   if (!logoUrl) return { card, logo: undefined };
   const image = await get(logoUrl, token);
-  if (!image.ok) throw new Error(`Logo failed to load: ${logoUrl} (${image.status})`);
+  if (!image.ok) throw new Error(imageFailed(logoUrl));
   return { card, logo: URL.createObjectURL(await image.blob()) };
 }
+
+// The data-error text for a logo that fails, 'image <id>' with the id from its
+// /api/images/{id} path. The engine reports it as 'Rendering failed: image <id>'
+// (L9), so the page doesn't add the prefix itself.
+const imageFailed = (url: string) => `image ${url.split('/').pop() ?? url}`;
 
 const get = (path: string, token: string) =>
   fetch(path, { credentials: 'omit', headers: { [TOKEN_HEADER]: token } });
@@ -106,15 +123,20 @@ function ShareCard({ deckId, card, logo, error, loading = false }: ShareCardProp
   useEffect(() => {
     if (!shown) return;
     let live = true;
-    void document.fonts.ready.then(() => live && setFontsReady(true));
+    // One frame first, so the card's fonts have started loading before
+    // document.fonts.ready is read.
+    const frame = requestAnimationFrame(() => {
+      void document.fonts.ready.then(() => live && setFontsReady(true));
+    });
     return () => {
       live = false;
+      cancelAnimationFrame(frame);
     };
   }, [shown]);
 
   const failure =
     error ??
-    (logoState === 'failed' ? `Logo failed to decode: ${card?.look.logo?.url}` : undefined);
+    (logoState === 'failed' && card?.look.logo ? imageFailed(card.look.logo.url) : undefined);
   const ready =
     !loading && failure === undefined && shown && fontsReady && (!logo || logoState === 'loaded');
 

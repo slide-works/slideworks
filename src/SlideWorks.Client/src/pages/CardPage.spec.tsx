@@ -79,16 +79,46 @@ test('card page waits for the logo before it is ready', async ({ mount, page }) 
   }
 });
 
+test('card page sends the token header and no cookie on every /api request', async ({
+  mount,
+  page,
+}) => {
+  // A cookie the page could send: credentials 'omit' must keep it off every request.
+  await page
+    .context()
+    .addCookies([
+      { name: 'sw_session', value: 'signed-in', url: page.url() || 'http://localhost' },
+    ]);
+  await stubCard(page, withLogo);
+  const requests = recordRequests(page);
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  await expect(page.getByTestId('share-card')).toHaveAttribute('data-ready', 'true');
+  expect(requests).toHaveLength(2);
+  for (const request of requests) {
+    // allHeaders(), because headers() hides the Cookie header.
+    const headers = await request.allHeaders();
+    expect(headers['x-render-token']).toBe(TOKEN);
+    expect(headers.cookie).toBeUndefined();
+  }
+});
+
+test('card page removes the token from the address bar', async ({ mount, page }) => {
+  await stubCard(page, linkCard);
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  await expect(page.getByTestId('share-card')).toHaveAttribute('data-ready', 'true');
+  expect(await page.evaluate(() => window.location.href)).not.toContain(TOKEN);
+});
+
 test('card page for a logo that fails to load sets data-error', async ({ mount, page }) => {
   await stubCard(page, { ...card, look: { ...card.look, logo: { url: '/api/images/missing' } } });
   await page.route('**/api/images/missing', (route) => route.fulfill({ status: 404 }));
   await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
 
   const shareCard = page.getByTestId('share-card');
-  await expect(shareCard).toHaveAttribute(
-    'data-error',
-    'Logo failed to load: /api/images/missing (404)',
-  );
+  // The engine adds 'Rendering failed: ', giving L9's 'Rendering failed: image <id>'.
+  await expect(shareCard).toHaveAttribute('data-error', 'image missing');
   await expect(shareCard).not.toHaveAttribute('data-ready');
 });
 
