@@ -7,6 +7,9 @@ import { defineConfig } from 'vite';
 // reached as @contracts/* (the same alias as tsconfig.json's paths).
 export const contractsDir = decodeURIComponent(new URL('../contracts', import.meta.url).pathname);
 
+// Kestrel's port, from src/SlideWorks.WebApi/Properties/launchSettings.json.
+const API_PROXY = { target: 'http://localhost:5510', changeOrigin: true };
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@contracts': contractsDir } },
@@ -16,11 +19,22 @@ export default defineConfig({
     port: 3000,
     // The proxy target below must never silently shift ports.
     strictPort: true,
+    // Everything the server answers goes through this origin, so the browser only ever talks to :3000. In Development
+    // SLIDEWORKS_PUBLIC_URL is http://localhost:3000 (appsettings.Development.json), so the server takes this as its
+    // own origin: the cross-site write guard accepts the browser's Origin, and sign-in and OAuth callbacks come back
+    // here. changeOrigin only rewrites the Host header Kestrel sees; the server ignores it in favour of the public URL.
     proxy: {
-      // Kestrel's port, from src/SlideWorks.WebApi/Properties/launchSettings.json.
-      '/api': { target: 'http://localhost:5510', changeOrigin: true },
+      '/api': API_PROXY,
       // The realtime hubs (DeckHub), over WebSockets.
-      '/hubs': { target: 'http://localhost:5510', changeOrigin: true, ws: true },
+      '/hubs': { ...API_PROXY, ws: true },
+      // Agents: the MCP endpoint, the OAuth server and its discovery documents.
+      '/mcp': API_PROXY,
+      '/oauth': API_PROXY,
+      '/.well-known': API_PROXY,
+      // Server-side sign-in: /signin/<provider> starts it and /signin-google is the provider's callback. /signin itself
+      // is the SPA's sign-in page, which Vite serves, so only paths below it are proxied.
+      '^/signin/': API_PROXY,
+      '/signin-google': API_PROXY,
     },
   },
   build: {

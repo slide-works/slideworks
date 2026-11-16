@@ -50,4 +50,12 @@ describe('api client session handling', () => {
       `/signin?returnTo=${encodeURIComponent('/decks/abc?tab=sharing#top')}`,
     );
   });
+
+  it('stays on the sign-in page instead of nesting returnTo or looping', () => {
+    const assign = vi.fn();
+
+    redirectToSignIn({ pathname: '/signin', search: '?returnTo=%2Fdecks', hash: '', assign });
+
+    expect(assign).not.toHaveBeenCalled();
+  });
 });

@@ -14,14 +14,14 @@ Data lives in SQLite through EF Core; migrations are committed and applied on st
 
 ## Run locally
 
-Two processes side by side; the Vite dev server proxies `/api` and the `/hubs` WebSockets to Kestrel, so the browser only ever talks to the Vite origin (no CORS setup):
+Two processes side by side; the Vite dev server proxies `/api`, the `/hubs` WebSockets, `/mcp`, `/oauth`, `/.well-known` and the server-side sign-in paths (`/signin/*`, `/signin-google`) to Kestrel, so the browser and agents only ever talk to the Vite origin (no CORS setup):
 
 ```bash
 dotnet run --project src/SlideWorks.WebApi   # Kestrel on :5510, settings from appsettings.Development.json
-cd src/SlideWorks.Client && pnpm install && pnpm run dev   # Vite with HMR on :3000, proxies /api and /hubs -> :5510
+cd src/SlideWorks.Client && pnpm install && pnpm run dev   # Vite with HMR on :3000, proxies to :5510
 ```
 
-Open http://localhost:3000 and enter the token (`dev-token` in dev).
+Open http://localhost:3000, not :5510. `appsettings.Development.json` sets `SLIDEWORKS_PUBLIC_URL=http://localhost:3000`, so the server treats the Vite origin as its own: links and OAuth metadata name it, and the cross-site write guard accepts writes from it and refuses them from anywhere else.
 
 Tests:
 

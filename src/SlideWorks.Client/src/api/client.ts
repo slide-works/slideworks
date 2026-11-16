@@ -18,10 +18,14 @@ const SESSION_CHECK_PATH = '/api/me';
 
 type SignInLocation = Pick<Location, 'pathname' | 'search' | 'hash' | 'assign'>;
 
+const SIGN_IN_PATH = '/signin';
+
 // Sends the person to /signin with where they were (path, query and hash) as returnTo, the same shape App.tsx uses.
+// Already on /signin, it stays put: a 401 there would otherwise nest returnTo inside returnTo, or loop.
 export function redirectToSignIn(location: SignInLocation): void {
+  if (location.pathname === SIGN_IN_PATH) return;
   const returnTo = location.pathname + location.search + location.hash;
-  location.assign(`/signin?returnTo=${encodeURIComponent(returnTo)}`);
+  location.assign(`${SIGN_IN_PATH}?returnTo=${encodeURIComponent(returnTo)}`);
 }
 
 let onUnauthorized: () => void = () => redirectToSignIn(window.location);
