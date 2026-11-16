@@ -225,12 +225,12 @@ public class AddSlideTests : ApiTestFixture
             { "headline": "Slice it", "do": [{ "lead": "a", "text": "b" }], "comes_back": [], "avoid": [] }
             """, position: 1);
 
-        var activity = await DeckSeed.ActivityAsync(Factory, deck);
-        activity.Select(e => e.Summary).ShouldBe(["added slide 1 (practice)", "added slide 1 (quote)", "created the deck"]);
-        activity[0].Tool.ShouldBe("add_slide");
-        activity[0].ActorName.ShouldBe("Claude");
-        activity[0].ActorKind.ShouldBe("Agent");
-        activity[0].Via.ShouldBe("Mcp");
+        var activity = await DeckSeed.ActivityAsync(Client, deck);
+        activity.Select(e => e.GetProperty("summary").GetString()).ShouldBe(["added slide 1 (practice)", "added slide 1 (quote)", "created the deck"]);
+        activity[0].GetProperty("tool").GetString().ShouldBe("add_slide");
+        activity[0].GetProperty("actor").GetString().ShouldBe("Claude");
+        activity[0].GetProperty("actorKind").GetString().ShouldBe("agent");
+        activity[0].GetProperty("via").GetString().ShouldBe("mcp");
     }
 
     [Test]

@@ -1,7 +1,6 @@
+using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Tests.Mcp;
 
 namespace SlideWorks.WebApi.Tests.Decks;
@@ -40,10 +39,12 @@ public static class DeckSeed
             .ToList();
     }
 
-    // A deck's change log, newest first, read through its own interface (K7) until the deck page shows it.
-    public static async Task<IReadOnlyList<ActivityEntryRow>> ActivityAsync(WebApplicationFactory<ApiMarker> factory, string deckId)
+    // A deck's change log, newest first, as its owner sees it on the deck page: the activity[] of GET /api/decks/{id}.
+    public static async Task<IReadOnlyList<JsonElement>> ActivityAsync(HttpClient owner, string deckId)
     {
-        using var scope = factory.Services.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IActivityLog>().ListAsync(deckId, 50);
+        var response = await owner.GetAsync($"/api/decks/{deckId}");
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        var page = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return page.GetProperty("activity").EnumerateArray().Select(entry => entry.Clone()).ToList();
     }
 }

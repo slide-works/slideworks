@@ -38,13 +38,15 @@ public class CreateDeckTests : ApiTestFixture
     {
         var id = await PostDeckAsync("Ship smaller");
 
-        var entry = (await DeckSeed.ActivityAsync(Factory, id)).ShouldHaveSingleItem();
-        entry.ActorName.ShouldBe(TestUser.Sam.Name);
-        entry.ActorKind.ShouldBe("Person");
-        entry.Via.ShouldBe("Web");
-        entry.Tool.ShouldBeNull();
-        entry.Summary.ShouldBe("created the deck");
-        entry.At.ShouldBe(Clock.GetUtcNow());
+        Clock.Advance(TimeSpan.FromMinutes(3));
+
+        var entry = (await DeckSeed.ActivityAsync(Client, id)).ShouldHaveSingleItem();
+        entry.GetProperty("actor").GetString().ShouldBe(TestUser.Sam.Name);
+        entry.GetProperty("actorKind").GetString().ShouldBe("person");
+        entry.GetProperty("via").GetString().ShouldBe("web");
+        entry.GetProperty("tool").ValueKind.ShouldBe(JsonValueKind.Null);
+        entry.GetProperty("summary").GetString().ShouldBe("created the deck");
+        entry.GetProperty("atLabel").GetString().ShouldBe("3 min ago");
     }
 
     [TestCase("Café — ship it, now!", "cafe-ship-it-now")]
@@ -97,12 +99,12 @@ public class CreateDeckTests : ApiTestFixture
 
         isError.ShouldBeFalse(json.ToString());
         var id = json.GetProperty("deck").GetString()!;
-        var entry = (await DeckSeed.ActivityAsync(Factory, id)).ShouldHaveSingleItem();
-        entry.ActorName.ShouldBe("Claude");
-        entry.ActorKind.ShouldBe("Agent");
-        entry.Via.ShouldBe("Mcp");
-        entry.Tool.ShouldBe("create_deck");
-        entry.Summary.ShouldBe("created the deck");
+        var entry = (await DeckSeed.ActivityAsync(Client, id)).ShouldHaveSingleItem();
+        entry.GetProperty("actor").GetString().ShouldBe("Claude");
+        entry.GetProperty("actorKind").GetString().ShouldBe("agent");
+        entry.GetProperty("via").GetString().ShouldBe("mcp");
+        entry.GetProperty("tool").GetString().ShouldBe("create_deck");
+        entry.GetProperty("summary").GetString().ShouldBe("created the deck");
     }
 
     // The agent's deck belongs to the presenter it acts for: Sam opens it in the browser.
