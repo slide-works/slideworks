@@ -58,6 +58,46 @@ publisher → IDeckEvents (in-process bus) → DeckEventsRelay → DeckHub group
 - Auth: the hub sits behind the same bearer token as `/api`. The browser sends it as `?access_token=` on the WebSocket upgrade, which the middleware accepts on `/hubs` only.
 - One process: the bus is in memory and SignalR keeps groups per process. A second instance needs a cross-process bridge and a SignalR backplane first.
 
+## Templates and palettes
+
+A deck's look is a **template** plus a **palette**, and nothing else. There are no themes, and a slide never stores a
+colour or a font.
+
+- **Templates** hold structure and house style: the layouts allowed, the chrome defaults (part tracker, footer, progress
+  bar), fonts, radius and shadow, title art and ornament. Built in: `talk`, `workshop` and `update`. A template can
+  carry its own palette and lock it, so picking that template also picks its palette.
+- **Palettes** hold every colour: surfaces, ink, the accent family, the roles (positive, negative, caution, deep dive),
+  dark slides and the tone-panel pairs. Built in: Cobalt (the default), Ember, Plum and Midnight. Each one passes a
+  contrast check over its colour pairs, and the build fails if a pair drops below its bar.
+- The catalogue is data in `src/contracts/templates.json` and `src/contracts/palettes.json`. The app serves it as
+  `GET /api/looks`, and agents read it with `list_templates` and `list_palettes`.
+- A deck picks its look when it's made (the New deck dialog, or `create_deck`) and can change it at any time (the deck
+  page's Look panel, `PUT /api/decks/{id}/look`, or `set_look`). A deck can also switch the template's chrome on or
+  off and add a logo. Colours change only by picking another palette: there is no free colour picker.
+- A slide flagged `deep_dive` gets the deep-dive bar and pill, is listed on its part's divider (unless the template
+  turns that off), and its speaker notes start with "Deep dive. Skip if short of time." The prefix is added when the
+  notes are read, so clearing the flag removes it.
+- How many new decks keep a built-in look unchanged is SW-2's Measure, a query in [`docs/measures.md`](docs/measures.md).
+
+## Slide previews and share cards
+
+- **Previews are rendered by the agent.** `preview_deck` returns one render URL per slide, the player URL, the share
+  card URL and instructions. The agent screenshots each URL at 1920×1080 in its own headless Chromium. The
+  instructions pin Playwright 1.62.0 and install only what's needed (`npx -y playwright@1.62.0 install --only-shell
+  chromium`). The server renders no slides.
+- **The share card is rendered by the server.** `GET /api/cards/{id}.png` is anonymous and returns a 1200×630 PNG for
+  link previews. Only a deck shared by link gets its own card, with its title. A private deck, a named-viewer deck or an
+  unknown id gets the generic card and never starts a deck render. If the renderer is unavailable or times out, the
+  route answers 503 with `Retry-After`. If a deck's card fails to render (for example a broken logo), the route serves
+  the generic card. `GET /d/{id}/{slug}` serves the player with Open Graph tags that point at the card.
+- **The image carries Chromium for the share card only.** The Dockerfile installs it with the Playwright driver that
+  ships with `Microsoft.Playwright`, into `/ms-playwright`. It makes the runtime image much larger: about 0.7 GB
+  without it, and roughly 1.7–2.1 GB with it, depending on whether the full browser or only the headless shell is
+  installed.
+- Render URLs carry a short-lived signed token in the URL fragment, never in a query string. Pages send it as the
+  `X-Render-Token` header. A token reads only the one deck it names, for one purpose: a preview token lasts 10
+  minutes, and a card token 60 seconds.
+
 ## Configuration
 
 | Variable | What |
@@ -65,6 +105,10 @@ publisher → IDeckEvents (in-process bus) → DeckEventsRelay → DeckHub group
 | `SLIDEWORKS_API_TOKEN` | Bearer token for `/api` and `/hubs`. Unset means fail closed: everything but `/health` answers 401 |
 | `SLIDEWORKS_API_EXTRA_TOKENS` | Comma-separated further tokens, one per other caller, so each can be rotated alone |
 | `SLIDEWORKS_DB_PATH` | SQLite file, default `/data/slide-works.db` |
+| `SLIDEWORKS_PUBLIC_URL` | The URL people and agents reach SlideWorks at. Links, MCP and OAuth metadata are built from it. Required outside Development: the app refuses to start without it |
+| `RenderTokens__Key` | Signs the render tokens (preview and share card). Required outside Development: the app refuses to start without it. Use a random secret of at least 32 characters, such as `openssl rand -base64 32`. `src/docker-compose.yml` reads it from `SLIDEWORKS_RENDER_TOKEN_KEY`. In Development with no key, each process makes a random one |
+| `SLIDEWORKS_RENDER_URL` | The origin the share-card browser opens. Unset means the app's own loopback address (a wildcard listen address such as `http://+:8080` becomes `127.0.0.1`). Set it only when the app can't reach itself that way |
+| `SLIDEWORKS_RENDER_TIMEOUT` | How long one share-card render may take, from launching the browser to the PNG, as a TimeSpan such as `00:00:20` (the default) |
 | `SLIDEWORKS_SEQ_URL`, `SLIDEWORKS_SEQ_API_KEY` | Also log to Seq when set; console only otherwise |
 
 `GET /health` is anonymous and reports the commit the image was built from.

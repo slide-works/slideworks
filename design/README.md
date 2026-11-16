@@ -5,7 +5,7 @@ Mockups and design decisions, with one folder per Feature.
 | Folder | Feature | Status |
 |---|---|---|
 | [`sw-1-foundation/`](sw-1-foundation/) | SW-1 Foundation: agent-built web decks over MCP | Mockups reviewed, decisions D3–D8 settled |
-| [`sw-2-templates-palettes/`](sw-2-templates-palettes/) | SW-2 Templates and palettes (also covers SW-15 Wada palettes and SW-50 uploaded templates) | Mockups reviewed, D1–D7 settled, D8–D9 open |
+| [`sw-2-templates-palettes/`](sw-2-templates-palettes/) | SW-2 Templates and palettes (also covers SW-15 Wada palettes and SW-50 uploaded templates) | Built (SW-2's sections; Wada palettes and uploaded templates are still to come) |
 
 ## SW-1 Foundation
 
@@ -69,7 +69,7 @@ The page also covers two Features that build on SW-2: SW-15 (Sanzo Wada palettes
 - **D2. Built-in palettes:** Cobalt (the default, SW-1's D4 colours), Ember, Plum and Midnight. Each passes a contrast test that fails the build if any pair drops below its bar.
 - **D3. Changing colours:** a deck changes colour only by picking a palette. There is no free colour picker, so custom colours come through an uploaded template (SW-50).
 - **D4. Deep dives:** a per-slide `deep_dive` flag. Dividers list a part's deep dives automatically, and the notes start with "Deep dive. Skip if short of time."
-- **D5. Renderer:** the headless renderer moves from SW-3 into SW-2. `preview_deck` returns slide PNGs, and the share card comes from the same renderer. SW-3 keeps lint.
+- **D5. Renderer:** the headless renderer moves from SW-3 into SW-2, and SW-3 keeps lint. Changed later by D21: an agent renders its own slide previews from the per-slide URLs and instructions `preview_deck` returns, and the server renders only images it serves itself, which today is the share card.
 - **D6. Measure:** the share of new decks that use a listed template and palette with no other override, counted from the activity log.
 - **D7. Three Features:** SW-2 ships the built-in templates and palettes. SW-15 adds the Sanzo Wada palettes, and SW-50 adds uploaded templates and deck import.
 
