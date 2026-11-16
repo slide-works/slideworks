@@ -30,13 +30,9 @@ public partial class SignInSmokeTests : AcceptanceTest
 
         await decks.GotoAsync();
 
-        await Expect(Page).ToHaveURLAsync(SignInWithReturnToDecks());
-        await Expect(new SignInPage(Page).Root).ToBeVisibleAsync();
+        await new SignInPage(Page).ShouldBeShownWithReturnToAsync(DecksPage.PATH);
         await Expect(decks.Shell).ToHaveCountAsync(0);
     }
-
-    [GeneratedRegex(@"/signin\?returnTo=%2Fdecks$")]
-    private static partial Regex SignInWithReturnToDecks();
 
     [GeneratedRegex(@"/decks$")]
     private static partial Regex Decks();
