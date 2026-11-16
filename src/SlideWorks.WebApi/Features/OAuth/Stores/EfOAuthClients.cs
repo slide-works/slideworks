@@ -2,6 +2,7 @@ using System.Text.Json;
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Infrastructure;
 
 namespace SlideWorks.WebApi.Features.OAuth.Stores;
 
@@ -13,7 +14,7 @@ public class EfOAuthClients(AppDbContext db, TimeProvider clock) : IOAuthClients
     {
         var row = new OAuthClientRow
         {
-            ClientId = OAuthSecrets.New(),
+            ClientId = SecretTokens.New(),
             ClientName = registration.ClientName,
             RedirectUrisJson = JsonSerializer.Serialize(registration.RedirectUris),
             CreatedAt = clock.GetUtcNow(),

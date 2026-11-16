@@ -4,15 +4,19 @@ using Microsoft.Net.Http.Headers;
 namespace SlideWorks.WebApi.Features.Images;
 
 // Sends an image file (K11) with its stored type and ETag, Cache-Control: private, no-cache (so a browser asks again every
-// time and revoking access takes effect at once; If-None-Match gets a 304) and nosniff, so the browser never reads it as
-// anything but its stored type.
+// time and revoking access takes effect at once; If-None-Match gets a 304), nosniff, so the browser never reads it as
+// anything but its stored type, and a CSP that forbids everything and sandboxes the response, so a polyglot file opened
+// as a page can run nothing.
 public sealed class ImageFileResult(StoredImage image) : IActionResult
 {
+    public const string CONTENT_SECURITY_POLICY = "default-src 'none'; sandbox";
+
     public Task ExecuteResultAsync(ActionContext context)
     {
         var headers = context.HttpContext.Response.Headers;
         headers.CacheControl = "private, no-cache";
         headers.XContentTypeOptions = "nosniff";
+        headers.ContentSecurityPolicy = CONTENT_SECURITY_POLICY;
         return new PhysicalFileResult(image.Path, image.ContentType) { EntityTag = new EntityTagHeaderValue(image.ETag) }
             .ExecuteResultAsync(context);
     }

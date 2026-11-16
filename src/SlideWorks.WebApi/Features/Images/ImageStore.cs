@@ -59,6 +59,9 @@ public class ImageStore(IConfiguration configuration)
                     }
                     await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
                 }
+                // On disk before the rename, so a power loss can't leave a short file behind an upload marked complete.
+                await file.FlushAsync(cancellationToken);
+                file.Flush(flushToDisk: true);
             }
             return (temp, size);
         }

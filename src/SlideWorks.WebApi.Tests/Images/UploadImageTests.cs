@@ -42,7 +42,7 @@ public class UploadImageTests : ApiTestFixture
         structured.GetProperty("expiresInSeconds").GetInt32().ShouldBe(600);
         JsonDocument.Parse(McpWire.TextOf(result)).RootElement.GetProperty("uploadUrl").GetString().ShouldBe(uploadUrl);
         var entry = (await DeckSeed.ActivityAsync(Client, deck))[0];
-        entry.GetProperty("summary").GetString().ShouldBe("uploaded story-map.png");
+        entry.GetProperty("summary").GetString().ShouldBe("started uploading story-map.png");
         entry.GetProperty("tool").GetString().ShouldBe("upload_image");
         entry.GetRawText().ShouldNotContain(uploadUrl[UPLOAD_URL_PREFIX.Length..], Case.Sensitive);
     }
@@ -84,6 +84,24 @@ public class UploadImageTests : ApiTestFixture
         var error = await SlideCalls.ErrorAsync(agent, "upload_image", new { deck, name = "  ", contentType = "image/png" });
 
         error.ShouldBe("name: required");
+    }
+
+    // name is only a label, but a control character (a NUL above all) has no place in one and can break whatever shows it.
+    [TestCase("story\0map.png")]
+    [TestCase("story\nmap.png")]
+    [TestCase("story-map.png\r")]
+    [TestCase("\u0007story-map.png")]
+    [TestCase("story\u009Fmap.png")]
+    [TestCase("story\u007Fmap.png")]
+    public async Task UploadImage_WhenNameHasControlCharacter_ShouldRefuse(string name)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+
+        var error = await SlideCalls.ErrorAsync(agent, "upload_image", new { deck, name, contentType = "image/png" });
+
+        error.ShouldBe("name: must not contain control characters");
+        (await DeckSeed.ActivityAsync(Client, deck)).Count.ShouldBe(1);
     }
 
     [Test]
@@ -139,7 +157,7 @@ public class UploadImageTests : ApiTestFixture
         added.ShouldBeEmpty();
         Directory.GetFiles(dataPath, "*", SearchOption.AllDirectories).Except(before)
             .ShouldBe([Path.Combine(dataPath, "images", deck, image)]);
-        (await DeckSeed.ActivityAsync(Client, deck))[0].GetProperty("summary").GetString().ShouldBe("uploaded ../../../escape.png");
+        (await DeckSeed.ActivityAsync(Client, deck))[0].GetProperty("summary").GetString().ShouldBe("started uploading ../../../escape.png");
     }
 
     [Test]
@@ -225,6 +243,62 @@ public class UploadImageTests : ApiTestFixture
         retry.StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }
 
+    // Every declared type checks its own magic bytes, so another type's bytes (or a RIFF file that isn't WebP) are refused
+    // and the same URL still takes the right bytes.
+    [TestCase("image/jpeg", "image/png", "JPEG")]
+    [TestCase("image/jpeg", "image/gif", "JPEG")]
+    [TestCase("image/webp", "image/png", "WebP")]
+    [TestCase("image/webp", "riff-wave", "WebP")]
+    [TestCase("image/gif", "image/jpeg", "GIF")]
+    [TestCase("image/gif", "gif-no-version", "GIF")]
+    public async Task Put_WhenWrongBytesForDeclaredType_ShouldReturn400(string declared, string sent, string label)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        var started = await ImageSeed.StartAsync(agent, deck, contentType: declared);
+        var uploadUrl = started.GetProperty("uploadUrl").GetString()!;
+        byte[] body = sent switch
+        {
+            "riff-wave" => [.. "RIFF"u8, 0x24, 0x00, 0x00, 0x00, .. "WAVEfmt "u8, .. new byte[64]],
+            "gif-no-version" => [.. "GIF8"u8, .. new byte[64]],
+            _ => ImageSeed.Bytes(sent),
+        };
+
+        using var wrong = await ImageSeed.PutAsync(Factory, uploadUrl, body, declared);
+
+        wrong.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await wrong.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe($"The body is not a {label} image, the type upload_image declared");
+        (await Client.GetAsync($"/api/images/{started.GetProperty("image").GetString()}")).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        Directory.Exists(Path.Combine(DataPath(), "images", deck)).ShouldBeFalse();
+        using var retry = await ImageSeed.PutAsync(Factory, uploadUrl, ImageSeed.Bytes(declared), declared);
+        retry.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    // An upload token works only while its deck's owner is approved: once an admin revokes the presenter, the URL their
+    // agent was given stops working.
+    [Test]
+    public async Task Put_WhenPresenterRevokedAfterUploadImage_ShouldReturn404()
+    {
+        var pat = TestUser.NewPending();
+        Guid patId;
+        using (var scope = Factory.Services.CreateScope())
+        {
+            patId = (await TestPeople.SignInAsync(scope.ServiceProvider, pat)).Id;
+        }
+        using var admin = ClientFor(TestUser.Ada);
+        (await admin.PostAsync($"/api/admin/users/{patId}/approve", content: null)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, pat);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        var started = await ImageSeed.StartAsync(agent, deck);
+
+        (await admin.PostAsync($"/api/admin/users/{patId}/revoke", content: null)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        using var put = await ImageSeed.PutAsync(Factory, started.GetProperty("uploadUrl").GetString()!, ImageSeed.Bytes("image/png"));
+
+        put.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await put.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe("Upload not found");
+        Directory.Exists(Path.Combine(DataPath(), "images", deck)).ShouldBeFalse();
+    }
+
     [Test]
     public async Task Put_WhenSvg_ShouldReturn400()
     {
@@ -304,6 +378,25 @@ public class UploadImageTests : ApiTestFixture
         put.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
+    // The upload URL needs no sign-in, but a signed-in caller writing with neither an Origin nor Sec-Fetch-Site is
+    // refused by the guard like any other /api write, so a browser's cookie never carries an upload.
+    [Test]
+    public async Task Put_WhenSignedInWithoutOrigin_ShouldReturn403()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        var started = await ImageSeed.StartAsync(agent, deck);
+        using var signedIn = ClientFor(TestUser.Sam);
+        signedIn.DefaultRequestHeaders.Remove("Origin");
+        using var content = new ByteArrayContent(ImageSeed.Bytes("image/png"));
+        content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+
+        using var put = await signedIn.PutAsync(started.GetProperty("uploadUrl").GetString(), content);
+
+        put.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await Client.GetAsync($"/api/images/{started.GetProperty("image").GetString()}")).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
     [Test]
     public async Task Get_WhenAnonymousAndPrivateDeck_ShouldReturn404()
     {
@@ -343,6 +436,23 @@ public class UploadImageTests : ApiTestFixture
         first.Headers.ETag!.Tag.ShouldStartWith($"\"{image}.", Case.Sensitive);
         again.StatusCode.ShouldBe(HttpStatusCode.NotModified);
         again.Headers.NonValidated["Cache-Control"].ToString().ShouldBe("private, no-cache");
+    }
+
+    // A file that is also valid HTML or script (a polyglot) opened straight in a tab can run nothing: the CSP allows no
+    // source and sandboxes the document.
+    [Test]
+    public async Task Get_ShouldSendSandboxingContentSecurityPolicy()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        var image = await ImageSeed.UploadAsync(agent, Factory, deck, ImageSeed.Bytes("image/gif", 512), "image/gif");
+
+        using var response = await Client.GetAsync($"/api/images/{image}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.NonValidated["Content-Security-Policy"].ToString().ShouldBe("default-src 'none'; sandbox");
+        response.Headers.NonValidated["X-Content-Type-Options"].ToString().ShouldBe("nosniff");
+        response.Content.Headers.ContentType!.MediaType.ShouldBe("image/gif");
     }
 
     [Test]

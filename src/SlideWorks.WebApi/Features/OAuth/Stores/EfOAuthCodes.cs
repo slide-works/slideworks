@@ -1,6 +1,7 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Infrastructure;
 
 namespace SlideWorks.WebApi.Features.OAuth.Stores;
 
@@ -10,10 +11,10 @@ public class EfOAuthCodes(AppDbContext db, TimeProvider clock) : IOAuthCodes
 {
     public async Task<string> IssueAsync(string clientId, Guid presenterId, string redirectUri, string codeChallenge, string scope, string resource)
     {
-        var code = OAuthSecrets.New();
+        var code = SecretTokens.New();
         db.OAuthCodes.Add(new OAuthCodeRow
         {
-            CodeHash = OAuthSecrets.Hash(code),
+            CodeHash = SecretTokens.Hash(code),
             ClientId = clientId,
             PresenterId = presenterId,
             RedirectUri = redirectUri,
@@ -31,7 +32,7 @@ public class EfOAuthCodes(AppDbContext db, TimeProvider clock) : IOAuthCodes
     public async Task<CodeGrant?> RedeemAsync(string code, string clientId, string redirectUri, string codeVerifier, string resource)
     {
         var now = clock.GetUtcNow();
-        var hash = OAuthSecrets.Hash(code);
+        var hash = SecretTokens.Hash(code);
         var spent = await db.OAuthCodes
             .Where(c => c.CodeHash == hash && c.RedeemedAt == null && c.ExpiresAt > now)
             .ExecuteUpdateAsync(set => set.SetProperty(c => c.RedeemedAt, now));

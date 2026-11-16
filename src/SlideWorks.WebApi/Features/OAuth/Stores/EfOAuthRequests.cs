@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Infrastructure;
 
 namespace SlideWorks.WebApi.Features.OAuth.Stores;
 
@@ -15,7 +16,7 @@ public class EfOAuthRequests(AppDbContext db, TimeProvider clock) : IOAuthReques
     {
         var row = new OAuthRequestRow
         {
-            Id = OAuthSecrets.New(),
+            Id = SecretTokens.New(),
             ClientId = pending.ClientId,
             PresenterId = pending.PresenterId,
             RedirectUri = pending.RedirectUri,

@@ -2,10 +2,11 @@ using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Accounts;
+using SlideWorks.WebApi.Infrastructure;
 
 namespace SlideWorks.WebApi.Features.OAuth.Stores;
 
-// Access and refresh tokens, one AgentTokenRow each, found by the token's OAuthSecrets.Hash. The token itself is never
+// Access and refresh tokens, one AgentTokenRow each, found by the token's SecretTokens.Hash. The token itself is never
 // stored. A rotation is one conditional update inside a write transaction: SQLite's BEGIN IMMEDIATE serialises it with
 // any other rotation or revoke, so of parallel attempts exactly one marks the token used, and every later one sees that.
 [RegisterPerRequest(For = typeof(IAgentTokens))]
@@ -35,7 +36,7 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
     public async Task<AgentTokenPair?> RefreshAsync(string refreshToken, string clientId)
     {
         var now = clock.GetUtcNow();
-        var hash = OAuthSecrets.Hash(refreshToken);
+        var hash = SecretTokens.Hash(refreshToken);
         await using var transaction = await db.Database.BeginTransactionAsync();
         var marked = await db.AgentTokens
             .Where(t => t.TokenHash == hash
@@ -77,7 +78,7 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
     public async Task<AgentPrincipal?> ValidateAsync(string accessToken, string resource)
     {
         var now = clock.GetUtcNow();
-        var hash = OAuthSecrets.Hash(accessToken);
+        var hash = SecretTokens.Hash(accessToken);
         return await (
                 from token in db.AgentTokens.AsNoTracking()
                 join client in db.OAuthClients.AsNoTracking() on token.ClientId equals client.ClientId
@@ -94,7 +95,7 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
 
     public async Task RevokeAsync(string token)
     {
-        var hash = OAuthSecrets.Hash(token);
+        var hash = SecretTokens.Hash(token);
         var familyId = await db.AgentTokens.AsNoTracking().Where(t => t.TokenHash == hash).Select(t => (Guid?)t.FamilyId).SingleOrDefaultAsync();
         if (familyId != null)
         {
@@ -111,8 +112,8 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
     }
 
     // The family of the tokens issued from a code: the first 128 bits of the code's stored hash, so nothing but
-    // OAuthSecrets.Hash ever touches the code.
-    private static Guid FamilyOf(string code) => Guid.ParseExact(OAuthSecrets.Hash(code)[..32], "N");
+    // SecretTokens.Hash ever touches the code.
+    private static Guid FamilyOf(string code) => Guid.ParseExact(SecretTokens.Hash(code)[..32], "N");
 
     private Task<int> RevokeFamilyAsync(Guid familyId, DateTimeOffset now)
         => db.AgentTokens
@@ -130,11 +131,11 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
 
         string Add(AgentTokenKind kind, DateTimeOffset expiresAt)
         {
-            var token = OAuthSecrets.New();
+            var token = SecretTokens.New();
             db.AgentTokens.Add(new AgentTokenRow
             {
                 Id = Guid.NewGuid(),
-                TokenHash = OAuthSecrets.Hash(token),
+                TokenHash = SecretTokens.Hash(token),
                 Kind = kind,
                 FamilyId = familyId,
                 ClientId = clientId,
