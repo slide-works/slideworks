@@ -1,0 +1,99 @@
+/* The heading is SlideHeading's; the root (.sw-layout) and body (.sw-body)
+   rules are the frame's.
+
+   .gantt: a 360 px label column, then the slot's columns evenly, 8 px apart.
+   The mockup's 76 px bars 40 px apart are tightened to 72 px bars 28 px apart,
+   so the most the limits allow fits the body's 620 px: column heads of up to
+   three 17 px lines (61 px), 28 px, five rows (5 × 72 + 4 × 28 = 472 px), and
+   a caption of up to two 26 px lines 20 px under it. */
+.figure {
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 360px repeat(var(--sw-gantt-columns), minmax(0, 1fr));
+  grid-auto-rows: auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 28px;
+}
+
+.column {
+  grid-row: 1;
+  align-self: end;
+  padding-bottom: 6px;
+  overflow-wrap: anywhere;
+  border-bottom: 2px solid var(--sw-grid);
+  color: var(--sw-muted);
+  font: 700 17px/1 var(--sw-font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.label {
+  grid-column: 1;
+  padding-right: 24px;
+  overflow-wrap: anywhere;
+  font: 600 28px/1.2 var(--sw-font-body);
+}
+
+/* A bar: 72 px tall, its note in white 17 px bold uppercase. A long note on a
+   narrow bar stops at three lines with an ellipsis, so the bar keeps its height. */
+.bar {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 72px;
+  padding: 0 18px;
+  border-radius: var(--sw-radius-md);
+  color: #fff;
+  font: 800 17px/1.1 var(--sw-font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.note {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.bar[data-status='done'] {
+  background: var(--sw-accent);
+}
+
+.bar[data-status='slips'] {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--sw-warn) 0 18px,
+    color-mix(in srgb, var(--sw-warn) 75%, #fff) 18px 36px
+  );
+}
+
+.bar[data-status='stopped'] {
+  background: var(--sw-card);
+  box-shadow: inset 0 0 0 3px var(--sw-bad);
+  color: var(--sw-bad);
+}
+
+/* The ship marker, centred in its columns in the good tone. */
+.ship {
+  justify-self: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--sw-good);
+  font: 800 17px/1.1 var(--sw-font-body);
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.caption {
+  margin-top: 20px;
+  overflow-wrap: anywhere;
+  color: var(--sw-muted);
+  font: 400 20px/1.3 var(--sw-font-body);
+}
