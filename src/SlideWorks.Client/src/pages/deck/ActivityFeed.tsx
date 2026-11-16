@@ -16,8 +16,24 @@ function initials(name: string): string {
     .join('');
 }
 
+// A key for each row that survives a re-read: rows have no id, and new rows
+// arrive at the top, so a row is keyed by what it says plus how many identical
+// rows come before it counting from the oldest. The time label is left out, as
+// it changes on every re-read.
+function rowKeys(rows: ActivityRow[]): string[] {
+  const seen = new Map<string, number>();
+  const oldestFirst = [...rows].reverse().map((row) => {
+    const content = [row.actorKind, row.actor, row.via, row.tool ?? '', row.summary].join('|');
+    const occurrence = (seen.get(content) ?? 0) + 1;
+    seen.set(content, occurrence);
+    return `${content}#${occurrence}`;
+  });
+  return oldestFirst.reverse();
+}
+
 // The deck's change log, newest first: "Claude added slide 16 · 2 min ago · via MCP".
 export function ActivityFeed({ rows, isOwner }: ActivityFeedProps) {
+  const keys = rowKeys(rows);
   return (
     <section data-testid="deck-activity" className="panel grid gap-3 p-4">
       <h3 className="text-xs font-semibold tracking-wide text-ink-muted uppercase">Activity</h3>
@@ -29,7 +45,7 @@ export function ActivityFeed({ rows, isOwner }: ActivityFeedProps) {
             const agent = row.actorKind === 'agent';
             const actor = !agent && isOwner ? 'You' : row.actor;
             return (
-              <li key={index} data-testid="activity-row" className="flex gap-2.5 text-meta">
+              <li key={keys[index]} data-testid="activity-row" className="flex gap-2.5 text-meta">
                 <span
                   aria-hidden
                   className={`grid h-6 w-6 shrink-0 place-items-center rounded-md text-[10px] font-semibold ${

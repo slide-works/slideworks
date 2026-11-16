@@ -4,6 +4,7 @@ import { AppRoutes } from '../AppRoutes';
 import { LocationProbe } from '../test-support/LocationProbe';
 import { deckPage, me } from '../test-support/fixtures/screens';
 import { stubApi } from '../test-support/stubApi';
+import { stubDeckHub } from '../test-support/stubDeckHub';
 
 const route = { hooksConfig: { route: `/decks/${deckPage.id}` } };
 const deckPath = `/api/decks/${deckPage.id}`;
@@ -24,6 +25,11 @@ test('deck page grid shows thumbnails and notes of clicked slide', async ({ moun
       slide.layout,
     );
   }
+
+  // Thumbnail footers carry the deck's author, as the player's do.
+  await expect(thumbs.nth(1).getByTestId('slide-footer')).toHaveText(
+    '2 / 3 · Ship smaller · Sam Rivera',
+  );
 
   // The first slide is selected to begin with.
   await expect(page.getByTestId('selected-number')).toHaveText('1');
@@ -93,6 +99,37 @@ test("a person's change on the owner's page reads You", async ({ mount, page }) 
   await expect(page.getByTestId('activity-row')).toContainText(
     'You created the deck · just now · in the browser',
   );
+});
+
+test('deck page re-reads on DeckChanged', async ({ mount, page }) => {
+  const hub = await stubDeckHub(page);
+  const longer: DeckPageView = {
+    ...deckPage,
+    slides: [
+      ...deckPage.slides,
+      { ...deckPage.slides[1], number: 4, link: `${deckPage.playUrl}#4` },
+    ],
+  };
+  let reads = 0;
+  await stubApi(page, { '/api/me': { json: me } });
+  await page.route(`**${deckPath}`, (route) => {
+    reads += 1;
+    return route.fulfill({ json: reads === 1 ? deckPage : longer });
+  });
+  await mount(<AppRoutes />, route);
+
+  await expect(page.getByTestId('deck-thumb')).toHaveCount(3);
+  await expect.poll(() => hub.joined).toEqual([deckPage.id]);
+  await page.getByTestId('deck-thumb-select').nth(1).click();
+
+  hub.push({ type: 'deckChanged', deckId: 'Zz9OtherDeck' });
+  hub.push({ type: 'deckChanged', deckId: deckPage.id });
+
+  await expect(page.getByTestId('deck-thumb')).toHaveCount(4);
+  await expect(page.getByTestId('deck-slide-count')).toHaveText('4 slides');
+  expect(reads).toBe(2);
+  // The selected slide survives the re-read.
+  await expect(page.getByTestId('selected-number')).toHaveText('2');
 });
 
 test('share button opens dialog', async ({ mount, page }) => {

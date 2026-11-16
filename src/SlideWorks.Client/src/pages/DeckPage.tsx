@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
 import type { DeckPageView } from '../api/types';
@@ -24,33 +24,39 @@ export function DeckPage() {
   // Each read is stamped with its deck, so another deck's result never shows.
   const [result, setResult] = useState<{ id: string; load: Load } | null>(null);
   const load: Load = result?.id === id ? result.load : { kind: 'loading' };
-  const [selected, setSelected] = useState(1);
+  // The selected slide belongs to its deck: another deck starts at slide 1.
+  const [selection, setSelection] = useState({ id, number: 1 });
+  const selected = selection.id === id ? selection.number : 1;
   const [sharing, setSharing] = useState(false);
 
-  const read = useCallback(
-    (isActive: () => boolean = () => true) => {
-      const show = (next: Load) => setResult({ id, load: next });
-      return api.get<DeckPageView>(`/api/decks/${encodeURIComponent(id)}`).then(
-        (view) => isActive() && show({ kind: 'loaded', view }),
-        (error: unknown) => {
-          if (!isActive()) return;
-          if (error instanceof ApiError && error.status === 404) show({ kind: 'notFound' });
-          else
-            show({
-              kind: 'failed',
-              message: error instanceof ApiError ? error.message : "Can't reach SlideWorks.",
-            });
-        },
-      );
-    },
-    [id],
-  );
+  // Latest wins: every read takes the next number, and only the newest read's
+  // answer is shown, so a re-read (DeckChanged, a sharing save) that overlaps
+  // another or outlives a move to another deck never lands an older snapshot.
+  const latest = useRef(0);
+
+  const read = useCallback(() => {
+    const seq = ++latest.current;
+    const show = (next: Load) => {
+      if (seq === latest.current) setResult({ id, load: next });
+    };
+    return api.get<DeckPageView>(`/api/decks/${encodeURIComponent(id)}`).then(
+      (view) => show({ kind: 'loaded', view }),
+      (error: unknown) => {
+        if (error instanceof ApiError && error.status === 404) show({ kind: 'notFound' });
+        else
+          show({
+            kind: 'failed',
+            message: error instanceof ApiError ? error.message : "Can't reach SlideWorks.",
+          });
+      },
+    );
+  }, [id]);
 
   useEffect(() => {
-    let active = true;
-    void read(() => active);
+    void read();
+    // Leaving this deck (or the page) makes every read still in flight stale.
     return () => {
-      active = false;
+      latest.current += 1;
     };
   }, [read]);
 
@@ -96,7 +102,11 @@ export function DeckPage() {
     <section data-testid="deck-page" data-deck-id={view.id} className="grid gap-5">
       <DeckHeader view={view} onShare={() => setSharing(true)} />
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <SlideGrid view={view} selected={slide?.number ?? 0} onSelect={setSelected} />
+        <SlideGrid
+          view={view}
+          selected={slide?.number ?? 0}
+          onSelect={(number) => setSelection({ id, number })}
+        />
         <div className="grid gap-4">
           {slide && <SelectedSlide slide={slide} />}
           <ActivityFeed rows={view.activity} isOwner={view.isOwner} />

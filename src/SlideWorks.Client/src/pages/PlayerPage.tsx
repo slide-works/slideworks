@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useParams } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
 import type { DeckPlayView, MeView } from '../api/types';
@@ -23,50 +23,50 @@ export function PlayerPage() {
   const [result, setResult] = useState<{ id: string; load: Load } | null>(null);
   const load: Load = result?.id === id ? result.load : { kind: 'loading' };
 
-  const read = useCallback(
-    (isActive: () => boolean = () => true) => {
-      const show = (next: Load) => setResult({ id, load: next });
-      return api.get<DeckPlayView>(`/api/play/${encodeURIComponent(id)}`).then(
-        (view) => isActive() && show({ kind: 'loaded', view }),
-        (error: unknown) => {
-          if (!isActive()) return;
-          if (error instanceof ApiError && error.status === 404) {
-            show({ kind: 'notFound', signedIn: null });
-            // Only to decide whether to offer sign-in: a private deck reads as not found when signed out.
-            api.get<MeView>('/api/me').then(
-              () => isActive() && show({ kind: 'notFound', signedIn: true }),
-              (meError: unknown) =>
-                isActive() &&
-                meError instanceof ApiError &&
-                meError.status === 401 &&
-                show({ kind: 'notFound', signedIn: false }),
-            );
-          } else {
-            // A re-read that fails mid-presentation keeps the deck already on screen.
-            setResult((previous) =>
-              previous?.id === id && previous.load.kind === 'loaded'
-                ? previous
-                : {
-                    id,
-                    load: {
-                      kind: 'failed',
-                      message:
-                        error instanceof ApiError ? error.message : "Can't reach SlideWorks.",
-                    },
-                  },
-            );
-          }
-        },
-      );
-    },
-    [id],
-  );
+  // Latest wins: every read takes the next number, and only the newest read's
+  // answer is shown. A re-read on DeckChanged can overlap another, or outlive
+  // a move to another deck, and its older snapshot must never land.
+  const latest = useRef(0);
+
+  const read = useCallback(() => {
+    const seq = ++latest.current;
+    const isLatest = () => seq === latest.current;
+    const show = (next: Load) => {
+      if (isLatest()) setResult({ id, load: next });
+    };
+    return api.get<DeckPlayView>(`/api/play/${encodeURIComponent(id)}`).then(
+      (view) => show({ kind: 'loaded', view }),
+      (error: unknown) => {
+        if (!isLatest()) return;
+        if (error instanceof ApiError && error.status === 404) {
+          show({ kind: 'notFound', signedIn: null });
+          // Only to decide whether to offer sign-in: a private deck reads as not found when signed out.
+          api.get<MeView>('/api/me').then(
+            () => show({ kind: 'notFound', signedIn: true }),
+            (meError: unknown) => {
+              if (meError instanceof ApiError && meError.status === 401) {
+                show({ kind: 'notFound', signedIn: false });
+              }
+            },
+          );
+        } else {
+          // A re-read that fails mid-presentation keeps the deck already on screen.
+          const message = error instanceof ApiError ? error.message : "Can't reach SlideWorks.";
+          setResult((previous) =>
+            previous?.id === id && previous.load.kind === 'loaded'
+              ? previous
+              : { id, load: { kind: 'failed', message } },
+          );
+        }
+      },
+    );
+  }, [id]);
 
   useEffect(() => {
-    let active = true;
-    void read(() => active);
+    void read();
+    // Leaving this deck (or the page) makes every read still in flight stale.
     return () => {
-      active = false;
+      latest.current += 1;
     };
   }, [read]);
 
@@ -76,7 +76,9 @@ export function PlayerPage() {
     case 'loading':
       return <div data-testid="player-page" data-deck-id={id} className="h-dvh bg-[#05070d]" />;
     case 'notFound': {
-      const returnTo = location.pathname + location.search + location.hash;
+      // The window's hash, not the router's: the Player moves it with replaceState,
+      // which the router never sees.
+      const returnTo = location.pathname + location.search + window.location.hash;
       return (
         <PlayerMessage
           testId="player-not-found"
@@ -94,7 +96,9 @@ export function PlayerPage() {
       );
     case 'loaded':
       if (slug !== load.view.slug) {
-        return <Navigate to={`/d/${load.view.id}/${load.view.slug}${location.hash}`} replace />;
+        return (
+          <Navigate to={`/d/${load.view.id}/${load.view.slug}${window.location.hash}`} replace />
+        );
       }
       return (
         <div data-testid="player-page" data-deck-id={id} className="contents">

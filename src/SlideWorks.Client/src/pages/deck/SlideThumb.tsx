@@ -25,8 +25,10 @@ export function SlideThumb({ slide, deck, total, selected, onSelect }: SlideThum
           selected ? 'border-accent ring-2 ring-accent' : 'border-edge'
         }`}
       >
+        {/* A picture of the slide: hidden from assistive tech, and inert so nothing in it takes focus. */}
         <div
           aria-hidden
+          inert
           className="pointer-events-none absolute top-0 left-0 origin-top-left"
           style={{ transform: `scale(${scale})`, visibility: scale > 0 ? 'visible' : 'hidden' }}
         >
