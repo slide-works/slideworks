@@ -80,6 +80,6 @@ test('/admin/users renders inside the shell', async ({ mount, page }) => {
 test('/pending renders without the shell', async ({ mount, page }) => {
   await stubApi(page, { '/api/me': { json: { ...me, access: 'pending' } } });
   await mount(<AppRoutes />, { hooksConfig: { route: '/pending' } });
-  await expect(page.getByTestId('pending-page')).toBeAttached();
+  await expect(page.getByTestId('pending-page')).toBeVisible();
   await expect(page.getByTestId('app-shell')).toHaveCount(0);
 });
