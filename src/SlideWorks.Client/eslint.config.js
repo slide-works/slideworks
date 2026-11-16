@@ -17,4 +17,36 @@ export default tseslint.config(
   // exports `plugins` as a legacy string array, which ESLint 10's flat
   // config rejects; the properly-shaped flat variant lives under `.flat`.
   reactHooks.configs.flat['recommended-latest'],
+  // Keep this block LAST. A later block that sets no-restricted-syntax replaces
+  // this whole list rather than adding to it, so append new selectors here.
+  {
+    rules: {
+      // Slot text is plain text (D12): render it as React text nodes. Never
+      // inject HTML, and never parse Markdown or HTML out of slot text.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message:
+            'dangerouslySetInnerHTML is banned: render text as plain React text nodes (slot text is never HTML).',
+        },
+        {
+          // A props object for a spread (<p {...props} />) or React.createElement.
+          selector:
+            "Property[key.name='dangerouslySetInnerHTML'], Property[key.value='dangerouslySetInnerHTML']",
+          message:
+            'dangerouslySetInnerHTML is banned, in props objects too: render text as plain React text nodes.',
+        },
+        {
+          selector: 'AssignmentExpression[left.property.name=/^(innerHTML|outerHTML)$/]',
+          message:
+            'Assigning innerHTML or outerHTML is banned: render text as plain React text nodes.',
+        },
+        {
+          selector: "CallExpression[callee.property.name='insertAdjacentHTML']",
+          message: 'insertAdjacentHTML is banned: render text as plain React text nodes.',
+        },
+      ],
+    },
+  },
 );

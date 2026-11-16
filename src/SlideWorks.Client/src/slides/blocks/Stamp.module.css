@@ -1,0 +1,18 @@
+/* The stamp block, in canvas px against the slide frame (the mockup's .stamp). */
+.stamp {
+  position: absolute;
+  top: 70px;
+  /* 2 px in, so the tilted corners stay inside the content box's right edge. */
+  right: calc(var(--sw-slide-pad-x) + 2px);
+  z-index: 2;
+  padding: 10px 18px;
+  border: 2px solid var(--sw-stamp);
+  border-radius: var(--sw-radius-pill);
+  color: var(--sw-stamp);
+  font: 700 17px/1 var(--sw-font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: rotate(-4deg);
+  transform-origin: center;
+}

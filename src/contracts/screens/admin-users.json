@@ -1,0 +1,54 @@
+{
+  "users": [
+    {
+      "id": "6f1c2d3e-4a5b-4c6d-8e7f-0a1b2c3d4e01",
+      "name": "Pat Lindqvist",
+      "email": "pat@pending.example",
+      "pictureUrl": "https://slideworks.example/avatars/pat-lindqvist.png",
+      "access": "pending",
+      "isAdmin": false,
+      "isSelf": false,
+      "requestedLabel": "2 min ago",
+      "changedLabel": "2 min ago",
+      "changedBy": "Ada Brooks"
+    },
+    {
+      "id": "6f1c2d3e-4a5b-4c6d-8e7f-0a1b2c3d4e02",
+      "name": "Ada Brooks",
+      "email": "ada@team.example",
+      "pictureUrl": "https://slideworks.example/avatars/ada-brooks.png",
+      "access": "approved",
+      "isAdmin": true,
+      "isSelf": true,
+      "requestedLabel": "3 days ago",
+      "changedLabel": "3 days ago",
+      "changedBy": "Ada Brooks"
+    },
+    {
+      "id": "6f1c2d3e-4a5b-4c6d-8e7f-0a1b2c3d4e03",
+      "name": "Sam Rivera",
+      "email": "sam@team.example",
+      "pictureUrl": "https://slideworks.example/avatars/sam-rivera.png",
+      "access": "approved",
+      "isAdmin": false,
+      "isSelf": false,
+      "requestedLabel": "Yesterday",
+      "changedLabel": "Yesterday",
+      "changedBy": "Ada Brooks"
+    },
+    {
+      "id": "6f1c2d3e-4a5b-4c6d-8e7f-0a1b2c3d4e04",
+      "name": "Mira Okafor",
+      "email": "mira@team.example",
+      "pictureUrl": "https://slideworks.example/avatars/mira-okafor.png",
+      "access": "rejected",
+      "isAdmin": false,
+      "isSelf": false,
+      "requestedLabel": "1 h ago",
+      "changedLabel": "1 h ago",
+      "changedBy": "Ada Brooks"
+    }
+  ],
+  "pendingCount": 1,
+  "adminCount": 1
+}

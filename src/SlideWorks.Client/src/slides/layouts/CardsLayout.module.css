@@ -1,0 +1,10 @@
+/* .cards3: three equal columns 32 px apart (539 px each), whatever the number
+   of cards. Each card (Card.module.css) is the mockup's .rcard. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

@@ -4,6 +4,7 @@
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
+    <PackageReference Include="ModelContextProtocol" Version="2.3.0" />
     <PackageReference Include="Microsoft.Playwright.NUnit" Version="1.62.0" />
     <PackageReference Include="NUnit" Version="4.3.2" />
     <PackageReference Include="NUnit.Analyzers" Version="4.7.0" />
@@ -16,6 +17,11 @@
     <Using Include="Microsoft.Playwright" />
     <Using Include="NUnit.Framework" />
     <Using Include="Shouldly" />
+  </ItemGroup>
+
+  <!-- The shared test people and JSON shape checks, compiled from the API test project so both use the same ones. -->
+  <ItemGroup>
+    <Compile Include="..\SlideWorks.WebApi.Tests\Support\**\*.cs" Link="Support\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!-- Hosts the BFF (API plus the built SPA bundle in its wwwroot) on a real Kestrel port. -->

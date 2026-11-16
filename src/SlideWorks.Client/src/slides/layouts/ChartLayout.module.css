@@ -1,0 +1,55 @@
+/* The heading is SlideHeading's; the root (.sw-layout) and body (.sw-body)
+   rules are the frame's.
+
+   .chart: the plot, then a 480 px aside 60 px from it when there is a legend
+   or a caption. The plot is 600 px tall, inside the body's 620 px. The aside
+   centres its legend (22 px/1.25, three series of up to two lines) and the
+   caption callout (up to 160 characters), and starts at the top if they are
+   taller than the body. */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.columns[data-aside='true'] {
+  grid-template-columns: minmax(0, 1fr) 480px;
+  gap: 60px;
+}
+
+.plot {
+  min-width: 0;
+  min-height: 0;
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  gap: 28px;
+  min-height: 0;
+}
+
+.legend {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legendItem {
+  position: relative;
+  padding-left: 40px;
+  overflow-wrap: anywhere;
+  font: 600 22px/1.25 var(--sw-font-body);
+}
+
+.swatch {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  width: 24px;
+  height: 20px;
+  border-radius: 4px;
+}

@@ -11,5 +11,5 @@ public interface IDeckEvents
 {
     Task PublishAsync(DeckEvent deckEvent);
 
-    IDisposable Subscribe(Guid? deckId, Func<DeckEvent, Task> handler);
+    IDisposable Subscribe(string? deckId, Func<DeckEvent, Task> handler);
 }

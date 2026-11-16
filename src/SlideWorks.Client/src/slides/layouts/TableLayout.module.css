@@ -1,0 +1,61 @@
+/* The heading is SlideHeading's; the root (.sw-layout) and body (.sw-body)
+   rules are the frame's.
+
+   table.st, on the geometry the server's table fit rule (LayoutRules.Table)
+   counts, so a table it accepts draws no taller than its estimate:
+   - 1680 px wide, split evenly across the columns (table-layout: fixed);
+   - header cells: 17 px lines in 22 px top and bottom padding (44 px + lines);
+   - body cells: 27 px/1.3 (35.1 px lines) in 22 px top and bottom padding
+     under a 1 px border (45 px + lines), wrapping word by word.
+   The estimate counts 0.56 em a character in a box 60 px narrower than the
+   column, but Title Case cells run to 0.58 em and the mockup's 17 px header
+   with 0.14 em spacing to about 0.82 em against its 0.75. So the cells take
+   24 px side padding (12 px more room than counted) and the header is 16 px
+   with 0.1 em spacing on its 17 px line; both then wrap no sooner than the
+   server counts. Change them only with LayoutRules.Table.
+   A toned cell's badge is 30 px tall and set to the top of its 35.1 px line,
+   so it never makes the line taller. */
+.table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border-radius: var(--sw-radius-lg);
+  background: var(--sw-card);
+  box-shadow: var(--sw-lift);
+  font: 400 27px/1.3 var(--sw-font-body);
+}
+
+.column {
+  padding: 22px 24px;
+  overflow-wrap: anywhere;
+  background: var(--sw-chip);
+  color: var(--sw-muted);
+  font: 700 16px/17px var(--sw-font-body);
+  letter-spacing: 0.1em;
+  text-align: left;
+  text-transform: uppercase;
+  vertical-align: top;
+}
+
+.cell {
+  padding: 22px 24px;
+  overflow-wrap: anywhere;
+  border-top: 1px solid var(--sw-grid);
+  vertical-align: top;
+}
+
+.cell > * {
+  margin-top: 2px;
+  vertical-align: top;
+}
+
+/* The highlighted row: a light accent band with an accent strip on its left. */
+.row[data-highlight='true'] > .cell {
+  background: color-mix(in srgb, var(--sw-accent-light) 50%, var(--sw-card));
+}
+
+.row[data-highlight='true'] > .cell:first-child {
+  box-shadow: inset 6px 0 0 var(--sw-accent);
+}

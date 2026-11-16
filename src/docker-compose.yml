@@ -9,6 +9,9 @@ services:
       - SLIDEWORKS_API_TOKEN=${SLIDEWORKS_API_TOKEN:-}
       - SLIDEWORKS_API_EXTRA_TOKENS=${SLIDEWORKS_API_EXTRA_TOKENS:-}
       - SLIDEWORKS_DB_PATH=/data/slide-works.db
+      # Required: the URL people and agents reach SlideWorks at (links, MCP and
+      # OAuth metadata are built from it). The app refuses to start without it.
+      - SLIDEWORKS_PUBLIC_URL=${SLIDEWORKS_PUBLIC_URL:-}
       # Console only until these are set; on the home stack Seq is
       # http://seq:5341 on arrnet.
       - SLIDEWORKS_SEQ_URL=${SLIDEWORKS_SEQ_URL:-}

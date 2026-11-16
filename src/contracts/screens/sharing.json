@@ -1,0 +1,10 @@
+{
+  "level": "named",
+  "viewers": ["alex@team.example", "mira@team.example"],
+  "link": "https://slideworks.example/d/7Kq2xYp9LmQa/ship-smaller",
+  "lastChange": {
+    "actor": "Claude",
+    "actorKind": "agent",
+    "atLabel": "just now"
+  }
+}

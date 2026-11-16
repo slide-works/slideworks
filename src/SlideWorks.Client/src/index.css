@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './theme/tokens.css';
 
 /* Playwright CT bundles each spec's components through its own virtual
    entry modules, which automatic content detection doesn't reliably walk —
@@ -7,21 +8,31 @@
 @source './**/*.{ts,tsx}';
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-head: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, monospace;
 
-  --color-ground: #0d1113;
-  --color-panel: #151b1d;
-  --color-edge: #222a2c;
-  --color-edge-strong: #2a3335;
+  /* The app's light ledger chrome (the slides use src/theme/tokens.css). */
+  --color-ground: #f4f5f7;
+  --color-panel: #ffffff;
+  --color-panel-2: #f0f2f5;
+  --color-edge: #e2e5ea;
+  --color-edge-strong: #d3d8e0;
 
-  --color-ink: #edeee9;
-  --color-ink-dim: #dcddd8;
-  --color-ink-muted: #8b938d;
-  --color-ink-faint: #7b837d;
+  --color-ink: #1b2230;
+  --color-ink-muted: #5b6474;
+  --color-ink-faint: #8a93a3;
 
-  --color-signal: #e9ae4f;
-  --color-signal-ink: #1a1512;
+  --color-accent: #2f5bea;
+  --color-accent-soft: #e6ecfd;
+  --color-accent-dark: #1e3a8a;
+
+  --color-ok: #18794e;
+  --color-ok-soft: #e3f4ea;
+  --color-warn: #b4580b;
+  --color-warn-soft: #fdf0e1;
+  --color-bad: #c0362c;
+  --color-bad-soft: #fbe7e5;
 
   --text-meta: 0.8125rem;
   --text-meta--line-height: 1.45;
@@ -31,13 +42,15 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
+    margin: 0;
     background: var(--color-ground);
-    color: var(--color-ink-dim);
+    color: var(--color-ink);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 
   button {
@@ -59,15 +72,15 @@
   .field {
     @apply bg-panel border border-edge-strong rounded-panel
            px-3 py-2 text-meta text-ink placeholder:text-ink-faint
-           focus:outline-none focus:ring-1 focus:ring-signal;
+           focus:outline-none focus:ring-1 focus:ring-accent;
   }
 
-  .btn-signal {
+  .btn-primary {
     @apply inline-flex items-center justify-center gap-1.5
-           bg-signal text-signal-ink rounded-panel px-4 py-2
-           text-meta font-medium transition-colors hover:bg-signal/85
+           bg-accent text-white rounded-panel px-4 py-2
+           text-meta font-medium transition-colors hover:bg-accent/85
            focus-visible:outline-2 focus-visible:outline-offset-2
-           focus-visible:outline-signal;
+           focus-visible:outline-accent;
   }
 
   .btn-ghost {
@@ -76,6 +89,20 @@
            text-meta font-medium text-ink-muted transition-colors
            hover:border-ink-faint hover:text-ink
            focus-visible:outline-2 focus-visible:outline-offset-2
-           focus-visible:outline-signal;
+           focus-visible:outline-accent;
+  }
+}
+
+/* Reveal (src/slides/Reveal.tsx) fades a step's item in; reduced motion turns
+   the fade off. */
+.sw-reveal {
+  transition:
+    opacity 0.45s ease,
+    visibility 0.45s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sw-reveal {
+    transition: none;
   }
 }

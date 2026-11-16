@@ -14,7 +14,7 @@ public class DeckEventsBusTests : ApiTestFixture
     [Test]
     public async Task Subscribe_WhenGivenADeck_ShouldDeliverOnlyThatDecksEventsInOrder()
     {
-        var (deck, other) = (Guid.NewGuid(), Guid.NewGuid());
+        var (deck, other) = (TestDeckIds.New(), TestDeckIds.New());
         var received = Channel.CreateUnbounded<DeckEvent>();
         using var subscription = Bus.Subscribe(deck, e => received.Writer.WriteAsync(e).AsTask());
 
@@ -28,10 +28,25 @@ public class DeckEventsBusTests : ApiTestFixture
         (await received.Reader.ReadAsync()).ShouldBeSameAs(second);
     }
 
+    // Deck ids are base62, so two ids that differ only in case are two decks.
+    [Test]
+    public async Task Subscribe_WhenAnotherDeckIdDiffersOnlyInCase_ShouldNotDeliverIt()
+    {
+        var deck = "abcDEF123xyz";
+        var received = Channel.CreateUnbounded<DeckEvent>();
+        using var subscription = Bus.Subscribe(deck, e => received.Writer.WriteAsync(e).AsTask());
+
+        await Bus.PublishAsync(new DeckChanged(deck.ToUpperInvariant()));
+        var own = new DeckChanged(deck);
+        await Bus.PublishAsync(own);
+
+        (await received.Reader.ReadAsync()).ShouldBeSameAs(own);
+    }
+
     [Test]
     public async Task Subscribe_WhenHandlerThrows_ShouldKeepDelivering()
     {
-        var deck = Guid.NewGuid();
+        var deck = TestDeckIds.New();
         var received = Channel.CreateUnbounded<DeckEvent>();
         var calls = 0;
         using var subscription = Bus.Subscribe(deck, e =>
@@ -53,7 +68,7 @@ public class DeckEventsBusTests : ApiTestFixture
     [Test]
     public async Task Dispose_WhenSubscriptionDisposed_ShouldStopDelivering()
     {
-        var deck = Guid.NewGuid();
+        var deck = TestDeckIds.New();
         var disposedReceived = Channel.CreateUnbounded<DeckEvent>();
         var witness = Channel.CreateUnbounded<DeckEvent>();
         var disposed = Bus.Subscribe(deck, e => disposedReceived.Writer.WriteAsync(e).AsTask());

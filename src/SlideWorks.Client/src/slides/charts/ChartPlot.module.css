@@ -1,0 +1,73 @@
+/* The chart's SVG (the mockup's .chart svg), in canvas px: 22 px muted tick
+   and x labels, 2 px grid lines, a darker zero line, 24 px bold values over
+   single-series bars, 5 px lines with 7 px points, and a dashed accent-dark
+   marker with a 20 px bold label. */
+.plot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.plot text {
+  font-family: var(--sw-font-body);
+}
+
+.grid {
+  stroke: var(--sw-grid);
+  stroke-width: 2;
+}
+
+.axis {
+  stroke: #cbd2dc;
+  stroke-width: 2;
+}
+
+.tick {
+  fill: var(--sw-muted);
+  font-size: 22px;
+  text-anchor: end;
+}
+
+.label {
+  fill: var(--sw-muted);
+  font-size: 22px;
+  text-anchor: middle;
+}
+
+.tilted {
+  fill: var(--sw-muted);
+  font-size: 22px;
+  text-anchor: end;
+}
+
+.value {
+  fill: var(--sw-accent-dark);
+  font-size: 24px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.line {
+  fill: none;
+  stroke-width: 5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.point {
+  stroke: var(--sw-card);
+  stroke-width: 3;
+}
+
+.marker {
+  stroke: var(--sw-accent-dark);
+  stroke-width: 2;
+  stroke-dasharray: 6 8;
+}
+
+.markerLabel {
+  fill: var(--sw-accent-dark);
+  font-size: 20px;
+  font-weight: 700;
+}

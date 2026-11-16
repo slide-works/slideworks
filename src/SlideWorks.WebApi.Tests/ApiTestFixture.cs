@@ -1,22 +1,27 @@
-using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
+using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests;
 
-// Shared plumbing for black-box API fixtures: each fixture gets its own app
-// (and temp SQLite file) and an already-authenticated client. Prerequisite data
-// is created through the public API only, never by reaching into the database.
+// Shared plumbing for black-box API fixtures: each fixture gets its own app (and temp SQLite file) and a client signed in
+// as SignedInAs. Prerequisite data is created through the public API only, never by reaching into the database.
 public abstract class ApiTestFixture
 {
+    // No longer accepted anywhere: the static token is gone. AnonymousRoutesTests still sends it on its control request,
+    // where it is ignored.
     protected const string TEST_TOKEN = "integration-test-token";
 
     private string _dbPath = null!;
     private WebApplicationFactory<ApiMarker> _factory = null!;
 
+    // Signed in as SignedInAs.
     protected HttpClient Client { get; private set; } = null!;
     protected WebApplicationFactory<ApiMarker> Factory => _factory;
+
+    // Who Client is signed in as. Anonymous means Client sends no sign-in at all.
+    protected virtual TestUser SignedInAs => TestUser.Sam;
 
     // A fake clock, so anything the API stamps or formats is assertable. It starts at the real time (to the second), not a
     // fixed date: the API's stamps also reach code on the real clock (a cookie jar, a browser, the database), and a fixed
@@ -35,12 +40,8 @@ public abstract class ApiTestFixture
     public void CreateAppAndClient()
     {
         _dbPath = TestAppFactory.NewDatabasePath();
-        _factory = TestAppFactory.Create(
-            _dbPath,
-            TEST_TOKEN,
-            Clock, ExtraConfig, NamedHandlers, ConfigureTestServices);
-        Client = _factory.CreateClient();
-        Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", TEST_TOKEN);
+        _factory = TestAppFactory.Create(_dbPath, Clock, ExtraConfig, NamedHandlers, ConfigureTestServices);
+        Client = ClientFor(SignedInAs);
     }
 
     [OneTimeTearDown]
@@ -49,5 +50,19 @@ public abstract class ApiTestFixture
         Client.Dispose();
         _factory.Dispose();
         TestAppFactory.DeleteDatabase(_dbPath);
+    }
+
+    // A client for another person (or Anonymous), as a browser on SlideWorks' own pages would be: every request carries
+    // the public Origin, so writes pass the cross-site write guard. A test of the guard sets its own Origin per request.
+    // The caller disposes it.
+    protected HttpClient ClientFor(TestUser user)
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("Origin", TestAppFactory.PUBLIC_URL);
+        if (!user.IsAnonymous)
+        {
+            client.DefaultRequestHeaders.Add(TestAuthScheme.HEADER, user.Email);
+        }
+        return client;
     }
 }

@@ -1,0 +1,9 @@
+/* The heading is SlideHeading's; the root (.sw-layout) and body (.sw-body)
+   rules are the frame's, and .sw-body already fills the height that is left.
+
+   .cmp: two 820 px panels 40 px apart. */
+.panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 40px;
+}

@@ -1,0 +1,5 @@
+{
+  "clientName": "Claude",
+  "scope": "decks",
+  "returnsTo": "127.0.0.1:33418"
+}

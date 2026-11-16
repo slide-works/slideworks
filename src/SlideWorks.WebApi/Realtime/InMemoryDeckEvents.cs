@@ -20,7 +20,7 @@ public sealed class InMemoryDeckEvents(ILogger<InMemoryDeckEvents> logger) : IDe
         return Task.CompletedTask;
     }
 
-    public IDisposable Subscribe(Guid? deckId, Func<DeckEvent, Task> handler)
+    public IDisposable Subscribe(string? deckId, Func<DeckEvent, Task> handler)
     {
         var subscription = new Subscription(deckId, handler, logger, Remove);
         ImmutableInterlocked.Update(ref _subscriptions, list => list.Add(subscription));
@@ -40,20 +40,20 @@ public sealed class InMemoryDeckEvents(ILogger<InMemoryDeckEvents> logger) : IDe
 
     private sealed class Subscription : IDisposable
     {
-        private readonly Guid? _deckId;
+        private readonly string? _deckId;
         private readonly Channel<DeckEvent> _queue = Channel.CreateUnbounded<DeckEvent>();
         private readonly CancellationTokenSource _stop = new();
         private readonly Action<Subscription> _remove;
         private int _disposed;
 
-        public Subscription(Guid? deckId, Func<DeckEvent, Task> handler, ILogger logger, Action<Subscription> remove)
+        public Subscription(string? deckId, Func<DeckEvent, Task> handler, ILogger logger, Action<Subscription> remove)
         {
             _deckId = deckId;
             _remove = remove;
             _ = Task.Run(() => PumpAsync(handler, logger), _stop.Token);
         }
 
-        public bool Wants(DeckEvent deckEvent) => _deckId == null || _deckId == deckEvent.DeckId;
+        public bool Wants(DeckEvent deckEvent) => _deckId == null || string.Equals(_deckId, deckEvent.DeckId, StringComparison.Ordinal);
 
         public void Enqueue(DeckEvent deckEvent) => _queue.Writer.TryWrite(deckEvent);
 

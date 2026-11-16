@@ -1,0 +1,115 @@
+{
+  "id": "7Kq2xYp9LmQa",
+  "slug": "ship-smaller",
+  "title": "Ship smaller",
+  "author": "Sam Rivera",
+  "isOwner": true,
+  "playUrl": "/d/7Kq2xYp9LmQa/ship-smaller",
+  "sharing": {
+    "level": "link",
+    "viewerCount": 0
+  },
+  "parts": ["The cost", "Slice it", "Ship it", "Make it stick"],
+  "slides": [
+    {
+      "number": 1,
+      "layout": "title",
+      "part": 1,
+      "headline": "Ship smaller",
+      "steps": 0,
+      "notes": "Say: one sentence on why this matters to this room. Keep it under 30 seconds.",
+      "link": "/d/7Kq2xYp9LmQa/ship-smaller#1",
+      "slots": {
+        "kicker": "Team offsite · 2026",
+        "title": "Ship smaller",
+        "subtitle": "Why small batches beat big plans, and how to start on Monday",
+        "tagline": "One change a day beats one launch a quarter.",
+        "author": "Sam Rivera",
+        "affiliation": "Product Engineering",
+        "stamp": "Draft"
+      }
+    },
+    {
+      "number": 2,
+      "layout": "practice",
+      "part": 2,
+      "headline": "Slice by what a customer can do, not by layer",
+      "steps": 0,
+      "notes": "Say: ask the room for last month's biggest story, and slice it live on the whiteboard.",
+      "link": "/d/7Kq2xYp9LmQa/ship-smaller#2",
+      "slots": {
+        "kicker": "Slice it",
+        "headline": "Slice by what a customer can do, not by layer",
+        "do": [
+          {
+            "lead": "Start from one user action",
+            "text": "and build every layer it needs, thinly."
+          },
+          {
+            "lead": "Hard-code the second case.",
+            "text": "Generalise when the third one arrives."
+          },
+          {
+            "lead": "Ship behind a flag",
+            "text": "to one team first, then widen."
+          },
+          {
+            "lead": "Write the demo sentence first:",
+            "text": "\"Now a customer can …\""
+          }
+        ],
+        "comes_back": [
+          "Feedback in days, not quarters.",
+          "A merge that's small enough to review in one sitting."
+        ],
+        "avoid": [
+          "\"API first, UI later.\" That's two batches, not two slices."
+        ],
+        "callout": {
+          "tone": "bad",
+          "text": "If a slice can't be demoed to a customer, it isn't a slice yet."
+        }
+      }
+    },
+    {
+      "number": 3,
+      "layout": "close",
+      "part": 4,
+      "headline": "Pick one story.\nShip half of it by Friday.",
+      "steps": 0,
+      "notes": "End on the ask. Then questions.",
+      "link": "/d/7Kq2xYp9LmQa/ship-smaller#3",
+      "slots": {
+        "headline": "Pick one story.\nShip half of it by Friday.",
+        "sub": "Then tell us what you learned at the next demo.",
+        "author": "Sam Rivera · Product Engineering"
+      }
+    }
+  ],
+  "activity": [
+    {
+      "actor": "Claude",
+      "actorKind": "agent",
+      "via": "mcp",
+      "tool": "add_slide",
+      "summary": "added slide 3 close",
+      "atLabel": "2 min ago"
+    },
+    {
+      "actor": "Claude",
+      "actorKind": "agent",
+      "via": "mcp",
+      "tool": "set_sharing",
+      "summary": "changed sharing: Private → Anyone with the link",
+      "atLabel": "5 min ago"
+    },
+    {
+      "actor": "Claude",
+      "actorKind": "agent",
+      "via": "mcp",
+      "tool": "create_deck",
+      "summary": "created the deck",
+      "atLabel": "9 min ago"
+    }
+  ]
+}

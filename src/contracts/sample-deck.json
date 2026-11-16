@@ -1,0 +1,457 @@
+{
+  "id": "shipSmaller1",
+  "slug": "ship-smaller",
+  "title": "Ship smaller",
+  "author": "Sam Rivera",
+  "parts": [
+    "The cost",
+    "Slice it",
+    "Ship it",
+    "Make it stick"
+  ],
+  "slides": [
+    {
+      "number": 1,
+      "layout": "title",
+      "part": null,
+      "steps": 0,
+      "slots": {
+        "kicker": "Team offsite · 2026",
+        "title": "Ship smaller",
+        "subtitle": "Why small batches beat big plans, and how to start on Monday",
+        "tagline": "One change a day beats one launch a quarter.",
+        "author": "Sam Rivera",
+        "affiliation": "Product Engineering",
+        "stamp": "Draft"
+      }
+    },
+    {
+      "number": 2,
+      "layout": "divider",
+      "part": 1,
+      "steps": 0,
+      "slots": {
+        "title": "Big batches hide the risk",
+        "sub": "Why the quarter-long launch keeps slipping."
+      }
+    },
+    {
+      "number": 3,
+      "layout": "bullets",
+      "part": 1,
+      "steps": 4,
+      "slots": {
+        "kicker": "The pattern",
+        "headline": "Every slip we had last year started as a big batch",
+        "items": [
+          {
+            "lead": "Risk shows up late.",
+            "text": "The first real customer sees it in week ten."
+          },
+          {
+            "lead": "Merges get scary.",
+            "text": "Long branches collide, so people stop merging."
+          },
+          {
+            "lead": "Feedback arrives as a verdict,",
+            "text": "not a nudge. By then it is too late to change course cheaply."
+          },
+          {
+            "lead": "Nobody can say how far along we are,",
+            "text": "because nothing is done until everything is."
+          }
+        ],
+        "reveal": "one-by-one"
+      }
+    },
+    {
+      "number": 4,
+      "layout": "big-number",
+      "part": 1,
+      "steps": 0,
+      "slots": {
+        "kicker": "Last year, measured",
+        "headline": "It took us eleven weeks to get a change in front of a customer",
+        "value": "11 wks",
+        "caption": "Median from first commit to the first customer using it.",
+        "detail": "Eight of our 12 launches waited on one last piece of work that had nothing to do with the rest.",
+        "source": "Delivery data Jan–Oct, 12 launches."
+      }
+    },
+    {
+      "number": 5,
+      "layout": "gantt",
+      "part": 1,
+      "steps": 0,
+      "slots": {
+        "kicker": "What it looked like",
+        "headline": "One milestone each looks fair. Nothing reaches customers until sprint 6.",
+        "columns": [
+          "Sprint 1",
+          "Sprint 2",
+          "Sprint 3",
+          "Sprint 4",
+          "Sprint 5",
+          "Sprint 6"
+        ],
+        "rows": [
+          {
+            "label": "Checkout API",
+            "start": 1,
+            "end": 2,
+            "status": "done",
+            "note": "Done"
+          },
+          {
+            "label": "Web checkout",
+            "start": 2,
+            "end": 3,
+            "status": "done",
+            "note": "Done"
+          },
+          {
+            "label": "Mobile checkout",
+            "start": 3,
+            "end": 5,
+            "status": "slips",
+            "note": "Slips"
+          },
+          {
+            "label": "Payments partner",
+            "start": 4,
+            "end": 5,
+            "status": "stopped",
+            "note": "Stopped"
+          },
+          {
+            "label": "Customers see it",
+            "start": 6,
+            "end": 6,
+            "status": "ship",
+            "note": "Ship"
+          }
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "layout": "quote",
+      "part": 1,
+      "steps": 0,
+      "slots": {
+        "kicker": "From the retro",
+        "quote": "We stopped asking ‘is it done?’ and started asking ‘is it out?’ The second question is much harder to fudge.",
+        "attribution": "Team lead, payments squad"
+      }
+    },
+    {
+      "number": 7,
+      "layout": "divider",
+      "part": 2,
+      "steps": 0,
+      "slots": {
+        "title": "Slice it thin",
+        "sub": "How to cut work so each piece reaches a customer."
+      }
+    },
+    {
+      "number": 8,
+      "layout": "practice",
+      "part": 2,
+      "steps": 0,
+      "slots": {
+        "kicker": "Slice it",
+        "headline": "Slice by what a customer can do, not by layer",
+        "do": [
+          {
+            "lead": "Start from one user action",
+            "text": "and build every layer it needs, thinly."
+          },
+          {
+            "lead": "Hard-code the second case.",
+            "text": "Generalise when the third one arrives."
+          },
+          {
+            "lead": "Ship behind a flag",
+            "text": "to one team first, then widen."
+          },
+          {
+            "lead": "Write the demo sentence first:",
+            "text": "\"Now a customer can …\""
+          }
+        ],
+        "comes_back": [
+          "Feedback in days, not quarters.",
+          "A merge that's small enough to review in one sitting."
+        ],
+        "avoid": [
+          "\"API first, UI later.\" That's two batches, not two slices."
+        ],
+        "callout": {
+          "tone": "bad",
+          "text": "If a slice can't be demoed to a customer, it isn't a slice yet."
+        }
+      }
+    },
+    {
+      "number": 9,
+      "layout": "compare",
+      "part": 2,
+      "steps": 0,
+      "slots": {
+        "kicker": "Same feature, two ways",
+        "headline": "The difference is when the customer gets to answer",
+        "failure": {
+          "label": "Failure mode",
+          "title": "Slice by layer",
+          "points": [
+            "Database, then API, then UI",
+            "Nothing to show for five sprints",
+            "The first customer feedback rewrites the API"
+          ]
+        },
+        "success": {
+          "label": "Success mode",
+          "title": "Slice by customer action",
+          "points": [
+            "\"Save a card\", then \"pay with a saved card\"",
+            "Something to demo every week",
+            "Feedback changes week 2, not week 10"
+          ]
+        }
+      }
+    },
+    {
+      "number": 10,
+      "layout": "two-column",
+      "part": 2,
+      "steps": 0,
+      "slots": {
+        "kicker": "The tool",
+        "headline": "A story map shows the thinnest release",
+        "left": {
+          "items": [
+            {
+              "lead": "Across:",
+              "text": "the steps a customer takes"
+            },
+            {
+              "lead": "Down:",
+              "text": "richer versions of each step"
+            },
+            {
+              "lead": "Top row:",
+              "text": "the first release. It covers every step, done simply."
+            }
+          ]
+        },
+        "right": {
+          "image": {
+            "image": "img_sample0001",
+            "alt": "A story map: four customer steps across the top (browse, add to cart, pay, track), richer versions below, and the first release as a blue band across the top row."
+          }
+        }
+      }
+    },
+    {
+      "number": 11,
+      "layout": "table",
+      "part": 2,
+      "steps": 0,
+      "slots": {
+        "kicker": "Sizing",
+        "headline": "Aim for slices a pair can ship inside a week",
+        "columns": [
+          "Slice size",
+          "Review time",
+          "Rollback",
+          "Customer feedback",
+          "Verdict"
+        ],
+        "rows": [
+          [
+            "One quarter",
+            "Days",
+            "Painful",
+            "Week 10+",
+            {
+              "text": "Avoid",
+              "tone": "bad"
+            }
+          ],
+          [
+            "One sprint",
+            "Hours",
+            "Possible",
+            "Week 2–3",
+            {
+              "text": "OK",
+              "tone": "warn"
+            }
+          ],
+          [
+            "2–4 days",
+            "Under an hour",
+            "Flip a flag",
+            "Same week",
+            {
+              "text": "Target",
+              "tone": "good"
+            }
+          ],
+          [
+            "Under a day",
+            "Minutes",
+            "Flip a flag",
+            "Same week",
+            {
+              "text": "Great",
+              "tone": "info"
+            }
+          ]
+        ],
+        "highlightRow": 3
+      }
+    },
+    {
+      "number": 12,
+      "layout": "chart",
+      "part": 3,
+      "steps": 0,
+      "slots": {
+        "kicker": "Ship it",
+        "headline": "Lead time fell as the slices got smaller",
+        "kind": "bar",
+        "xLabels": [
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct"
+        ],
+        "series": [
+          {
+            "name": "Lead time",
+            "values": [
+              11,
+              10,
+              8,
+              5,
+              3,
+              2
+            ]
+          }
+        ],
+        "yUnit": "wk",
+        "caption": "Weeks from first commit to the first customer. The median fell from 11 to 2.",
+        "marker": {
+          "x": 3.5,
+          "label": "Flags on"
+        }
+      }
+    },
+    {
+      "number": 13,
+      "layout": "numbered-cards",
+      "part": 3,
+      "steps": 0,
+      "slots": {
+        "kicker": "Before you split a story",
+        "headline": "Four questions, in this order",
+        "cards": [
+          {
+            "title": "Who notices?",
+            "text": "Name the person who would see the change on day one."
+          },
+          {
+            "title": "What's the thinnest version?",
+            "text": "Hard-code anything that isn't the point."
+          },
+          {
+            "title": "Can it hide behind a flag?",
+            "text": "If not, what would have to change so it can?"
+          },
+          {
+            "title": "What would we learn?",
+            "text": "If the answer is \"nothing\", pick another slice."
+          }
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "layout": "rules",
+      "part": 4,
+      "steps": 0,
+      "slots": {
+        "kicker": "Make it stick",
+        "headline": "Three rules for the first month",
+        "rules": [
+          {
+            "title": "Merge to main every day",
+            "text": "Unfinished work goes behind a flag, not on a branch."
+          },
+          {
+            "title": "Demo something every Friday",
+            "text": "To a customer if you can, and to the team if you can't."
+          },
+          {
+            "title": "Split any story older than a week",
+            "text": "Ship what's done, and make the rest a new story."
+          }
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "layout": "cards",
+      "part": 4,
+      "steps": 0,
+      "slots": {
+        "kicker": "Who does what",
+        "headline": "Everyone changes one habit",
+        "cards": [
+          {
+            "badge": "Product",
+            "title": "Write the demo sentence",
+            "text": "Every story starts with \"Now a customer can …\".",
+            "chips": [
+              "story map",
+              "flag plan"
+            ]
+          },
+          {
+            "badge": "Engineering",
+            "title": "Merge daily, behind flags",
+            "text": "Small pull requests that can be reviewed in one sitting.",
+            "chips": [
+              "trunk",
+              "flags",
+              "pairing"
+            ]
+          },
+          {
+            "badge": "Design",
+            "title": "Design the thin version too",
+            "text": "Release 1 needs a design, not only the final vision.",
+            "chips": [
+              "release 1 mock"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "layout": "close",
+      "part": 4,
+      "steps": 0,
+      "slots": {
+        "headline": "Pick one story.\nShip half of it by Friday.",
+        "sub": "Then tell us what you learned at the next demo.",
+        "author": "Sam Rivera · Product Engineering"
+      }
+    }
+  ]
+}

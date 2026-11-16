@@ -1,0 +1,36 @@
+/* .rules: rules 34 px apart, each a 170 px column for a 150 px/0.85 outline
+   numeral (a 3 px accent stroke, no fill) beside a 42 px/1.2 title and
+   26 px/1.4 muted text 10 px under it, centred on the numeral. */
+.rules {
+  display: grid;
+  gap: 34px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rule {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  align-items: center;
+}
+
+.number {
+  color: transparent;
+  font: 800 150px/0.85 var(--sw-font-head);
+  -webkit-text-stroke: 3px var(--sw-accent);
+}
+
+.title {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 700 42px/1.2 var(--sw-font-head);
+  letter-spacing: -0.015em;
+}
+
+.text {
+  margin: 10px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--sw-muted);
+  font: 400 26px/1.4 var(--sw-font-body);
+}

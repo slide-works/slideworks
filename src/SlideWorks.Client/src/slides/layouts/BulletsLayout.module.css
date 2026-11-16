@@ -1,0 +1,34 @@
+/* The heading is SlideHeading's; the root (.sw-layout) and body (.sw-body)
+   rules are the frame's. */
+
+/* ul.bl: 36 px/1.35 points with a 52 px indent in a 1500 px list, 30 px apart. */
+.items {
+  display: grid;
+  gap: 30px;
+  max-width: 1500px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  position: relative;
+  padding-left: 52px;
+  overflow-wrap: anywhere;
+  font: 400 36px/1.35 var(--sw-font-body);
+}
+
+.item::before {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--sw-accent);
+}
+
+.callout {
+  margin-top: 30px;
+}

@@ -438,6 +438,8 @@ FodyWeavers.xsd
 *.db
 *.db-shm
 *.db-wal
+# Uploaded images in local dev (SLIDEWORKS_DATA_PATH in appsettings.Development.json)
+slide-works-dev-data/
 
 # SPA build output (Books.Client builds straight into the API's wwwroot)
 src/SlideWorks.WebApi/wwwroot/

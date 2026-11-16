@@ -1,0 +1,91 @@
+/* The heading is SlideHeading's; the root (.sw-layout) and body (.sw-body)
+   rules are the frame's. */
+
+/* .practice: 1.15fr 1fr with a 48 px gap (873 and 759 px). Each list opens
+   with an 18 px header (16 px under it); an .it card is 22/26 px padding round
+   25 px/1.4 text, 14 px apart; "What comes back" and Avoid cards carry a green
+   or red strip and 34 px left padding. The mockup's cards each keep 14 px
+   under them, so a list sits 40 px over the next one and 36 px over the
+   callout, as the server's fit check (LayoutRules.Practice) counts. */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: start;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.group + .group {
+  margin-top: 40px;
+}
+
+.header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 0 0 2px;
+  color: var(--sw-accent);
+  font: 700 18px/1 var(--sw-font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.header::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+.header[data-tone='good'] {
+  color: var(--sw-good);
+}
+
+.header[data-tone='bad'] {
+  color: var(--sw-bad);
+}
+
+.card {
+  margin: 0;
+  padding: 22px 26px;
+  overflow-wrap: anywhere;
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-card);
+  box-shadow: var(--sw-lift);
+  font: 400 25px/1.4 var(--sw-font-body);
+}
+
+.card[data-tone='good'] {
+  padding-left: 34px;
+  box-shadow:
+    var(--sw-lift),
+    inset 6px 0 0 var(--sw-good);
+}
+
+.card[data-tone='bad'] {
+  padding-left: 34px;
+  box-shadow:
+    var(--sw-lift),
+    inset 6px 0 0 var(--sw-bad);
+}
+
+.lead {
+  color: var(--sw-accent-dark);
+  font-weight: 600;
+}
+
+.callout {
+  margin-top: 36px;
+}

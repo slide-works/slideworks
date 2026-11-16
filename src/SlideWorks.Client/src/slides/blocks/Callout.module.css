@@ -1,0 +1,28 @@
+/* The callout block (the mockup's .callout), in canvas px: 28 px/1.35 bold
+   heading text in 28/36 px padding. Its tone carries meaning: info is the
+   accent, bad and good add a coloured strip down the left edge. The layout
+   that places it sets the space around it. */
+.callout {
+  margin: 0;
+  padding: 28px 36px;
+  overflow-wrap: anywhere;
+  border-radius: 14px;
+  font: 700 28px/1.35 var(--sw-font-head);
+}
+
+.callout[data-tone='info'] {
+  background: var(--sw-info-soft);
+  color: var(--sw-info-ink);
+}
+
+.callout[data-tone='bad'] {
+  background: var(--sw-bad-soft);
+  box-shadow: inset 6px 0 0 var(--sw-bad);
+  color: var(--sw-ink);
+}
+
+.callout[data-tone='good'] {
+  background: var(--sw-good-soft);
+  box-shadow: inset 6px 0 0 var(--sw-good);
+  color: var(--sw-ink);
+}

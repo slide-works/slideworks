@@ -1,0 +1,124 @@
+/* The default theme's slide chrome (D4, D5), in canvas px on the 1920×1080
+   slide. Geometry the layouts rely on:
+   - content box: 150 px top, 120 px sides and bottom (the tokens' padding);
+     a layout's body may run 36 px into the bottom padding, to y = 996;
+   - footer text: 17 px, line height 1, 40 px from the bottom, so y = 1023–1040;
+   - part tracker: 40 px from the top, 120 px in from each side;
+   - progress bar: the bottom 5 px, from x = 0.
+   The layout seam: every layout's root element takes .sw-layout, so it fills
+   the content box (x 120–1800, y 150–960) as the frame's flex item; a content
+   layout's body under its kicker and headline takes .sw-body, which fills the
+   remaining height and is not clipped, so its content may run to y = 996. */
+
+.sw-frame {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: var(--sw-slide-width);
+  height: var(--sw-slide-height);
+  padding: var(--sw-slide-pad-top) var(--sw-slide-pad-x) var(--sw-slide-pad-bottom);
+  overflow: hidden;
+  background: var(--sw-paper);
+  color: var(--sw-ink);
+  font-family: var(--sw-font-body);
+}
+
+.sw-frame[data-dark='true'] {
+  background: var(--sw-night-surface);
+  color: var(--sw-night-ink);
+}
+
+.sw-frame *,
+.sw-frame *::before,
+.sw-frame *::after {
+  box-sizing: border-box;
+}
+
+/* Every layout's root element: the frame's one flow child. */
+.sw-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* A content layout's body, under the kicker and headline (the mockup's .bd). */
+.sw-body {
+  flex: 1;
+  min-height: 0;
+  margin-top: var(--sw-space-5);
+}
+
+/* The accent strip across the top of every slide. */
+.sw-frame::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 3;
+  height: var(--sw-top-bar);
+  background: var(--sw-accent);
+}
+
+.sw-tracker {
+  position: absolute;
+  top: 40px;
+  right: var(--sw-slide-pad-x);
+  left: var(--sw-slide-pad-x);
+  display: flex;
+  gap: var(--sw-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sw-tracker li {
+  flex: 1;
+  min-width: 0;
+  padding-top: 12px;
+  overflow: hidden;
+  border-top: 4px solid var(--sw-grid);
+  color: var(--sw-muted);
+  font: 700 14px/1 var(--sw-font-body);
+  letter-spacing: 0.14em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
+.sw-tracker li[data-state='past'] {
+  border-top-color: var(--sw-accent-past);
+}
+
+.sw-tracker li[data-state='on'] {
+  border-top-color: var(--sw-accent);
+  color: var(--sw-accent-dark);
+  opacity: 1;
+}
+
+.sw-footer {
+  position: absolute;
+  right: var(--sw-slide-pad-x);
+  bottom: 40px;
+  left: var(--sw-slide-pad-x);
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  color: var(--sw-muted);
+  font: 500 17px/1 var(--sw-font-body);
+}
+
+.sw-footer b {
+  color: var(--sw-accent-dark);
+}
+
+.sw-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: var(--sw-progress-bar);
+  background: var(--sw-accent);
+}

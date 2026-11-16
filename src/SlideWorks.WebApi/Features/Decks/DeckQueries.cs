@@ -1,0 +1,171 @@
+using Agoda.IoC.Core;
+using Microsoft.EntityFrameworkCore;
+using SlideWorks.Core;
+using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Features.Activity;
+using SlideWorks.WebApi.Features.Decks.Mcp;
+using SlideWorks.WebApi.Features.Decks.Views;
+using SlideWorks.WebApi.Features.Sharing;
+using SlideWorks.WebApi.Infrastructure;
+using SlideWorks.WebApi.Infrastructure.Identity;
+
+namespace SlideWorks.WebApi.Features.Decks;
+
+// The presenter's reads: the decks library and the deck page (K4), and the list_decks and get_deck_url tools (K6). Every
+// read is an AsNoTracking projection, deleted slides never count or show, and time labels are formatted here from
+// TimeProvider. The deck page is the owner's: anyone else, viewers included, gets 404 "Deck not found".
+[RegisterPerRequest]
+public class DeckQueries(AppDbContext db, ICurrentActor actor, IDeckAccess access, IActivityLog activity, IPublicUrls urls, TimeProvider clock)
+{
+    public const int ACTIVITY_MAX = 50;
+
+    public async Task<DecksLibraryView> LibraryAsync()
+    {
+        var presenterId = PresenterId();
+        var connected = await db.AgentTokens.AsNoTracking().AnyAsync(t => t.PresenterId == presenterId && t.RevokedAt == null);
+        return new DecksLibraryView(await OwnDecksAsync(presenterId), await SharedWithMeAsync(presenterId), new ConnectAgent(!connected, urls.Mcp));
+    }
+
+    public async Task<DeckPageView> PageAsync(string deckId)
+    {
+        await RequireOwnerAsync(deckId);
+        var now = clock.GetUtcNow();
+        var deck = await db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);
+        var slides = await db.Slides.AsNoTracking()
+            .Where(s => s.DeckId == deckId && s.DeletedAt == null)
+            .OrderBy(s => s.Position)
+            .ToListAsync();
+        var viewerCount = await db.DeckViewers.AsNoTracking().CountAsync(v => v.DeckId == deckId);
+        var entries = await activity.ListAsync(deckId, ACTIVITY_MAX);
+        return new DeckPageView(
+            deck.Id,
+            deck.Slug,
+            deck.Title,
+            deck.Author,
+            IsOwner: true,
+            DeckLinks.Play(deck.Id, deck.Slug),
+            SharingSummary.From(deck.Sharing, viewerCount),
+            DeckParts.Read(deck),
+            slides.Select(slide => DeckPageSlide.From(deck, slide)).ToList(),
+            entries.Select(entry => ActivityRow.From(entry, DisplayDate.Ago(entry.At, now))).ToList());
+    }
+
+    // list_decks: the decks the agent's presenter owns, newest change first, with absolute player links.
+    public async Task<ListDecksResult> ListForAgentAsync()
+        => new((await OwnDecksAsync(PresenterId())).Select(row => ListedDeck.From(row, urls.Deck(row.Id, row.Slug))).ToList());
+
+    // get_deck_url: the absolute player link, to one slide (#n) or one step of it (#n.s) when given. Slide is 1-based
+    // among the live slides; step runs from 0 to the slide's steps.
+    public async Task<GetDeckUrlResult> UrlAsync(string deckId, int? slide, int? step)
+    {
+        await RequireOwnerAsync(deckId);
+        var deck = await db.Decks.AsNoTracking().Where(d => d.Id == deckId).Select(d => new { d.Id, d.Slug }).SingleAsync();
+        if (slide == null)
+        {
+            return step == null
+                ? new GetDeckUrlResult(urls.Deck(deck.Id, deck.Slug))
+                : throw new BadRequestException("step: needs a slide");
+        }
+        var live = db.Slides.AsNoTracking().Where(s => s.DeckId == deckId && s.DeletedAt == null);
+        var steps = await live.Where(s => s.Position == slide - 1).Select(s => (int?)s.Steps).SingleOrDefaultAsync();
+        if (steps == null)
+        {
+            throw new BadRequestException($"slide: no slide {slide}; the deck has {await live.CountAsync()}");
+        }
+        if (step < 0 || step > steps)
+        {
+            throw new BadRequestException($"step: slide {slide} has steps 0 to {steps}");
+        }
+        return new GetDeckUrlResult(urls.Deck(deck.Id, deck.Slug, slide, step));
+    }
+
+    private Guid PresenterId() => actor.PresenterId ?? throw new InvalidOperationException("Reading decks needs a signed-in caller.");
+
+    private async Task RequireOwnerAsync(string deckId)
+    {
+        if (!await access.CanEditAsync(deckId, actor))
+        {
+            throw new NotFoundException(DeckReader.NOT_FOUND);
+        }
+    }
+
+    private async Task<IReadOnlyList<DeckRow>> OwnDecksAsync(Guid presenterId)
+    {
+        var now = clock.GetUtcNow();
+        var decks = await db.Decks.AsNoTracking()
+            .Where(d => d.OwnerId == presenterId)
+            .OrderByDescending(d => d.UpdatedAt)
+            .Select(d => new
+            {
+                d.Id,
+                d.Slug,
+                d.Title,
+                d.Subtitle,
+                d.Sharing,
+                d.UpdatedAt,
+                SlideCount = db.Slides.Count(s => s.DeckId == d.Id && s.DeletedAt == null),
+                ViewerCount = db.DeckViewers.Count(v => v.DeckId == d.Id),
+                LastChange = db.ActivityEntries.Where(e => e.DeckId == d.Id).OrderByDescending(e => e.At).ThenByDescending(e => e.Id).FirstOrDefault(),
+            })
+            .ToListAsync();
+        return decks
+            .Select(d => new DeckRow(
+                d.Id,
+                d.Slug,
+                d.Title,
+                d.Subtitle,
+                d.SlideCount,
+                d.LastChange == null ? null : LastChange.From(d.LastChange),
+                d.Sharing,
+                d.ViewerCount,
+                DisplayDate.Ago(d.UpdatedAt, now),
+                DeckLinks.Play(d.Id, d.Slug)))
+            .ToList();
+    }
+
+    // Decks shared by name with the caller's email, compared case-insensitively, that someone else owns. Each row links to
+    // the player: viewers never get the deck page.
+    private async Task<IReadOnlyList<SharedDeckRow>> SharedWithMeAsync(Guid presenterId)
+    {
+        var email = actor.Email?.ToLowerInvariant();
+        if (string.IsNullOrEmpty(email))
+        {
+            return [];
+        }
+        var now = clock.GetUtcNow();
+        var decks = await db.Decks.AsNoTracking()
+            .Where(d => d.Sharing == DeckSharing.Named
+                && d.OwnerId != presenterId
+                && db.DeckViewers.Any(v => v.DeckId == d.Id && v.Email.ToLower() == email))
+            .OrderByDescending(d => d.UpdatedAt)
+            .Select(d => new
+            {
+                d.Id,
+                d.Slug,
+                d.Title,
+                d.Subtitle,
+                d.Sharing,
+                d.UpdatedAt,
+                OwnerName = db.Users.Where(u => u.Id == d.OwnerId).Select(u => u.Name).Single(),
+                SlideCount = db.Slides.Count(s => s.DeckId == d.Id && s.DeletedAt == null),
+                ViewerCount = db.DeckViewers.Count(v => v.DeckId == d.Id),
+                LastChange = db.ActivityEntries.Where(e => e.DeckId == d.Id).OrderByDescending(e => e.At).ThenByDescending(e => e.Id).FirstOrDefault(),
+            })
+            .ToListAsync();
+        return decks
+            .Select(d => SharedDeckRow.From(
+                new DeckRow(
+                    d.Id,
+                    d.Slug,
+                    d.Title,
+                    d.Subtitle,
+                    d.SlideCount,
+                    d.LastChange == null ? null : LastChange.From(d.LastChange),
+                    d.Sharing,
+                    d.ViewerCount,
+                    DisplayDate.Ago(d.UpdatedAt, now),
+                    DeckLinks.Play(d.Id, d.Slug)),
+                d.OwnerName))
+            .ToList();
+    }
+}

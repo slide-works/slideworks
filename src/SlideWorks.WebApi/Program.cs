@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.WebApi;
 using SlideWorks.WebApi.Data;
-using SlideWorks.WebApi.Infrastructure;
+using SlideWorks.WebApi.Infrastructure.Identity;
+using SlideWorks.WebApi.Infrastructure.Setup;
 using SlideWorks.WebApi.Realtime;
 using Serilog;
 
@@ -46,9 +47,16 @@ builder.Services.AddSingleton(TimeProvider.System);
 // Realtime: DeckHub, fed by IDeckEvents through DeckEventsRelay (Realtime/).
 builder.Services.AddSignalR();
 builder.Services.AddControllers()
-    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase, allowIntegerValues: false)));
+builder.Services.AddHttpContextAccessor();
+// Authentication and MCP each live in their own setup file (Infrastructure/Setup/).
+builder.Services.AddSlideWorksAuth();
+builder.Services.AddSlideWorksMcp();
 
 var app = builder.Build();
+
+// Fail at startup, not on the first link, when SLIDEWORKS_PUBLIC_URL is missing outside Development.
+app.Services.GetRequiredService<IPublicUrls>();
 
 // Single-instance app: apply migrations on startup, no orchestration needed.
 using (var scope = app.Services.CreateScope())
@@ -56,27 +64,29 @@ using (var scope = app.Services.CreateScope())
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
 }
 
-app.UseMiddleware<BearerTokenAuthMiddleware>();
-
 // SPA assets ship inside wwwroot (built there by src/SlideWorks.Client). Static files
-// sit behind the fail-closed check but outside the /api token guard: the shell is
-// public, the data it fetches is not.
+// come before authentication: a request for a file matches no endpoint, so a fallback
+// "must be signed in" policy would otherwise refuse the anonymous player its bundle.
+// The shell is public, the data it fetches is not.
 app.UseStaticFiles();
+
+app.UseSlideWorksAuth();
 
 // The Docker build stamps the commit into the informational version
 // (-p:SourceRevisionId=$SOURCE_COMMIT, "1.0.0+<sha>"), so /health names the
 // running build rather than a static 1.0.0 every image shares.
 var version = ApiMarker.Assembly
     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
-app.MapGet("/health", () => Results.Ok(new { status = "ok", version }));
+app.MapGet("/health", () => Results.Ok(new { status = "ok", version })).AllowAnonymous();
 app.MapControllers();
-// WebSockets only: a long-polling connection would carry the token in the URL of
-// every poll. Live updates for decks; see Realtime/DeckHub.cs.
+app.MapSlideWorksMcp();
+// Live updates for decks, over WebSockets only; see Realtime/DeckHub.cs.
 app.MapHub<DeckHub>(DeckHub.PATH, options => options.Transports = HttpTransportType.WebSockets);
 // Unknown routes fall back to the SPA for client-side routing, except under
-// /api and /hubs, which must keep returning 404 rather than the SPA shell.
+// /api and /hubs, which must keep returning 404 rather than the SPA shell. The shell
+// is anonymous: the player (/d/:id/:slug) opens for viewers who never sign in.
 app.MapFallback("/api/{**path}", () => Results.NotFound());
 app.MapFallback("/hubs/{**path}", () => Results.NotFound());
-app.MapFallbackToFile("index.html");
+app.MapFallbackToFile("index.html").AllowAnonymous();
 
 await app.RunAsync();

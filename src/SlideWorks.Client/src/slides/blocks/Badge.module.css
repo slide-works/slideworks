@@ -1,0 +1,36 @@
+/* The badge block (the mockup's .badge), in canvas px: a 16 px/1 bold
+   uppercase pill in 7/14 px padding. With no tone it takes the accent (.acc);
+   a table cell's tone picks the mockup's green, orange or red, and info is
+   the accent. */
+.badge {
+  display: inline-block;
+  max-width: 100%;
+  padding: 7px 14px;
+  overflow-wrap: anywhere;
+  border-radius: var(--sw-radius-pill);
+  background: var(--sw-accent-light);
+  color: var(--sw-accent-dark);
+  font: 700 16px/1 var(--sw-font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.badge[data-tone='good'] {
+  background: var(--sw-good-soft);
+  color: var(--sw-good-ink);
+}
+
+.badge[data-tone='warn'] {
+  background: var(--sw-warn-soft);
+  color: var(--sw-warn-ink);
+}
+
+.badge[data-tone='bad'] {
+  background: var(--sw-bad-soft);
+  color: var(--sw-bad-ink);
+}
+
+.badge[data-tone='info'] {
+  background: var(--sw-info-soft);
+  color: var(--sw-info-ink);
+}

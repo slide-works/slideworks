@@ -1,0 +1,62 @@
+{
+  "decks": [
+    {
+      "id": "7Kq2xYp9LmQa",
+      "slug": "ship-smaller",
+      "title": "Ship smaller",
+      "subtitle": "Team offsite · draft",
+      "slideCount": 16,
+      "lastChange": {
+        "actor": "Claude",
+        "actorKind": "agent",
+        "via": "mcp",
+        "summary": "added slide 16"
+      },
+      "sharing": "link",
+      "viewerCount": 0,
+      "updatedLabel": "2 min ago",
+      "playUrl": "/d/7Kq2xYp9LmQa/ship-smaller"
+    },
+    {
+      "id": "Q4pRv8sT2wXz",
+      "slug": "q4-platform-review",
+      "title": "Q4 platform review",
+      "subtitle": "Leadership update",
+      "slideCount": 22,
+      "lastChange": {
+        "actor": "You",
+        "actorKind": "person",
+        "via": "web",
+        "summary": "changed sharing"
+      },
+      "sharing": "named",
+      "viewerCount": 3,
+      "updatedLabel": "1 h ago",
+      "playUrl": "/d/Q4pRv8sT2wXz/q4-platform-review"
+    }
+  ],
+  "sharedWithMe": [
+    {
+      "id": "Ob3nWk1Jn9Ef",
+      "slug": "onboarding-week-one",
+      "title": "Onboarding: week one",
+      "subtitle": "For new joiners",
+      "slideCount": 12,
+      "lastChange": {
+        "actor": "Cursor",
+        "actorKind": "agent",
+        "via": "mcp",
+        "summary": "updated notes"
+      },
+      "sharing": "named",
+      "viewerCount": 5,
+      "updatedLabel": "Yesterday",
+      "playUrl": "/d/Ob3nWk1Jn9Ef/onboarding-week-one",
+      "ownerName": "Alex Chen"
+    }
+  ],
+  "connect": {
+    "show": true,
+    "mcpUrl": "https://slideworks.example/mcp"
+  }
+}
