@@ -1,30 +1,47 @@
-/* A compare panel (the mockup's .cmp .panel): a 10 px top border in its tone,
-   44/48 px padding, an 18 px tag, a 44 px/1.1 title, an optional 27 px/1.4
-   sub, and 27 px/1.4 disc points 16 px apart with a 30 px indent. */
+/* A compare panel (the mockup's .cmp .panel): a 10 px top border, 44/48 px
+   padding, an 18 px tag, a 44 px/1.1 title, an optional 27 px/1.4 sub, and
+   27 px/1.4 disc points 16 px apart with a 30 px indent. It sits on its tone's
+   surface in its ink (--panel-surface and --panel-ink, from tone.ts). A soft
+   panel's top border and tag take the role colour; a solid panel is one
+   colour, its tag in its ink. */
 .panel {
+  --panel-edge: var(--panel-ink);
   min-width: 0;
   padding: 44px 48px;
-  border-top: 10px solid var(--sw-bad);
+  border-top: 10px solid var(--panel-edge);
   border-radius: var(--sw-radius-xl);
-  background: var(--sw-card);
+  background: var(--panel-surface);
+  color: var(--panel-ink);
   box-shadow: var(--sw-lift);
 }
 
-.panel[data-tone='good'] {
-  border-top-color: var(--sw-good);
+.panel[data-fill='soft'][data-panel='accent'] {
+  --panel-edge: var(--sw-accent);
+}
+
+.panel[data-fill='soft'][data-panel='positive'] {
+  --panel-edge: var(--sw-good);
+}
+
+.panel[data-fill='soft'][data-panel='negative'] {
+  --panel-edge: var(--sw-bad);
+}
+
+.panel[data-fill='soft'][data-panel='inverse'] {
+  --panel-edge: var(--sw-night-2);
+}
+
+.panel[data-fill='solid'] {
+  border-top-color: var(--panel-surface);
 }
 
 .tag {
   margin: 0;
   overflow-wrap: anywhere;
-  color: var(--sw-bad);
+  color: var(--panel-edge);
   font: 800 18px/1 var(--sw-font-body);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-}
-
-.panel[data-tone='good'] .tag {
-  color: var(--sw-good);
 }
 
 .title {
@@ -37,7 +54,7 @@
 .sub {
   margin: 16px 0 0;
   overflow-wrap: anywhere;
-  color: var(--sw-muted);
+  color: color-mix(in srgb, var(--panel-ink) 80%, var(--panel-surface));
   font: 400 27px/1.4 var(--sw-font-body);
 }
 

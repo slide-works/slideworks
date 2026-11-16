@@ -345,7 +345,7 @@ test('compare failure and success panels', async ({ mount, page }) => {
   );
 
   const failure = layout.getByTestId('compare-failure');
-  await expect(failure).toHaveAttribute('data-tone', 'bad');
+  await expect(failure).toHaveAttribute('data-tone', 'negative');
   await expect(failure).toHaveCSS('border-top-color', BAD);
   await expect(failure.getByTestId('compare-label')).toHaveText('Failure mode');
   await expect(failure.getByTestId('compare-label')).toHaveCSS('color', BAD);
@@ -359,7 +359,7 @@ test('compare failure and success panels', async ({ mount, page }) => {
   ]);
 
   const success = layout.getByTestId('compare-success');
-  await expect(success).toHaveAttribute('data-tone', 'good');
+  await expect(success).toHaveAttribute('data-tone', 'positive');
   await expect(success).toHaveCSS('border-top-color', GOOD);
   await expect(success.getByTestId('compare-label')).toHaveText('Success mode');
   await expect(success.getByTestId('compare-label')).toHaveCSS('color', GOOD);
