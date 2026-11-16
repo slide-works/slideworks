@@ -1,6 +1,11 @@
 // The screen JSON examples (K4) from the repo's src/contracts/screens, typed as
 // the client's views. The server's shape tests check its records and real
 // responses against the same files.
+//
+// What tsc checks here: every field's name, nesting and value kind, except the
+// slides' slots, which a JSON import can't tie to their layout (see JsonView).
+// fixtures.test.ts checks the rest at run time: exact key sets, literal values,
+// and each slide's slots deep-equal to the sample deck's slide of that layout.
 import deckPageJson from '@contracts/screens/deck-page.json' with { type: 'json' };
 import deckPlayJson from '@contracts/screens/deck-play.json' with { type: 'json' };
 import decksLibraryJson from '@contracts/screens/decks-library.json' with { type: 'json' };
@@ -14,13 +19,24 @@ import type {
   MeView,
   SharingView,
 } from '../../api/types';
-import type { Widen } from './widen';
+import type { LayoutName, Slots } from '../../slides/slots';
+import type { JsonView, Widen } from './widen';
 
 export const me = meJson satisfies Widen<MeView> as MeView;
 export const decksLibrary = decksLibraryJson satisfies Widen<DecksLibraryView> as DecksLibraryView;
-export const deckPage = deckPageJson satisfies Widen<DeckPageView> as DeckPageView;
-export const deckPlay = deckPlayJson satisfies Widen<DeckPlayView> as DeckPlayView;
+export const deckPage = deckPageJson satisfies JsonView<DeckPageView> as DeckPageView;
+export const deckPlay = deckPlayJson satisfies JsonView<DeckPlayView> as DeckPlayView;
 export const sharing = sharingJson satisfies Widen<SharingView> as SharingView;
 
-// The sample deck "Ship smaller" (K3): 16 slides, one per layout, in the play view's shape.
-export const sampleDeck = sampleDeckJson satisfies Widen<DeckPlayView> as DeckPlayView;
+// The sample deck "Ship smaller" (K3): 16 slides covering every layout, in the
+// play view's shape. Its slides pass the server's SlideValidator, so it is the
+// source of truth for slot contents.
+export const sampleDeck = sampleDeckJson satisfies JsonView<DeckPlayView> as DeckPlayView;
+
+// The sample deck's slots for each layout it has (its first slide of that
+// layout), as a typed per-layout map: SAMPLE_SLOTS.practice is PracticeSlots.
+// Partial, because the sample has no `image` slide (two dividers instead).
+// fixtures.test.ts checks it against the sample.
+export const SAMPLE_SLOTS = Object.fromEntries(
+  [...sampleDeck.slides].reverse().map((slide) => [slide.layout, slide.slots]),
+) as { [L in LayoutName]?: Slots[L] };

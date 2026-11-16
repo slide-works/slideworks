@@ -14,12 +14,20 @@ import type {
   SharingView,
 } from '../../api/types';
 import { LAYOUTS } from '../../slides/layouts';
-import { LAYOUT_NAMES, SLOT_KEYS, type LayoutName } from '../../slides/slots';
+import {
+  LAYOUT_NAMES,
+  SLOT_KEYS,
+  type CalloutBlock,
+  type GanttRow,
+  type LayoutName,
+  type PracticeSlots,
+} from '../../slides/slots';
 import { LAYOUT_SLOTS } from './layoutSlots';
-import { deckPage, deckPlay, decksLibrary, me, sharing } from './screens';
+import { SAMPLE_SLOTS, deckPage, deckPlay, decksLibrary, me, sampleDeck, sharing } from './screens';
 
 // The run-time half of the fixture check: `satisfies` in screens.ts checks the
-// shape, these check the exact key sets and the literal values. Each table is a
+// field names and value kinds outside the slots; these check the exact key sets,
+// the literal values, and the slots against the sample deck. Each table is a
 // Record over the type's keys, so it can't miss or invent a key either.
 const keys = <T>(table: Record<keyof T, true>) => Object.keys(table).sort();
 const ME = keys<MeView>({ email: true, name: true, pictureUrl: true });
@@ -180,6 +188,63 @@ describe('screen JSON examples', () => {
     expect(LEVELS).toContain(sharing.level);
     expect(sorted(sharing.lastChange!)).toEqual(SHARING_CHANGE);
     expect(ACTOR_KINDS).toContain(sharing.lastChange!.actorKind);
+  });
+});
+
+// tsc can't check slots in JSON (see JsonView), so each example slide's slots
+// must equal the sample deck's slide of the same layout. The sample's slides
+// pass the server's SlideValidator, which makes the server the source of truth.
+// When the sample changes, copy its slots into the screens, never the reverse.
+function expectSampleSlots(slides: { layout: LayoutName; slots: object }[], file: string) {
+  for (const slide of slides) {
+    const sample = sampleDeck.slides.filter((s) => s.layout === slide.layout);
+    expect(sample.length, `${file}: the sample deck has a ${slide.layout} slide`).toBeGreaterThan(
+      0,
+    );
+    expect(
+      sample.map((s) => s.slots),
+      `${file}: ${slide.layout} slots equal a sample-deck ${slide.layout} slide`,
+    ).toContainEqual(slide.slots);
+  }
+}
+
+describe('slots in the screen JSON', () => {
+  it('deck-play.json slides carry the sample deck slots of their layout', () => {
+    expectSampleSlots(deckPlay.slides, 'deck-play.json');
+  });
+
+  it('deck-page.json slides carry the sample deck slots of their layout', () => {
+    expectSampleSlots(deckPage.slides, 'deck-page.json');
+  });
+
+  it('SAMPLE_SLOTS has the first sample deck slots of each layout the sample has', () => {
+    const layouts = [...new Set(sampleDeck.slides.map((slide) => slide.layout))].sort();
+    expect(Object.keys(SAMPLE_SLOTS).sort()).toEqual(layouts);
+    for (const layout of layouts) {
+      const first = sampleDeck.slides.find((slide) => slide.layout === layout);
+      expect(SAMPLE_SLOTS[layout], layout).toEqual(first?.slots);
+    }
+  });
+});
+
+describe('slot types', () => {
+  // Compile-time probes: each @ts-expect-error fails the build (tsc in
+  // `pnpm run build`) if the slot types stop rejecting that mistake.
+  it('reject misspelt, missing and out-of-range slots in typed code', () => {
+    const misspelt: PracticeSlots = {
+      headline: 'h',
+      // @ts-expect-error `leed` is not a field of a do item
+      do: [{ leed: 'l', text: 't' }],
+      comes_back: [],
+      avoid: [],
+    };
+    // @ts-expect-error `avoid` is required
+    const missing: PracticeSlots = { headline: 'h', do: [], comes_back: [] };
+    // @ts-expect-error a callout's tone is good, bad or info; warn is a table cell tone
+    const tone: CalloutBlock = { tone: 'warn', text: 't' };
+    // @ts-expect-error a gantt row needs a status
+    const row: GanttRow = { label: 'l', start: 1, end: 2 };
+    expect([misspelt, missing, tone, row]).toHaveLength(4);
   });
 });
 
