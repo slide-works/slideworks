@@ -33,6 +33,7 @@ public static class TestAppFactory
                 {
                     ["SLIDEWORKS_DB_PATH"] = dbPath,
                     ["SLIDEWORKS_API_TOKEN"] = apiToken,
+                    ["SLIDEWORKS_PUBLIC_URL"] = "http://localhost",
                 });
                 if (extraConfig != null)
                 {
