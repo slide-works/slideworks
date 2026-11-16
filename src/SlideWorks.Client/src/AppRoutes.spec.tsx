@@ -74,7 +74,7 @@ test('/admin/users renders inside the shell', async ({ mount, page }) => {
   await stubApi(page, { '/api/me': { json: { ...me, isAdmin: true } } });
   await mount(<AppRoutes />, { hooksConfig: { route: '/admin/users' } });
   await expect(page.getByTestId('app-shell')).toBeVisible();
-  await expect(page.getByTestId('admin-users-page')).toBeAttached();
+  await expect(page.getByTestId('admin-users-page')).toBeVisible();
 });
 
 test('/pending renders without the shell', async ({ mount, page }) => {
