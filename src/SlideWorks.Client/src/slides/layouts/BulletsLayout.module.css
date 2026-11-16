@@ -1,0 +1,71 @@
+/* The kicker and headline every content slide opens with: 20 px/1 kicker with
+   22 px under it (42 px) and a 64 px/1.08 headline of up to two lines, then the
+   body 46 px below. The server's fit check (SlideFit) assumes these sizes. */
+.layout {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.kicker {
+  margin: 0 0 22px;
+  color: var(--sw-accent);
+  font: 700 20px/1 var(--sw-font-body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.headline {
+  max-width: 1560px;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 800 64px/1.08 var(--sw-font-head);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: 46px;
+}
+
+/* ul.bl: 36 px/1.35 points with a 52 px indent in a 1500 px list, 30 px apart. */
+.items {
+  display: grid;
+  gap: 30px;
+  max-width: 1500px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  position: relative;
+  padding-left: 52px;
+  overflow-wrap: anywhere;
+  font: 400 36px/1.35 var(--sw-font-body);
+}
+
+.item::before {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--sw-accent);
+}
+
+.lead {
+  color: var(--sw-accent-dark);
+  font-weight: 700;
+}
+
+.callout {
+  margin-top: 30px;
+}

@@ -1,0 +1,115 @@
+/* The kicker and headline every content slide opens with: 20 px/1 kicker with
+   22 px under it (42 px) and a 64 px/1.08 headline of up to two lines, then the
+   body 46 px below. The server's fit check (SlideFit) assumes these sizes. */
+.layout {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.kicker {
+  margin: 0 0 22px;
+  color: var(--sw-accent);
+  font: 700 20px/1 var(--sw-font-body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.headline {
+  max-width: 1560px;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 800 64px/1.08 var(--sw-font-head);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: 46px;
+}
+
+/* .two: 1fr 1.05fr with a 64 px gap, so the left column is 788 px. A column
+   holds an optional 34 px/1.2 title, then points (30 px/1.35, 52 px indent,
+   30 px apart), a 28 px/1.4 paragraph or an image scaled to fit what is left. */
+.columns {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 64px;
+  min-height: 0;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.title {
+  margin: 0 0 16px;
+  overflow-wrap: anywhere;
+  font: 800 34px/1.2 var(--sw-font-head);
+  letter-spacing: -0.015em;
+}
+
+.items {
+  display: grid;
+  gap: 30px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  position: relative;
+  padding-left: 52px;
+  overflow-wrap: anywhere;
+  font: 400 30px/1.35 var(--sw-font-body);
+}
+
+.item::before {
+  content: '';
+  position: absolute;
+  top: 11px;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--sw-accent);
+}
+
+.lead {
+  color: var(--sw-accent-dark);
+  font-weight: 700;
+}
+
+.text {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 400 28px/1.4 var(--sw-font-body);
+}
+
+.figure {
+  display: flex;
+  flex: 0 1 auto;
+  min-height: 0;
+  margin: 0;
+}
+
+/* Fills the column's width, and shrinks to the height that is left, keeping
+   its aspect ratio. */
+.image {
+  display: block;
+  width: 100%;
+  max-height: 100%;
+  border-radius: var(--sw-radius-lg);
+  object-fit: contain;
+  object-position: left top;
+}

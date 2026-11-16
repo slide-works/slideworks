@@ -1,10 +1,12 @@
 import type { CalloutBlock } from '../slots';
+import styles from './Callout.module.css';
 
-// TODO: stub; the real callout block (tone colours) replaces it.
+// A short statement in a tinted box. The tone colours it: info in the accent,
+// bad and good with a red or green strip down the left edge.
 export function Callout({ tone, text }: CalloutBlock) {
   return (
-    <div data-testid="block-callout" data-tone={tone}>
+    <p data-testid="block-callout" data-tone={tone} className={styles.callout}>
       {text}
-    </div>
+    </p>
   );
 }
