@@ -7,6 +7,7 @@
 // fixtures.test.ts checks the rest at run time: exact key sets, literal values,
 // and each slide's slots deep-equal to the sample deck's slide of that layout.
 import adminUsersJson from '@contracts/screens/admin-users.json' with { type: 'json' };
+import consentJson from '@contracts/screens/consent.json' with { type: 'json' };
 import deckPageJson from '@contracts/screens/deck-page.json' with { type: 'json' };
 import deckPlayJson from '@contracts/screens/deck-play.json' with { type: 'json' };
 import decksLibraryJson from '@contracts/screens/decks-library.json' with { type: 'json' };
@@ -15,6 +16,7 @@ import sharingJson from '@contracts/screens/sharing.json' with { type: 'json' };
 import sampleDeckJson from '@contracts/sample-deck.json' with { type: 'json' };
 import type {
   AdminUsersView,
+  ConsentView,
   DeckPageView,
   DeckPlayView,
   DecksLibraryView,
@@ -30,6 +32,7 @@ export const decksLibrary = decksLibraryJson satisfies Widen<DecksLibraryView> a
 export const deckPage = deckPageJson satisfies JsonView<DeckPageView> as DeckPageView;
 export const deckPlay = deckPlayJson satisfies JsonView<DeckPlayView> as DeckPlayView;
 export const sharing = sharingJson satisfies Widen<SharingView> as SharingView;
+export const consent = consentJson satisfies Widen<ConsentView> as ConsentView;
 
 // The sample deck "Ship smaller" (K3): 16 slides covering every layout, in the
 // play view's shape. Its slides pass the server's SlideValidator, so it is the

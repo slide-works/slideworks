@@ -129,5 +129,12 @@ export type SharingRequest = { level: SharingLevel; viewers: string[] };
 export type CreateDeckRequest = { title: string };
 export type CreateDeckResult = { id: string; slug: string; playUrl: string };
 
+// GET /api/oauth/consent/{id}: the consent screen for an agent's authorize request.
+export type ConsentView = { clientName: string; scope: string };
+
+// POST /api/oauth/consent/{id} body, and its result: where the browser goes next.
+export type ConsentDecisionRequest = { approve: boolean };
+export type ConsentDecisionView = { redirect: string };
+
 // Every error body.
 export type ApiErrorBody = { error: string };
