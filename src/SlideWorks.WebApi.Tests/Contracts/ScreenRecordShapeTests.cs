@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SlideWorks.WebApi.Features.Accounts;
+using SlideWorks.WebApi.Features.Accounts.Admin;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Decks.Views;
@@ -191,16 +192,42 @@ public class ScreenRecordShapeTests : ApiTestFixture
         Should.Throw<JsonException>(() => JsonSerializer.Deserialize<SharingUpdate>(body, AppJsonOptions()));
     }
 
-    // GET /api/me is real already: the shape test checks the response, and the record with every field set.
+    // GET /api/me is real already: the shape test checks the response, and the record with every field set. The response's
+    // access values are placeholders until the real ones land, so only its shape is checked.
     [Test]
     public async Task Me_ShouldMatchContract()
     {
         var response = await Client.GetFromJsonAsync<JsonElement>("/api/me");
 
         JsonShape.AssertMatches(response, "me.json", ScreenShapes.Me);
-        var record = Serialise(new MeView("sam@team.example", "Sam Rivera", "https://slideworks.example/avatars/sam-rivera.png"));
+        var record = Serialise(new MeView("sam@team.example", "Sam Rivera", "https://slideworks.example/avatars/sam-rivera.png", "approved", false, 0, false));
         JsonShape.AssertMatches(record, "me.json");
         SameJson(record, Example("me.json")).ShouldBeTrue(Differs(record, Example("me.json")));
+    }
+
+    [Test]
+    public void AdminUsers_ShouldMatchContract()
+    {
+        var example = Example("admin-users.json");
+        var users = example.GetProperty("users").EnumerateArray()
+            .Select(row => new AdminUserRow(
+                row.GetProperty("id").GetGuid(),
+                row.GetProperty("name").GetString()!,
+                row.GetProperty("email").GetString()!,
+                row.GetProperty("pictureUrl").GetString(),
+                row.GetProperty("access").GetString()!,
+                row.GetProperty("isAdmin").GetBoolean(),
+                row.GetProperty("isSelf").GetBoolean(),
+                row.GetProperty("requestedLabel").GetString()!,
+                row.GetProperty("changedLabel").GetString(),
+                row.GetProperty("changedBy").GetString()))
+            .ToList();
+        var view = new AdminUsersView(users, example.GetProperty("pendingCount").GetInt32(), example.GetProperty("adminCount").GetInt32());
+        var json = Serialise(view);
+
+        JsonShape.AssertMatches(json, "admin-users.json", ScreenShapes.AdminUsers);
+        SameJson(json, example).ShouldBeTrue(Differs(json, example));
+        users.Select(row => row.Access).ShouldBe(["pending", "approved", "approved", "rejected"]);
     }
 
     private static DeckPageSlide Slide(string layout, string slots, int position = 0) => DeckPageSlide.From(

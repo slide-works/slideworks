@@ -12,5 +12,9 @@ public class MeController(IUserDirectory users, ICurrentActor actor) : ApiContro
     [ProducesResponseType<MeView>(StatusCodes.Status200OK)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status401Unauthorized)]
     public async Task<MeView> Get()
-        => MeView.From(await users.FindByEmailAsync(actor.Email!) ?? throw new NotFoundException("The signed-in person no longer exists."));
+    {
+        var user = await users.FindByEmailAsync(actor.Email!) ?? throw new NotFoundException("The signed-in person no longer exists.");
+        // TODO: the real access, admin, pending count and admin-missing values come from IUserAccounts.
+        return new MeView(user.Email, user.Name, user.PictureUrl, "approved", false, 0, false);
+    }
 }

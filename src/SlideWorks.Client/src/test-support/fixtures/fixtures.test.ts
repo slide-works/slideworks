@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type {
   ActivityRow,
+  AdminUserRow,
+  AdminUsersView,
   DeckPageSlide,
   DeckPageView,
   DeckPlaySlide,
@@ -23,14 +25,44 @@ import {
   type PracticeSlots,
 } from '../../slides/slots';
 import { LAYOUT_SLOTS } from './layoutSlots';
-import { SAMPLE_SLOTS, deckPage, deckPlay, decksLibrary, me, sampleDeck, sharing } from './screens';
+import {
+  SAMPLE_SLOTS,
+  adminUsers,
+  deckPage,
+  deckPlay,
+  decksLibrary,
+  me,
+  sampleDeck,
+  sharing,
+} from './screens';
 
 // The run-time half of the fixture check: `satisfies` in screens.ts checks the
 // field names and value kinds outside the slots; these check the exact key sets,
 // the literal values, and the slots against the sample deck. Each table is a
 // Record over the type's keys, so it can't miss or invent a key either.
 const keys = <T>(table: Record<keyof T, true>) => Object.keys(table).sort();
-const ME = keys<MeView>({ email: true, name: true, pictureUrl: true });
+const ME = keys<MeView>({
+  email: true,
+  name: true,
+  pictureUrl: true,
+  access: true,
+  isAdmin: true,
+  pendingRequests: true,
+  adminMissing: true,
+});
+const ADMIN_USERS = keys<AdminUsersView>({ users: true, pendingCount: true, adminCount: true });
+const ADMIN_USER_ROW = keys<AdminUserRow>({
+  id: true,
+  name: true,
+  email: true,
+  pictureUrl: true,
+  access: true,
+  isAdmin: true,
+  isSelf: true,
+  requestedLabel: true,
+  changedLabel: true,
+  changedBy: true,
+});
 const LAST_CHANGE = keys<LastChange>({ actor: true, actorKind: true, via: true, summary: true });
 const DECK_ROW = keys<DeckRow>({
   id: true,
@@ -140,12 +172,29 @@ function expectDeckRow(row: DeckRow, expected: string[]) {
 
 describe('screen JSON examples', () => {
   it('give every nullable field a non-null value', () => {
-    for (const screen of [me, decksLibrary, deckPage, deckPlay, sharing])
+    for (const screen of [me, adminUsers, decksLibrary, deckPage, deckPlay, sharing])
       expect(nullPaths(screen)).toEqual([]);
   });
 
   it('me.json matches MeView', () => {
     expect(sorted(me)).toEqual(ME);
+    expect(me.access).toBe('approved');
+    expect(me.isAdmin).toBe(false);
+    expect(me.pendingRequests).toBe(0);
+    expect(me.adminMissing).toBe(false);
+  });
+
+  it('admin-users.json matches AdminUsersView', () => {
+    expect(sorted(adminUsers)).toEqual(ADMIN_USERS);
+    adminUsers.users.forEach((row) => expect(sorted(row)).toEqual(ADMIN_USER_ROW));
+    expect(adminUsers.users.map((row) => row.access)).toEqual(
+      expect.arrayContaining(['pending', 'approved', 'rejected']),
+    );
+    expect(adminUsers.users.some((row) => row.access === 'approved' && row.isAdmin)).toBe(true);
+    expect(adminUsers.pendingCount).toBe(
+      adminUsers.users.filter((r) => r.access === 'pending').length,
+    );
+    expect(adminUsers.adminCount).toBe(adminUsers.users.filter((r) => r.isAdmin).length);
   });
 
   it('decks-library.json matches DecksLibraryView', () => {

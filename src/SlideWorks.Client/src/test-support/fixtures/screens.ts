@@ -6,6 +6,7 @@
 // slides' slots, which a JSON import can't tie to their layout (see JsonView).
 // fixtures.test.ts checks the rest at run time: exact key sets, literal values,
 // and each slide's slots deep-equal to the sample deck's slide of that layout.
+import adminUsersJson from '@contracts/screens/admin-users.json' with { type: 'json' };
 import deckPageJson from '@contracts/screens/deck-page.json' with { type: 'json' };
 import deckPlayJson from '@contracts/screens/deck-play.json' with { type: 'json' };
 import decksLibraryJson from '@contracts/screens/decks-library.json' with { type: 'json' };
@@ -13,6 +14,7 @@ import meJson from '@contracts/screens/me.json' with { type: 'json' };
 import sharingJson from '@contracts/screens/sharing.json' with { type: 'json' };
 import sampleDeckJson from '@contracts/sample-deck.json' with { type: 'json' };
 import type {
+  AdminUsersView,
   DeckPageView,
   DeckPlayView,
   DecksLibraryView,
@@ -23,6 +25,7 @@ import type { LayoutName, Slots } from '../../slides/slots';
 import type { JsonView, Widen } from './widen';
 
 export const me = meJson satisfies Widen<MeView> as MeView;
+export const adminUsers = adminUsersJson satisfies Widen<AdminUsersView> as AdminUsersView;
 export const decksLibrary = decksLibraryJson satisfies Widen<DecksLibraryView> as DecksLibraryView;
 export const deckPage = deckPageJson satisfies JsonView<DeckPageView> as DeckPageView;
 export const deckPlay = deckPlayJson satisfies JsonView<DeckPlayView> as DeckPlayView;

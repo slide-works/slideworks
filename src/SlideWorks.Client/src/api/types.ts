@@ -9,7 +9,31 @@ export type Via = 'mcp' | 'web';
 export type SharingLevel = 'private' | 'link' | 'named';
 
 // GET /api/me
-export type MeView = { email: string; name: string; pictureUrl: string | null };
+export type MeView = {
+  email: string;
+  name: string;
+  pictureUrl: string | null;
+  access: 'pending' | 'approved';
+  isAdmin: boolean;
+  pendingRequests: number;
+  adminMissing: boolean;
+};
+
+// GET /api/admin/users
+export type AdminUserRow = {
+  id: string;
+  name: string;
+  email: string;
+  pictureUrl: string | null;
+  access: 'pending' | 'approved' | 'rejected';
+  isAdmin: boolean;
+  isSelf: boolean;
+  requestedLabel: string;
+  changedLabel: string | null;
+  changedBy: string | null;
+};
+
+export type AdminUsersView = { users: AdminUserRow[]; pendingCount: number; adminCount: number };
 
 export type LastChange = { actor: string; actorKind: ActorKind; via: Via; summary: string };
 
