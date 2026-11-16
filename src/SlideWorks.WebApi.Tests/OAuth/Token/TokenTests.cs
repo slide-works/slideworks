@@ -31,6 +31,10 @@ public class TokenTests : ApiTestFixture
     [OneTimeTearDown]
     public void DisposeAnonymous() => _anonymous.Dispose();
 
+    // Each test starts in a fresh rate-limit window: every request here comes from the same address.
+    [SetUp]
+    public void NextWindow() => Clock.Advance(TimeSpan.FromMinutes(1));
+
     [Test]
     public async Task Token_WhenValidCodeAndVerifier_ShouldReturnAccessAndRefresh()
     {
@@ -302,6 +306,47 @@ public class TokenTests : ApiTestFixture
         }
         ok.StatusCode.ShouldBe(HttpStatusCode.OK);
         refused.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    // An agent's real traffic (a redeem, refreshes about hourly, a revoke) is far below the budget: a whole minute's worth
+    // of requests from one address all go through, token and revoke alike.
+    [Test]
+    public async Task Token_WhenUpToSixtyRequestsAMinuteFromOneAddress_ShouldServeThemAll()
+    {
+        var (access, refresh) = await _endpoint.TokensAsync(_clientId);
+        var rotated = await TokenEndpoint.OkBodyAsync(await _endpoint.RefreshAsync(_clientId, refresh));
+        for (var i = 2; i < 59; i++)
+        {
+            (await _endpoint.RevokeAsync("not-a-token")).StatusCode.ShouldBe(HttpStatusCode.OK, $"request {i + 1}");
+        }
+
+        (await _endpoint.RevokeAsync(rotated.GetProperty("refresh_token").GetString()!)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    // POST /oauth/token and /oauth/revoke share one budget per address; past it, both get 429 with Retry-After and an
+    // RFC 6749 error body (still no-store) until the window passes.
+    [Test]
+    public async Task Token_WhenOverSixtyAMinuteFromOneAddress_ShouldReturn429UntilTheWindowPasses()
+    {
+        for (var i = 0; i < 60; i++)
+        {
+            (await _endpoint.RevokeAsync("not-a-token")).StatusCode.ShouldBe(HttpStatusCode.OK, $"request {i + 1}");
+        }
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var refusedToken = await _endpoint.RedeemAsync(_clientId, code);
+        var refusedRevoke = await _endpoint.RevokeAsync("not-a-token");
+
+        foreach (var refused in new[] { refusedToken, refusedRevoke })
+        {
+            (await TokenEndpoint.ErrorAsync(refused, HttpStatusCode.TooManyRequests)).ShouldBe("too_many_requests");
+            refused.Headers.RetryAfter.ShouldNotBeNull().Delta.ShouldBe(TimeSpan.FromMinutes(1));
+            refused.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
+        }
+        Clock.Advance(TimeSpan.FromMinutes(1));
+        await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code));
     }
 
     private async Task<AgentPrincipal?> ValidateAsync(string accessToken)

@@ -6,9 +6,10 @@ namespace SlideWorks.WebApi.Features.OAuth.Token;
 
 // POST /oauth/token (RFC 6749 section 3.2) and POST /oauth/revoke (RFC 7009). Anonymous: an agent calls them with no
 // cookie, and its form parameters are its credentials. Outside /api, so outside the cross-site write guard. Every
-// response, error or not, carries Cache-Control: no-store.
+// response, error or not, carries Cache-Control: no-store. Each caller IP has one budget a minute for both (TokenLimiter).
 [AllowAnonymous]
 [NoStore]
+[TokenRateLimit]
 [OAuthTokenError]
 [Route("oauth")]
 public class OAuthTokenController(TokenGrants grants) : ApiControllerBase
@@ -17,11 +18,13 @@ public class OAuthTokenController(TokenGrants grants) : ApiControllerBase
     [ProducesResponseType<TokenResponseView>(StatusCodes.Status200OK)]
     [ProducesResponseType<OAuthTokenErrorView>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<OAuthTokenErrorView>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<OAuthTokenErrorView>(StatusCodes.Status429TooManyRequests)]
     public Task<TokenResponseView> Token([FromForm] TokenRequest request) => grants.ExchangeAsync(request);
 
     // Always 200 for any token, known or not (RFC 7009 section 2.2), with an empty body.
     [HttpPost("revoke")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OAuthTokenErrorView>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<OAuthTokenErrorView>(StatusCodes.Status429TooManyRequests)]
     public Task Revoke([FromForm] RevokeRequest request) => grants.RevokeAsync(request);
 }
