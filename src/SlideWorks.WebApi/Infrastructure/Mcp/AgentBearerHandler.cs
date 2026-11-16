@@ -19,8 +19,6 @@ public class AgentBearerHandler(
     IPublicUrls urls)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
-    public const string ACTOR_KIND_AGENT = "Agent";
-
     private const string BEARER_PREFIX = "Bearer ";
 
     private bool _tokenRefused;
@@ -44,7 +42,7 @@ public class AgentBearerHandler(
                 new Claim(SlideWorksClaims.EMAIL, agent.Email),
                 new Claim(SlideWorksClaims.NAME, agent.ClientName),
                 new Claim(SlideWorksClaims.AGENT_CLIENT_NAME, agent.ClientName),
-                new Claim(SlideWorksClaims.ACTOR_KIND, ACTOR_KIND_AGENT),
+                new Claim(SlideWorksClaims.ACTOR_KIND, nameof(ActorKind.Agent)),
             ],
             Scheme.Name,
             SlideWorksClaims.NAME,
