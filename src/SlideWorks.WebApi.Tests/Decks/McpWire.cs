@@ -31,7 +31,8 @@ public static class McpWire
             .ToDictionary(tool => tool.GetProperty("name").GetString()!, tool => tool.GetProperty("inputSchema"));
     }
 
-    private static async Task<JsonElement> SendAsync(WebApplicationFactory<ApiMarker> factory, string accessToken, string json)
+    // Any JSON-RPC request, sent as written (its id must be 7), and the whole response message.
+    public static async Task<JsonElement> SendAsync(WebApplicationFactory<ApiMarker> factory, string accessToken, string json)
     {
         using var http = factory.CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Post, "/mcp")

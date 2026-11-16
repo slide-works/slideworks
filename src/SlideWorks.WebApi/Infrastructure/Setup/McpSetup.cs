@@ -24,14 +24,10 @@ public static class McpSetup
             .WithMessageFilters(filters => filters.AddIncomingFilter(McpArgumentCheck.Unreadable))
             .WithRequestFilters(filters => filters.AddCallToolFilter(McpArgumentCheck.Filter));
         // After the SDK has put every tool in the collection: close and tighten each inputSchema, which both the agent's
-        // model and McpArgumentCheck read.
-        services.PostConfigure<McpServerOptions>(options =>
-        {
-            foreach (var tool in options.ToolCollection ?? [])
-            {
-                McpToolSchemas.Tighten(tool.ProtocolTool);
-            }
-        });
+        // model and McpArgumentCheck read. Stateless mode builds these options on every request, so this runs on every
+        // request, but McpToolSchemaTightening tightens each tool only the first time, under a lock.
+        services.AddOptions<McpServerOptions>()
+            .PostConfigure<McpToolSchemaTightening>((options, tightening) => tightening.Apply(options.ToolCollection ?? []));
         return services;
     }
 
