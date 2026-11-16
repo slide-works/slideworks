@@ -15,10 +15,11 @@ namespace SlideWorks.WebApi.Infrastructure.Mcp;
 // McpToolSchemas puts on every object schema that lists its properties. McpSetup registers both halves:
 // - Unreadable, an incoming message filter. The SDK converts a request's params to its typed params before any request
 //   filter runs, and an escaped lone surrogate ("\ud83d") can't become a .NET string, nor can an arguments that isn't an
-//   object become a dictionary, so that conversion throws and the agent gets JSON-RPC -32603 "An error occurred.", which
-//   names nothing. For a tools/call this filter finds the deepest path holding the bad text first ("notes[2].text",
-//   "_meta.progressToken", "name"), makes that part convertible (an empty arguments, the field dropped) and leaves the
-//   refusal in the message's Items for Filter. Any other request (tools/list's cursor, ping's params) gets -32602 Invalid
+//   object become a dictionary, nor can an object whose names repeat, so that conversion throws and the agent gets
+//   JSON-RPC -32603 "An error occurred.", which names nothing. For a tools/call this filter finds the deepest path holding
+//   the bad text or the repeated name first ("notes[2].text", "_meta.progressToken", "name", "slots.quote: duplicate
+//   field", "deck: duplicate argument"), makes that part convertible (an empty arguments, the field dropped) and leaves
+//   the refusal in the message's Items for Filter. Any other request (tools/list's cursor, ping's params) gets -32602 Invalid
 //   params naming the path instead, since there is no tool to give an error.
 // - Filter, a call-tool filter. A call to a tool that doesn't exist goes on to the SDK's unknown-tool error, whatever
 //   else is wrong with it, unless its name is the bad text. Otherwise it returns Unreadable's refusal (an argument the
@@ -38,6 +39,8 @@ public static class McpArgumentCheck
     private const string UNREADABLE_TEXT = "text is not valid UTF-16";
 
     private const string NOT_AN_OBJECT = "arguments: must be an object";
+
+    private const string DUPLICATE_FIELD = "duplicate field";
 
     // Set by Filter around each call; McpToolErrors.Run flips it once the SDK has bound the arguments.
     private static readonly AsyncLocal<StrongBox<bool>?> BOUND = new();
@@ -63,9 +66,9 @@ public static class McpArgumentCheck
                         context.Items[UNREADABLE_KEY] = unreadable;
                     }
                 }
-                else if (UnreadablePath(parameters, "params", top: true) is { } path)
+                else if (UnreadableText(parameters, "params", top: true) is { } refusal)
                 {
-                    throw new McpProtocolException($"{path}: {UNREADABLE_TEXT}", McpErrorCode.InvalidParams);
+                    throw new McpProtocolException(refusal, McpErrorCode.InvalidParams);
                 }
             }
             return next(context, cancellationToken);
@@ -79,15 +82,12 @@ public static class McpArgumentCheck
     // so a name in params or in _meta that is itself the bad text is still -32603 from the SDK.
     private static UnreadableCall? UnreadableToolCall(JsonObject parameters)
     {
-        List<string> fields;
-        try
+        var (named, refusal) = Fields(parameters, "params", name => name, DUPLICATE_FIELD);
+        if (refusal != null)
         {
-            fields = parameters.Select(field => field.Key).ToList();
+            throw new McpProtocolException(refusal, McpErrorCode.InvalidParams);
         }
-        catch (InvalidOperationException)
-        {
-            throw new McpProtocolException($"params: {UNREADABLE_TEXT}", McpErrorCode.InvalidParams);
-        }
+        var fields = named.Select(field => field.Key).ToList();
         var name = fields.Contains("name") ? UnreadableName(parameters) : null;
         UnreadableCall? first = null;
         foreach (var field in fields.Where(field => field != "name"))
@@ -120,22 +120,18 @@ public static class McpArgumentCheck
             parameters["arguments"] = new JsonObject();
             return new UnreadableCall(NOT_AN_OBJECT, Argument: null, AnyTool: false);
         }
-        List<KeyValuePair<string, JsonNode?>> named;
-        try
-        {
-            named = arguments.ToList();
-        }
-        catch (InvalidOperationException)
+        var (named, refusal) = Fields(arguments, "arguments", name => name, "duplicate argument");
+        if (refusal != null)
         {
             parameters["arguments"] = new JsonObject();
-            return new UnreadableCall($"arguments: {UNREADABLE_TEXT}", Argument: null, AnyTool: false);
+            return new UnreadableCall(refusal, Argument: null, AnyTool: false);
         }
         foreach (var (argument, value) in named)
         {
-            if (UnreadablePath(value, argument) is { } path)
+            if (UnreadableText(value, argument) is { } text)
             {
                 parameters["arguments"] = new JsonObject();
-                return new UnreadableCall($"{path}: {UNREADABLE_TEXT}", argument, AnyTool: false);
+                return new UnreadableCall(text, argument, AnyTool: false);
             }
         }
         return null;
@@ -144,12 +140,12 @@ public static class McpArgumentCheck
     // Any other params field, such as _meta: dropped when it can't be read.
     private static UnreadableCall? UnreadableField(JsonObject parameters, string field)
     {
-        if (UnreadablePath(parameters[field], field) is not { } path)
+        if (UnreadableText(parameters[field], field) is not { } text)
         {
             return null;
         }
         parameters.Remove(field);
-        return new UnreadableCall($"{path}: {UNREADABLE_TEXT}", Argument: null, AnyTool: false);
+        return new UnreadableCall(text, Argument: null, AnyTool: false);
     }
 
     public static McpRequestHandler<CallToolRequestParams, CallToolResult> Filter(McpRequestHandler<CallToolRequestParams, CallToolResult> next)
@@ -173,33 +169,60 @@ public static class McpArgumentCheck
             }
         };
 
-    // The deepest path whose JSON holds text that isn't valid UTF-16 (reading a name or writing out a value unescapes
-    // it, and that is what throws): "notes[2].text" for a value, the object's own path ("notes[0]", or "arguments" at the
-    // top) when one of its names is the bad text, or null when all of it reads.
-    private static string? UnreadablePath(JsonNode? node, string path, bool top = false)
+    // The refusal for the first part of this JSON the SDK can't read, at the deepest path, or null when all of it reads:
+    // - text that isn't valid UTF-16 (reading a name or writing out a value unescapes it, and that is what throws):
+    //   "notes[2].text: text is not valid UTF-16" for a value, the object's own path ("notes[0]", or "params" at the top)
+    //   when one of its names is the bad text;
+    // - a name repeated in an object, which no binder can read either: "slots.quote: duplicate field", SlideValidator's
+    //   own wording for it.
+    private static string? UnreadableText(JsonNode? node, string path, bool top = false)
     {
         switch (node)
         {
             case JsonObject properties:
-                try
-                {
-                    foreach (var (name, value) in properties)
-                    {
-                        if (UnreadablePath(value, top ? name : $"{path}.{name}") is { } found)
-                        {
-                            return found;
-                        }
-                    }
-                    return null;
-                }
-                catch (InvalidOperationException)
-                {
-                    return path;
-                }
+                var (named, refusal) = Fields(properties, path, name => top ? name : $"{path}.{name}", DUPLICATE_FIELD);
+                return refusal ?? named
+                    .Select(field => UnreadableText(field.Value, top ? field.Key : $"{path}.{field.Key}"))
+                    .FirstOrDefault(found => found != null);
             case JsonArray entries:
-                return entries.Select((entry, index) => UnreadablePath(entry, $"{path}[{index}]")).FirstOrDefault(found => found != null);
+                return entries.Select((entry, index) => UnreadableText(entry, $"{path}[{index}]")).FirstOrDefault(found => found != null);
             default:
-                return Readable(node) ? null : path;
+                return Readable(node) ? null : $"{path}: {UNREADABLE_TEXT}";
+        }
+    }
+
+    // An object's fields, or the refusal when they can't be read. JsonObject reads its fields on first use and throws
+    // there: InvalidOperationException when a name is text that isn't valid UTF-16 (refused at the object's own path),
+    // ArgumentException when a name repeats (refused at that name's path, with the wording given).
+    private static (List<KeyValuePair<string, JsonNode?>> Fields, string? Refusal) Fields(JsonObject properties, string path, Func<string, string> pathOf, string duplicate)
+    {
+        try
+        {
+            return (properties.ToList(), null);
+        }
+        catch (InvalidOperationException)
+        {
+            return ([], $"{path}: {UNREADABLE_TEXT}");
+        }
+        catch (ArgumentException)
+        {
+            return ([], Repeated(properties) is { } name ? $"{pathOf(name)}: {duplicate}" : $"{path}: {UNREADABLE_TEXT}");
+        }
+    }
+
+    // The first name that repeats in an object whose fields couldn't be read. It still holds the JSON it was read from,
+    // and writing it out writes that JSON as it came. Null when that can't be written either (a name is also bad text).
+    private static string? Repeated(JsonObject properties)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(properties.ToJsonString());
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            return document.RootElement.EnumerateObject().Select(property => property.Name).FirstOrDefault(name => !seen.Add(name));
+        }
+        catch (Exception error) when (error is InvalidOperationException or JsonException)
+        {
+            return null;
         }
     }
 

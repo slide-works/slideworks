@@ -123,6 +123,56 @@ public class McpArgumentCheckTests : ApiTestFixture
         (await DeckCountAsync(agent)).ShouldBe(decks);
     }
 
+    // A name repeated in the arguments can't be read either: JsonObject throws on it, and slots binds as a JsonObject, so
+    // without McpArgumentCheck.Unreadable every one of these is JSON-RPC -32603. Inside an argument it is SlideValidator's
+    // own wording for a repeated slot field.
+    [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"B","quote":"C","attribution":"Sam"}}""", "slots.quote: duplicate field")]
+    [TestCase("update_slide", """{"deck":"{deck}","slide":1,"revision":1,"slots":{"quote":"B","quote":"C","attribution":"Sam"}}""", "slots.quote: duplicate field")]
+    [TestCase("set_notes", """{"deck":"{deck}","notes":[{"slide":1,"text":"a","text":"b"}]}""", "notes[0].text: duplicate field")]
+    [TestCase("set_notes", """{"deck":"{deck}","notes":[{"slide":1,"text":"a"},{"slide":1,"slide":1,"text":"b"}]}""", "notes[1].slide: duplicate field")]
+    [TestCase("add_slide", """{"deck":"{deck}","deck":"{deck}","layout":"quote","slots":{"quote":"B","attribution":"Sam"}}""", "deck: duplicate argument")]
+    [TestCase("set_notes", """{"deck":"{deck}","notes":[{"slide":1,"text":"a"}],"notes":[{"slide":1,"text":"b"}]}""", "notes: duplicate argument")]
+    public async Task Call_WhenNameRepeatedOnTheWire_ShouldReturnToolErrorNamingItAndChangeNothing(string tool, string argumentsJson, string expected)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckOfQuotesAsync(agent, "A");
+        var decks = await DeckCountAsync(agent);
+
+        var message = await McpWire.SendToolCallAsync(Factory, agent.Tokens.AccessToken, tool, argumentsJson.Replace("{deck}", deck, StringComparison.Ordinal));
+
+        message.TryGetProperty("result", out var result).ShouldBeTrue(message.GetRawText());
+        result.GetProperty("isError").GetBoolean().ShouldBeTrue(message.GetRawText());
+        McpWire.TextOf(result).ShouldBe(expected, message.GetRawText());
+        McpWire.TextOf(result).ShouldContain(expected, Case.Sensitive);
+        var slides = await SlidesAsync(agent, deck);
+        Quotes(slides).ShouldBe(["A"]);
+        Revisions(slides).ShouldBe([1]);
+        slides[0].GetProperty("notes").ValueKind.ShouldBe(JsonValueKind.Null);
+        (await DeckSeed.ActivityAsync(Client, deck)).Count.ShouldBe(2);
+        (await DeckCountAsync(agent)).ShouldBe(decks);
+    }
+
+    // A repeated name that is also, or holds, text that isn't valid UTF-16 may get either refusal, but a tool error.
+    [TestCase("""{"deck":"{deck}","layout":"quote","slots":{"\ud83d":"x","\ud83d":"y","quote":"B","attribution":"Sam"}}""")]
+    [TestCase("""{"deck":"{deck}","layout":"quote","slots":{"quote":"\ud83d","quote":"C","attribution":"Sam"}}""")]
+    [TestCase("""{"deck":"{deck}","\ud83d":1,"\ud83d":2,"layout":"quote","slots":{"quote":"B","attribution":"Sam"}}""")]
+    public async Task Call_WhenRepeatedNameIsAlsoUnreadableOnTheWire_ShouldReturnToolErrorAndChangeNothing(string argumentsJson)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckOfQuotesAsync(agent, "A");
+
+        var message = await McpWire.SendToolCallAsync(Factory, agent.Tokens.AccessToken, "add_slide", argumentsJson.Replace("{deck}", deck, StringComparison.Ordinal));
+
+        message.TryGetProperty("result", out var result).ShouldBeTrue(message.GetRawText());
+        result.GetProperty("isError").GetBoolean().ShouldBeTrue(message.GetRawText());
+        McpWire.TextOf(result).ShouldBeOneOf(
+            "slots: text is not valid UTF-16",
+            "slots.quote: text is not valid UTF-16",
+            "slots.quote: duplicate field",
+            "arguments: text is not valid UTF-16");
+        Quotes(await SlidesAsync(agent, deck)).ShouldBe(["A"]);
+    }
+
     // The check must not refuse good text: an escaped surrogate pair is a whole emoji, and it is stored as one.
     [Test]
     public async Task Call_WhenTextHasEscapedSurrogatePairOnTheWire_ShouldStoreTheEmoji()

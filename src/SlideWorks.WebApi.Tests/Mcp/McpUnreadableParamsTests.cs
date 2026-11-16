@@ -29,6 +29,7 @@ public class McpUnreadableParamsTests : ApiTestFixture
     [TestCase("""{"name":"\ud83d","arguments":{}}""", "name: text is not valid UTF-16")]
     [TestCase("""{"name":"add_slide","arguments":{{ADD}},"_meta":{"progressToken":"\ud83d"}}""", "_meta.progressToken: text is not valid UTF-16")]
     [TestCase("""{"name":"add_slide","arguments":{{ADD}},"extra":"\ud83d"}""", "extra: text is not valid UTF-16")]
+    [TestCase("""{"name":"add_slide","arguments":{{ADD}},"extra":{"a":1,"a":2}}""", "extra.a: duplicate field")]
     [TestCase("""{"name":"add_slide","arguments":"{\"deck\":\"{deck}\",\"layout\":\"quote\"}"}""", NOT_AN_OBJECT)]
     [TestCase("""{"name":"add_slide","arguments":[{{ADD}}]}""", NOT_AN_OBJECT)]
     [TestCase("""{"name":"add_slide","arguments":7}""", NOT_AN_OBJECT)]
@@ -78,6 +79,7 @@ public class McpUnreadableParamsTests : ApiTestFixture
     [TestCase("tools/list", """{"_meta":{"progressToken":"\ud83d"}}""", "_meta.progressToken: text is not valid UTF-16")]
     [TestCase("ping", """{"x":"\ud83d"}""", "x: text is not valid UTF-16")]
     [TestCase("ping", """{"x":[{"y":"\ud83d"}]}""", "x[0].y: text is not valid UTF-16")]
+    [TestCase("ping", """{"x":[{"y":1,"y":2}]}""", "x[0].y: duplicate field")]
     public async Task Request_WhenParamsUnreadable_ShouldReturnInvalidParamsNamingIt(string method, string paramsJson, string expected)
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
