@@ -1,22 +1,18 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SlideWorks.WebApi.Infrastructure;
-using SlideWorks.WebApi.Infrastructure.Identity;
+using SlideWorks.WebApi.Infrastructure.Identity.Gate;
 
 namespace SlideWorks.WebApi.Features.Accounts;
 
-// The signed-in person. Signed out, the fallback policy answers 401 before this runs.
+// The signed-in person, pending or approved (SignedInPolicy), so a pending person's app can send them to /pending.
+// Signed out, the policy answers 401 before this runs.
 [Route("api/me")]
-public class MeController(IUserDirectory users, ICurrentActor actor) : ApiControllerBase
+public class MeController(MeViews views) : ApiControllerBase
 {
     [HttpGet]
+    [Authorize(Policy = SignedInPolicy.NAME)]
     [ProducesResponseType<MeView>(StatusCodes.Status200OK)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status401Unauthorized)]
-    // TODO: the real access, admin, pending count and admin-missing values come from IUserAccounts.
-    public async Task<MeView> Get()
-        => MeView.From(
-            await users.FindByEmailAsync(actor.Email!) ?? throw new NotFoundException("The signed-in person no longer exists."),
-            access: "approved",
-            isAdmin: false,
-            pendingRequests: 0,
-            adminMissing: false);
+    public Task<MeView> Get() => views.GetAsync();
 }
