@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
-import type { DeckPageView } from '../api/types';
+import type { DeckPageLook, DeckPageView } from '../api/types';
 import { SharingDialog } from '../components/SharingDialog';
+import { LookPanel } from '../look/LookPanel';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { ActivityFeed } from './deck/ActivityFeed';
 import { DeckHeader } from './deck/DeckHeader';
@@ -62,6 +63,17 @@ export function DeckPage() {
 
   useDeckRealtime(id, () => void read());
 
+  // A saved look shows at once; the DeckChanged re-read brings the new revision.
+  const showLook = useCallback(
+    (look: DeckPageLook) =>
+      setResult((current) =>
+        current?.id === id && current.load.kind === 'loaded'
+          ? { id, load: { kind: 'loaded', view: { ...current.load.view, look } } }
+          : current,
+      ),
+    [id],
+  );
+
   if (load.kind === 'notFound') {
     return (
       <section
@@ -108,6 +120,7 @@ export function DeckPage() {
           onSelect={(number) => setSelection({ id, number })}
         />
         <div className="grid gap-4">
+          {view.isOwner && <LookPanel deck={view} onSaved={showLook} />}
           {slide && <SelectedSlide slide={slide} />}
           <ActivityFeed rows={view.activity} isOwner={view.isOwner} />
           <LaterOnThisPage />
