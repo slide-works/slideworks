@@ -4,7 +4,6 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SlideWorks.WebApi.Features.OAuth.Stores;
@@ -20,13 +19,6 @@ public class McpTransportTests : ApiTestFixture
 {
     private const string RESOURCE_METADATA = "Bearer resource_metadata=\"http://localhost/.well-known/oauth-protected-resource\"";
 
-    // A browser session for this fixture only, under its own name so it never clashes with the app's cookie scheme. It is
-    // the default scheme here, so a request carrying it is signed in everywhere except where a policy names its schemes.
-    private const string BROWSER_SCHEME = "McpTransportTestsBrowser";
-
-    protected override Action<IServiceCollection>? ConfigureTestServices => services =>
-        services.AddAuthentication(options => options.DefaultScheme = BROWSER_SCHEME).AddCookie(BROWSER_SCHEME);
-
     [Test]
     public async Task Mcp_WhenNoToken_ShouldReturn401WithResourceMetadata()
     {
@@ -40,7 +32,13 @@ public class McpTransportTests : ApiTestFixture
     [Test]
     public async Task Mcp_WhenCookieOnly_ShouldReturn401()
     {
-        var cookie = await BrowserCookieForAsync(TestUser.Sam);
+        var cookie = await SessionCookieForAsync(TestUser.Sam);
+        using (var http = Factory.CreateClient())
+        using (var me = new HttpRequestMessage(HttpMethod.Get, "/api/me"))
+        {
+            me.Headers.Add("Cookie", cookie);
+            (await http.SendAsync(me)).StatusCode.ShouldBe(HttpStatusCode.OK, "the session cookie should sign the browser in on /api");
+        }
 
         using var response = await PostInitializeAsync(request => request.Headers.Add("Cookie", cookie));
 
@@ -92,15 +90,6 @@ public class McpTransportTests : ApiTestFixture
         response.Headers.WwwAuthenticate.ToString().ShouldBe($"{RESOURCE_METADATA}, error=\"invalid_token\"");
     }
 
-    // The static API token guards /api today; it is not an agent token.
-    [Test]
-    public async Task Mcp_WhenStaticApiToken_ShouldReturn401()
-    {
-        using var response = await PostInitializeAsync(Bearer(TEST_TOKEN));
-
-        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
-    }
-
     [Test]
     public async Task Mcp_WhenTokenIssuedForAnotherResource_ShouldReturn401()
     {
@@ -131,7 +120,7 @@ public class McpTransportTests : ApiTestFixture
     private static Action<HttpRequestMessage> Bearer(string token)
         => request => request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-    // A bare client: the fixture's Client sends the static API token, which must not be in play here.
+    // A bare client: the fixture's Client is signed in as a person, which must not be in play here.
     private async Task<HttpResponseMessage> PostInitializeAsync(Action<HttpRequestMessage>? configure = null)
     {
         using var http = Factory.CreateClient();
@@ -148,25 +137,21 @@ public class McpTransportTests : ApiTestFixture
         return await http.SendAsync(request);
     }
 
-    // A real cookie for this fixture's browser scheme, and proof that it signs the request in: without that proof, a 401 on
-    // /mcp could just mean the cookie was never valid.
-    private async Task<string> BrowserCookieForAsync(TestUser user)
+    // A real session cookie of the app's Cookies scheme for the person, as sign-in would set it.
+    private async Task<string> SessionCookieForAsync(TestUser user)
     {
-        var options = Factory.Services.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>().Get(BROWSER_SCHEME);
+        using var scope = Factory.Services.CreateScope();
+        var person = await scope.ServiceProvider.GetRequiredService<IUserDirectory>().UpsertAsync(user.GoogleSubject, user.Email, user.Name, null);
+        var options = Factory.Services.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>().Get(CookieAuthenticationDefaults.AuthenticationScheme);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             [
-                new Claim(SlideWorksClaims.PRESENTER_ID, Guid.NewGuid().ToString()),
-                new Claim(SlideWorksClaims.EMAIL, user.Email),
-                new Claim(SlideWorksClaims.NAME, user.Name),
+                new Claim(SlideWorksClaims.PRESENTER_ID, person.Id.ToString()),
+                new Claim(SlideWorksClaims.EMAIL, person.Email),
+                new Claim(SlideWorksClaims.NAME, person.Name),
                 new Claim(SlideWorksClaims.ACTOR_KIND, nameof(ActorKind.Person)),
             ],
-            BROWSER_SCHEME));
-        var cookie = $"{options.Cookie.Name}={options.TicketDataFormat.Protect(new AuthenticationTicket(principal, BROWSER_SCHEME))}";
-
-        using var scope = Factory.Services.CreateScope();
-        var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
-        context.Request.Headers.Cookie = cookie;
-        (await context.AuthenticateAsync()).Succeeded.ShouldBeTrue("the browser cookie should sign the request in under the default scheme");
-        return cookie;
+            CookieAuthenticationDefaults.AuthenticationScheme));
+        var ticket = new AuthenticationTicket(principal, CookieAuthenticationDefaults.AuthenticationScheme);
+        return $"{options.Cookie.Name}={options.TicketDataFormat.Protect(ticket)}";
     }
 }
