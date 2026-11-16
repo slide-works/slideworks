@@ -79,8 +79,11 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
                 return await RenderPageAsync(restarted, deckId, ct);
             }
         }
-        catch (PlaywrightException) when (!ct.IsCancellationRequested)
+        catch (PlaywrightException)
         {
+            // Past the deadline this is the timeout, not a failure. Rethrow it as cancellation (which the caller
+            // reports as "Rendering timed out") and never let Playwright's message, with the token's URL, escape.
+            ct.ThrowIfCancellationRequested();
             throw Failed(PAGE_ERROR);
         }
         finally
