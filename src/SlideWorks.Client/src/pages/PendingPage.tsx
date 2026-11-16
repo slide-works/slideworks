@@ -15,6 +15,7 @@ type State =
 export function PendingPage() {
   const navigate = useNavigate();
   const [state, setState] = useState<State>({ kind: 'checking' });
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -34,8 +35,13 @@ export function PendingPage() {
   }, []);
 
   const signOut = async () => {
-    await api.post('/api/signout');
-    navigate('/signin');
+    setFailed(false);
+    try {
+      await api.post('/api/signout');
+      navigate('/signin', { replace: true });
+    } catch {
+      setFailed(true);
+    }
   };
 
   switch (state.kind) {
@@ -82,6 +88,15 @@ export function PendingPage() {
           >
             Sign out
           </button>
+          {failed && (
+            <p
+              role="alert"
+              data-testid="pending-sign-out-error"
+              className="text-meta text-ink-muted"
+            >
+              Couldn’t sign out. Try again.
+            </p>
+          )}
         </main>
       );
   }

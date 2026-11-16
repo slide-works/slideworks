@@ -16,6 +16,8 @@ public sealed class PendingPage(IPage page)
 
     public ILocator SignOutButton => page.GetByTestId("pending-sign-out");
 
+    public ILocator SignOutError => page.GetByTestId("pending-sign-out-error");
+
     public Task GotoAsync() => page.GotoAsync(PATH);
 
     public Task SignOutAsync() => SignOutButton.ClickAsync();

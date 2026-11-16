@@ -57,6 +57,25 @@ test('sign out posts and goes to /signin', async ({ mount, page }) => {
   await expect(page.getByTestId('location')).toHaveText('/signin');
 });
 
+test('sign out failure shows a message', async ({ mount, page }) => {
+  await stubApi(page, {
+    '/api/me': { json: pending },
+    '/api/signout': { status: 500, json: { error: 'boom' } },
+  });
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    route,
+  );
+
+  await page.getByTestId('pending-sign-out').click();
+  await expect(page.getByTestId('pending-sign-out-error')).toHaveText(
+    'Couldn’t sign out. Try again.',
+  );
+  await expect(page.getByTestId('location')).toHaveText('/pending');
+});
+
 test('approved person is sent to /decks', async ({ mount, page }) => {
   await stubApi(page, { '/api/me': { json: { ...me, access: 'approved' } } });
   await mount(
