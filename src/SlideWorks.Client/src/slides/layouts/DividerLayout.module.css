@@ -9,12 +9,7 @@
 .number {
   align-self: flex-start;
   margin: 0;
-  /* The mockup's #c3d0ff to #5b7cff, from the nearest theme tokens. */
-  background: linear-gradient(
-    180deg,
-    var(--sw-accent-past),
-    color-mix(in srgb, var(--sw-accent) 60%, var(--sw-accent-glow))
-  );
+  background: linear-gradient(180deg, var(--sw-number-from), var(--sw-number-to));
   background-clip: text;
   color: transparent;
   font: 800 240px/0.9 var(--sw-font-head);

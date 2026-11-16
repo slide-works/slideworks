@@ -19,7 +19,7 @@
 }
 
 .axis {
-  stroke: #cbd2dc;
+  stroke: var(--sw-grid);
   stroke-width: 2;
 }
 

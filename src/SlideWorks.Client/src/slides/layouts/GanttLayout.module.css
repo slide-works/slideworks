@@ -38,7 +38,7 @@
   font: 600 28px/1.2 var(--sw-font-body);
 }
 
-/* A bar: 72 px tall, its note in white 17 px bold uppercase. A long note on a
+/* A bar: 72 px tall, its note in the on-accent colour, 17 px bold uppercase. A long note on a
    narrow bar (or a ship marker) stops at three lines with an ellipsis, so the
    row keeps its height. */
 .bar {
@@ -48,7 +48,7 @@
   height: 72px;
   padding: 0 18px;
   border-radius: var(--sw-radius-md);
-  color: #fff;
+  color: var(--sw-on-accent);
   font: 800 17px/1.1 var(--sw-font-body);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -70,7 +70,7 @@
   background: repeating-linear-gradient(
     135deg,
     var(--sw-warn) 0 18px,
-    color-mix(in srgb, var(--sw-warn) 75%, #fff) 18px 36px
+    color-mix(in srgb, var(--sw-warn) 75%, var(--sw-card)) 18px 36px
   );
 }
 
