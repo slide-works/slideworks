@@ -1,14 +1,16 @@
-import { NewDeckForm } from './NewDeckForm';
+import type { ReactNode } from 'react';
 
 type DecksHeaderProps = {
   deckCount: number | null;
   search: string;
   onSearch(search: string): void;
+  // The "+ New deck" button, which the page owns because it opens the page's dialog.
+  newDeck: ReactNode;
 };
 
 // The library's heading row: "Decks" with the count, the title search and
 // "+ New deck".
-export function DecksHeader({ deckCount, search, onSearch }: DecksHeaderProps) {
+export function DecksHeader({ deckCount, search, onSearch, newDeck }: DecksHeaderProps) {
   return (
     <div className="flex flex-wrap items-center gap-3">
       <h1 className="text-lg font-bold tracking-tight text-ink">Decks</h1>
@@ -29,7 +31,7 @@ export function DecksHeader({ deckCount, search, onSearch }: DecksHeaderProps) {
         value={search}
         onChange={(event) => onSearch(event.target.value)}
       />
-      <NewDeckForm />
+      {newDeck}
     </div>
   );
 }

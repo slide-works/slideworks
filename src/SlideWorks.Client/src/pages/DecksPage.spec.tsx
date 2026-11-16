@@ -1,11 +1,23 @@
 import { test, expect } from '@playwright/experimental-ct-react';
-import type { DecksLibraryView } from '../api/types';
+import type { DecksLibraryView, LooksView } from '../api/types';
 import { LocationProbe } from '../test-support/LocationProbe';
+import {
+  PALETTES,
+  TEMPLATES,
+  looksPaletteOf,
+  looksTemplateOf,
+} from '../test-support/fixtures/lookViewOf';
 import { decksLibrary } from '../test-support/fixtures/screens';
 import { stubApi } from '../test-support/stubApi';
 import { DecksPage } from './DecksPage';
 
 const route = { hooksConfig: { route: '/decks' } };
+
+// The built-in look catalogue the New deck dialog reads.
+const looks: LooksView = {
+  templates: TEMPLATES.map(looksTemplateOf),
+  palettes: PALETTES.map(looksPaletteOf),
+};
 
 test('lists decks with last change by agent via mcp', async ({ mount, page }) => {
   await stubApi(page, { '/api/decks': { json: decksLibrary } });
@@ -148,6 +160,7 @@ test('shared with you rows open the player', async ({ mount, page }) => {
 
 test('new deck posts and navigates', async ({ mount, page }) => {
   const posted: unknown[] = [];
+  await stubApi(page, { '/api/looks': { json: looks } });
   await page.route('**/api/decks', (request) => {
     if (request.request().method() === 'POST') {
       posted.push(request.request().postDataJSON());
@@ -170,10 +183,11 @@ test('new deck posts and navigates', async ({ mount, page }) => {
   await page.getByTestId('new-deck-create').click();
 
   await expect(page.getByTestId('location')).toHaveText('/decks/N3wDeck0Id12');
-  expect(posted).toEqual([{ title: 'Team retro' }]);
+  expect(posted).toEqual([{ title: 'Team retro', template: 'talk', palette: 'cobalt' }]);
 });
 
 test('new deck shows the server error', async ({ mount, page }) => {
+  await stubApi(page, { '/api/looks': { json: looks } });
   await page.route('**/api/decks', (request) =>
     request.request().method() === 'POST'
       ? request.fulfill({ status: 400, json: { error: 'Title is required.' } })
@@ -189,7 +203,7 @@ test('new deck shows the server error', async ({ mount, page }) => {
 });
 
 test('new deck cancel puts focus back on new deck', async ({ mount, page }) => {
-  await stubApi(page, { '/api/decks': { json: decksLibrary } });
+  await stubApi(page, { '/api/decks': { json: decksLibrary }, '/api/looks': { json: looks } });
   await mount(<DecksPage />, route);
 
   await page.getByTestId('new-deck').click();
@@ -201,6 +215,7 @@ test('new deck cancel puts focus back on new deck', async ({ mount, page }) => {
 });
 
 test('a failed new deck puts focus back on the title', async ({ mount, page }) => {
+  await stubApi(page, { '/api/looks': { json: looks } });
   await page.route('**/api/decks', (request) =>
     request.request().method() === 'POST'
       ? request.fulfill({ status: 400, json: { error: 'Title is required.' } })
