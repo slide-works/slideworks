@@ -18,7 +18,7 @@ type SlideFooterProps = {
 export function SlideFooter({ number, total, deckTitle, meta, logoUrl, draft }: SlideFooterProps) {
   return (
     <div className="sw-footer" data-testid="slide-footer">
-      <span>
+      <span data-testid="slide-footer-text">
         <b>{number}</b> / {total} · {deckTitle}
         {meta === null ? null : ` · ${meta}`}
       </span>

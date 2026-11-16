@@ -42,7 +42,9 @@ test('content slide shows tracker with current part and footer', async ({ mount,
   await expect(parts.nth(3)).toHaveAttribute('data-state', 'next');
   await expect(page.locator('[aria-current]')).toHaveCount(1);
 
-  await expect(page.getByTestId('slide-footer')).toHaveText('3 / 16 · Ship smaller · Sam Rivera');
+  await expect(page.getByTestId('slide-footer-text')).toHaveText(
+    '3 / 16 · Ship smaller · Sam Rivera',
+  );
 });
 
 test('title slide is dark without tracker or footer', async ({ mount, page }) => {
@@ -79,7 +81,9 @@ test('deck without parts shows no tracker', async ({ mount, page }) => {
 
   await expect(page.getByTestId('slide-frame')).toBeAttached();
   await expect(page.getByTestId('part-tracker')).toHaveCount(0);
-  await expect(page.getByTestId('slide-footer')).toHaveText('3 / 16 · Ship smaller · Sam Rivera');
+  await expect(page.getByTestId('slide-footer-text')).toHaveText(
+    '3 / 16 · Ship smaller · Sam Rivera',
+  );
 });
 
 test('slide outside any part highlights no part', async ({ mount, page }) => {
@@ -93,7 +97,7 @@ test('slide outside any part highlights no part', async ({ mount, page }) => {
 test('footer leaves out a missing author', async ({ mount, page }) => {
   await mount(slide({ author: null }));
 
-  await expect(page.getByTestId('slide-footer')).toHaveText('3 / 16 · Ship smaller');
+  await expect(page.getByTestId('slide-footer-text')).toHaveText('3 / 16 · Ship smaller');
 });
 
 test('progress reflects slide number', async ({ mount, page }) => {
@@ -200,7 +204,9 @@ test('talk shows the tracker, an author footer and progress', async ({ mount, pa
   await mount(slide({ look: lookViewOf('talk', 'cobalt') }));
 
   await expect(page.getByTestId('part-tracker-part')).toHaveCount(4);
-  await expect(page.getByTestId('slide-footer')).toHaveText('3 / 16 · Ship smaller · Sam Rivera');
+  await expect(page.getByTestId('slide-footer-text')).toHaveText(
+    '3 / 16 · Ship smaller · Sam Rivera',
+  );
   await expect(page.getByTestId('slide-progress')).toHaveCount(1);
 });
 
@@ -208,7 +214,7 @@ test('update has no tracker and a date footer', async ({ mount, page }) => {
   await mount(slide({ look: lookViewOf('update', 'cobalt') }));
 
   await expect(page.getByTestId('part-tracker')).toHaveCount(0);
-  await expect(page.getByTestId('slide-footer')).toHaveText(
+  await expect(page.getByTestId('slide-footer-text')).toHaveText(
     `3 / 16 · Ship smaller · ${FOOTER_DATE_LABEL}`,
   );
   await expect(page.getByTestId('slide-progress')).toHaveCount(1);
@@ -217,7 +223,7 @@ test('update has no tracker and a date footer', async ({ mount, page }) => {
 test('a date footer shows the date even without an author', async ({ mount, page }) => {
   await mount(slide({ look: talkWith({ footer: 'date' }), author: null }));
 
-  await expect(page.getByTestId('slide-footer')).toHaveText(
+  await expect(page.getByTestId('slide-footer-text')).toHaveText(
     `3 / 16 · Ship smaller · ${FOOTER_DATE_LABEL}`,
   );
 });
