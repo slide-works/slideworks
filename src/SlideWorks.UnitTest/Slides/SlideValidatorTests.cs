@@ -432,7 +432,7 @@ public class SlideValidatorTests
 
         var result = Validate("bullets", $$"""{ "headline": "h", "items": ["i"], "callout": { "text": "t", "tone": "{{value}}" } }""");
 
-        result.Error.ShouldBe("bullets.callout.tone: expected one of 'good', 'bad', 'info' (got '\\u0000" + new string('v', 39) + "…')");
+        result.Error.ShouldBe("bullets.callout.tone: expected one of 'accent', 'positive', 'negative', 'inverse' (got '\\u0000" + new string('v', 39) + "…')");
     }
 
     [Test]
