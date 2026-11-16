@@ -52,6 +52,7 @@
 .subtitle {
   max-width: 1500px;
   margin: 34px 0 0;
+  /* The size is set by the three-line fit in TitleLayout.tsx, from 52 px to 36 px. */
   font: 600 52px/1.15 var(--sw-font-head);
   letter-spacing: -0.01em;
 }

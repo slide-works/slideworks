@@ -9,12 +9,19 @@ import styles from './TitleLayout.module.css';
 // fits two, never below 96 px (a 34-character title of W fits two lines there).
 const TITLE_FIT: FitBudget = { start: 168, floor: 96, lines: 2, lineHeight: 0.95 };
 
+// The subtitle is set at 52 px in at most three lines. A 100-character subtitle
+// of capital W takes four there and pushes the byline past y 996, so it then
+// shrinks until it fits three, never below 36 px (where any 100 characters do).
+const SUBTITLE_FIT: FitBudget = { start: 52, floor: 36, lines: 3, lineHeight: 1.15 };
+
 // The opening slide (dark): kicker, title, subtitle, tagline, a byline of the
 // author and affiliation, and an optional stamp in the top right corner.
 export function TitleLayout({ slots }: LayoutProps<'title'>) {
   const { kicker, title, subtitle, tagline, author, affiliation, stamp } = slots;
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const subtitleRef = useRef<HTMLParagraphElement>(null);
   useFitText(titleRef, TITLE_FIT, title);
+  useFitText(subtitleRef, SUBTITLE_FIT, subtitle ?? '');
   return (
     <div data-testid="layout-title" className={`sw-layout ${styles.title}`}>
       {stamp !== undefined ? <Stamp text={stamp} /> : null}
@@ -32,7 +39,7 @@ export function TitleLayout({ slots }: LayoutProps<'title'>) {
         {title}
       </h1>
       {subtitle !== undefined ? (
-        <p data-testid="title-subtitle" className={styles.subtitle}>
+        <p ref={subtitleRef} data-testid="title-subtitle" className={styles.subtitle}>
           {subtitle}
         </p>
       ) : null}
