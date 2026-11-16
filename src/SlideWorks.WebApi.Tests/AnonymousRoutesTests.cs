@@ -40,6 +40,8 @@ public class AnonymousRoutesTests : ApiTestFixture
     [TestCase("/health")]
     [TestCase("/d/abc/slug")]
     [TestCase("/assets/app.js")]
+    [TestCase("/d/abc")]
+    [TestCase("/api/cards/abc.png")]
     public async Task Get_WhenAnonymousAndSignInRequiredElsewhere_ShouldReturn200(string path)
     {
         using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });

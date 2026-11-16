@@ -93,6 +93,7 @@ app.MapHub<DeckHub>(DeckHub.PATH, options => options.Transports = HttpTransportT
 // is anonymous: the player (/d/:id/:slug) opens for viewers who never sign in.
 app.MapFallback("/api/{**path}", () => Results.NotFound());
 app.MapFallback("/hubs/{**path}", () => Results.NotFound());
+app.MapGet("/d/{id}/{slug?}", (string id, SlideWorks.WebApi.Features.Render.PlayerPageHtml page) => page.ServeAsync(id)).AllowAnonymous();
 app.MapFallbackToFile("index.html").AllowAnonymous();
 
 await app.RunAsync();
