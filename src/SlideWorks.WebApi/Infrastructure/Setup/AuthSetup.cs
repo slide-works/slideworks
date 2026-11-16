@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.DataProtection.Repositories;
 using SlideWorks.WebApi.Infrastructure.Identity;
+using SlideWorks.WebApi.Infrastructure.Identity.Google;
 
 namespace SlideWorks.WebApi.Infrastructure.Setup;
 
@@ -34,6 +35,7 @@ public static class AuthSetup
                 options.Events.OnRedirectToLogin = context => WriteErrorAsync(context.Response, StatusCodes.Status401Unauthorized, NOT_SIGNED_IN);
                 options.Events.OnRedirectToAccessDenied = context => WriteErrorAsync(context.Response, StatusCodes.Status403Forbidden, "Not allowed");
             });
+        services.AddGoogleSignIn();
         services.AddAuthorizationBuilder()
             .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
         // The session cookie is encrypted with the data-protection key ring. Outside Development it is kept on the data
