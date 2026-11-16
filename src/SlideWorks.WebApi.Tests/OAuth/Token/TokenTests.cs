@@ -483,6 +483,11 @@ public class TokenTests : ApiTestFixture
         (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_grant");
         (await ada.PostAsync($"/api/admin/users/{id}/approve", content: null)).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await TokenEndpoint.ErrorAsync(await _endpoint.RedeemAsync(_clientId, code))).ShouldBe("invalid_grant");
+        // The library still offers to connect an agent, which it does only while the person has no agent tokens: none
+        // were stored for the refused redeem, so approving them again revived nothing.
+        using var approvedAgain = ClientFor(presenter);
+        var library = await TokenEndpoint.OkBodyAsync(await approvedAgain.GetAsync("/api/decks"));
+        library.GetProperty("connect").GetProperty("show").GetBoolean().ShouldBeTrue();
     }
 
     private static async Task<Guid> AdminUserIdAsync(HttpClient admin, string email)
