@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.Extensions.DependencyInjection;
@@ -110,6 +111,39 @@ public class SetNotesTests : ApiTestFixture
         Quotes(slides).ShouldBe(["A", "B"]);
         Revisions(slides).ShouldBe([1, 2]);
         slides.ShouldAllBe(s => s.GetProperty("notes").ValueKind == JsonValueKind.Null);
+    }
+
+    // The decks library sorts by the deck's UpdatedAt and labels lastChange from the activity log, so every edit must set
+    // both: an edit to an older deck puts it ahead of a deck created later, with the edit as its last change.
+    [TestCase("update_slide", "updated slide 1 (quote)")]
+    [TestCase("move_slide", "moved slide 2 to 1")]
+    [TestCase("delete_slide", "deleted slide 1 (quote)")]
+    [TestCase("set_notes", "set notes on slide 1")]
+    public async Task Edits_WhenOlderDeckEdited_ShouldMoveItToTopOfLibrary(string tool, string summary)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var older = await DeckOfQuotesAsync(agent, "A", "B");
+        Clock.Advance(TimeSpan.FromMinutes(5));
+        var newer = await DeckSeed.CreateDeckAsync(agent, "Newer deck");
+        Clock.Advance(TimeSpan.FromMinutes(5));
+        using var slots = JsonDocument.Parse("""{ "quote": "A2", "attribution": "Sam" }""");
+        object args = tool switch
+        {
+            "update_slide" => new { deck = older, slide = 1, revision = 1, slots = slots.RootElement },
+            "move_slide" => new { deck = older, slide = 2, to = 1 },
+            "delete_slide" => new { deck = older, slide = 1 },
+            _ => new { deck = older, notes = new[] { new { slide = 1, text = "Hi." } } },
+        };
+
+        await OkAsync(agent, tool, args);
+
+        var response = await Client.GetAsync("/api/decks");
+        response.StatusCode.ShouldBe(System.Net.HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        var rows = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("decks").EnumerateArray().ToList();
+        rows.Select(r => r.GetProperty("id").GetString()).Take(2).ShouldBe([older, newer]);
+        rows[0].GetProperty("lastChange").GetProperty("summary").GetString().ShouldBe(summary);
+        rows[0].GetProperty("updatedLabel").GetString().ShouldBe("just now");
+        rows[1].GetProperty("updatedLabel").GetString().ShouldBe("5 min ago");
     }
 
     [Test]
