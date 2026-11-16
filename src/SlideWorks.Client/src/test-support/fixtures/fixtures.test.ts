@@ -94,6 +94,7 @@ const DECK_PAGE = keys<DeckPageView>({
   id: true,
   slug: true,
   title: true,
+  author: true,
   isOwner: true,
   playUrl: true,
   sharing: true,

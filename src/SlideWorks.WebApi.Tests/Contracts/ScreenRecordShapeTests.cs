@@ -85,6 +85,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
             deck.Id,
             deck.Slug,
             deck.Title,
+            "Sam Rivera",
             IsOwner: true,
             PlayUrl: "/d/7Kq2xYp9LmQa/ship-smaller",
             SharingSummary.From(DeckSharing.Link, 0),
@@ -107,13 +108,14 @@ public class ScreenRecordShapeTests : ApiTestFixture
     {
         var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]" };
         var slide = DeckPageSlide.From(deck, new Slide { DeckId = deck.Id, Layout = "bullets", SlotsJson = """{ "items": ["One"] }""" });
-        var view = new DeckPageView(deck.Id, deck.Slug, deck.Title, false, "/d/7Kq2xYp9LmQa/ship-smaller",
+        var view = new DeckPageView(deck.Id, deck.Slug, deck.Title, null, false, "/d/7Kq2xYp9LmQa/ship-smaller",
             SharingSummary.From(DeckSharing.Private, 0), [], [slide],
             [ActivityRow.From(Entry("Sam Rivera", ActorKind.Person, ActorVia.Web, null, "created the deck"), "just now")]);
 
         var json = Serialise(view);
 
         JsonShape.AssertMatches(json, "deck-page.json", ScreenShapes.DeckPage);
+        json.GetProperty("author").ValueKind.ShouldBe(JsonValueKind.Null);
         json.GetProperty("slides")[0].GetProperty("headline").ValueKind.ShouldBe(JsonValueKind.Null);
         json.GetProperty("activity")[0].GetProperty("actorKind").GetString().ShouldBe("person");
         json.GetProperty("activity")[0].GetProperty("via").GetString().ShouldBe("web");

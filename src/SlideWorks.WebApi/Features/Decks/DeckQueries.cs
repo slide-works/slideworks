@@ -41,6 +41,7 @@ public class DeckQueries(AppDbContext db, ICurrentActor actor, IDeckAccess acces
             deck.Id,
             deck.Slug,
             deck.Title,
+            deck.Author,
             IsOwner: true,
             DeckLinks.Play(deck.Id, deck.Slug),
             SharingSummary.From(deck.Sharing, viewerCount),

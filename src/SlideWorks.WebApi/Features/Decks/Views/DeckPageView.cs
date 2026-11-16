@@ -6,6 +6,7 @@ public sealed record DeckPageView(
     string Id,
     string Slug,
     string Title,
+    string? Author,
     bool IsOwner,
     string PlayUrl,
     SharingSummary Sharing,

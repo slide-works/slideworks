@@ -13,7 +13,7 @@ public static class ScreenShapes
 
     public static readonly JsonShapeOptions DeckPage = new()
     {
-        NullablePaths = ["slides[].part", "slides[].headline", "slides[].notes", "activity[].tool"],
+        NullablePaths = ["author", "slides[].part", "slides[].headline", "slides[].notes", "activity[].tool"],
         OpaquePaths = ["slides[].slots"],
     };
 

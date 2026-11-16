@@ -91,6 +91,7 @@ export type DeckPageView = {
   id: string;
   slug: string;
   title: string;
+  author: string | null;
   isOwner: boolean;
   playUrl: string;
   sharing: { level: SharingLevel; viewerCount: number };

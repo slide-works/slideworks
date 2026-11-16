@@ -33,6 +33,7 @@ public class DeckPageTests : ApiTestFixture
         page.GetProperty("id").GetString().ShouldBe(deck);
         page.GetProperty("slug").GetString().ShouldBe("ship-smaller");
         page.GetProperty("title").GetString().ShouldBe("Ship smaller");
+        page.GetProperty("author").GetString().ShouldBe("Sam Rivera");
         page.GetProperty("isOwner").GetBoolean().ShouldBeTrue();
         page.GetProperty("playUrl").GetString().ShouldBe($"/d/{deck}/ship-smaller");
         page.GetProperty("sharing").GetProperty("level").GetString().ShouldBe("private");
