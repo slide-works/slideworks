@@ -5,6 +5,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using SlideWorks.Core.Rendering;
+using SlideWorks.WebApi.Features.Render;
+using SlideWorks.WebApi.Tests.Decks;
+using SlideWorks.WebApi.Tests.Images;
+using SlideWorks.WebApi.Tests.Mcp;
+using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests;
 
@@ -56,6 +62,43 @@ public class AnonymousRoutesTests : ApiTestFixture
         var response = await client.GetAsync("/api/anything");
 
         response.StatusCode.ShouldBeOneOf(HttpStatusCode.Redirect, HttpStatusCode.Unauthorized);
+    }
+
+    // L9: a headless render page holds only a render token. Trading it for the image cookie, and reading its deck's
+    // image with it, both work with sign-in required everywhere else.
+    [Test]
+    public async Task PostRenderSession_WhenAnonymousWithRenderToken_ShouldSetTheCookie()
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var (deck, _) = await SeedPrivateImageAsync();
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/render/{deck}/session");
+        request.Headers.Add(RenderSessions.HEADER, Factory.Services.GetRequiredService<IRenderTokens>().Issue(deck, RenderPurpose.Preview));
+
+        using var response = await anonymous.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        response.Headers.GetValues("Set-Cookie").ShouldContain(cookie => cookie.StartsWith(RenderSessions.COOKIE + "="));
+    }
+
+    [Test]
+    public async Task GetImage_WhenAnonymousWithRenderToken_ShouldReturn200()
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var (deck, image) = await SeedPrivateImageAsync();
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/images/{image}");
+        request.Headers.Add(RenderSessions.HEADER, Factory.Services.GetRequiredService<IRenderTokens>().Issue(deck, RenderPurpose.Card));
+
+        using var response = await anonymous.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    // A private deck with one image, made the way an agent makes them.
+    private async Task<(string Deck, string Image)> SeedPrivateImageAsync()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        return (deck, await ImageSeed.UploadAsync(agent, Factory, deck, ImageSeed.Bytes("image/png")));
     }
 
     private static string CreateWebRoot()

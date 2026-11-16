@@ -78,10 +78,39 @@ jobs:
         with:
           package_json_file: src/SlideWorks.Client/package.json
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run test-ct
+      # A screenshot spec with no committed baseline writes one here instead of failing; a baseline that exists but
+      # differs still fails. Baselines are only ever made in this container, never on a laptop.
+      - run: pnpm run test-ct --update-snapshots=missing
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
           path: src/SlideWorks.Client/playwright-report/
           retention-days: 14
+      # The baselines this run wrote (untracked files in a -snapshots folder), at their repo paths, to be reviewed and
+      # committed from the artifact.
+      - name: Collect new screenshot baselines
+        if: ${{ !cancelled() }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git ls-files --others --exclude-standard -- '*-snapshots/*' > new-baselines.txt
+          cat new-baselines.txt
+          mkdir -p ct-new-baselines
+          if [ -s new-baselines.txt ]; then
+            tar -cf - -T new-baselines.txt | tar -xf - -C ct-new-baselines
+          fi
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: ct-new-baselines
+          path: src/SlideWorks.Client/ct-new-baselines/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # The production image builds, Chromium included (the share card renderer, L9).
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t slide-works src
+      - run: docker image ls slide-works
