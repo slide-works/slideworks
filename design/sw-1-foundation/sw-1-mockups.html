@@ -1,0 +1,1187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-1 mockups: SlideWorks foundation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   Review-page chrome: light ledger (Inter for UI, Plex Mono for data)
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", system-ui, sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 20px 80px; }
+h1, h2, h3 { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 26px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { margin: 0; color: var(--muted); max-width: 860px; font-size: 15px; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 18px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 900px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
+.grid2 > *, .grid3 > *, .flex > * { min-width: 0; }
+
+/* scope strip */
+.scope { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .scope { grid-template-columns: minmax(0, 1fr); } }
+.scope .card { padding: 16px 18px; }
+.scope h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.scope ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.scope li { position: relative; padding-left: 22px; color: var(--text); }
+.scope li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.scope .later-list li::before { background: var(--later); opacity: .55; }
+.scope .later-list li span.k { font: 500 12px/1.5 var(--mono); color: var(--later); }
+
+/* diagram */
+.diagram { padding: 18px; overflow: hidden; }
+.diagram svg { width: 100%; height: auto; display: block; }
+
+/* ---------- browser + phone mockups ---------- */
+.browser { border-radius: 12px; overflow: hidden; border: 1px solid var(--line-2); background: var(--surface); box-shadow: var(--raise); }
+.browser-bar { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #e9ecf1; border-bottom: 1px solid var(--line-2); }
+.browser-bar .dots { display: flex; gap: 6px; }
+.browser-bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: #c9ced7; display: block; }
+.browser-bar .url { flex: 1; min-width: 0; background: #fff; border-radius: 6px; padding: 4px 10px; font: 400 12px/1.4 var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browser-bar .url b { color: var(--text); font-weight: 500; }
+
+/* app chrome inside mocks */
+.app { background: #f6f7f9; font-size: 13px; }
+.app-top { display: flex; align-items: center; gap: 14px; padding: 10px 18px; background: #fff; border-bottom: 1px solid var(--line); }
+.logo { display: flex; align-items: center; gap: 8px; font: 700 14px/1 var(--ui); letter-spacing: -.01em; }
+.logo svg { width: 22px; height: 22px; }
+.app-top nav { display: flex; gap: 2px; }
+.app-top nav a { text-decoration: none; color: var(--muted); padding: 5px 10px; border-radius: 6px; font-weight: 500; }
+.app-top nav a.on { background: var(--surface-2); color: var(--text); }
+.app-top .sp { flex: 1; }
+.search { width: 220px; max-width: 30vw; padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--faint); background: #fbfbfc; }
+@media (max-width: 640px) { .search, .app-top nav a:not(.on) { display: none; } }
+.avatar { width: 26px; height: 26px; border-radius: 50%; background: #dfe6f7; color: var(--accent-dark); display: grid; place-items: center; font: 600 11px/1 var(--ui); flex: none; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); font: 500 13px/1.2 var(--ui); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.later { border-style: dashed; color: var(--faint); cursor: default; }
+.btn svg { width: 14px; height: 14px; }
+.app-body { padding: 18px; }
+.app-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.app-h h3 { font: 650 18px/1.2 var(--ui); font-weight: 650; }
+.app-h .sp { flex: 1; }
+
+.connect { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 14px; background: var(--accent-soft); border: 1px solid #cfdafb; border-radius: 8px; color: var(--accent-dark); }
+.connect code { background: #fff; padding: 3px 8px; border-radius: 5px; color: var(--text); }
+
+table.ledger { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.ledger th { text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ledger td { padding: 0 12px; height: 34px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ledger tr:last-child td { border-bottom: 0; }
+.ledger tr:hover td { background: #fafbfd; }
+.ledger td.t { font-weight: 550; font-weight: 600; white-space: normal; }
+.ledger td.t small { display: block; font: 400 12px/1.3 var(--ui); color: var(--faint); }
+.ledger td.num { font-family: var(--mono); font-size: 12.5px; text-align: right; color: var(--muted); }
+.ledger td.who { color: var(--muted); }
+.ledger td.who .agent { color: var(--text); }
+.ledger td.act { text-align: right; }
+.mini-thumb { width: 64px; height: 36px; border-radius: 3px; overflow: hidden; border: 1px solid var(--line); display: block; }
+.table-wrap { overflow-x: auto; }
+
+/* deck page */
+.deck-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; }
+@media (max-width: 980px) { .deck-layout { grid-template-columns: minmax(0, 1fr); } }
+.thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 720px) { .thumbs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.thumb { all: unset; display: block; cursor: pointer; border-radius: 7px; }
+.thumb .frame { border-radius: 6px; border: 1px solid var(--line); box-shadow: 0 1px 2px rgb(16 24 40 / .05); }
+.thumb.sel .frame { outline: 2px solid var(--accent); outline-offset: 2px; }
+.thumb .cap { display: flex; justify-content: space-between; gap: 6px; padding: 5px 2px 0; font-size: 12px; color: var(--muted); }
+.thumb .cap code { font-size: 11.5px; color: var(--faint); }
+.side { display: grid; gap: 12px; align-content: start; }
+.side .card { padding: 14px; }
+.side h4 { margin: 0 0 8px; font: 600 12px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.feed li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; font-size: 12.5px; line-height: 1.4; }
+.feed .ic { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: var(--surface-2); color: var(--muted); font: 600 10px/1 var(--mono); }
+.feed .ic.ag { background: #f1ecff; color: var(--later); }
+.feed time { color: var(--faint); font-size: 11.5px; display: block; }
+.notes-box { background: #fffbeb; border: 1px solid #f6e3a6; border-radius: 7px; padding: 10px 12px; font-size: 13px; line-height: 1.45; }
+.later-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* share dialog */
+.dialog-stage { padding: 30px 16px; background: rgb(15 23 42 / .32); display: grid; place-items: center; }
+.dialog { width: 100%; max-width: 520px; background: #fff; border-radius: 12px; box-shadow: 0 24px 56px -16px rgb(16 24 40 / .4); overflow: hidden; }
+.dialog header { padding: 16px 18px 6px; }
+.dialog header h3 { font: 650 16px/1.3 var(--ui); font-weight: 650; }
+.dialog header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.dialog .body { padding: 10px 18px 16px; display: grid; gap: 8px; }
+.opt { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.opt:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.opt input { margin: 2px 0 0; accent-color: var(--accent); }
+.opt b { display: block; font-weight: 600; }
+.opt span { color: var(--muted); font-size: 12.5px; }
+.people { display: none; margin-top: 8px; }
+.opt:has(input:checked) .people { display: block; }
+.chips-in { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; border: 1px solid var(--line-2); border-radius: 6px; background: #fff; }
+.chip-p { display: inline-flex; gap: 6px; align-items: center; padding: 2px 4px 2px 2px; border-radius: 999px; background: var(--surface-2); font-size: 12.5px; }
+.chip-p .avatar { width: 20px; height: 20px; font-size: 9.5px; }
+.chips-in .ph { color: var(--faint); padding: 2px 4px; font-size: 12.5px; }
+.linkrow { display: flex; gap: 8px; align-items: center; padding: 10px 18px; background: var(--surface-2); border-top: 1px solid var(--line); }
+.linkrow code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dialog footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); }
+
+/* player */
+.player-stage { position: relative; background: #05070d; padding: 18px 18px 64px; }
+.player-stage .frame { box-shadow: 0 10px 40px rgb(0 0 0 / .45); border-radius: 2px; }
+.pctl { position: absolute; left: 18px; right: 18px; bottom: 12px; display: flex; align-items: center; gap: 10px; color: #cbd5e1; font: 500 12.5px/1 var(--ui); }
+.pctl button { all: unset; cursor: pointer; width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: rgb(255 255 255 / .08); color: #e2e8f0; }
+.pctl button:hover { background: rgb(255 255 255 / .16); }
+.pctl button:focus-visible { outline: 2px solid #93a8ff; }
+.pctl svg { width: 16px; height: 16px; }
+.pctl .count { font-family: var(--mono); min-width: 74px; text-align: center; }
+.pctl .bar { flex: 1; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .12); overflow: hidden; }
+.pctl .bar i { display: block; height: 100%; background: #6d8bff; width: 0; transition: width .3s; }
+.pctl .steps { display: flex; gap: 4px; }
+.pctl .steps i { width: 6px; height: 6px; border-radius: 50%; background: rgb(255 255 255 / .2); }
+.pctl .steps i.on { background: #a5b8ff; }
+.player-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+@media (max-width: 980px) { .player-wrap { grid-template-columns: minmax(0, 1fr); } }
+.phone { width: 300px; max-width: 100%; margin: 0 auto; border-radius: 36px; padding: 12px; background: #11151d; box-shadow: var(--raise), inset 0 0 0 2px #2a303b; }
+.phone-screen { border-radius: 26px; overflow: hidden; background: #05070d; height: 580px; display: flex; flex-direction: column; }
+.phone-url { margin: 30px 12px 0; padding: 6px 10px; border-radius: 8px; background: #1b2130; color: #94a3b8; font: 400 11px/1.3 var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phone-canvas { flex: 1; display: flex; align-items: center; padding: 0 0; position: relative; }
+.phone-canvas .frame { width: 100%; }
+.tapzones { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; pointer-events: none; }
+.tapzones span { border: 1px dashed rgb(165 184 255 / .28); display: grid; place-items: end center; padding-bottom: 8px; color: rgb(165 184 255 / .7); font: 500 10px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; }
+.tapzones span:nth-child(2) { border-left: 0; border-right: 0; }
+.phone .pctl { position: static; padding: 10px 12px 16px; }
+.phone .pctl .bar { min-width: 0; }
+.rules-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.rules-list li { position: relative; padding-left: 22px; font-size: 13px; }
+.rules-list li::before { content: "✓"; position: absolute; left: 2px; top: 0; color: var(--ok); font-weight: 700; }
+
+/* slide frames + gallery */
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #fff; }
+.frame > .sw { position: absolute; left: 0; top: 0; transform: scale(var(--s, .1)); transform-origin: 0 0; }
+.gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 760px) { .gallery { grid-template-columns: minmax(0, 1fr); } }
+.g-item { padding: 10px; }
+.g-item .frame { border-radius: 6px; border: 1px solid var(--line); }
+.g-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 2px 2px; }
+.g-meta code.layout { font-weight: 500; color: var(--accent-dark); background: var(--accent-soft); padding: 1px 7px; border-radius: 5px; }
+.g-meta .slot { font: 400 11.5px/18px var(--mono); color: var(--muted); background: var(--surface-2); padding: 0 6px; border-radius: 4px; }
+
+/* agent session */
+.session { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 980px) { .session { grid-template-columns: minmax(0, 1fr); } }
+.term { background: #0f1420; color: #d6deeb; border-radius: 10px; padding: 14px 16px; font: 400 12.5px/1.6 var(--mono); overflow-x: auto; }
+.term .c { color: #7f8ba3; }
+.term .call { color: #a5b8ff; }
+.term .ok { color: #7ee2a8; }
+.term .s { color: #f5c97a; }
+.term .k { color: #9ad1ff; }
+.term pre { margin: 0; white-space: pre; }
+.tools { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tools td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tools td:first-child { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; color: var(--accent-dark); }
+.tools tr:last-child td { border-bottom: 0; }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px 18px; }
+.q h3 { font: 600 15px/1.35 var(--ui); margin-bottom: 4px; }
+.q .why { color: var(--muted); margin: 0 0 10px; }
+.q .choices { display: grid; gap: 6px; }
+.q label.choice { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.q label.choice:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.q label.choice input { margin: 3px 0 0; accent-color: var(--accent); }
+.q label.choice b { font-weight: 600; }
+.q label.choice span:not(.rec) { display: block; color: var(--muted); font-size: 12.5px; }
+.q .rec { display: inline-block; font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.q textarea { width: 100%; margin-top: 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.4 var(--ui); resize: vertical; }
+.q .qfoot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.q .state { font-size: 12.5px; color: var(--faint); }
+.q .state.queued { color: var(--ok); font-weight: 600; }
+
+/* =====================================================================
+   SlideWorks default theme (neutral port of an existing hand-built HTML deck engine)
+   Canvas 1920x1080. No org branding.
+   ===================================================================== */
+.sw {
+  --d-paper: #f7f8fa; --d-card: #ffffff; --d-ink: #111827; --d-muted: #5b6474; --d-grid: #e3e6ec;
+  --d-acc: #2f5bea; --d-acc-dark: #1e3a8a; --d-acc-light: #e4eafd; --d-acc-glow: #a5b8ff;
+  --d-ok: #16a34a; --d-bad: #dc2626; --d-warn: #ea580c;
+  --d-night: #0b1020; --d-night-2: #cbd5e1; --d-night-muted: #8c97ad;
+  --d-head: "Plus Jakarta Sans", "Inter", sans-serif; --d-body: "Inter", sans-serif;
+  --d-lift: 0 1px 2px rgba(15, 23, 42, .06), 0 14px 36px rgba(15, 23, 42, .09);
+  width: 1920px; height: 1080px; box-sizing: border-box; padding: 150px 120px 120px;
+  display: flex; flex-direction: column; background: var(--d-paper); color: var(--d-ink);
+  font-family: var(--d-body); overflow: hidden; position: relative;
+}
+.sw * { box-sizing: border-box; }
+.sw::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: var(--d-acc); z-index: 3; }
+.sw.dark { color: #fff; background: radial-gradient(1100px 700px at 88% 112%, rgba(47, 91, 234, .45), transparent 62%), radial-gradient(900px 600px at -5% -10%, rgba(125, 150, 255, .12), transparent 60%), var(--d-night); }
+.sw .snav { position: absolute; top: 40px; left: 120px; right: 120px; display: flex; gap: 8px; }
+.sw .snav span { flex: 1; padding-top: 12px; border-top: 4px solid var(--d-grid); font: 700 14px/1 var(--d-body); letter-spacing: .14em; text-transform: uppercase; color: var(--d-muted); opacity: .75; }
+.sw .snav span.past { border-top-color: #b9c8f8; }
+.sw .snav span.on { border-top-color: var(--d-acc); color: var(--d-acc-dark); opacity: 1; }
+.sw .sfoot { position: absolute; left: 120px; right: 120px; bottom: 40px; display: flex; justify-content: space-between; font: 500 17px/1 var(--d-body); color: var(--d-muted); }
+.sw .sfoot b { color: var(--d-acc-dark); }
+.sw.dark .sfoot { color: var(--d-night-muted); }
+.sw.dark .sfoot b { color: #fff; }
+.sw .sprog { position: absolute; left: 0; bottom: 0; height: 5px; background: var(--d-acc); }
+.sw .kicker { font: 700 20px/1 var(--d-body); letter-spacing: .18em; text-transform: uppercase; color: var(--d-acc); margin: 0 0 22px; }
+.sw.dark .kicker { color: var(--d-acc-glow); }
+.sw .h { font: 800 64px/1.08 var(--d-head); letter-spacing: -.025em; margin: 0; max-width: 1560px; text-wrap: balance; }
+.sw .h em { font-style: normal; color: var(--d-acc); }
+.sw .lead { font: 400 28px/1.4 var(--d-body); color: var(--d-muted); margin: 20px 0 0; max-width: 1500px; }
+.sw .bd { flex: 1; min-height: 0; margin-top: 46px; display: flex; flex-direction: column; }
+.sw .src { font: 400 19px/1.4 var(--d-body); color: var(--d-muted); margin-top: auto; }
+.sw .f { transition: opacity .45s ease, transform .5s ease; }
+.player-host .sw .f:not(.on) { opacity: 0; transform: translateY(16px); }
+
+/* title */
+.sw.title { justify-content: center; padding-left: 160px; }
+.sw.title .dots { display: flex; gap: 14px; margin-bottom: 44px; }
+.sw.title .dots i { width: 18px; height: 18px; border-radius: 50%; background: var(--d-acc-glow); opacity: .9; }
+.sw.title .dots i:nth-child(2) { opacity: .6; } .sw.title .dots i:nth-child(3) { opacity: .35; }
+.sw.title h1 { font: 800 168px/.95 var(--d-head); letter-spacing: -.04em; margin: 0; }
+.sw.title .t-sub { font: 600 52px/1.15 var(--d-head); margin: 34px 0 0; max-width: 1500px; letter-spacing: -.01em; }
+.sw.title .t-tag { font: 400 34px/1.3 var(--d-body); font-style: italic; color: var(--d-acc-glow); margin: 30px 0 0; }
+.sw.title .byline { margin-top: 76px; font: 500 28px/1 var(--d-body); color: var(--d-night-2); display: flex; gap: 22px; align-items: center; }
+.sw.title .byline i { width: 2px; height: 30px; background: #334155; }
+.sw .stamp { position: absolute; right: 120px; top: 70px; font: 700 17px/1 var(--d-body); letter-spacing: .16em; text-transform: uppercase; color: #fcd34d; border: 2px solid #fcd34d; border-radius: 999px; padding: 10px 18px; }
+
+/* divider + journey */
+.sw.divider { justify-content: center; padding-left: 160px; }
+.sw.divider .num { font: 800 240px/.9 var(--d-head); letter-spacing: -.05em; background: linear-gradient(180deg, #c3d0ff, #5b7cff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sw.divider h2 { font: 800 104px/1.02 var(--d-head); letter-spacing: -.035em; margin: 40px 0 0; max-width: 1300px; }
+.sw.divider .sub { font: 400 40px/1.3 var(--d-body); color: var(--d-night-2); margin: 28px 0 0; }
+.sw .journey { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 80px; width: 1500px; }
+.sw .journey::before { content: ""; position: absolute; left: 11px; right: 0; top: 11px; height: 2px; background: #334155; }
+.sw .journey div { position: relative; padding-top: 44px; }
+.sw .journey div::before { content: ""; position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #475569; background: var(--d-night); }
+.sw .journey div.past::before { background: var(--d-acc); border-color: var(--d-acc); }
+.sw .journey div.on::before { background: #8ea5ff; border-color: #c3d0ff; box-shadow: 0 0 0 8px rgba(142, 165, 255, .2); }
+.sw .journey b { display: block; font: 700 18px/1 var(--d-body); letter-spacing: .14em; text-transform: uppercase; color: var(--d-night-2); }
+.sw .journey span { display: block; margin-top: 12px; font: 400 18px/1 var(--d-body); color: #64748b; }
+.sw .journey .on span { color: var(--d-acc-glow); }
+
+/* bullets */
+.sw ul.bl { list-style: none; margin: 0; padding: 0; display: grid; gap: 30px; max-width: 1500px; }
+.sw ul.bl li { position: relative; padding-left: 52px; font: 400 36px/1.35 var(--d-body); }
+.sw ul.bl li::before { content: ""; position: absolute; left: 0; top: 16px; width: 18px; height: 18px; border-radius: 4px; background: var(--d-acc); }
+.sw ul.bl li b { font-weight: 700; color: var(--d-acc-dark); }
+
+/* big number */
+.sw .bign { display: grid; grid-template-columns: 820px 1fr; gap: 80px; align-items: center; flex: 1; }
+.sw .bign .n { font: 800 300px/.9 var(--d-head); letter-spacing: -.06em; color: var(--d-acc); }
+.sw .bign .n small { font-size: 110px; letter-spacing: -.03em; color: var(--d-acc-dark); }
+.sw .bign p { font: 500 40px/1.3 var(--d-head); margin: 0; }
+.sw .bign p + p { font: 400 28px/1.45 var(--d-body); color: var(--d-muted); margin-top: 26px; }
+
+/* gantt */
+.sw .gantt { display: grid; grid-template-columns: 360px repeat(6, 1fr); row-gap: 40px; column-gap: 8px; align-items: center; }
+.sw .gantt .hd { font: 700 17px/1 var(--d-body); letter-spacing: .14em; text-transform: uppercase; color: var(--d-muted); padding-bottom: 6px; border-bottom: 2px solid var(--d-grid); }
+.sw .gantt .lab { font: 600 28px/1.2 var(--d-body); }
+.sw .gantt .bar { height: 76px; border-radius: 12px; display: flex; align-items: center; padding: 0 22px; font: 800 17px/1 var(--d-body); letter-spacing: .14em; color: #fff; }
+.sw .gantt .bar.done { background: var(--d-acc); }
+.sw .gantt .bar.slip { background: repeating-linear-gradient(135deg, var(--d-warn) 0 18px, #f08a46 18px 36px); }
+.sw .gantt .bar.stop { background: #fff; color: var(--d-bad); box-shadow: inset 0 0 0 3px var(--d-bad); }
+.sw .gantt .ship { grid-column: 7; justify-self: center; font: 800 17px/1 var(--d-body); letter-spacing: .14em; color: var(--d-ok); }
+
+/* quote */
+.sw .quote { margin: auto 0; padding-left: 48px; border-left: 8px solid var(--d-acc); font: 700 62px/1.22 var(--d-head); letter-spacing: -.02em; max-width: 1480px; }
+.sw .quote cite { display: block; margin-top: 34px; font: 400 28px/1.3 var(--d-body); font-style: normal; color: var(--d-muted); letter-spacing: 0; }
+
+/* practice */
+.sw .practice { display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; }
+.sw .col-h { display: flex; align-items: center; gap: 12px; font: 700 18px/1 var(--d-body); letter-spacing: .16em; text-transform: uppercase; color: var(--d-acc); margin-bottom: 16px; }
+.sw .col-h::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: currentColor; }
+.sw .col-h.ok { color: var(--d-ok); } .sw .col-h.bad { color: var(--d-bad); }
+.sw .it { background: var(--d-card); border-radius: 12px; box-shadow: var(--d-lift); padding: 22px 26px; font: 400 25px/1.4 var(--d-body); margin-bottom: 14px; }
+.sw .it b { color: var(--d-acc-dark); font-weight: 600; }
+.sw .it.ok { box-shadow: var(--d-lift), inset 6px 0 0 var(--d-ok); padding-left: 34px; }
+.sw .it.bad { box-shadow: var(--d-lift), inset 6px 0 0 var(--d-bad); padding-left: 34px; }
+.sw .callout { border-radius: 14px; padding: 28px 36px; font: 700 28px/1.35 var(--d-head); background: var(--d-acc-light); color: var(--d-acc-dark); }
+.sw .callout.bad { background: #fdecec; color: var(--d-ink); box-shadow: inset 6px 0 0 var(--d-bad); }
+
+/* compare */
+.sw .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; flex: 1; }
+.sw .panel { background: var(--d-card); border-radius: 18px; box-shadow: var(--d-lift); padding: 44px 48px; border-top: 10px solid var(--d-bad); }
+.sw .panel.good { border-top-color: var(--d-ok); }
+.sw .panel .tag { font: 800 18px/1 var(--d-body); letter-spacing: .16em; text-transform: uppercase; color: var(--d-bad); }
+.sw .panel.good .tag { color: var(--d-ok); }
+.sw .panel h3 { font: 800 44px/1.1 var(--d-head); letter-spacing: -.02em; margin: 18px 0 26px; }
+.sw .panel ul { margin: 0; padding: 0 0 0 30px; display: grid; gap: 16px; font: 400 27px/1.4 var(--d-body); }
+
+/* two-column + image */
+.sw .two { display: grid; grid-template-columns: 1fr 1.05fr; gap: 64px; flex: 1; align-items: start; }
+.sw .two ul.bl li { font-size: 30px; }
+.sw figure { margin: 0; }
+.sw figure .img { border-radius: 16px; overflow: hidden; box-shadow: var(--d-lift); background: #fff; }
+.sw figcaption { margin-top: 16px; font: 400 20px/1.3 var(--d-body); color: var(--d-muted); }
+
+/* table */
+.sw table.st { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--d-card); border-radius: 16px; box-shadow: var(--d-lift); overflow: hidden; font: 400 27px/1.3 var(--d-body); }
+.sw table.st th { text-align: left; font: 700 17px/1 var(--d-body); letter-spacing: .14em; text-transform: uppercase; color: var(--d-muted); padding: 22px 30px; background: #eef1f6; }
+.sw table.st td { padding: 22px 30px; border-top: 1px solid var(--d-grid); }
+.sw table.st td.n { font-weight: 700; font-variant-numeric: tabular-nums; }
+.sw table.st tr.hl td { background: #f2f5ff; }
+.sw .badge { display: inline-block; padding: 7px 14px; border-radius: 999px; font: 700 16px/1 var(--d-body); letter-spacing: .1em; text-transform: uppercase; }
+.sw .badge.ok { background: #dcfce7; color: #166534; } .sw .badge.bad { background: #fee2e2; color: #991b1b; } .sw .badge.warn { background: #ffedd5; color: #9a3412; } .sw .badge.acc { background: var(--d-acc-light); color: var(--d-acc-dark); }
+
+/* chart */
+.sw .chart { flex: 1; display: grid; grid-template-columns: 1fr 420px; gap: 60px; align-items: stretch; }
+.sw .chart svg text { font-family: var(--d-body); }
+.sw .chart aside { align-self: center; }
+
+/* numbered cards */
+.sw .ncards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; flex: 1; align-content: start; }
+.sw .ncard { background: var(--d-card); border-radius: 16px; box-shadow: var(--d-lift); padding: 34px 32px 38px; }
+.sw .ncard .no { font: 800 64px/1 var(--d-head); color: var(--d-acc); }
+.sw .ncard h4 { margin: 22px 0 14px; font: 700 30px/1.2 var(--d-head); }
+.sw .ncard p { margin: 0; font: 400 23px/1.4 var(--d-body); color: var(--d-muted); }
+
+/* rules */
+.sw .rules { display: grid; gap: 34px; }
+.sw .rule { display: grid; grid-template-columns: 170px 1fr; align-items: center; }
+.sw .rule .no { font: 800 150px/.85 var(--d-head); color: transparent; -webkit-text-stroke: 3px var(--d-acc); }
+.sw .rule h4 { margin: 0; font: 700 42px/1.2 var(--d-head); letter-spacing: -.015em; }
+.sw .rule p { margin: 10px 0 0; font: 400 26px/1.4 var(--d-body); color: var(--d-muted); }
+
+/* cards + chips */
+.sw .cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+.sw .rcard { background: var(--d-card); border-radius: 16px; box-shadow: var(--d-lift); padding: 34px 36px; }
+.sw .rcard h4 { margin: 18px 0 12px; font: 700 34px/1.15 var(--d-head); }
+.sw .rcard p { margin: 0; font: 400 24px/1.4 var(--d-body); color: var(--d-muted); }
+.sw .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.sw .chip { padding: 9px 16px; border-radius: 10px; background: #eef1f6; font: 500 19px/1 var(--d-body); color: var(--d-ink); }
+
+/* close */
+.sw.close { justify-content: center; padding-left: 160px; }
+.sw.close h2 { font: 800 112px/1.02 var(--d-head); letter-spacing: -.035em; margin: 0; max-width: 1400px; }
+.sw.close .callout { margin-top: 60px; max-width: 1200px; background: rgba(125, 150, 255, .14); color: #dbe3ff; font-size: 36px; }
+.sw.close .byline { margin-top: 70px; font: 500 28px/1 var(--d-body); color: var(--d-night-2); }
+</style>
+</head>
+<body>
+<script type="application/json" data-lavish-revisions>
+[{ "id": "r1", "label": "Round 1", "timestamp": "2026-11-16T11:30:00Z", "summary": "Answers recorded as D3–D8 on SW-1. Q4 = agents get full sharing control: set_sharing tool, dialog note, activity entry." }]
+</script>
+<main>
+
+<header class="page-head">
+  <div class="eyebrow">SlideWorks · SW-1 Foundation · design mockups · 2026-11-16</div>
+  <h1>What SW-1 looks like when it lands</h1>
+  <p>An agent builds a deck through MCP from ready-made blocks. A person opens it by URL, shares it, and presents it in the browser on a laptop or a phone. The mockups cover the five screens SW-1 ships, the default slide blocks, and the agent's side of the MCP session. Six questions at the end need your call before planning.</p>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#scope">Scope</a><a href="#library">Decks</a><a href="#deck">Deck page</a><a href="#share">Sharing</a><a href="#player">Player</a><a href="#blocks">Blocks</a><a href="#agent">Agent over MCP</a><a href="#questions">Questions</a>
+</nav>
+
+<!-- ================================================================ SCOPE -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">00</span><h2>In SW-1, and what waits for later Features</h2></div>
+  <p class="sec-sub">Purple marks a later Feature. The mockups show those spots as disabled controls so you can see where each one plugs in.</p>
+  <div class="card diagram" style="margin-bottom:16px">
+    <svg viewBox="0 0 1180 210" role="img" aria-label="Flow: a person's brief goes to an agent, which calls SlideWorks MCP tools. SlideWorks stores the deck and renders blocks. The deck URL opens in the player on a laptop or a phone.">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a93a3"/></marker></defs>
+      <g font-family="Inter, sans-serif">
+        <rect x="10" y="62" width="150" height="76" rx="10" fill="#fff" stroke="#d3d8e0"/>
+        <text x="85" y="94" text-anchor="middle" font-size="14" font-weight="600" fill="#1b2230">Person</text>
+        <text x="85" y="114" text-anchor="middle" font-size="12" fill="#5b6474">writes a brief</text>
+        <rect x="210" y="62" width="160" height="76" rx="10" fill="#fff" stroke="#d3d8e0"/>
+        <text x="290" y="94" text-anchor="middle" font-size="14" font-weight="600" fill="#1b2230">Agent</text>
+        <text x="290" y="114" text-anchor="middle" font-size="12" fill="#5b6474">Claude, Cursor, Codex…</text>
+        <rect x="440" y="22" width="330" height="156" rx="12" fill="#e6ecfd" stroke="#b9c8f8"/>
+        <text x="605" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a8a">SlideWorks (open source web app)</text>
+        <rect x="460" y="66" width="140" height="94" rx="8" fill="#fff" stroke="#cfdafb"/>
+        <text x="530" y="92" text-anchor="middle" font-size="13" font-weight="600" fill="#1b2230">MCP server</text>
+        <text x="530" y="112" text-anchor="middle" font-size="11.5" fill="#5b6474">13 tools</text>
+        <text x="530" y="130" text-anchor="middle" font-size="11.5" fill="#5b6474">owner sign-in</text>
+        <rect x="612" y="66" width="140" height="94" rx="8" fill="#fff" stroke="#cfdafb"/>
+        <text x="682" y="92" text-anchor="middle" font-size="13" font-weight="600" fill="#1b2230">Deck store</text>
+        <text x="682" y="112" text-anchor="middle" font-size="11.5" fill="#5b6474">slides as JSON blocks</text>
+        <text x="682" y="130" text-anchor="middle" font-size="11.5" fill="#5b6474">images, notes</text>
+        <rect x="830" y="62" width="150" height="76" rx="10" fill="#fff" stroke="#d3d8e0"/>
+        <text x="905" y="94" text-anchor="middle" font-size="14" font-weight="600" fill="#1b2230">Deck URL</text>
+        <text x="905" y="114" text-anchor="middle" font-size="12" font-family="IBM Plex Mono, monospace" fill="#5b6474">/d/7Kq2#6.2</text>
+        <rect x="1030" y="22" width="140" height="70" rx="10" fill="#fff" stroke="#d3d8e0"/>
+        <text x="1100" y="52" text-anchor="middle" font-size="13" font-weight="600" fill="#1b2230">Player, laptop</text>
+        <text x="1100" y="72" text-anchor="middle" font-size="11.5" fill="#5b6474">1920×1080 scaled</text>
+        <rect x="1030" y="108" width="140" height="70" rx="10" fill="#fff" stroke="#d3d8e0"/>
+        <text x="1100" y="138" text-anchor="middle" font-size="13" font-weight="600" fill="#1b2230">Player, phone</text>
+        <text x="1100" y="158" text-anchor="middle" font-size="11.5" fill="#5b6474">same canvas, no reflow</text>
+        <g stroke="#8a93a3" stroke-width="1.6" fill="none" marker-end="url(#ah)">
+          <path d="M160 100H204"/><path d="M370 100H454"/><path d="M600 113H606"/><path d="M770 100H824"/><path d="M980 92L1024 62"/><path d="M980 108L1024 140"/>
+        </g>
+        <text x="412" y="90" text-anchor="middle" font-size="11" fill="#5b6474">tool calls</text>
+      </g>
+    </svg>
+  </div>
+  <div class="scope">
+    <div class="card">
+      <h3><span class="pill acc"><span class="dot"></span>SW-1</span>Ships in the foundation</h3>
+      <ul>
+        <li>Decks library: create, open by URL, presenter accounts</li>
+        <li>Deck page: slide grid, notes, link, who changed what</li>
+        <li>Sharing: private, anyone with the link, or named viewers</li>
+        <li>Player: scaled 1920×1080 canvas, keys, click, swipe, steps, <code>#slide.step</code> links, previous/next, progress, fullscreen</li>
+        <li>17 building blocks in one neutral default theme</li>
+        <li data-lavish-revision="r1">MCP server: create a deck, add, update, move and delete slides, notes, images, sharing, list layouts, get the URL</li>
+      </ul>
+    </div>
+    <div class="card later-list">
+      <h3><span class="pill later"><span class="dot"></span>Later</span>Shown as hooks only</h3>
+      <ul>
+        <li><span><span class="k">SW-2</span> theme picker and more templates</span></li>
+        <li><span><span class="k">SW-3</span> "Check slides": screenshots, overflow and contrast lint</span></li>
+        <li><span><span class="k">SW-14</span> anchored comments, notes to the agent, versions</span></li>
+        <li><span><span class="k">SW-4</span> presenter window, overview grid, PDF</span></li>
+        <li><span><span class="k">SW-5+</span> audience join, polls, phone remote</span></li>
+        <li><span><span class="k">SW-13</span> editing in the browser</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ LIBRARY -->
+<section class="block" id="library">
+  <div class="sec-head"><span class="n">01</span><h2>Decks library</h2><span class="pill grey">home after sign-in</span></div>
+  <p class="sec-sub">A ledger table, not a wall of thumbnails, so 40 decks stay easy to scan. The "Last change" column says whether an agent or a person made it. The MCP banner shows until the first agent connects.</p>
+  <div class="browser">
+    <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/decks</div></div>
+    <div class="app">
+      <div class="app-top">
+        <div class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="16" height="11" rx="2" fill="#b9c8f8"/><rect x="3" y="7" width="16" height="11" rx="2" fill="#2f5bea"/><path d="M8 21h6" stroke="#2f5bea" stroke-width="2" stroke-linecap="round"/></svg>SlideWorks</div>
+        <nav><a class="on" href="#library">Decks</a><a href="#agent">Connect an agent</a></nav>
+        <span class="sp"></span>
+        <span class="search">Search decks</span>
+        <span class="avatar">JD</span>
+      </div>
+      <div class="app-body">
+        <div class="connect">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 17H7a5 5 0 0 1 0-10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/></svg>
+          <span><b>Connect an agent:</b> add this MCP server, then ask it to "make a deck about …"</span>
+          <code>https://slideworks.example/mcp</code>
+          <button class="btn" type="button">Copy</button>
+        </div>
+        <div class="app-h"><h3>Decks</h3><span class="pill grey">7</span><span class="sp"></span><button class="btn" type="button">Filter: all</button><button class="btn primary" type="button">+ New deck</button></div>
+        <div class="table-wrap">
+        <table class="ledger" id="libTable">
+          <thead><tr><th></th><th>Deck</th><th style="text-align:right">Slides</th><th>Last change</th><th>Sharing</th><th style="text-align:right">Updated</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><span class="mini-thumb" data-thumb="1"></span></td><td class="t">Ship smaller<small>Team offsite · draft</small></td><td class="num">16</td><td class="who"><span class="agent">Claude</span> via MCP · added slide 16</td><td><span class="pill acc">Link</span></td><td class="num">2 min ago</td><td class="act"><button class="btn" type="button">▶ Present</button></td></tr>
+            <tr><td><span class="mini-thumb" data-thumb="2"></span></td><td class="t">Q4 platform review<small>Leadership update</small></td><td class="num">22</td><td class="who">You · moved slide 7</td><td><span class="pill ok">3 viewers</span></td><td class="num">1 h ago</td><td class="act"><button class="btn" type="button">▶ Present</button></td></tr>
+            <tr><td><span class="mini-thumb" data-thumb="7"></span></td><td class="t">Onboarding: week one<small>For new joiners</small></td><td class="num">12</td><td class="who"><span class="agent">Cursor</span> via MCP · updated notes</td><td><span class="pill grey">Private</span></td><td class="num">Yesterday</td><td class="act"><button class="btn" type="button">▶ Present</button></td></tr>
+            <tr><td><span class="mini-thumb" data-thumb="14"></span></td><td class="t">Incident review: checkout outage<small>Blameless write-up</small></td><td class="num">9</td><td class="who"><span class="agent">Claude</span> via MCP · created</td><td><span class="pill ok">5 viewers</span></td><td class="num">12 Nov</td><td class="act"><button class="btn" type="button">▶ Present</button></td></tr>
+            <tr><td><span class="mini-thumb" data-thumb="9"></span></td><td class="t">Design crit: mobile nav<small></small></td><td class="num">8</td><td class="who">You · uploaded 2 images</td><td><span class="pill grey">Private</span></td><td class="num">9 Nov</td><td class="act"><button class="btn" type="button">▶ Present</button></td></tr>
+            <tr><td><span class="mini-thumb" data-thumb="12"></span></td><td class="t">Lead time, Jul–Oct<small>Metrics</small></td><td class="num">6</td><td class="who"><span class="agent">Codex</span> via MCP · updated slide 3</td><td><span class="pill acc">Link</span></td><td class="num">4 Nov</td><td class="act"><button class="btn" type="button">▶ Present</button></td></tr>
+            <tr><td><span class="mini-thumb" data-thumb="13"></span></td><td class="t">Hiring loop refresh<small></small></td><td class="num">14</td><td class="who">You · deleted slide 4</td><td><span class="pill grey">Private</span></td><td class="num">28 Oct</td><td class="act"><button class="btn" type="button">▶ Present</button></td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ DECK PAGE -->
+<section class="block" id="deck">
+  <div class="sec-head"><span class="n">02</span><h2>Deck page</h2><span class="pill grey">click a slide</span></div>
+  <p class="sec-sub">The slide grid shows each slide's layout. Clicking one shows its speaker notes and a link that opens the player at that slide. The activity list is the agent's change log. SW-14 later adds versions and comments next to it.</p>
+  <div class="browser">
+    <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/d/7Kq2/ship-smaller</div></div>
+    <div class="app">
+      <div class="app-top">
+        <div class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="16" height="11" rx="2" fill="#b9c8f8"/><rect x="3" y="7" width="16" height="11" rx="2" fill="#2f5bea"/><path d="M8 21h6" stroke="#2f5bea" stroke-width="2" stroke-linecap="round"/></svg>SlideWorks</div>
+        <nav><a href="#library">Decks</a><a class="on" href="#deck">Ship smaller</a></nav>
+        <span class="sp"></span><span class="avatar">JD</span>
+      </div>
+      <div class="app-body">
+        <div class="app-h">
+          <h3>Ship smaller</h3><span class="pill grey">16 slides</span><span class="pill acc">Anyone with the link</span>
+          <span class="sp"></span>
+          <span class="later-row">
+            <span class="btn later" title="SW-2">Theme · SW-2</span>
+            <span class="btn later" title="SW-3">Check slides · SW-3</span>
+            <span class="btn later" title="SW-4">Presenter view · SW-4</span>
+          </span>
+          <button class="btn" type="button" onclick="document.getElementById('share').scrollIntoView({behavior:'smooth'})">Share</button>
+          <button class="btn primary" type="button" onclick="document.getElementById('player').scrollIntoView({behavior:'smooth'})">▶ Present</button>
+        </div>
+        <div class="deck-layout">
+          <div class="thumbs" id="thumbs"></div>
+          <div class="side">
+            <div class="card">
+              <h4>Slide <span id="selNo">8</span></h4>
+              <dl class="kv"><dt>Layout</dt><dd><code id="selLayout">practice</code></dd><dt>Steps</dt><dd id="selSteps">0</dd><dt>Link</dt><dd><code id="selLink">/d/7Kq2#8</code></dd></dl>
+              <div style="margin-top:10px" class="notes-box" id="selNotes"></div>
+            </div>
+            <div class="card">
+              <h4>Activity</h4>
+              <ul class="feed">
+                <li><span class="ic ag">AI</span><span><b>Claude</b> added slide 16 <code>close</code><time>2 min ago · via MCP</time></span></li>
+                <li><span class="ic ag">AI</span><span><b>Claude</b> set notes on 14 slides<time>3 min ago · via MCP</time></span></li>
+                <li><span class="ic ag">AI</span><span><b>Claude</b> uploaded <code>story-map.png</code><time>5 min ago · via MCP</time></span></li>
+                <li><span class="ic ag">AI</span><span><b>Claude</b> created the deck from a brief<time>9 min ago · via MCP</time></span></li>
+                <li data-lavish-revision="r1"><span class="ic ag">AI</span><span><b>Claude</b> changed sharing: Private → Anyone with the link<time>just now · via MCP <code>set_sharing</code></time></span></li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4>Later on this page</h4>
+              <div class="later-row"><span class="pill later">Comments · SW-14</span><span class="pill later">Versions · SW-14</span><span class="pill later">Edit text · SW-13</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ SHARE -->
+<section class="block" id="share">
+  <div class="sec-head"><span class="n">03</span><h2>Sharing</h2><span class="pill grey">the radios work</span></div>
+  <p class="sec-sub">Three levels: private, anyone with the link, or named viewers who sign in. Audiences joining by QR code without an account come later, in SW-5.</p>
+  <div class="browser">
+    <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/d/7Kq2/ship-smaller</div></div>
+    <div class="dialog-stage">
+      <div class="dialog" role="dialog" aria-label="Share Ship smaller">
+        <header><h3>Share "Ship smaller"</h3><p>Who can open and present this deck. Only you can change slides.</p></header>
+        <div class="body">
+          <label class="opt"><input type="radio" name="sh"><div><b>Private</b><span>Only you, and agents signed in as you.</span></div></label>
+          <label class="opt"><input type="radio" name="sh" checked><div><b>Anyone with the link</b><span>Read and present only. The link is hard to guess, but anyone you forward it to can open it.</span></div></label>
+          <label class="opt"><input type="radio" name="sh"><div><b>Named people</b><span>They sign in with these emails.</span>
+            <div class="people"><div class="chips-in"><span class="chip-p"><span class="avatar">AK</span>alex@team.example ×</span><span class="chip-p"><span class="avatar">MR</span>mira@team.example ×</span><span class="ph">Add email…</span></div></div></div></label>
+        </div>
+        <div data-lavish-revision="r1" style="margin:0 18px 12px;padding:9px 12px;border-radius:7px;background:var(--later-soft);color:#4b2fbf;font-size:12.5px">Agents signed in as you can change this too, with <code>set_sharing</code>. Every change appears in the deck's activity list with the agent's name. <b>Last change:</b> Claude, just now.</div>
+        <div class="linkrow"><code>https://slideworks.example/d/7Kq2/ship-smaller</code><button class="btn" type="button">Copy link</button></div>
+        <footer><span class="pill later" style="margin-right:auto">QR join for an audience · SW-5</span><button class="btn ghost" type="button">Cancel</button><button class="btn primary" type="button">Save</button></footer>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ PLAYER -->
+<section class="block" id="player">
+  <div class="sec-head"><span class="n">04</span><h2>Player</h2><span class="pill grey">live: use the buttons or ← → when focused</span></div>
+  <p class="sec-sub">One canvas size for every screen. The 1920×1080 slide scales evenly to fit and never reflows. A phone gets the same slide, just smaller. Steps reveal one item at a time, and the address bar carries <code>#slide.step</code>.</p>
+  <div class="player-wrap">
+    <div class="browser">
+      <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/d/7Kq2/ship-smaller<b id="hashD">#1</b></div></div>
+      <div class="player-stage player-host" id="pDesk" tabindex="0" aria-label="Deck player. Arrow keys move between slides and steps.">
+        <div class="frame" id="pDeskFrame"></div>
+        <div class="pctl">
+          <button type="button" data-p="prev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <button type="button" data-p="next" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg></button>
+          <span class="count" id="countD">1 / 16</span>
+          <span class="steps" id="stepsD"></span>
+          <span class="bar"><i id="barD"></i></span>
+          <button type="button" aria-label="Copy link to this slide" title="Copy link to this slide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></button>
+          <button type="button" aria-label="Fullscreen" title="Fullscreen (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="phone" aria-label="Phone mock">
+        <div class="phone-screen player-host" id="pPhone">
+          <div class="phone-url">slideworks.example/d/7Kq2<span id="hashP">#1</span></div>
+          <div class="phone-canvas"><div class="frame" id="pPhoneFrame"></div><div class="tapzones" aria-hidden="true"><span>back</span><span></span><span>next</span></div></div>
+          <div class="pctl">
+            <button type="button" data-p="prev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 6l-6 6 6 6"/></svg></button>
+            <span class="count" id="countP">1 / 16</span>
+            <span class="bar"><i id="barP"></i></span>
+            <button type="button" data-p="next" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="padding:14px 16px;margin-top:16px">
+        <h4 style="margin:0 0 8px;font:600 12px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Player acceptance rules</h4>
+        <ul class="rules-list">
+          <li>A deep link opens on load. A bad number falls back to slide 1.</li>
+          <li><code>replaceState</code> on each move, and Back/Forward still work</li>
+          <li>Each action moves exactly one slide, with no smooth-scroll and snap race</li>
+          <li>Keys are left alone inside inputs, editable text and IME</li>
+          <li>Every slide stays in the page, so comment anchors work later</li>
+          <li>Reduced motion turns off the slide and step transitions</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ BLOCKS -->
+<section class="block" id="blocks">
+  <div class="sec-head"><span class="n">05</span><h2>The building blocks, as the sample deck</h2><span class="pill grey">16 slides · 17 blocks</span></div>
+  <p class="sec-sub">This is the deck the agent builds in section 06, one slide per layout. It ports the look of an existing hand-built HTML deck, without its branding: a light page with cards for content slides, dark slides only for the title, dividers and close, one sentence for each headline, and the part tracker at the top. Under each slide are the layout name and the slots an agent fills.</p>
+  <div class="gallery" id="gallery"></div>
+</section>
+
+<!-- ================================================================ AGENT -->
+<section class="block" id="agent">
+  <div class="sec-head"><span class="n">06</span><h2>The agent's side: one session over MCP</h2></div>
+  <p class="sec-sub">The agent writes no HTML. It reads the layout catalogue, then sends each slide as a layout and its slots. The server checks every slot against its schema and rejects a slide it can't render, with the field that broke.</p>
+  <div class="session">
+    <div class="term" aria-label="Example MCP session transcript"><pre><span class="c"># brief: "20-min offsite talk on shipping smaller, 16 slides"</span>
+<span class="call">→ list_layouts</span>()
+<span class="ok">← 17 layouts:</span> title, divider, bullets, big-number, gantt, quote,
+  practice, compare, two-column, table, chart, numbered-cards,
+  rules, cards, close …  <span class="c">(each with its slot schema)</span>
+
+<span class="call">→ create_deck</span>({ <span class="k">title</span>: <span class="s">"Ship smaller"</span>, <span class="k">author</span>: <span class="s">"Sam Rivera"</span>,
+    <span class="k">parts</span>: [<span class="s">"The cost"</span>, <span class="s">"Slice it"</span>, <span class="s">"Ship it"</span>, <span class="s">"Make it stick"</span>] })
+<span class="ok">← deck 7Kq2</span> · private · /d/7Kq2/ship-smaller
+
+<span class="call">→ add_slide</span>({ <span class="k">deck</span>: <span class="s">"7Kq2"</span>, <span class="k">layout</span>: <span class="s">"practice"</span>, <span class="k">part</span>: 2,
+    <span class="k">kicker</span>: <span class="s">"Slice it"</span>,
+    <span class="k">headline</span>: <span class="s">"Slice by what a customer can do, not by layer"</span>,
+    <span class="k">do</span>: [{ <span class="k">lead</span>: <span class="s">"Start from one user action"</span>, <span class="k">text</span>: <span class="s">"…"</span> }, …],
+    <span class="k">comes_back</span>: [<span class="s">"Feedback in days, not quarters."</span>, …],
+    <span class="k">avoid</span>: [<span class="s">"\"API first, UI later.\" …"</span>],
+    <span class="k">callout</span>: { <span class="k">tone</span>: <span class="s">"bad"</span>, <span class="k">text</span>: <span class="s">"If a slice can't be demoed…"</span> },
+    <span class="k">notes</span>: <span class="s">"Say: ask the room for last month's biggest story…"</span> })
+<span class="ok">← slide 8</span> · steps 0 · /d/7Kq2#8
+
+<span class="call">→ upload_image</span>({ <span class="k">deck</span>: <span class="s">"7Kq2"</span>, <span class="k">name</span>: <span class="s">"story-map.png"</span> })
+<span class="ok">← upload URL</span> (10 min) · then <span class="k">image</span>: <span class="s">"img_3f9"</span> in a slot
+
+<span class="call">→ add_slide</span>({ <span class="k">layout</span>: <span class="s">"bullets"</span>, <span class="k">reveal</span>: <span class="s">"one-by-one"</span>, … })
+<span class="ok">← slide 3</span> · steps 4
+
+<span class="call">→ set_sharing</span>({ <span class="k">deck</span>: <span class="s">"7Kq2"</span>, <span class="k">level</span>: <span class="s">"link"</span> })
+<span class="ok">← sharing: link</span> · logged to activity
+
+<span class="call">→ get_deck_url</span>({ <span class="k">deck</span>: <span class="s">"7Kq2"</span>, <span class="k">slide</span>: 1 })
+<span class="ok">← https://slideworks.example/d/7Kq2/ship-smaller#1</span></pre></div>
+    <div class="card" style="overflow:hidden">
+      <table class="tools">
+        <tbody>
+          <tr><td>create_deck</td><td>Title, author, parts for the tracker. Starts private.</td></tr>
+          <tr><td>get_deck</td><td>Every slide as layout + slots, notes, steps</td></tr>
+          <tr><td>list_decks</td><td>The owner's decks</td></tr>
+          <tr><td>add_slide</td><td>Layout + slots + notes, at a position</td></tr>
+          <tr><td>update_slide</td><td>Replace slots. Takes the slide's revision.</td></tr>
+          <tr><td>move_slide</td><td>New position</td></tr>
+          <tr><td>delete_slide</td><td>Soft delete, so a person can restore it</td></tr>
+          <tr><td>set_notes</td><td>Speaker notes for one or many slides</td></tr>
+          <tr><td>upload_image</td><td>Short-lived upload URL, returns an image id</td></tr>
+          <tr><td>list_layouts</td><td>The layouts, with their slot schemas</td></tr>
+          <tr><td>list_blocks</td><td>Blocks that can go inside slots (chips, badges, callout…)</td></tr>
+          <tr><td>get_deck_url</td><td>Link to the deck, or to one slide and step</td></tr>
+          <tr data-lavish-revision="r1"><td>set_sharing</td><td>Private, anyone with the link, or named viewers (D6). Logged in the activity list.</td></tr>
+          <tr><td style="color:var(--later)">render_slide</td><td><span class="pill later">SW-3</span> screenshot plus lint findings</td></tr>
+          <tr><td style="color:var(--later)">get_comments</td><td><span class="pill later">SW-14</span> reviewer comments and notes to the agent</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ QUESTIONS -->
+<section class="block" id="questions" data-lavish-question-group>
+  <div class="sec-head"><span class="n">07</span><h2>Questions for you</h2><span class="pill ok" data-lavish-revision="r1">6 answered · D3–D8 on SW-1</span></div>
+  <p class="sec-sub" data-lavish-revision="r1">Answered 2026-11-16 and recorded on SW-1 as D3–D8. Q4 went against my recommendation: agents get full sharing control (D6). The sharing dialog, activity list and MCP tools above now show <code>set_sharing</code>. The forms still work if you want to change an answer.</p>
+  <div class="qs">
+
+    <form class="card q" data-lavish-question="slide-spec">
+      <h3>Q1 · How does an agent describe a slide?</h3>
+      <p class="why">This is the MCP contract, and the hardest one to change after launch.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Layout plus typed slots" checked><div><b>Layout plus typed slots</b><span class="rec">recommended</span><span>For example <code>practice</code> has <code>do</code>, <code>comes_back</code>, <code>avoid</code> and <code>callout</code>. Slots hold small blocks such as chips and badges. The server can check every slide and every slide looks good, but a new kind of slide needs a new layout.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Free block tree"><div><b>Free block tree</b><span>Rows and columns of any blocks. More freedom, so agents make more broken and crowded slides, and SW-3 lint does more work.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Constrained HTML with theme classes"><div><b>HTML limited to theme classes</b><span>Closest to today's hand-made decks. Hard to check, and it brings back the problem SW-1 exists to fix.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="default-theme">
+      <h3>Q2 · The default look before SW-2 adds themes</h3>
+      <p class="why">SW-1 ships one theme. It is what every early deck looks like.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Light content, dark title/dividers/close (as mocked)" checked><div><b>Light content slides, dark title, dividers and close</b><span class="rec">recommended</span><span>As mocked. The dark slides mark the structure of the talk.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="All light"><div><b>All light</b><span>Calmer, prints better, and the talk's structure is less visible.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="All dark"><div><b>All dark</b><span>Good on stage, harder to read in a bright room or on a phone.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional), e.g. accent colour or heading font"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="part-tracker">
+      <h3>Q3 · Do the part tracker and footer come with SW-1?</h3>
+      <p class="why">The catalogue put this chrome under SW-2 (templates). But the dividers' journey timeline needs the same <code>parts</code> list.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Yes, part of the default theme in SW-1" checked><div><b>Yes, in the default theme</b><span class="rec">recommended</span><span><code>create_deck</code> takes <code>parts</code>. Each slide sets <code>part</code>. The tracker, footer and progress bar render from those.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="No, SW-1 shows a slide counter only; tracker in SW-2"><div><b>No, a slide counter only</b><span>SW-1 is smaller, but every early deck has to be revisited when SW-2 lands.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="mcp-sharing">
+      <h3>Q4 · Can an agent change who sees a deck?</h3>
+      <p class="why">If it can, a prompt injection could make a private deck public. <b data-lavish-revision="r1" style="color:var(--ok)">Your answer: full control (D6).</b></p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Agents can read sharing state; changing it is UI only in SW-1"><div><b>Agents can read it, only people change it</b><span class="rec">recommended</span><span><code>get_deck</code> reports the sharing level. Changing it needs a person in the browser.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Agents can set private or named viewers, not link"><div><b>Agents can tighten it, not open it up</b><span>An agent can set Private or Named people, but never "Anyone with the link".</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Agents have full sharing control" checked><div><b>Full control</b><span>The same as the owner in the UI.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="activity-feed">
+      <h3>Q5 · Does the deck page show the agent's activity in SW-1?</h3>
+      <p class="why">It answers "what did the agent just do?". SW-14's versions would use the same change log.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Yes, a simple change log in SW-1" checked><div><b>Yes, a simple change log</b><span class="rec">recommended</span><span>Who, what, when and through which tool. No restore until SW-14.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="No, wait for SW-14"><div><b>No, wait for SW-14</b><span>Keeps SW-1 smaller.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="blocks-cut">
+      <h3>Q6 · Are any blocks missing from SW-1, or in it when they shouldn't be?</h3>
+      <p class="why">Uncheck any block to move it to SW-2. Chart and gantt cost the most to build.</p>
+      <div class="choices" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">
+        <label class="choice"><input type="checkbox" name="keep" value="title" checked><div><b>title</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="divider + journey" checked><div><b>divider + journey</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="bullets" checked><div><b>bullets</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="two-column" checked><div><b>two-column</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="practice" checked><div><b>practice</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="compare" checked><div><b>compare</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="big-number" checked><div><b>big-number</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="quote" checked><div><b>quote</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="image" checked><div><b>image</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="table" checked><div><b>table</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="chart" checked><div><b>chart</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="gantt" checked><div><b>gantt</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="numbered-cards" checked><div><b>numbered-cards</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="rules" checked><div><b>rules</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="cards / chips / badges" checked><div><b>cards / chips / badges</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="callout" checked><div><b>callout</b></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="close" checked><div><b>close</b></div></label>
+      </div>
+      <textarea name="note" placeholder="A block to add, e.g. code snippet, agenda, team photo grid"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <div>
+      <button class="btn" type="button" onclick="(async (btn) => {
+        const qs = [...document.querySelectorAll('[data-lavish-question]')];
+        const status = btn.parentElement.querySelector('[data-lavish-copy-all-status]');
+        const out = [];
+        for (const q of qs) {
+          const key = q.getAttribute('data-lavish-question');
+          const lines = [];
+          for (const el of q.querySelectorAll('input, textarea')) {
+            if (el.matches('input[type=checkbox], input[type=radio]') && !el.checked) continue;
+            const v = el.value.trim(); if (!v) continue;
+            lines.push('  ' + (el.name || 'value') + ': ' + v);
+          }
+          if (lines.length) out.push(key + ':\n' + lines.join('\n'));
+        }
+        const text = out.join('\n\n');
+        try { await navigator.clipboard.writeText(text); status.textContent = 'Answers copied.'; }
+        catch { status.textContent = 'Clipboard unavailable.'; }
+      })(this)">Copy all answers</button>
+      <span data-lavish-copy-all-status role="status" aria-live="polite" style="color:var(--muted);margin-left:8px"></span>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- =====================================================================
+     The sample deck: one source, cloned into thumbnails, gallery, players.
+     ===================================================================== -->
+<template id="deckTpl">
+  <!-- 1 title -->
+  <div class="sw dark title" data-layout="title" data-slots="kicker · title · subtitle · tagline · byline · stamp" data-notes="Say: one sentence on why this matters to this room. Keep it under 30 seconds.">
+    <span class="stamp">Draft</span>
+    <div class="dots"><i></i><i></i><i></i></div>
+    <div class="kicker">Team offsite · 2026</div>
+    <h1>Ship smaller</h1>
+    <p class="t-sub">Why small batches beat big plans, and how to start on Monday</p>
+    <p class="t-tag">One change a day beats one launch a quarter.</p>
+    <div class="byline">Sam Rivera <i></i> Product Engineering</div>
+  </div>
+  <!-- 2 divider -->
+  <div class="sw dark divider" data-layout="divider" data-slots="number · title · sub · journey (from deck parts)" data-notes="Transition. Say: here's what last year cost us.">
+    <div class="num">01</div>
+    <h2>Big batches hide the risk</h2>
+    <p class="sub">Why the quarter-long launch keeps slipping.</p>
+    <div class="journey"><div class="on"><b>The cost</b><span>Slides 3–6</span></div><div><b>Slice it</b><span>Slides 8–11</span></div><div><b>Ship it</b><span>Slides 12–13</span></div><div><b>Make it stick</b><span>Slides 14–16</span></div></div>
+  </div>
+  <!-- 3 bullets -->
+  <div class="sw" data-layout="bullets" data-slots="kicker · headline · items[lead, text] · reveal" data-notes="Reveal one at a time. Pause on the last one and ask who has seen it.">
+    <div class="snav"><span class="on">The cost</span><span>Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">The pattern</div>
+    <h2 class="h">Every slip we had last year <em>started as a big batch</em></h2>
+    <div class="bd">
+      <ul class="bl">
+        <li class="f"><b>Risk shows up late.</b> The first real customer sees it in week ten.</li>
+        <li class="f"><b>Merges get scary.</b> Long branches collide, so people stop merging.</li>
+        <li class="f"><b>Feedback arrives as a verdict,</b> not a nudge. By then it is too late to change course cheaply.</li>
+        <li class="f"><b>Nobody can say how far along we are,</b> because nothing is done until everything is.</li>
+      </ul>
+    </div>
+    <div class="sfoot"><span><b>3</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 4 big number -->
+  <div class="sw" data-layout="big-number" data-slots="kicker · headline · value · unit · statement · context · source" data-notes="Let the number sit. Then: that's a quarter of the year before anyone outside the team sees the work.">
+    <div class="snav"><span class="on">The cost</span><span>Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">Last year, measured</div>
+    <h2 class="h">It took us <em>eleven weeks</em> to get a change in front of a customer</h2>
+    <div class="bign"><div class="n">11<small> wks</small></div><div><p>Median from first commit to the first customer using it.</p><p>Eight of our 12 launches waited on one last piece of work that had nothing to do with the rest.</p></div></div>
+    <div class="src">Source: delivery data Jan–Oct, 12 launches.</div>
+    <div class="sfoot"><span><b>4</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 5 gantt -->
+  <div class="sw" data-layout="gantt" data-slots="kicker · headline · columns · rows[label, from, to, state] · marker" data-notes="Point at sprint 6. Everything is green until it isn't.">
+    <div class="snav"><span class="on">The cost</span><span>Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">What it looked like</div>
+    <h2 class="h">One milestone each looks fair. <em>Nothing reaches customers until sprint 6.</em></h2>
+    <div class="bd">
+      <div class="gantt">
+        <span></span><span class="hd">Sprint 1</span><span class="hd">Sprint 2</span><span class="hd">Sprint 3</span><span class="hd">Sprint 4</span><span class="hd">Sprint 5</span><span class="hd">Sprint 6</span>
+        <span class="lab">Checkout API</span><span class="bar done" style="grid-column:2/4">Done</span><span style="grid-column:4/8"></span>
+        <span class="lab">Web checkout</span><span style="grid-column:2/3"></span><span class="bar done" style="grid-column:3/5">Done</span><span style="grid-column:5/8"></span>
+        <span class="lab">Mobile checkout</span><span style="grid-column:2/4"></span><span class="bar slip" style="grid-column:4/7">Slips</span><span></span>
+        <span class="lab">Payments partner</span><span style="grid-column:2/5"></span><span class="bar stop" style="grid-column:5/7">Stopped</span><span></span>
+        <span class="lab">Customers see it</span><span style="grid-column:2/7"></span><span class="ship">▲ Ship</span>
+      </div>
+    </div>
+    <div class="sfoot"><span><b>5</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 6 quote -->
+  <div class="sw" data-layout="quote" data-slots="kicker · quote · cite" data-notes="Read it slowly. Don't add to it.">
+    <div class="snav"><span class="on">The cost</span><span>Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">From the retro</div>
+    <blockquote class="quote">“We stopped asking ‘is it done?’ and started asking ‘is it out?’ The second question is much harder to fudge.”<cite>Team lead, payments squad</cite></blockquote>
+    <div class="sfoot"><span><b>6</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 7 divider -->
+  <div class="sw dark divider" data-layout="divider" data-slots="number · title · sub · journey (from deck parts)" data-notes="Transition. Say: so how small is small?">
+    <div class="num">02</div>
+    <h2>Slice it thin</h2>
+    <p class="sub">How to cut work so each piece reaches a customer.</p>
+    <div class="journey"><div class="past"><b>The cost</b><span>Slides 3–6</span></div><div class="on"><b>Slice it</b><span>Slides 8–11</span></div><div><b>Ship it</b><span>Slides 12–13</span></div><div><b>Make it stick</b><span>Slides 14–16</span></div></div>
+  </div>
+  <!-- 8 practice -->
+  <div class="sw" data-layout="practice" data-slots="kicker · headline · do[lead, text] · comes_back[] · avoid[] · callout{tone, text}" data-notes="Say: ask the room for last month's biggest story, and slice it live on the whiteboard. Skip the third Do item if you're short of time.">
+    <div class="snav"><span class="past">The cost</span><span class="on">Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">Slice it</div>
+    <h2 class="h">Slice by what a customer can do, not by layer</h2>
+    <div class="bd">
+      <div class="practice">
+        <div>
+          <div class="col-h">Do</div>
+          <div class="it"><b>Start from one user action</b> and build every layer it needs, thinly.</div>
+          <div class="it"><b>Hard-code the second case.</b> Generalise when the third one arrives.</div>
+          <div class="it"><b>Ship behind a flag</b> to one team first, then widen.</div>
+          <div class="it"><b>Write the demo sentence first:</b> "Now a customer can …"</div>
+        </div>
+        <div>
+          <div class="col-h ok">What comes back</div>
+          <div class="it ok">Feedback in days, not quarters.</div>
+          <div class="it ok">A merge that's small enough to review in one sitting.</div>
+          <div class="col-h bad" style="margin-top:26px">Avoid</div>
+          <div class="it bad">"API first, UI later." That's two batches, not two slices.</div>
+          <div class="callout bad" style="margin-top:22px">If a slice can't be demoed to a customer, it isn't a slice yet.</div>
+        </div>
+      </div>
+    </div>
+    <div class="sfoot"><span><b>8</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 9 compare -->
+  <div class="sw" data-layout="compare" data-slots="kicker · headline · left{tag, title, items} · right{tag, title, items}" data-notes="Left is what we did on checkout. Right is what the search team did the same quarter.">
+    <div class="snav"><span class="past">The cost</span><span class="on">Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">Same feature, two ways</div>
+    <h2 class="h">The difference is when the customer gets to answer</h2>
+    <div class="bd"><div class="cmp">
+      <div class="panel"><div class="tag">Failure mode</div><h3>Slice by layer</h3><ul><li>Database, then API, then UI</li><li>Nothing to show for five sprints</li><li>The first customer feedback rewrites the API</li></ul></div>
+      <div class="panel good"><div class="tag">Success mode</div><h3>Slice by customer action</h3><ul><li>"Save a card", then "pay with a saved card"</li><li>Something to demo every week</li><li>Feedback changes week 2, not week 10</li></ul></div>
+    </div></div>
+    <div class="sfoot"><span><b>9</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 10 two-column + image -->
+  <div class="sw" data-layout="two-column" data-slots="kicker · headline · left: bullets · right: image{id, caption}" data-notes="Show the map. One row is one release.">
+    <div class="snav"><span class="past">The cost</span><span class="on">Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">The tool</div>
+    <h2 class="h">A story map shows the thinnest release</h2>
+    <div class="bd"><div class="two">
+      <ul class="bl"><li><b>Across:</b> the steps a customer takes</li><li><b>Down:</b> richer versions of each step</li><li><b>Top row:</b> the first release. It covers every step, done simply.</li></ul>
+      <figure><div class="img"><svg viewBox="0 0 860 470" width="100%" aria-hidden="true"><rect width="860" height="470" fill="#fbfcfe"/>
+        <g font-family="Inter" font-size="20" font-weight="600" fill="#1b2230">
+        <rect x="30" y="30" width="180" height="70" rx="8" fill="#1e3a8a"/><text x="120" y="72" text-anchor="middle" fill="#fff">Browse</text>
+        <rect x="236" y="30" width="180" height="70" rx="8" fill="#1e3a8a"/><text x="326" y="72" text-anchor="middle" fill="#fff">Add to cart</text>
+        <rect x="442" y="30" width="180" height="70" rx="8" fill="#1e3a8a"/><text x="532" y="72" text-anchor="middle" fill="#fff">Pay</text>
+        <rect x="648" y="30" width="180" height="70" rx="8" fill="#1e3a8a"/><text x="738" y="72" text-anchor="middle" fill="#fff">Track</text>
+        <rect x="20" y="124" width="820" height="98" rx="10" fill="#e4eafd"/>
+        <rect x="30" y="138" width="180" height="70" rx="8" fill="#fff2a8"/><text x="120" y="180" text-anchor="middle" font-weight="500">List view</text>
+        <rect x="236" y="138" width="180" height="70" rx="8" fill="#fff2a8"/><text x="326" y="180" text-anchor="middle" font-weight="500">One item</text>
+        <rect x="442" y="138" width="180" height="70" rx="8" fill="#fff2a8"/><text x="532" y="180" text-anchor="middle" font-weight="500">Card only</text>
+        <rect x="648" y="138" width="180" height="70" rx="8" fill="#fff2a8"/><text x="738" y="180" text-anchor="middle" font-weight="500">Email</text>
+        <rect x="30" y="246" width="180" height="70" rx="8" fill="#fff8d6"/><text x="120" y="288" text-anchor="middle" font-weight="500" fill="#5b6474">Filters</text>
+        <rect x="236" y="246" width="180" height="70" rx="8" fill="#fff8d6"/><text x="326" y="288" text-anchor="middle" font-weight="500" fill="#5b6474">Many items</text>
+        <rect x="442" y="246" width="180" height="70" rx="8" fill="#fff8d6"/><text x="532" y="288" text-anchor="middle" font-weight="500" fill="#5b6474">Saved cards</text>
+        <rect x="648" y="246" width="180" height="70" rx="8" fill="#fff8d6"/><text x="738" y="288" text-anchor="middle" font-weight="500" fill="#5b6474">Live map</text>
+        <rect x="30" y="340" width="180" height="70" rx="8" fill="#fff8d6"/><text x="120" y="382" text-anchor="middle" font-weight="500" fill="#5b6474">Search</text>
+        <rect x="442" y="340" width="180" height="70" rx="8" fill="#fff8d6"/><text x="532" y="382" text-anchor="middle" font-weight="500" fill="#5b6474">Wallets</text>
+        <text x="830" y="444" text-anchor="end" font-size="16" font-weight="700" fill="#2f5bea" letter-spacing="2">RELEASE 1 = BLUE BAND</text></g></svg></div>
+        <figcaption>story-map.png, uploaded by the agent with <code>upload_image</code></figcaption></figure>
+    </div></div>
+    <div class="sfoot"><span><b>10</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 11 table -->
+  <div class="sw" data-layout="table" data-slots="kicker · headline · columns · rows · highlight_row · badges in cells" data-notes="Highlight row is the target. Don't read every cell.">
+    <div class="snav"><span class="past">The cost</span><span class="on">Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">Sizing</div>
+    <h2 class="h">Aim for slices a pair can ship <em>inside a week</em></h2>
+    <div class="bd"><table class="st">
+      <thead><tr><th>Slice size</th><th>Review time</th><th>Rollback</th><th>Customer feedback</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>One quarter</td><td class="n">Days</td><td>Painful</td><td>Week 10+</td><td><span class="badge bad">Avoid</span></td></tr>
+        <tr><td>One sprint</td><td class="n">Hours</td><td>Possible</td><td>Week 2–3</td><td><span class="badge warn">OK</span></td></tr>
+        <tr class="hl"><td><b>2–4 days</b></td><td class="n">Under an hour</td><td>Flip a flag</td><td>Same week</td><td><span class="badge ok">Target</span></td></tr>
+        <tr><td>Under a day</td><td class="n">Minutes</td><td>Flip a flag</td><td>Same week</td><td><span class="badge acc">Great</span></td></tr>
+      </tbody></table></div>
+    <div class="sfoot"><span><b>11</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 12 chart -->
+  <div class="sw" data-layout="chart" data-slots="kicker · headline · chart{type: bar|line, series, unit} · takeaway" data-notes="The dip in September is the flag rollout.">
+    <div class="snav"><span class="past">The cost</span><span class="past">Slice it</span><span class="on">Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">Ship it</div>
+    <h2 class="h">Lead time fell as the slices got smaller</h2>
+    <div class="bd"><div class="chart">
+      <svg viewBox="0 0 1100 560" width="100%" height="100%" aria-hidden="true">
+        <g stroke="#e3e6ec" stroke-width="2"><line x1="80" y1="40" x2="1080" y2="40"/><line x1="80" y1="190" x2="1080" y2="190"/><line x1="80" y1="340" x2="1080" y2="340"/><line x1="80" y1="490" x2="1080" y2="490" stroke="#cbd2dc"/></g>
+        <g font-size="22" fill="#5b6474" text-anchor="end"><text x="64" y="48">12 wk</text><text x="64" y="198">8</text><text x="64" y="348">4</text><text x="64" y="498">0</text></g>
+        <g fill="#c3d0ff"><rect x="120" y="77" width="110" height="413" rx="6"/><rect x="280" y="115" width="110" height="375" rx="6"/><rect x="440" y="190" width="110" height="300" rx="6"/></g>
+        <g fill="#2f5bea"><rect x="600" y="302" width="110" height="188" rx="6"/><rect x="760" y="377" width="110" height="113" rx="6"/><rect x="920" y="415" width="110" height="75" rx="6"/></g>
+        <g font-size="22" fill="#5b6474" text-anchor="middle"><text x="175" y="530">May</text><text x="335" y="530">Jun</text><text x="495" y="530">Jul</text><text x="655" y="530">Aug</text><text x="815" y="530">Sep</text><text x="975" y="530">Oct</text></g>
+        <g font-size="24" font-weight="700" fill="#1e3a8a" text-anchor="middle"><text x="175" y="64">11</text><text x="335" y="102">10</text><text x="495" y="177">8</text><text x="655" y="289">5</text><text x="815" y="364">3</text><text x="975" y="402">2</text></g>
+        <line x1="575" y1="30" x2="575" y2="490" stroke="#1e3a8a" stroke-dasharray="6 8" stroke-width="2"/><text x="588" y="62" font-size="20" font-weight="700" fill="#1e3a8a">Flags on</text>
+      </svg>
+      <aside><div class="callout">Weeks from first commit to the first customer. The median fell from 11 to 2.</div></aside>
+    </div></div>
+    <div class="sfoot"><span><b>12</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 13 numbered cards -->
+  <div class="sw" data-layout="numbered-cards" data-slots="kicker · headline · cards[title, text] (2–4)" data-notes="Hand these out as the self-check. Ask pairs to pick one story and run it through.">
+    <div class="snav"><span class="past">The cost</span><span class="past">Slice it</span><span class="on">Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">Before you split a story</div>
+    <h2 class="h">Four questions, in this order</h2>
+    <div class="bd"><div class="ncards">
+      <div class="ncard"><div class="no">1</div><h4>Who notices?</h4><p>Name the person who would see the change on day one.</p></div>
+      <div class="ncard"><div class="no">2</div><h4>What's the thinnest version?</h4><p>Hard-code anything that isn't the point.</p></div>
+      <div class="ncard"><div class="no">3</div><h4>Can it hide behind a flag?</h4><p>If not, what would have to change so it can?</p></div>
+      <div class="ncard"><div class="no">4</div><h4>What would we learn?</h4><p>If the answer is "nothing", pick another slice.</p></div>
+    </div></div>
+    <div class="sfoot"><span><b>13</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 14 rules -->
+  <div class="sw" data-layout="rules" data-slots="kicker · headline · rules[title, text] (2–4)" data-notes="These are the only three. Resist adding a fourth.">
+    <div class="snav"><span class="past">The cost</span><span class="past">Slice it</span><span class="past">Ship it</span><span class="on">Make it stick</span></div>
+    <div class="kicker">Make it stick</div>
+    <h2 class="h">Three rules for the first month</h2>
+    <div class="bd"><div class="rules">
+      <div class="rule"><div class="no">1</div><div><h4>Merge to main every day</h4><p>Unfinished work goes behind a flag, not on a branch.</p></div></div>
+      <div class="rule"><div class="no">2</div><div><h4>Demo something every Friday</h4><p>To a customer if you can, and to the team if you can't.</p></div></div>
+      <div class="rule"><div class="no">3</div><div><h4>Split any story older than a week</h4><p>Ship what's done, and make the rest a new story.</p></div></div>
+    </div></div>
+    <div class="sfoot"><span><b>14</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 15 cards + chips + badges -->
+  <div class="sw" data-layout="cards" data-slots="kicker · headline · cards[badge, title, text, chips[]] (2–4)" data-notes="Each role has one new habit. Ask each role to pick theirs.">
+    <div class="snav"><span class="past">The cost</span><span class="past">Slice it</span><span class="past">Ship it</span><span class="on">Make it stick</span></div>
+    <div class="kicker">Who does what</div>
+    <h2 class="h">Everyone changes one habit</h2>
+    <div class="bd"><div class="cards3">
+      <div class="rcard"><span class="badge acc">Product</span><h4>Write the demo sentence</h4><p>Every story starts with "Now a customer can …".</p><div class="chips"><span class="chip">story map</span><span class="chip">flag plan</span></div></div>
+      <div class="rcard"><span class="badge ok">Engineering</span><h4>Merge daily, behind flags</h4><p>Small pull requests that can be reviewed in one sitting.</p><div class="chips"><span class="chip">trunk</span><span class="chip">flags</span><span class="chip">pairing</span></div></div>
+      <div class="rcard"><span class="badge warn">Design</span><h4>Design the thin version too</h4><p>Release 1 needs a design, not only the final vision.</p><div class="chips"><span class="chip">release 1 mock</span></div></div>
+    </div></div>
+    <div class="sfoot"><span><b>15</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 16 close -->
+  <div class="sw dark close" data-layout="close" data-slots="headline · callout · byline" data-notes="End on the ask. Then questions.">
+    <div class="kicker">One thing for Monday</div>
+    <h2>Pick one story.<br>Ship half of it by Friday.</h2>
+    <div class="callout">Then tell us what you learned at the next demo.</div>
+    <div class="byline">Sam Rivera · Product Engineering</div>
+  </div>
+</template>
+
+<script>
+(() => {
+  const tpl = document.getElementById('deckTpl');
+  const slides = [...tpl.content.children].filter(el => el.classList.contains('sw'));
+  const N = slides.length;
+
+  // keep every frame's slide scaled to its width
+  const ro = new ResizeObserver(entries => {
+    for (const e of entries) e.target.style.setProperty('--s', e.contentRect.width / 1920);
+  });
+  function frameWith(i) {
+    const f = document.createElement('div');
+    f.className = 'frame';
+    f.appendChild(slides[i].cloneNode(true));
+    ro.observe(f);
+    return f;
+  }
+  // progress bar on content slides
+  slides.forEach((s, i) => {
+    const p = document.createElement('div'); p.className = 'sprog'; p.style.width = ((i + 1) / N * 100) + '%';
+    s.appendChild(p);
+  });
+
+  // library mini thumbs
+  document.querySelectorAll('[data-thumb]').forEach(el => {
+    const i = +el.dataset.thumb - 1; const f = frameWith(i); f.style.height = '100%';
+    el.appendChild(f);
+  });
+
+  // deck page thumbs
+  const thumbs = document.getElementById('thumbs');
+  const sel = { no: document.getElementById('selNo'), layout: document.getElementById('selLayout'), steps: document.getElementById('selSteps'), link: document.getElementById('selLink'), notes: document.getElementById('selNotes') };
+  function select(i) {
+    thumbs.querySelectorAll('.thumb').forEach((t, j) => t.classList.toggle('sel', j === i));
+    sel.no.textContent = i + 1;
+    sel.layout.textContent = slides[i].dataset.layout;
+    sel.steps.textContent = slides[i].querySelectorAll('.f').length;
+    sel.link.textContent = '/d/7Kq2#' + (i + 1);
+    sel.notes.textContent = slides[i].dataset.notes || '—';
+  }
+  slides.forEach((s, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'thumb';
+    b.setAttribute('aria-label', 'Slide ' + (i + 1) + ', ' + s.dataset.layout);
+    b.appendChild(frameWith(i));
+    const cap = document.createElement('div'); cap.className = 'cap';
+    cap.innerHTML = '<span>' + (i + 1) + '</span><code>' + s.dataset.layout + '</code>';
+    b.appendChild(cap);
+    b.addEventListener('click', () => select(i));
+    thumbs.appendChild(b);
+  });
+  select(7);
+
+  // gallery
+  const gallery = document.getElementById('gallery');
+  slides.forEach((s, i) => {
+    const c = document.createElement('div'); c.className = 'card g-item';
+    c.appendChild(frameWith(i));
+    const m = document.createElement('div'); m.className = 'g-meta';
+    m.innerHTML = '<span class="mono" style="color:var(--faint)">' + String(i + 1).padStart(2, '0') + '</span><code class="layout">' + s.dataset.layout + '</code>' +
+      s.dataset.slots.split(' · ').map(x => '<span class="slot">' + x + '</span>').join('');
+    c.appendChild(m);
+    gallery.appendChild(c);
+  });
+
+  // players (desktop + phone share one position)
+  const players = [
+    { frame: document.getElementById('pDeskFrame'), count: document.getElementById('countD'), bar: document.getElementById('barD'), hash: document.getElementById('hashD'), steps: document.getElementById('stepsD') },
+    { frame: document.getElementById('pPhoneFrame'), count: document.getElementById('countP'), bar: document.getElementById('barP'), hash: document.getElementById('hashP') },
+  ];
+  players.forEach(p => ro.observe(p.frame));
+  let idx = 0, step = 0;
+  function stepsOf(i) { return slides[i].querySelectorAll('.f').length; }
+  function render() {
+    for (const p of players) {
+      p.frame.replaceChildren(slides[idx].cloneNode(true));
+      p.frame.querySelectorAll('.f').forEach((f, k) => f.classList.toggle('on', k < step));
+      p.count.textContent = (idx + 1) + ' / ' + N;
+      p.bar.style.width = ((idx + 1) / N * 100) + '%';
+      p.hash.textContent = '#' + (idx + 1) + (step ? '.' + step : '');
+      if (p.steps) {
+        const n = stepsOf(idx);
+        p.steps.innerHTML = Array.from({ length: n }, (_, k) => '<i class="' + (k < step ? 'on' : '') + '"></i>').join('');
+      }
+    }
+  }
+  function next() { if (step < stepsOf(idx)) step++; else if (idx < N - 1) { idx++; step = 0; } render(); }
+  function prev() { if (step > 0) step--; else if (idx > 0) { idx--; step = stepsOf(idx); } render(); }
+  document.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => (b.dataset.p === 'next' ? next : prev)()));
+  const desk = document.getElementById('pDesk');
+  desk.addEventListener('keydown', e => {
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); next(); }
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); prev(); }
+    if (e.key === 'Home') { e.preventDefault(); idx = 0; step = 0; render(); }
+    if (e.key === 'End') { e.preventDefault(); idx = N - 1; step = 0; render(); }
+  });
+  render();
+
+  // questions: local state until "Queue answer"
+  document.querySelectorAll('form.q').forEach(form => {
+    const state = form.querySelector('.state');
+    form.addEventListener('change', () => { if (state.classList.contains('queued')) { state.textContent = 'Changed since queued. Queue again to replace.'; state.classList.remove('queued'); } });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const key = form.dataset.lavishQuestion;
+      const title = form.querySelector('h3').textContent.trim();
+      const fd = new FormData(form);
+      const note = (fd.get('note') || '').toString().trim();
+      let answer, data = { question: key };
+      if (key === 'blocks-cut') {
+        const all = [...form.querySelectorAll('input[name=keep]')];
+        const cut = all.filter(i => !i.checked).map(i => i.value);
+        answer = cut.length ? 'Move to SW-2: ' + cut.join(', ') : 'Keep all 17 blocks in SW-1';
+        data.cut = cut;
+      } else {
+        answer = (fd.get('a') || '').toString();
+        data.answer = answer;
+      }
+      if (note) data.note = note;
+      const prompt = 'SW-1 mockups, ' + title + ' → ' + answer + (note ? '. Note: ' + note : '') + '. Record this as a decision on SW-1 and update the mockups if it changes them.';
+      if (window.lavish && window.lavish.queuePrompt) {
+        window.lavish.queuePrompt(prompt, { tag: 'choice', text: title + ': ' + answer, element: form, queueKey: key, data });
+        state.textContent = 'Queued. Press Send to agent in the Lavish bar.';
+      } else {
+        state.textContent = 'Lavish is not running. Use "Copy all answers" below.';
+      }
+      state.classList.add('queued');
+    });
+  });
+})();
+</script>
+</body>
+</html>
