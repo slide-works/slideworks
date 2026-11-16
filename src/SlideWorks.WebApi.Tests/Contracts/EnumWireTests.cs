@@ -21,9 +21,9 @@ public class EnumWireTests : ApiTestFixture
 
         var body = await response.Content.ReadAsStringAsync();
         response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
-        body.ShouldContain("\"level\":\"link\"");
-        body.ShouldContain("\"actorKind\":\"agent\"");
-        body.ShouldContain("\"via\":\"mcp\"");
+        body.ShouldContain("\"level\":\"link\"", Case.Sensitive);
+        body.ShouldContain("\"actorKind\":\"agent\"", Case.Sensitive);
+        body.ShouldContain("\"via\":\"mcp\"", Case.Sensitive);
     }
 
     [Test]
@@ -33,7 +33,7 @@ public class EnumWireTests : ApiTestFixture
 
         var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "create_deck", """{"title":"Ship smaller"}""");
 
-        McpWire.TextOf(result).ShouldContain("\"sharing\":\"private\"");
+        McpWire.TextOf(result).ShouldContain("\"sharing\":\"private\"", Case.Sensitive);
         result.GetProperty("structuredContent").GetProperty("sharing").GetString().ShouldBe("private");
     }
 
@@ -45,6 +45,6 @@ public class EnumWireTests : ApiTestFixture
 
         var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "get_deck", JsonSerializer.Serialize(new { deck }));
 
-        McpWire.TextOf(result).ShouldContain("\"sharing\":\"private\"");
+        McpWire.TextOf(result).ShouldContain("\"sharing\":\"private\"", Case.Sensitive);
     }
 }
