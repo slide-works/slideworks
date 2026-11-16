@@ -24,6 +24,8 @@ public static class AuthSetup
                 options.Cookie.Name = "sw-session";
                 options.Cookie.HttpOnly = true;
                 options.Cookie.SameSite = SameSiteMode.Lax;
+                // Secure whenever the request is HTTPS. PublicOriginMiddleware makes the request's scheme the public URL's,
+                // so an https SLIDEWORKS_PUBLIC_URL gives a Secure cookie even though TLS ends at a proxy in front.
                 options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
                 options.ExpireTimeSpan = SESSION_LIFETIME;
                 options.SlidingExpiration = true;
@@ -50,10 +52,12 @@ public static class AuthSetup
     }
 
     // Authentication and authorization run after static files and routing, so endpoint metadata such as AllowAnonymous
-    // applies. The write guard sits between them: it needs to know whether the caller is signed in, and it must refuse a
-    // cross-site write before any endpoint runs.
+    // applies. PublicOriginMiddleware comes first, so every cookie, the write guard and any sign-in callback URL see the
+    // public URL's scheme and host. The write guard sits between authentication and authorization: it needs to know
+    // whether the caller is signed in, and it must refuse a cross-site write before any endpoint runs.
     public static WebApplication UseSlideWorksAuth(this WebApplication app)
     {
+        app.UseMiddleware<PublicOriginMiddleware>();
         app.UseAuthentication();
         app.UseMiddleware<CrossSiteWriteGuard>();
         app.UseAuthorization();

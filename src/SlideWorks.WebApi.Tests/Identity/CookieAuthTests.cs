@@ -15,6 +15,8 @@ namespace SlideWorks.WebApi.Tests.Identity;
 [TestFixture]
 public class CookieAuthTests : ApiTestFixture
 {
+    protected override Action<IServiceCollection>? ConfigureTestServices => SessionProbeController.AddTo;
+
     [Test]
     public async Task Api_WhenSignedOut_ShouldReturn401Json()
     {
@@ -51,8 +53,8 @@ public class CookieAuthTests : ApiTestFixture
         body.GetProperty("name").GetString().ShouldBe(TestUser.Alex.Name);
     }
 
-    // The session cookie the sign-in flow will issue: unreadable by script, not sent on cross-site subrequests, Secure
-    // whenever the request is HTTPS, and good for 14 days of inactivity.
+    // The session cookie the sign-in flow will issue: unreadable by script, not sent on cross-site subrequests, and good
+    // for 14 days of inactivity. Whether it is Secure follows the public URL's scheme (PublicOriginTests for https).
     [Test]
     public void Session_ShouldBeHttpOnlyLaxAndFourteenDaysSliding()
     {
@@ -61,8 +63,19 @@ public class CookieAuthTests : ApiTestFixture
 
         options.Cookie.HttpOnly.ShouldBeTrue();
         options.Cookie.SameSite.ShouldBe(SameSiteMode.Lax);
-        options.Cookie.SecurePolicy.ShouldBe(CookieSecurePolicy.SameAsRequest);
         options.ExpireTimeSpan.ShouldBe(TimeSpan.FromDays(14));
         options.SlidingExpiration.ShouldBeTrue();
+    }
+
+    // Test hosts, like a plain-HTTP self-host, have an http public URL: a Secure cookie would never come back over it.
+    [Test]
+    public async Task Session_WhenPublicUrlIsHttp_ShouldNotBeSecure()
+    {
+        using var browser = Factory.CreateClient();
+
+        var response = await browser.GetAsync($"/{SessionProbeController.PATH}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        SessionCookies.Attributes(response).ShouldBe(["path=/", "samesite=lax", "httponly"], ignoreOrder: true);
     }
 }

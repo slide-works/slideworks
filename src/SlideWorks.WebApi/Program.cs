@@ -80,8 +80,7 @@ var version = ApiMarker.Assembly
 app.MapGet("/health", () => Results.Ok(new { status = "ok", version })).AllowAnonymous();
 app.MapControllers();
 app.MapSlideWorksMcp();
-// WebSockets only: a long-polling connection would carry the token in the URL of
-// every poll. Live updates for decks; see Realtime/DeckHub.cs.
+// Live updates for decks, over WebSockets only; see Realtime/DeckHub.cs.
 app.MapHub<DeckHub>(DeckHub.PATH, options => options.Transports = HttpTransportType.WebSockets);
 // Unknown routes fall back to the SPA for client-side routing, except under
 // /api and /hubs, which must keep returning 404 rather than the SPA shell. The shell

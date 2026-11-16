@@ -28,11 +28,14 @@ public class CrossSiteWriteGuardTests : ApiTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
-    // The test sign-in is a scheme of its own, and the guard still applies to it.
+    // The test sign-in is a scheme of its own, and the guard still applies to it. Every method but GET, HEAD, OPTIONS
+    // and TRACE is guarded, including ones nothing routes today (MERGE, PROPPATCH).
     [TestCase("POST")]
     [TestCase("PUT")]
     [TestCase("PATCH")]
     [TestCase("DELETE")]
+    [TestCase("MERGE")]
+    [TestCase("PROPPATCH")]
     public async Task Post_WhenTestSchemeAndForeignOrigin_ShouldReturn403(string method)
     {
         var response = await Client.SendAsync(Write(new HttpMethod(method), origin: FOREIGN_ORIGIN));
@@ -71,6 +74,30 @@ public class CrossSiteWriteGuardTests : ApiTestFixture
         var response = await bare.SendAsync(request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    // A sibling subdomain is same-site but not same-origin, so it gets no pass.
+    [Test]
+    public async Task Post_WhenSignedInWithNoOriginAndSameSiteFetchSite_ShouldReturn403()
+    {
+        using var bare = Factory.CreateClient();
+        bare.DefaultRequestHeaders.Add(TestAuthScheme.HEADER, TestUser.Sam.Email);
+        var request = Write(HttpMethod.Post, origin: null);
+        request.Headers.Add("Sec-Fetch-Site", "same-site");
+
+        var response = await bare.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    // An origin that only starts with SlideWorks' own is another site.
+    [TestCase("http://localhost.attacker.example")]
+    [TestCase("http://localhost:8080")]
+    public async Task Post_WhenOriginOnlyStartsWithOurs_ShouldReturn403(string origin)
+    {
+        var response = await Client.SendAsync(Write(HttpMethod.Post, origin: origin));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
     [Test]
