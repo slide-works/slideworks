@@ -21,7 +21,7 @@ test('admin link is a plain link when nobody is waiting', async ({ mount, page }
 test('admin link shows count badge', async ({ mount, page }) => {
   await mount(<AdminLink me={{ ...me, isAdmin: true, pendingRequests: 3 }} />, route);
 
-  await expect(page.getByTestId('admin-link')).toHaveText('Admin3');
+  await expect(page.getByRole('link', { name: 'Admin, 3 pending requests' })).toBeVisible();
   await expect(page.getByTestId('admin-link-badge')).toHaveText('3');
 });
 

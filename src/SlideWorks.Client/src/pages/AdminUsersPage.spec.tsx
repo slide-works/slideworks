@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { AdminUsersView } from '../api/types';
 import { adminUsers } from '../test-support/fixtures/screens';
+import { PendingHandlerSilenced } from '../test-support/PendingHandlerSilenced';
 import { stubApi } from '../test-support/stubApi';
 import { AdminUsersPage } from './AdminUsersPage';
 
@@ -66,9 +67,14 @@ test('approve replaces the view', async ({ mount, page }) => {
     users: [{ ...ada }, { ...pat, access: 'approved' }, sam, mira],
   };
   await stubApi(page, { '/api/admin/users': { json: adminUsers } });
-  const posts: string[] = [];
+  const posts: { method: string; body: string | null }[] = [];
+  let lists = 0;
+  await page.route('**/api/admin/users', (route) => {
+    lists += 1;
+    return route.fulfill({ json: adminUsers });
+  });
   await page.route(`**/api/admin/users/${pat.id}/approve`, (route) => {
-    posts.push(route.request().method());
+    posts.push({ method: route.request().method(), body: route.request().postData() });
     return route.fulfill({ json: approved });
   });
   await mount(<AdminUsersPage />, route);
@@ -80,7 +86,9 @@ test('approve replaces the view', async ({ mount, page }) => {
     'Ada Brooks (you)',
   );
   await expect(row(page, pat.id).getByTestId('admin-user-access')).toHaveText('approved');
-  expect(posts).toEqual(['POST']);
+  expect(posts).toEqual([{ method: 'POST', body: null }]);
+  expect(lists).toBe(1);
+  await expect(row(page, pat.id).getByTestId('admin-make-admin')).toBeFocused();
 });
 
 for (const [status, message] of [
@@ -99,6 +107,7 @@ for (const [status, message] of [
     await expect(row(page, ada.id).getByTestId('admin-user-error')).toHaveText(message);
     await expect(page.getByTestId('admin-user-row')).toHaveCount(4);
     await expect(row(page, sam.id).getByTestId('admin-user-error')).toHaveCount(0);
+    await expect(row(page, ada.id).getByTestId('admin-remove-admin')).toBeFocused();
   });
 }
 
@@ -117,16 +126,53 @@ test('revoke asks to confirm', async ({ mount, page }) => {
 
   await row(page, sam.id).getByTestId('admin-revoke').click();
   await expect(row(page, sam.id)).toContainText('Revoke access?');
+  await expect(row(page, sam.id).getByTestId('admin-revoke-cancel')).toBeFocused();
   expect(posts).toEqual([]);
 
   await row(page, sam.id).getByTestId('admin-revoke-cancel').click();
-  await expect(row(page, sam.id).getByTestId('admin-revoke')).toBeVisible();
+  await expect(row(page, sam.id).getByTestId('admin-revoke')).toBeFocused();
   expect(posts).toEqual([]);
 
   await row(page, sam.id).getByTestId('admin-revoke').click();
   await row(page, sam.id).getByTestId('admin-revoke-confirm').click();
   await expect(row(page, sam.id).getByTestId('admin-user-access')).toHaveText('rejected');
+  await expect(row(page, sam.id).getByTestId('admin-approve')).toBeFocused();
   expect(posts).toEqual(['POST']);
+});
+
+test('every row is disabled while an action is in flight', async ({ mount, page }) => {
+  await stubApi(page, { '/api/admin/users': { json: adminUsers } });
+  let release: () => void = () => {};
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  await page.route(`**/api/admin/users/${pat.id}/approve`, async (route) => {
+    await gate;
+    await route.fulfill({ json: adminUsers });
+  });
+  await mount(<AdminUsersPage />, route);
+
+  await row(page, pat.id).getByTestId('admin-approve').click();
+  await expect(row(page, sam.id).getByTestId('admin-make-admin')).toBeDisabled();
+  await expect(row(page, mira.id).getByTestId('admin-approve')).toBeDisabled();
+  release();
+  await expect(row(page, sam.id).getByTestId('admin-make-admin')).toBeEnabled();
+});
+
+test('buttons name the person', async ({ mount, page }) => {
+  await stubApi(page, { '/api/admin/users': { json: adminUsers } });
+  await mount(<AdminUsersPage />, route);
+
+  await expect(page.getByRole('button', { name: 'Approve Pat Lindqvist' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Make admin Sam Rivera' })).toBeVisible();
+});
+
+test('a pending_approval 403 is not the admins only page', async ({ mount, page }) => {
+  await stubApi(page, {
+    '/api/admin/users': { status: 403, json: { error: 'pending_approval' } },
+  });
+  await mount(<PendingHandlerSilenced />, route);
+
+  await expect(page.getByTestId('admin-users-error')).toHaveText('pending_approval');
+  await expect(page.getByRole('heading', { name: 'Admins only' })).toHaveCount(0);
 });
 
 test('non-admin sees admins only', async ({ mount, page }) => {
@@ -147,6 +193,9 @@ test('network failure shows the message', async ({ mount, page }) => {
 
 test('admin users page matches its screenshot', async ({ mount, page }) => {
   await stubApi(page, { '/api/admin/users': { json: adminUsers } });
+  await page.route('https://slideworks.example/**', (route) =>
+    route.fulfill({ path: 'src/test-support/fixtures/sample-image.png', contentType: 'image/png' }),
+  );
   await mount(<AdminUsersPage />, route);
   await expect(page.getByTestId('admin-user-row')).toHaveCount(4);
 

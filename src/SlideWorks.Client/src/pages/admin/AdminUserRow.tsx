@@ -3,7 +3,7 @@ import { AdminUserActions, type AdminAction } from './AdminUserActions';
 
 type Props = {
   user: AdminUserRowData;
-  busy: boolean;
+  disabled: boolean;
   error: string | null;
   onAction(action: AdminAction): void;
 };
@@ -23,17 +23,23 @@ function whenLine(user: AdminUserRowData): string {
 }
 
 // One person on /admin/users.
-export function AdminUserRow({ user, busy, error, onAction }: Props) {
+export function AdminUserRow({ user, disabled, error, onAction }: Props) {
   return (
     <tr
       data-testid="admin-user-row"
       data-user-id={user.id}
-      className="border-b border-edge align-top last:border-b-0"
+      tabIndex={-1}
+      className="border-b border-edge align-top outline-none last:border-b-0"
     >
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-2.5">
           {user.pictureUrl ? (
-            <img src={user.pictureUrl} alt="" className="h-7 w-7 rounded-full" />
+            <img
+              src={user.pictureUrl}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="h-7 w-7 rounded-full"
+            />
           ) : (
             <span aria-hidden className="h-7 w-7 rounded-full bg-accent-soft" />
           )}
@@ -71,7 +77,7 @@ export function AdminUserRow({ user, busy, error, onAction }: Props) {
         {whenLine(user)}
       </td>
       <td className="px-3 py-2">
-        <AdminUserActions user={user} busy={busy} onAction={onAction} />
+        <AdminUserActions user={user} disabled={disabled} onAction={onAction} />
         {error && (
           <p
             role="alert"

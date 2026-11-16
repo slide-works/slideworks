@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ApiError, api } from '../api/client';
 import type { AdminUsersView } from '../api/types';
 import { AdminUserRow } from './admin/AdminUserRow';
@@ -11,6 +11,7 @@ type State =
   | { kind: 'failed'; message: string; adminsOnly: boolean };
 
 const COLUMNS = [{ label: 'Person' }, { label: 'Access' }, { label: 'Changed' }, { label: '' }];
+const ADMINS_ONLY = 'Admins only';
 const UNREACHABLE = "Can't reach SlideWorks";
 
 // /admin/users: everyone who has asked for access, from one GET /api/admin/users (AdminUsersView). Every action is
@@ -18,6 +19,8 @@ const UNREACHABLE = "Can't reach SlideWorks";
 export function AdminUsersPage() {
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [focusRequest, setFocusRequest] = useState<{ id: string; n: number } | null>(null);
+  const tbody = useRef<HTMLTableSectionElement>(null);
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
 
   useEffect(() => {
@@ -29,13 +32,23 @@ export function AdminUsersPage() {
         setState({
           kind: 'failed',
           message: error instanceof ApiError ? error.message : UNREACHABLE,
-          adminsOnly: error instanceof ApiError && error.status === 403,
+          adminsOnly:
+            error instanceof ApiError && error.status === 403 && error.message === ADMINS_ONLY,
         }),
     );
     return () => {
       active = false;
     };
   }, []);
+
+  // After an action or a row error, focus goes to that person's row: its first enabled button, or the row itself.
+  useEffect(() => {
+    if (!focusRequest) return;
+    const row = [...(tbody.current?.querySelectorAll<HTMLElement>('[data-user-id]') ?? [])].find(
+      (candidate) => candidate.dataset.userId === focusRequest.id,
+    );
+    (row?.querySelector<HTMLElement>('button:not(:disabled)') ?? row)?.focus();
+  }, [focusRequest]);
 
   async function act(id: string, action: AdminAction) {
     setBusyId(id);
@@ -47,6 +60,7 @@ export function AdminUsersPage() {
       setRowError({ id, message: error instanceof ApiError ? error.message : UNREACHABLE });
     } finally {
       setBusyId(null);
+      setFocusRequest((previous) => ({ id, n: (previous?.n ?? 0) + 1 }));
     }
   }
 
@@ -85,12 +99,12 @@ export function AdminUsersPage() {
         <div className="panel overflow-x-auto">
           <table data-testid="admin-users-table" className="w-full border-collapse text-meta">
             <LedgerHead columns={COLUMNS} />
-            <tbody>
+            <tbody ref={tbody}>
               {view.users.map((user) => (
                 <AdminUserRow
                   key={user.id}
                   user={user}
-                  busy={busyId === user.id}
+                  disabled={busyId !== null}
                   error={rowError?.id === user.id ? rowError.message : null}
                   onAction={(action) => void act(user.id, action)}
                 />

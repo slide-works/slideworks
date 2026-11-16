@@ -1,26 +1,28 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AdminUserRow } from '../../api/types';
 
 export type AdminAction = 'approve' | 'reject' | 'make-admin' | 'remove-admin' | 'revoke';
 
-type Props = { user: AdminUserRow; busy: boolean; onAction(action: AdminAction): void };
+type Props = { user: AdminUserRow; disabled: boolean; onAction(action: AdminAction): void };
 
-function ActionButton({
-  testId,
-  label,
-  busy,
-  onClick,
-}: {
+type ActionButtonProps = {
   testId: string;
   label: string;
-  busy: boolean;
+  name: string;
+  disabled: boolean;
+  buttonRef?: React.Ref<HTMLButtonElement>;
   onClick(): void;
-}) {
+};
+
+// The visible text is the verb; the accessible name adds whose row it is.
+function ActionButton({ testId, label, name, disabled, buttonRef, onClick }: ActionButtonProps) {
   return (
     <button
       type="button"
+      ref={buttonRef}
       data-testid={testId}
-      disabled={busy}
+      aria-label={`${label} ${name}`}
+      disabled={disabled}
       className="btn-ghost"
       onClick={onClick}
     >
@@ -30,9 +32,22 @@ function ActionButton({
 }
 
 // The buttons for one person, by access state: pending has Approve and Reject, rejected has Approve, and approved
-// has Make admin or Remove admin, and Revoke. Revoke asks first, in place.
-export function AdminUserActions({ user, busy, onAction }: Props) {
+// has Make admin or Remove admin, and Revoke. Revoke asks first, in place: the confirm step takes focus on Cancel,
+// and Cancel hands it back to Revoke. `disabled` is true while any action is in flight.
+export function AdminUserActions({ user, disabled, onAction }: Props) {
   const [confirming, setConfirming] = useState(false);
+  const revokeRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const cancelled = useRef(false);
+  const { name } = user;
+
+  useEffect(() => {
+    if (confirming) cancelRef.current?.focus();
+    else if (cancelled.current) {
+      cancelled.current = false;
+      revokeRef.current?.focus();
+    }
+  }, [confirming]);
 
   if (confirming) {
     return (
@@ -41,7 +56,8 @@ export function AdminUserActions({ user, busy, onAction }: Props) {
         <button
           type="button"
           data-testid="admin-revoke-confirm"
-          disabled={busy}
+          aria-label={`Revoke ${name}`}
+          disabled={disabled}
           className="btn-ghost border-bad text-bad"
           onClick={() => {
             setConfirming(false);
@@ -53,52 +69,43 @@ export function AdminUserActions({ user, busy, onAction }: Props) {
         <ActionButton
           testId="admin-revoke-cancel"
           label="Cancel"
-          busy={false}
-          onClick={() => setConfirming(false)}
+          name={`revoking ${name}`}
+          disabled={false}
+          buttonRef={cancelRef}
+          onClick={() => {
+            cancelled.current = true;
+            setConfirming(false);
+          }}
         />
       </div>
     );
   }
 
+  const button = (testId: string, label: string, action: AdminAction) => (
+    <ActionButton
+      testId={testId}
+      label={label}
+      name={name}
+      disabled={disabled}
+      onClick={() => onAction(action)}
+    />
+  );
+
   return (
     <div className="flex items-center justify-end gap-2">
-      {user.access !== 'approved' && (
-        <ActionButton
-          testId="admin-approve"
-          label="Approve"
-          busy={busy}
-          onClick={() => onAction('approve')}
-        />
-      )}
-      {user.access === 'pending' && (
-        <ActionButton
-          testId="admin-reject"
-          label="Reject"
-          busy={busy}
-          onClick={() => onAction('reject')}
-        />
-      )}
+      {user.access !== 'approved' && button('admin-approve', 'Approve', 'approve')}
+      {user.access === 'pending' && button('admin-reject', 'Reject', 'reject')}
       {user.access === 'approved' && (
         <>
-          {user.isAdmin ? (
-            <ActionButton
-              testId="admin-remove-admin"
-              label="Remove admin"
-              busy={busy}
-              onClick={() => onAction('remove-admin')}
-            />
-          ) : (
-            <ActionButton
-              testId="admin-make-admin"
-              label="Make admin"
-              busy={busy}
-              onClick={() => onAction('make-admin')}
-            />
-          )}
+          {user.isAdmin
+            ? button('admin-remove-admin', 'Remove admin', 'remove-admin')
+            : button('admin-make-admin', 'Make admin', 'make-admin')}
           <ActionButton
             testId="admin-revoke"
             label="Revoke"
-            busy={busy}
+            name={name}
+            disabled={disabled}
+            buttonRef={revokeRef}
             onClick={() => setConfirming(true)}
           />
         </>

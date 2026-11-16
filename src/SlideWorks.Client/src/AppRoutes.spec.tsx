@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import { AppRoutes } from './AppRoutes';
 import { LocationProbe } from './test-support/LocationProbe';
-import { me } from './test-support/fixtures/screens';
+import { adminUsers, me } from './test-support/fixtures/screens';
 import { stubApi } from './test-support/stubApi';
 
 test('signed out → /signin', async ({ mount, page }) => {
@@ -71,10 +71,14 @@ test('approved person stays on /decks', async ({ mount, page }) => {
 });
 
 test('/admin/users renders inside the shell', async ({ mount, page }) => {
-  await stubApi(page, { '/api/me': { json: { ...me, isAdmin: true } } });
+  await stubApi(page, {
+    '/api/me': { json: { ...me, isAdmin: true } },
+    '/api/admin/users': { json: adminUsers },
+  });
   await mount(<AppRoutes />, { hooksConfig: { route: '/admin/users' } });
   await expect(page.getByTestId('app-shell')).toBeVisible();
   await expect(page.getByTestId('admin-users-page')).toBeVisible();
+  await expect(page.getByTestId('admin-user-row')).toHaveCount(adminUsers.users.length);
 });
 
 test('/pending renders without the shell', async ({ mount, page }) => {

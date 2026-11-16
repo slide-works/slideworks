@@ -18,12 +18,8 @@ public sealed class AdminUsersPage(IPage page)
 
     public ILocator AdminLink => page.GetByTestId("admin-link");
 
-    // The shell badge's number, or 0 while the link has no badge (nobody is waiting).
-    public async Task<int> BadgeCountAsync()
-    {
-        var badge = page.GetByTestId("admin-link-badge");
-        return await badge.CountAsync() == 0 ? 0 : int.Parse(await badge.InnerTextAsync());
-    }
+    // The shell's count of waiting requests; absent while nobody is waiting.
+    public ILocator Badge => page.GetByTestId("admin-link-badge");
 
     // One person, by their exact email.
     public ILocator Row(string email) =>
@@ -47,6 +43,8 @@ public sealed class AdminUsersPage(IPage page)
     public static ILocator Revoke(ILocator row) => row.GetByTestId("admin-revoke");
 
     public static ILocator ConfirmRevoke(ILocator row) => row.GetByTestId("admin-revoke-confirm");
+
+    public static ILocator CancelRevoke(ILocator row) => row.GetByTestId("admin-revoke-cancel");
 
     public async Task GotoAsync() => await page.GotoAsync(PATH);
 }
