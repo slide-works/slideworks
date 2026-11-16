@@ -79,7 +79,7 @@ Every setting is an environment variable. [`docs/self-hosting.md`](docs/self-hos
 | `SLIDEWORKS_DB_PATH` | SQLite file, default `/data/slide-works.db`. The cookie keys live in `slide-works-keys/` next to it |
 | `SLIDEWORKS_DATA_PATH` | Data folder for uploaded images (under `images/<deck id>/`), default `/data` |
 | `SLIDEWORKS_SEQ_URL`, `SLIDEWORKS_SEQ_API_KEY` | Also log to Seq when set; console only otherwise |
-| `SLIDEWORKS_TRUSTED_PROXIES` | Not implemented yet. Planned: proxy CIDRs whose `X-Forwarded-For` gives the client IP for the OAuth rate limits |
+| `SLIDEWORKS_TRUSTED_PROXIES` | Unset by default. Comma-separated CIDRs (or single addresses) of the proxy in front, such as `172.18.0.0/16`. A request from one of them takes its client IP from the last `X-Forwarded-For` entry, for the per-caller OAuth rate limits only; `X-Forwarded-Proto` and `X-Forwarded-Host` are never read. A bad entry stops startup |
 
 `GET /health` is anonymous and reports the commit the image was built from.
 

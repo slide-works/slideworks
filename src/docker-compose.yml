@@ -23,6 +23,9 @@ services:
       # Console only until SLIDEWORKS_SEQ_URL is set.
       - SLIDEWORKS_SEQ_URL=${SLIDEWORKS_SEQ_URL:-}
       - SLIDEWORKS_SEQ_API_KEY=${SLIDEWORKS_SEQ_API_KEY:-}
+      # Behind a TLS proxy: the proxy's CIDR, such as 172.18.0.0/16, so the OAuth
+      # rate limits count each client, not the proxy. Unset trusts no proxy.
+      - SLIDEWORKS_TRUSTED_PROXIES=${SLIDEWORKS_TRUSTED_PROXIES:-}
     volumes:
       # Named volume on a local disk. Never switch this to a bind mount on a
       # network share (NFS, SMB, 9p): SQLite corrupts there under lock

@@ -22,7 +22,7 @@ Every setting is an environment variable with the `SLIDEWORKS_` prefix.
 | `SLIDEWORKS_DATA_PATH` | No | The data folder for uploaded images. Default `/data`. Images are stored under `images/<deck id>/`. |
 | `SLIDEWORKS_SEQ_URL` | No | Also send logs to this Seq server. Without it, logs go to the console only (`docker logs`). |
 | `SLIDEWORKS_SEQ_API_KEY` | No | The Seq API key, when your Seq server needs one. |
-| `SLIDEWORKS_TRUSTED_PROXIES` | No (not implemented yet) | Planned: the proxy addresses, as a comma-separated list of CIDRs, whose `X-Forwarded-For` header SlideWorks trusts for the client IP. Unset by default. See [Behind a TLS proxy](#behind-a-tls-proxy). |
+| `SLIDEWORKS_TRUSTED_PROXIES` | Behind a proxy | The proxy addresses whose `X-Forwarded-For` header SlideWorks trusts for the client IP, as a comma-separated list of CIDRs such as `172.18.0.0/16, fd00::/8`. A single address, such as `10.0.0.5`, means just that address. Unset by default, which trusts no proxy. The server refuses to start if an entry isn't a CIDR or an address. See [Behind a TLS proxy](#behind-a-tls-proxy). |
 
 The image listens on port 8080 over plain HTTP and runs as a non-root user. `GET /health` is anonymous and reports the commit the image was built from.
 
@@ -85,7 +85,20 @@ Run SlideWorks behind a proxy that ends TLS and forwards plain HTTP to port 8080
 
 `SLIDEWORKS_PUBLIC_URL` is the source of truth for the app's scheme and host. SlideWorks never reads `X-Forwarded-Proto`, `X-Forwarded-Host` or the `Host` header to decide its own address, so a forged header can't change a link, the OAuth metadata or the sign-in callback. If the proxy serves `https://slides.example.com`, set exactly that, and the session cookie is `Secure` even though the container sees plain HTTP.
 
-The client IP is used only for the per-caller rate limits on `/oauth/register`, `/oauth/token` and `/oauth/revoke`. Behind a proxy every request arrives from the proxy's address, so every client shares one rate-limit budget. `SLIDEWORKS_TRUSTED_PROXIES` is not implemented yet, and setting it has no effect today. When it lands, it will name the proxy addresses whose `X-Forwarded-For` header gives the client IP (one hop, and only on requests from those addresses). Scheme and host will still come only from `SLIDEWORKS_PUBLIC_URL`.
+`SLIDEWORKS_TRUSTED_PROXIES` is the one exception, and it covers the client IP only. The IP is used only for the per-caller rate limits: 10 a minute on `/oauth/register`, and 60 a minute shared by `/oauth/token` and `/oauth/revoke`. Behind a proxy, set it to the proxy's address, such as `172.18.0.0/16` for a proxy on the same Docker network. Otherwise every request arrives from the proxy, and every client shares one rate-limit budget.
+
+When it's set:
+
+- A request whose connection comes from an address inside one of the listed networks takes its client IP from the last entry of `X-Forwarded-For`, which is the one that proxy added. Only that one hop is read, so anything a client wrote earlier in the header is ignored. An IPv4 proxy that reaches a dual-stack socket as `::ffff:a.b.c.d` still matches its IPv4 network.
+- A request from any other address keeps its own address, and its `X-Forwarded-For` is ignored.
+- `X-Forwarded-Proto` and `X-Forwarded-Host` are never read. Scheme and host still come only from `SLIDEWORKS_PUBLIC_URL`.
+
+The rate limits count an IPv4 client by its address and an IPv6 client by its /64, because one IPv6 host normally holds a whole /64. Make sure the proxy adds the client's address to `X-Forwarded-For` rather than passing a client's header through unchanged. Caddy and Traefik do by default, and nginx does with `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`.
+
+```bash
+# .env, with Caddy on the same Docker network as SlideWorks
+SLIDEWORKS_TRUSTED_PROXIES=172.18.0.0/16
+```
 
 A Caddy example:
 

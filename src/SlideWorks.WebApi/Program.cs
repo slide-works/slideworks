@@ -64,6 +64,10 @@ using (var scope = app.Services.CreateScope())
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
 }
 
+// First, so the rate limits see the client's address behind a trusted proxy (SLIDEWORKS_TRUSTED_PROXIES, opt-in). Read
+// from app.Configuration, which holds every override by now; a bad entry fails startup here.
+app.UseSlideWorksTrustedProxies();
+
 // SPA assets ship inside wwwroot (built there by src/SlideWorks.Client). Static files
 // come before authentication: a request for a file matches no endpoint, so a fallback
 // "must be signed in" policy would otherwise refuse the anonymous player its bundle.

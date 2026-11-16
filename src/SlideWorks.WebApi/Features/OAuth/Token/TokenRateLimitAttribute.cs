@@ -14,13 +14,12 @@ public sealed class TokenRateLimitAttribute : Attribute, IResourceFilter, IOrder
     public void OnResourceExecuting(ResourceExecutingContext context)
     {
         var limiter = context.HttpContext.RequestServices.GetRequiredService<TokenLimiter>();
-        var callerKey = context.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        if (limiter.TryAcquire(callerKey, out var retryAfter))
+        if (limiter.TryAcquire(context.HttpContext.Connection.RemoteIpAddress, out var retryAfter))
         {
             return;
         }
         context.HttpContext.Response.Headers.RetryAfter = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
-        context.Result = new ObjectResult(new OAuthTokenErrorView("too_many_requests", $"At most {TokenLimiter.PER_MINUTE} token and revoke requests a minute from one address. Try again shortly."))
+        context.Result = new ObjectResult(new OAuthTokenErrorView("too_many_requests", $"At most {TokenLimiter.PER_MINUTE} token and revoke requests a minute from one address or IPv6 /64. Try again shortly."))
         {
             StatusCode = StatusCodes.Status429TooManyRequests,
         };
