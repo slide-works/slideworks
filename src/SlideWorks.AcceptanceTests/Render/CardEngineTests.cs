@@ -51,20 +51,49 @@ public class CardEngineTests
     [Test]
     public async Task Engine_CardWithALogoRenders()
     {
-        var deck = await CreateLinkDeckAsync("cobalt");
-        await using (var agent = await ConnectAsync(TestUser.Sam))
-        {
-            var upload = await CallAsync(agent, "upload_image", new() { ["deck"] = deck, ["name"] = "logo.png", ["contentType"] = "image/png" });
-            using var http = new HttpClient();
-            using var body = new ByteArrayContent(LOGO);
-            body.Headers.ContentType = new("image/png");
-            (await http.PutAsync(upload.GetProperty("uploadUrl").GetString(), body)).EnsureSuccessStatusCode();
-            await CallAsync(agent, "set_look", new() { ["deck"] = deck, ["logo"] = upload.GetProperty("image").GetString() });
-        }
+        var deck = await CreateLinkDeckWithALogoAsync();
 
         var card = await Cards.RenderCardAsync(deck, CancellationToken.None);
 
         SizeOf(card.Png).ShouldBe((PlaywrightRenderEngine.WIDTH, PlaywrightRenderEngine.HEIGHT));
+    }
+
+    // Production: the engine's page lives on the loopback address (or SLIDEWORKS_RENDER_URL), while PublicOriginMiddleware
+    // rewrites every request to SLIDEWORKS_PUBLIC_URL, so the page's origin is never the public one. Here the engine
+    // dials localhost while the app's public URL stays 127.0.0.1, and a link deck with a logo still renders.
+    [Test]
+    public async Task Engine_CardRendersWhenTheRenderUrlIsNotThePublicUrl()
+    {
+        var deck = await CreateLinkDeckWithALogoAsync();
+        await using var browser = new RenderBrowser();
+        using var engine = EngineWith(browser, RenderOptions.DEFAULT_TIMEOUT, AcceptanceApp.BaseUrl.Replace("127.0.0.1", "localhost", StringComparison.Ordinal));
+
+        var png = await engine.RenderCardAsync(deck, CancellationToken.None);
+
+        SizeOf(png).ShouldBe((PlaywrightRenderEngine.WIDTH, PlaywrightRenderEngine.HEIGHT));
+    }
+
+    // A navigation that fails (here, a render URL nobody listens on) is "Rendering failed: page error", and nothing in
+    // the exception carries the render token, which Playwright's own message and call log include in the URL.
+    [Test]
+    public async Task Engine_UnreachableRenderUrlFailsWithoutTheToken()
+    {
+        var deck = await CreateLinkDeckAsync("cobalt");
+        await using var browser = new RenderBrowser();
+        using var engine = EngineWith(browser, RenderOptions.DEFAULT_TIMEOUT, $"http://127.0.0.1:{ClosedPort()}");
+
+        var error = await Should.ThrowAsync<RenderingFailedException>(() => engine.RenderCardAsync(deck, CancellationToken.None));
+
+        error.Message.ShouldStartWith(PlaywrightRenderEngine.FAILED);
+        error.InnerException.ShouldBeNull();
+        var text = error.ToString();
+        text.ShouldNotContain("#token=");
+        text.ShouldNotContain("token=");
+        var tokens = AcceptanceApp.Services.GetRequiredService<IRenderTokens>();
+        System.Text.RegularExpressions.Regex.Matches(text, "[A-Za-z0-9_.~=+/-]{16,}")
+            .Select(match => match.Value)
+            .Where(candidate => tokens.Validate(candidate, deck, RenderPurpose.Card))
+            .ShouldBeEmpty("no live Card token for the deck may appear in the exception");
     }
 
     [Test]
@@ -123,11 +152,11 @@ public class CardEngineTests
         }
     }
 
-    private static PlaywrightRenderEngine EngineWith(RenderBrowser browser, TimeSpan timeout)
+    private static PlaywrightRenderEngine EngineWith(RenderBrowser browser, TimeSpan timeout, string? renderUrl = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [RenderOptions.URL_SETTING] = AcceptanceApp.BaseUrl,
+            [RenderOptions.URL_SETTING] = renderUrl ?? AcceptanceApp.BaseUrl,
             [RenderOptions.TIMEOUT_SETTING] = timeout.ToString("c"),
         }).Build();
         return new PlaywrightRenderEngine(
@@ -202,6 +231,29 @@ public class CardEngineTests
         {
             return false;
         }
+    }
+
+    // A loopback port that was free a moment ago and has nothing listening on it now.
+    private static int ClosedPort()
+    {
+        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
+    }
+
+    private static async Task<string> CreateLinkDeckWithALogoAsync()
+    {
+        var deck = await CreateLinkDeckAsync("cobalt");
+        await using var agent = await ConnectAsync(TestUser.Sam);
+        var upload = await CallAsync(agent, "upload_image", new() { ["deck"] = deck, ["name"] = "logo.png", ["contentType"] = "image/png" });
+        using var http = new HttpClient();
+        using var body = new ByteArrayContent(LOGO);
+        body.Headers.ContentType = new("image/png");
+        (await http.PutAsync(upload.GetProperty("uploadUrl").GetString(), body)).EnsureSuccessStatusCode();
+        await CallAsync(agent, "set_look", new() { ["deck"] = deck, ["logo"] = upload.GetProperty("image").GetString() });
+        return deck;
     }
 
     private static async Task<string> CreateLinkDeckAsync(string palette)
