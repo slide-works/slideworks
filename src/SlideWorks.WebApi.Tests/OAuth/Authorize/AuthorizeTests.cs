@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -59,6 +60,52 @@ public class AuthorizeTests : ApiTestFixture
     public async Task Authorize_WhenRedirectMismatch_ShouldShow400NotRedirect(string? redirect)
     {
         var response = await Client.GetAsync(OAuthFlow.AuthorizePath(_clientId, ("redirect_uri", redirect)));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Headers.Location.ShouldBeNull();
+    }
+
+    // RFC 8252 7.3: a loopback redirect matches on any port, and the request keeps the port the agent sent.
+    [TestCase("http://127.0.0.1:50123/callback", "127.0.0.1:50123")]
+    [TestCase("http://127.0.0.1/callback", "127.0.0.1")]
+    public async Task Authorize_WhenLoopbackRedirectOnAnotherPort_ShouldRedirectToConsent(string redirect, string returnsTo)
+    {
+        var response = await Client.GetAsync(OAuthFlow.AuthorizePath(_clientId, ("redirect_uri", redirect)));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        var location = response.Headers.Location.ShouldNotBeNull().OriginalString;
+        location.ShouldStartWith("/oauth/consent?request=", Case.Sensitive);
+        var consentPath = "/api/oauth/consent/" + Uri.EscapeDataString(location["/oauth/consent?request=".Length..]);
+        var consent = JsonDocument.Parse(await (await Client.GetAsync(consentPath)).Content.ReadAsStringAsync()).RootElement;
+        consent.GetProperty("returnsTo").GetString().ShouldBe(returnsTo);
+        var decision = await Client.PostAsJsonAsync(consentPath, new { approve = true });
+        var back = JsonDocument.Parse(await decision.Content.ReadAsStringAsync()).RootElement.GetProperty("redirect").GetString();
+        back.ShouldNotBeNull().ShouldStartWith(redirect + "?code=", Case.Sensitive);
+    }
+
+    // Only the port may differ: another loopback host or path is still a mismatch.
+    [TestCase("http://localhost:33418/callback")]
+    [TestCase("http://127.0.0.1:50123/other")]
+    [TestCase("http://127.0.0.1:50123/callback?extra=1")]
+    [TestCase("https://127.0.0.1:33418/callback")]
+    public async Task Authorize_WhenLoopbackRedirectDiffersBeyondThePort_ShouldShow400NotRedirect(string redirect)
+    {
+        var response = await Client.GetAsync(OAuthFlow.AuthorizePath(_clientId, ("redirect_uri", redirect)));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Headers.Location.ShouldBeNull();
+    }
+
+    // Off loopback the match stays exact, port included.
+    [Test]
+    public async Task Authorize_WhenNonLoopbackRedirectOnAnotherPort_ShouldShow400NotRedirect()
+    {
+        using var anonymous = ClientFor(TestUser.Anonymous);
+        var registered = await anonymous.PostAsJsonAsync("/oauth/register", new { client_name = "Web agent", redirect_uris = new[] { "https://agent.example/callback" } });
+        registered.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var clientId = JsonDocument.Parse(await registered.Content.ReadAsStringAsync()).RootElement.GetProperty("client_id").GetString().ShouldNotBeNull();
+
+        var response = await Client.GetAsync(OAuthFlow.AuthorizePath(clientId, ("redirect_uri", "https://agent.example:8443/callback")));
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         response.Headers.Location.ShouldBeNull();

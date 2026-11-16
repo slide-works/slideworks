@@ -14,8 +14,9 @@ public class RegistrationLimiter(TimeProvider clock)
 
     private readonly ConcurrentDictionary<string, Window> _windows = new(StringComparer.Ordinal);
 
-    // True when the caller may register now, and counts the attempt.
-    public bool TryAcquire(string callerKey)
+    // True when the caller may register now, and counts the attempt. When refused, retryAfter is how long until the
+    // caller's window ends.
+    public bool TryAcquire(string callerKey, out TimeSpan retryAfter)
     {
         var now = clock.GetUtcNow();
         if (_windows.Count > 10_000)
@@ -29,7 +30,8 @@ public class RegistrationLimiter(TimeProvider clock)
             callerKey,
             _ => new Window(now, 1),
             (_, current) => now - current.Start >= WINDOW ? new Window(now, 1) : current with { Count = current.Count + 1 });
-        return window.Count <= PER_MINUTE;
+        retryAfter = window.Count <= PER_MINUTE ? TimeSpan.Zero : window.Start + WINDOW - now;
+        return retryAfter == TimeSpan.Zero;
     }
 
     private sealed record Window(DateTimeOffset Start, int Count);

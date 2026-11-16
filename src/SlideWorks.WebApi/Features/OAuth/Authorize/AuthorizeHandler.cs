@@ -1,12 +1,14 @@
 using Agoda.IoC.Core;
 using Microsoft.AspNetCore.Mvc;
 using SlideWorks.WebApi.Features.Accounts;
+using SlideWorks.WebApi.Features.OAuth.Registration;
 using SlideWorks.WebApi.Features.OAuth.Stores;
 using SlideWorks.WebApi.Infrastructure.Identity;
 
 namespace SlideWorks.WebApi.Features.OAuth.Authorize;
 
-// The browser leg of the authorization code flow. The client and its exact redirect URI are checked first: until both
+// The browser leg of the authorization code flow. The client and its redirect URI (exact, or on loopback http any port,
+// RFC 8252 7.3; the request keeps the URI as sent, so the token endpoint matches that one) are checked first: until both
 // are known good, an error is a 400 page and never a redirect (RFC 6749 4.1.2.1). After that, a protocol error goes back
 // to the client as error= on its redirect URI. Then a signed-out browser goes to sign in and comes back here with the
 // same query, a person who isn't approved goes to /pending, and an approved one gets a request bound to them and the
@@ -21,7 +23,7 @@ public class AuthorizeHandler(IOAuthClients clients, IOAuthRequests requests, IC
         {
             return ErrorPage("This agent isn't registered with SlideWorks (unknown client_id). Go back to the agent and connect again.");
         }
-        if (query.RedirectUri == null || !client.RedirectUris.Contains(query.RedirectUri, StringComparer.Ordinal))
+        if (query.RedirectUri == null || !RedirectUriRules.Matches(client.RedirectUris, query.RedirectUri))
         {
             return ErrorPage("The redirect_uri doesn't match one the agent registered, so SlideWorks won't send you back to it.");
         }
