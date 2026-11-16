@@ -12,7 +12,8 @@ using SlideWorks.WebApi.Tests.Support;
 namespace SlideWorks.WebApi.Tests.Rendering;
 
 // The card cache (L9): ICardRenderer keys a deck's card by RenderKey and keeps it under renders/<deck>/ on the data
-// volume, so only a new revision, look or sharing renders again. The generic card renders once per process, one key
+// volume, so only a new revision or look renders again. Only a link deck's card is rendered; any other deck gets the
+// generic card. The generic card renders once per process, one key
 // renders once however many ask at once, and a failure is never kept. FakeRenderEngine counts the renders.
 [TestFixture]
 public class CardCacheTests : ApiTestFixture
@@ -35,7 +36,7 @@ public class CardCacheTests : ApiTestFixture
     [Test]
     public async Task Card_CacheHitDoesNotCallTheEngine()
     {
-        var deck = await DeckSeed.CreateDeckAsync(_agent);
+        var deck = await LinkDeckAsync();
 
         var first = await Cards.RenderCardAsync(deck, CancellationToken.None);
         var second = await Cards.RenderCardAsync(deck, CancellationToken.None);
@@ -47,11 +48,10 @@ public class CardCacheTests : ApiTestFixture
     }
 
     [TestCase("revision")]
-    [TestCase("sharing")]
     [TestCase("look")]
     public async Task Card_NewRevisionLookOrSharingRendersAgain(string change)
     {
-        var deck = await DeckSeed.CreateDeckAsync(_agent);
+        var deck = await LinkDeckAsync();
         var before = await Cards.RenderCardAsync(deck, CancellationToken.None);
 
         await ChangeAsync(deck, change);
@@ -76,7 +76,7 @@ public class CardCacheTests : ApiTestFixture
     [Test]
     public async Task Card_ConcurrentRequestsRenderOnce()
     {
-        var deck = await DeckSeed.CreateDeckAsync(_agent);
+        var deck = await LinkDeckAsync();
 
         var cards = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Cards.RenderCardAsync(deck, CancellationToken.None)));
 
@@ -87,7 +87,7 @@ public class CardCacheTests : ApiTestFixture
     [Test]
     public async Task Card_FailureIsNotCached()
     {
-        var deck = await DeckSeed.CreateDeckAsync(_agent);
+        var deck = await LinkDeckAsync();
         Engine.ThrowTimeout();
 
         await Should.ThrowAsync<TimeoutException>(() => Cards.RenderCardAsync(deck, CancellationToken.None));
@@ -99,13 +99,47 @@ public class CardCacheTests : ApiTestFixture
         card.Png.ShouldBe(FakeRenderEngine.PNG);
     }
 
+    // Only a link deck's card is ever rendered (L9, D12), so an unknown deck, a private one, a named-viewer one and a
+    // deck no longer shared by link all get the generic card and never start a deck render.
     [Test]
     public async Task Card_UnknownDeckNeverStartsARender()
     {
-        var error = await Should.ThrowAsync<NotFoundException>(() => Cards.RenderCardAsync("dk_MISSING1", CancellationToken.None));
+        var card = await Cards.RenderCardAsync("dk_MISSING1", CancellationToken.None);
 
-        error.Message.ShouldBe("Deck not found");
+        card.Key.ShouldBe(RenderKey.GENERIC);
         RendersOf("dk_MISSING1").ShouldBe(0);
+    }
+
+    [TestCase("private")]
+    [TestCase("named")]
+    public async Task Card_PrivateDeckGetsTheGenericCard(string sharing)
+    {
+        var deck = await DeckSeed.CreateDeckAsync(_agent);
+        if (sharing == "named")
+        {
+            await SharingApi.PutOkAsync(Client, deck, "named", "alex@team.example");
+        }
+
+        var card = await Cards.RenderCardAsync(deck, CancellationToken.None);
+
+        card.Key.ShouldBe(RenderKey.GENERIC);
+        card.Png.ShouldBe(FakeRenderEngine.PNG);
+        Engine.Calls.ShouldContain(FakeRenderEngine.GENERIC);
+        RendersOf(deck).ShouldBe(0);
+        CardFiles(deck).ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task Card_DeckNoLongerSharedByLinkGetsTheGenericCard()
+    {
+        var deck = await LinkDeckAsync();
+        await Cards.RenderCardAsync(deck, CancellationToken.None);
+
+        await SharingApi.PutOkAsync(Client, deck, "private");
+        var card = await Cards.RenderCardAsync(deck, CancellationToken.None);
+
+        card.Key.ShouldBe(RenderKey.GENERIC);
+        RendersOf(deck).ShouldBe(1);
     }
 
     private async Task ChangeAsync(string deck, string change)
@@ -115,9 +149,6 @@ public class CardCacheTests : ApiTestFixture
             case "revision":
                 await DeckSeed.AddQuoteAsync(_agent, deck, "Ship it on Tuesday.");
                 break;
-            case "sharing":
-                await SharingApi.PutOkAsync(Client, deck, "link");
-                break;
             default:
                 using (var response = await Client.PutAsJsonAsync($"/api/decks/{deck}/look", new { palette = "ember" }))
                 {
@@ -125,6 +156,13 @@ public class CardCacheTests : ApiTestFixture
                 }
                 break;
         }
+    }
+
+    private async Task<string> LinkDeckAsync()
+    {
+        var deck = await DeckSeed.CreateDeckAsync(_agent);
+        await SharingApi.PutOkAsync(Client, deck, "link");
+        return deck;
     }
 
     private int RendersOf(string deck) => Engine.Calls.Count(call => call == deck);
