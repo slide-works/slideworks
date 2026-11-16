@@ -85,6 +85,9 @@ test('title renders kicker title subtitle author stamp', async ({ mount, page })
   await expect(layout.getByTestId('title-byline')).toHaveText('Sam RiveraProduct Engineering');
   await expect(layout.getByTestId('block-stamp')).toHaveText('Draft');
   await expect(page.getByTestId('slide-frame')).toHaveAttribute('data-dark', 'true');
+  // A sample title keeps the mockup's size.
+  await page.evaluate(() => document.fonts.ready);
+  await expect(layout.getByTestId('title-title')).toHaveAttribute('data-font-size', '168');
 });
 
 test('title leaves out the slots it is not given', async ({ mount, page }) => {
@@ -233,6 +236,11 @@ test.describe('max-length text stays inside 1920x1080', () => {
     );
 
     expectInsideContent(await drawnBox(page, 'layout-title'), 0);
+    // A wide 34-character title is held to two lines.
+    const title = page.getByTestId('title-title');
+    const size = Number(await title.getAttribute('data-font-size'));
+    expect(size).toBeGreaterThanOrEqual(96);
+    expect((await title.boundingBox())!.height).toBeLessThanOrEqual(2 * size * 0.95 + 1);
     const stamp = (await page.getByTestId('block-stamp').boundingBox())!;
     expect(stamp.x + stamp.width).toBeLessThanOrEqual(1800 + 4);
     expect(stamp.y).toBeGreaterThanOrEqual(8);
@@ -257,8 +265,8 @@ test.describe('max-length text stays inside 1920x1080', () => {
   test('close', async ({ mount, page }) => {
     // Three written lines that wrap to four shown lines, the validator's limit.
     const headline =
-      'Pick one story today.\nShip half of it by Friday.\nTell us at the demo what you learned';
-    expect(headline.length).toBeLessThanOrEqual(80);
+      'Pick one story today.\nShip half by Friday.\nThen tell us what you learned there';
+    expect(headline.length).toBe(78);
     await mount(
       render({
         number: 16,

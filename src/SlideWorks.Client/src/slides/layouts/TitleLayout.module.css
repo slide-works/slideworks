@@ -44,8 +44,8 @@
 }
 
 .heading {
-  max-width: 1600px;
   margin: 0;
+  /* The size is set by the two-line fit in TitleLayout.tsx, from 168 px down. */
   font: 800 168px/0.95 var(--sw-font-head);
   letter-spacing: -0.04em;
   text-wrap: balance;

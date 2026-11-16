@@ -15,9 +15,10 @@ function splitValue(value: string): [string, string] {
 }
 
 // Sets the value's font size so it fits its column: the mockup's size when it
-// fits, otherwise scaled down in proportion, never below the floor. Widths are
-// layout pixels (offsetWidth, clientWidth), so the player's scaling doesn't
-// change the result. It fits again once the web fonts have loaded.
+// fits, otherwise scaled down in proportion, never below the floor. It compares
+// the value's width with the column's, both measured under the same transform,
+// so the player's scaling doesn't change the result. It fits again once the
+// web fonts have loaded.
 function useFitToColumn(value: string) {
   const columnRef = useRef<HTMLDivElement>(null);
   const valueRef = useRef<HTMLSpanElement>(null);
@@ -28,14 +29,15 @@ function useFitToColumn(value: string) {
       const column = columnRef.current;
       const text = valueRef.current;
       if (!active || column === null || text === null) return;
+      const room = column.getBoundingClientRect().width;
+      const width = () => text.getBoundingClientRect().width;
       let size = VALUE_PX;
       text.style.fontSize = `${size}px`;
-      const room = column.clientWidth;
-      if (text.offsetWidth > room) {
-        size = Math.max(VALUE_FLOOR_PX, Math.floor((VALUE_PX * room) / text.offsetWidth));
+      if (width() > room) {
+        size = Math.max(VALUE_FLOOR_PX, Math.floor((VALUE_PX * room) / width()));
         text.style.fontSize = `${size}px`;
         // Rounding and kerning can leave a pixel or two over.
-        while (text.offsetWidth > room && size > VALUE_FLOOR_PX) {
+        while (width() > room && size > VALUE_FLOOR_PX) {
           size -= 2;
           text.style.fontSize = `${size}px`;
         }
