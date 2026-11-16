@@ -112,14 +112,16 @@ export type ImageSlots = {
   caption?: string;
 };
 
-export type TableCell = string | { text: string; tone: Tone };
+// A toned cell is drawn as a badge; table cells also have a warning tone.
+export type CellTone = 'good' | 'warn' | 'bad' | 'info';
+export type TableCell = string | { text: string; tone: CellTone };
 
 export type TableSlots = {
   kicker?: string;
   headline: string;
   columns: string[];
   rows: TableCell[][];
-  // 0-based index into rows.
+  // The 1-based number of the row to highlight.
   highlightRow?: number;
 };
 
@@ -133,13 +135,13 @@ export type ChartSlots = {
   series: ChartSeries[];
   yUnit?: string;
   caption?: string;
-  // x is one of xLabels.
-  marker?: { x: string; label: string };
+  // x is 1-based on xLabels: 1 is the first label, 3.5 sits between the third and fourth.
+  marker?: { x: number; label: string };
 };
 
 export type GanttStatus = 'done' | 'slips' | 'stopped' | 'ship';
 
-// start and end are 0-based indexes into columns, end inclusive.
+// start and end are 1-based column numbers, end inclusive.
 export type GanttRow = {
   label: string;
   start: number;

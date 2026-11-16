@@ -81,9 +81,9 @@ export const LAYOUT_SLOTS: { [L in keyof Slots]: Slots[L] } = {
     columns: ['Slice', 'Size', 'Status'],
     rows: [
       ['Save a search', 'S', { text: 'Shipped', tone: 'good' }],
-      ['Share a search', 'M', { text: 'Late', tone: 'bad' }],
+      ['Share a search', 'M', { text: 'Late', tone: 'warn' }],
     ],
-    highlightRow: 0,
+    highlightRow: 1,
   },
   chart: {
     kicker: 'Ship it',
@@ -93,15 +93,15 @@ export const LAYOUT_SLOTS: { [L in keyof Slots]: Slots[L] } = {
     series: [{ name: 'Lead time (days)', values: [24, 18, 9, 6] }],
     yUnit: 'days',
     caption: 'Median lead time per month.',
-    marker: { x: 'Sep', label: 'Flags rolled out' },
+    marker: { x: 2.5, label: 'Flags on' },
   },
   gantt: {
     kicker: 'The cost',
     headline: 'One milestone each looks fair',
     columns: ['S1', 'S2', 'S3', 'S4'],
     rows: [
-      { label: 'Checkout API', start: 0, end: 1, status: 'done' },
-      { label: 'Checkout UI', start: 1, end: 3, status: 'slips', note: 'Waited on the API' },
+      { label: 'Checkout API', start: 1, end: 2, status: 'done' },
+      { label: 'Checkout UI', start: 2, end: 4, status: 'slips', note: 'Waited on the API' },
     ],
     caption: 'Everything is green until it isn’t.',
   },

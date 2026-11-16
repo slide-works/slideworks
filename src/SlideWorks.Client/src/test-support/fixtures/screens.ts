@@ -6,6 +6,7 @@ import deckPlayJson from '@contracts/screens/deck-play.json' with { type: 'json'
 import decksLibraryJson from '@contracts/screens/decks-library.json' with { type: 'json' };
 import meJson from '@contracts/screens/me.json' with { type: 'json' };
 import sharingJson from '@contracts/screens/sharing.json' with { type: 'json' };
+import sampleDeckJson from '@contracts/sample-deck.json' with { type: 'json' };
 import type {
   DeckPageView,
   DeckPlayView,
@@ -20,3 +21,6 @@ export const decksLibrary = decksLibraryJson satisfies Widen<DecksLibraryView> a
 export const deckPage = deckPageJson satisfies Widen<DeckPageView> as DeckPageView;
 export const deckPlay = deckPlayJson satisfies Widen<DeckPlayView> as DeckPlayView;
 export const sharing = sharingJson satisfies Widen<SharingView> as SharingView;
+
+// The sample deck "Ship smaller" (K3): 16 slides, one per layout, in the play view's shape.
+export const sampleDeck = sampleDeckJson satisfies Widen<DeckPlayView> as DeckPlayView;
