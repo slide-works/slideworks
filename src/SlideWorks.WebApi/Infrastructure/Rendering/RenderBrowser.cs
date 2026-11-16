@@ -15,7 +15,7 @@ public sealed class RenderBrowser : IAsyncDisposable
     private IBrowser? _browser;
 
     // The running browser, launched now if there is none or the last one disconnected. Throws
-    // RendererUnavailableException when Chromium can't start (not installed, or missing libraries).
+    // RendererUnavailableException when Chromium or the Playwright driver can't start (not installed, or missing libraries).
     public async Task<IBrowser> GetAsync(CancellationToken ct)
     {
         await _launch.WaitAsync(ct);
@@ -30,13 +30,16 @@ public sealed class RenderBrowser : IAsyncDisposable
                 await _browser.DisposeAsync();
                 _browser = null;
             }
-            _playwright ??= await Playwright.CreateAsync();
             try
             {
+                _playwright ??= await Playwright.CreateAsync();
                 _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
             }
             catch (PlaywrightException e)
             {
+                // The driver may be what died, so the next launch starts a new one.
+                _playwright?.Dispose();
+                _playwright = null;
                 throw new RendererUnavailableException($"Chromium failed to start: {e.Message}");
             }
             return _browser;

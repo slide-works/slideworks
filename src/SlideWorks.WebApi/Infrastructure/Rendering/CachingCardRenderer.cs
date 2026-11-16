@@ -10,8 +10,8 @@ namespace SlideWorks.WebApi.Infrastructure.Rendering;
 // and sharing, read through DeckReader.ReadForRenderAsync) and kept on the data volume at
 // renders/<deck>/card-<revision>-<lookHash>-<sharing>.png; writing a new card deletes that deck's older ones. Concurrent
 // requests for one key share one render, and a failed render is never kept, so the next request tries again. The
-// generic card is rendered at most once per process and kept in memory. Callers send unknown, private and unlisted
-// decks to the generic card; an unknown deck id here is "Deck not found" and never starts a render.
+// generic card is rendered at most once per process and kept in memory. An unknown, private or named-viewer deck gets
+// the generic card and never starts a deck render.
 [RegisterSingleton(For = typeof(ICardRenderer))]
 public sealed class CachingCardRenderer(IRenderEngine engine, IServiceScopeFactory scopes, IConfiguration configuration) : ICardRenderer
 {
@@ -25,16 +25,23 @@ public sealed class CachingCardRenderer(IRenderEngine engine, IServiceScopeFacto
     private readonly Lock _genericLock = new();
     private Task<byte[]>? _generic;
 
+    // Only a link deck's card is ever rendered (L9, D12). Callers already send other decks to the generic card; this is
+    // the second line, so an unknown, private or named-viewer deck never starts a deck render here either.
     public async Task<RenderedCard> RenderCardAsync(string deckId, CancellationToken ct)
     {
-        var key = await KeyOfAsync(deckId);
-        var path = PathFor(deckId, key);
-        if (File.Exists(path))
+        var key = await LinkDeckKeyOfAsync(deckId);
+        if (key == null)
         {
-            return new RenderedCard(await File.ReadAllBytesAsync(path, ct), key);
+            return await RenderGenericCardAsync(ct);
+        }
+        var path = PathFor(deckId, key);
+        var cached = await ReadCachedAsync(path, ct);
+        if (cached != null)
+        {
+            return new RenderedCard(cached, key);
         }
         var render = _inFlight.GetOrAdd(key, k => new Lazy<Task<byte[]>>(() => RenderAndStoreAsync(deckId, k, path)));
-        return new RenderedCard(await render.Value, key);
+        return new RenderedCard(await UntilDoneOrCancelledAsync(render.Value, ct), key);
     }
 
     public async Task<RenderedCard> RenderGenericCardAsync(CancellationToken ct)
@@ -46,9 +53,9 @@ public sealed class CachingCardRenderer(IRenderEngine engine, IServiceScopeFacto
         }
         try
         {
-            return new RenderedCard(await generic, RenderKey.GENERIC);
+            return new RenderedCard(await UntilDoneOrCancelledAsync(generic, ct), RenderKey.GENERIC);
         }
-        catch
+        catch when (generic.IsFaulted || generic.IsCanceled)
         {
             lock (_genericLock)
             {
@@ -61,10 +68,51 @@ public sealed class CachingCardRenderer(IRenderEngine engine, IServiceScopeFacto
         }
     }
 
-    private async Task<string> KeyOfAsync(string deckId)
+    // A shared render keeps going for its other callers when one caller gives up; that caller stops waiting.
+    private static async Task<byte[]> UntilDoneOrCancelledAsync(Task<byte[]> shared, CancellationToken ct)
+    {
+        var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using (ct.Register(() => cancelled.TrySetResult()))
+        {
+            if (await Task.WhenAny(shared, cancelled.Task) == shared)
+            {
+                return await shared;
+            }
+        }
+        throw new OperationCanceledException(ct);
+    }
+
+    // Another key's write for the same deck can delete the file between finding and reading it, so a missing file is
+    // a miss.
+    private static async Task<byte[]?> ReadCachedAsync(string path, CancellationToken ct)
+    {
+        try
+        {
+            return await File.ReadAllBytesAsync(path, ct);
+        }
+        catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    // The deck's RenderKey when its sharing is link; null for an unknown deck or any other sharing.
+    private async Task<string?> LinkDeckKeyOfAsync(string deckId)
     {
         await using var scope = scopes.CreateAsyncScope();
-        var deck = await scope.ServiceProvider.GetRequiredService<DeckReader>().ReadForRenderAsync(deckId);
+        DeckForRender deck;
+        try
+        {
+            deck = await scope.ServiceProvider.GetRequiredService<DeckReader>().ReadForRenderAsync(deckId);
+        }
+        catch (NotFoundException)
+        {
+            return null;
+        }
+        if (deck.Sharing != DeckSharing.Link)
+        {
+            return null;
+        }
         return RenderKey.For(
             deckId,
             checked((int)deck.Revision),

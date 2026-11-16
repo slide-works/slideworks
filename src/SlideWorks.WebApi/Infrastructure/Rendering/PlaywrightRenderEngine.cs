@@ -25,6 +25,7 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
     private const string CARD_TEST_ID = "share-card";
     private const string SETTLED = "() => { const card = document.querySelector('[data-testid=share-card]'); return !!card && (card.dataset.ready === 'true' || card.hasAttribute('data-error')); }";
     private const string IMAGE = "image";
+    private const string PAGE_ERROR = "page error";
 
     private readonly SemaphoreSlim _pages = new(MAX_PAGES, MAX_PAGES);
     private readonly RenderOptions _options = RenderOptions.From(configuration);
@@ -55,6 +56,9 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
         throw new System.TimeoutException(TIMED_OUT);
     }
 
+    // Any other Playwright failure (a refused or failed navigation, a crashed page, the retry failing too) becomes
+    // "Rendering failed: page error". Its message and call log are never passed on, not even as the inner exception,
+    // because Playwright puts the navigated URL in them, and that carries the render token in its fragment.
     private async Task<byte[]> RenderInSlotAsync(string? deckId, CancellationToken ct)
     {
         await _pages.WaitAsync(ct);
@@ -63,16 +67,37 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
             var chromium = await browser.GetAsync(ct);
             try
             {
+                ct.ThrowIfCancellationRequested();
                 return await RenderPageAsync(chromium, deckId, ct);
             }
             catch (PlaywrightException) when (!chromium.IsConnected && !ct.IsCancellationRequested)
             {
-                return await RenderPageAsync(await browser.GetAsync(ct), deckId, ct);
+                var restarted = await browser.GetAsync(ct);
+                ct.ThrowIfCancellationRequested();
+                return await RenderPageAsync(restarted, deckId, ct);
             }
+        }
+        catch (PlaywrightException) when (!ct.IsCancellationRequested)
+        {
+            throw Failed(PAGE_ERROR);
         }
         finally
         {
+            ReleaseSlot();
+        }
+    }
+
+    // A render abandoned on its deadline can still finish after the app has disposed the engine; its slot no longer
+    // matters then.
+    private void ReleaseSlot()
+    {
+        try
+        {
             _pages.Release();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Disposed at shutdown: nothing waits for the slot any more.
         }
     }
 
@@ -130,14 +155,15 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
         }
     }
 
-    private static InvalidOperationException Failed(string text) => new(FAILED + text);
+    private static RenderingFailedException Failed(string text) => new(text);
 
     private static bool SameOrigin(string url, Uri origin) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri)
         && Uri.Compare(uri, origin, UriComponents.SchemeAndServer, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0;
 
     // SLIDEWORKS_RENDER_URL, else the address Kestrel actually listens on (port 0 under tests is resolved by then),
-    // with a wildcard host turned into loopback.
+    // with a wildcard host turned into IPv4 loopback ([::] too: Kestrel's dual-mode socket accepts IPv4, and a container
+    // may have IPv6 off).
     private Uri BaseUrl()
     {
         if (_options.BaseUrl != null)
@@ -151,7 +177,7 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
             .Replace("://+", "://127.0.0.1", StringComparison.Ordinal)
             .Replace("://*", "://127.0.0.1", StringComparison.Ordinal)
             .Replace("://0.0.0.0", "://127.0.0.1", StringComparison.Ordinal)
-            .Replace("://[::]", "://[::1]", StringComparison.Ordinal);
+            .Replace("://[::]", "://127.0.0.1", StringComparison.Ordinal);
         return new Uri(new Uri(loopback).GetLeftPart(UriPartial.Authority));
     }
 }
