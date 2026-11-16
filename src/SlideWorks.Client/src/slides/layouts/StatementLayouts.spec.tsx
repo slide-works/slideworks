@@ -414,6 +414,72 @@ test.describe('max-length text stays inside 1920x1080', () => {
         expect(size).toBeGreaterThanOrEqual(36);
         expect(await lineCount(page, 'title-subtitle', 1.15)).toBeLessThanOrEqual(3);
       });
+
+      // A prose title keeps 168 px and two lines, so the slots under it get only
+      // the room it leaves. In capitals, every other slot at its longest takes
+      // the subtitle to three lines at 52 px, and the byline ended at y 1052.
+      test('title, prose title with ALL-CAPS slots', async ({ mount, page }) => {
+        const caps = (length: number) => fill(length).toUpperCase();
+        await mount(
+          render({
+            number: 1,
+            layout: 'title',
+            part: null,
+            slots: {
+              kicker: caps(40),
+              title: fill(34),
+              subtitle: caps(100),
+              tagline: caps(90),
+              author: caps(60),
+              affiliation: caps(60),
+              stamp: caps(16),
+            },
+          }),
+        );
+
+        expectInsideContent(await drawnBox(page, 'layout-title', '[data-testid="block-stamp"]'));
+        expect(await fontSize(page, 'title-title')).toBe(168);
+        // The subtitle shrinks into the room left, still at most three lines.
+        const size = await fontSize(page, 'title-subtitle');
+        expect(size).toBeLessThan(52);
+        expect(size).toBeGreaterThanOrEqual(36);
+        expect(await lineCount(page, 'title-subtitle', 1.15)).toBeLessThanOrEqual(3);
+      });
+
+      // Words of capital W in the tagline and byline take the tagline to three
+      // lines and the byline to two; under a prose title the byline ended at
+      // y 1070, more than the subtitle can give back at 36 px.
+      test('title, prose title with W-word tagline and byline', async ({ mount, page }) => {
+        const words = (length: number) =>
+          'WWWWWWWWW '
+            .repeat(Math.ceil(length / 10))
+            .slice(0, length)
+            .trimEnd()
+            .padEnd(length, 'W');
+        await mount(
+          render({
+            number: 1,
+            layout: 'title',
+            part: null,
+            slots: {
+              kicker: fill(40),
+              title: fill(34),
+              subtitle: fill(100),
+              tagline: words(90),
+              author: words(60),
+              affiliation: words(60),
+              stamp: 'M'.repeat(16),
+            },
+          }),
+        );
+
+        expectInsideContent(await drawnBox(page, 'layout-title', '[data-testid="block-stamp"]'));
+        expect(await fontSize(page, 'title-title')).toBe(168);
+        // The tagline shrinks into the room left, from 34 px down to 26 px.
+        const size = await fontSize(page, 'title-tagline');
+        expect(size).toBeLessThan(34);
+        expect(size).toBeGreaterThanOrEqual(26);
+      });
     }
 
     test(`divider with eight long parts in ${letters}`, async ({ mount, page }) => {
