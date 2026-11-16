@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { LAYOUTS } from './layouts';
 import { SlideFrame } from './SlideFrame';
+import { SlidePartContext } from './slidePart';
 import {
   DARK_LAYOUTS,
   type LayoutName,
@@ -44,7 +45,9 @@ export function SlideRenderer({ slide, deck, total, step }: SlideRendererProps) 
         deckTitle={deck.title}
         author={deck.author}
       >
-        <Layout slots={slide.slots} step={step} deck={deck} />
+        <SlidePartContext value={slide.part}>
+          <Layout slots={slide.slots} step={step} deck={deck} />
+        </SlidePartContext>
       </SlideFrame>
     </div>
   );

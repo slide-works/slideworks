@@ -1,0 +1,74 @@
+/* The journey timeline on divider slides (the mockup's .journey), in canvas px. */
+.journey {
+  position: relative;
+  display: grid;
+  gap: 0 24px;
+  width: 1500px;
+  max-width: 100%;
+  margin: 80px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The line the dots sit on. */
+.journey::before {
+  content: '';
+  position: absolute;
+  top: 11px;
+  right: 0;
+  left: 11px;
+  height: 2px;
+  background: var(--sw-night-line);
+}
+
+.part {
+  position: relative;
+  min-width: 0;
+  padding-top: 44px;
+}
+
+/* Future parts: a hollow dot. */
+.part::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #475569;
+  border-radius: 50%;
+  background: var(--sw-night);
+}
+
+/* Past parts: a filled dot. */
+.part[data-state='past']::before {
+  border-color: var(--sw-accent);
+  background: var(--sw-accent);
+}
+
+/* The current part: a glowing dot. */
+.part[data-state='on']::before {
+  border-color: #c3d0ff;
+  background: #8ea5ff;
+  box-shadow: 0 0 0 8px rgb(142 165 255 / 0.2);
+}
+
+.name {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--sw-night-2);
+  font: 700 18px/1.25 var(--sw-font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.number {
+  display: block;
+  margin-top: 12px;
+  color: #64748b;
+  font: 400 18px/1 var(--sw-font-body);
+}
+
+.part[data-state='on'] .number {
+  color: var(--sw-accent-glow);
+}
