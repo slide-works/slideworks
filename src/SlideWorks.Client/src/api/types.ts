@@ -131,7 +131,9 @@ export type CreateDeckRequest = { title: string };
 export type CreateDeckResult = { id: string; slug: string; playUrl: string };
 
 // GET /api/oauth/consent/{id}: the consent screen for an agent's authorize request.
-export type ConsentView = { clientName: string; scope: string };
+// returnsTo is where the answer goes: a redirect's host and port (localhost:33418) or an
+// app's own scheme (cursor://anysphere.cursor-mcp). clientName is self-chosen; returnsTo isn't.
+export type ConsentView = { clientName: string; scope: string; returnsTo: string };
 
 // POST /api/oauth/consent/{id} body, and its result: where the browser goes next.
 export type ConsentDecisionRequest = { approve: boolean };

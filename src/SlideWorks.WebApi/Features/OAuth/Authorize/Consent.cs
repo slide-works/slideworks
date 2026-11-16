@@ -1,27 +1,20 @@
 using Agoda.IoC.Core;
-using Microsoft.EntityFrameworkCore;
-using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.OAuth.Stores;
 using SlideWorks.WebApi.Infrastructure.Identity;
 
 namespace SlideWorks.WebApi.Features.OAuth.Authorize;
 
-// The presenter's answer to an authorize request. Showing it reads the request without using it up (IOAuthRequests has
-// no read, so this reads the row with the same rules ConsumeAsync applies). Answering consumes it, once: allow issues a
+// The presenter's answer to an authorize request. Showing it reads the request without using it up
+// (IOAuthRequests.FindAsync, which applies the same rules as ConsumeAsync). Answering consumes it, once: allow issues a
 // code bound to everything the request carried, deny sends access_denied. Either way the client gets its state back.
 [RegisterPerRequest(Concrete = true)]
-public class Consent(AppDbContext db, IOAuthRequests requests, IOAuthClients clients, IOAuthCodes codes, ICurrentActor actor, TimeProvider clock)
+public class Consent(IOAuthRequests requests, IOAuthClients clients, IOAuthCodes codes, ICurrentActor actor)
 {
     public async Task<ConsentView> GetAsync(string requestId)
     {
-        var presenterId = actor.PresenterId!.Value;
-        var now = clock.GetUtcNow();
-        var request = await db.OAuthRequests.AsNoTracking()
-            .Where(r => r.Id == requestId && r.PresenterId == presenterId && r.ConsumedAt == null && r.ExpiresAt > now)
-            .Select(r => new { r.ClientId, r.Scope })
-            .SingleOrDefaultAsync() ?? throw new ConsentGoneException();
-        var client = await clients.FindAsync(request.ClientId) ?? throw new ConsentGoneException();
-        return new ConsentView(client.ClientName, request.Scope);
+        var pending = await requests.FindAsync(requestId, actor.PresenterId!.Value) ?? throw new ConsentGoneException();
+        var client = await clients.FindAsync(pending.ClientId) ?? throw new ConsentGoneException();
+        return ConsentView.From(client, pending);
     }
 
     public async Task<ConsentDecisionView> DecideAsync(string requestId, ConsentDecisionRequest decision)

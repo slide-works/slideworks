@@ -34,6 +34,22 @@ public class ConsentTests : ApiTestFixture
         JsonShape.AssertMatches(body, "consent.json");
         body.GetProperty("clientName").GetString().ShouldBe("Claude");
         body.GetProperty("scope").GetString().ShouldBe("decks");
+        body.GetProperty("returnsTo").GetString().ShouldBe("127.0.0.1:33418");
+    }
+
+    // The owner looks at the request first, as the consent page does, and it is still there for their answer.
+    [Test]
+    public async Task Consent_WhenShownThenApproved_ShouldIssueCode()
+    {
+        var requestId = await OAuthFlow.StartAsync(Client, _clientId);
+        (await Client.GetAsync(ConsentPath(requestId))).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await Client.GetAsync(ConsentPath(requestId))).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var response = await AnswerAsync(Client, requestId, approve: true);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var grant = await RedeemAsync(OAuthFlow.CallbackQuery(await RedirectAsync(response))["code"]);
+        grant.ShouldNotBeNull().PresenterId.ShouldBe(await PresenterIdAsync(TestUser.Sam));
     }
 
     [Test]
@@ -50,6 +66,7 @@ public class ConsentTests : ApiTestFixture
         var grant = await RedeemAsync(query["code"]);
         grant.ShouldNotBeNull();
         grant.ClientId.ShouldBe(_clientId);
+        grant.PresenterId.ShouldBe(await PresenterIdAsync(TestUser.Sam));
         grant.Scope.ShouldBe("decks");
         grant.Resource.ShouldBe(OAuthFlow.Resource);
     }
@@ -172,6 +189,12 @@ public class ConsentTests : ApiTestFixture
         using var scope = Factory.Services.CreateScope();
         return await scope.ServiceProvider.GetRequiredService<IOAuthCodes>()
             .RedeemAsync(code, _clientId, OAuthFlow.REDIRECT, OAuthFlow.VERIFIER, OAuthFlow.Resource);
+    }
+
+    private async Task<Guid> PresenterIdAsync(TestUser user)
+    {
+        using var scope = Factory.Services.CreateScope();
+        return (await TestPeople.SignInAsync(scope.ServiceProvider, user)).Id;
     }
 
     private HttpClient ClientWithoutOrigin(TestUser user)

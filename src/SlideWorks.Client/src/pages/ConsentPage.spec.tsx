@@ -13,7 +13,18 @@ test('consent page shows client name and both buttons', async ({ mount, page }) 
   await expect(page.getByTestId('consent-scope')).toContainText('decks');
   await expect(page.getByTestId('consent-allow')).toHaveText('Allow');
   await expect(page.getByTestId('consent-deny')).toHaveText('Deny');
+  await expect(page.getByTestId('consent-returns-to-host')).toHaveText('127.0.0.1:33418');
   await expect(page.getByTestId('consent-gone')).toHaveCount(0);
+});
+
+test('consent page names an app scheme the answer goes back to', async ({ mount, page }) => {
+  const cursor = { ...consent, clientName: 'Cursor', returnsTo: 'cursor://anysphere.cursor-mcp' };
+  await stubApi(page, { '/api/me': { json: me }, [CONSENT_PATH]: { json: cursor } });
+  await mount(<AppRoutes />, { hooksConfig: { route: `/oauth/consent?request=${REQUEST}` } });
+  await expect(page.getByTestId('consent-client-name')).toHaveText('Cursor');
+  await expect(page.getByTestId('consent-returns-to')).toContainText(
+    'Your answer goes back to cursor://anysphere.cursor-mcp.',
+  );
 });
 
 test('expired request shows message', async ({ mount, page }) => {

@@ -15,6 +15,9 @@ public sealed class ConsentPage(IPage page)
 
     public ILocator Scope => page.GetByTestId("consent-scope");
 
+    // Where the answer goes: the redirect's host and port, or the app's own scheme.
+    public ILocator ReturnsTo => page.GetByTestId("consent-returns-to-host");
+
     public ILocator Allow => page.GetByTestId("consent-allow");
 
     public ILocator Deny => page.GetByTestId("consent-deny");

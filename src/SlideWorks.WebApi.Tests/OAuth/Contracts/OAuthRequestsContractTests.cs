@@ -4,6 +4,7 @@ using SlideWorks.WebApi.Tests.Support;
 namespace SlideWorks.WebApi.Tests.OAuth.Contracts;
 
 // K10 IOAuthRequests: a pending authorize request is bound to its presenter, lives 10 minutes and is consumed once.
+// FindAsync reads it for the consent screen under the same rules, without consuming it.
 [TestFixture]
 public class OAuthRequestsContractTests : OAuthContractFixture
 {
@@ -82,6 +83,63 @@ public class OAuthRequestsContractTests : OAuthContractFixture
         results.Count(r => r != null).ShouldBe(1);
     }
 
+    [Test]
+    public async Task Find_WhenPresenterMatches_ShouldReturnTheRequestAndLeaveItToConsume()
+    {
+        var (pending, requestId) = await CreateAsync();
+
+        (await FindAsync(requestId, pending.PresenterId)).ShouldBe(pending);
+        (await FindAsync(requestId, pending.PresenterId)).ShouldBe(pending);
+
+        (await ConsumeAsync(requestId, pending.PresenterId)).ShouldBe(pending);
+    }
+
+    [Test]
+    public async Task Find_WhenAnotherPresenter_ShouldReturnNull()
+    {
+        var (pending, requestId) = await CreateAsync();
+        var alex = await PresenterAsync(TestUser.Alex);
+
+        (await FindAsync(requestId, alex)).ShouldBeNull();
+
+        (await FindAsync(requestId, pending.PresenterId)).ShouldBe(pending);
+    }
+
+    [Test]
+    public async Task Find_WhenConsumed_ShouldReturnNull()
+    {
+        var (pending, requestId) = await CreateAsync();
+        (await ConsumeAsync(requestId, pending.PresenterId)).ShouldNotBeNull();
+
+        (await FindAsync(requestId, pending.PresenterId)).ShouldBeNull();
+    }
+
+    [Test]
+    public async Task Find_WhenUnknown_ShouldReturnNull()
+    {
+        var sam = await PresenterAsync(TestUser.Sam);
+
+        (await FindAsync("not-a-request", sam)).ShouldBeNull();
+    }
+
+    [Test]
+    public async Task Find_WhenJustBeforeTenMinutes_ShouldReturnTheRequest()
+    {
+        var (pending, requestId) = await CreateAsync();
+        Clock.Advance(TimeSpan.FromMinutes(10) - TimeSpan.FromSeconds(1));
+
+        (await FindAsync(requestId, pending.PresenterId)).ShouldBe(pending);
+    }
+
+    [Test]
+    public async Task Find_WhenTenMinutesHavePassed_ShouldReturnNull()
+    {
+        var (pending, requestId) = await CreateAsync();
+        Clock.Advance(TimeSpan.FromMinutes(10) + TimeSpan.FromSeconds(1));
+
+        (await FindAsync(requestId, pending.PresenterId)).ShouldBeNull();
+    }
+
     private async Task<(PendingAuthorization Pending, string RequestId)> CreateAsync()
     {
         var client = await RegisterClientAsync();
@@ -89,6 +147,9 @@ public class OAuthRequestsContractTests : OAuthContractFixture
         var pending = new PendingAuthorization(client.ClientId, sam, REDIRECT, "client-state-123", CHALLENGE, SCOPE, Resource);
         return (pending, await UseAsync<IOAuthRequests, string>(r => r.CreateAsync(pending)));
     }
+
+    private Task<PendingAuthorization?> FindAsync(string requestId, Guid presenterId)
+        => UseAsync<IOAuthRequests, PendingAuthorization?>(r => r.FindAsync(requestId, presenterId));
 
     private Task<PendingAuthorization?> ConsumeAsync(string requestId, Guid presenterId)
         => UseAsync<IOAuthRequests, PendingAuthorization?>(r => r.ConsumeAsync(requestId, presenterId));

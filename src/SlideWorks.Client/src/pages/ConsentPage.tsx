@@ -56,6 +56,13 @@ export function ConsentPage() {
           <p className="text-meta text-ink-muted" data-testid="consent-scope">
             It will be able to create, change and share your decks ({state.consent.scope}).
           </p>
+          <p className="text-meta text-ink-muted" data-testid="consent-returns-to">
+            Your answer goes back to{' '}
+            <span className="font-medium text-ink" data-testid="consent-returns-to-host">
+              {state.consent.returnsTo}
+            </span>
+            . Only allow it if that is the agent you are connecting.
+          </p>
           <div className="flex gap-3">
             <button
               type="button"

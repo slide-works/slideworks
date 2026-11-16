@@ -7,6 +7,9 @@ public interface IOAuthRequests
     // Returns the request id the consent screen posts back.
     Task<string> CreateAsync(PendingAuthorization pending);
 
+    // Reads a request without consuming it, for the consent screen. Null in exactly the cases ConsumeAsync returns null.
+    Task<PendingAuthorization?> FindAsync(string requestId, Guid presenterId);
+
     // Atomic and single use. Null when the id is unknown, expired, already consumed, or belongs to another presenter;
     // another presenter's attempt leaves the request unconsumed.
     Task<PendingAuthorization?> ConsumeAsync(string requestId, Guid presenterId);
