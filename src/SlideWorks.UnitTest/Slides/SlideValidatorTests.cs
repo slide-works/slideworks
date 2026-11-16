@@ -381,6 +381,33 @@ public class SlideValidatorTests
     }
 
     [Test]
+    public void Validate_WhenRulesOfWideLettersWrapPastTheSlide_ShouldSayTheyDoNotFit()
+    {
+        // 108 characters of text wrap to two lines at 0.56 em, so four such rules come to about 635 px.
+        const string TITLE = "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm";
+        const string TEXT = "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays When Many Women Wander Wide Meadows Mow";
+        var rule = $$"""{ "title": "{{TITLE[..60]}}", "text": "{{TEXT}}" }""";
+        var rules = string.Join(", ", Enumerable.Repeat(rule, 4));
+
+        var result = Validate("rules", $$"""{ "headline": "h", "rules": [{{rules}}] }""");
+
+        result.Error.ShouldStartWith("rules.rules: too much text to fit on the slide (about 635 px of 620 px)");
+    }
+
+    [Test]
+    public void Validate_WhenFourRulesOfOneLineProse_ShouldFit()
+    {
+        // A 60-character title and 100 characters of text each take one line, so every rule is the
+        // numeral's 127.5 px: 4 × 127.5 + 3 × 34 = 612 px.
+        const string TITLE = "The team ships a small slice of work to customers every week";
+        const string TEXT = "Feedback arrives in days rather than quarters, so the risk shows up early while it is cheap to change";
+        var rule = $$"""{ "title": "{{TITLE}}", "text": "{{TEXT}}" }""";
+        var rules = string.Join(", ", Enumerable.Repeat(rule, 4));
+
+        Validate("rules", $$"""{ "headline": "h", "rules": [{{rules}}] }""").IsValid.ShouldBeTrue();
+    }
+
+    [Test]
     public void Validate_WhenCloseHeadlineWrapsToFiveLines_ShouldSayItDoesNotFit()
     {
         var result = Validate("close", $$"""{ "headline": "{{new string('x', 50)}}\n{{new string('y', 25)}}" }""");

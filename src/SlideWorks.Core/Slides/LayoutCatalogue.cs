@@ -149,7 +149,7 @@ public static class LayoutCatalogue
             Req("headline", new TextSlot(HEADLINE)),
             Req("rules", new ListSlot(Obj(Req("title", new TextSlot(60)), Req("text", new TextSlot(110))), 1, 4)),
             Opt("reveal", Reveal(), REVEAL),
-        ], stepsFrom: "rules"),
+        ], stepsFrom: "rules", rules: LayoutRules.Rules),
         new("cards", "1–3 cards, each with an optional badge, a title, text and chips. Can reveal one card per step.", false,
         [
             Opt("kicker", new TextSlot(KICKER)),
