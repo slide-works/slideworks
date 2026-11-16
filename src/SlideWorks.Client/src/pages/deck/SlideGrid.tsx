@@ -1,0 +1,39 @@
+import type { DeckPageView } from '../../api/types';
+import type { SlideDeck } from '../../slides/slots';
+import { SlideThumb } from './SlideThumb';
+
+type SlideGridProps = {
+  view: DeckPageView;
+  selected: number;
+  onSelect(slideNumber: number): void;
+};
+
+// Every slide of the deck as a thumbnail, in order.
+export function SlideGrid({ view, selected, onSelect }: SlideGridProps) {
+  // The deck page's view has no author; the title slide renders without one.
+  const deck: SlideDeck = { title: view.title, author: null, parts: view.parts };
+  if (view.slides.length === 0) {
+    return (
+      <p
+        data-testid="deck-no-slides"
+        className="panel px-6 py-10 text-center text-meta text-ink-muted"
+      >
+        No slides yet. Ask a connected agent to add some.
+      </p>
+    );
+  }
+  return (
+    <ol data-testid="deck-thumbs" className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+      {view.slides.map((slide) => (
+        <SlideThumb
+          key={slide.number}
+          slide={slide}
+          deck={deck}
+          total={view.slides.length}
+          selected={slide.number === selected}
+          onSelect={() => onSelect(slide.number)}
+        />
+      ))}
+    </ol>
+  );
+}
