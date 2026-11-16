@@ -95,7 +95,7 @@ public class McpArgumentCheckTests : ApiTestFixture
     [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"Ship it \ud83d","attribution":"Sam"}}""", "slots.quote: text is not valid UTF-16")]
     [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"\ud83d":"x","quote":"B","attribution":"Sam"}}""", "slots: text is not valid UTF-16")]
     [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"B","attribution":"Sam"},"notes":"\ude80 lift-off"}""", "notes: text is not valid UTF-16")]
-    [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"B","attribution":"Sam"},"extra":"\ud83d"}""", "extra: text is not valid UTF-16")]
+    [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"B","attribution":"Sam"},"extra":"\ud83d"}""", "extra: unknown argument")]
     [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":{"quote":"B","attribution":"Sam"},"\ud83d":"x"}""", "arguments: text is not valid UTF-16")]
     [TestCase("set_notes", """{"deck":"{deck}","notes":[{"slide":1,"text":"\ud83d\ud83d"}]}""", "notes[0].text: text is not valid UTF-16")]
     [TestCase("set_notes", """{"deck":"{deck}","notes":[{"slide":1,"text":"a"},{"slide":1,"text":"b"},{"slide":1,"text":"\ud83d\ud83d"}]}""", "notes[2].text: text is not valid UTF-16")]

@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -12,11 +13,16 @@ namespace SlideWorks.WebApi.Infrastructure.Mcp;
 // lets the tools keep strict, typed schemas. An argument or entry field the schema doesn't name is refused too
 // ("viewer: unknown argument", "notes[0].x: unknown field"), wherever the schema says additionalProperties: false, which
 // McpToolSchemas puts on every object schema that lists its properties. McpSetup registers both halves:
-// - Unreadable, an incoming message filter. The SDK converts a tools/call's params to CallToolRequestParams before any
-//   call-tool filter runs, and an escaped lone surrogate ("\ud83d") can't become a .NET string, so that conversion throws
-//   and the agent gets JSON-RPC -32603. This filter finds the deepest path holding it first ("notes[2].text"), empties the
-//   arguments so the conversion succeeds, and leaves the refusal in the message's Items for Filter.
-// - Filter, a call-tool filter. It returns that refusal, or the first argument the schema refuses. A binding failure
+// - Unreadable, an incoming message filter. The SDK converts a request's params to its typed params before any request
+//   filter runs, and an escaped lone surrogate ("\ud83d") can't become a .NET string, nor can an arguments that isn't an
+//   object become a dictionary, so that conversion throws and the agent gets JSON-RPC -32603 "An error occurred.", which
+//   names nothing. For a tools/call this filter finds the deepest path holding the bad text first ("notes[2].text",
+//   "_meta.progressToken", "name"), makes that part convertible (an empty arguments, the field dropped) and leaves the
+//   refusal in the message's Items for Filter. Any other request (tools/list's cursor, ping's params) gets -32602 Invalid
+//   params naming the path instead, since there is no tool to give an error.
+// - Filter, a call-tool filter. A call to a tool that doesn't exist goes on to the SDK's unknown-tool error, whatever
+//   else is wrong with it, unless its name is the bad text. Otherwise it returns Unreadable's refusal (an argument the
+//   tool doesn't name is "unknown" even when its value is also bad), or the first argument the schema refuses. A binding failure
 //   the schema can't predict, such as a whole number too big for an int, is still a tool error. Only a binding failure:
 //   McpToolErrors.Run calls ArgumentsBound as the tool body starts, and an exception after that is a bug, rethrown for
 //   the SDK to log ("threw an unhandled exception") and report as one, never mistaken for an argument error after a
@@ -30,6 +36,8 @@ public static class McpArgumentCheck
     private const string UNREADABLE_KEY = "slideworks.mcp.unreadable-argument";
 
     private const string UNREADABLE_TEXT = "text is not valid UTF-16";
+
+    private const string NOT_AN_OBJECT = "arguments: must be an object";
 
     // Set by Filter around each call; McpToolErrors.Run flips it once the SDK has bound the arguments.
     private static readonly AsyncLocal<StrongBox<bool>?> BOUND = new();
@@ -46,21 +54,108 @@ public static class McpArgumentCheck
     public static McpMessageHandler Unreadable(McpMessageHandler next)
         => (context, cancellationToken) =>
         {
-            if (context.JsonRpcMessage is JsonRpcRequest { Method: RequestMethods.ToolsCall, Params: JsonObject call }
-                && call["arguments"] is JsonObject arguments
-                && UnreadablePath(arguments, "arguments", top: true) is { } path)
+            if (context.JsonRpcMessage is JsonRpcRequest { Params: JsonObject parameters } request)
             {
-                context.Items[UNREADABLE_KEY] = $"{path}: {UNREADABLE_TEXT}";
-                call["arguments"] = new JsonObject();
+                if (request.Method == RequestMethods.ToolsCall)
+                {
+                    if (UnreadableToolCall(parameters) is { } unreadable)
+                    {
+                        context.Items[UNREADABLE_KEY] = unreadable;
+                    }
+                }
+                else if (UnreadablePath(parameters, "params", top: true) is { } path)
+                {
+                    throw new McpProtocolException($"{path}: {UNREADABLE_TEXT}", McpErrorCode.InvalidParams);
+                }
             }
             return next(context, cancellationToken);
         };
 
+    // What a tools/call's params hold that the SDK can't convert, made convertible: the name (always refused, since no
+    // tool's name holds it), an arguments that isn't an object, a lone surrogate in the arguments or in any other params
+    // field such as _meta. The part is replaced or dropped, and the first refusal is returned for Filter. A name in params
+    // that can't be read leaves no field of params readable, so that is -32602 here.
+    // Over HTTP the transport gets there first: it reads params._meta for the protocol version before any filter runs,
+    // so a name in params or in _meta that is itself the bad text is still -32603 from the SDK.
+    private static UnreadableCall? UnreadableToolCall(JsonObject parameters)
+    {
+        List<string> fields;
+        try
+        {
+            fields = parameters.Select(field => field.Key).ToList();
+        }
+        catch (InvalidOperationException)
+        {
+            throw new McpProtocolException($"params: {UNREADABLE_TEXT}", McpErrorCode.InvalidParams);
+        }
+        var name = fields.Contains("name") ? UnreadableName(parameters) : null;
+        UnreadableCall? first = null;
+        foreach (var field in fields.Where(field => field != "name"))
+        {
+            var found = field == "arguments" ? UnreadableArguments(parameters) : UnreadableField(parameters, field);
+            first ??= found;
+        }
+        return name ?? first;
+    }
+
+    private static UnreadableCall? UnreadableName(JsonObject parameters)
+    {
+        if (Readable(parameters["name"]))
+        {
+            return null;
+        }
+        parameters["name"] = "";
+        return new UnreadableCall($"name: {UNREADABLE_TEXT}", Argument: null, AnyTool: true);
+    }
+
+    // A tool's arguments must be an object: a client that double-encodes them sends a string.
+    private static UnreadableCall? UnreadableArguments(JsonObject parameters)
+    {
+        if (parameters["arguments"] is null)
+        {
+            return null;
+        }
+        if (parameters["arguments"] is not JsonObject arguments)
+        {
+            parameters["arguments"] = new JsonObject();
+            return new UnreadableCall(NOT_AN_OBJECT, Argument: null, AnyTool: false);
+        }
+        List<KeyValuePair<string, JsonNode?>> named;
+        try
+        {
+            named = arguments.ToList();
+        }
+        catch (InvalidOperationException)
+        {
+            parameters["arguments"] = new JsonObject();
+            return new UnreadableCall($"arguments: {UNREADABLE_TEXT}", Argument: null, AnyTool: false);
+        }
+        foreach (var (argument, value) in named)
+        {
+            if (UnreadablePath(value, argument) is { } path)
+            {
+                parameters["arguments"] = new JsonObject();
+                return new UnreadableCall($"{path}: {UNREADABLE_TEXT}", argument, AnyTool: false);
+            }
+        }
+        return null;
+    }
+
+    // Any other params field, such as _meta: dropped when it can't be read.
+    private static UnreadableCall? UnreadableField(JsonObject parameters, string field)
+    {
+        if (UnreadablePath(parameters[field], field) is not { } path)
+        {
+            return null;
+        }
+        parameters.Remove(field);
+        return new UnreadableCall($"{path}: {UNREADABLE_TEXT}", Argument: null, AnyTool: false);
+    }
+
     public static McpRequestHandler<CallToolRequestParams, CallToolResult> Filter(McpRequestHandler<CallToolRequestParams, CallToolResult> next)
         => async (context, cancellationToken) =>
         {
-            var refusal = context.Items.TryGetValue(UNREADABLE_KEY, out var unreadable) ? unreadable as string : Check(context);
-            if (refusal != null)
+            if (Refusal(context) is { } refusal)
             {
                 return McpToolErrors.Refusal(refusal);
             }
@@ -121,8 +216,27 @@ public static class McpArgumentCheck
         }
     }
 
-    private static string? Check(RequestContext<CallToolRequestParams> context)
-        => context.MatchedPrimitive is McpServerTool tool ? Check(tool.ProtocolTool.InputSchema, context.Params?.Arguments) : null;
+    // Only a call to a tool that exists is refused here, apart from a name that can't be read: a call to an unknown tool
+    // goes on to the SDK's unknown-tool error, whatever else is wrong with it. An argument the tool doesn't name is
+    // refused as unknown even when its value is also unreadable.
+    private static string? Refusal(RequestContext<CallToolRequestParams> context)
+    {
+        var unreadable = context.Items.TryGetValue(UNREADABLE_KEY, out var stored) ? stored as UnreadableCall : null;
+        if (unreadable is { AnyTool: true })
+        {
+            return unreadable.Text;
+        }
+        if (context.MatchedPrimitive is not McpServerTool tool)
+        {
+            return null;
+        }
+        var schema = tool.ProtocolTool.InputSchema;
+        if (unreadable != null)
+        {
+            return unreadable.Argument is { } name && Property(schema, name) is null && Closed(schema) ? $"{name}: unknown argument" : unreadable.Text;
+        }
+        return Check(schema, context.Params?.Arguments);
+    }
 
     // The tool's own schema: every required argument present and not null (unless its type allows null), then every
     // argument in the order sent: one the schema doesn't name is refused when the schema is closed (additionalProperties:
@@ -278,4 +392,8 @@ public static class McpArgumentCheck
         => schema.TryGetProperty("additionalProperties", out var additional) && additional.ValueKind == JsonValueKind.False;
 
     private static bool AllowsNull(JsonElement? schema) => schema is { } given && Types(given).Contains("null");
+
+    // A tools/call the SDK couldn't have read, as Unreadable left it for Filter: the refusal's text, the top-level argument
+    // it is under (when it is in one), and whether it is refused whatever the tool (only an unreadable name is).
+    private sealed record UnreadableCall(string Text, string? Argument, bool AnyTool);
 }
