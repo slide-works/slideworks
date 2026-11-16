@@ -4,25 +4,48 @@ namespace SlideWorks.WebApi.Tests.Support;
 
 // Checks a real response against a screen's JSON example in src/contracts/screens/. The property sets must be equal at
 // every level, the value kinds must match, and every array element is checked against the example's first element.
-// Null is allowed only at the listed paths, written like "decks[].subtitle" or "lastChange".
+// Null is allowed only at the listed nullable paths, and an opaque path's contents are not compared. Path syntax is in
+// JsonShapeOptions.
 public static class JsonShape
 {
-    public static void AssertMatches(JsonElement actual, string contractFile, params string[] nullablePaths)
+    public static void AssertMatches(JsonElement actual, string contractFile, params string[] nullablePaths) =>
+        AssertMatches(actual, contractFile, new JsonShapeOptions { NullablePaths = nullablePaths });
+
+    public static void AssertMatches(JsonElement actual, string contractFile, JsonShapeOptions options)
     {
-        var path = Path.Combine(ContractsScreensDirectory(), contractFile);
+        var path = Path.Combine(ScreensDirectory(), contractFile);
         File.Exists(path).ShouldBeTrue($"No contract example at {path}.");
         using var example = JsonDocument.Parse(File.ReadAllText(path));
-        AssertMatches(actual, example.RootElement, contractFile, nullablePaths);
+        AssertMatches(actual, example.RootElement, contractFile, options);
     }
 
-    public static void AssertMatches(JsonElement actual, JsonElement example, string exampleName, params string[] nullablePaths)
+    public static void AssertMatches(JsonElement actual, JsonElement example, string exampleName, params string[] nullablePaths) =>
+        AssertMatches(actual, example, exampleName, new JsonShapeOptions { NullablePaths = nullablePaths });
+
+    public static void AssertMatches(JsonElement actual, JsonElement example, string exampleName, JsonShapeOptions options)
     {
         var problems = new List<string>();
-        Compare(actual, example, "", new HashSet<string>(nullablePaths, StringComparer.Ordinal), problems);
+        var rules = new Rules(
+            new HashSet<string>(options.NullablePaths, StringComparer.Ordinal),
+            new HashSet<string>(options.OpaquePaths, StringComparer.Ordinal));
+        Compare(actual, example, "", rules, problems);
         problems.ShouldBeEmpty($"The JSON does not match {exampleName}");
     }
 
-    private static void Compare(JsonElement actual, JsonElement example, string path, HashSet<string> nullablePaths, List<string> problems)
+    // src/contracts/screens, found by walking up from the test binaries to the folder that holds the solution.
+    public static string ScreensDirectory()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "SlideWorks.slnx")))
+            {
+                return Path.Combine(directory.FullName, "contracts", "screens");
+            }
+        }
+        throw new InvalidOperationException($"No SlideWorks.slnx above {AppContext.BaseDirectory}.");
+    }
+
+    private static void Compare(JsonElement actual, JsonElement example, string path, Rules rules, List<string> problems)
     {
         if (example.ValueKind == JsonValueKind.Null)
         {
@@ -31,7 +54,7 @@ public static class JsonShape
         }
         if (actual.ValueKind == JsonValueKind.Null)
         {
-            if (!nullablePaths.Contains(path))
+            if (!rules.Nullable.Contains(path))
             {
                 problems.Add($"{Describe(path)}: null, but null is not allowed here");
             }
@@ -42,17 +65,21 @@ public static class JsonShape
             problems.Add($"{Describe(path)}: expected {KindOf(example)}, got {KindOf(actual)}");
             return;
         }
+        if (rules.Opaque.Contains(path))
+        {
+            return;
+        }
         if (example.ValueKind == JsonValueKind.Object)
         {
-            CompareObjects(actual, example, path, nullablePaths, problems);
+            CompareObjects(actual, example, path, rules, problems);
         }
         else if (example.ValueKind == JsonValueKind.Array)
         {
-            CompareArrays(actual, example, path, nullablePaths, problems);
+            CompareArrays(actual, example, path, rules, problems);
         }
     }
 
-    private static void CompareObjects(JsonElement actual, JsonElement example, string path, HashSet<string> nullablePaths, List<string> problems)
+    private static void CompareObjects(JsonElement actual, JsonElement example, string path, Rules rules, List<string> problems)
     {
         var actualNames = actual.EnumerateObject().Select(p => p.Name).ToHashSet(StringComparer.Ordinal);
         var exampleNames = example.EnumerateObject().Select(p => p.Name).ToHashSet(StringComparer.Ordinal);
@@ -60,11 +87,11 @@ public static class JsonShape
         problems.AddRange(actualNames.Where(name => !exampleNames.Contains(name)).Select(name => $"{Describe(Child(path, name))}: not in the example"));
         foreach (var property in example.EnumerateObject().Where(p => actualNames.Contains(p.Name)))
         {
-            Compare(actual.GetProperty(property.Name), property.Value, Child(path, property.Name), nullablePaths, problems);
+            Compare(actual.GetProperty(property.Name), property.Value, Child(path, property.Name), rules, problems);
         }
     }
 
-    private static void CompareArrays(JsonElement actual, JsonElement example, string path, HashSet<string> nullablePaths, List<string> problems)
+    private static void CompareArrays(JsonElement actual, JsonElement example, string path, Rules rules, List<string> problems)
     {
         if (actual.GetArrayLength() == 0)
         {
@@ -78,7 +105,7 @@ public static class JsonShape
         var first = example[0];
         foreach (var element in actual.EnumerateArray())
         {
-            Compare(element, first, path + "[]", nullablePaths, problems);
+            Compare(element, first, path + "[]", rules, problems);
         }
     }
 
@@ -92,16 +119,5 @@ public static class JsonShape
 
     private static string Describe(string path) => path.Length == 0 ? "(root)" : path;
 
-    // src/contracts/screens, found by walking up from the test binaries to the folder that holds the solution.
-    private static string ContractsScreensDirectory()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "SlideWorks.slnx")))
-            {
-                return Path.Combine(directory.FullName, "contracts", "screens");
-            }
-        }
-        throw new InvalidOperationException($"No SlideWorks.slnx above {AppContext.BaseDirectory}.");
-    }
+    private sealed record Rules(HashSet<string> Nullable, HashSet<string> Opaque);
 }
