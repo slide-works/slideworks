@@ -36,6 +36,9 @@ public sealed class DeckPage(IPage page)
 
     public ILocator Error => page.GetByTestId("deck-error");
 
+    // The Look panel, shown only to the deck's owner.
+    public LookPanel Look => new(page);
+
     // The thumbnail of slide {number}, counted from 1.
     public ILocator Thumbnail(int number) => Thumbnails.Nth(number - 1);
 

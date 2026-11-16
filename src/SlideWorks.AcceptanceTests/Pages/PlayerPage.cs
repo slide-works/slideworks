@@ -22,4 +22,15 @@ public sealed class PlayerPage(IPage page)
 
     public async Task GotoAsync(string deckId, string? slug = null, string hash = "") =>
         await page.GotoAsync(PathFor(deckId, slug) + hash);
+
+    // The --sw-accent custom property on slide {number}'s root, where the deck's look is set (L10).
+    public async Task<string> AccentAsync(int number) =>
+        await Slide(number).EvaluateAsync<string>("e => getComputedStyle(e).getPropertyValue('--sw-accent').trim()");
+
+    // Waits until slide {number}'s --sw-accent is {accent} (compared without case), without reloading the page.
+    public async Task WaitForAccentAsync(int number, string accent) =>
+        await page.WaitForFunctionAsync(
+            "([id, accent]) => { const e = document.querySelector(`[data-testid=\"${id}\"]`); "
+            + "return e !== null && getComputedStyle(e).getPropertyValue('--sw-accent').trim().toLowerCase() === accent; }",
+            new object[] { $"slide-{number}", accent.ToLowerInvariant() });
 }
