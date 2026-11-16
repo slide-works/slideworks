@@ -67,6 +67,11 @@ function fitsParentWidth(element: HTMLElement, parent: HTMLElement): boolean {
 // font, so a fit that leaves fonts loading fits again once they're ready. This
 // matters for a box that was hidden: nothing drew its face, so fonts.ready had
 // long resolved by the time it was shown.
+//
+// The check after each fit relies on the CSS Font Loading spec: a face that
+// starts loading switches its FontFaceSet's status to 'loading' at once, so a
+// measure that starts a load is seen here. Don't drop the check for a single
+// wait at mount: a box shown later would keep its fallback-font fit.
 export function useFitText(ref: RefObject<HTMLElement | null>, budget: FitBudget, text: string) {
   const { start, floor, lines, lineHeight = 1, maxHeight, width = false } = budget;
 
