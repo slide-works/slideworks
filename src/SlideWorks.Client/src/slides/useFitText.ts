@@ -40,7 +40,10 @@ function layoutWidth(element: Element): number {
 }
 
 // Whether the element is no wider than its parent, in layout px; through their
-// boxes (both under the same transform) when either has no used width.
+// boxes (both under the same transform) when either has no used width. That
+// fallback misleads under scale(0): an inline element (no used width) compares
+// 0 <= 0 and accepts the start size, which is why `width` needs a block or
+// inline-block element.
 function fitsParentWidth(element: HTMLElement, parent: HTMLElement): boolean {
   const own = layoutWidth(element);
   const room = layoutWidth(parent);
