@@ -13,6 +13,6 @@ public sealed class SetNotesTool
     public Task<CallToolResult> SetNotes(
         SlideEdits edits,
         [Description("The deck's id.")] string deck,
-        [Description("The notes to set: each with a slide's 1-based number and its text, at most 4000 characters. Required.")] IReadOnlyList<SlideNote?>? notes = null)
+        [Description("The notes to set: each with a slide's 1-based number and its text, at most 4000 characters.")] IReadOnlyList<SlideNote?> notes)
         => McpToolErrors.Run(() => edits.SetNotesAsync(deck, notes));
 }

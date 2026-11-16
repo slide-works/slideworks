@@ -78,9 +78,8 @@ public class AddSlideTests : ApiTestFixture
     }
 
     // An escaped lone surrogate (half an emoji) can't be read as a .NET string. Sent on the raw wire, because the C#
-    // client won't write one. The MCP SDK fails to read the call's arguments before any tool runs, so the agent gets a
-    // JSON-RPC error rather than a tool error, and the HTTP response is still 200. SlideValidator's own check
-    // ("slots: text is not valid UTF-16", SlideValidatorTests) covers any path that does reach it.
+    // client won't write one. The MCP SDK would fail to read the call's params before any tool runs (JSON-RPC -32603);
+    // McpArgumentCheck finds the argument first and the agent gets SlideValidator's text as a tool error.
     [Test]
     public async Task AddSlide_WhenSlotTextHasLoneSurrogate_ShouldBeRefusedWithoutStoringASlide()
     {
@@ -93,15 +92,9 @@ public class AddSlideTests : ApiTestFixture
             "add_slide",
             $$$"""{"deck":"{{{deck}}}","layout":"quote","slots":{"quote":"Ship it \ud83d","attribution":"Sam"}}""");
 
-        if (message.TryGetProperty("result", out var result))
-        {
-            result.GetProperty("isError").GetBoolean().ShouldBeTrue(message.GetRawText());
-            McpWire.TextOf(result).ShouldBe("slots: text is not valid UTF-16");
-        }
-        else
-        {
-            message.GetProperty("error").GetProperty("code").GetInt32().ShouldBe(-32603, message.GetRawText());
-        }
+        message.TryGetProperty("result", out var result).ShouldBeTrue(message.GetRawText());
+        result.GetProperty("isError").GetBoolean().ShouldBeTrue(message.GetRawText());
+        McpWire.TextOf(result).ShouldBe("slots: text is not valid UTF-16");
         (await GetDeckAsync(agent, deck)).GetProperty("slides").GetArrayLength().ShouldBe(0);
     }
 

@@ -8,6 +8,7 @@ public static class McpSetup
 {
     // Streamable HTTP, stateless (each request carries its own bearer and is checked on its own), with every tool in this
     // assembly discovered from its [McpServerToolType] class. The Agent policy accepts only the AgentBearer scheme.
+    // McpArgumentCheck turns a call whose arguments don't fit the tool's schema into a tool error that names the argument.
     public static IServiceCollection AddSlideWorksMcp(this IServiceCollection services)
     {
         services.AddAuthentication()
@@ -18,7 +19,9 @@ public static class McpSetup
         // [McpServerToolType] class exists. ??= keeps the collection the discovered tools were put in.
         services.AddMcpServer(options => options.ToolCollection ??= [])
             .WithHttpTransport(options => options.Stateless = true)
-            .WithToolsFromAssembly(ApiMarker.Assembly);
+            .WithToolsFromAssembly(ApiMarker.Assembly)
+            .WithMessageFilters(filters => filters.AddIncomingFilter(McpArgumentCheck.Unreadable))
+            .WithRequestFilters(filters => filters.AddCallToolFilter(McpArgumentCheck.Filter));
         return services;
     }
 

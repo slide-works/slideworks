@@ -20,15 +20,23 @@ public static class McpWire
     }
 
     // The whole JSON-RPC response message, for a call the server may answer with a JSON-RPC error instead of a result.
-    public static async Task<JsonElement> SendToolCallAsync(WebApplicationFactory<ApiMarker> factory, string accessToken, string tool, string argumentsJson)
+    public static Task<JsonElement> SendToolCallAsync(WebApplicationFactory<ApiMarker> factory, string accessToken, string tool, string argumentsJson)
+        => SendAsync(factory, accessToken, $$$"""{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"{{{tool}}}","arguments":{{{argumentsJson}}}}}""");
+
+    // Each tool's inputSchema from tools/list, by tool name, exactly as an agent's client reads it.
+    public static async Task<IReadOnlyDictionary<string, JsonElement>> InputSchemasAsync(WebApplicationFactory<ApiMarker> factory, string accessToken)
+    {
+        var message = await SendAsync(factory, accessToken, """{"jsonrpc":"2.0","id":7,"method":"tools/list","params":{}}""");
+        return message.GetProperty("result").GetProperty("tools").EnumerateArray()
+            .ToDictionary(tool => tool.GetProperty("name").GetString()!, tool => tool.GetProperty("inputSchema"));
+    }
+
+    private static async Task<JsonElement> SendAsync(WebApplicationFactory<ApiMarker> factory, string accessToken, string json)
     {
         using var http = factory.CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Post, "/mcp")
         {
-            Content = new StringContent(
-                $$$"""{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"{{{tool}}}","arguments":{{{argumentsJson}}}}}""",
-                Encoding.UTF8,
-                "application/json"),
+            Content = new StringContent(json, Encoding.UTF8, "application/json"),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         request.Headers.Accept.ParseAdd("application/json");

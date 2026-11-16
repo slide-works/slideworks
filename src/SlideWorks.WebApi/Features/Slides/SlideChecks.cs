@@ -11,8 +11,8 @@ public static class SlideChecks
 {
     public const int NOTES_MAX_LENGTH = 4000;
 
-    // The slots argument, which the tools take as optional so that leaving it out gets this message rather than the MCP
-    // SDK's generic binding error.
+    // The slots argument. On the MCP wire McpArgumentCheck already refuses a missing or null slots with this same text;
+    // this keeps the rule in the service for any other caller.
     public static JsonElement RequireSlots(JsonElement? slots)
         => slots is { ValueKind: not (JsonValueKind.Undefined or JsonValueKind.Null) } given
             ? given

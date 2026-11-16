@@ -29,11 +29,15 @@ public static class McpToolErrors
         }
         catch (Exception error) when (error is BadRequestException or NotFoundException or ConflictException)
         {
-            return new CallToolResult
-            {
-                IsError = true,
-                Content = [new TextContentBlock { Text = error.Message }],
-            };
+            return Refusal(error.Message);
         }
     }
+
+    // A tool result with isError: true and the message as its only text, the shape every refusal takes.
+    public static CallToolResult Refusal(string message)
+        => new()
+        {
+            IsError = true,
+            Content = [new TextContentBlock { Text = message }],
+        };
 }
