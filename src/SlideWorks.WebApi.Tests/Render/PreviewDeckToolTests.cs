@@ -13,13 +13,7 @@ namespace SlideWorks.WebApi.Tests.Render;
 public class PreviewDeckToolTests : ApiTestFixture
 {
     private const string PLAYWRIGHT_VERSION = "1.62.0";
-
-    // The render tokens with a test key. Registering them here holds whether or not the app registers them too.
-    protected override Action<IServiceCollection>? ConfigureTestServices => services =>
-    {
-        services.AddSingleton(new RenderTokenOptions { Key = new string('k', RenderTokenOptions.MINIMUM_KEY_LENGTH) });
-        services.AddSingleton<IRenderTokens, RenderTokens>();
-    };
+    private const string WAIT_FOR = "[data-ready=true], [data-error]";
 
     [Test]
     public async Task PreviewDeck_WhenNoSlidesGiven_ShouldReturnEverySlide()
@@ -36,7 +30,7 @@ public class PreviewDeckToolTests : ApiTestFixture
             ["slides", "viewport", "wait_for", "expires_in_seconds", "player_url", "share_card_url", "instructions"]);
         Numbers(structured).ShouldBe([1, 2, 3]);
         structured.GetProperty("viewport").GetRawText().ShouldBe("""{"width":1920,"height":1080}""");
-        structured.GetProperty("wait_for").GetString().ShouldBe("[data-ready=true]");
+        structured.GetProperty("wait_for").GetString().ShouldBe(WAIT_FOR);
         structured.GetProperty("expires_in_seconds").GetInt32().ShouldBe(600);
         structured.GetProperty("player_url").GetString().ShouldBe($"{TestAppFactory.PUBLIC_URL}/d/{deck}/ship-smaller");
         structured.GetProperty("share_card_url").GetString().ShouldBe($"{TestAppFactory.PUBLIC_URL}/api/cards/{deck}.png");
@@ -122,20 +116,49 @@ public class PreviewDeckToolTests : ApiTestFixture
 
         var instructions = json.GetProperty("instructions").GetString()!;
         instructions.ShouldContain($"npx -y playwright@{PLAYWRIGHT_VERSION} --version");
-        instructions.ShouldContain($"npx -y playwright@{PLAYWRIGHT_VERSION} install chromium");
+        instructions.ShouldContain($"npx -y playwright@{PLAYWRIGHT_VERSION} install --only-shell chromium");
         instructions.ShouldContain($"npx -y playwright@{PLAYWRIGHT_VERSION} install-deps chromium");
-        instructions.ShouldContain($"pip install playwright=={PLAYWRIGHT_VERSION}");
+        instructions.ShouldContain("python3 -m venv .pw && .pw/bin/pip install 'playwright==1.62.*'");
         foreach (var slide in json.GetProperty("slides").EnumerateArray())
         {
             var n = slide.GetProperty("number").GetInt32();
             instructions.ShouldContain(
-                $"npx -y playwright@{PLAYWRIGHT_VERSION} screenshot --viewport-size=1920,1080 --wait-for-selector=\"[data-ready=true]\" \"{slide.GetProperty("render_url").GetString()}\" slide-{n}.png");
+                $"npx -y playwright@{PLAYWRIGHT_VERSION} screenshot --viewport-size=1920,1080 --wait-for-selector=\"{WAIT_FOR}\" --timeout=60000 \"{slide.GetProperty("render_url").GetString()}\" slide-{n}.png");
         }
         instructions.ShouldNotContain("slide-3.png");
         instructions.ShouldContain(json.GetProperty("player_url").GetString()!);
         instructions.ShouldContain("10 minutes");
-        instructions.ShouldContain("data-error");
+        instructions.ShouldContain("Deck not found");
+        instructions.ShouldContain("call `preview_deck` again");
+        instructions.ShouldContain("timeout after 60 seconds");
         instructions.ShouldNotContain("{{");
+    }
+
+    [Test]
+    public async Task PreviewDeck_WhenDeckDoesNotExist_ShouldSayDeckNotFound()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        var (isError, json) = await agent.CallToolAsync("preview_deck", new { deck = "dk_no_such_deck" });
+
+        isError.ShouldBeTrue();
+        json.GetString().ShouldBe("Deck not found");
+    }
+
+    // D2: repeats are dropped and the first-seen order is kept; an empty list means every slide.
+    [Test]
+    public async Task PreviewDeck_WhenSlidesRepeatOrAreEmpty_ShouldKeepFirstSeenOrderOrReturnEverySlide()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await ThreeSlideDeckAsync(agent);
+
+        var (repeatedIsError, repeated) = await agent.CallToolAsync("preview_deck", new { deck, slides = new[] { 2, 2, 1, 2 } });
+        var (emptyIsError, empty) = await agent.CallToolAsync("preview_deck", new { deck, slides = Array.Empty<int>() });
+
+        repeatedIsError.ShouldBeFalse(repeated.GetRawText());
+        Numbers(repeated).ShouldBe([2, 1]);
+        emptyIsError.ShouldBeFalse(empty.GetRawText());
+        Numbers(empty).ShouldBe([1, 2, 3]);
     }
 
     private static async Task<string> ThreeSlideDeckAsync(McpTestClient agent)
