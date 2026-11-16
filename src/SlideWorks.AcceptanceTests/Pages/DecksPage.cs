@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using static Microsoft.Playwright.Assertions;
 
 namespace SlideWorks.AcceptanceTests.Pages;
 
@@ -41,11 +42,23 @@ public sealed class DecksPage(IPage page)
 
     public async Task GotoAsync() => await page.GotoAsync(PATH);
 
-    // "+ New deck": types the title and creates the deck. The page then moves to the new deck's page.
+    public ILocator NewDeck => page.GetByTestId("new-deck");
+
+    // "+ New deck": opens the New deck dialog.
+    public async Task<NewDeckDialog> OpenNewDeckAsync()
+    {
+        await NewDeck.ClickAsync();
+        var dialog = new NewDeckDialog(page);
+        await Expect(dialog.Root).ToBeVisibleAsync();
+        return dialog;
+    }
+
+    // "+ New deck" with the default template and palette: types the title and creates the deck. The page then moves to
+    // the new deck's page.
     public async Task CreateDeckAsync(string title)
     {
-        await page.GetByTestId("new-deck").ClickAsync();
-        await page.GetByTestId("new-deck-title").FillAsync(title);
-        await page.GetByTestId("new-deck-create").ClickAsync();
+        var dialog = await OpenNewDeckAsync();
+        await dialog.FillTitleAsync(title);
+        await dialog.CreateAsync();
     }
 }

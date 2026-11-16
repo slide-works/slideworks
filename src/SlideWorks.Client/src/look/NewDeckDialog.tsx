@@ -178,6 +178,7 @@ function OpenDialog({ onClose, onCreated }: Omit<NewDeckDialogProps, 'open'>) {
                     >
                       <input
                         type="radio"
+                        data-testid={`new-deck-template-${template.name}`}
                         name="template"
                         value={template.name}
                         checked={template.name === choice.template.name}
