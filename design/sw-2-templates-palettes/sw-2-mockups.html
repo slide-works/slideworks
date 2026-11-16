@@ -1,0 +1,1847 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-2 mockups: templates and palettes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   Review-page chrome: same light ledger as the SW-1 mockups
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", system-ui, sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 20px 80px; }
+h1, h2, h3, h4 { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 26px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { margin: 0; color: var(--muted); max-width: 880px; font-size: 15px; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 18px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 920px; }
+h3.sub-h { font: 600 14px/1.3 var(--ui); margin: 26px 0 10px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 980px) { .grid3, .grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .grid2, .grid3, .grid4 { grid-template-columns: minmax(0, 1fr); } }
+.grid2 > *, .grid3 > *, .grid4 > * { min-width: 0; }
+.note { color: var(--muted); font-size: 12.5px; }
+
+/* scope */
+.scope { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .scope { grid-template-columns: minmax(0, 1fr); } }
+.scope .card { padding: 16px 18px; }
+.scope h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.scope ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.scope li { position: relative; padding-left: 22px; }
+.scope li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.scope .later-list li::before { background: var(--later); opacity: .55; }
+.scope .later-list li .k { font: 500 12px/1.5 var(--mono); color: var(--later); }
+.diagram { padding: 18px; margin-top: 16px; overflow-x: auto; }
+.diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+
+/* frames */
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #fff; border-radius: 6px; border: 1px solid var(--line); }
+.frame.share { aspect-ratio: 1200 / 630; }
+.frame > * { position: absolute; left: 0; top: 0; transform: scale(var(--s, .1)); transform-origin: 0 0; }
+.cap { display: block; padding: 8px 2px 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+.cap code.layout { font-weight: 500; color: var(--accent-dark); background: var(--accent-soft); padding: 1px 7px; border-radius: 5px; margin-right: 4px; }
+.cap b { color: var(--text); font-weight: 600; margin-right: 4px; }
+.g-item { padding: 10px; }
+
+/* palette picker */
+.picker { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.picker label { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: center; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; min-width: 220px; flex: 1; }
+.picker label:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: #f8f9ff; }
+.picker input { accent-color: var(--accent); margin: 0; }
+.picker .nm { font-weight: 600; }
+.picker .sw5 { grid-column: 2; display: flex; gap: 4px; }
+.picker .sw5 i { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgb(0 0 0 / .08); }
+.picker .fn { grid-column: 2; font-size: 12px; color: var(--muted); }
+
+/* token sheet */
+.tokens { padding: 6px 16px; }
+.tok-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: start; }
+.tok-row:last-child { border-bottom: 0; }
+.tok-row > b { font: 600 12px/1.4 var(--ui); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding-top: 4px; }
+.tok-row > b small { display: block; text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--faint); margin-top: 2px; }
+.chips-t { display: flex; flex-wrap: wrap; gap: 6px; }
+.tchip { display: inline-flex; align-items: center; gap: 7px; padding: 3px 9px 3px 3px; border: 1px solid var(--line); border-radius: 7px; background: #fff; font: 400 12px/1.2 var(--mono); }
+.tchip i { width: 22px; height: 22px; border-radius: 5px; border: 1px solid rgb(0 0 0 / .1); display: grid; place-items: center; font: 700 11px/1 var(--ui); font-style: normal; }
+.tchip span { color: var(--muted); }
+.tchip.font { padding: 5px 10px; font-family: var(--ui); }
+.tchip.font em { font-style: normal; font-size: 17px; color: var(--text); }
+@media (max-width: 700px) { .tok-row { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+
+/* chrome annotation */
+.anno { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .anno { grid-template-columns: minmax(0, 1fr); } }
+.anno-stage { position: relative; }
+.mk { position: absolute; transform: translate(-50%, -50%); width: 24px; height: 24px; border-radius: 50%; background: #e11d48; color: #fff; font: 700 12px/24px var(--ui); text-align: center; box-shadow: 0 0 0 3px #fff, 0 2px 6px rgb(0 0 0 / .3); z-index: 3; transition: opacity .2s; }
+.mk.off { opacity: .25; }
+.legend { padding: 14px 16px; display: grid; gap: 2px; }
+.legend .row { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.legend .row:last-child { border-bottom: 0; }
+.legend .row .d { width: 22px; height: 22px; border-radius: 50%; background: #e11d48; color: #fff; font: 700 11px/22px var(--ui); text-align: center; }
+.legend .row p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+.legend .row label { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); white-space: nowrap; cursor: pointer; }
+.legend input { accent-color: var(--accent); }
+.legend .fixed { font-size: 11.5px; color: var(--faint); white-space: nowrap; }
+
+/* notes box */
+.notes-box { margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: #0f1420; color: #d6deeb; font-size: 12.5px; line-height: 1.5; }
+.notes-box b { color: #fcd34d; font-weight: 600; }
+.notes-box .lbl { font: 600 10.5px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: #7f8ba3; display: block; margin-bottom: 6px; }
+
+/* ledger tables */
+table.ledger { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-size: 13px; }
+.ledger th { text-align: left; font: 600 11px/1.2 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ledger td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.ledger tr:last-child td { border-bottom: 0; }
+.ledger td.t { font-weight: 600; }
+.ledger td.t small { display: block; font: 400 12px/1.35 var(--ui); color: var(--faint); }
+.ledger td code { color: var(--accent-dark); }
+.table-wrap { overflow-x: auto; }
+.dots4 { display: flex; gap: 4px; }
+.dots4 i { width: 18px; height: 18px; border-radius: 5px; border: 1px solid rgb(0 0 0 / .08); }
+.ratio { display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--mono); white-space: nowrap; }
+.ratio .sample { display: inline-grid; place-items: center; width: 30px; height: 22px; border-radius: 5px; font: 700 12px/1 var(--ui); border: 1px solid rgb(0 0 0 / .08); }
+.ratio.pass { color: var(--ok); } .ratio.fail { color: var(--bad); }
+
+/* templates */
+.tpl { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.tpl-h { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.tpl-h h3 { font: 650 17px/1.2 var(--ui); font-weight: 650; }
+.tpl-h code { color: var(--accent-dark); }
+.tpl p { margin: 0; color: var(--muted); }
+.tpl .thumbs4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.tpl .thumbs4 .frame { border-radius: 4px; }
+.tpl dl { margin: 0; display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 6px 10px; font-size: 12.5px; }
+.tpl dt { color: var(--faint); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; font-size: 10.5px; padding-top: 3px; }
+.tpl dd { margin: 0; }
+.lchips { display: flex; flex-wrap: wrap; gap: 4px; }
+.lchips code { font-size: 11.5px; padding: 1px 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent-dark); }
+.lchips code.out { background: var(--surface-2); color: var(--faint); text-decoration: line-through; }
+.tpl ol { margin: 0; padding-left: 18px; font-size: 12.5px; display: grid; gap: 2px; }
+
+/* browser + app chrome (from SW-1) */
+.browser { border-radius: 12px; overflow: hidden; border: 1px solid var(--line-2); background: var(--surface); box-shadow: var(--raise); }
+.browser-bar { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #e9ecf1; border-bottom: 1px solid var(--line-2); }
+.browser-bar .dots { display: flex; gap: 6px; }
+.browser-bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: #c9ced7; display: block; }
+.browser-bar .url { flex: 1; min-width: 0; background: #fff; border-radius: 6px; padding: 4px 10px; font: 400 12px/1.4 var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browser-bar .url b { color: var(--text); font-weight: 500; }
+.app { background: #f6f7f9; font-size: 13px; position: relative; }
+.app-top { display: flex; align-items: center; gap: 14px; padding: 10px 18px; background: #fff; border-bottom: 1px solid var(--line); }
+.logo { display: flex; align-items: center; gap: 8px; font: 700 14px/1 var(--ui); letter-spacing: -.01em; }
+.logo svg { width: 22px; height: 22px; }
+.app-top nav { display: flex; gap: 2px; }
+.app-top nav a { text-decoration: none; color: var(--muted); padding: 5px 10px; border-radius: 6px; font-weight: 500; }
+.app-top nav a.on { background: var(--surface-2); color: var(--text); }
+.app-top .sp { flex: 1; }
+.avatar { width: 26px; height: 26px; border-radius: 50%; background: #dfe6f7; color: var(--accent-dark); display: grid; place-items: center; font: 600 11px/1 var(--ui); flex: none; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); font: 500 13px/1.2 var(--ui); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.sm { padding: 3px 9px; font-size: 12px; }
+.app-body { padding: 18px; }
+.app-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.app-h h3 { font: 650 18px/1.2 var(--ui); font-weight: 650; }
+.app-h .sp { flex: 1; }
+
+/* new deck dialog */
+.scrim { padding: 28px 18px; background: rgb(15 20 32 / .42); }
+.dlg { max-width: 1040px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 20px 60px rgb(0 0 0 / .3); }
+.dlg-h { padding: 16px 20px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.dlg-h h3 { font: 650 17px/1.2 var(--ui); font-weight: 650; }
+.dlg-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; padding: 18px 20px; }
+@media (max-width: 900px) { .dlg-body { grid-template-columns: minmax(0, 1fr); } }
+.fld { display: grid; gap: 6px; margin-bottom: 14px; }
+.fld > .lbl { font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.fld input[type=text] { padding: 7px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 14px/1.3 var(--ui); }
+.opt { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.opt:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.opt input { margin: 3px 0 0; accent-color: var(--accent); }
+.opt b { font-weight: 600; }
+.opt span { display: block; color: var(--muted); font-size: 12.5px; }
+.opts { display: grid; gap: 6px; }
+.swatch-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.sw-opt { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-size: 12.5px; font-weight: 600; }
+.sw-opt:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.sw-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.sw-opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sw-opt .bar { display: flex; height: 22px; border-radius: 5px; overflow: hidden; }
+.sw-opt .bar i { flex: 1; }
+.dlg-prev { display: grid; gap: 10px; align-content: start; }
+.dlg-body > * { min-width: 0; }
+.dlg select, .look select { width: 100%; max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+.dlg-prev .note { margin: 0; }
+.dlg-f { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+.dlg-f .note { margin-right: auto; }
+
+/* deck page + look panel */
+.deck-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+@media (max-width: 980px) { .deck-layout { grid-template-columns: minmax(0, 1fr); } }
+.thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 640px) { .thumbs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.thumb .frame { border-radius: 4px; }
+.thumb .tc { display: flex; gap: 6px; align-items: center; font-size: 11.5px; color: var(--muted); padding-top: 4px; }
+.thumb .tc code { font-size: 11px; }
+.thumb .tc .ddm { font: 600 10px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; padding: 3px 5px; border-radius: 4px; background: #ffedd5; color: #9a3412; }
+.look { padding: 0; }
+.look-h { padding: 12px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
+.look-h h4 { font: 650 14px/1.2 var(--ui); font-weight: 650; }
+.look-row { padding: 11px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 7px; }
+.look-row:last-child { border-bottom: 0; }
+.look-row .lbl { font: 600 10.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.look-row .lbl .pill { text-transform: none; letter-spacing: 0; }
+.look-row .line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.look .swatch-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.look input[type=color] { width: 40px; height: 28px; padding: 0; border: 1px solid var(--line-2); border-radius: 6px; background: #fff; }
+.ck { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.ck input { accent-color: var(--accent); }
+.logo-chip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 9px; border: 1px solid var(--line); border-radius: 6px; font: 400 12px/1 var(--mono); }
+.contrast-msg { font-size: 12px; }
+.contrast-msg.pass { color: var(--ok); } .contrast-msg.fail { color: var(--bad); }
+.activity { margin-top: 14px; }
+.activity .ledger td { white-space: nowrap; }
+
+/* chat unfurl */
+.chat { padding: 16px 18px; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 12px; max-width: 640px; }
+.chat .av { width: 36px; height: 36px; border-radius: 8px; background: #fde68a; color: #92400e; display: grid; place-items: center; font: 700 13px/1 var(--ui); }
+.chat .who { font-weight: 700; } .chat .who span { font-weight: 400; color: var(--faint); font-size: 12px; margin-left: 6px; }
+.chat p { margin: 2px 0 8px; }
+.unfurl { border-left: 4px solid var(--line-2); padding: 2px 0 2px 12px; display: grid; gap: 4px; max-width: 460px; }
+.unfurl .site { font-weight: 700; font-size: 12.5px; }
+.unfurl .ut { color: var(--accent); font-weight: 600; }
+.unfurl .ud { color: var(--muted); font-size: 12.5px; }
+.unfurl .frame { margin-top: 6px; border-radius: 8px; }
+
+/* agent session */
+.session { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 980px) { .session { grid-template-columns: minmax(0, 1fr); } }
+.term { background: #0f1420; color: #d6deeb; border-radius: 10px; padding: 14px 16px; font: 400 12.5px/1.6 var(--mono); overflow-x: auto; }
+.term .c { color: #7f8ba3; } .term .call { color: #a5b8ff; } .term .ok { color: #7ee2a8; } .term .s { color: #f5c97a; } .term .w { color: #fdba74; } .term .k { color: #9ad1ff; }
+.term pre { margin: 0; white-space: pre; }
+.tools { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tools td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tools td:first-child { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; color: var(--accent-dark); }
+.tools tr:last-child td { border-bottom: 0; }
+.tools .tag { font: 600 10px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; padding: 3px 5px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.tools .tag.new { background: var(--ok-soft); color: var(--ok); }
+.tools .tag.chg { background: var(--warn-soft); color: var(--warn); }
+.house { padding: 16px 18px; margin-top: 16px; }
+.house h3 { font: 600 14px/1.3 var(--ui); margin-bottom: 4px; }
+.house ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+.house ol li span { color: var(--muted); }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px 18px; }
+.q h3 { font: 600 15px/1.35 var(--ui); margin-bottom: 4px; }
+.q .why { color: var(--muted); margin: 0 0 10px; }
+.q .choices { display: grid; gap: 6px; }
+.q label.choice { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.q label.choice:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.q label.choice input { margin: 3px 0 0; accent-color: var(--accent); }
+.q label.choice b { font-weight: 600; }
+.q label.choice span:not(.rec) { display: block; color: var(--muted); font-size: 12.5px; }
+.q .rec { display: inline-block; font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.q textarea { width: 100%; margin-top: 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.4 var(--ui); resize: vertical; }
+.q .qfoot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.q .state { font-size: 12.5px; color: var(--faint); }
+.q .state.queued { color: var(--ok); font-weight: 600; }
+
+/* palettes (SW-15 folded in) */
+.pal-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; background: #fff; }
+.seg label { padding: 5px 12px; cursor: pointer; font-weight: 500; font-size: 13px; color: var(--muted); border-right: 1px solid var(--line); }
+.seg label:last-child { border-right: 0; }
+.seg label:has(input:checked) { background: var(--accent-soft); color: var(--accent-dark); }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
+.pal-tools input[type=search] { padding: 6px 10px; border: 1px solid var(--line-2); border-radius: 8px; font: 400 13px/1.2 var(--ui); min-width: 220px; }
+.pal-layout { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 980px) { .pal-layout { grid-template-columns: minmax(0, 1fr); } }
+.pal-list { max-height: 640px; overflow: auto; padding: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; align-content: start; }
+.pal-item { display: grid; gap: 5px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; background: #fff; }
+.pal-item:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.pal-item:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pal-item input { position: absolute; opacity: 0; pointer-events: none; }
+.pal-item .bar { display: flex; height: 30px; border-radius: 5px; overflow: hidden; }
+.pal-item .bar i { flex: 1; }
+.pal-item .no { display: flex; justify-content: space-between; font: 500 11.5px/1 var(--mono); color: var(--muted); }
+.pal-item .no .clash { color: var(--warn); }
+.pal-prev { display: grid; gap: 12px; }
+.pal-prev .frames { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 700px) { .pal-prev .frames { grid-template-columns: minmax(0, 1fr); } }
+.pal-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pal-head h3 { font: 650 16px/1.2 var(--ui); font-weight: 650; }
+.pal-head .names { color: var(--muted); font-size: 12.5px; }
+.map td .sw-dot { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1px solid rgb(0 0 0 / .1); }
+.map td.adj { color: var(--warn); }
+.map td.asis { color: var(--ok); }
+.warnbox { padding: 9px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-size: 12.5px; }
+.sources { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+@media (max-width: 900px) { .sources { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.sources .card { padding: 12px 14px; }
+.sources b { display: block; font-weight: 600; margin-bottom: 2px; }
+.sources span { color: var(--muted); font-size: 12.5px; }
+
+/* uploaded templates */
+.pack-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 980px) { .pack-grid { grid-template-columns: minmax(0, 1fr); } }
+.pack-card { padding: 16px 18px; }
+.pack-card h3 { font: 600 14px/1.3 var(--ui); margin-bottom: 8px; }
+.pack-card ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
+.pack-card .no-list li::marker { content: "✗  "; color: var(--bad); }
+.pack-card .yes-list li::marker { content: "✓  "; color: var(--ok); }
+.vs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-top: 10px; }
+.vs .col-h { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: flex; gap: 8px; align-items: center; }
+.vs > img { display: block; width: 100%; border-radius: 6px; border: 1px solid var(--line); aspect-ratio: 16 / 9; object-fit: cover; }
+.vs-row { display: contents; }
+@media (max-width: 700px) { .vs { grid-template-columns: minmax(0, 1fr); } }
+.st-ok { color: var(--ok); font-weight: 600; } .st-warn { color: var(--warn); font-weight: 600; } .st-no { color: var(--bad); font-weight: 600; }
+
+/* =====================================================================
+   SlideWorks slide CSS, now fully token-driven.
+   Every colour, font and radius reads a --t-* token: colours from the palette, type and shape from the template.
+   Canvas 1920x1080.
+   ===================================================================== */
+.sw {
+  width: 1920px; height: 1080px; box-sizing: border-box; padding: 150px 120px 120px;
+  display: flex; flex-direction: column; background: var(--t-paper); color: var(--t-ink);
+  font-family: var(--t-body); overflow: hidden;
+}
+.sw * { box-sizing: border-box; }
+.sw::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: var(--t-acc); z-index: 3; }
+.sw.dd::before { background: var(--t-dd-bar, var(--t-dd)); height: 12px; }
+.sw.dark { color: var(--t-night-ink); background: radial-gradient(1100px 700px at 88% 112%, rgba(var(--t-glow), .45), transparent 62%), radial-gradient(900px 600px at -5% -10%, rgba(var(--t-glow), .12), transparent 60%), var(--t-night); }
+.sw.dark::before { display: none; }
+.sw .snav { position: absolute; top: 40px; left: 120px; right: 120px; display: flex; gap: 8px; }
+.sw .snav span { flex: 1; padding-top: 12px; border-top: 4px solid var(--t-grid); font: 700 14px/1 var(--t-body); letter-spacing: .14em; text-transform: uppercase; color: var(--t-muted); opacity: .8; }
+.sw .snav span.past { border-top-color: var(--t-acc-past); }
+.sw .snav span.on { border-top-color: var(--t-acc); color: var(--t-acc-ink); opacity: 1; }
+.sw.dd .snav span.on { border-top-color: var(--t-dd); }
+.sw .sfoot { position: absolute; left: 120px; right: 120px; bottom: 40px; height: 30px; display: flex; justify-content: space-between; align-items: center; font: 500 17px/1 var(--t-body); color: var(--t-muted); }
+.sw .sfoot b { color: var(--t-acc-ink); }
+.sw .sfoot .r { display: flex; gap: 18px; align-items: center; }
+.sw .sfoot .brand { display: flex; align-items: center; gap: 10px; color: var(--t-muted); font: 700 20px/1 var(--t-head); letter-spacing: -.01em; }
+.sw .sfoot .brand i { width: 26px; height: 26px; border-radius: 7px; background: currentColor; display: block; transform: rotate(45deg) scale(.78); }
+.sw .sfoot .dchip { font: 700 13px/1 var(--t-body); letter-spacing: .16em; text-transform: uppercase; color: var(--t-warn-ink); background: var(--t-warn-soft); padding: 7px 11px; border-radius: 999px; }
+.sw .sprog { position: absolute; left: 0; bottom: 0; height: 6px; background: var(--t-acc); }
+.sw.dark .sprog { background: var(--t-acc-glow); opacity: .7; }
+.sw .kicker { display: flex; align-items: center; gap: 16px; font: 700 20px/1 var(--t-body); letter-spacing: .18em; text-transform: uppercase; color: var(--t-acc); margin: 0 0 22px; }
+.sw.dd .kicker { color: var(--t-dd); }
+.sw.dark .kicker { color: var(--t-acc-glow); }
+.sw .dd-pill { display: inline-flex; align-items: center; gap: 10px; padding: 9px 15px; border-radius: 999px; background: var(--t-dd); color: var(--t-on-dd); font: 800 15px/1 var(--t-body); letter-spacing: .16em; }
+.sw .dd-pill::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+.sw .h { font: var(--t-head-w) 64px/1.1 var(--t-head); letter-spacing: var(--t-head-track); margin: 0; max-width: 1560px; text-wrap: balance; }
+.sw .h em { font-style: normal; color: var(--t-acc); }
+.sw.dd .h em { color: var(--t-dd); }
+.sw .bd { flex: 1; min-height: 0; margin-top: 46px; display: flex; flex-direction: column; }
+.sw .src { font: 400 19px/1.4 var(--t-body); color: var(--t-muted); margin-top: auto; }
+
+/* title */
+.sw.title { justify-content: center; padding-left: 160px; }
+.sw.title .dots { display: flex; gap: 14px; margin-bottom: 44px; }
+.sw.title .dots i { width: 18px; height: 18px; border-radius: 50%; background: var(--t-acc-glow); opacity: .9; }
+.sw.title .dots i:nth-child(2) { opacity: .6; } .sw.title .dots i:nth-child(3) { opacity: .35; }
+.sw.title h1 { font: var(--t-head-w) 168px/.98 var(--t-head); letter-spacing: calc(var(--t-head-track) * 1.6); margin: 0; }
+.sw.title .t-sub { font: 600 52px/1.15 var(--t-head); margin: 34px 0 0; max-width: 1500px; letter-spacing: -.01em; }
+.sw.title .t-tag { font: 400 34px/1.3 var(--t-body); font-style: italic; color: var(--t-acc-glow); margin: 30px 0 0; }
+.sw.title .byline { margin-top: 76px; font: 500 28px/1 var(--t-body); color: var(--t-night-2); display: flex; gap: 22px; align-items: center; }
+.sw.title .byline i { width: 2px; height: 30px; background: var(--t-night-line); }
+.sw .stamp { position: absolute; right: 120px; top: 70px; font: 700 17px/1 var(--t-body); letter-spacing: .16em; text-transform: uppercase; color: var(--t-stamp); border: 2px solid var(--t-stamp); border-radius: 999px; padding: 10px 18px; }
+
+/* divider + journey + deep-dive list */
+.sw.divider { justify-content: center; padding-left: 160px; }
+.sw.divider .num { font: 800 240px/.9 var(--t-head); letter-spacing: -.05em; background: linear-gradient(180deg, var(--t-num-1), var(--t-num-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sw.divider h2 { font: var(--t-head-w) 104px/1.04 var(--t-head); letter-spacing: calc(var(--t-head-track) * 1.4); margin: 36px 0 0; max-width: 1300px; }
+.sw.divider .sub { font: 400 40px/1.3 var(--t-body); color: var(--t-night-2); margin: 24px 0 0; }
+.sw .journey { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 64px; width: 1500px; }
+.sw .journey::before { content: ""; position: absolute; left: 11px; right: 0; top: 11px; height: 2px; background: var(--t-night-line); }
+.sw .journey div { position: relative; padding-top: 44px; }
+.sw .journey div::before { content: ""; position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--t-night-muted); background: var(--t-night); }
+.sw .journey div.past::before { background: var(--t-acc-glow); border-color: var(--t-acc-glow); }
+.sw .journey div.on::before { background: var(--t-num-1); border-color: var(--t-num-1); box-shadow: 0 0 0 8px rgba(var(--t-glow), .3); }
+.sw .journey b { display: block; font: 700 18px/1 var(--t-body); letter-spacing: .14em; text-transform: uppercase; color: var(--t-night-2); }
+.sw .journey span { display: block; margin-top: 12px; font: 400 18px/1 var(--t-body); color: var(--t-night-muted); }
+.sw .journey .on span { color: var(--t-acc-glow); }
+.sw .dd-list { margin-top: 50px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font: 700 17px/1 var(--t-body); letter-spacing: .14em; text-transform: uppercase; color: var(--t-night-muted); }
+.sw .dd-list span { padding: 11px 18px; border-radius: 999px; border: 2px solid var(--t-dd); color: var(--t-dd-glow); }
+
+/* bullets */
+.sw ul.bl { list-style: none; margin: 0; padding: 0; display: grid; gap: 30px; max-width: 1500px; }
+.sw ul.bl li { position: relative; padding-left: 52px; font: 400 36px/1.35 var(--t-body); }
+.sw ul.bl li::before { content: ""; position: absolute; left: 0; top: 16px; width: 18px; height: 18px; border-radius: 4px; background: var(--t-acc); }
+.sw ul.bl li b { font-weight: 700; color: var(--t-acc-ink); }
+
+/* big number */
+.sw .bign { display: grid; grid-template-columns: 820px 1fr; gap: 80px; align-items: center; flex: 1; }
+.sw .bign .n { font: 800 300px/.9 var(--t-head); letter-spacing: -.06em; color: var(--t-acc); }
+.sw .bign .n small { font-size: 110px; letter-spacing: -.03em; color: var(--t-acc-ink); }
+.sw .bign p { font: 500 40px/1.3 var(--t-head); margin: 0; }
+.sw .bign p + p { font: 400 28px/1.45 var(--t-body); color: var(--t-muted); margin-top: 26px; }
+
+/* gantt */
+.sw .gantt { display: grid; grid-template-columns: 360px repeat(6, 1fr); row-gap: 40px; column-gap: 8px; align-items: center; }
+.sw .gantt .hd { font: 700 17px/1 var(--t-body); letter-spacing: .14em; text-transform: uppercase; color: var(--t-muted); padding-bottom: 6px; border-bottom: 2px solid var(--t-grid); }
+.sw .gantt .lab { font: 600 28px/1.2 var(--t-body); }
+.sw .gantt .bar { height: 76px; border-radius: calc(var(--t-radius) * .75); display: flex; align-items: center; padding: 0 22px; font: 800 17px/1 var(--t-body); letter-spacing: .14em; text-transform: uppercase; color: var(--t-on-acc); }
+.sw .gantt .bar.done { background: var(--t-acc); }
+.sw .gantt .bar.slip { background: repeating-linear-gradient(135deg, var(--t-warn) 0 18px, color-mix(in srgb, var(--t-warn) 78%, var(--t-paper)) 18px 36px); color: #fff; }
+.sw .gantt .bar.stop { background: var(--t-card); color: var(--t-bad); box-shadow: inset 0 0 0 3px var(--t-bad); }
+.sw .gantt .ship { grid-column: 7; justify-self: center; font: 800 17px/1 var(--t-body); letter-spacing: .14em; color: var(--t-ok); }
+
+/* quote */
+.sw .quote { margin: auto 0; padding-left: 48px; border-left: 8px solid var(--t-acc); font: 700 62px/1.22 var(--t-head); letter-spacing: var(--t-head-track); max-width: 1480px; }
+.sw .quote cite { display: block; margin-top: 34px; font: 400 28px/1.3 var(--t-body); font-style: normal; color: var(--t-muted); letter-spacing: 0; }
+
+/* practice */
+.sw .practice { display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; }
+.sw .col-h { display: flex; align-items: center; gap: 12px; font: 700 18px/1 var(--t-body); letter-spacing: .16em; text-transform: uppercase; color: var(--t-acc); margin-bottom: 16px; }
+.sw .col-h::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: currentColor; }
+.sw .col-h.ok { color: var(--t-ok); } .sw .col-h.bad { color: var(--t-bad); }
+.sw .it { background: var(--t-card); border-radius: calc(var(--t-radius) * .75); box-shadow: var(--t-lift); padding: 22px 26px; font: 400 25px/1.4 var(--t-body); margin-bottom: 14px; }
+.sw .it b { color: var(--t-acc-ink); font-weight: 600; }
+.sw .it.ok { box-shadow: var(--t-lift), inset 6px 0 0 var(--t-ok); padding-left: 34px; }
+.sw .it.bad { box-shadow: var(--t-lift), inset 6px 0 0 var(--t-bad); padding-left: 34px; }
+.sw .callout { border-radius: calc(var(--t-radius) * .9); padding: 28px 36px; font: 700 28px/1.35 var(--t-head); background: var(--t-acc-soft); color: var(--t-acc-ink); }
+.sw .callout.bad { background: var(--t-bad-soft); color: var(--t-ink); box-shadow: inset 6px 0 0 var(--t-bad); }
+
+/* compare */
+.sw .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; flex: 1; }
+.sw .panel { background: var(--t-card); border-radius: calc(var(--t-radius) * 1.1); box-shadow: var(--t-lift); padding: 44px 48px; border-top: 10px solid var(--t-bad); }
+.sw .panel.good { border-top-color: var(--t-ok); }
+.sw .panel .tag { font: 800 18px/1 var(--t-body); letter-spacing: .16em; text-transform: uppercase; color: var(--t-bad); }
+.sw .panel.good .tag { color: var(--t-ok); }
+.sw .panel h3 { font: var(--t-head-w) 44px/1.1 var(--t-head); letter-spacing: var(--t-head-track); margin: 18px 0 26px; }
+.sw .panel ul { margin: 0; padding: 0 0 0 30px; display: grid; gap: 16px; font: 400 27px/1.4 var(--t-body); }
+
+/* table + badges */
+.sw table.st { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--t-card); border-radius: var(--t-radius); box-shadow: var(--t-lift); overflow: hidden; font: 400 27px/1.3 var(--t-body); color: var(--t-ink); }
+.sw table.st th { text-align: left; font: 700 17px/1 var(--t-body); letter-spacing: .14em; text-transform: uppercase; color: var(--t-muted); padding: 22px 30px; background: var(--t-tint); }
+.sw table.st td { padding: 22px 30px; border-top: 1px solid var(--t-grid); }
+.sw table.st td.n { font-weight: 700; font-variant-numeric: tabular-nums; }
+.sw table.st tr.hl td { background: var(--t-acc-soft); }
+.sw .badge { display: inline-block; padding: 7px 14px; border-radius: 999px; font: 700 16px/1 var(--t-body); letter-spacing: .1em; text-transform: uppercase; }
+.sw .badge.ok { background: var(--t-ok-soft); color: var(--t-ok-ink); } .sw .badge.bad { background: var(--t-bad-soft); color: var(--t-bad-ink); }
+.sw .badge.warn { background: var(--t-warn-soft); color: var(--t-warn-ink); } .sw .badge.acc { background: var(--t-acc-soft); color: var(--t-acc-ink); }
+
+/* chart */
+.sw .chart { flex: 1; display: grid; grid-template-columns: 1fr 420px; gap: 60px; align-items: stretch; }
+.sw .chart svg text { font-family: var(--t-body); }
+.sw .chart .c-grid { stroke: var(--t-grid); } .sw .chart .c-lab { fill: var(--t-muted); }
+.sw .chart .c-old { fill: var(--t-acc-past); } .sw .chart .c-new { fill: var(--t-acc); } .sw .chart .c-val { fill: var(--t-acc-ink); } .sw .chart .c-mark { stroke: var(--t-acc-ink); }
+.sw .chart aside { align-self: center; }
+
+/* numbered cards */
+.sw .ncards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; flex: 1; align-content: start; }
+.sw .ncard { background: var(--t-card); border-radius: var(--t-radius); box-shadow: var(--t-lift); padding: 34px 32px 38px; }
+.sw .ncard .no { font: 800 64px/1 var(--t-head); color: var(--t-acc); }
+.sw.dd .ncard .no { color: var(--t-dd); }
+.sw .ncard h4 { margin: 22px 0 14px; font: 700 30px/1.2 var(--t-head); }
+.sw .ncard p { margin: 0; font: 400 23px/1.4 var(--t-body); color: var(--t-muted); }
+
+/* rules */
+.sw .rules { display: grid; gap: 34px; }
+.sw .rule { display: grid; grid-template-columns: 170px 1fr; align-items: center; }
+.sw .rule .no { font: 800 150px/.85 var(--t-head); color: transparent; -webkit-text-stroke: 3px var(--t-acc); }
+.sw .rule h4 { margin: 0; font: 700 42px/1.2 var(--t-head); letter-spacing: var(--t-head-track); }
+.sw .rule p { margin: 10px 0 0; font: 400 26px/1.4 var(--t-body); color: var(--t-muted); }
+
+/* cards + chips */
+.sw .cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+.sw .rcard { background: var(--t-card); border-radius: var(--t-radius); box-shadow: var(--t-lift); padding: 34px 36px; }
+.sw .rcard h4 { margin: 18px 0 12px; font: 700 34px/1.15 var(--t-head); }
+.sw .rcard p { margin: 0; font: 400 24px/1.4 var(--t-body); color: var(--t-muted); }
+.sw .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.sw .chip { padding: 9px 16px; border-radius: 10px; background: var(--t-tint); font: 500 19px/1 var(--t-body); color: var(--t-ink); }
+
+/* NEW in SW-2: solid tone panels. Each tone sets its own surface and ink pair. */
+.sw .tp { --pb: var(--t-card); --pi: var(--t-ink); background: var(--pb); color: var(--pi); border-radius: var(--t-radius); padding: 38px 40px; }
+.sw .tp.acc { --pb: var(--t-p-acc); --pi: var(--t-p-acc-ink); }
+.sw .tp.ok { --pb: var(--t-p-ok); --pi: var(--t-p-ok-ink); }
+.sw .tp.bad { --pb: var(--t-p-bad); --pi: var(--t-p-bad-ink); }
+.sw .tp.inv { --pb: var(--t-p-inv); --pi: var(--t-p-inv-ink); }
+.sw .tp .tg { font: 800 17px/1 var(--t-body); letter-spacing: .16em; text-transform: uppercase; opacity: .82; }
+.sw .tp h4 { margin: 18px 0 12px; font: 700 38px/1.15 var(--t-head); letter-spacing: var(--t-head-track); }
+.sw .tp p { margin: 0; font: 400 25px/1.4 var(--t-body); color: color-mix(in srgb, var(--pi) 86%, var(--pb)); }
+.sw .tp-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+.sw .tp.wide { margin-top: 30px; display: flex; align-items: center; justify-content: space-between; gap: 30px; padding: 30px 40px; font: 700 32px/1.3 var(--t-head); }
+.sw .tp.wide span { font: 500 22px/1 var(--t-body); opacity: .75; }
+
+/* close */
+.sw.close { justify-content: center; padding-left: 160px; }
+.sw.close h2 { font: var(--t-head-w) 112px/1.04 var(--t-head); letter-spacing: calc(var(--t-head-track) * 1.4); margin: 0; max-width: 1400px; }
+.sw.close .callout { margin-top: 60px; max-width: 1200px; background: rgba(var(--t-glow), .2); color: var(--t-night-ink); font-size: 36px; }
+.sw.close .byline { margin-top: 70px; font: 500 28px/1 var(--t-body); color: var(--t-night-2); }
+
+/* template assets: title art, ornament, logo images, footer on dark slides */
+.sw .waves { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.sw .waves path { fill: none; stroke: var(--t-art, var(--t-acc-glow)); stroke-width: 1.6; }
+.sw.dark > :not(.waves):not(.stamp):not(.sfoot):not(.sprog) { position: relative; z-index: 1; }
+.sw .sfoot img { height: 34px; width: auto; display: block; flex: none; }
+.sw.dark .sfoot { color: var(--t-night-muted); }
+.sw.dark .sfoot b { color: var(--t-night-ink); }
+
+/* share card (1200x630) */
+.scard { width: 1200px; height: 630px; box-sizing: border-box; padding: 64px 72px; display: flex; flex-direction: column; color: var(--t-night-ink); font-family: var(--t-body); background: radial-gradient(700px 480px at 92% 120%, rgba(var(--t-glow), .55), transparent 62%), var(--t-night); position: relative; }
+.scard::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 10px; background: var(--t-acc); }
+.scard .waves { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.scard .waves path { fill: none; stroke: var(--t-art, var(--t-acc-glow)); stroke-width: 2.4; }
+.scard > :not(.waves) { position: relative; z-index: 1; }
+.scard .k { font: 700 22px/1 var(--t-body); letter-spacing: .18em; text-transform: uppercase; color: var(--t-acc-glow); }
+.scard h1 { margin: 26px 0 0; font: var(--t-head-w) 110px/1 var(--t-head); letter-spacing: calc(var(--t-head-track) * 1.4); }
+.scard p { margin: 22px 0 0; font: 400 34px/1.3 var(--t-body); color: var(--t-night-2); max-width: 950px; }
+.scard .ft { margin-top: auto; display: flex; justify-content: space-between; align-items: center; font: 500 24px/1 var(--t-body); color: var(--t-night-2); }
+.scard .ft .mini { display: flex; gap: 8px; }
+.scard .ft .mini i { width: 64px; height: 36px; border-radius: 5px; background: var(--t-paper); box-shadow: inset 0 4px 0 var(--t-acc); opacity: .9; }
+.scard .ft .mini i:nth-child(2) { opacity: .7; } .scard .ft .mini i:nth-child(3) { opacity: .5; }
+.scard .ft b { color: var(--t-night-ink); font-weight: 700; }
+</style>
+</head>
+<body>
+<main>
+<header class="page-head">
+  <div class="eyebrow">SlideWorks · SW-2 Templates and palettes · design mockups · 2026-11-16</div>
+  <h1>What SW-2 looks like when it lands</h1>
+  <p>An agent picks a <b>template</b> and a <b>palette</b>, and every slide follows them with no design input. <span data-lavish-revision="r2">There is no separate "theme". The template sets the structure and everything about the look except colour: fonts, shape, title art, ornament and logo. The palette sets every colour.</span> These mockups cover the split, the built-in templates and palettes, Sanzo Wada's 348 combinations (SW-15), the chrome, deep dives, colour roles, and templates people upload, including one imported from the Northwind kickoff deck. They also cover where people choose all of this, the share card, and the agent's MCP calls. Twelve questions at the end need your call.</p>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#scope">Scope</a><a href="#templates">Templates</a><a href="#palettes">Palettes</a><a href="#wada">Sanzo Wada</a><a href="#chrome">Chrome</a><a href="#deepdive">Deep dives</a><a href="#roles">Colour roles</a><a href="#yours">Your own template</a><a href="#app">In the app</a><a href="#share">Share card</a><a href="#agent">Agent over MCP</a><a href="#questions">Questions</a>
+</nav>
+
+<!-- ================================================================ SCOPE -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">00</span><h2>Two choices: a template and a palette</h2></div>
+  <p class="sec-sub">SW-1 ships one look (D4) with the part tracker, footer and progress bar (D5), but its colours and fonts are written into the layout CSS. SW-2 splits that look into exactly two things a deck chooses. They never overlap: a template holds no colours, and a palette holds no fonts.</p>
+  <div class="grid2" data-lavish-revision="r2">
+    <div class="card pack-card">
+      <h3><span class="pill" style="background:#efeafe;color:#5b3fd1">Template</span>&nbsp; structure, and the look without colour</h3>
+      <ul class="yes-list">
+        <li><b>Layouts allowed</b> (a subset of SW-1's 16), <b>chrome defaults</b> (tracker, footer, progress, draft, deep dives), an <b>outline</b> and <b>house style</b>.</li>
+        <li><b>Type:</b> heading and body fonts, heading weight and letter spacing.</li>
+        <li><b>Shape:</b> card radius and shadow.</li>
+        <li><b>Art:</b> title-slide art, ornament dots, and logos for light and dark slides.</li>
+        <li><b>Optionally its own palette</b>, which it can lock. The Northwind template does both.</li>
+      </ul>
+      <p class="note" style="margin:10px 0 0">Built-in: <code>talk</code>, <code>workshop</code>, <code>update</code>, all in SlideWorks' own type (Plus Jakarta Sans and Inter). Uploaded: any template a person makes or imports.</p>
+    </div>
+    <div class="card pack-card">
+      <h3><span class="pill" style="background:#fdf0e1;color:#b4580b">Palette</span>&nbsp; every colour, and nothing else</h3>
+      <ul class="yes-list">
+        <li><b>Surfaces and ink:</b> paper, card, tint, grid lines, ink, muted text.</li>
+        <li><b>Accent:</b> the accent, its ink, soft, glow and past tones, and the colour of text on it.</li>
+        <li><b>Roles:</b> positive, negative, caution and deep dive.</li>
+        <li><b>Dark slides:</b> night, the text on it, lines, the divider-number gradient and the stamp.</li>
+        <li><b>Panel pairs:</b> a surface and an ink for the accent, positive, negative and inverse panels.</li>
+      </ul>
+      <p class="note" style="margin:10px 0 0">Built-in: Cobalt (the default, SW-1's D4 colours), Ember, Plum and Midnight. Plus Sanzo Wada's 348 combinations (SW-15, folded in), and palettes that come with an uploaded template.</p>
+    </div>
+  </div>
+  <div class="card diagram">
+    <svg viewBox="0 0 1180 250" role="img" aria-label="A deck's look has two inputs. The template gives structure, type, shape and art. The palette gives every colour. An uploaded template can bring and lock its own palette. Every slide renders from its layout and slots plus the look." data-lavish-revision="r2">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a93a3"/></marker></defs>
+      <g font-family="Inter" font-size="13">
+        <rect x="10" y="14" width="320" height="100" rx="10" fill="#efeafe" stroke="#d4c6fb"/>
+        <text x="26" y="40" font-weight="700" font-size="15" fill="#5b3fd1">Template</text>
+        <text x="26" y="62" fill="#1b2230">Layouts, chrome, outline, house style,</text>
+        <text x="26" y="80" fill="#1b2230">fonts, radius, title art, ornament, logo</text>
+        <text x="26" y="100" fill="#5b6474" font-family="IBM Plex Mono" font-size="12">talk · workshop · update · uploaded…</text>
+        <rect x="10" y="134" width="320" height="100" rx="10" fill="#fdf0e1" stroke="#f3c9a0"/>
+        <text x="26" y="160" font-weight="700" font-size="15" fill="#b4580b">Palette</text>
+        <text x="26" y="182" fill="#1b2230">Every colour: surfaces, ink, accent,</text>
+        <text x="26" y="200" fill="#1b2230">roles, dark slides, panel pairs</text>
+        <text x="26" y="220" fill="#5b6474" font-family="IBM Plex Mono" font-size="12">cobalt · ember · plum · midnight · wada-1…348</text>
+        <path d="M332 64 C 380 64, 380 118, 424 118" fill="none" stroke="#8a93a3" stroke-width="1.6" marker-end="url(#ar)"/>
+        <path d="M332 184 C 380 184, 380 132, 424 132" fill="none" stroke="#8a93a3" stroke-width="1.6" marker-end="url(#ar)"/>
+        <path d="M190 114 L 190 134" fill="none" stroke="#b4580b" stroke-width="1.4" stroke-dasharray="4 3"/>
+        <text x="198" y="128" fill="#b4580b" font-size="11">may be locked by an uploaded template</text>
+        <rect x="428" y="70" width="300" height="110" rx="10" fill="#fff" stroke="#d3d8e0"/>
+        <text x="444" y="96" font-weight="700" font-size="15" fill="#1b2230">Deck look</text>
+        <text x="444" y="118" fill="#1b2230" font-family="IBM Plex Mono" font-size="12">template: "workshop"</text>
+        <text x="444" y="136" fill="#1b2230" font-family="IBM Plex Mono" font-size="12">palette: "wada-331"</text>
+        <text x="444" y="154" fill="#5b6474" font-family="IBM Plex Mono" font-size="12">logo?, draft, parts[]</text>
+        <text x="444" y="172" fill="#8a93a3" font-size="12">set by create_deck, changed by set_look</text>
+        <path d="M730 125 L 800 125" fill="none" stroke="#8a93a3" stroke-width="1.6" marker-end="url(#ar)"/>
+        <rect x="804" y="48" width="366" height="154" rx="10" fill="#fff" stroke="#d3d8e0"/>
+        <text x="820" y="74" font-weight="700" font-size="15" fill="#1b2230">Every slide</text>
+        <text x="820" y="96" fill="#1b2230">layout + slots (SW-1, D3)</text>
+        <text x="820" y="114" fill="#1b2230">+ deep_dive flag, tone on panels (SW-2)</text>
+        <text x="820" y="132" fill="#1b2230">+ type, shape, art and chrome from the template</text>
+        <text x="820" y="150" fill="#1b2230">+ colours from the palette</text>
+        <text x="820" y="176" fill="#18794e" font-weight="600">No slide stores a colour or a font.</text>
+        <text x="820" y="192" fill="#5b6474" font-size="12">Change either one and the whole deck re-skins.</text>
+      </g>
+    </svg>
+  </div>
+  <div class="scope" style="margin-top:16px">
+    <div class="card">
+      <h3><span class="pill acc">SW-2</span> Ships in this Feature</h3>
+      <ul data-lavish-revision="r3">
+        <li><b>Three built-in templates</b> (talk, workshop, update) and <b>four built-in palettes</b> (Cobalt, Ember, Plum, Midnight).</li>
+        <li><b>Template chrome as options:</b> part tracker, footer (n / total, title, author, logo), progress bar, draft stamp.</li>
+        <li><b>Deep-dive slides:</b> a per-slide flag. It adds a top bar and a pill, and dividers list the upcoming deep dives.</li>
+        <li><b>Colour roles and solid tone panels</b> (<code>tone: accent | positive | negative | inverse</code>), checked for contrast in every palette.</li>
+        <li><b>A headless renderer</b>, brought forward from SW-3. <code>preview_deck</code> returns PNGs of the slides, and the share card comes from the same renderer.</li>
+        <li><b>MCP:</b> <code>list_templates</code>, <code>list_palettes</code>, <code>set_look</code>, <code>preview_deck</code>, plus new fields on <code>create_deck</code>, <code>add_slide</code> and <code>get_deck</code>.</li>
+      </ul>
+      <h3 style="margin-top:14px"><span class="pill later">SW-15</span> Separate Feature: Sanzo Wada palettes</h3>
+      <ul data-lavish-revision="r3"><li>The 348 combinations as palettes, with automatic role mapping and contrast fixes (section 03). It builds on SW-2's palette model.</li></ul>
+      <h3 style="margin-top:14px"><span class="pill later">SW-50</span> New Feature: uploaded templates</h3>
+      <ul data-lavish-revision="r3"><li>Uploading a template, the HTML importer plus the agent route, sharing like a deck, and <b>custom layouts</b> as HTML with typed slots (section 07).</li></ul>
+    </div>
+    <div class="card">
+      <h3><span class="pill later">Elsewhere</span> Already built, or later</h3>
+      <ul class="later-list">
+        <li><span class="k">SW-1</span> The 16 layouts and 5 inline blocks, the slot model (D3), and the parts list on <code>create_deck</code>. SW-2 adds no new layouts.</li>
+        <li><span class="k">SW-3</span> Lint: checks that each slide follows the house style. The renderer moved into SW-2 (Q6).</li>
+        <li><span class="k">SW-4</span> Presenter view, including "skip deep dives" while presenting.</li>
+        <li><span class="k">SW-13</span> Editing in the browser. The Look panel below is the one place SW-2 adds UI controls.</li>
+        <li><span class="k">never</span> Free CSS or scripts inside an uploaded template. Custom layouts are allowed, as HTML with typed slots (Q9).</li>
+        <li><span class="k">later</span> Importing PowerPoint (<code>.pptx</code> / <code>.potx</code>), workspaces or organisations, and Wada vol. 2.</li>
+        <li><span class="k">repo</span> Brand templates are user content and never ship in the repo. The import example uses a made-up brand, Northwind.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ TEMPLATES -->
+<section class="block" id="templates">
+  <div class="sec-head"><span class="n">01</span><h2>Templates</h2><span class="pill grey">Q3 asks what a template is</span></div>
+  <p class="sec-sub">A template is the deck's structure plus its look without colour. It is not a set of pre-made slides. The agent gets the outline and house style back from <code>create_deck</code> and writes every slide itself. The three built-ins share SlideWorks' type and shape, so they differ in structure only. An uploaded template, like the Northwind one on the right, brings its own type, art, logo and palette. Every thumbnail here uses its template's default palette.</p>
+  <div class="grid2" id="tplCards"></div>
+</section>
+
+<!-- ================================================================ PALETTES -->
+<section class="block" id="palettes">
+  <div class="sec-head"><span class="n">02</span><h2>Built-in palettes</h2><span class="pill grey">pick one to see it on the sample deck</span></div>
+  <p class="sec-sub"><b>Cobalt</b> is SW-1's default colours (D4), unchanged. <b>Ember</b> is warm paper with burnt orange. <b>Plum</b> is violet. <b>Midnight</b> has dark content slides for a dark stage. Every palette fills the same colour tokens, and nothing about type or shape changes. The slides below use the workshop template. Q1 asks which palettes ship.</p>
+  <form class="picker" id="palPicker" aria-label="Palette" onsubmit="return false"></form>
+  <div class="grid2" id="palGallery"></div>
+  <h3 class="sub-h" id="tokTitle">Colour tokens</h3>
+  <div class="card tokens" id="tokenSheet"></div>
+  <h3 class="sub-h">The same practice slide in all four</h3>
+  <div class="grid4" id="allFour"></div>
+</section>
+
+<!-- ================================================================ WADA -->
+<section class="block" id="wada">
+  <div class="sec-head"><span class="n">03</span><h2>Sanzo Wada's combinations as palettes</h2><span class="pill later">SW-15 · separate Feature (Q12)</span><span class="pill grey">pick any of the 348</span></div>
+  <p class="sec-sub">Each combination of 2–4 colours becomes a palette. The colours are mapped to paper, ink, accent and the dark slides, and adjusted only as far as contrast needs. Positive, negative and caution keep the default role colours, because they carry meaning. A combination whose strongest colour looks like one of them isn't used as the accent if another colour will do.</p>
+  <div class="sources">
+    <div class="card"><b>The book</b><span>"A Dictionary of Color Combinations" (配色事典): 120 pairs, 120 threes, 108 fours.</span></div>
+    <div class="card"><b>The data</b><span>mattdesl/dictionary-of-colour-combinations on GitHub, MIT licence. Attribution goes in NOTICE and on the picker.</span></div>
+    <div class="card"><b>As printed</b><span>The title slide's ornament dots always show the combination exactly as printed.</span></div>
+    <div class="card"><b>No free colour picker</b><span>Custom colours come in an uploaded template, where every pair is checked once (Q2).</span></div>
+  </div>
+  <form id="palForm" onsubmit="return false">
+    <div class="pal-tools">
+      <div class="seg" role="radiogroup" aria-label="Colours in the combination">
+        <label><input type="radio" name="size" value="all" checked>All</label><label><input type="radio" name="size" value="2">2 colours</label><label><input type="radio" name="size" value="3">3</label><label><input type="radio" name="size" value="4">4</label>
+      </div>
+      <input type="search" name="q" placeholder="Colour name, e.g. violet, sienna" aria-label="Search by colour name">
+      <span class="note" id="palCount"></span>
+    </div>
+    <div class="pal-layout">
+      <div class="card pal-list" id="palList" role="radiogroup" aria-label="Wada combinations"></div>
+      <div class="pal-prev">
+        <div class="pal-head"><h3 id="palTitle">wada-331</h3><span class="names" id="palNames"></span></div>
+        <div class="frames"><div class="frame" id="palF1"></div><div class="frame" id="palF2"></div><div class="frame" id="palF3"></div></div>
+        <div id="palWarn"></div>
+        <div class="table-wrap"><table class="ledger map"><thead><tr><th>Role</th><th>From</th><th>Used</th><th>Why</th></tr></thead><tbody id="palMap"></tbody></table></div>
+        <p class="note" style="margin:0">The same mapping runs on the server, so an agent's <code>list_palettes</code> gets the adjusted colours and the reasons.</p>
+      </div>
+    </div>
+  </form>
+</section>
+
+<!-- ================================================================ CHROME -->
+<section class="block" id="chrome">
+  <div class="sec-head"><span class="n">04</span><h2>Template chrome</h2><span class="pill grey">try the toggles</span></div>
+  <p class="sec-sub">The chrome is drawn by SlideWorks, never by a slot. It reads the deck's <code>parts</code>, title, author and look settings, so an agent can't get it wrong. Each template sets defaults, and the deck can override them.</p>
+  <div class="anno">
+    <div class="anno-stage" id="chromeStage">
+      <div class="frame" id="chromeFrame"></div>
+      <span class="mk" data-mk="tracker" style="left:3.1%;top:5.2%">1</span>
+      <span class="mk" style="left:3.1%;top:14.3%">2</span>
+      <span class="mk" style="left:3.1%;top:20%">3</span>
+      <span class="mk" data-mk="footer" style="left:3.1%;top:95%">4</span>
+      <span class="mk" data-mk="logo" style="left:97%;top:95%">5</span>
+      <span class="mk" data-mk="draft" style="left:79%;top:95%">6</span>
+      <span class="mk" data-mk="progress" style="left:50%;top:99%">7</span>
+    </div>
+    <div class="card legend" id="chromeLegend">
+      <div class="row"><span class="d">1</span><div><b>Part tracker</b><p>From <code>parts</code>. Past parts are tinted and the current one is bold. Off in the update template.</p></div><label><input type="checkbox" data-opt="tracker" checked> show</label></div>
+      <div class="row"><span class="d">2</span><div><b>Kicker</b><p>A slot. House style: the topic in two to four words.</p></div><span class="fixed">slot</span></div>
+      <div class="row"><span class="d">3</span><div><b>Headline</b><p>A slot. House style: the point, written as a sentence.</p></div><span class="fixed">slot</span></div>
+      <div class="row"><span class="d">4</span><div><b>Footer</b><p><code>n / total · title · author</code>. The update template shows a date instead of the author.</p></div><label><input type="checkbox" data-opt="footer" checked> show</label></div>
+      <div class="row"><span class="d">5</span><div><b>Logo</b><p>Optional on a deck, set with <code>set_look {logo}</code>. An uploaded template can bring its own, as Northwind's does.</p></div><label><input type="checkbox" data-opt="logo" checked> show</label></div>
+      <div class="row"><span class="d">6</span><div><b>Draft stamp</b><p>A stamp on the title slide and a chip in every footer. One switch for the whole deck.</p></div><label><input type="checkbox" data-opt="draft" checked> show</label></div>
+      <div class="row"><span class="d">7</span><div><b>Progress bar</b><p>Slide n of total, along the bottom edge.</p></div><label><input type="checkbox" data-opt="progress" checked> show</label></div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div class="card g-item"><div class="frame" id="chromeTitle"></div><div class="cap"><code class="layout">title</code> with the draft stamp. Built-in templates give dark slides no tracker or footer.</div></div>
+    <div class="card g-item"><div class="frame" id="chromeUpdate"></div><div class="cap"><code class="layout">big-number</code> in the update template: no tracker, and a date in the footer.</div></div>
+  </div>
+</section>
+
+<!-- ================================================================ DEEP DIVES -->
+<section class="block" id="deepdive">
+  <div class="sec-head"><span class="n">05</span><h2>Deep-dive slides</h2></div>
+  <p class="sec-sub">Optional material is marked rather than cut. The agent sets <code>deep_dive: true</code> on a slide. SlideWorks adds the coloured top bar and the "Deep dive" pill, puts the slide in the divider's "Deep dives" list, and starts the speaker notes with "Deep dive. Skip if short of time." SW-4 lets the presenter skip them.</p>
+  <div class="grid3">
+    <div class="card g-item"><div class="frame" data-mount="divider"></div><div class="cap"><code class="layout">divider</code> lists the part's deep dives under the journey</div></div>
+    <div class="card g-item"><div class="frame" data-mount="practice"></div><div class="cap"><code class="layout">practice</code> an ordinary slide in the same part</div></div>
+    <div class="card g-item"><div class="frame" data-mount="ddcards"></div><div class="cap"><code class="layout">numbered-cards</code> with <code>deep_dive: true</code></div>
+      <div class="notes-box"><span class="lbl">Speaker notes, slide 10</span><b>Deep dive. Skip if short of time.</b> Hand out the story-map sheet. Give pairs eight minutes, then ask two pairs to read out their release line.</div></div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div class="card g-item"><div class="frame" data-mount="ddcards" data-palette="ember"></div><div class="cap"><b>Ember palette</b> The accent is already orange, so this palette's deep-dive colour is violet. Deep-dive colour is a palette token of its own (<code>dd</code>) for that reason.</div></div>
+    <div class="card g-item"><div class="frame" data-mount="ddcards" data-palette="midnight"></div><div class="cap"><b>Midnight palette</b> The pill's text colour is a token too (<code>on-dd</code>). It is dark here, because white on light orange fails contrast.</div></div>
+  </div>
+</section>
+
+<!-- ================================================================ ROLES -->
+<section class="block" id="roles">
+  <div class="sec-head"><span class="n">06</span><h2>Colour roles and tone panels</h2></div>
+  <p class="sec-sub">Colour carries meaning, never decoration. Every palette fills five roles. SW-2 adds solid <b>tone panels</b>: <code>callout</code>, <code>cards</code> and the <code>compare</code> panels take a <code>tone</code>. Each tone is a surface and ink pair set by the palette, so text on a coloured panel is never unreadable.</p>
+  <div class="table-wrap"><table class="ledger" id="rolesTable">
+    <thead><tr><th>Role</th><th>Tokens</th><th>What it means in the house style</th><th>Where it shows</th><th>Cobalt · Ember · Plum · Midnight</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+  <h3 class="sub-h">The panels slide in each palette</h3>
+  <div class="grid2" id="panelsFour"></div>
+  <h3 class="sub-h">Contrast check: computed from the tokens on this page</h3>
+  <p class="sec-sub">A palette test runs the same check and fails the build, or refuses an upload, if any pair drops below its bar. The last row shows why panels need their own ink. White text on the plain positive role colour fails in Cobalt (3.3:1), Midnight (1.7:1) and Northwind harbour (3.3:1). The role colour is tuned for lines and dots, and the panel pair for text.</p>
+  <div class="table-wrap"><table class="ledger" id="contrastTable"><thead></thead><tbody></tbody></table></div>
+</section>
+
+<!-- ================================================================ YOUR OWN TEMPLATE -->
+<section class="block" id="yours" data-lavish-revision="r2">
+  <div class="sec-head"><span class="n">07</span><h2>Your own template: upload one, or import it from a deck</h2><span class="pill later">SW-50 · new Feature (Q12)</span></div>
+  <p class="sec-sub">People can upload their own template. It is data and files, never CSS or code, so SlideWorks can check it, and every layout still works with it. The easiest way to make one is to <b>import an existing deck</b>. Below, a company's existing HTML deck (<code>kickoff.html</code>) goes through the importer and becomes the template <b>Northwind kickoff</b>, with its own locked palette <b>Northwind harbour</b>. Northwind is a made-up brand. The "Ship smaller" sample deck is then rendered in it.</p>
+  <div class="pack-grid">
+    <div class="card pack-card">
+      <h3>What an uploaded template can carry</h3>
+      <ul class="yes-list">
+        <li><b>Structure:</b> which layouts are allowed, chrome defaults, an outline and house-style rules. These are the same fields as a built-in template.</li>
+        <li><b>Fonts:</b> <code>woff2</code> files for headings and body, with a fallback. The uploader confirms they have the right to serve them, and the fonts are only sent to viewers of decks that use the template.</li>
+        <li><b>Logo:</b> one version for light slides and one for dark slides, and whether dark slides show it.</li>
+        <li><b>Title art:</b> an SVG or PNG behind the title and close slides, or a built-in generator with a colour (<code>waves</code>, <code>grid</code>, <code>none</code>).</li>
+        <li><b>Ornament:</b> up to six dots above the title, such as brand colours.</li>
+        <li><b>Its own palette</b>, checked against the same contrast bars as the built-ins. It can be <b>locked</b> so decks on this template stay on brand.</li>
+        <li data-lavish-revision="r3"><b>Custom layouts</b> (Q9): HTML using only the template's tokens, with typed slots declared in a schema, the same way a built-in layout is defined. The server validates slides against the schema. The HTML is sanitised and rendered without scripts, and a person reviews each layout before the template is published.</li>
+      </ul>
+    </div>
+    <div class="card pack-card">
+      <h3>What it can't carry</h3>
+      <ul class="no-list">
+        <li><b>Free CSS or scripts.</b> Styling outside a layout would break the house style and the contrast checks, and scripts are a security hole on a shared server. A custom layout's CSS is scoped to that layout and can only use tokens.</li>
+        <li><b>Animation.</b> The drifting waves import as still art.</li>
+      </ul>
+      <h3 style="margin-top:14px">Manifest <span class="pill grey">template.json</span></h3>
+      <div class="term" style="font-size:11.5px"><pre>{ <span class="k">"name"</span>: <span class="s">"Northwind kickoff"</span>, <span class="k">"from"</span>: <span class="s">"kickoff.html"</span>,
+  <span class="k">"layouts"</span>: [<span class="s">"title"</span>, <span class="s">"divider"</span>, <span class="s">"practice"</span>, …], <span class="k">"outline"</span>: […], <span class="k">"house_style"</span>: <span class="s">"…"</span>,
+  <span class="k">"chrome"</span>: { <span class="k">"tracker"</span>: <span class="k">true</span>, <span class="k">"footer_on_dark"</span>: <span class="k">true</span>, <span class="k">"deep_dives"</span>: <span class="k">true</span> },
+  <span class="k">"type"</span>: { <span class="k">"head"</span>: [<span class="s">"Northwind Sans"</span>, <span class="s">"fonts/sans.woff2"</span>],
+            <span class="k">"body"</span>: [<span class="s">"Northwind Text"</span>, <span class="s">"fonts/text.woff2"</span>], <span class="k">"fallback"</span>: <span class="s">"Inter"</span> },
+  <span class="k">"shape"</span>: { <span class="k">"radius"</span>: <span class="s">"8px"</span>, <span class="k">"shadow"</span>: <span class="s">"soft"</span> },
+  <span class="k">"logo"</span>: { <span class="k">"light"</span>: <span class="s">"logo-light.svg"</span>, <span class="k">"dark"</span>: <span class="s">"logo-dark.svg"</span> },
+  <span class="k">"art"</span>: { <span class="k">"kind"</span>: <span class="s">"waves"</span>, <span class="k">"colour"</span>: <span class="s">"#14B8A6"</span> },
+  <span class="k">"ornament"</span>: [<span class="s">"#14B8A6"</span>, <span class="s">"#0EA5E9"</span>, <span class="s">"#6366F1"</span>, <span class="s">"#F59E0B"</span>],
+  <span class="k">"palette"</span>: { <span class="k">"name"</span>: <span class="s">"Northwind harbour"</span>, <span class="k">"lock"</span>: <span class="k">true</span>,
+               <span class="k">"paper"</span>: <span class="s">"#F6FAF9"</span>, <span class="k">"acc"</span>: <span class="s">"#0F766E"</span>, <span class="k">"night"</span>: <span class="s">"#0B1F1E"</span>, … <span class="c">21 tokens</span> } }</pre></div>
+    </div>
+  </div>
+
+  <h3 class="sub-h">Import: the sample deck in the imported template</h3>
+  <p class="sec-sub" style="margin-bottom:6px">The "Ship smaller" sample deck rendered in the draft template. What carries over from the source deck is its look: palette, title art, ornament, logo, radius and chrome. Its fonts aren't uploaded yet, so headings fall back to Inter.</p>
+  <div class="grid3">
+    <div class="card g-item"><div class="frame" data-yours="title"></div><div class="cap"><code class="layout">title</code> wave art, ornament dots, logo on a dark slide</div></div>
+    <div class="card g-item"><div class="frame" data-yours="divider"></div><div class="cap"><code class="layout">divider</code> with the deep-dive list</div></div>
+    <div class="card g-item"><div class="frame" data-yours="practice"></div><div class="cap"><code class="layout">practice</code> in the locked palette</div></div>
+  </div>
+
+  <h3 class="sub-h">The import report</h3>
+  <div class="table-wrap"><table class="ledger">
+    <thead><tr><th>What</th><th>Found in the deck</th><th>Goes to</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="t">Colours</td><td><code>:root</code> custom properties, brand colours, slide-layer colours</td><td><b>Palette</b> "Northwind harbour", 21 tokens. <code>--accent</code> → acc, <code>--bg-dark</code> → night</td><td class="st-ok">✓ mapped</td></tr>
+      <tr><td class="t">Deep-dive colour<small>contrast fix</small></td><td><code>--warn #EA580C</code> under white pill text: 3.6:1</td><td><b>Palette</b> <code>dd #C2410C</code>: 5.2:1. The top bar keeps #EA580C as <code>dd-bar</code>.</td><td class="st-warn">⚠ adjusted</td></tr>
+      <tr><td class="t">Positive panel<small>contrast fix</small></td><td><code>--good #16A34A</code> under white text: 3.3:1</td><td><b>Palette</b> <code>p-ok #15803D</code>: 5.0:1. Badges and lines keep #16A34A.</td><td class="st-warn">⚠ adjusted</td></tr>
+      <tr><td class="t">Logo</td><td>Two SVG data URIs in the script (<code>LOGO_LIGHT</code>, <code>LOGO_DARK</code>)</td><td><b>Template</b> <code>logo-light.svg</code>, <code>logo-dark.svg</code></td><td class="st-ok">✓ extracted</td></tr>
+      <tr><td class="t">Fonts</td><td><code>"Northwind Sans"</code>, <code>"Northwind Text"</code> by name only. No font files are in the deck.</td><td><b>Template</b> names kept. Inter fallback until the <code>woff2</code> files are uploaded.</td><td class="st-warn">⚠ needs files</td></tr>
+      <tr><td class="t">Title art</td><td><code>&lt;svg class="waves"&gt;</code>, drawn by <code>wavePaths()</code></td><td><b>Template</b> built-in <code>waves</code> art, colour #14B8A6, still</td><td class="st-ok">✓ matched</td></tr>
+      <tr><td class="t">Ornament</td><td><code>.brand-dots</code>, four brand colours</td><td><b>Template</b> <code>ornament</code>: 4 colours</td><td class="st-ok">✓ extracted</td></tr>
+      <tr><td class="t">Structure</td><td>Seven parts, deep dives listed on dividers, footer with logo on dark slides, draft flag</td><td><b>Template</b> chrome defaults. The outline comes from the deck's part and slide order.</td><td class="st-ok">✓ same model</td></tr>
+      <tr data-lavish-revision="r3"><td class="t">Layouts</td><td>Card sort, stage ladder, sticky notes, loop diagram, form mock</td><td><b>Template</b> draft custom layouts (HTML + slot schema), with colours swapped for tokens. Each one needs review before publishing.</td><td class="st-warn">⚠ 5 to review</td></tr>
+      <tr><td class="t">Motion</td><td>Wave drift, slide transitions</td><td>Not imported. The player's own transitions apply.</td><td class="st-no">✗ dropped</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 class="sub-h">Where templates live</h3>
+  <div class="browser">
+    <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/templates</div></div>
+    <div class="app">
+      <div class="app-top">
+        <div class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="16" height="11" rx="2" fill="#b9c8f8"/><rect x="3" y="7" width="16" height="11" rx="2" fill="#2f5bea"/><path d="M8 21h6" stroke="#2f5bea" stroke-width="2" stroke-linecap="round"/></svg>SlideWorks</div>
+        <nav><a href="#app">Decks</a><a class="on" href="#yours">Templates</a><a href="#agent">Connect an agent</a></nav><span class="sp"></span><span class="avatar">SR</span>
+      </div>
+      <div class="app-body">
+        <div class="app-h"><h3>Templates</h3><span class="sp"></span><button class="btn" type="button">Import from a deck…</button><button class="btn primary" type="button">Upload template</button></div>
+        <div class="table-wrap"><table class="ledger">
+          <thead><tr><th></th><th>Template</th><th>Source</th><th>Type</th><th>Palette</th><th>Sharing</th><th style="text-align:right">Decks</th><th>Status</th></tr></thead>
+          <tbody id="tplRows"></tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ IN THE APP -->
+<section class="block" id="app">
+  <div class="sec-head"><span class="n">08</span><h2>Where people choose them</h2></div>
+  <p class="sec-sub">Agents set the look over MCP. People need two places: the <b>New deck</b> dialog, and a <b>Look</b> panel on the deck page that SW-1 doesn't have. Both offer the same two choices as <code>create_deck</code> and <code>set_look</code>: a template and a palette.</p>
+
+  <h3 class="sub-h">New deck</h3>
+  <div class="browser">
+    <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/decks?new</div></div>
+    <div class="app">
+      <div class="app-top">
+        <div class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="16" height="11" rx="2" fill="#b9c8f8"/><rect x="3" y="7" width="16" height="11" rx="2" fill="#2f5bea"/><path d="M8 21h6" stroke="#2f5bea" stroke-width="2" stroke-linecap="round"/></svg>SlideWorks</div>
+        <nav><a class="on" href="#app">Decks</a><a href="#yours">Templates</a></nav><span class="sp"></span><span class="avatar">SR</span>
+      </div>
+      <div class="scrim">
+        <form class="dlg" id="newDeck" onsubmit="return false">
+          <div class="dlg-h"><h3>New deck</h3><span class="note">An agent makes the same choices with <code>create_deck {template, palette}</code>.</span></div>
+          <div class="dlg-body">
+            <div>
+              <div class="fld"><span class="lbl">Title</span><input type="text" name="title" value="Ship smaller" aria-label="Title"></div>
+              <div class="fld"><span class="lbl">Template</span><div class="opts" id="ndTemplates"></div></div>
+              <div class="fld"><span class="lbl">Palette</span><select name="palette" id="ndPalette" aria-label="Palette" style="padding:6px 8px;border:1px solid var(--line-2);border-radius:7px;font:400 13px/1.2 var(--ui)"></select><div id="ndPalBar" style="display:flex;height:16px;border-radius:4px;overflow:hidden"></div><span class="note" id="ndPalNote"></span></div>
+            </div>
+            <div class="dlg-prev">
+              <div class="frame" id="ndPrev1"></div>
+              <div class="frame" id="ndPrev2"></div>
+              <p class="note" id="ndPrevNote"></p>
+            </div>
+          </div>
+          <div class="dlg-f"><span class="note">Both can be changed later (Q4).</span><button class="btn" type="button">Cancel</button><button class="btn primary" type="button">Create deck</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub-h">The deck page gets a Look panel</h3>
+  <div class="browser">
+    <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/d/7Kq2/ship-smaller</div></div>
+    <div class="app">
+      <div class="app-top">
+        <div class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="16" height="11" rx="2" fill="#b9c8f8"/><rect x="3" y="7" width="16" height="11" rx="2" fill="#2f5bea"/><path d="M8 21h6" stroke="#2f5bea" stroke-width="2" stroke-linecap="round"/></svg>SlideWorks</div>
+        <nav><a class="on" href="#app">Decks</a><a href="#yours">Templates</a></nav><span class="sp"></span><span class="avatar">SR</span>
+      </div>
+      <div class="app-body">
+        <div class="app-h"><h3>Ship smaller</h3><span class="pill grey">16 slides</span><span class="pill acc">Link</span><span class="sp"></span><button class="btn" type="button">Share</button><button class="btn primary" type="button">▶ Present</button></div>
+        <div class="deck-layout">
+          <div>
+            <div class="thumbs" id="lookThumbs"></div>
+            <div class="activity table-wrap">
+              <table class="ledger"><thead><tr><th>Activity</th><th>Who</th><th>Tool</th><th style="text-align:right">When</th></tr></thead>
+              <tbody>
+                <tr><td>Changed the palette to wada-331</td><td>You</td><td>Look panel</td><td style="text-align:right" class="mono">just now</td></tr>
+                <tr><td>Changed the palette to Plum</td><td><b>Claude</b> via MCP</td><td><code>set_look</code></td><td style="text-align:right" class="mono">2 min ago</td></tr>
+                <tr><td>Marked slides 10–12 as deep dives</td><td><b>Claude</b> via MCP</td><td><code>update_slide</code></td><td style="text-align:right" class="mono">4 min ago</td></tr>
+                <tr><td>Created from the workshop template</td><td><b>Claude</b> via MCP</td><td><code>create_deck</code></td><td style="text-align:right" class="mono">9 min ago</td></tr>
+              </tbody></table>
+            </div>
+          </div>
+          <form class="card look" id="lookPanel" onsubmit="return false">
+            <div class="look-h"><h4>Look</h4><span class="sp" style="flex:1"></span><span class="pill grey">new in SW-2</span></div>
+            <div class="look-row"><span class="lbl">Template</span><select name="template" id="lookTemplate" aria-label="Template" style="padding:5px 8px;border:1px solid var(--line-2);border-radius:6px;font:400 13px/1.2 var(--ui)"></select><span class="note" id="lookTplNote"></span></div>
+            <div class="look-row"><span class="lbl">Palette <span class="pill grey">Q2</span></span>
+              <div class="line"><select name="palette" id="lookPalette" aria-label="Palette" style="flex:1;min-width:0;padding:5px 8px;border:1px solid var(--line-2);border-radius:6px;font:400 13px/1.2 var(--ui)"></select><button class="btn sm" type="button" onclick="document.getElementById('wada').scrollIntoView({behavior:'smooth'})">Browse 348</button></div>
+              <div class="line" id="lookPalBar" style="gap:0;height:16px;border-radius:4px;overflow:hidden"></div>
+              <span class="contrast-msg" id="lookMsg"></span>
+            </div>
+            <div class="look-row"><span class="lbl">Logo</span><div class="line"><span class="logo-chip"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="2" transform="rotate(45 8 8)" fill="#5b6474"/></svg>acme-logo.svg</span><label class="ck"><input type="checkbox" name="logo" checked> In footer</label></div></div>
+            <div class="look-row"><span class="lbl">Draft</span><label class="ck"><input type="checkbox" name="draft" checked> Stamp the title and every footer</label></div>
+            <div class="look-row"><span class="lbl">Deep dives</span><div class="line"><span>Slides 10, 11, 12</span><span class="note">set per slide</span></div></div>
+            <div class="look-row"><span class="lbl">Share card</span><div class="frame share" id="lookCard"></div><span class="note">Redrawn when the title, template or palette changes.</span></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ SHARE CARD -->
+<section class="block" id="share">
+  <div class="sec-head"><span class="n">09</span><h2>Share card</h2></div>
+  <p class="sec-sub">A 1200×630 link-preview image for each deck, rendered on the server from the title, the subtitle, the template's art and logo, and the palette, using the same headless renderer as <code>preview_deck</code> (Q6). A private deck gets a generic card with no title.</p>
+  <div class="grid2">
+    <div class="card chat">
+      <div class="av">SR</div>
+      <div>
+        <div class="who">Sam Rivera <span>10:42</span></div>
+        <p>Draft for Thursday's offsite, comments welcome <a href="#share">slideworks.example/d/7Kq2/ship-smaller</a></p>
+        <div class="unfurl">
+          <span class="site">SlideWorks</span>
+          <span class="ut">Ship smaller</span>
+          <span class="ud">Why small batches beat big plans, and how to start on Monday · 16 slides · Sam Rivera</span>
+          <div class="frame share" data-card="workshop|cobalt"></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid2" style="align-content:start">
+      <div><div class="frame share" data-card="workshop|ember"></div><div class="cap"><b>Ember</b></div></div>
+      <div><div class="frame share" data-card="workshop|midnight"></div><div class="cap"><b>Midnight</b></div></div>
+      <div><div class="frame share" data-card="workshop|wada-331"></div><div class="cap"><b>wada-331</b> with the combination as dots</div></div>
+      <div><div class="frame share" data-card="northwind|northwind"></div><div class="cap"><b>Northwind kickoff</b> with its art and logo</div></div>
+      <div><div class="frame share" data-card="private"></div><div class="cap"><b>Private deck</b>: no title or author</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ AGENT -->
+<section class="block" id="agent">
+  <div class="sec-head"><span class="n">10</span><h2>The agent's side: one session over MCP</h2></div>
+  <p class="sec-sub">The look is two arguments, <code>template</code> and <code>palette</code>. The house style comes back with the template, so it reaches the agent at the moment it starts writing slides.</p>
+  <div class="session">
+    <div class="term"><pre><span class="c"># "Make a workshop deck about shipping smaller"</span>
+<span class="call">→ list_templates</span> {}
+<span class="ok">←</span> talk            <span class="c">Talk to a room. Parts, no deep dives.</span>
+  workshop        <span class="c">Talk plus exercises. Parts, deep dives.</span>
+  update          <span class="c">Status or metrics. No parts, dated footer.</span>
+  northwind-kickoff  <span class="c">Uploaded, shared with you. Palette locked.</span>
+
+<span class="call">→ create_deck</span> { title: <span class="s">"Ship smaller"</span>, template: <span class="s">"workshop"</span>,
+    palette: <span class="s">"cobalt"</span>, parts: [<span class="s">"The cost"</span>, <span class="s">"Slice it"</span>, <span class="s">"Ship it"</span>, <span class="s">"Make it stick"</span>] }
+<span class="ok">←</span> { deck: <span class="s">"7Kq2"</span>, url: <span class="s">"…/d/7Kq2/ship-smaller"</span>,
+    layouts: [<span class="s">"title"</span>, <span class="s">"divider"</span>, <span class="s">"practice"</span>, …11],
+    outline: [<span class="s">"title"</span>, <span class="s">"per part: divider, 2–4 slides, deep dives last"</span>, <span class="s">"close"</span>],
+    house_style: <span class="s">"One headline per slide that makes the point as a sentence. …"</span> }
+
+<span class="call">→ add_slide</span> { deck: <span class="s">"7Kq2"</span>, layout: <span class="s">"numbered-cards"</span>, part: 1,
+    deep_dive: <span class="k">true</span>, slots: { kicker: <span class="s">"Story map exercise"</span>, … } }
+<span class="ok">←</span> { slide: 10, notes: <span class="s">"Deep dive. Skip if short of time. …"</span> }
+
+<span class="call">→ add_slide</span> { deck: <span class="s">"7Kq2"</span>, layout: <span class="s">"gantt"</span>, part: 0, … }
+<span class="ok">←</span> { slide: 5, <span class="w">warnings: ["gantt is not in the workshop template. It still renders."]</span> }
+
+<span class="call">→ list_palettes</span> { size: 4, colour: <span class="s">"violet"</span> }
+<span class="ok">←</span> wada-331  <span class="c">Indian Lake · Dull Violet Black · Light Mauve · Violet</span>
+            <span class="c">accent Violet as printed; Indian Lake skipped (looks negative)</span>
+
+<span class="call">→ set_look</span> { deck: <span class="s">"7Kq2"</span>, palette: <span class="s">"wada-331"</span>, draft: <span class="k">true</span> }
+<span class="ok">←</span> { look: { template: <span class="s">"workshop"</span>, palette: <span class="s">"wada-331"</span> }, slides: 16 }
+
+<span class="c"># Another session: "turn my Northwind deck into a SlideWorks template"</span>
+<span class="call">→ import_template</span> { name: <span class="s">"Northwind kickoff"</span>, file: <span class="s">"kickoff.html"</span>, contentType: <span class="s">"text/html"</span> }
+<span class="ok">←</span> { uploadUrl: <span class="s">"…/api/uploads/u_91c"</span>, method: <span class="s">"PUT"</span> }   <span class="c"># agent PUTs the file</span>
+<span class="call">→ get_template</span> { template: <span class="s">"northwind-kickoff"</span> }
+<span class="ok">←</span> { status: <span class="s">"draft"</span>, palette: <span class="s">"northwind-ocean"</span> (21 tokens, locked),
+    <span class="w">adjusted: ["dd #EA580C → #C2410C", "p-ok #16A34A → #15803D"],
+    needs: ["font files: Northwind Sans, Northwind Text"],
+    not_imported: ["layouts: card sort, stage ladder, sticky notes, …", "motion"]</span> }
+<span class="call">→ upload_asset</span> { template: <span class="s">"northwind-kickoff"</span>, kind: <span class="s">"font"</span>, role: <span class="s">"head"</span>, … }
+<span class="call">→ publish_template</span> { template: <span class="s">"northwind-kickoff"</span> }
+<span class="call">→ set_sharing</span> { template: <span class="s">"northwind-kickoff"</span>, level: <span class="s">"link"</span> }
+
+<span class="c"># Back in the first session: check the deck by looking at it</span>
+<span class="call">→ preview_deck</span> { deck: <span class="s">"7Kq2"</span>, slides: [1, 8, 10] }
+<span class="ok">←</span> { pngs: [<span class="s">"…/d/7Kq2/png/1.png"</span>, <span class="s">"…/8.png"</span>, <span class="s">"…/10.png"</span>],
+    player_url: <span class="s">"…/d/7Kq2/ship-smaller#1"</span>, share_card_url: <span class="s">"…/card.png"</span> }</pre></div>
+    <div class="card" style="padding:4px 6px">
+      <table class="tools">
+        <tr><td>list_templates {}<span class="tag new">new</span></td><td>Built-in templates and uploaded ones shared with the caller: purpose, layouts, chrome, outline, house style, type, and whether the palette is locked.</td></tr>
+        <tr><td>list_palettes {size?, colour?}<span class="tag new">new</span></td><td>Built-in palettes, the Wada combinations, and palettes from shared templates, each with the role mapping, adjustments and clashes.</td></tr>
+        <tr><td>set_look {deck, …}<span class="tag new">new</span></td><td><code>template?</code>, <code>palette?</code>, <code>logo?</code>, <code>draft?</code>. Each call adds one activity entry. A palette change on a template that locks its palette is rejected.</td></tr>
+        <tr data-lavish-revision="r3"><td>preview_deck {deck, slides?}<span class="tag new">new</span></td><td>PNGs of the slides, from the headless renderer SW-2 brings forward from SW-3 (Q6), plus the player URL and share card.</td></tr>
+        <tr><td>import_template {name, file}<span class="tag new">new</span></td><td>Returns an upload URL. The server reads the HTML deck and makes a <b>draft</b> template, its palette, and a report (Q10).</td></tr>
+        <tr><td>create_template {name, manifest}<span class="tag new">new</span></td><td>The same draft from a manifest the agent writes itself, for a deck the importer can't read.</td></tr>
+        <tr><td>get_template, publish_template<span class="tag new">new</span></td><td>Read a draft and its report. Publishing runs the contrast check and refuses any failing pair.</td></tr>
+        <tr><td>upload_asset {template, kind}<span class="tag new">new</span></td><td><code>font</code>, <code>logo</code> or <code>art</code>, uploaded the same way as <code>upload_image</code>.</td></tr>
+        <tr><td>create_deck<span class="tag chg">changed</span></td><td>+ <code>template</code> (default <code>talk</code>) and <code>palette</code> (default: the template's own, or <code>cobalt</code>). Returns <code>layouts</code>, <code>outline</code> and <code>house_style</code>.</td></tr>
+        <tr><td>add_slide, update_slide<span class="tag chg">changed</span></td><td>+ <code>deep_dive</code>. A layout outside the template gives a warning, not an error (Q4).</td></tr>
+        <tr><td>get_deck, list_layouts<span class="tag chg">changed</span></td><td><code>get_deck</code> adds <code>look</code> and each slide's <code>deep_dive</code>. <code>list_layouts</code> adds <code>template?</code>.</td></tr>
+        <tr><td>set_sharing<span class="tag chg">changed</span></td><td>+ <code>template</code>, to share an uploaded template the same way as a deck (Q11).</td></tr>
+        <tr><td>slots: callout, cards, compare<span class="tag chg">changed</span></td><td>+ <code>tone: accent | positive | negative | inverse</code> and <code>fill: soft | solid</code>.</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="card house">
+    <h3>The house style the agent gets back</h3>
+    <p class="note" style="margin:0">Returned by <code>create_deck</code> and <code>list_templates</code>. An uploaded template can add its own rules. SW-3 lint later checks the rules it can measure.</p>
+    <ol>
+      <li><b>One headline per slide, written as a sentence that makes the point.</b> <span>"Lead time fell as the slices got smaller", not "Lead time".</span></li>
+      <li><b>A kicker above it names the topic</b> <span>in two to four words.</span></li>
+      <li><b>One idea per slide:</b> <span>one layout's worth of content, and at most one callout.</span></li>
+      <li><b>Speaker notes on every slide:</b> <span>what to say, and what to cut if short of time.</span></li>
+      <li><b>Colour means something:</b> <span>positive for what comes back, negative for what to avoid, accent for the point. Never for decoration.</span></li>
+      <li><b>Mark optional material as a deep dive</b> <span>instead of cutting it or squeezing it in.</span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ================================================================ QUESTIONS -->
+<section class="block" id="questions" data-lavish-question-group>
+  <div class="sec-head"><span class="n">11</span><h2>Questions for you</h2><span class="pill ok" data-lavish-revision="r3">10 answered · Q3 and Q4 open</span></div>
+  <p class="sec-sub">My recommendation is pre-selected for each one. <span data-lavish-revision="r2">With themes removed, Q1, Q3, Q4 and Q9–Q12 are reworded around templates and palettes.</span> Answers from 2026-11-16 are recorded in ShipLean: SW-2 for Q1, Q2 and Q5–Q7, SW-15 for Q8, SW-50 for Q9–Q11, and Q12 on all three. Q3 and Q4 are still open, with the recommendation recorded. The forms still work if you want to change an answer.</p>
+  <div class="qs">
+
+    <form class="card q" data-lavish-question="palettes-shipped">
+      <h3>Q1 · Which built-in palettes ship in SW-2?</h3>
+      <p class="why">A palette is now only colour values plus an automatic contrast test, so each one is cheap. Cobalt is required because it is SW-1's default.</p>
+      <div class="choices" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
+        <label class="choice"><input type="checkbox" name="keep" value="cobalt" checked disabled><div><b>Cobalt</b><span>Default, from SW-1</span></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="ember" checked><div><b>Ember</b><span>Warm paper, burnt orange</span></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="plum" checked><div><b>Plum</b><span>Violet</span></div></label>
+        <label class="choice"><input type="checkbox" name="keep" value="midnight" checked><div><b>Midnight</b><span>Dark content slides</span></div></label>
+      </div>
+      <p class="why" style="margin:8px 0 0">Recommended: all four. Ember's serif headings and Plum's rounder cards went with the theme. If you want a serif look, that is a built-in template (note it below).</p>
+      <textarea name="note" placeholder="Note (optional), e.g. a palette to add, or a serif built-in template"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state queued">Answered 2026-11-16</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="colour-change">
+      <h3>Q2 · How does a deck change its colours?</h3>
+      <p class="why">The Measure counts decks on a built-in look "with no custom CSS". The more a deck can override, the less the palettes protect it.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Pick a palette only (built-in, Wada, or an uploaded template's); custom colours only via an uploaded template" checked><div><b>Pick a palette, nothing else</b><span class="rec">recommended</span><span>The choices are a built-in palette, a Wada combination, or an uploaded template's palette. Brand colours come through an uploaded template, where every pair is checked once.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Palettes plus a free accent colour per deck, contrast-checked"><div><b>Palettes, plus a free accent colour per deck</b><span>Quick for a one-off brand colour, and one more way to drift from the house look.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Built-in palettes only; no Wada"><div><b>Built-in palettes only</b><span>Drops SW-15. Simplest, with the least variety.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state queued">Answered 2026-11-16</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="template-model">
+      <h3>Q3 · What is a template?</h3>
+      <p class="why">With no themes, the template also holds type, shape, art and logo. This changes what <code>create_deck</code> returns, and what an upload can bring.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Structure + type/shape/art/logo + outline + house style + optional palette; no pre-made slides" checked><div><b>Structure, type, shape, art, outline and house style, plus an optional palette</b><span class="rec">recommended</span><span>As mocked. The agent writes every slide, guided by the outline. The built-ins share one type.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Same, but as a starter deck of placeholder slides"><div><b>The same, delivered as a starter deck of placeholder slides</b><span>Feels familiar from PowerPoint. Leftover placeholders reach the audience, and SW-3 lint has to catch them.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Structure only; type and art fixed by SlideWorks for everyone"><div><b>Structure only. Type and art are fixed by SlideWorks.</b><span>Simplest, but an uploaded template could then never look like Northwind's.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="switching">
+      <h3>Q4 · Can the template and palette change after the deck is made?</h3>
+      <p class="why">A palette only changes colours, so switching it is always safe. A template also changes which layouts are allowed, and may lock the palette.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Both any time; out-of-template layouts still render with a warning; a locking template resets the palette" checked><div><b>Both any time</b><span class="rec">recommended</span><span>Slides whose layout is outside the template still render, with a warning. Switching to a template that locks its palette also switches the palette.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Both any time; out-of-template layouts are rejected"><div><b>Both any time, but layouts outside the template are rejected</b><span>Strict. Switching template could strand slides that already exist.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Palette any time; template fixed at creation"><div><b>The palette can change, the template is fixed</b><span>Simple. To change template, start a new deck.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="deep-dive-model">
+      <h3>Q5 · How is a deep dive marked?</h3>
+      <p class="why">Hand-built decks mark single slides by hand, and list them on each divider by hand.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Per-slide deep_dive flag; dividers list them; notes prefixed" checked><div><b>A flag on each slide</b><span class="rec">recommended</span><span>Dividers list a part's deep dives automatically. The notes get "Deep dive. Skip if short of time." at the start.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="A deep-dive section: a named group of slides inside a part"><div><b>A named deep-dive group inside a part</b><span>Matches how they are presented. It is one more concept for the agent, and <code>move_slide</code> has to handle groups.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state queued">Answered 2026-11-16</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="preview">
+      <h3>Q6 · What does <code>preview_deck</code> return before SW-3 renders PNGs?</h3>
+      <p class="why">An agent can't look at a URL, but it can look at an image.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Player URL + server-drawn share card; slide PNGs come with SW-3"><div><b>A player link and the share card</b><span class="rec">recommended</span><span>The share card is drawn on the server, so it needs no browser. Slide images come with SW-3.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Pull SW-3's headless renderer forward into SW-2" checked><div><b>Bring SW-3's renderer into SW-2</b><span>The agent can see each slide now, but SW-2 grows by a headless-browser service.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Drop preview_deck from SW-2; it ships with SW-3"><div><b>Drop <code>preview_deck</code> from SW-2</b><span>Smaller. <code>get_deck_url</code> already gives the player link.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state queued">Answered 2026-11-16</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="measure">
+      <h3>Q7 · SW-2's Measure</h3>
+      <p class="why">The Feature says "To confirm". Every look change is in the activity log, so each option can be counted from it.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Share of new decks on a listed template and palette with no other override" checked><div><b>Share of new decks that use a listed template and palette, with no other override</b><span class="rec">recommended</span><span>Close to the suggested Measure, and it works from day one. Target: to set after two weeks of use.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Share of decks with zero house-style lint warnings at first present"><div><b>Share of decks with no house-style warnings when first presented</b><span>Measures "looks good" rather than "used a template". Needs SW-3 first.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state queued">Answered 2026-11-16</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="wada-mapping">
+      <h3>Q8 · How do Wada's colours map to slide roles?</h3>
+      <p class="why">Most combinations have no colour dark enough for text or a title slide, and many are pastel.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Automatic mapping with contrast adjustments, shown in the picker; ornament shows the colours as printed" checked><div><b>Automatic, adjusted only as far as contrast needs, with every change shown</b><span class="rec">recommended</span><span>As in the picker. All 348 are usable, and the title ornament keeps the book's colours exactly.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Automatic mapping, then the user can reassign roles"><div><b>Automatic, then people can swap which colour plays which role</b><span>More control, and a second screen to build.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Only list combinations that pass contrast unadjusted"><div><b>Only combinations that work as printed</b><span>The colours stay pure, but well under half of the 348 survive.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional), e.g. whether vol. 2 is in scope"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state queued">Answered 2026-11-16</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="upload-contents">
+      <h3>Q9 · What can an uploaded template contain?</h3>
+      <p class="why">This decides whether "upload my company template" gives you the company look, or the company deck itself.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Structure, fonts, logos, art, ornament, palette; no CSS, scripts or layouts"><div><b>The same fields as a built-in template, plus fonts, logos, art and a palette</b><span class="rec">recommended</span><span>As mocked. Every layout, lint rule and contrast check keeps working. Layouts the deck had and SlideWorks lacks become requests.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Also CSS scoped to the slide canvas"><div><b>Also CSS, limited to the slide canvas</b><span>It gets closer to any deck faster, but nothing can vouch for its contrast, and it can break layouts.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Also custom layouts (HTML with typed slots)" checked><div><b>Also its own layouts, as HTML with typed slots</b><span>The card sort could come across. It needs a sandboxed template language and a review step, which is a Feature of its own.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state queued">Answered 2026-11-16</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="import">
+      <h3>Q10 · How does an existing deck become a template?</h3>
+      <p class="why">There are three ways, and they combine.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Server importer for HTML decks + agent route via create_template; PPTX/POTX later" checked><div><b>A server importer for HTML decks, plus an agent route</b><span class="rec">recommended</span><span><code>import_template</code> reads CSS custom properties, data-URI images, font names and known art, and makes a draft template and palette with a report. For any other deck, an agent writes the manifest and calls <code>create_template</code>.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Agent route only: no server importer"><div><b>Agent route only</b><span>No importer to build. The result depends on the agent.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Importer for HTML and PPTX/POTX in SW-2"><div><b>Importer for HTML and PowerPoint, both in SW-2</b><span>Most company templates are <code>.potx</code>. It is a lot more work: master slides, theme XML and embedded fonts.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state queued">Answered 2026-11-16</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="upload-sharing">
+      <h3>Q11 · Who can use an uploaded template?</h3>
+      <p class="why">SlideWorks has people, not organisations. A brand template is useful only if a whole team can find it.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Like decks: private, named people, or anyone with the link" checked><div><b>Shared like a deck: private, named people, or anyone with the link</b><span class="rec">recommended</span><span>No new concept to build. A deck on the template always renders, even for viewers it isn't shared with.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Add workspaces/organisations in SW-2"><div><b>Add workspaces, so a template belongs to an organisation</b><span>The natural home for brand templates. It is a big new concept.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Public gallery of community templates"><div><b>A public gallery of community templates</b><span>Good for an open-source project. A brand template must never be listed in it by accident.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state queued">Answered 2026-11-16</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="delivery">
+      <h3>Q12 · How is this delivered?</h3>
+      <p class="why">SW-2 has grown. All three parts share one token model, so the order matters more than the split.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="SW-2 = built-in templates + palettes incl. Wada (SW-15 closed as merged); uploaded templates + importer = new Feature right after"><div><b>SW-2 ships the built-in templates and palettes, including Wada. SW-15 closes as merged. Uploaded templates and the importer become a new Feature right after.</b><span class="rec">recommended</span><span>SW-2 settles the token model. Uploads bring fonts, file storage, sharing and the importer, which is a whole increment by itself.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Everything in SW-2"><div><b>Everything in SW-2</b><span>One design and one plan. It is a long increment before anyone gets a template.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Keep SW-15 separate; uploads new Feature; SW-2 built-in templates + built-in palettes only" checked><div><b>Three Features: SW-2, SW-15 (Wada), and a new one for uploads</b><span>Smallest steps. The palette model has to be settled in SW-2 anyway.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state queued">Answered 2026-11-16</span></div>
+    </form>
+
+    <div>
+      <button class="btn" type="button" id="copyAll">Copy all answers</button>
+      <span id="copyStatus" role="status" aria-live="polite" style="color:var(--muted);margin-left:8px"></span>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- =====================================================================
+     Slide pool: the "Ship smaller" sample deck from SW-1, plus a deep-dive
+     slide, a tone-panels slide and an update title. Chrome (tracker,
+     footer, progress, stamp) is added by script from the look options.
+     ===================================================================== -->
+<template id="pool">
+  <div class="sw dark title" data-id="title" data-n="1" data-layout="title">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <div class="kicker">Team offsite · 2026</div>
+    <h1>Ship smaller</h1>
+    <p class="t-sub">Why small batches beat big plans, and how to start on Monday</p>
+    <p class="t-tag">One change a day beats one launch a quarter.</p>
+    <div class="byline">Sam Rivera <i></i> Product Engineering</div>
+  </div>
+  <div class="sw dark title" data-id="title-update" data-n="1" data-layout="title">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <div class="kicker">Delivery update · Week 46</div>
+    <h1>Checkout, Jul–Oct</h1>
+    <p class="t-sub">Lead time is down from 11 weeks to 2. One partner is still blocked.</p>
+    <div class="byline">Sam Rivera <i></i> 14 Nov 2026</div>
+  </div>
+  <div class="sw dark divider" data-id="divider" data-n="7" data-layout="divider">
+    <div class="num">02</div>
+    <h2>Slice it thin</h2>
+    <p class="sub">How to cut work so each piece reaches a customer.</p>
+    <div class="journey"><div class="past"><b>The cost</b><span>Slides 3–6</span></div><div class="on"><b>Slice it</b><span>Slides 8–12</span></div><div><b>Ship it</b><span>Slides 13–14</span></div><div><b>Make it stick</b><span>Slides 15–16</span></div></div>
+    <div class="dd-list">Deep dives <span>Story map exercise</span><span>Splitting clinic</span></div>
+  </div>
+  <div class="sw" data-id="bullets" data-n="3" data-part="0" data-layout="bullets">
+    <div class="kicker">The pattern</div>
+    <h2 class="h">Every slip we had last year <em>started as a big batch</em></h2>
+    <div class="bd"><ul class="bl">
+      <li><b>Risk shows up late.</b> The first real customer sees it in week ten.</li>
+      <li><b>Merges get scary.</b> Long branches collide, so people stop merging.</li>
+      <li><b>Feedback arrives as a verdict,</b> not a nudge. By then it is too late to change course cheaply.</li>
+      <li><b>Nobody can say how far along we are,</b> because nothing is done until everything is.</li>
+    </ul></div>
+  </div>
+  <div class="sw" data-id="bign" data-n="4" data-part="0" data-layout="big-number">
+    <div class="kicker">The cost</div>
+    <h2 class="h">It took us <em>11 weeks</em> to get anything in front of a customer</h2>
+    <div class="bd"><div class="bign">
+      <div class="n">11<small> wk</small></div>
+      <div><p>Median time from first commit to the first customer seeing it.</p><p>Across 12 launches this year. The fastest took three weeks, and it was also the smallest.</p></div>
+    </div><div class="src">Source: delivery data Jan–Oct, 12 launches.</div></div>
+  </div>
+  <div class="sw" data-id="gantt" data-n="5" data-part="0" data-layout="gantt">
+    <div class="kicker">What it looked like</div>
+    <h2 class="h">One milestone each looks fair. <em>Nothing reaches customers until sprint 6.</em></h2>
+    <div class="bd"><div class="gantt">
+      <span></span><span class="hd">Sprint 1</span><span class="hd">Sprint 2</span><span class="hd">Sprint 3</span><span class="hd">Sprint 4</span><span class="hd">Sprint 5</span><span class="hd">Sprint 6</span>
+      <span class="lab">Checkout API</span><span class="bar done" style="grid-column:2/4">Done</span><span style="grid-column:4/8"></span>
+      <span class="lab">Web checkout</span><span style="grid-column:2/3"></span><span class="bar done" style="grid-column:3/5">Done</span><span style="grid-column:5/8"></span>
+      <span class="lab">Mobile checkout</span><span style="grid-column:2/4"></span><span class="bar slip" style="grid-column:4/7">Slips</span><span></span>
+      <span class="lab">Payments partner</span><span style="grid-column:2/5"></span><span class="bar stop" style="grid-column:5/7">Stopped</span><span></span>
+      <span class="lab">Customers see it</span><span style="grid-column:2/7"></span><span class="ship">▲ Ship</span>
+    </div></div>
+  </div>
+  <div class="sw" data-id="quote" data-n="6" data-part="0" data-layout="quote">
+    <div class="kicker">From the retro</div>
+    <blockquote class="quote">“We stopped asking ‘is it done?’ and started asking ‘is it out?’ The second question is much harder to fudge.”<cite>Team lead, payments squad</cite></blockquote>
+  </div>
+  <div class="sw" data-id="practice" data-n="8" data-part="1" data-layout="practice">
+    <div class="kicker">Slice it</div>
+    <h2 class="h">Slice by what a customer can do, not by layer</h2>
+    <div class="bd"><div class="practice">
+      <div>
+        <div class="col-h">Do</div>
+        <div class="it"><b>Start from one user action</b> and build every layer it needs, thinly.</div>
+        <div class="it"><b>Hard-code the second case.</b> Generalise when the third one arrives.</div>
+        <div class="it"><b>Ship behind a flag</b> to one team first, then widen.</div>
+        <div class="it"><b>Write the demo sentence first:</b> "Now a customer can …"</div>
+      </div>
+      <div>
+        <div class="col-h ok">What comes back</div>
+        <div class="it ok">Feedback in days, not quarters.</div>
+        <div class="it ok">A merge that's small enough to review in one sitting.</div>
+        <div class="col-h bad" style="margin-top:26px">Avoid</div>
+        <div class="it bad">"API first, UI later." That's two batches, not two slices.</div>
+        <div class="callout bad" style="margin-top:22px">If a slice can't be demoed to a customer, it isn't a slice yet.</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="sw" data-id="compare" data-n="9" data-part="1" data-layout="compare">
+    <div class="kicker">Same feature, two ways</div>
+    <h2 class="h">The difference is when the customer gets to answer</h2>
+    <div class="bd"><div class="cmp">
+      <div class="panel"><div class="tag">Failure mode</div><h3>Slice by layer</h3><ul><li>Database, then API, then UI</li><li>Nothing to show for five sprints</li><li>The first customer feedback rewrites the API</li></ul></div>
+      <div class="panel good"><div class="tag">Success mode</div><h3>Slice by customer action</h3><ul><li>"Save a card", then "pay with a saved card"</li><li>Something to demo every week</li><li>Feedback changes week 2, not week 10</li></ul></div>
+    </div></div>
+  </div>
+  <div class="sw dd" data-id="ddcards" data-n="10" data-part="1" data-layout="numbered-cards">
+    <div class="kicker"><span class="dd-pill">Deep dive</span>Story map exercise</div>
+    <h2 class="h">Map one journey, then <em>draw the release line</em></h2>
+    <div class="bd"><div class="ncards">
+      <div class="ncard"><div class="no">1</div><h4>Pick a journey</h4><p>One your team shipped this quarter, end to end.</p></div>
+      <div class="ncard"><div class="no">2</div><h4>Steps across</h4><p>Five to seven things the customer does, in order.</p></div>
+      <div class="ncard"><div class="no">3</div><h4>Versions down</h4><p>Under each step, the simplest version first.</p></div>
+      <div class="ncard"><div class="no">4</div><h4>Draw the line</h4><p>The thinnest row that covers every step is release 1.</p></div>
+    </div></div>
+  </div>
+  <div class="sw" data-id="table" data-n="11" data-part="1" data-layout="table">
+    <div class="kicker">Sizing</div>
+    <h2 class="h">Aim for slices a pair can ship <em>inside a week</em></h2>
+    <div class="bd"><table class="st">
+      <thead><tr><th>Slice size</th><th>Review time</th><th>Rollback</th><th>Customer feedback</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>One quarter</td><td class="n">Days</td><td>Painful</td><td>Week 10+</td><td><span class="badge bad">Avoid</span></td></tr>
+        <tr><td>One sprint</td><td class="n">Hours</td><td>Possible</td><td>Week 2–3</td><td><span class="badge warn">OK</span></td></tr>
+        <tr class="hl"><td><b>2–4 days</b></td><td class="n">Under an hour</td><td>Flip a flag</td><td>Same week</td><td><span class="badge ok">Target</span></td></tr>
+        <tr><td>Under a day</td><td class="n">Minutes</td><td>Flip a flag</td><td>Same week</td><td><span class="badge acc">Great</span></td></tr>
+      </tbody></table></div>
+  </div>
+  <div class="sw" data-id="chart" data-n="13" data-part="2" data-layout="chart">
+    <div class="kicker">Ship it</div>
+    <h2 class="h">Lead time fell as the slices got smaller</h2>
+    <div class="bd"><div class="chart">
+      <svg viewBox="0 0 1100 560" width="100%" height="100%" aria-hidden="true">
+        <g class="c-grid" stroke-width="2"><line x1="80" y1="40" x2="1080" y2="40"/><line x1="80" y1="190" x2="1080" y2="190"/><line x1="80" y1="340" x2="1080" y2="340"/><line x1="80" y1="490" x2="1080" y2="490"/></g>
+        <g class="c-lab" font-size="22" text-anchor="end"><text x="64" y="48">12 wk</text><text x="64" y="198">8</text><text x="64" y="348">4</text><text x="64" y="498">0</text></g>
+        <g class="c-old"><rect x="120" y="77" width="110" height="413" rx="6"/><rect x="280" y="115" width="110" height="375" rx="6"/><rect x="440" y="190" width="110" height="300" rx="6"/></g>
+        <g class="c-new"><rect x="600" y="302" width="110" height="188" rx="6"/><rect x="760" y="377" width="110" height="113" rx="6"/><rect x="920" y="415" width="110" height="75" rx="6"/></g>
+        <g class="c-lab" font-size="22" text-anchor="middle"><text x="175" y="530">May</text><text x="335" y="530">Jun</text><text x="495" y="530">Jul</text><text x="655" y="530">Aug</text><text x="815" y="530">Sep</text><text x="975" y="530">Oct</text></g>
+        <g class="c-val" font-size="24" font-weight="700" text-anchor="middle"><text x="175" y="64">11</text><text x="335" y="102">10</text><text x="495" y="177">8</text><text x="655" y="289">5</text><text x="815" y="364">3</text><text x="975" y="402">2</text></g>
+        <line class="c-mark" x1="575" y1="30" x2="575" y2="490" stroke-dasharray="6 8" stroke-width="2"/><text class="c-val" x="588" y="62" font-size="20" font-weight="700">Flags on</text>
+      </svg>
+      <aside><div class="callout">Weeks from first commit to the first customer. The median fell from 11 to 2.</div></aside>
+    </div></div>
+  </div>
+  <div class="sw" data-id="rules" data-n="15" data-part="3" data-layout="rules">
+    <div class="kicker">Make it stick</div>
+    <h2 class="h">Three rules for the first month</h2>
+    <div class="bd"><div class="rules">
+      <div class="rule"><div class="no">1</div><div><h4>Merge to main every day</h4><p>Unfinished work goes behind a flag, not on a branch.</p></div></div>
+      <div class="rule"><div class="no">2</div><div><h4>Demo something every Friday</h4><p>To a customer if you can, and to the team if you can't.</p></div></div>
+      <div class="rule"><div class="no">3</div><div><h4>Split any story older than a week</h4><p>Ship what's done, and make the rest a new story.</p></div></div>
+    </div></div>
+  </div>
+  <div class="sw" data-id="panels" data-n="14" data-part="2" data-layout="cards" data-tone="solid">
+    <div class="kicker">What changes</div>
+    <h2 class="h">Small slices change what a week feels like</h2>
+    <div class="bd">
+      <div class="tp-row">
+        <div class="tp ok"><div class="tg">What comes back</div><h4>Feedback every Friday</h4><p>From someone who uses it, not from a sign-off meeting.</p></div>
+        <div class="tp bad"><div class="tg">Avoid</div><h4>Holding a slice back</h4><p>"It isn't complete yet" is how a slice turns back into a batch.</p></div>
+        <div class="tp acc"><div class="tg">The point</div><h4>Done means used</h4><p>A customer can do something today that they couldn't do yesterday.</p></div>
+      </div>
+      <div class="tp inv wide">Try it for one sprint, then decide. <span>tone: inverse</span></div>
+    </div>
+  </div>
+  <div class="sw dark close" data-id="close" data-n="16" data-layout="close">
+    <div class="kicker">One thing for Monday</div>
+    <h2>Pick one story.<br>Ship half of it by Friday.</h2>
+    <div class="callout">Then tell us what you learned at the next demo.</div>
+    <div class="byline">Sam Rivera · Product Engineering</div>
+  </div>
+</template>
+
+<template id="cardTpl">
+  <div class="scard">
+    <div class="k">Team offsite · 2026</div>
+    <h1>Ship smaller</h1>
+    <p>Why small batches beat big plans, and how to start on Monday</p>
+    <div class="ft"><span><b>16 slides</b> · Sam Rivera</span><div class="mini"><i></i><i></i><i></i></div><span>slideworks.example</span></div>
+  </div>
+</template>
+
+<script>
+(() => {
+  /* ------------------------------------------------------------------ palettes: colour tokens only */
+  const ROLES = { 'ok': '#16a34a', 'ok-soft': '#dcfce7', 'ok-ink': '#166534', 'bad': '#dc2626', 'bad-soft': '#fee2e2', 'bad-ink': '#991b1b', 'warn': '#ea580c', 'warn-soft': '#ffedd5', 'warn-ink': '#9a3412' };
+  const PALETTES = {
+    cobalt: { name: 'Cobalt', line: 'SW-1 default. Light ledger, cobalt accent.', c: {
+      'paper': '#f7f8fa', 'card': '#ffffff', 'tint': '#eef1f6', 'grid': '#e3e6ec', 'ink': '#111827', 'muted': '#5b6474',
+      'acc': '#2f5bea', 'acc-ink': '#1e3a8a', 'acc-soft': '#e4eafd', 'acc-glow': '#a5b8ff', 'acc-past': '#b9c8f8', 'on-acc': '#ffffff', ...ROLES,
+      'dd': '#c2410c', 'dd-soft': '#ffedd5', 'dd-glow': '#fdba74', 'on-dd': '#ffffff',
+      'night': '#0b1020', 'night-ink': '#ffffff', 'night-2': '#cbd5e1', 'night-muted': '#8c97ad', 'night-line': '#334155', 'glow': '47, 91, 234', 'num-1': '#c3d0ff', 'num-2': '#5b7cff', 'stamp': '#fcd34d',
+      'p-acc': '#2f5bea', 'p-acc-ink': '#ffffff', 'p-ok': '#15803d', 'p-ok-ink': '#ffffff', 'p-bad': '#b91c1c', 'p-bad-ink': '#ffffff', 'p-inv': '#0b1020', 'p-inv-ink': '#ffffff' } },
+    ember: { name: 'Ember', line: 'Warm paper, burnt orange.', c: {
+      'paper': '#faf7f2', 'card': '#ffffff', 'tint': '#f3ede4', 'grid': '#e9e1d6', 'ink': '#1c1917', 'muted': '#6b6058',
+      'acc': '#c2410c', 'acc-ink': '#7c2d12', 'acc-soft': '#fdebdd', 'acc-glow': '#fdba74', 'acc-past': '#f3c3a0', 'on-acc': '#ffffff', ...ROLES, 'ok': '#15803d', 'bad': '#b91c1c', 'warn': '#b45309', 'warn-soft': '#fef3c7', 'warn-ink': '#92400e',
+      'dd': '#6d28d9', 'dd-soft': '#ede9fe', 'dd-glow': '#c4b5fd', 'on-dd': '#ffffff',
+      'night': '#1c1412', 'night-ink': '#ffffff', 'night-2': '#e7dcd3', 'night-muted': '#a8998d', 'night-line': '#4a3b33', 'glow': '194, 65, 12', 'num-1': '#fed7aa', 'num-2': '#ea580c', 'stamp': '#fcd34d',
+      'p-acc': '#c2410c', 'p-acc-ink': '#ffffff', 'p-ok': '#166534', 'p-ok-ink': '#ffffff', 'p-bad': '#991b1b', 'p-bad-ink': '#ffffff', 'p-inv': '#1c1412', 'p-inv-ink': '#ffffff' } },
+    plum: { name: 'Plum', line: 'Violet accent.', c: {
+      'paper': '#f8f7fb', 'card': '#ffffff', 'tint': '#efecf6', 'grid': '#e5e1ee', 'ink': '#17132a', 'muted': '#5f5a72',
+      'acc': '#6d28d9', 'acc-ink': '#4c1d95', 'acc-soft': '#ede9fe', 'acc-glow': '#c4b5fd', 'acc-past': '#d4c6fb', 'on-acc': '#ffffff', ...ROLES, 'ok': '#15803d', 'bad': '#b91c1c',
+      'dd': '#c2410c', 'dd-soft': '#ffedd5', 'dd-glow': '#fdba74', 'on-dd': '#ffffff',
+      'night': '#120d22', 'night-ink': '#ffffff', 'night-2': '#d9d3ea', 'night-muted': '#9a92b3', 'night-line': '#3a3252', 'glow': '124, 58, 237', 'num-1': '#ddd6fe', 'num-2': '#8b5cf6', 'stamp': '#fcd34d',
+      'p-acc': '#6d28d9', 'p-acc-ink': '#ffffff', 'p-ok': '#15803d', 'p-ok-ink': '#ffffff', 'p-bad': '#b91c1c', 'p-bad-ink': '#ffffff', 'p-inv': '#120d22', 'p-inv-ink': '#ffffff' } },
+    midnight: { name: 'Midnight', line: 'Dark content slides for a dark stage.', c: {
+      'paper': '#0e1424', 'card': '#161e33', 'tint': '#1e2740', 'grid': '#2a3450', 'ink': '#e8ecf5', 'muted': '#9aa4b8',
+      'acc': '#7b95ff', 'acc-ink': '#c3d0ff', 'acc-soft': '#1f2a52', 'acc-glow': '#a5b8ff', 'acc-past': '#3b4a85', 'on-acc': '#0b1020',
+      'ok': '#4ade80', 'ok-soft': '#10301d', 'ok-ink': '#86efac', 'bad': '#f87171', 'bad-soft': '#3b1518', 'bad-ink': '#fca5a5', 'warn': '#fb923c', 'warn-soft': '#3a2412', 'warn-ink': '#fdba74',
+      'dd': '#fb923c', 'dd-soft': '#3a2412', 'dd-glow': '#fdba74', 'on-dd': '#1c0d02',
+      'night': '#05070d', 'night-ink': '#ffffff', 'night-2': '#cbd5e1', 'night-muted': '#8c97ad', 'night-line': '#334155', 'glow': '91, 124, 255', 'num-1': '#c3d0ff', 'num-2': '#5b7cff', 'stamp': '#fcd34d',
+      'p-acc': '#c3d0ff', 'p-acc-ink': '#0b1020', 'p-ok': '#86efac', 'p-ok-ink': '#052e16', 'p-bad': '#fca5a5', 'p-bad-ink': '#450a0a', 'p-inv': '#f1f5f9', 'p-inv-ink': '#0b1020' } },
+    northwind: { name: 'Northwind harbour', line: 'From the Northwind kickoff template. Locked.', uploaded: true, c: {
+      'paper': '#f6faf9', 'card': '#ffffff', 'tint': '#edf5f3', 'grid': '#dbe7e4', 'ink': '#10292a', 'muted': '#56706c',
+      'acc': '#0f766e', 'acc-ink': '#134e4a', 'acc-soft': '#d5f5ef', 'acc-glow': '#5eead4', 'acc-past': '#a7e9de', 'on-acc': '#ffffff',
+      'ok': '#16a34a', 'ok-soft': '#dcfce7', 'ok-ink': '#166534', 'bad': '#e11d48', 'bad-soft': '#ffe4e6', 'bad-ink': '#9f1239', 'warn': '#ea580c', 'warn-soft': '#ffedd5', 'warn-ink': '#9a3412',
+      'dd': '#c2410c', 'dd-bar': '#ea580c', 'dd-soft': '#ffedd5', 'dd-glow': '#fcd34d', 'on-dd': '#ffffff',
+      'night': '#0b1f1e', 'night-ink': '#ffffff', 'night-2': '#cbe0dc', 'night-muted': '#8fa8a4', 'night-line': '#2b4441', 'glow': '15, 118, 110', 'num-1': '#99f6e4', 'num-2': '#14b8a6', 'stamp': '#fcd34d', 'art': '#14b8a6',
+      'p-acc': '#0f766e', 'p-acc-ink': '#ffffff', 'p-ok': '#15803d', 'p-ok-ink': '#ffffff', 'p-bad': '#be123c', 'p-bad-ink': '#ffffff', 'p-inv': '#0b1f1e', 'p-inv-ink': '#ffffff' } },
+  };
+  const PAL_IDS = ['cobalt', 'ember', 'plum', 'midnight'];
+  const CT_IDS = [...PAL_IDS, 'northwind'];
+
+  /* ------------------------------------------------------------------ templates: structure + type, shape, art */
+  const SW_TYPE = { 'head': '"Plus Jakarta Sans", Inter, sans-serif', 'body': 'Inter, sans-serif', 'head-w': '800', 'head-track': '-.025em', 'radius': '16px', 'lift': '0 1px 2px rgba(15, 23, 42, .06), 0 14px 36px rgba(15, 23, 42, .09)' };
+  const AG_TYPE = { 'head': '"Northwind Sans", Inter, sans-serif', 'body': '"Northwind Text", Inter, sans-serif', 'head-w': '800', 'head-track': '-.02em', 'radius': '8px', 'lift': '1px 2px 7px rgba(15, 23, 42, .16)' };
+  const DARK_LIFT = 'inset 0 0 0 1px rgba(255, 255, 255, .05), 0 14px 36px rgba(0, 0, 0, .35)';
+  const ALL_LAYOUTS = ['title', 'divider', 'bullets', 'two-column', 'practice', 'compare', 'big-number', 'quote', 'image', 'table', 'chart', 'gantt', 'numbered-cards', 'rules', 'cards', 'close'];
+  const TEMPLATES = [
+    { id: 'talk', name: 'Talk', pill: 'built-in · default', line: 'A talk to a room: a story in parts, with one point per slide.', type: SW_TYPE, fonts: 'Plus Jakarta Sans / Inter', art: {}, chrome: {},
+      look: 'SlideWorks type, 16px radius, accent dots, no title art.',
+      thumbs: ['title', 'bullets', 'quote', 'close'],
+      layouts: ['title', 'divider', 'bullets', 'two-column', 'compare', 'big-number', 'quote', 'image', 'chart', 'close'],
+      chromeText: 'Tracker, footer, progress bar. Deep dives off by default.',
+      outline: ['Title, with the one-line promise', '3–5 parts, each opening with a divider', '2–4 slides per part, one point each', 'Close on the single ask'] },
+    { id: 'workshop', name: 'Workshop', pill: 'built-in · deep dives on', line: 'A talk plus exercises the room does.', type: SW_TYPE, fonts: 'Plus Jakarta Sans / Inter', art: {}, chrome: {},
+      look: 'SlideWorks type, 16px radius, accent dots, no title art.',
+      thumbs: ['divider', 'practice', 'ddcards', 'rules'],
+      layouts: ['title', 'divider', 'bullets', 'two-column', 'practice', 'compare', 'quote', 'image', 'table', 'numbered-cards', 'rules', 'cards', 'close'],
+      chromeText: 'Tracker, footer, progress bar. Dividers list deep dives. Draft stamp on by default.',
+      outline: ['Title', 'Per part: a divider, then one practice slide per idea', 'Exercises as deep dives at the end of their part', 'Rules or takeaways', 'Close with the first step for Monday'] },
+    { id: 'update', name: 'Update', pill: 'built-in · no parts', line: 'A status or metrics report. Numbers first, then what is next.', type: SW_TYPE, fonts: 'Plus Jakarta Sans / Inter', art: {},
+      chrome: { tracker: false, total: 9, deck: 'Checkout, Jul–Oct', meta: 'Week 46' },
+      look: 'SlideWorks type, 16px radius, accent dots, no title art.',
+      thumbs: ['title-update', 'bign', 'chart', 'gantt'],
+      layouts: ['title', 'bullets', 'big-number', 'table', 'chart', 'gantt', 'numbered-cards', 'cards', 'close'],
+      chromeText: 'No tracker. The footer shows the date, not the author. Progress bar.',
+      outline: ['Title, with the headline number in the subtitle', 'The 1–3 numbers that moved, each explained', 'What is late or blocked, and why', 'Next steps with owners'] },
+    { id: 'northwind', key: 'northwind-kickoff', name: 'Northwind kickoff', pill: 'uploaded · draft', line: 'Imported from the Northwind kickoff deck (kickoff.html). Shared with anyone with the link.', uploaded: true,
+      type: AG_TYPE, fonts: 'Northwind Sans / Northwind Text', lockPalette: 'northwind',
+      art: { ornament: ['#14b8a6', '#0ea5e9', '#6366f1', '#f59e0b'], art: 'waves', logoLight: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgMzYiPjxwYXRoIGQ9Ik0xOCAyIEwyNCAxOCBMMTggMzQgTDEyIDE4IFoiIGZpbGw9IiMxNGI4YTYiLz48cGF0aCBkPSJNMiAxOCBMMTggMTMgTDM0IDE4IEwxOCAyMyBaIiBmaWxsPSIjMTAyOTJhIiBvcGFjaXR5PSIuNTUiLz48dGV4dCB4PSI0NCIgeT0iMjYiIGZvbnQtZmFtaWx5PSJJbnRlciwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMxMDI5MmEiIGxldHRlci1zcGFjaW5nPSItMC41Ij5ub3J0aHdpbmQ8L3RleHQ+PC9zdmc+', logoDark: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgMzYiPjxwYXRoIGQ9Ik0xOCAyIEwyNCAxOCBMMTggMzQgTDEyIDE4IFoiIGZpbGw9IiMxNGI4YTYiLz48cGF0aCBkPSJNMiAxOCBMMTggMTMgTDM0IDE4IEwxOCAyMyBaIiBmaWxsPSIjZmZmZmZmIiBvcGFjaXR5PSIuNTUiLz48dGV4dCB4PSI0NCIgeT0iMjYiIGZvbnQtZmFtaWx5PSJJbnRlciwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmZmZmYiIGxldHRlci1zcGFjaW5nPSItMC41Ij5ub3J0aHdpbmQ8L3RleHQ+PC9zdmc+', footerOnDark: true },
+      chrome: {},
+      look: 'Northwind Sans, 8px radius, wave title art, four brand dots, Northwind logo on every slide. Palette: Northwind harbour, locked.',
+      thumbs: ['title', 'divider', 'practice', 'ddcards'],
+      layouts: ['title', 'divider', 'bullets', 'two-column', 'practice', 'compare', 'quote', 'image', 'table', 'numbered-cards', 'rules', 'cards', 'close'],
+      chromeText: 'Tracker, footer with logo on every slide including dark ones, progress bar, deep dives.',
+      outline: ['Title with draft flag', 'Seven parts, each opening with a divider that lists its deep dives', 'One practice slide per idea, deep dives after', 'Takeaways, then close'] },
+  ];
+  const TPL = Object.fromEntries(TEMPLATES.map(t => [t.id, t]));
+
+  /* Sanzo Wada data: mattdesl/dictionary-of-colour-combinations (MIT) */
+  const WADA_COLOURS = [["Hermosa Pink", "#f9c1ce"],["Corinthian Pink", "#f8b6ba"],["Cameo Pink", "#e0b3b6"],["Fawn", "#d1b0a7"],["Light Brown Drab", "#b59392"],["Coral Red", "#f58e84"],["Fresh Color", "#f6917e"],["Grenadine Pink", "#f48067"],["Eosine Pink", "#f37f94"],["Spinel Red", "#f27291"],["Old Rose", "#d46d7a"],["Eugenia Red | A", "#e2625e"],["Eugenia Red | B", "#da525d"],["Raw Sienna", "#bb7125"],["Vinaceous Tawny", "#c56127"],["Jasper Red", "#eb5324"],["Spectrum Red", "#e31f26"],["Red Orange", "#dd4027"],["Etruscan Red", "#c55347"],["Burnt Sienna", "#ae5224"],["Ochre Red", "#ab544d"],["Scarlet", "#cb2f43"],["Carmine", "#cc1236"],["Indian Lake", "#c53c69"],["Rosolanc Purple", "#b73f74"],["Pomegranite Purple", "#b71f57"],["Hydrangea Red", "#a94151"],["Brick Red", "#a84222"],["Carmine Red", "#a62c37"],["Pompeian Red", "#ab2439"],["Red", "#a72144"],["Brown", "#7c4226"],["Hay's Russet", "#793327"],["Vandyke Red", "#82241f"],["Pansy Purple", "#7d133a"],["Pale Burnt Lake", "#802626"],["Violet Red", "#642d5e"],["Vistoris Lake", "#6d4145"],["Sulpher Yellow", "#f5ecc2"],["Pale Lemon Yellow", "#ffefae"],["Naples Yellow", "#fbe6a0"],["Ivory Buff", "#ebd3a2"],["Seashell Pink", "#fdd4bd"],["Light Pinkish Cinnamon", "#fcc79b"],["Pinkish Cinnamon", "#eeb480"],["Cinnamon Buff", "#fdc57e"],["Cream Yellow", "#fdbf68"],["Golden Yellow", "#f3a257"],["Vinaceous Cinnamon", "#eea78c"],["Ochraceous Salmon", "#d8a37b"],["Isabella Color", "#c5a56e"],["Maple", "#c59f6b"],["Olive Buff", "#c1c494"],["Ecru", "#c2ae93"],["Yellow", "#fff200"],["Lemon Yellow", "#f8ed43"],["Apricot Yellow", "#ffdd00"],["Pyrite Yellow", "#cab356"],["Olive Ocher", "#d6b43e"],["Yellow Ocher", "#e2b540"],["Orange Yellow", "#fcb315"],["Yellow Orange", "#f99d1b"],["Apricot Orange", "#f68c50"],["Orange", "#f37420"],["Peach Red", "#f15a30"],["English Red", "#d96629"],["Cinnamon Rufous", "#c27544"],["Orange Rufous", "#c16b27"],["Sulphine Yellow", "#c19f2c"],["Khaki", "#bc892b"],["Citron Yellow", "#b2b73e"],["Citrine", "#b09f36"],["Buffy Citrine", "#96874d"],["Dark Citrine", "#8b835b"],["Light Grayish Olive", "#848061"],["Krongbergs Green", "#84875e"],["Olive", "#837e31"],["Orange Citrine", "#986f2d"],["Sudan Brown", "#a36752"],["Olive Green", "#6b7140"],["Light Brownish Olive", "#806e4b"],["Deep Grayish Olive", "#635a3a"],["Pale Raw Umber", "#71502f"],["Sepia", "#644b1e"],["Madder Brown", "#762c19"],["Mars Brown Tobacco", "#653514"],["Vandyke Brown", "#4b3317"],["Turquoise Green", "#b5decc"],["Glaucous Green", "#b4cdc2"],["Dark Greenish Glaucous", "#b7c2a9"],["Yellow Green", "#afd472"],["Light Green Yellow", "#c7d14f"],["Night Green", "#87c540"],["Olive Yellow", "#a6a159"],["Artemesia Green", "#709390"],["Andover Green", "#6d7e77"],["Rainette Green", "#8fa071"],["Chromium Green", "#719470"],["Pistachio Green", "#648f7b"],["Sea Green", "#00b49b"],["Benzol Green", "#00978d"],["Light Porcelain Green", "#00908a"],["Green", "#489b6e"],["Dull Viridian Green", "#009465"],["Oil Green", "#819238"],["Diamine Green", "#1a7444"],["Cossack Green", "#437742"],["Lincoln Green", "#555832"],["Blackish Olive", "#42533e"],["Deep Slate Olive", "#253122"],["Nile Blue", "#bce4e5"],["Pale King's Blue", "#a7d4e4"],["Light Glaucous Blue", "#a5c8d1"],["Salvia Blue", "#97acc8"],["Cobalt Green", "#96d1aa"],["Calamine BLue", "#78cdd0"],["Venice Green", "#62c6bf"],["Cerulian Blue", "#0093a5"],["Peacock Blue", "#00939b"],["Green Blue", "#099197"],["Olympic Blue", "#5a82b3"],["Blue", "#006eb8"],["Antwarp Blue", "#007190"],["Helvetia Blue", "#005b8d"],["Dark Medici Blue", "#547076"],["Dusky Green", "#004f46"],["Deep Lyons Blue", "#1c4286"],["Violet Blue", "#40456a"],["Vandar Poel's Blue", "#064f6e"],["Dark Tyrian Blue", "#12354e"],["Dull Violet Black", "#1e0e3f"],["Deep Indigo", "#051230"],["Deep Slate Green", "#112f2c"],["Grayish Lavender - A", "#b5b1d8"],["Grayish Lavender - B", "#c0a9b3"],["Laelia Pink", "#ca92a8"],["Lilac", "#b984af"],["Eupatorium Purple", "#bf5892"],["Light Mauve", "#9a72aa"],["Aconite Violet", "#a36aa5"],["Dull Blue Violet", "#80719e"],["Dark Soft Violet", "#66629c"],["Blue Violet", "#6450a1"],["Purple Drab", "#84565b"],["Deep Violet / Plumbeous", "#70727c"],["Veronia Purple", "#8c4c62"],["Dark Slate Purple", "#704357"],["Taupe Brown", "#7a4456"],["Violet Carmine", "#713b4c"],["Violet", "#4f4086"],["Red Violet", "#59256a"],["Cotinga Purple", "#501345"],["Dusky Madder Violet", "#4e1d4c"],["White", "#ffffff"],["Neutral Gray", "#b6bfc1"],["Mineral Gray", "#a2b0ad"],["Warm Gray", "#a1a39a"],["Slate Color", "#34454c"],["Black", "#111314"]];
+  const WADA_COMBOS = {1:[65, 117],2:[61, 129],3:[13, 39],4:[50, 150],5:[106, 128],6:[7, 131],7:[63, 88],8:[66, 133],9:[36, 140],10:[66, 73],11:[41, 155],12:[50, 119],13:[13, 145],14:[9, 40],15:[100, 133],16:[33, 111],17:[12, 99],18:[3, 152],19:[85, 92],20:[115, 135],21:[7, 99],22:[54, 126],23:[45, 138],24:[83, 145],25:[18, 110],26:[47, 82],27:[1, 157],28:[84, 131],29:[75, 113],30:[29, 155],31:[17, 39],32:[49, 92],33:[13, 157],34:[8, 154],35:[4, 28],36:[68, 87],37:[27, 150],38:[105, 126],39:[22, 123],40:[14, 70],41:[73, 115],42:[59, 149],43:[1, 139],44:[101, 120],45:[42, 55],46:[63, 158],47:[18, 134],48:[24, 123],49:[111, 121],50:[41, 152],51:[28, 121],52:[38, 158],53:[61, 152],54:[100, 112],55:[10, 153],56:[134, 149],57:[147, 157],58:[32, 99],59:[8, 71],60:[39, 129],61:[91, 151],62:[54, 158],63:[37, 117],64:[139, 141],65:[68, 115],66:[58, 79],67:[120, 129],68:[4, 54],69:[156, 158],70:[13, 107],71:[29, 49],72:[38, 111],73:[82, 96],74:[87, 119],75:[111, 127],76:[39, 156],77:[12, 128],78:[44, 116],79:[84, 119],80:[38, 138],81:[47, 156],82:[32, 152],83:[52, 127],84:[42, 132],85:[14, 122],86:[13, 99],87:[1, 70],88:[42, 121],89:[61, 127],90:[8, 139],91:[37, 67],92:[5, 100],93:[71, 112],94:[41, 125],95:[32, 130],96:[59, 76],97:[1, 18],98:[84, 127],99:[39, 117],100:[72, 140],101:[2, 126],102:[41, 67],103:[66, 152],104:[28, 38],105:[2, 97],106:[122, 130],107:[56, 74],108:[8, 27],109:[39, 108],110:[31, 86],111:[39, 90],112:[7, 158],113:[42, 86],114:[60, 122],115:[40, 64],116:[2, 142],117:[22, 158],118:[59, 86],119:[112, 129],120:[2, 29],121:[31, 49, 107],122:[22, 46, 100],123:[5, 55, 147],124:[35, 59, 93],125:[3, 117, 127],126:[41, 59, 126],127:[45, 98, 141],128:[1, 116, 138],129:[56, 69, 113],130:[13, 28, 149],131:[13, 65, 118],132:[38, 47, 71],133:[33, 71, 99],134:[8, 138, 150],135:[38, 106, 113],136:[21, 103, 150],137:[18, 45, 98],138:[47, 55, 116],139:[113, 131, 154],140:[47, 122, 157],141:[63, 90, 129],142:[26, 68, 113],143:[121, 136, 156],144:[24, 63, 158],145:[31, 70, 130],146:[69, 81, 105],147:[9, 33, 87],148:[58, 60, 117],149:[58, 63, 132],150:[42, 70, 88],151:[38, 61, 128],152:[18, 32, 112],153:[8, 60, 70],154:[22, 54, 121],155:[15, 100, 131],156:[58, 114, 149],157:[34, 58, 120],158:[55, 66, 92],159:[69, 115, 133],160:[68, 82, 124],161:[31, 44, 123],162:[10, 96, 136],163:[56, 87, 122],164:[17, 60, 149],165:[2, 9, 37],166:[7, 40, 132],167:[53, 111, 128],168:[55, 128, 145],169:[1, 39, 156],170:[24, 60, 150],171:[35, 61, 88],172:[66, 122, 150],173:[55, 84, 87],174:[1, 134, 147],175:[44, 52, 142],176:[0, 42, 115],177:[35, 72, 133],178:[41, 112, 119],179:[17, 47, 126],180:[45, 138, 154],181:[28, 149, 151],182:[13, 86, 131],183:[144, 145, 150],184:[9, 41, 74],185:[4, 18, 39],186:[32, 49, 121],187:[123, 134, 139],188:[96, 113, 114],189:[55, 109, 116],190:[41, 65, 158],191:[4, 59, 121],192:[46, 86, 144],193:[7, 40, 101],194:[15, 42, 120],195:[9, 39, 154],196:[70, 111, 142],197:[8, 141, 154],198:[19, 56, 102],199:[20, 80, 126],200:[28, 52, 97],201:[7, 76, 114],202:[87, 114, 157],203:[39, 48, 107],204:[24, 66, 112],205:[35, 48, 149],206:[1, 47, 66],207:[78, 88, 158],208:[38, 119, 122],209:[41, 61, 113],210:[45, 55, 107],211:[62, 93, 131],212:[29, 77, 113],213:[48, 56, 111],214:[41, 78, 149],215:[46, 121, 137],216:[15, 102, 158],217:[35, 49, 105],218:[123, 133, 144],219:[15, 97, 125],220:[25, 49, 139],221:[28, 154, 158],222:[59, 61, 67],223:[4, 49, 87],224:[9, 124, 147],225:[22, 125, 146],226:[37, 46, 149],227:[0, 112, 117],228:[28, 39, 154],229:[47, 109, 154],230:[7, 87, 114],231:[2, 32, 120],232:[22, 44, 131],233:[28, 72, 127],234:[45, 82, 111],235:[41, 61, 134],236:[69, 126, 143],237:[28, 84, 113],238:[49, 151, 156],239:[4, 57, 88],240:[6, 54, 117],241:[17, 39, 50, 124],242:[8, 19, 105, 158],243:[13, 41, 79, 157],244:[4, 14, 95, 122],245:[28, 104, 129, 157],246:[1, 27, 38, 45],247:[13, 56, 100, 126],248:[8, 69, 133, 146],249:[32, 53, 58, 124],250:[57, 64, 99, 110],251:[30, 54, 105, 157],252:[12, 13, 68, 119],253:[55, 62, 151, 157],254:[1, 38, 76, 135],255:[13, 57, 115, 158],256:[48, 63, 103, 158],257:[16, 60, 121, 139],258:[35, 44, 76, 122],259:[55, 119, 123, 156],260:[10, 48, 88, 99],261:[30, 39, 115, 156],262:[12, 41, 71, 106],263:[19, 44, 87, 157],264:[1, 17, 89, 117],265:[10, 56, 93, 130],266:[16, 41, 96, 100],267:[46, 61, 100, 121],268:[4, 13, 109, 110],269:[13, 35, 139, 158],270:[12, 38, 79, 106],271:[25, 114, 119, 132],272:[39, 63, 87, 113],273:[0, 34, 78, 154],274:[64, 73, 120, 138],275:[18, 53, 84, 147],276:[8, 42, 90, 158],277:[9, 24, 76, 130],278:[46, 58, 106, 125],279:[13, 48, 53, 129],280:[12, 107, 135, 147],281:[39, 100, 114, 122],282:[12, 51, 114, 136],283:[20, 35, 97, 116],284:[11, 56, 99, 125],285:[4, 19, 64, 87],286:[19, 60, 118, 127],287:[8, 57, 111, 115],288:[61, 83, 147, 158],289:[55, 91, 127, 130],290:[37, 39, 107, 114],291:[91, 99, 114, 115],292:[39, 44, 50, 53],293:[13, 87, 94, 102],294:[38, 46, 106, 113],295:[46, 54, 121, 130],296:[38, 49, 82, 157],297:[19, 61, 79, 127],298:[13, 55, 64, 158],299:[23, 48, 104, 122],300:[7, 46, 87, 115],301:[16, 41, 96, 139],302:[46, 53, 110, 122],303:[40, 64, 109, 154],304:[32, 46, 73, 100],305:[44, 56, 70, 87],306:[55, 100, 103, 110],307:[22, 133, 139, 151],308:[3, 21, 65, 114],309:[47, 62, 127, 128],310:[38, 44, 76, 109],311:[29, 46, 89, 91],312:[19, 61, 94, 123],313:[22, 54, 105, 158],314:[8, 32, 126, 152],315:[7, 38, 47, 137],316:[33, 103, 149, 150],317:[43, 53, 55, 87],318:[80, 108, 125, 132],319:[13, 56, 61, 106],320:[5, 38, 104, 112],321:[4, 38, 109, 113],322:[16, 27, 137, 142],323:[45, 70, 84, 158],324:[29, 120, 139, 154],325:[12, 40, 59, 132],326:[38, 64, 90, 92],327:[8, 13, 53, 134],328:[27, 62, 86, 101],329:[46, 134, 151, 157],330:[52, 110, 113, 119],331:[23, 130, 138, 149],332:[5, 21, 109, 125],333:[19, 55, 114, 121],334:[42, 76, 90, 122],335:[33, 61, 149, 157],336:[8, 32, 39, 108],337:[37, 135, 148, 158],338:[28, 60, 125, 134],339:[49, 65, 112, 127],340:[64, 99, 154, 158],341:[7, 106, 109, 112],342:[1, 46, 77, 109],343:[19, 41, 81, 128],344:[45, 126, 139, 158],345:[32, 110, 116, 142],346:[24, 87, 91, 95],347:[93, 99, 123, 136],348:[52, 106, 109, 151]};
+  const COMBOS = Object.entries(WADA_COMBOS).map(([k, idx]) => ({ id: 'wada-' + k, no: +k, cols: idx.map(i => WADA_COLOURS[i][1]), names: idx.map(i => WADA_COLOURS[i][0]) }));
+  const COMBO = Object.fromEntries(COMBOS.map(c => [c.id, c]));
+
+  /* ------------------------------------------------------------------ colour maths */
+  const hex2rgb = h => { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+  const rgb2hex = c => '#' + c.map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+  const mix = (a, b, t) => { const A = hex2rgb(a), B = hex2rgb(b); return rgb2hex(A.map((v, i) => v + (B[i] - v) * t)); };
+  const lum = h => { const [r, g, b] = hex2rgb(h).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b; };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+  const hsl = h => { const [r, g, b] = hex2rgb(h).map(v => v / 255); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; let H = 0;
+    if (d) { H = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; H *= 60; if (H < 0) H += 360; }
+    const L = (mx + mn) / 2; return { H, S: d ? d / (1 - Math.abs(2 * L - 1)) : 0, L }; };
+  const chroma = h => { const { S, L } = hsl(h); return S * (1 - Math.abs(2 * L - 1)); };
+  const hueDist = (a, b) => { const d = Math.abs(hsl(a).H - hsl(b).H) % 360; return Math.min(d, 360 - d); };
+  function push(c, against, target, toward) { let t = 0, x = c; while (ratio(x, against) < target && t < 1) { t = Math.min(1, t + .03); x = mix(c, toward, t); } return { hex: x, t }; }
+  const pct = t => Math.round(t * 100) + '%';
+
+  /* A Wada combination → a palette. Roles (positive, negative, caution, deep dive) stay Cobalt's. */
+  function wadaPalette(cols) {
+    const base = PALETTES.cobalt.c;
+    const T = { ...base }; const map = []; const skipped = [];
+    const byL = [...cols].sort((a, b) => lum(a) - lum(b));
+    const darkest = byL[0], lightest = byL[byL.length - 1];
+    const clashOf = c => chroma(c) > .22 ? (hueDist(c, base['bad']) < 22 ? 'negative' : hueDist(c, base['ok']) < 22 ? 'positive' : null) : null;
+    const ranked = [...cols].sort((a, b) => chroma(b) - chroma(a));
+    let acc = ranked.find(c => !clashOf(c));
+    ranked.forEach(c => { if (clashOf(c) && acc && chroma(c) > chroma(acc)) skipped.push([c, clashOf(c)]); });
+    const clash = acc ? null : clashOf(ranked[0]);
+    if (!acc) acc = ranked[0];
+    const n = push(darkest, '#ffffff', 13, '#05060a');
+    T['night'] = n.hex; map.push(['Dark slides', 'night', darkest, n.hex, n.t ? 'darkened ' + pct(n.t) + ' for 13:1 under white text' : 'as printed']);
+    T['paper'] = mix(lightest, '#ffffff', lum(lightest) > .75 ? .55 : .86);
+    map.push(['Paper', 'paper', lightest, T['paper'], 'lightest colour, tinted toward white']);
+    T['card'] = '#ffffff'; T['tint'] = mix(lightest, '#ffffff', .7); T['grid'] = mix(T['paper'], T['night'], .1);
+    T['ink'] = push(mix(T['night'], '#000000', .25), T['paper'], 12, '#000000').hex;
+    T['muted'] = push(mix(T['ink'], T['paper'], .42), T['paper'], 4.6, T['ink']).hex;
+    const a = push(acc, T['paper'], 3.1, '#000000');
+    T['acc'] = a.hex; map.push(['Accent', 'acc', acc, a.hex, a.t ? 'darkened ' + pct(a.t) + ' for 3:1 on paper' : 'as printed']);
+    T['acc-ink'] = push(mix(T['acc'], '#000000', .3), '#ffffff', 7, '#000000').hex;
+    T['acc-soft'] = mix(T['acc'], T['paper'], .87); T['acc-past'] = mix(T['acc'], T['paper'], .6);
+    const others = cols.filter(c => c !== acc && c !== darkest);
+    const sec = others.sort((x, y) => chroma(y) - chroma(x))[0] || acc;
+    const g = push(sec, T['night'], 5, '#ffffff');
+    T['acc-glow'] = g.hex; map.push(['Accent on dark slides', 'acc-glow', sec, g.hex, g.t ? 'lightened ' + pct(g.t) + ' for 5:1 on night' : 'as printed']);
+    T['num-1'] = mix(g.hex, '#ffffff', .35); T['num-2'] = g.hex; T['glow'] = hex2rgb(sec).join(', ');
+    T['night-2'] = mix('#ffffff', T['night'], .2); T['night-muted'] = mix('#ffffff', T['night'], .42); T['night-line'] = mix('#ffffff', T['night'], .78);
+    if (ratio('#ffffff', T['acc']) >= 4.5) { T['on-acc'] = '#ffffff'; T['p-acc'] = T['acc']; map.push(['Accent panel', 'p-acc', acc, T['acc'], 'white text passes as is']); }
+    else if (ratio(T['ink'], T['acc']) >= 4.5) { T['on-acc'] = T['ink']; T['p-acc'] = T['acc']; map.push(['Accent panel', 'p-acc', acc, T['acc'], 'dark text on it, not white']); }
+    else { const pa = push(T['acc'], '#ffffff', 4.6, '#000000'); T['on-acc'] = '#ffffff'; T['p-acc'] = pa.hex; map.push(['Accent panel', 'p-acc', acc, pa.hex, 'darkened ' + pct(pa.t) + ' for white text 4.5:1']); }
+    T['p-acc-ink'] = T['on-acc']; T['p-inv'] = T['night']; T['p-inv-ink'] = '#ffffff';
+    return { c: T, map, clash, skipped, acc };
+  }
+  const wadaCache = {};
+  const wada = id => wadaCache[id] || (wadaCache[id] = wadaPalette(COMBO[id].cols));
+  const palName = id => PALETTES[id] ? PALETTES[id].name : id;
+  const effectivePalette = (tplId, palId) => TPL[tplId].lockPalette || palId || 'cobalt';
+  function colours(palId) { return PALETTES[palId] ? PALETTES[palId].c : COMBO[palId] ? wada(palId).c : PALETTES.cobalt.c; }
+  function tokensFor(tplId, palId) {
+    const c = colours(effectivePalette(tplId, palId));
+    const type = TPL[tplId].type;
+    return { ...c, ...type, lift: lum(c['paper']) < .2 ? DARK_LIFT : type.lift };
+  }
+
+  /* ------------------------------------------------------------------ slide rendering */
+  const POOL = {};
+  for (const el of document.getElementById('pool').content.children) POOL[el.dataset.id] = el;
+  const ro = new ResizeObserver(entries => {
+    for (const e of entries) e.target.style.setProperty('--s', e.contentRect.width / (e.target.classList.contains('share') ? 1200 : 1920));
+  });
+  const DEFAULTS = { template: 'workshop', palette: null, tracker: true, footer: true, logo: false, draft: false, progress: true, total: 16, deck: 'Ship smaller', meta: 'Sam Rivera' };
+  const PARTS = ['The cost', 'Slice it', 'Ship it', 'Make it stick'];
+  const WAVES = (() => { let g = ''; for (let i = 0; i < 15; i++) { const y0 = 600 + i * 30, amp = 16 + i * 2.4; let d = 'M0 ' + y0;
+    for (let x = 24; x <= 1920; x += 24) d += ' L' + x + ' ' + (y0 + Math.sin(x / 960 * 2 * Math.PI + i * .38) * amp).toFixed(1);
+    g += '<path d="' + d + '" style="opacity:' + (.06 + i * .022).toFixed(3) + '"/>'; }
+    return '<svg class="waves" viewBox="0 0 1920 1080" preserveAspectRatio="none" aria-hidden="true">' + g + '</svg>'; })();
+
+  function makeSlide(id, o = {}) {
+    const t = TPL[o.template || DEFAULTS.template];
+    const opt = { ...DEFAULTS, ...t.chrome, ...o };
+    const as = t.art;
+    const pal = effectivePalette(t.id, opt.palette);
+    const s = POOL[id].cloneNode(true);
+    for (const [k, v] of Object.entries(tokensFor(t.id, opt.palette))) s.style.setProperty('--t-' + k, v);
+    const dark = s.classList.contains('dark');
+    const n = +s.dataset.n;
+    const orn = COMBO[pal] ? COMBO[pal].cols : as.ornament;
+    const dots = s.querySelector('.dots');
+    if (orn && dots) dots.innerHTML = orn.map(c => '<i style="background:' + c + ';opacity:1"></i>').join('');
+    if (as.art === 'waves' && (s.classList.contains('title') || s.classList.contains('close'))) s.insertAdjacentHTML('afterbegin', WAVES);
+    if (!dark && opt.tracker && s.dataset.part != null) {
+      const p = +s.dataset.part;
+      const nav = document.createElement('div'); nav.className = 'snav';
+      nav.innerHTML = PARTS.map((x, i) => '<span class="' + (i < p ? 'past' : i === p ? 'on' : '') + '">' + x + '</span>').join('');
+      s.prepend(nav);
+    }
+    if (opt.footer && (!dark || as.footerOnDark)) {
+      const logo = as.logoLight ? '<img src="' + (dark ? as.logoDark : as.logoLight) + '" alt="">' : opt.logo ? '<span class="brand"><i></i>acme</span>' : '';
+      const f = document.createElement('div'); f.className = 'sfoot';
+      f.innerHTML = '<span><b>' + n + '</b> / ' + opt.total + ' · ' + opt.deck + ' · ' + opt.meta + '</span><span class="r">' +
+        (opt.draft && !dark ? '<span class="dchip">Draft</span>' : '') + logo + '</span>';
+      s.appendChild(f);
+    }
+    if (opt.progress) { const p = document.createElement('div'); p.className = 'sprog'; p.style.width = (n / opt.total * 100) + '%'; s.appendChild(p); }
+    if (opt.draft && s.classList.contains('title')) { const st = document.createElement('span'); st.className = 'stamp'; st.textContent = 'Draft'; s.appendChild(st); }
+    return s;
+  }
+  function put(frame, id, o) {
+    if (!frame._observed) { ro.observe(frame); frame._observed = true; }
+    frame.replaceChildren(makeSlide(id, o));
+  }
+  function newFrame(id, o) { const f = document.createElement('div'); f.className = 'frame'; put(f, id, o); return f; }
+  function makeCard(tplId, palId, o = {}) {
+    const as = TPL[tplId].art;
+    const pal = effectivePalette(tplId, palId);
+    const c = document.getElementById('cardTpl').content.firstElementChild.cloneNode(true);
+    for (const [k, v] of Object.entries(tokensFor(tplId, palId))) c.style.setProperty('--t-' + k, v);
+    if (as.art === 'waves') c.insertAdjacentHTML('afterbegin', WAVES);
+    if (as.logoDark) c.querySelector('.ft .mini').outerHTML = '<img src="' + as.logoDark + '" alt="" style="height:40px">';
+    else if (COMBO[pal]) c.querySelector('.ft .mini').innerHTML = COMBO[pal].cols.map(x => '<i style="background:' + x + ';box-shadow:none;opacity:1;width:36px;border-radius:50%"></i>').join('');
+    if (o.private) {
+      c.querySelector('.k').textContent = 'Private deck';
+      c.querySelector('h1').textContent = 'SlideWorks';
+      c.querySelector('p').textContent = 'Sign in to view this deck.';
+      c.querySelector('.ft span').innerHTML = '<b>&nbsp;</b>';
+    }
+    return c;
+  }
+  function putCard(frame, tplId, palId, o) {
+    if (!frame._observed) { ro.observe(frame); frame._observed = true; }
+    frame.replaceChildren(makeCard(tplId, palId, o));
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const swatchesOf = palId => { const c = colours(palId); return COMBO[palId] ? COMBO[palId].cols : [c['paper'], c['acc'], c['ok'], c['bad'], c['night']]; };
+  const bar = palId => swatchesOf(palId).map(x => '<i style="flex:1;height:16px;background:' + x + '"></i>').join('');
+
+  /* ------------------------------------------------------------------ 01 templates */
+  const tplCards = document.getElementById('tplCards');
+  for (const t of TEMPLATES) {
+    const c = document.createElement('div'); c.className = 'card tpl';
+    if (t.uploaded) c.style.borderStyle = 'dashed';
+    c.innerHTML = '<div class="tpl-h"><h3>' + t.name + '</h3><code>' + (t.key || t.id) + '</code><span class="pill ' + (t.uploaded ? 'warn' : 'grey') + '">' + t.pill + '</span></div><p>' + t.line + '</p>';
+    const th = document.createElement('div'); th.className = 'thumbs4';
+    for (const sid of t.thumbs) th.appendChild(newFrame(sid, { template: t.id, draft: t.id === 'northwind' }));
+    c.appendChild(th);
+    const dl = document.createElement('dl');
+    dl.innerHTML = '<dt>Look</dt><dd>' + t.look + '</dd>' +
+      '<dt>Layouts</dt><dd><div class="lchips">' + ALL_LAYOUTS.map(l => '<code class="' + (t.layouts.includes(l) ? '' : 'out') + '">' + l + '</code>').join('') + '</div></dd>' +
+      '<dt>Chrome</dt><dd>' + t.chromeText + '</dd>' +
+      '<dt>Outline</dt><dd><ol>' + t.outline.map(x => '<li>' + x + '</li>').join('') + '</ol></dd>';
+    c.appendChild(dl);
+    tplCards.appendChild(c);
+  }
+
+  /* ------------------------------------------------------------------ 02 built-in palettes */
+  const picker = document.getElementById('palPicker');
+  picker.innerHTML = PAL_IDS.map((id, i) => {
+    const p = PALETTES[id];
+    return '<label><input type="radio" name="palette" value="' + id + '"' + (i === 0 ? ' checked' : '') + '><span class="nm">' + p.name + '</span>' +
+      '<span class="sw5">' + swatchesOf(id).map(c => '<i style="background:' + c + '"></i>').join('') + '</span>' +
+      '<span class="fn">' + p.line + '</span></label>';
+  }).join('');
+  const gallery = document.getElementById('palGallery');
+  const galFrames = [['title', 'title'], ['practice', 'practice'], ['divider', 'divider'], ['table', 'table']].map(([id, layout]) => {
+    const c = document.createElement('div'); c.className = 'card g-item';
+    const f = document.createElement('div'); f.className = 'frame'; c.appendChild(f);
+    c.insertAdjacentHTML('beforeend', '<div class="cap"><code class="layout">' + layout + '</code></div>');
+    gallery.appendChild(c); return [f, id];
+  });
+  const GROUPS = [
+    ['Surfaces', '', ['paper', 'card', 'tint', 'grid']],
+    ['Text', '', ['ink', 'muted']],
+    ['Accent', '', ['acc', 'acc-ink', 'acc-soft', 'acc-glow', 'acc-past', 'on-acc']],
+    ['Roles', 'positive, negative, caution', ['ok', 'ok-soft', 'ok-ink', 'bad', 'bad-soft', 'bad-ink', 'warn', 'warn-soft', 'warn-ink']],
+    ['Deep dive', 'separate from accent', ['dd', 'dd-soft', 'dd-glow', 'on-dd']],
+    ['Dark slides', 'title, divider, close', ['night', 'night-ink', 'night-2', 'night-muted', 'night-line', 'num-1', 'num-2', 'stamp']],
+  ];
+  function renderTokens(id) {
+    const t = PALETTES[id].c;
+    document.getElementById('tokTitle').textContent = PALETTES[id].name + ' colour tokens';
+    const chip = k => '<span class="tchip"><i style="background:' + t[k] + '"></i>' + k + ' <span>' + t[k] + '</span></span>';
+    const pair = (bg, ink, label) => '<span class="tchip"><i style="background:' + t[bg] + ';color:' + t[ink] + '">Aa</i>' + label + ' <span>' + t[bg] + ' / ' + t[ink] + '</span></span>';
+    document.getElementById('tokenSheet').innerHTML = GROUPS.map(([g, sub, keys]) => '<div class="tok-row"><b>' + g + (sub ? '<small>' + sub + '</small>' : '') + '</b><div class="chips-t">' + keys.map(chip).join('') + '</div></div>').join('') +
+      '<div class="tok-row"><b>Panels<small>surface + ink pairs</small></b><div class="chips-t">' +
+      pair('p-acc', 'p-acc-ink', 'accent') + pair('p-ok', 'p-ok-ink', 'positive') + pair('p-bad', 'p-bad-ink', 'negative') + pair('p-inv', 'p-inv-ink', 'inverse') + '</div></div>' +
+      '<div class="tok-row"><b>Not here<small>comes from the template</small></b><div class="chips-t"><span class="tchip font">fonts</span><span class="tchip font">radius, shadow</span><span class="tchip font">title art, ornament, logo</span></div></div>';
+  }
+  function renderPalettes() {
+    const id = new FormData(picker).get('palette');
+    for (const [f, sid] of galFrames) put(f, sid, { palette: id });
+    renderTokens(id);
+  }
+  picker.addEventListener('change', renderPalettes);
+  renderPalettes();
+  const allFour = document.getElementById('allFour');
+  for (const id of PAL_IDS) {
+    const c = document.createElement('div'); c.className = 'card g-item';
+    c.appendChild(newFrame('practice', { palette: id }));
+    const t2 = newFrame('title', { palette: id }); t2.style.marginTop = '8px'; c.appendChild(t2);
+    c.insertAdjacentHTML('beforeend', '<div class="cap"><b>' + PALETTES[id].name + '</b> ' + PALETTES[id].line + '</div>');
+    allFour.appendChild(c);
+  }
+
+  /* ------------------------------------------------------------------ 03 Wada */
+  const palForm = document.getElementById('palForm');
+  const palList = document.getElementById('palList');
+  let selected = 'wada-331';
+  function renderPalList() {
+    const fd = new FormData(palForm);
+    const size = fd.get('size'), q = (fd.get('q') || '').toString().trim().toLowerCase();
+    const shown = COMBOS.filter(c => (size === 'all' || c.cols.length === +size) && (!q || c.names.some(n => n.toLowerCase().includes(q))));
+    document.getElementById('palCount').textContent = shown.length + ' of 348';
+    palList.innerHTML = shown.map(c => {
+      const P = wada(c.id);
+      return '<label class="pal-item" title="' + esc(c.names.join(' · ')) + '"><input type="radio" name="combo" value="' + c.id + '"' + (c.id === selected ? ' checked' : '') + '>' +
+        '<span class="bar">' + c.cols.map(x => '<i style="background:' + x + '"></i>').join('') + '</span>' +
+        '<span class="no"><span>No. ' + c.no + '</span>' + (P.clash ? '<span class="clash">⚠ ' + P.clash + '</span>' : '') + '</span></label>';
+    }).join('') || '<p class="note" style="padding:8px">No combination has a colour with that name.</p>';
+  }
+  function renderPalPreview() {
+    const c = COMBO[selected]; const P = wada(selected);
+    document.getElementById('palTitle').textContent = selected;
+    document.getElementById('palNames').textContent = c.names.join(' · ');
+    put(document.getElementById('palF1'), 'title', { palette: selected });
+    put(document.getElementById('palF2'), 'practice', { palette: selected });
+    put(document.getElementById('palF3'), 'panels', { palette: selected });
+    const nameOf = h => c.names[c.cols.indexOf(h)] || h;
+    const sw = h => '<span class="sw-dot" style="background:' + h + '"></span>';
+    document.getElementById('palMap').innerHTML = P.map.map(([role, tok, from, used, why]) =>
+      '<tr><td class="t">' + role + '<small><code>' + tok + '</code></small></td><td>' + sw(from) + esc(nameOf(from)) + ' <span class="mono" style="color:var(--faint)">' + from + '</span></td>' +
+      '<td>' + sw(used) + '<span class="mono">' + used + '</span></td><td class="' + (why === 'as printed' || why.startsWith('white text') ? 'asis' : why.startsWith('lightest') || why.startsWith('dark text') ? '' : 'adj') + '">' + why + '</td></tr>').join('') +
+      '<tr><td class="t">Positive, negative, caution, deep dive<small><code>ok</code> <code>bad</code> <code>warn</code> <code>dd</code></small></td><td colspan="2" class="note">the default role colours, never from the combination</td><td></td></tr>';
+    const w = document.getElementById('palWarn');
+    w.innerHTML = P.clash ? '<div class="warnbox">⚠ Every strong colour in this combination is close to the <b>' + P.clash + '</b> role, so "the point" and "' + (P.clash === 'negative' ? 'avoid' : 'what comes back') + '" will look alike. It is allowed, and the picker marks it.</div>'
+      : P.skipped.length ? '<div class="warnbox" style="background:var(--surface-2);color:var(--muted)">Skipped ' + P.skipped.map(([h, r]) => esc(nameOf(h)) + ' as the accent: too close to the ' + r + ' role').join('; ') + '. It still appears in the ornament.</div>' : '';
+  }
+  palForm.addEventListener('input', e => { if (e.target.name === 'combo') { selected = e.target.value; renderPalPreview(); } else renderPalList(); });
+  palForm.addEventListener('change', e => { if (e.target.name === 'size') renderPalList(); });
+  renderPalList(); renderPalPreview();
+
+  /* ------------------------------------------------------------------ 04 chrome */
+  const chromeFrame = document.getElementById('chromeFrame');
+  const legend = document.getElementById('chromeLegend');
+  function renderChrome() {
+    const o = {};
+    legend.querySelectorAll('input[data-opt]').forEach(i => { o[i.dataset.opt] = i.checked; });
+    put(chromeFrame, 'practice', o);
+    document.querySelectorAll('#chromeStage .mk[data-mk]').forEach(m => m.classList.toggle('off', !o[m.dataset.mk] || (!['footer', 'tracker', 'progress'].includes(m.dataset.mk) && !o.footer)));
+    put(document.getElementById('chromeTitle'), 'title', { draft: o.draft, progress: o.progress });
+  }
+  legend.addEventListener('change', renderChrome);
+  renderChrome();
+  put(document.getElementById('chromeUpdate'), 'bign', { template: 'update', meta: 'Week 46 · 14 Nov 2026' });
+
+  /* generic mounts */
+  document.querySelectorAll('[data-mount]').forEach(f => put(f, f.dataset.mount, { palette: f.dataset.palette || 'cobalt' }));
+
+  /* ------------------------------------------------------------------ 06 roles + contrast */
+  const ROLE_ROWS = [
+    ['Accent', ['acc', 'acc-ink', 'acc-soft'], 'The point. The word that matters in a headline.', 'headline <code>em</code>, Do column, bullets, tracker, progress', 'acc'],
+    ['Positive', ['ok', 'ok-soft', 'ok-ink'], '"What comes back", success mode, target.', 'practice, compare, badges, ship marker', 'ok'],
+    ['Negative', ['bad', 'bad-soft', 'bad-ink'], '"Avoid", failure mode, stopped.', 'practice, compare, badges, gantt', 'bad'],
+    ['Caution', ['warn', 'warn-soft', 'warn-ink'], 'Slipping, "OK but not great", draft.', 'gantt slips, badges, draft chip', 'warn'],
+    ['Deep dive', ['dd', 'dd-glow', 'on-dd'], 'Optional material. Never used for content.', 'top bar, pill, divider list', 'dd'],
+  ];
+  document.querySelector('#rolesTable tbody').innerHTML = ROLE_ROWS.map(([r, toks, mean, where, key]) =>
+    '<tr><td class="t">' + r + '</td><td>' + toks.map(k => '<code>' + k + '</code>').join(' ') + '</td><td>' + mean + '</td><td class="note">' + where + '</td><td><div class="dots4">' +
+    PAL_IDS.map(id => '<i title="' + PALETTES[id].name + ' ' + PALETTES[id].c[key] + '" style="background:' + PALETTES[id].c[key] + '"></i>').join('') + '</div></td></tr>').join('');
+  const panelsFour = document.getElementById('panelsFour');
+  for (const id of PAL_IDS) {
+    const c = document.createElement('div'); c.className = 'card g-item';
+    c.appendChild(newFrame('panels', { palette: id }));
+    c.insertAdjacentHTML('beforeend', '<div class="cap"><b>' + PALETTES[id].name + '</b> <code class="layout">cards</code> with <code>fill: solid</code></div>');
+    panelsFour.appendChild(c);
+  }
+  const PAIRS = [
+    ['Body text', 'ink', 'paper', 4.5], ['Secondary text', 'muted', 'paper', 4.5], ['Bold text in cards', 'acc-ink', 'card', 4.5],
+    ['Headline accent (large)', 'acc', 'paper', 3], ['Text on accent fill', 'on-acc', 'acc', 4.5], ['Deep-dive pill', 'on-dd', 'dd', 4.5],
+    ['Panel: accent', 'p-acc-ink', 'p-acc', 4.5], ['Panel: positive', 'p-ok-ink', 'p-ok', 4.5], ['Panel: negative', 'p-bad-ink', 'p-bad', 4.5], ['Panel: inverse', 'p-inv-ink', 'p-inv', 4.5],
+    ['Badge: positive', 'ok-ink', 'ok-soft', 4.5], ['Badge: negative', 'bad-ink', 'bad-soft', 4.5], ['Dark slide subtitle', 'night-2', 'night', 4.5],
+  ];
+  const cell = (fg, bg, b) => { const r = ratio(fg, bg); const ok = r >= b;
+    return '<td><span class="ratio ' + (ok ? 'pass' : 'fail') + '"><span class="sample" style="background:' + bg + ';color:' + fg + '">Aa</span>' + r.toFixed(1) + ':1 ' + (ok ? '✓' : '✗') + '</span></td>'; };
+  const ct = document.getElementById('contrastTable');
+  ct.tHead.innerHTML = '<tr><th>Pair</th><th>Tokens</th><th>Bar</th>' + CT_IDS.map(id => '<th>' + PALETTES[id].name + '</th>').join('') + '</tr>';
+  ct.tBodies[0].innerHTML = PAIRS.map(([label, fg, bg, b]) =>
+    '<tr><td class="t">' + label + '</td><td><code>' + fg + '</code> on <code>' + bg + '</code></td><td class="mono">' + b + ':1</td>' +
+    CT_IDS.map(id => cell(PALETTES[id].c[fg], PALETTES[id].c[bg], b)).join('') + '</tr>').join('') +
+    '<tr style="background:#fdf6f5"><td class="t">Without panel tokens<small>white on the plain positive colour</small></td><td><code>#ffffff</code> on <code>ok</code></td><td class="mono">4.5:1</td>' +
+    CT_IDS.map(id => cell('#ffffff', PALETTES[id].c['ok'], 4.5)).join('') + '</tr>';
+
+  /* ------------------------------------------------------------------ 07 your own template */
+  document.querySelectorAll('[data-yours]').forEach(f => put(f, f.dataset.yours, { template: 'northwind' }));
+  const ROWS = [
+    ['northwind', 'Imported from <code>kickoff.html</code> · you', '<span class="pill grey">Northwind harbour · locked</span>', '<span class="pill acc">Link</span>', 3, '<span class="pill warn">Draft · fonts missing</span>'],
+    ['talk', 'Built-in', 'any', '<span class="pill grey">Everyone</span>', 9, '<span class="pill ok">Published</span>'],
+    ['workshop', 'Built-in', 'any', '<span class="pill grey">Everyone</span>', 6, '<span class="pill ok">Published</span>'],
+    ['update', 'Built-in', 'any', '<span class="pill grey">Everyone</span>', 4, '<span class="pill ok">Published</span>'],
+  ];
+  const tr = document.getElementById('tplRows');
+  for (const [id, src, pal, share, decks, status] of ROWS) {
+    const t = TPL[id]; const row = document.createElement('tr');
+    row.innerHTML = '<td style="width:84px"></td><td class="t">' + t.name + '<small><code>' + (t.key || t.id) + '</code></small></td><td>' + src + '</td><td>' + t.fonts + '</td><td>' + pal + '</td><td>' + share + '</td><td style="text-align:right" class="mono">' + decks + '</td><td>' + status + '</td>';
+    const f = newFrame(id === 'update' ? 'title-update' : 'title', { template: id }); f.style.width = '72px'; f.style.borderRadius = '3px';
+    row.firstElementChild.appendChild(f); tr.appendChild(row);
+  }
+
+  /* ------------------------------------------------------------------ 08 new deck + look panel */
+  const FAVOURITES = ['wada-331', 'wada-252', 'wada-44', 'wada-12', 'wada-201', 'wada-260', 'wada-152'];
+  const palOptions = '<optgroup label="Built-in">' + PAL_IDS.map(id => '<option value="' + id + '">' + PALETTES[id].name + (id === 'cobalt' ? ' (default)' : '') + '</option>').join('') + '</optgroup>' +
+    '<optgroup label="Sanzo Wada">' + FAVOURITES.map(id => '<option value="' + id + '">' + id + ' · ' + COMBO[id].names.join(', ') + '</option>').join('') + '</optgroup>';
+  function palMessage(tplId, palId, el) {
+    const t = TPL[tplId];
+    if (t.lockPalette) { el.className = 'contrast-msg'; el.textContent = 'Locked by the ' + t.name + ' template: ' + PALETTES[t.lockPalette].name + '.'; return; }
+    if (COMBO[palId]) {
+      const P = wada(palId); const adj = P.map.filter(m => m[4] !== 'as printed' && !m[4].startsWith('lightest') && !m[4].startsWith('white text') && !m[4].startsWith('dark text')).length;
+      el.className = 'contrast-msg ' + (P.clash ? 'fail' : 'pass');
+      el.textContent = (P.clash ? '⚠ Accent looks like the ' + P.clash + ' role. ' : '✓ ') + adj + ' role' + (adj === 1 ? '' : 's') + ' adjusted for contrast. All pairs pass.';
+    } else { el.className = 'contrast-msg pass'; el.textContent = '✓ Built-in palette. All pairs pass.'; }
+  }
+
+  const nd = document.getElementById('newDeck');
+  document.getElementById('ndTemplates').innerHTML = TEMPLATES.map(t =>
+    '<label class="opt"><input type="radio" name="tpl" value="' + t.id + '"' + (t.id === 'workshop' ? ' checked' : '') + '><div><b>' + t.name + (t.uploaded ? ' <span class="pill warn" style="font-weight:500;display:inline-flex;margin-left:6px">uploaded</span>' : '') + '</b><span>' + t.line + '</span></div></label>').join('');
+  const ndPal = document.getElementById('ndPalette'); ndPal.innerHTML = palOptions; ndPal.value = 'cobalt';
+  const PREVIEW_SLIDE = { talk: 'bullets', workshop: 'practice', update: 'bign', northwind: 'practice' };
+  function renderNewDeck() {
+    const tpl = new FormData(nd).get('tpl'); const t = TPL[tpl];
+    ndPal.disabled = !!t.lockPalette;
+    const pal = effectivePalette(tpl, ndPal.value);
+    document.getElementById('ndPalBar').innerHTML = bar(pal);
+    palMessage(tpl, ndPal.value, document.getElementById('ndPalNote'));
+    put(document.getElementById('ndPrev1'), tpl === 'update' ? 'title-update' : 'title', { template: tpl, palette: ndPal.value, draft: tpl === 'workshop' });
+    put(document.getElementById('ndPrev2'), PREVIEW_SLIDE[tpl], { template: tpl, palette: ndPal.value, draft: tpl === 'workshop' });
+    document.getElementById('ndPrevNote').textContent = t.name + ' · ' + palName(pal) + '. ' + t.chromeText;
+  }
+  nd.addEventListener('change', renderNewDeck);
+  renderNewDeck();
+
+  const look = document.getElementById('lookPanel');
+  const lookTpl = document.getElementById('lookTemplate');
+  lookTpl.innerHTML = TEMPLATES.map(t => '<option value="' + t.id + '">' + t.name + (t.uploaded ? ' (uploaded)' : '') + '</option>').join('');
+  lookTpl.value = 'workshop';
+  const lookPal = document.getElementById('lookPalette'); lookPal.innerHTML = palOptions; lookPal.value = 'wada-331';
+  const LOOK_THUMBS = ['title', 'bullets', 'divider', 'practice', 'compare', 'ddcards', 'table', 'panels'];
+  const thumbsEl = document.getElementById('lookThumbs');
+  const lookFrames = LOOK_THUMBS.map(id => {
+    const w = document.createElement('div'); w.className = 'thumb';
+    const f = document.createElement('div'); f.className = 'frame'; w.appendChild(f);
+    const s = POOL[id];
+    w.insertAdjacentHTML('beforeend', '<div class="tc"><span class="mono">' + s.dataset.n + '</span><code>' + s.dataset.layout + '</code>' + (s.classList.contains('dd') ? '<span class="ddm">Deep dive</span>' : '') + '</div>');
+    thumbsEl.appendChild(w); return [f, id];
+  });
+  function renderLook() {
+    const fd = new FormData(look);
+    const tpl = lookTpl.value; const t = TPL[tpl];
+    lookPal.disabled = !!t.lockPalette;
+    const pal = effectivePalette(tpl, lookPal.value);
+    document.getElementById('lookTplNote').textContent = t.look;
+    document.getElementById('lookPalBar').innerHTML = bar(pal);
+    palMessage(tpl, lookPal.value, document.getElementById('lookMsg'));
+    const o = { template: tpl, palette: lookPal.value, logo: fd.get('logo') === 'on', draft: fd.get('draft') === 'on' };
+    for (const [f, id] of lookFrames) put(f, id, o);
+    putCard(document.getElementById('lookCard'), tpl, lookPal.value);
+  }
+  look.addEventListener('change', renderLook);
+  renderLook();
+
+  /* ------------------------------------------------------------------ 09 share cards */
+  document.querySelectorAll('[data-card]').forEach(f => {
+    const v = f.dataset.card;
+    if (v === 'private') putCard(f, 'workshop', 'cobalt', { private: true });
+    else { const [t, p] = v.split('|'); putCard(f, t, p); }
+  });
+
+  /* ------------------------------------------------------------------ questions */
+  document.querySelectorAll('form.q').forEach(form => {
+    const state = form.querySelector('.state');
+    form.addEventListener('change', () => { if (state.classList.contains('queued')) { state.textContent = 'Changed since queued. Queue again to replace it.'; state.classList.remove('queued'); } });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const key = form.dataset.lavishQuestion;
+      const title = form.querySelector('h3').textContent.trim();
+      const fd = new FormData(form);
+      const note = (fd.get('note') || '').toString().trim();
+      let answer; const data = { question: key };
+      if (key === 'palettes-shipped') {
+        const keep = ['cobalt', ...[...form.querySelectorAll('input[name=keep]:not(:disabled)')].filter(i => i.checked).map(i => i.value)];
+        answer = 'Ship: ' + keep.join(', '); data.palettes = keep;
+      } else { answer = (fd.get('a') || '').toString(); data.answer = answer; }
+      if (note) data.note = note;
+      const prompt = 'SW-2 mockups, ' + title + ' → ' + answer + (note ? '. Note: ' + note : '') + '. Record this as a decision on SW-2 and update the mockups if it changes them.';
+      if (window.lavish && window.lavish.queuePrompt) {
+        window.lavish.queuePrompt(prompt, { tag: 'choice', text: title + ': ' + answer, element: form, queueKey: key, data });
+        state.textContent = 'Queued. Press Send to agent in the Lavish bar.';
+      } else state.textContent = 'Lavish is not running. Use "Copy all answers" below.';
+      state.classList.add('queued');
+    });
+  });
+  document.getElementById('copyAll').addEventListener('click', async () => {
+    const out = [];
+    document.querySelectorAll('form.q').forEach(q => {
+      const lines = [];
+      q.querySelectorAll('input, textarea').forEach(el => {
+        if (el.matches('input[type=checkbox], input[type=radio]') && !el.checked) return;
+        const v = el.value.trim(); if (v) lines.push('  ' + (el.name || 'value') + ': ' + v);
+      });
+      if (lines.length) out.push(q.dataset.lavishQuestion + ':\n' + lines.join('\n'));
+    });
+    const status = document.getElementById('copyStatus');
+    try { await navigator.clipboard.writeText(out.join('\n\n')); status.textContent = 'Answers copied.'; }
+    catch { status.textContent = 'Clipboard unavailable.'; }
+  });
+})();
+</script>
+</body>
+</html>

@@ -5,6 +5,7 @@ Mockups and design decisions, with one folder per Feature.
 | Folder | Feature | Status |
 |---|---|---|
 | [`sw-1-foundation/`](sw-1-foundation/) | SW-1 Foundation: agent-built web decks over MCP | Mockups reviewed, decisions D3–D8 settled |
+| [`sw-2-templates-palettes/`](sw-2-templates-palettes/) | SW-2 Templates and palettes (also covers SW-15 Wada palettes and SW-50 uploaded templates) | Mockups reviewed, D1–D7 settled, D8–D9 open |
 
 ## SW-1 Foundation
 
@@ -31,3 +32,57 @@ Open [`sw-1-foundation/sw-1-mockups.html`](sw-1-foundation/sw-1-mockups.html) in
 - **D8. Blocks:** all 17 ship in SW-1: title, divider with journey, bullets, two-column, practice, compare, big-number, quote, image, table, chart, gantt, numbered-cards, rules, cards with chips and badges, callout, and close.
 
 Still open: whether to port the existing thin HTML deck engine or wrap an open-source slide library such as reveal.js or Slidev. A spike will decide.
+
+## SW-2 Templates and palettes
+
+Open [`sw-2-templates-palettes/sw-2-mockups.html`](sw-2-templates-palettes/sw-2-mockups.html) in a browser. The page is interactive:
+
+- The palette picker re-renders the sample deck.
+- The Sanzo Wada picker lists all 348 combinations and shows how each is mapped to roles.
+- The chrome toggles, the New deck dialog and the Look panel all work.
+
+The PNGs are screenshots of each section at 1300 px wide.
+
+The page also covers two Features that build on SW-2: SW-15 (Sanzo Wada palettes, section 03) and SW-50 (uploaded templates and deck import, section 07). The import example uses a made-up brand, Northwind. Brand templates are user content and never ship in this repo.
+
+| Screen | PNG |
+|---|---|
+| Scope: a template and a palette, and what ships where | [01-scope](sw-2-templates-palettes/png/sw-2-01-scope.png) |
+| Built-in templates (talk, workshop, update) and an uploaded one | [02-templates](sw-2-templates-palettes/png/sw-2-02-templates.png) |
+| Built-in palettes and their colour tokens | [03-palettes](sw-2-templates-palettes/png/sw-2-03-palettes.png) |
+| Sanzo Wada combinations as palettes (SW-15) | [04-wada-palettes](sw-2-templates-palettes/png/sw-2-04-wada-palettes.png) |
+| Template chrome: tracker, footer, logo, draft stamp, progress | [05-chrome](sw-2-templates-palettes/png/sw-2-05-chrome.png) |
+| Deep-dive slides | [06-deep-dives](sw-2-templates-palettes/png/sw-2-06-deep-dives.png) |
+| Colour roles, tone panels and the contrast check | [07-colour-roles](sw-2-templates-palettes/png/sw-2-07-colour-roles.png) |
+| Uploading a template and importing one from a deck (SW-50) | [08-your-own-template](sw-2-templates-palettes/png/sw-2-08-your-own-template.png) |
+| New deck dialog and the deck page's Look panel | [09-in-the-app](sw-2-templates-palettes/png/sw-2-09-in-the-app.png) |
+| Share card | [10-share-card](sw-2-templates-palettes/png/sw-2-10-share-card.png) |
+| The agent's side: MCP session and tools | [11-agent-mcp](sw-2-templates-palettes/png/sw-2-11-agent-mcp.png) |
+| Design questions and the answers given | [12-questions-answered](sw-2-templates-palettes/png/sw-2-12-questions-answered.png) |
+
+### Decisions (2026-11-16)
+
+- **D1. No themes:** a deck's look is a **template** plus a **palette**, and nothing else.
+  - The template holds layouts allowed, chrome defaults, outline, house style, fonts, radius and shadow, title art, ornament and logo. It can also hold its own palette, which it can lock.
+  - The palette holds every colour: surfaces, ink, the accent family, roles (positive, negative, caution, deep dive), dark slides, and panel surface and ink pairs.
+  - A template holds no colours, and a palette holds no fonts.
+- **D2. Built-in palettes:** Cobalt (the default, SW-1's D4 colours), Ember, Plum and Midnight. Each passes a contrast test that fails the build if any pair drops below its bar.
+- **D3. Changing colours:** a deck changes colour only by picking a palette. There is no free colour picker, so custom colours come through an uploaded template (SW-50).
+- **D4. Deep dives:** a per-slide `deep_dive` flag. Dividers list a part's deep dives automatically, and the notes start with "Deep dive. Skip if short of time."
+- **D5. Renderer:** the headless renderer moves from SW-3 into SW-2. `preview_deck` returns slide PNGs, and the share card comes from the same renderer. SW-3 keeps lint.
+- **D6. Measure:** the share of new decks that use a listed template and palette with no other override, counted from the activity log.
+- **D7. Three Features:** SW-2 ships the built-in templates and palettes. SW-15 adds the Sanzo Wada palettes, and SW-50 adds uploaded templates and deck import.
+
+Still open:
+
+- **D8:** what a template is. The recommendation is the structure, type, shape and art plus an optional palette, with no pre-made placeholder slides.
+- **D9:** switching after creation. The recommendation is that both can change at any time; slides with a layout outside the template still render, with a warning.
+
+Settled on the other Features:
+
+- **SW-15:** automatic role mapping with contrast fixes, and the ornament keeps the combination exactly as printed (D1). The data comes from mattdesl/dictionary-of-colour-combinations, MIT licence (D3).
+- **SW-50:**
+  - Uploaded templates may include custom layouts as HTML with typed slots, reviewed before publishing (D1).
+  - The routes in are an HTML importer plus `create_template` for agents (D2).
+  - Templates are shared the same way as decks (D3).
+
