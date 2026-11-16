@@ -4,12 +4,13 @@ using ModelContextProtocol.Protocol;
 
 namespace SlideWorks.WebApi.Infrastructure.Mcp;
 
-// Tightens the inputSchema the SDK generates for each tool, once at startup (McpSetup), so what an agent's model reads is
-// exactly what McpArgumentCheck enforces, since the check reads this same schema:
+// Tightens the inputSchema the SDK generates for a tool, so what an agent's model reads is exactly what McpArgumentCheck
+// enforces, since the check reads this same schema. McpToolSchemaTightening calls it once per tool for the app's lifetime.
 // - Every object schema that lists its properties gets additionalProperties: false: the arguments themselves and entries
 //   such as set_notes' notes items. A misspelt argument ("viewer", "positon") is then refused, not silently dropped.
-// - An argument the SDK leaves untyped (a JsonElement parameter, which is only ever the slots) is advertised as an
-//   object. Its fields stay open here: SlideValidator checks them against the layout.
+// - No argument's type is invented. An argument is an object only when the tool declares it one (slots is a JsonObject
+//   parameter, which the SDK advertises as {"type":"object"}), and its fields stay open: SlideValidator checks them
+//   against the layout. A schema with no type (any JSON, anyOf, enum, $ref) is left as it is, and so is the check.
 // - A list with a format (where [EmailAddress] on a list parameter puts it) moves the format onto its entries, where JSON
 //   Schema applies it, and its entries are no longer nullable: the generator marks list entries nullable whatever the
 //   C# annotation says.
@@ -20,16 +21,6 @@ public static class McpToolSchemas
         if (JsonNode.Parse(tool.InputSchema.GetRawText()) is not JsonObject schema)
         {
             return;
-        }
-        if (schema["properties"] is JsonObject arguments)
-        {
-            foreach (var (_, argument) in arguments)
-            {
-                if (argument is JsonObject untyped && !untyped.ContainsKey("type"))
-                {
-                    untyped["type"] = "object";
-                }
-            }
         }
         Close(schema);
         tool.InputSchema = JsonSerializer.SerializeToElement(schema);
