@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
 import { sampleDeck } from '../test-support/fixtures/screens';
+import { mountPlayer } from '../test-support/mountPlayer';
 import { stubApi } from '../test-support/stubApi';
 import { RevealPlayer } from './test-support/RevealPlayer';
 
@@ -42,7 +43,7 @@ test.beforeEach(async ({ page }) => {
 
 test('the active slide reveals its items one step at a time', async ({ mount, page }) => {
   await openAt(page, '#3.2');
-  await mount(<RevealPlayer deck={sampleDeck} />);
+  await mountPlayer(mount, page, <RevealPlayer deck={sampleDeck} />);
 
   await expect(item(page, 1)).toBeVisible();
   await expect(item(page, 2)).toBeVisible();
@@ -54,7 +55,7 @@ test('the active slide reveals its items one step at a time', async ({ mount, pa
 
 test('a passed stepped slide shows nothing and takes no focus', async ({ mount, page }) => {
   await openAt(page, '#3');
-  await mount(<RevealPlayer deck={sampleDeck} />);
+  await mountPlayer(mount, page, <RevealPlayer deck={sampleDeck} />);
   for (const at of ITEMS) {
     await page.keyboard.press('ArrowRight');
     await expect(item(page, at)).toBeVisible();
@@ -88,7 +89,7 @@ test('a passed stepped slide shows nothing and takes no focus', async ({ mount, 
 
 test('a stepped slide still to come shows nothing and takes no focus', async ({ mount, page }) => {
   await openAt(page, '#2');
-  await mount(<RevealPlayer deck={sampleDeck} />);
+  await mountPlayer(mount, page, <RevealPlayer deck={sampleDeck} />);
 
   await expect(page.getByTestId('player-slide-3')).toHaveAttribute('inert', '');
   for (const at of ITEMS) {
