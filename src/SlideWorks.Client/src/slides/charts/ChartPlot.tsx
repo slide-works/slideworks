@@ -16,7 +16,7 @@ const MARKER_FONT = 20;
 // Average glyph widths (in em) used to decide where labels go. They err wide,
 // so a label that is placed as fitting does fit.
 const DIGIT_EM = 0.62;
-const LABEL_EM = 0.7;
+const LABEL_EM = 0.85;
 const TILT = (35 * Math.PI) / 180;
 
 type ChartPlotProps = Pick<ChartSlots, 'kind' | 'xLabels' | 'series' | 'yUnit' | 'marker'> & {
@@ -43,13 +43,12 @@ export function ChartPlot({ kind, xLabels, series, yUnit, marker, width }: Chart
   );
   const straightSlot = (width - axisWidth - RIGHT) / count;
   const tilt = labelWidth > straightSlot - 12;
-  // A tilted first label reaches left of its slot's centre; the plot moves
-  // right until it clears the slide's edge.
+  // A tilted first label reaches left of its slot's centre by its length, and
+  // by its glyphs' height, turned 35°; the plot moves right until it clears
+  // the slide's edge.
+  const reach = labelWidth * Math.cos(TILT) + FONT * Math.sin(TILT) + 4;
   const left = tilt
-    ? Math.max(
-        axisWidth,
-        (labelWidth * Math.cos(TILT) - (width - RIGHT) / (2 * count) + 4) / (1 - 1 / (2 * count)),
-      )
+    ? Math.max(axisWidth, (reach - (width - RIGHT) / (2 * count)) / (1 - 1 / (2 * count)))
     : axisWidth;
   const slot = (width - left - RIGHT) / count;
   const bottom = PLOT_HEIGHT - (tilt ? labelWidth * Math.sin(TILT) + FONT + 16 : FONT + 24);

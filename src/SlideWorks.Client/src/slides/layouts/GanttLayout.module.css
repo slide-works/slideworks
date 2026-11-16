@@ -39,7 +39,8 @@
 }
 
 /* A bar: 72 px tall, its note in white 17 px bold uppercase. A long note on a
-   narrow bar stops at three lines with an ellipsis, so the bar keeps its height. */
+   narrow bar (or a ship marker) stops at three lines with an ellipsis, so the
+   row keeps its height. */
 .bar {
   display: flex;
   align-items: center;

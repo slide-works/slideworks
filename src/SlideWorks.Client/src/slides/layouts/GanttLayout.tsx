@@ -59,7 +59,7 @@ function Row({ row, line }: { row: GanttRow; line: number }) {
       </span>
       {status === 'ship' ? (
         <span data-testid="gantt-bar" data-status={status} className={styles.ship} style={place}>
-          ▲ {text}
+          <span className={styles.note}>▲ {text}</span>
         </span>
       ) : (
         <span data-testid="gantt-bar" data-status={status} className={styles.bar} style={place}>
