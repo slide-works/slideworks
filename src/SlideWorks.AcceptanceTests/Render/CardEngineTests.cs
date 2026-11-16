@@ -32,7 +32,6 @@ public class CardEngineTests
     [Test]
     public async Task Engine_CardIs1200x630()
     {
-        // red until SW-81
         var deck = await CreateLinkDeckAsync("cobalt");
 
         var card = await Cards.RenderCardAsync(deck, CancellationToken.None);
@@ -43,7 +42,6 @@ public class CardEngineTests
     [Test]
     public async Task Engine_DecksInDifferentPalettesGiveDifferentCards()
     {
-        // red until SW-81
         var cobalt = await Cards.RenderCardAsync(await CreateLinkDeckAsync("cobalt"), CancellationToken.None);
         var ember = await Cards.RenderCardAsync(await CreateLinkDeckAsync("ember"), CancellationToken.None);
 
@@ -53,7 +51,6 @@ public class CardEngineTests
     [Test]
     public async Task Engine_CardWithALogoRenders()
     {
-        // red until SW-81
         var deck = await CreateLinkDeckAsync("cobalt");
         await using (var agent = await ConnectAsync(TestUser.Sam))
         {
@@ -73,7 +70,6 @@ public class CardEngineTests
     [Test]
     public async Task Engine_GenericCardRenders()
     {
-        // red until SW-81
         var card = await Cards.RenderGenericCardAsync(CancellationToken.None);
 
         card.Key.ShouldBe(RenderKey.GENERIC);
@@ -94,7 +90,6 @@ public class CardEngineTests
     [Test]
     public async Task Engine_BrowserRestartsAfterItDies()
     {
-        // red until SW-81
         await using var browser = new RenderBrowser();
         using var engine = EngineWith(browser, RenderOptions.DEFAULT_TIMEOUT);
         var before = ChromiumBrowsers();
