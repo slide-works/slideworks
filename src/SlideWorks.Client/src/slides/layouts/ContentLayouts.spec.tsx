@@ -34,6 +34,19 @@ function render(slide: RenderableSlide, step = 0) {
 const GOOD = 'rgb(22, 163, 74)';
 const BAD = 'rgb(220, 38, 38)';
 
+// A palette token's computed colour inside an element, so an assertion names
+// the token rather than a colour.
+function tokenColour(page: Page, testId: string, key: string): Promise<string> {
+  return page.getByTestId(testId).evaluate((element, token) => {
+    const probe = document.createElement('span');
+    probe.style.color = `var(--sw-${token})`;
+    element.appendChild(probe);
+    const colour = getComputedStyle(probe).color;
+    probe.remove();
+    return colour;
+  }, key);
+}
+
 type Box = { left: number; top: number; right: number; bottom: number };
 
 // What the layout draws, in canvas px from the slide's top left: every run of
@@ -348,7 +361,11 @@ test('compare failure and success panels', async ({ mount, page }) => {
   await expect(failure).toHaveAttribute('data-tone', 'negative');
   await expect(failure).toHaveCSS('border-top-color', BAD);
   await expect(failure.getByTestId('compare-label')).toHaveText('Failure mode');
-  await expect(failure.getByTestId('compare-label')).toHaveCSS('color', BAD);
+  // The tag is text, so it takes the panel's ink, not the role colour (SW-72 D2).
+  await expect(failure.getByTestId('compare-label')).toHaveCSS(
+    'color',
+    await tokenColour(page, 'compare-failure', 'bad-ink'),
+  );
   await expect(failure.getByRole('heading', { level: 3 })).toHaveText('Slice by layer');
   await expect(failure.getByTestId('compare-sub')).toHaveCount(0);
   await expect(failure.getByTestId('compare-point').nth(0)).toHaveCSS('list-style-type', 'disc');
@@ -362,7 +379,10 @@ test('compare failure and success panels', async ({ mount, page }) => {
   await expect(success).toHaveAttribute('data-tone', 'positive');
   await expect(success).toHaveCSS('border-top-color', GOOD);
   await expect(success.getByTestId('compare-label')).toHaveText('Success mode');
-  await expect(success.getByTestId('compare-label')).toHaveCSS('color', GOOD);
+  await expect(success.getByTestId('compare-label')).toHaveCSS(
+    'color',
+    await tokenColour(page, 'compare-success', 'good-ink'),
+  );
   await expect(success.getByRole('heading', { level: 3 })).toHaveText('Slice by customer action');
   await expect(success.getByTestId('compare-point')).toHaveText([
     '"Save a card", then "pay with a saved card"',

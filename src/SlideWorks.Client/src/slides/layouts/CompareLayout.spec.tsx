@@ -143,7 +143,7 @@ for (const palette of ['cobalt', 'midnight']) {
         );
         await expect(panel.getByTestId('compare-label')).toHaveCSS(
           'color',
-          await computed(page, palette, edge),
+          await computed(page, palette, ink),
         );
         await expect(panel).toHaveCSS(
           'border-top-color',
