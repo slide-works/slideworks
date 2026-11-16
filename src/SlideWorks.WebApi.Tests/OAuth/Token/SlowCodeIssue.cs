@@ -22,7 +22,7 @@ public sealed class SlowCodeIssue(IAgentTokens inner) : IAgentTokens
 
     public Task<AgentTokenPair> IssueAsync(CodeGrant grant) => inner.IssueAsync(grant);
 
-    public async Task<AgentTokenPair> IssueForCodeAsync(string code, CodeGrant grant)
+    public async Task<AgentTokenPair?> IssueForCodeAsync(string code, CodeGrant grant)
     {
         await Task.Delay(DELAY);
         return await inner.IssueForCodeAsync(code, grant);

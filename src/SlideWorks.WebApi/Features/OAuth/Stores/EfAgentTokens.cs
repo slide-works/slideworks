@@ -19,8 +19,14 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
         return pair;
     }
 
-    public async Task<AgentTokenPair> IssueForCodeAsync(string code, CodeGrant grant)
+    // The caller's write transaction (TokenGrants) holds SQLite's write lock from the code's spend to here, so an admin's
+    // revoke lands either before this check or after these tokens exist, when RevokeAllForPresenterAsync ends them.
+    public async Task<AgentTokenPair?> IssueForCodeAsync(string code, CodeGrant grant)
     {
+        if (!await db.Users.AnyAsync(u => u.Id == grant.PresenterId && u.Access == UserAccess.Approved))
+        {
+            return null;
+        }
         var pair = AddPair(FamilyOf(code), grant.ClientId, grant.PresenterId, grant.Scope, grant.Resource);
         await db.SaveChangesAsync();
         return pair;

@@ -47,7 +47,9 @@ public class TokenGrants(AppDbContext db, IOAuthClients clients, IOAuthCodes cod
         }
         var pair = await tokens.IssueForCodeAsync(code, grant);
         await transaction.CommitAsync();
-        return View(pair);
+        return pair == null
+            ? throw Invalid("invalid_grant", "The person who approved this code can no longer use this server.")
+            : View(pair);
     }
 
     private async Task<TokenResponseView> RefreshAsync(TokenRequest request)
