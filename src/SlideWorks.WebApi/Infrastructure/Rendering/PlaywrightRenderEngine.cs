@@ -42,12 +42,14 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
     {
         var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
         deadline.CancelAfter(_options.Timeout);
-        var render = RenderInSlotAsync(deckId, deadline.Token);
+        var deadlineToken = deadline.Token;
+        var render = RenderInSlotAsync(deckId, deadlineToken);
         _ = render.ContinueWith(_ => deadline.Dispose(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
         var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        await using (deadline.Token.Register(() => stopped.TrySetResult()))
+        await using (deadlineToken.Register(() => stopped.TrySetResult()))
         {
-            if (await Task.WhenAny(render, stopped.Task) == render)
+            // A render cancelled by the deadline can finish before the deadline's own signal; it is still a timeout.
+            if (await Task.WhenAny(render, stopped.Task) == render && !(render.IsCanceled && deadlineToken.IsCancellationRequested))
             {
                 return await render;
             }
