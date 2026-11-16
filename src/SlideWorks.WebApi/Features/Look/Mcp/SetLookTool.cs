@@ -16,8 +16,8 @@ public sealed class SetLookTool
     public Task<CallToolResult> SetLook(
         LookCommands commands,
         [Description("The deck's id.")] string deck,
-        [Description("The template, as list_templates names it, such as talk, workshop or update.")] string? template = null,
-        [Description("The palette, as list_palettes names it, such as cobalt or ember.")] string? palette = null,
+        [Description("A template's name, as list_templates gives it.")] string? template = null,
+        [Description("A palette's name, as list_palettes gives it.")] string? palette = null,
         [Description("The logo: the id of a completed upload_image on this deck, or null to remove the logo.")] JsonElement? logo = null,
         [Description("true to mark the deck as a draft, false to clear the mark.")] bool? draft = null,
         [Description("Chrome overrides, any of { \"tracker\": true|false, \"footer\": \"author\"|\"date\"|\"off\", \"progress\": true|false }. A key set to null goes back to the template's default; a key left out keeps its current value.")] JsonElement? chrome = null)

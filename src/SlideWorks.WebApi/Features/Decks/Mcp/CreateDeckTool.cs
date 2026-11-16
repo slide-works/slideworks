@@ -22,8 +22,8 @@ public sealed class CreateDeckTool
         [Description("An optional subtitle, up to 200 characters.")] string? subtitle = null,
         [Description("The presenter's name for the footer, up to 80 characters.")] string? author = null,
         [Description("Optional part names, up to 8 of 40 characters each. Each slide's part is a 1-based index into this list; the part tracker, dividers and footer show them.")] string[]? parts = null,
-        [Description("The template, as list_templates names it, such as talk, workshop or update. Defaults to talk. It sets the layouts, chrome, outline and house style.")] string? template = null,
-        [Description("The palette, as list_palettes names it, such as cobalt or ember. Defaults to the template's own palette, else cobalt.")] string? palette = null)
+        [Description("A template's name, as list_templates gives it. Left out, the default template (is_default in list_templates). It sets the layouts, chrome, outline and house style.")] string? template = null,
+        [Description("A palette's name, as list_palettes gives it. Left out, the template's own palette, else the default palette (is_default in list_palettes).")] string? palette = null)
         => McpToolErrors.Run(async () =>
         {
             var deck = await commands.CreateAsync(new CreateDeckRequest(title, subtitle, author, parts, template, palette), NAME);
