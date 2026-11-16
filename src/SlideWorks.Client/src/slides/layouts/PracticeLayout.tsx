@@ -50,7 +50,7 @@ export function PracticeLayout({ slots }: LayoutProps<'practice'>) {
           ) : null}
           {callout !== undefined ? (
             <div className={styles.callout}>
-              <Callout tone={callout.tone} text={callout.text} />
+              <Callout {...callout} />
             </div>
           ) : null}
         </div>
