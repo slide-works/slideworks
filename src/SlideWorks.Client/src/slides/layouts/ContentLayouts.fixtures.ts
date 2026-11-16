@@ -15,7 +15,8 @@ export type FitFixture = {
   [L in ContentLayout]: { layout: L; estimate: number; grow: string[]; slots: Slots[L] };
 }[ContentLayout];
 
-// The file also holds the card layouts' fixtures (CardLayouts.fixtures.ts).
+// The file also holds the card and data layouts' fixtures (CardLayouts.fixtures.ts
+// and DataLayouts.fixtures.ts).
 export const FIT_FIXTURES = Object.fromEntries(
   Object.entries(fitFixturesJson).filter(([, fixture]) =>
     (CONTENT_LAYOUTS as readonly string[]).includes(fixture.layout),

@@ -4,13 +4,14 @@ using SlideWorks.Core.Slides;
 
 namespace SlideWorks.UnitTest.Slides;
 
-// src/contracts/fit-fixtures.json holds the most text the validator accepts for each content layout
-// case. The client's CT fit tests render the same fixtures and check they stay on the slide, so this
-// test is what ties those renders to the validator: each fixture is accepted, and one more word in any
-// of its "grow" fields (JSON pointers into slots) is refused. "refusedBy" says what refuses it: "fit",
-// the layout's fit rule (LayoutRules and SlideFit), or "length", a field's character limit, for the
-// layouts with no fit rule (numbered-cards, cards) and so filled to every limit. A fixture with
-// "accepted": false is past the maximum and is refused as it stands.
+// src/contracts/fit-fixtures.json holds the most text the validator accepts for each layout case, in
+// Title Case and, for the card and data layouts, in prose too. The client's CT fit tests render the same
+// fixtures and check they stay on the slide, so this test is what ties those renders to the validator:
+// each fixture is accepted, and one more word in any of its "grow" fields (JSON pointers into slots) is
+// refused. "refusedBy" says what refuses it: "fit", the layout's fit rule (LayoutRules and SlideFit), or
+// "length", a field's character limit, for the layouts with no fit rule (numbered-cards, cards, image,
+// chart, gantt) and so filled to every limit. A fixture with "accepted": false is past the maximum and
+// is refused as it stands.
 [TestFixture]
 public class FitFixturesTests
 {
