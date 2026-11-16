@@ -1,5 +1,8 @@
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using ModelContextProtocol.Server;
 using SlideWorks.WebApi.Infrastructure.Mcp;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Support;
@@ -53,6 +56,27 @@ public class McpToolSchemaTighteningTests : ApiTestFixture
         {
             answer.GetProperty("result").GetRawText().ShouldBe(first);
         }
+    }
+
+    // A tool goes on record as tightened only once Tighten has succeeded for it. If Tighten throws, that Apply fails and
+    // the next one tightens the tool, so a failure never leaves its schema loose for the app's lifetime. A schema whose
+    // properties repeat a name makes Tighten throw, as JsonObject does on reading it.
+    [Test]
+    public void Apply_WhenTighteningThrows_ShouldTightenTheToolOnTheNextApply()
+    {
+        var tightening = new McpToolSchemaTightening(NullLogger<McpToolSchemaTightening>.Instance);
+        var tool = McpServerTool.Create((string? a = null) => a ?? "", new McpServerToolCreateOptions { Name = "retried" });
+        using var broken = JsonDocument.Parse("""{"type":"object","properties":{"a":{"type":"string"},"a":{"type":"string"}}}""");
+        tool.ProtocolTool.InputSchema = broken.RootElement.Clone();
+
+        Should.Throw<ArgumentException>(() => tightening.Apply([tool]));
+        tool.ProtocolTool.InputSchema.TryGetProperty("additionalProperties", out _).ShouldBeFalse();
+
+        using var readable = JsonDocument.Parse("""{"type":"object","properties":{"a":{"type":"string"}}}""");
+        tool.ProtocolTool.InputSchema = readable.RootElement.Clone();
+        tightening.Apply([tool]);
+
+        tool.ProtocolTool.InputSchema.GetProperty("additionalProperties").ValueKind.ShouldBe(JsonValueKind.False);
     }
 
     private sealed class TighteningLog : ILogger<McpToolSchemaTightening>

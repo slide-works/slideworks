@@ -20,10 +20,13 @@ public sealed partial class McpToolSchemaTightening(ILogger<McpToolSchemaTighten
     {
         lock (_gate)
         {
-            foreach (var tool in tools.Where(_tightened.Add).Select(tool => tool.ProtocolTool))
+            // A tool is recorded only once Tighten has succeeded for it: if Tighten throws, that request fails and the next
+            // one tries again, rather than leaving the schema loose for the app's lifetime.
+            foreach (var tool in tools.Where(tool => !_tightened.Contains(tool)))
             {
-                McpToolSchemas.Tighten(tool);
-                LogTightened(tool.Name);
+                McpToolSchemas.Tighten(tool.ProtocolTool);
+                _tightened.Add(tool);
+                LogTightened(tool.ProtocolTool.Name);
             }
         }
     }
