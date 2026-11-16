@@ -473,7 +473,10 @@ describe('screen JSON examples', () => {
   });
 
   it('looks.json matches LooksView', () => {
-    expect(nullPaths(looks)).toEqual([]);
+    // The first template is a made-up locking one with every field set; the
+    // built-ins after it are the real catalogue, whose nulls are real.
+    expect(nullPaths(looks.templates[0])).toEqual([]);
+    expect(nullPaths(looks.palettes)).toEqual([]);
     expect(sorted(looks)).toEqual(LOOKS);
     expect(looks.templates.length).toBeGreaterThan(0);
     expect(looks.palettes.length).toBeGreaterThan(0);

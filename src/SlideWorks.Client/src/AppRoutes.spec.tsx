@@ -87,3 +87,54 @@ test('/pending renders without the shell', async ({ mount, page }) => {
   await expect(page.getByTestId('pending-page')).toBeVisible();
   await expect(page.getByTestId('app-shell')).toHaveCount(0);
 });
+
+test('render route renders without sign-in', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { status: 401, json: { error: 'Not signed in' } } });
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    { hooksConfig: { route: '/render/7Kq2xYp9LmQa/3#token=abc.def' } },
+  );
+  const slide = page.getByTestId('render-slide');
+  await expect(slide).toBeVisible();
+  await expect(slide).toHaveAttribute('data-deck-id', '7Kq2xYp9LmQa');
+  await expect(slide).toHaveAttribute('data-slide', '3');
+  await expect(slide).not.toHaveAttribute('data-error');
+  await expect(page.getByTestId('location')).toHaveText('/render/7Kq2xYp9LmQa/3#token=abc.def');
+});
+
+test('render route without a token in the fragment reports it', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { status: 401, json: { error: 'Not signed in' } } });
+  await mount(<AppRoutes />, {
+    hooksConfig: { route: '/render/7Kq2xYp9LmQa/3?token=abc.def' },
+  });
+  await expect(page.getByTestId('render-slide')).toHaveAttribute(
+    'data-error',
+    'Render token missing',
+  );
+});
+
+test('generic card route renders without sign-in or token', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { status: 401, json: { error: 'Not signed in' } } });
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    { hooksConfig: { route: '/card/generic' } },
+  );
+  const card = page.getByTestId('share-card');
+  await expect(card).toBeVisible();
+  await expect(card).toHaveAttribute('data-generic', 'true');
+  await expect(card).not.toHaveAttribute('data-error');
+  await expect(page.getByTestId('location')).toHaveText('/card/generic');
+});
+
+test("a deck's card route renders without sign-in", async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { status: 401, json: { error: 'Not signed in' } } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/card/7Kq2xYp9LmQa#token=abc.def' } });
+  const card = page.getByTestId('share-card');
+  await expect(card).toHaveAttribute('data-deck-id', '7Kq2xYp9LmQa');
+  await expect(card).toHaveAttribute('data-generic', 'false');
+  await expect(card).not.toHaveAttribute('data-error');
+});
