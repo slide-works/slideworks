@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Features.OAuth.Stores;
 using SlideWorks.WebApi.Tests.Dtos;
 using SlideWorks.WebApi.Tests.Identity;
 using SlideWorks.WebApi.Tests.Mcp;
@@ -47,7 +48,9 @@ public class AdminUsersTests : ApiTestFixture
         var rejected = await PendingPersonAsync();
         await PostAsync(approved.Id, "approve");
         await PostAsync(rejected.Id, "reject");
-        await PendingPersonAsync();
+        var older = await PendingPersonAsync();
+        Clock.Advance(TimeSpan.FromMinutes(5));
+        var newer = await PendingPersonAsync();
 
         var view = await (await Client.GetAsync(USERS)).Content.ReadFromJsonAsync<JsonElement>();
 
@@ -55,6 +58,8 @@ public class AdminUsersTests : ApiTestFixture
         order.ShouldBe(order.OrderBy(a => a switch { "pending" => 0, "approved" => 1, _ => 2 }).ToList());
         order.ShouldContain("pending");
         order.ShouldContain("rejected");
+        var ids = view.GetProperty("users").EnumerateArray().Select(u => u.GetProperty("id").GetGuid()).ToList();
+        ids.IndexOf(older.Id).ShouldBeLessThan(ids.IndexOf(newer.Id));
         view.GetProperty("pendingCount").GetInt32().ShouldBe(order.Count(a => a == "pending"));
         view.GetProperty("adminCount").GetInt32().ShouldBe(1);
     }
@@ -66,11 +71,16 @@ public class AdminUsersTests : ApiTestFixture
         using var asPat = ClientFor(pat.Person);
         (await asPat.GetAsync("/api/decks")).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
+        Clock.Advance(TimeSpan.FromHours(2));
         var response = await PostAsync(pat.Id, "approve");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var row = RowFor(await response.Content.ReadFromJsonAsync<JsonElement>(), pat.Id);
+        var view = await response.Content.ReadFromJsonAsync<JsonElement>();
+        JsonShape.AssertMatches(view, "admin-users.json", ScreenShapes.AdminUsers);
+        var row = RowFor(view, pat.Id);
         row.GetProperty("access").GetString().ShouldBe("approved");
+        row.GetProperty("requestedLabel").GetString().ShouldBe("2 h ago");
+        row.GetProperty("changedLabel").GetString().ShouldBe("just now");
         row.GetProperty("changedBy").GetString().ShouldBe(TestUser.Ada.Name);
         (await asPat.GetAsync("/api/decks")).StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -165,6 +175,22 @@ public class AdminUsersTests : ApiTestFixture
         await PostAsync(pat.Id, "approve");
 
         (await InitializeAsync(agent.Tokens.AccessToken)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        using var scope = Factory.Services.CreateScope();
+        (await scope.ServiceProvider.GetRequiredService<IAgentTokens>().RefreshAsync(agent.Tokens.RefreshToken, agent.OAuthClient.ClientId))
+            .ShouldBeNull();
+    }
+
+    [Test]
+    public async Task Revoke_WhenLastAdmin_ShouldKeepTheirAgentTokens()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Ada);
+        (await agent.Client.ListToolsAsync()).ShouldNotBeEmpty();
+
+        var response = await PostAsync(await AdaIdAsync(), "revoke");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await InitializeAsync(agent.Tokens.AccessToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await agent.Client.ListToolsAsync()).ShouldNotBeEmpty();
     }
 
     [Test]

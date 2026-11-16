@@ -17,39 +17,45 @@ public class AdminUserCommands(IUserAccounts accounts, IAgentTokens agentTokens,
     public Task<AdminUsersView> ListAsync() => views.BuildAsync();
 
     public Task<AdminUsersView> ApproveAsync(Guid id)
-        => ChangeAsync(accounts.ApproveAsync(id, actor.PresenterId), "Only a pending or rejected person can be approved");
+        => ChangeAsync(() => accounts.ApproveAsync(id, actor.PresenterId), "Only a pending or rejected person can be approved");
 
     public Task<AdminUsersView> RejectAsync(Guid id)
-        => ChangeAsync(accounts.RejectAsync(id, actor.PresenterId), "Only a pending person can be rejected");
+        => ChangeAsync(() => accounts.RejectAsync(id, actor.PresenterId), "Only a pending person can be rejected");
 
     public Task<AdminUsersView> MakeAdminAsync(Guid id)
-        => ChangeAsync(accounts.MakeAdminAsync(id, actor.PresenterId), "Only an approved person who isn't an admin can be made an admin");
+        => ChangeAsync(() => accounts.MakeAdminAsync(id, actor.PresenterId), "Only an approved person who isn't an admin can be made an admin");
 
     public Task<AdminUsersView> RemoveAdminAsync(Guid id)
-        => ChangeAsync(accounts.RemoveAdminAsync(id, actor.PresenterId), "That person isn't an admin");
+        => ChangeAsync(() => accounts.RemoveAdminAsync(id, actor.PresenterId), "That person isn't an admin");
 
+    // A refused revoke has no side effects: the refusals are checked first, then the agent tokens go, then the state
+    // changes. The state change keeps its own atomic guard, so two admins revoking each other at once still leave one.
     public async Task<AdminUsersView> RevokeAsync(Guid id)
     {
-        if (await accounts.FindAsync(id) == null)
+        const string NOT_ALLOWED = "Only an approved person can be revoked";
+        var users = await accounts.ListAsync();
+        var user = users.SingleOrDefault(u => u.Id == id) ?? throw new NotFoundException(NOT_FOUND);
+        if (user.Access != UserAccess.Approved)
         {
-            throw new NotFoundException(NOT_FOUND);
+            throw new ConflictException(NOT_ALLOWED);
+        }
+        if (user.IsAdmin && users.Count(u => u.IsAdmin) == 1)
+        {
+            throw new ConflictException(LAST_ADMIN);
         }
         await agentTokens.RevokeAllForPresenterAsync(id);
-        return await ChangeAsync(accounts.RevokeAsync(id, actor.PresenterId), "Only an approved person can be revoked");
+        return await ChangeAsync(() => accounts.RevokeAsync(id, actor.PresenterId), NOT_ALLOWED);
     }
 
-    private async Task<AdminUsersView> ChangeAsync(Task<AccountChange> change, string notAllowed)
+    private async Task<AdminUsersView> ChangeAsync(Func<Task<AccountChange>> change, string notAllowed)
     {
-        switch (await change)
+        return await change() switch
         {
-            case AccountChange.NotFound:
-                throw new NotFoundException(NOT_FOUND);
-            case AccountChange.LastAdmin:
-                throw new ConflictException(LAST_ADMIN);
-            case AccountChange.NotAllowed:
-                throw new ConflictException(notAllowed);
-            default:
-                return await views.BuildAsync();
-        }
+            AccountChange.Changed => await views.BuildAsync(),
+            AccountChange.NotFound => throw new NotFoundException(NOT_FOUND),
+            AccountChange.LastAdmin => throw new ConflictException(LAST_ADMIN),
+            AccountChange.NotAllowed => throw new ConflictException(notAllowed),
+            var other => throw new InvalidOperationException($"Unknown account change {other}."),
+        };
     }
 }
