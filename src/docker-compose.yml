@@ -3,7 +3,11 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      # Localhost only: the TLS proxy is the public entry point. Published on
+      # every interface, a request sent straight to 8080 can arrive from inside
+      # a trusted Docker network (rootless Docker, Docker Desktop) and pick its
+      # own rate-limit key through X-Forwarded-For.
+      - "127.0.0.1:8080:8080"
     # Set the values in an untracked .env next to this file. docs/self-hosting.md
     # describes every setting.
     environment:
