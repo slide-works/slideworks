@@ -310,7 +310,7 @@ test('the value fits once a thumbnail hidden for 2 s is shown', async ({ mount, 
   // against, so the fit waits for one however long that takes; it used to
   // give up after about a second.
   const slide = { ...sample(4), slots: { ...(sample(4).slots as object), value: '888888' } };
-  await mount(
+  const component = await mount(
     <div data-testid="thumb" style={{ display: 'none' }}>
       {render(slide as RenderableSlide)}
     </div>,
@@ -323,10 +323,24 @@ test('the value fits once a thumbnail hidden for 2 s is shown', async ({ mount, 
     thumb.style.display = 'block';
   });
 
+  // Nothing drew the value's face while it was hidden, so the fit after the
+  // reveal starts loading it and measures a fallback font meanwhile; it fits
+  // again when the face arrives. Wait for that, then compare with a value
+  // mounted once the face is loaded: the sizes match on any host, whichever
+  // fallback it has.
   await expect.poll(() => fontSize(page, 'big-number-value')).toBeLessThan(300);
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
+  );
+  const shown = await fontSize(page, 'big-number-value');
   const column = (await page.getByTestId('big-number-column').boundingBox())!;
   const box = (await page.getByTestId('big-number-value').boundingBox())!;
   expect(box.x + box.width).toBeLessThanOrEqual(column.x + column.width);
+
+  await component.unmount();
+  await mount(render(slide as RenderableSlide));
+  expect(shown).toBe(await fontSize(page, 'big-number-value'));
 });
 
 test('each layout root carries the sw-layout seam, and big-number its sw-body', async ({
