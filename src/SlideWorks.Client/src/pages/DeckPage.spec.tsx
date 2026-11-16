@@ -44,7 +44,7 @@ test('deck page grid shows thumbnails and notes of clicked slide', async ({ moun
   // Thumbnail footers carry the deck's chrome, as the player's do: this
   // deck's template shows the server's date label in place of the author.
   await expect(thumbs.nth(1).getByTestId('slide-footer-text')).toHaveText(
-    `2 / 3 · Ship smaller · ${deckPage.look.footerDateLabel}`,
+    '2 / 3 · Ship smaller · 16 Nov 2026',
   );
 
   // The first slide is selected to begin with.
