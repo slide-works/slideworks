@@ -3,17 +3,36 @@ import type {
   ActivityRow,
   AdminUserRow,
   AdminUsersView,
+  CardView,
+  ChromeOverrides,
+  ContrastPair,
+  ContrastSummary,
+  DeckPageLook,
   DeckPageSlide,
   DeckPageView,
   DeckPlaySlide,
   DeckPlayView,
   DeckRow,
   DecksLibraryView,
+  ImageUploadRequest,
+  ImageUploadResult,
   LastChange,
+  LookChangeRequest,
+  LookChangeResult,
+  LookPalette,
+  LookTemplate,
+  LookView,
+  LooksPalette,
+  LooksTemplate,
+  LooksView,
   MeView,
+  PaletteTokenKey,
   SharedDeckRow,
   SharingChange,
   SharingView,
+  TemplateChrome,
+  TemplateShape,
+  TemplateType,
 } from '../../api/types';
 import { LAYOUTS } from '../../slides/layouts';
 import {
@@ -28,9 +47,15 @@ import { LAYOUT_SLOTS } from './layoutSlots';
 import {
   SAMPLE_SLOTS,
   adminUsers,
+  card,
   deckPage,
   deckPlay,
   decksLibrary,
+  imageUploadRequest,
+  imageUploadResult,
+  lookChangeRequest,
+  lookChangeResult,
+  looks,
   me,
   sampleDeck,
   sharing,
@@ -98,6 +123,8 @@ const DECK_PAGE = keys<DeckPageView>({
   isOwner: true,
   playUrl: true,
   sharing: true,
+  revision: true,
+  look: true,
   parts: true,
   slides: true,
   activity: true,
@@ -106,6 +133,7 @@ const DECK_PAGE_SLIDE = keys<DeckPageSlide>({
   number: true,
   layout: true,
   part: true,
+  deepDive: true,
   headline: true,
   steps: true,
   notes: true,
@@ -126,23 +154,175 @@ const DECK_PLAY = keys<DeckPlayView>({
   title: true,
   author: true,
   parts: true,
+  look: true,
   slides: true,
 });
 const DECK_PLAY_SLIDE = keys<DeckPlaySlide>({
   number: true,
   layout: true,
   part: true,
+  deepDive: true,
   steps: true,
   slots: true,
 });
 const SHARING = keys<SharingView>({ level: true, viewers: true, link: true, lastChange: true });
 const SHARING_CHANGE = keys<SharingChange>({ actor: true, actorKind: true, atLabel: true });
+const LOOK = keys<LookView>({
+  template: true,
+  palette: true,
+  logo: true,
+  draft: true,
+  footerDateLabel: true,
+});
+const DECK_PAGE_LOOK = keys<DeckPageLook>({
+  template: true,
+  palette: true,
+  logo: true,
+  draft: true,
+  footerDateLabel: true,
+  chromeOverrides: true,
+  contrast: true,
+});
+const LOOK_TEMPLATE = keys<LookTemplate>({
+  name: true,
+  label: true,
+  layouts: true,
+  chrome: true,
+  type: true,
+  shape: true,
+  ornament: true,
+  titleArt: true,
+});
+const LOOK_PALETTE = keys<LookPalette>({ name: true, label: true, tokens: true });
+const CHROME = keys<TemplateChrome>({
+  tracker: true,
+  footer: true,
+  progress: true,
+  deepDivesOnDivider: true,
+  draft: true,
+});
+const CHROME_OVERRIDES = keys<ChromeOverrides>({ tracker: true, footer: true, progress: true });
+const TEMPLATE_TYPE = keys<TemplateType>({
+  head: true,
+  body: true,
+  headWeight: true,
+  headTracking: true,
+});
+const TEMPLATE_SHAPE = keys<TemplateShape>({ radius: true, shadow: true });
+const TOKENS = keys<Record<PaletteTokenKey, string>>({
+  paper: true,
+  card: true,
+  chip: true,
+  grid: true,
+  ink: true,
+  muted: true,
+  accent: true,
+  'accent-dark': true,
+  'accent-light': true,
+  'accent-glow': true,
+  'accent-past': true,
+  'on-accent': true,
+  good: true,
+  'good-soft': true,
+  'good-ink': true,
+  bad: true,
+  'bad-soft': true,
+  'bad-ink': true,
+  warn: true,
+  'warn-soft': true,
+  'warn-ink': true,
+  dd: true,
+  'on-dd': true,
+  'dd-on-night': true,
+  night: true,
+  'night-ink': true,
+  'night-2': true,
+  'night-muted': true,
+  'night-line': true,
+  'night-glow': true,
+  'number-from': true,
+  'number-to': true,
+  stamp: true,
+  'panel-accent': true,
+  'panel-accent-ink': true,
+  'panel-positive': true,
+  'panel-positive-ink': true,
+  'panel-negative': true,
+  'panel-negative-ink': true,
+  'panel-inverse': true,
+  'panel-inverse-ink': true,
+});
+const CONTRAST = keys<ContrastSummary>({ pass: true, lowest: true });
+const CONTRAST_PAIRS = keys<Record<ContrastPair, true>>({
+  body: true,
+  secondary: true,
+  'card-bold': true,
+  'headline-accent': true,
+  'on-accent': true,
+  'deep-dive-pill': true,
+  'panel-accent': true,
+  'panel-positive': true,
+  'panel-negative': true,
+  'panel-inverse': true,
+  'badge-positive': true,
+  'badge-negative': true,
+  'dark-subtitle': true,
+});
+const LOOKS = keys<LooksView>({ templates: true, palettes: true });
+const LOOKS_TEMPLATE = keys<LooksTemplate>({
+  name: true,
+  label: true,
+  purpose: true,
+  isDefault: true,
+  layouts: true,
+  chrome: true,
+  outline: true,
+  type: true,
+  shape: true,
+  ornament: true,
+  titleArt: true,
+  lockedPalette: true,
+});
+const LOOKS_PALETTE = keys<LooksPalette>({
+  name: true,
+  label: true,
+  isDefault: true,
+  swatch: true,
+  tokens: true,
+  contrast: true,
+});
+const LOOK_CHANGE_REQUEST = keys<LookChangeRequest>({
+  template: true,
+  palette: true,
+  logo: true,
+  draft: true,
+  chrome: true,
+});
+const LOOK_CHANGE_RESULT = keys<LookChangeResult>({ look: true, warnings: true });
+const CARD = keys<CardView>({
+  generic: true,
+  title: true,
+  subtitle: true,
+  author: true,
+  slideCount: true,
+  look: true,
+});
+const IMAGE_UPLOAD_REQUEST = keys<ImageUploadRequest>({ name: true, contentType: true });
+const IMAGE_UPLOAD_RESULT = keys<ImageUploadResult>({
+  image: true,
+  uploadUrl: true,
+  method: true,
+  expiresInSeconds: true,
+});
 
 const sorted = (value: object) => Object.keys(value).sort();
 const ACTOR_KINDS = ['agent', 'person'];
 const VIAS = ['mcp', 'web'];
 const LEVELS = ['private', 'link', 'named'];
 const DECK_ID = /^[0-9A-Za-z]{12}$/;
+const FOOTERS = ['author', 'date', 'off'];
+const ORNAMENTS = ['dots', 'none'];
+const IMAGE_URL = /^\/api\/images\/[^/]+$/;
 
 function nullPaths(value: unknown, path = '$'): string[] {
   if (value === null) return [path];
@@ -162,6 +342,47 @@ function expectLastChange(change: LastChange | null) {
   expect(sorted(change!)).toEqual(LAST_CHANGE);
   expect(ACTOR_KINDS).toContain(change!.actorKind);
   expect(VIAS).toContain(change!.via);
+}
+
+function expectChrome(chrome: TemplateChrome) {
+  expect(sorted(chrome)).toEqual(CHROME);
+  expect(FOOTERS).toContain(chrome.footer);
+}
+
+function expectTemplate(template: LookTemplate | LooksTemplate, expected: string[]) {
+  expect(sorted(template)).toEqual(expected);
+  for (const layout of template.layouts) expect(LAYOUT_NAMES).toContain(layout);
+  expectChrome(template.chrome);
+  expect(sorted(template.type)).toEqual(TEMPLATE_TYPE);
+  expect(sorted(template.shape)).toEqual(TEMPLATE_SHAPE);
+  expect(sorted(template.shape.radius)).toEqual(['lg', 'md', 'sm', 'xl']);
+  expect(ORNAMENTS).toContain(template.ornament);
+}
+
+function expectContrast(contrast: ContrastSummary) {
+  expect(sorted(contrast)).toEqual(CONTRAST);
+  expect(sorted(contrast.lowest)).toEqual(['bar', 'pair', 'ratio']);
+  expect(CONTRAST_PAIRS).toContain(contrast.lowest.pair);
+}
+
+// A LookView, or the deck page's look with its overrides and contrast.
+function expectLook(look: LookView, expected: string[] = LOOK) {
+  expect(sorted(look)).toEqual(expected);
+  expectTemplate(look.template, LOOK_TEMPLATE);
+  expect(sorted(look.palette)).toEqual(LOOK_PALETTE);
+  expect(sorted(look.palette.tokens)).toEqual(TOKENS);
+  // Root-relative, so a headless browser loads it from the host it renders on.
+  if (look.logo !== null) {
+    expect(sorted(look.logo)).toEqual(['url']);
+    expect(look.logo.url).toMatch(IMAGE_URL);
+  }
+}
+
+function expectDeckPageLook(look: DeckPageLook) {
+  expectLook(look, DECK_PAGE_LOOK);
+  for (const key of Object.keys(look.chromeOverrides)) expect(CHROME_OVERRIDES).toContain(key);
+  if (look.chromeOverrides.footer != null) expect(FOOTERS).toContain(look.chromeOverrides.footer);
+  expectContrast(look.contrast);
 }
 
 function expectDeckRow(row: DeckRow, expected: string[]) {
@@ -210,12 +431,14 @@ describe('screen JSON examples', () => {
     expect(sorted(decksLibrary.connect)).toEqual(['mcpUrl', 'show']);
   });
 
-  // red until SW-64: deck-page.json gained revision, look and deepDive (SW-2 L6)
   it('deck-page.json matches DeckPageView', () => {
     expect(sorted(deckPage)).toEqual(DECK_PAGE);
     expect(deckPage.id).toMatch(DECK_ID);
     expect(sorted(deckPage.sharing)).toEqual(['level', 'viewerCount']);
     expect(LEVELS).toContain(deckPage.sharing.level);
+    expect(deckPage.revision).toBeGreaterThan(0);
+    expectDeckPageLook(deckPage.look);
+    expect(deckPage.slides.some((slide) => slide.deepDive)).toBe(true);
     for (const slide of deckPage.slides) {
       expect(sorted(slide)).toEqual(DECK_PAGE_SLIDE);
       expectSlots(slide.layout, slide.slots);
@@ -227,15 +450,67 @@ describe('screen JSON examples', () => {
     }
   });
 
-  // red until SW-64: deck-play.json gained look and deepDive (SW-2 L6)
   it('deck-play.json matches DeckPlayView: title, practice and close, with no notes', () => {
     expect(sorted(deckPlay)).toEqual(DECK_PLAY);
     expect(deckPlay.id).toMatch(DECK_ID);
     expect(deckPlay.slides.map((slide) => slide.layout)).toEqual(['title', 'practice', 'close']);
+    expectLook(deckPlay.look);
+    expect(deckPlay.slides.some((slide) => slide.deepDive)).toBe(true);
     for (const slide of deckPlay.slides) {
       expect(sorted(slide)).toEqual(DECK_PLAY_SLIDE);
       expectSlots(slide.layout, slide.slots);
     }
+  });
+
+  it('sample-deck.json matches DeckPlayView, with a look and a deep dive', () => {
+    expect(sorted(sampleDeck)).toEqual(DECK_PLAY);
+    expectLook(sampleDeck.look);
+    expect(sampleDeck.slides.some((slide) => slide.deepDive)).toBe(true);
+    for (const slide of sampleDeck.slides) {
+      expect(sorted(slide)).toEqual(DECK_PLAY_SLIDE);
+      expectSlots(slide.layout, slide.slots);
+    }
+  });
+
+  it('looks.json matches LooksView', () => {
+    expect(nullPaths(looks)).toEqual([]);
+    expect(sorted(looks)).toEqual(LOOKS);
+    expect(looks.templates.length).toBeGreaterThan(0);
+    expect(looks.palettes.length).toBeGreaterThan(0);
+    for (const template of looks.templates) {
+      expectTemplate(template, LOOKS_TEMPLATE);
+      expect(template.outline.length).toBeGreaterThan(0);
+    }
+    for (const palette of looks.palettes) {
+      expect(sorted(palette)).toEqual(LOOKS_PALETTE);
+      expect(sorted(palette.tokens)).toEqual(TOKENS);
+      expect(palette.swatch.length).toBeGreaterThan(0);
+      expectContrast(palette.contrast);
+    }
+  });
+
+  it('look-change.json holds a LookChangeRequest and a LookChangeResult', () => {
+    expect(nullPaths(lookChangeRequest)).toEqual([]);
+    expect(nullPaths(lookChangeResult)).toEqual([]);
+    expect(sorted(lookChangeRequest)).toEqual(LOOK_CHANGE_REQUEST);
+    for (const key of Object.keys(lookChangeRequest.chrome!))
+      expect(CHROME_OVERRIDES).toContain(key);
+    expect(sorted(lookChangeResult)).toEqual(LOOK_CHANGE_RESULT);
+    expectDeckPageLook(lookChangeResult.look);
+    expect(lookChangeResult.warnings.length).toBeGreaterThan(0);
+  });
+
+  it('card.json matches CardView', () => {
+    expect(nullPaths(card)).toEqual([]);
+    expect(sorted(card)).toEqual(CARD);
+    expect(card.generic).toBe(false);
+    expectLook(card.look);
+  });
+
+  it('image-upload.json holds an ImageUploadRequest and an ImageUploadResult', () => {
+    expect(sorted(imageUploadRequest)).toEqual(IMAGE_UPLOAD_REQUEST);
+    expect(sorted(imageUploadResult)).toEqual(IMAGE_UPLOAD_RESULT);
+    expect(imageUploadResult.method).toBe('PUT');
   });
 
   it('sharing.json matches SharingView', () => {
@@ -295,7 +570,7 @@ describe('slot types', () => {
     };
     // @ts-expect-error `avoid` is required
     const missing: PracticeSlots = { headline: 'h', do: [], comes_back: [] };
-    // @ts-expect-error a callout's tone is good, bad or info; warn is a table cell tone
+    // @ts-expect-error warn is a table cell tone, not a panel tone
     const tone: CalloutBlock = { tone: 'warn', text: 't' };
     // @ts-expect-error a gantt row needs a status
     const row: GanttRow = { label: 'l', start: 1, end: 2 };

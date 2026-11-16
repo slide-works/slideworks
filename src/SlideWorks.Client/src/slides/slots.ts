@@ -2,6 +2,8 @@
 // field names are frozen; the server's SlideValidator sets the limits. Slot text
 // is plain text: never parse it as Markdown or HTML (D12).
 
+import type { LookView } from '../api/types';
+
 export const LAYOUT_NAMES = [
   'title',
   'divider',
@@ -26,12 +28,16 @@ export type LayoutName = (typeof LAYOUT_NAMES)[number];
 // Title, divider and close slides use the dark surface; every other layout is light.
 export const DARK_LAYOUTS: readonly LayoutName[] = ['title', 'divider', 'close'];
 
-export type Tone = 'good' | 'bad' | 'info';
+// A panel's tone (SW-2 L4). good, bad and info stay valid for ever as aliases of
+// positive, negative and accent (D15); stored slides are never rewritten.
+export type Tone = 'accent' | 'positive' | 'negative' | 'inverse' | 'good' | 'bad' | 'info';
+// A toned panel's fill; soft when left out.
+export type Fill = 'soft' | 'solid';
 export type Reveal = 'all' | 'one-by-one';
 
 // Inline blocks. `chip`, `badge` and `stamp` are plain strings in the slots;
 // `journey` is rendered from the deck's parts and is never set by an agent.
-export type CalloutBlock = { tone: Tone; text: string };
+export type CalloutBlock = { tone: Tone; fill?: Fill; text: string };
 
 // An uploaded image: `image` is its id (served at /api/images/{id}).
 export type ImageRef = { image: string; alt: string };
@@ -84,7 +90,15 @@ export type PracticeSlots = {
   callout?: CalloutBlock;
 };
 
-export type CompareSide = { label: string; title: string; sub?: string; points: string[] };
+// failure defaults to the negative tone and success to the positive one.
+export type CompareSide = {
+  label: string;
+  title: string;
+  sub?: string;
+  points: string[];
+  tone?: Tone;
+  fill?: Fill;
+};
 
 export type CompareSlots = {
   kicker?: string;
@@ -167,7 +181,15 @@ export type NumberedCardsSlots = {
 
 export type RulesSlots = { kicker?: string; headline: string; rules: TitleText[]; reveal?: Reveal };
 
-export type Card = { badge?: string; title: string; text: string; chips: string[] };
+// A card with no tone is the plain card.
+export type Card = {
+  badge?: string;
+  title: string;
+  text: string;
+  chips: string[];
+  tone?: Tone;
+  fill?: Fill;
+};
 
 export type CardsSlots = { kicker?: string; headline: string; cards: Card[]; reveal?: Reveal };
 
@@ -222,9 +244,20 @@ type AssertTrue<T extends true> = T;
 // Fails to compile when a slot key of Slots is missing from SLOT_KEYS.
 export type SlotKeysComplete = AssertTrue<[UnlistedSlotKey] extends [never] ? true : false>;
 
+// A slide flagged deep_dive, as the divider lists it: its part (1-based, or
+// null), its slide number and its headline.
+export type DeepDive = { part: number | null; number: number; headline: string };
+
 // What a layout knows about its deck. The player passes the play view's values;
-// the deck page's thumbnails pass the deck page's (with a null author).
-export type SlideDeck = { title: string; author: string | null; parts: string[] };
+// the deck page's thumbnails pass the deck page's (with a null author). look is
+// the deck's resolved look, and deepDives comes from deepDivesOf(slides).
+export type SlideDeck = {
+  title: string;
+  author: string | null;
+  parts: string[];
+  look: LookView;
+  deepDives: DeepDive[];
+};
 
 // The props every layout component takes (K12). `step` is 0 before any reveal.
 export type LayoutProps<L extends LayoutName> = { slots: Slots[L]; step: number; deck: SlideDeck };

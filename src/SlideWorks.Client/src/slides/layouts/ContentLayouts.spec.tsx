@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
+import { lookViewOf } from '../../test-support/fixtures/lookViewOf';
 import { sampleDeck } from '../../test-support/fixtures/screens';
 import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
@@ -15,6 +16,8 @@ const deck: SlideDeck = {
   title: sampleDeck.title,
   author: sampleDeck.author,
   parts: sampleDeck.parts,
+  look: lookViewOf('talk', 'cobalt'),
+  deepDives: [],
 };
 
 function sample(number: number): RenderableSlide {

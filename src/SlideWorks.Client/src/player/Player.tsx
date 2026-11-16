@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { DeckPlayView } from '../api/types';
+import { deepDivesOf } from '../look/deepDivesOf';
+import type { SlideDeck } from '../slides/slots';
 import { PlayerControls } from './PlayerControls';
 import { PlayerStage } from './PlayerStage';
 import { usePlayerKeys } from './usePlayerKeys';
@@ -19,6 +21,17 @@ function isFullscreen(): boolean {
 export function Player({ deck }: { deck: DeckPlayView }) {
   const root = useRef<HTMLElement>(null);
   const stepCounts = useMemo(() => deck.slides.map((slide) => slide.steps), [deck.slides]);
+  // What every slide knows about the deck, with the look from the play view.
+  const slideDeck = useMemo<SlideDeck>(
+    () => ({
+      title: deck.title,
+      author: deck.author,
+      parts: deck.parts,
+      look: deck.look,
+      deepDives: deepDivesOf(deck.slides),
+    }),
+    [deck.title, deck.author, deck.parts, deck.look, deck.slides],
+  );
   const navigation = usePlayerNavigation(stepCounts);
   const { position, next, previous, first, last } = navigation;
 
@@ -45,7 +58,13 @@ export function Player({ deck }: { deck: DeckPlayView }) {
       aria-label={deck.title}
       className="flex h-dvh w-full flex-col overflow-hidden bg-[#05070d]"
     >
-      <PlayerStage deck={deck} position={position} onNext={next} onPrevious={previous} />
+      <PlayerStage
+        deck={deck}
+        slideDeck={slideDeck}
+        position={position}
+        onNext={next}
+        onPrevious={previous}
+      />
       <PlayerControls
         position={position}
         total={deck.slides.length}

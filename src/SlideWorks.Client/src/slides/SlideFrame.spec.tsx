@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/experimental-ct-react';
+import { lookViewOf } from '../test-support/fixtures/lookViewOf';
 import { SlideFrame, type SlideFrameProps } from './SlideFrame';
 
 test.use({ viewport: { width: 1920, height: 1080 } });
@@ -7,6 +8,9 @@ const deck = {
   parts: ['The cost', 'Slice it', 'Ship it', 'Make it stick'],
   deckTitle: 'Ship smaller',
   author: 'Sam Rivera',
+  look: lookViewOf('talk', 'cobalt'),
+  deepDive: false,
+  titleStamp: null,
 };
 
 // A plain function, not a component: CT can only mount components from source files.

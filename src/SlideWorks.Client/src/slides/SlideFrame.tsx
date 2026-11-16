@@ -3,6 +3,7 @@ import { PartTracker } from './chrome/PartTracker';
 import { ProgressBar } from './chrome/ProgressBar';
 import { SlideFooter } from './chrome/SlideFooter';
 import './chrome/chrome.css';
+import type { LookView } from '../api/types';
 import type { LayoutName } from './slots';
 
 export type SlideFrameProps = {
@@ -15,9 +16,18 @@ export type SlideFrameProps = {
   total: number;
   deckTitle: string;
   author: string | null;
+  // The deck's look, for the template's chrome, logo and draft mark.
+  look: LookView;
+  // The slide is flagged deep_dive.
+  deepDive: boolean;
+  // The title slot's own stamp on a title slide, else null.
+  titleStamp: string | null;
   children: ReactNode;
 };
 
+// TODO: draws SW-1's chrome and ignores look, deepDive and titleStamp; the
+// template's chrome, the deep-dive marks and the logo replace it.
+//
 // The default theme's frame around a slide (D4, D5): a light surface for content
 // slides and a dark one for title, divider and close, the accent strip on top,
 // the part tracker and footer on content slides, and the progress bar on every

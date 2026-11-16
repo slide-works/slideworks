@@ -1,4 +1,5 @@
 import type { DeckPageView } from '../../api/types';
+import { deepDivesOf } from '../../look/deepDivesOf';
 import type { SlideDeck } from '../../slides/slots';
 import { SlideThumb } from './SlideThumb';
 
@@ -11,7 +12,13 @@ type SlideGridProps = {
 // Every slide of the deck as a thumbnail, in order.
 export function SlideGrid({ view, selected, onSelect }: SlideGridProps) {
   // The same deck the player shows, so thumbnail footers match it.
-  const deck: SlideDeck = { title: view.title, author: view.author, parts: view.parts };
+  const deck: SlideDeck = {
+    title: view.title,
+    author: view.author,
+    parts: view.parts,
+    look: view.look,
+    deepDives: deepDivesOf(view.slides),
+  };
   if (view.slides.length === 0) {
     return (
       <p
