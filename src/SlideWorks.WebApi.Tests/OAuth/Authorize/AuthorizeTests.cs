@@ -96,6 +96,53 @@ public class AuthorizeTests : ApiTestFixture
         response.Headers.Location.ShouldBeNull();
     }
 
+    // A scheme and host match in any case, so a loopback redirect registered as HTTP://LocalHost still matches on any port.
+    [Test]
+    public async Task Authorize_WhenLoopbackRegisteredInUpperCaseAndAskedOnAnotherPort_ShouldRedirectToConsent()
+    {
+        var clientId = await RegisterAsync("HTTP://LocalHost:6274/callback");
+
+        var back = await ApprovedRedirectAsync(clientId, "http://localhost:50123/callback");
+
+        back.ShouldStartWith("http://localhost:50123/callback?code=", Case.Sensitive);
+    }
+
+    // The consent page names the host the browser will actually go to, as punycode.
+    [Test]
+    public async Task Consent_WhenPunycodeHost_ShouldShowPunycode()
+    {
+        const string REDIRECT = "https://xn--pple-43d.com/cb";
+        var clientId = await RegisterAsync(REDIRECT);
+
+        var response = await Client.GetAsync(OAuthFlow.AuthorizePath(clientId, ("redirect_uri", REDIRECT)));
+
+        var consent = JsonDocument.Parse(await (await Client.GetAsync(ConsentPathOf(response))).Content.ReadAsStringAsync()).RootElement;
+        consent.GetProperty("returnsTo").GetString().ShouldBe("xn--pple-43d.com");
+    }
+
+    // The loopback port may differ from the registered one at authorize, but the token request must then send the same
+    // redirect_uri as the authorize did, port included (RFC 6749 4.1.3).
+    [Test]
+    public async Task Token_WhenLoopbackPortDiffersFromAuthorize_ShouldReturnInvalidGrant()
+    {
+        var back = await ApprovedRedirectAsync(_clientId, "http://127.0.0.1:50124/callback");
+        var code = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(back).Query)["code"].ToString();
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        using var response = await anonymous.PostAsync("/oauth/token", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"] = "authorization_code",
+            ["code"] = code,
+            ["client_id"] = _clientId,
+            ["redirect_uri"] = OAuthFlow.REDIRECT,
+            ["code_verifier"] = OAuthFlow.VERIFIER,
+            ["resource"] = OAuthFlow.Resource,
+        }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement.GetProperty("error").GetString().ShouldBe("invalid_grant");
+    }
+
     // Off loopback the match stays exact, port included.
     [Test]
     public async Task Authorize_WhenNonLoopbackRedirectOnAnotherPort_ShouldShow400NotRedirect()
@@ -192,5 +239,30 @@ public class AuthorizeTests : ApiTestFixture
         var query = OAuthFlow.CallbackQuery(response.Headers.Location.ShouldNotBeNull().OriginalString);
         query.ContainsKey("code").ShouldBeFalse();
         return query;
+    }
+
+    private async Task<string> RegisterAsync(string redirect)
+    {
+        using var anonymous = ClientFor(TestUser.Anonymous);
+        var registered = await anonymous.PostAsJsonAsync("/oauth/register", new { client_name = "Agent", redirect_uris = new[] { redirect } });
+        registered.StatusCode.ShouldBe(HttpStatusCode.Created);
+        return JsonDocument.Parse(await registered.Content.ReadAsStringAsync()).RootElement.GetProperty("client_id").GetString().ShouldNotBeNull();
+    }
+
+    // The consent API path the authorize response redirects to.
+    private static string ConsentPathOf(HttpResponseMessage authorize)
+    {
+        authorize.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        var location = authorize.Headers.Location.ShouldNotBeNull().OriginalString;
+        location.ShouldStartWith("/oauth/consent?request=", Case.Sensitive);
+        return "/api/oauth/consent/" + Uri.EscapeDataString(location["/oauth/consent?request=".Length..]);
+    }
+
+    // Authorize with this redirect_uri, approve on the consent page, and return where the browser is sent back to.
+    private async Task<string> ApprovedRedirectAsync(string clientId, string redirect)
+    {
+        var response = await Client.GetAsync(OAuthFlow.AuthorizePath(clientId, ("redirect_uri", redirect)));
+        var decision = await Client.PostAsJsonAsync(ConsentPathOf(response), new { approve = true });
+        return JsonDocument.Parse(await decision.Content.ReadAsStringAsync()).RootElement.GetProperty("redirect").GetString().ShouldNotBeNull();
     }
 }

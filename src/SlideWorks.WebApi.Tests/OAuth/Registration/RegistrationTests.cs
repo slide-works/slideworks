@@ -47,11 +47,25 @@ public class RegistrationTests : ApiTestFixture
     [TestCase("javascript:alert(1)")]
     [TestCase("/relative/callback")]
     [TestCase("relative/callback")]
+    // Not printable ASCII: a Unicode host can pass for another one on the consent page while the browser goes to its
+    // punycode (a Cyrillic "а", an ideographic full stop, a zero-width space). Real agents' redirect URIs are ASCII.
+    [TestCase("https://\u0430pple.com/cb")]
+    [TestCase("https://good.example\u3002evil.example/cb")]
+    [TestCase("https://good\u200B.example/cb")]
+    [TestCase("http://localhost:6274/caf\u00E9")]
     public async Task Register_WhenHttpNonLoopback_ShouldRefuse(string redirect)
     {
         var response = await RegisterAsync(new { client_name = "Claude", redirect_uris = new[] { redirect } });
 
         (await RefusalAsync(response)).ShouldBe((HttpStatusCode.BadRequest, "invalid_redirect_uri"));
+    }
+
+    [Test]
+    public async Task Register_WhenPunycodeHost_ShouldReturnClientId()
+    {
+        var response = await RegisterAsync(new { client_name = "Claude", redirect_uris = new[] { "https://xn--pple-43d.com/cb" } });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
     [Test]

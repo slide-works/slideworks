@@ -3,7 +3,9 @@ using System.Text.RegularExpressions;
 namespace SlideWorks.WebApi.Features.OAuth.Registration;
 
 // Which redirect URIs a client may register (D4; OAuth 2.1 for public clients, RFC 8252 7.1 and 7.3). Never: a relative
-// URI, a fragment, whitespace or control characters, userinfo, more than 2000 characters, or a script, file or other
+// URI, a fragment, any character outside printable ASCII (0x21-0x7E: no whitespace, no control characters, and no
+// Unicode, so a host can't pass for another one, such as a Cyrillic "а" for "a" or "。" for "."; a punycode xn-- host
+// still registers), userinfo, more than 2000 characters, or a script, file or other
 // non-redirect scheme. Otherwise: https with a host; http on localhost, 127.0.0.1 or [::1] (any port); or an app's
 // private-use scheme that is reverse-DNS (has a '.') or on ALLOWED_APP_SCHEMES. PKCE S256 is what makes a private-use
 // scheme safe: another app that claims it gets a code it can't redeem without the verifier.
@@ -26,7 +28,7 @@ public static partial class RedirectUriRules
     public static bool IsAcceptable(string? redirect)
     {
         if (redirect is null || redirect.Length > MAX_LENGTH || redirect.Contains('#', StringComparison.Ordinal)
-            || redirect.Any(c => char.IsControl(c) || char.IsWhiteSpace(c))
+            || redirect.Any(c => c is < '!' or > '~')
             || !Uri.TryCreate(redirect, UriKind.Absolute, out var uri) || uri.UserInfo.Length > 0)
         {
             return false;
@@ -56,12 +58,12 @@ public static partial class RedirectUriRules
         => registered.Contains(requested, StringComparer.Ordinal)
             || (WithoutLoopbackPort(requested) is { } asked && registered.Any(r => WithoutLoopbackPort(r) == asked));
 
-    // An http loopback URI with its port taken out, compared as written (no normalising of the path), or null for any
-    // other URI.
+    // An http loopback URI with its port taken out, or null for any other URI. The scheme and host compare in any case,
+    // as they do in a URI, and the path and query as written (no normalising).
     private static string? WithoutLoopbackPort(string redirect)
     {
         const string PREFIX = "http://";
-        if (!redirect.StartsWith(PREFIX, StringComparison.Ordinal))
+        if (!redirect.StartsWith(PREFIX, StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -74,7 +76,7 @@ public static partial class RedirectUriRules
         {
             return null;
         }
-        return PREFIX + host + (end < 0 ? "" : redirect[end..]);
+        return PREFIX + host.ToLowerInvariant() + (end < 0 ? "" : redirect[end..]);
     }
 
     [GeneratedRegex("^[a-z][a-z0-9+.-]*$", RegexOptions.CultureInvariant)]

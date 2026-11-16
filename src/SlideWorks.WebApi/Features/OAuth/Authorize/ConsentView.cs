@@ -15,7 +15,9 @@ public sealed record ConsentView(string ClientName, string Scope, string Returns
         var uri = new Uri(redirectUri, UriKind.Absolute);
         if (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
         {
-            return uri.Authority;
+            // The host as the browser will look it up: punycode, never Unicode that could pass for another host.
+            var host = uri.HostNameType == UriHostNameType.IPv6 ? uri.Host : uri.IdnHost;
+            return uri.IsDefaultPort ? host : $"{host}:{uri.Port}";
         }
         return uri.Host.Length > 0 ? $"{uri.Scheme}://{uri.Host}" : $"{uri.Scheme}:";
     }
