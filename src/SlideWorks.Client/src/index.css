@@ -1,0 +1,81 @@
+@import 'tailwindcss';
+
+/* Playwright CT bundles each spec's components through its own virtual
+   entry modules, which automatic content detection doesn't reliably walk —
+   force an explicit scan of the whole source tree so utility classes used
+   only in component files aren't silently dropped from CT builds. */
+@source './**/*.{ts,tsx}';
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, monospace;
+
+  --color-ground: #0d1113;
+  --color-panel: #151b1d;
+  --color-edge: #222a2c;
+  --color-edge-strong: #2a3335;
+
+  --color-ink: #edeee9;
+  --color-ink-dim: #dcddd8;
+  --color-ink-muted: #8b938d;
+  --color-ink-faint: #7b837d;
+
+  --color-signal: #e9ae4f;
+  --color-signal-ink: #1a1512;
+
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.45;
+
+  --radius-panel: 8px;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--color-ground);
+    color: var(--color-ink-dim);
+    font-family: var(--font-sans);
+  }
+
+  button {
+    cursor: pointer;
+  }
+}
+
+/* Tailwind v4 only lets @apply reference true utilities, so classes meant
+   to be composed into other component classes are declared with @utility. */
+@utility panel {
+  @apply bg-panel border border-edge rounded-panel;
+}
+
+@layer components {
+  .page-title {
+    @apply font-sans text-2xl font-bold tracking-tight text-ink sm:text-3xl;
+  }
+
+  .field {
+    @apply bg-panel border border-edge-strong rounded-panel
+           px-3 py-2 text-meta text-ink placeholder:text-ink-faint
+           focus:outline-none focus:ring-1 focus:ring-signal;
+  }
+
+  .btn-signal {
+    @apply inline-flex items-center justify-center gap-1.5
+           bg-signal text-signal-ink rounded-panel px-4 py-2
+           text-meta font-medium transition-colors hover:bg-signal/85
+           focus-visible:outline-2 focus-visible:outline-offset-2
+           focus-visible:outline-signal;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center
+           rounded-panel border border-edge-strong px-3 py-1.5
+           text-meta font-medium text-ink-muted transition-colors
+           hover:border-ink-faint hover:text-ink
+           focus-visible:outline-2 focus-visible:outline-offset-2
+           focus-visible:outline-signal;
+  }
+}

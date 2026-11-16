@@ -1,0 +1,5 @@
+../SlideWorks.WebApi/wwwroot
+pnpm-lock.yaml
+playwright-report/
+test-results/
+playwright/.cache/
