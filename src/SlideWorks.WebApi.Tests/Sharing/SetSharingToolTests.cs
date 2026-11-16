@@ -109,6 +109,43 @@ public class SetSharingToolTests : ApiTestFixture
         (await Client.GetFromJsonAsync<JsonElement>($"/api/decks/{deck}/sharing")).GetProperty("level").GetString().ShouldBe("private");
     }
 
+    // viewers comes in as raw JSON, so a value that isn't a list of strings gets the API's text, not the SDK's generic
+    // binding error, and changes nothing.
+    [TestCase("\"alex@team.example\"")]
+    [TestCase("[1]")]
+    [TestCase("[[\"alex@team.example\"]]")]
+    [TestCase("{\"email\":\"alex@team.example\"}")]
+    [TestCase("true")]
+    public async Task SetSharing_WhenViewersNotAListOfStringsOnTheWire_ShouldBeAToolErrorWithTheApiText(string viewers)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+
+        var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "set_sharing", $$"""{"deck":"{{deck}}","level":"named","viewers":{{viewers}}}""");
+
+        (result.TryGetProperty("isError", out var isError) && isError.GetBoolean()).ShouldBeTrue(result.GetRawText());
+        McpWire.TextOf(result).ShouldBe("viewers: must be a list of email addresses");
+        var sharing = await Client.GetFromJsonAsync<JsonElement>($"/api/decks/{deck}/sharing");
+        sharing.GetProperty("level").GetString().ShouldBe("private");
+        sharing.GetProperty("viewers").GetArrayLength().ShouldBe(0);
+    }
+
+    // A null viewers is the same as leaving it out: the list is kept.
+    [Test]
+    public async Task SetSharing_WhenViewersNullOnTheWire_ShouldKeepTheList()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "set_sharing", $$"""{"deck":"{{deck}}","level":"named","viewers":["alex@team.example"]}""");
+
+        var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "set_sharing", $$"""{"deck":"{{deck}}","level":"link","viewers":null}""");
+
+        (result.TryGetProperty("isError", out var isError) && isError.GetBoolean()).ShouldBeFalse(result.GetRawText());
+        var sharing = await Client.GetFromJsonAsync<JsonElement>($"/api/decks/{deck}/sharing");
+        sharing.GetProperty("level").GetString().ShouldBe("link");
+        sharing.GetProperty("viewers").EnumerateArray().Select(v => v.GetString()).ShouldBe(["alex@team.example"]);
+    }
+
     [Test]
     public async Task SetSharing_WhenInvalidEmail_ShouldNameIt()
     {

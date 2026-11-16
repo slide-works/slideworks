@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.Core;
@@ -64,12 +65,31 @@ public class SharingService(
         return await SetAsync(deckId, update.Level, ViewerEmails.NormalizeAll(update.Viewers, actor.Email), tool: null);
     }
 
-    // set_sharing: the level by its wire name; leaving viewers out keeps the list as it is.
-    public async Task<SharingView> SetFromAgentAsync(string deckId, string? level, IReadOnlyList<string?>? viewers)
+    // set_sharing: the level by its wire name; leaving viewers out (or null) keeps the list as it is. viewers is the raw
+    // JSON argument: anything but a list of strings is refused with VIEWERS_INVALID, and a list longer than
+    // ViewerEmails.MAX_ENTRIES before any entry is read. A null entry goes on to ViewerEmails, which names it as not an
+    // email, the same as in the dialog's PUT.
+    public async Task<SharingView> SetFromAgentAsync(string deckId, string? level, JsonElement? viewers)
     {
         await RequireOwnerAsync(deckId);
         var parsed = level != null && LEVELS.TryGetValue(level, out var known) ? known : throw new BadRequestException(LEVEL_INVALID);
-        return await SetAsync(deckId, parsed, viewers == null ? null : ViewerEmails.NormalizeAll(viewers, actor.Email), TOOL);
+        var replace = viewers is { ValueKind: not (JsonValueKind.Undefined or JsonValueKind.Null) };
+        return await SetAsync(deckId, parsed, replace ? ViewerEmails.NormalizeAll(AgentViewers(viewers!.Value), actor.Email) : null, TOOL);
+    }
+
+    private static IReadOnlyList<string?> AgentViewers(JsonElement given)
+    {
+        if (given.ValueKind != JsonValueKind.Array)
+        {
+            throw new BadRequestException(VIEWERS_INVALID);
+        }
+        if (given.GetArrayLength() > ViewerEmails.MAX_ENTRIES)
+        {
+            throw new BadRequestException(ViewerEmails.TOO_MANY);
+        }
+        return given.EnumerateArray()
+            .Select(entry => entry.ValueKind is JsonValueKind.String or JsonValueKind.Null ? entry.GetString() : throw new BadRequestException(VIEWERS_INVALID))
+            .ToList();
     }
 
     private async Task<SharingView> SetAsync(string deckId, DeckSharing level, IReadOnlyList<string>? viewers, string? tool)
