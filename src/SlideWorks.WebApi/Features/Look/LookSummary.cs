@@ -2,9 +2,9 @@ using SlideWorks.Core.Look;
 
 namespace SlideWorks.WebApi.Features.Look;
 
-// The change log's one entry for a look change (L8): joined clauses, such as "Changed the template to workshop and the
-// palette to Ember". The template is named, the palette by its label. A palette that a locking template forced is named
-// too, though the caller didn't ask for it.
+// The change log's one entry for a look change (L8): joined clauses, lowercase and read after the actor like SW-1's
+// entries ("You · changed the template to workshop and the palette to Ember"). The template is named, the palette by its
+// label. A palette that a locking template forced is named too, though the caller didn't ask for it.
 public static class LookSummary
 {
     public static string Of(LookChange change, Template template, Palette palette, bool paletteChanged)
@@ -38,8 +38,7 @@ public static class LookSummary
         {
             clauses.Add(change.Logo.ImageId is null ? "removed the logo" : "set the logo");
         }
-        var summary = Join(clauses);
-        return char.ToUpperInvariant(summary[0]) + summary[1..];
+        return Join(clauses);
     }
 
     private static void AddChrome<T>(List<string> changed, string what, Change<T>? key, Func<T, string> label)

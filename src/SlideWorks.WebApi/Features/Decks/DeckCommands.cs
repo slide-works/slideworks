@@ -60,7 +60,7 @@ public class DeckCommands(
         {
             db.Decks.Add(deck);
             await db.SaveChangesAsync();
-            await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, $"Created from the {template.Name} template with the {palette.Label} palette"));
+            await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, $"created the deck from the {template.Name} template with the {palette.Label} palette"));
             await transaction.CommitAsync();
         }
 

@@ -42,7 +42,7 @@ public class SetLookToolTests : ApiTestFixture
         got.GetProperty("look").ToString().ShouldBe(look.ToString());
 
         var entry = (await DeckSeed.ActivityAsync(Client, deck))[0];
-        entry.GetProperty("summary").GetString().ShouldBe("Changed the template to workshop, the palette to Ember, the draft mark to off and the tracker to off");
+        entry.GetProperty("summary").GetString().ShouldBe("changed the template to workshop, the palette to Ember, the draft mark to off and the tracker to off");
         entry.GetProperty("tool").GetString().ShouldBe("set_look");
         entry.GetProperty("via").GetString().ShouldBe("mcp");
         entry.GetProperty("actorKind").GetString().ShouldBe("agent");

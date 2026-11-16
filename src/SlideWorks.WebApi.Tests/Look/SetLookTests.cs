@@ -32,7 +32,7 @@ public class SetLookTests : ApiTestFixture
         result.GetProperty("look").GetProperty("palette").GetProperty("name").GetString().ShouldBe("ember");
         result.GetProperty("look").GetProperty("template").GetProperty("name").GetString().ShouldBe("talk");
         result.GetProperty("warnings").GetArrayLength().ShouldBe(0);
-        (await SummariesAsync(deck))[0].ShouldBe("Changed the palette to Ember");
+        (await SummariesAsync(deck))[0].ShouldBe("changed the palette to Ember");
     }
 
     [Test]
@@ -44,7 +44,7 @@ public class SetLookTests : ApiTestFixture
 
         look.GetProperty("template").GetProperty("name").GetString().ShouldBe("workshop");
         look.GetProperty("palette").GetProperty("name").GetString().ShouldBe("plum");
-        (await SummariesAsync(deck))[0].ShouldBe("Changed the template to workshop");
+        (await SummariesAsync(deck))[0].ShouldBe("changed the template to workshop");
     }
 
     [Test]
@@ -55,7 +55,7 @@ public class SetLookTests : ApiTestFixture
         await PutOkAsync(deck, new { template = "workshop", palette = "ember" });
 
         var summaries = await SummariesAsync(deck);
-        summaries.ShouldBe(["Changed the template to workshop and the palette to Ember", "Created from the talk template with the Cobalt palette"]);
+        summaries.ShouldBe(["changed the template to workshop and the palette to Ember", "created the deck from the talk template with the Cobalt palette"]);
         var entry = (await DeckSeed.ActivityAsync(Client, deck))[0];
         entry.GetProperty("via").GetString().ShouldBe("web");
         entry.GetProperty("tool").ValueKind.ShouldBe(JsonValueKind.Null);
@@ -69,7 +69,7 @@ public class SetLookTests : ApiTestFixture
         (await PutOkAsync(deck, new { draft = true })).GetProperty("look").GetProperty("draft").GetBoolean().ShouldBeTrue();
         (await PutOkAsync(deck, new { draft = false })).GetProperty("look").GetProperty("draft").GetBoolean().ShouldBeFalse();
 
-        (await SummariesAsync(deck)).Take(2).ShouldBe(["Changed the draft mark to off", "Changed the draft mark to on"]);
+        (await SummariesAsync(deck)).Take(2).ShouldBe(["changed the draft mark to off", "changed the draft mark to on"]);
     }
 
     [Test]
@@ -95,7 +95,7 @@ public class SetLookTests : ApiTestFixture
         overrides.GetProperty("progress").GetBoolean().ShouldBe(!workshop.Progress);
         look.GetProperty("template").GetProperty("chrome").GetProperty("tracker").GetBoolean().ShouldBe(workshop.Tracker);
         look.GetProperty("template").GetProperty("chrome").GetProperty("footer").GetString().ShouldBe(workshop.Footer);
-        (await SummariesAsync(deck))[0].ShouldBe("Changed the tracker to the template's default and the footer to the template's default");
+        (await SummariesAsync(deck))[0].ShouldBe("changed the tracker to the template's default and the footer to the template's default");
     }
 
     [Test]
@@ -111,7 +111,7 @@ public class SetLookTests : ApiTestFixture
         using var clear = JsonDocument.Parse("""{ "logo": null }""");
         look = (await PutOkAsync(deck, clear.RootElement)).GetProperty("look");
         look.GetProperty("logo").ValueKind.ShouldBe(JsonValueKind.Null);
-        (await SummariesAsync(deck)).Take(2).ShouldBe(["Removed the logo", "Set the logo"]);
+        (await SummariesAsync(deck)).Take(2).ShouldBe(["removed the logo", "set the logo"]);
     }
 
     [Test]
@@ -173,7 +173,7 @@ public class SetLookTests : ApiTestFixture
 
         look.GetProperty("palette").GetProperty("name").GetString().ShouldBe(_templates.Palette);
         var label = new PaletteCatalogue().Find(_templates.Palette)!.Label;
-        (await SummariesAsync(deck))[0].ShouldBe($"Changed the template to locked and the palette to {label}");
+        (await SummariesAsync(deck))[0].ShouldBe($"changed the template to locked and the palette to {label}");
     }
 
     [Test]

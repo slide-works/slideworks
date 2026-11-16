@@ -45,7 +45,7 @@ public class CreateDeckTests : ApiTestFixture
         entry.GetProperty("actorKind").GetString().ShouldBe("person");
         entry.GetProperty("via").GetString().ShouldBe("web");
         entry.GetProperty("tool").ValueKind.ShouldBe(JsonValueKind.Null);
-        entry.GetProperty("summary").GetString().ShouldBe("Created from the talk template with the Cobalt palette");
+        entry.GetProperty("summary").GetString().ShouldBe("created the deck from the talk template with the Cobalt palette");
         entry.GetProperty("atLabel").GetString().ShouldBe("3 min ago");
     }
 
@@ -104,7 +104,7 @@ public class CreateDeckTests : ApiTestFixture
         entry.GetProperty("actorKind").GetString().ShouldBe("agent");
         entry.GetProperty("via").GetString().ShouldBe("mcp");
         entry.GetProperty("tool").GetString().ShouldBe("create_deck");
-        entry.GetProperty("summary").GetString().ShouldBe("Created from the talk template with the Cobalt palette");
+        entry.GetProperty("summary").GetString().ShouldBe("created the deck from the talk template with the Cobalt palette");
     }
 
     // The agent's deck belongs to the presenter it acts for: Sam opens it in the browser.

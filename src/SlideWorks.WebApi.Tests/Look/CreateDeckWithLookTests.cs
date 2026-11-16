@@ -40,7 +40,7 @@ public class CreateDeckWithLookTests : ApiTestFixture
         look.GetProperty("palette").GetProperty("tokens").GetProperty("accent").GetString()
             .ShouldBe(new PaletteCatalogue().Find("ember")!.Tokens["accent"]);
         var activity = await DeckSeed.ActivityAsync(Client, id);
-        activity.Single().GetProperty("summary").GetString().ShouldBe("Created from the update template with the Ember palette");
+        activity.Single().GetProperty("summary").GetString().ShouldBe("created the deck from the update template with the Ember palette");
     }
 
     [Test]

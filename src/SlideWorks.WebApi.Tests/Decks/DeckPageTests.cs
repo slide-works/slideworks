@@ -56,7 +56,7 @@ public class DeckPageTests : ApiTestFixture
 
         var activity = page.GetProperty("activity").EnumerateArray().ToList();
         activity.Select(a => a.GetProperty("summary").GetString())
-            .ShouldBe(["added slide 3 (quote)", "added slide 2 (bullets)", "added slide 1 (title)", "Created from the talk template with the Cobalt palette"]);
+            .ShouldBe(["added slide 3 (quote)", "added slide 2 (bullets)", "added slide 1 (title)", "created the deck from the talk template with the Cobalt palette"]);
         activity.ShouldAllBe(a => a.GetProperty("actor").GetString() == "Claude"
             && a.GetProperty("actorKind").GetString() == "agent"
             && a.GetProperty("via").GetString() == "mcp"

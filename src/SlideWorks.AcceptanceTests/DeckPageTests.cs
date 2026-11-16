@@ -18,7 +18,7 @@ public partial class DeckPageTests : AcceptanceTest
         await Expect(deck.Title).ToHaveTextAsync(title);
         await Expect(deck.SlideCount).ToHaveTextAsync("0 slides");
         await Expect(deck.SharingLevel).ToHaveTextAsync("Private");
-        await Expect(deck.ActivityRows.First).ToContainTextAsync("You Created from the talk template with the Cobalt palette");
+        await Expect(deck.ActivityRows.First).ToContainTextAsync("You created the deck from the talk template with the Cobalt palette");
         await Expect(deck.Present).ToHaveAttributeAsync("href", new Regex($"^/d/{id}/roadmap-[0-9a-f]{{32}}$"));
     }
 
