@@ -87,16 +87,19 @@ public class UploadImageTests : ApiTestFixture
     }
 
     // name is only a label, but a control character (a NUL above all) has no place in one and can break whatever shows it.
-    [TestCase("story\0map.png")]
-    [TestCase("story\nmap.png")]
-    [TestCase("story-map.png\r")]
-    [TestCase("\u0007story-map.png")]
-    [TestCase("story\u009Fmap.png")]
-    [TestCase("story\u007Fmap.png")]
-    public async Task UploadImage_WhenNameHasControlCharacter_ShouldRefuse(string name)
+    // The cases are code points, because a test name holding a C1 character never matches a test filter, so it would
+    // silently not run.
+    [TestCase(0x00, "story{0}map.png")]
+    [TestCase(0x0A, "story{0}map.png")]
+    [TestCase(0x0D, "story-map.png{0}")]
+    [TestCase(0x07, "{0}story-map.png")]
+    [TestCase(0x7F, "story{0}map.png")]
+    [TestCase(0x9F, "story{0}map.png")]
+    public async Task UploadImage_WhenNameHasControlCharacter_ShouldRefuse(int codePoint, string shape)
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent);
+        var name = string.Format(System.Globalization.CultureInfo.InvariantCulture, shape, (char)codePoint);
 
         var error = await SlideCalls.ErrorAsync(agent, "upload_image", new { deck, name, contentType = "image/png" });
 
