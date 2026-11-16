@@ -8,7 +8,7 @@ const COLUMNS = [
   { label: 'Slides', align: 'right' as const },
   { label: 'Last change' },
   { label: 'Updated', align: 'right' as const },
-  { label: '' },
+  { label: 'Present', hidden: true },
 ];
 
 // "Shared with you": other presenters' decks that name the signed-in person as
@@ -16,9 +16,14 @@ const COLUMNS = [
 export function SharedDecksTable({ rows }: { rows: SharedDeckRow[] }) {
   return (
     <section data-testid="shared-with-me" className="grid gap-3">
-      <h2 className="text-lg font-bold tracking-tight text-ink">Shared with you</h2>
+      <h2 id="shared-with-me-heading" className="text-lg font-bold tracking-tight text-ink">
+        Shared with you
+      </h2>
       <div className="panel overflow-x-auto">
-        <table className="w-full border-collapse text-meta">
+        <table
+          aria-labelledby="shared-with-me-heading"
+          className="w-full border-collapse text-meta"
+        >
           <LedgerHead columns={COLUMNS} />
           <tbody>
             {rows.map((row) => (

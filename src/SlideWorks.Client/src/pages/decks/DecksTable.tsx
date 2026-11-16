@@ -8,14 +8,18 @@ const COLUMNS = [
   { label: 'Last change' },
   { label: 'Sharing' },
   { label: 'Updated', align: 'right' as const },
-  { label: '' },
+  { label: 'Present', hidden: true },
 ];
 
 // The presenter's own decks, as a ledger.
 export function DecksTable({ rows }: { rows: DeckRow[] }) {
   return (
     <div className="panel overflow-x-auto">
-      <table data-testid="decks-table" className="w-full border-collapse text-meta">
+      <table
+        data-testid="decks-table"
+        aria-label="Your decks"
+        className="w-full border-collapse text-meta"
+      >
         <LedgerHead columns={COLUMNS} />
         <tbody>
           {rows.map((row) => (

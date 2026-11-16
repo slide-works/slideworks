@@ -1,6 +1,5 @@
-import { useState } from 'react';
-
-type CopyState = 'idle' | 'copied' | 'failed';
+import { useRef } from 'react';
+import { useCopyText, type CopyState } from '../../components/useCopyText';
 
 const COPY_LABEL: Record<CopyState, string> = {
   idle: 'Copy',
@@ -11,13 +10,8 @@ const COPY_LABEL: Record<CopyState, string> = {
 // "Connect an agent": the MCP server URL with a copy button. The library shows
 // it until the presenter's first agent connects (connect.show).
 export function ConnectBanner({ mcpUrl }: { mcpUrl: string }) {
-  const [copy, setCopy] = useState<CopyState>('idle');
-
-  const copyUrl = () =>
-    navigator.clipboard.writeText(mcpUrl).then(
-      () => setCopy('copied'),
-      () => setCopy('failed'),
-    );
+  const urlRef = useRef<HTMLElement>(null);
+  const copy = useCopyText(urlRef);
 
   return (
     <div
@@ -41,6 +35,7 @@ export function ConnectBanner({ mcpUrl }: { mcpUrl: string }) {
         &ldquo;make a deck about …&rdquo;
       </span>
       <code
+        ref={urlRef}
         data-testid="connect-mcp-url"
         className="select-all rounded-md border border-edge bg-panel px-2 py-1 font-mono text-[12.5px]"
       >
@@ -50,9 +45,9 @@ export function ConnectBanner({ mcpUrl }: { mcpUrl: string }) {
         type="button"
         data-testid="connect-copy"
         className="rounded-md border border-edge-strong bg-panel px-3 py-1.5 text-meta font-medium text-ink"
-        onClick={copyUrl}
+        onClick={() => copy.copy(mcpUrl)}
       >
-        {COPY_LABEL[copy]}
+        {COPY_LABEL[copy.state]}
       </button>
     </div>
   );

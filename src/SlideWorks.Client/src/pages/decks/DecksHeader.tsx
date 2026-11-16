@@ -11,7 +11,7 @@ type DecksHeaderProps = {
 export function DecksHeader({ deckCount, search, onSearch }: DecksHeaderProps) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <h2 className="text-lg font-bold tracking-tight text-ink">Decks</h2>
+      <h1 className="text-lg font-bold tracking-tight text-ink">Decks</h1>
       {deckCount !== null && (
         <span
           data-testid="decks-count"

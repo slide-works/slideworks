@@ -78,6 +78,43 @@ test('connect banner copies mcp url', async ({ mount, page, context }) => {
   );
 });
 
+test('connect banner falls back to select and copy when the browser has no clipboard', async ({
+  mount,
+  page,
+}) => {
+  // Plain http on a host other than localhost: navigator.clipboard is undefined.
+  await page.evaluate(() =>
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true }),
+  );
+  await stubApi(page, { '/api/decks': { json: decksLibrary } });
+  await mount(<DecksPage />, route);
+
+  const banner = page.getByTestId('connect-banner');
+  await banner.getByTestId('connect-copy').click();
+  await expect(banner.getByTestId('connect-copy')).toHaveText('Select and copy');
+  await expect
+    .poll(() => page.evaluate(() => window.getSelection()?.toString()))
+    .toBe('https://slideworks.example/mcp');
+});
+
+test('connect banner falls back to select and copy when the clipboard refuses', async ({
+  mount,
+  page,
+}) => {
+  await page.evaluate(() =>
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: () => Promise.reject(new DOMException('Denied', 'NotAllowedError')) },
+      configurable: true,
+    }),
+  );
+  await stubApi(page, { '/api/decks': { json: decksLibrary } });
+  await mount(<DecksPage />, route);
+
+  const banner = page.getByTestId('connect-banner');
+  await banner.getByTestId('connect-copy').click();
+  await expect(banner.getByTestId('connect-copy')).toHaveText('Select and copy');
+});
+
 test('connect banner hides once an agent has connected', async ({ mount, page }) => {
   const view: DecksLibraryView = {
     ...decksLibrary,
@@ -149,6 +186,52 @@ test('new deck shows the server error', async ({ mount, page }) => {
   await page.getByTestId('new-deck-create').click();
 
   await expect(page.getByTestId('new-deck-error')).toHaveText('Title is required.');
+});
+
+test('new deck cancel puts focus back on new deck', async ({ mount, page }) => {
+  await stubApi(page, { '/api/decks': { json: decksLibrary } });
+  await mount(<DecksPage />, route);
+
+  await page.getByTestId('new-deck').click();
+  await expect(page.getByTestId('new-deck-title')).toBeFocused();
+  await page.getByTestId('new-deck-cancel').click();
+
+  await expect(page.getByTestId('new-deck-form')).toHaveCount(0);
+  await expect(page.getByTestId('new-deck')).toBeFocused();
+});
+
+test('a failed new deck puts focus back on the title', async ({ mount, page }) => {
+  await page.route('**/api/decks', (request) =>
+    request.request().method() === 'POST'
+      ? request.fulfill({ status: 400, json: { error: 'Title is required.' } })
+      : request.fulfill({ json: decksLibrary }),
+  );
+  await mount(<DecksPage />, route);
+
+  await page.getByTestId('new-deck').click();
+  await page.getByTestId('new-deck-title').fill('   ');
+  await page.getByTestId('new-deck-create').click();
+
+  await expect(page.getByTestId('new-deck-error')).toHaveText('Title is required.');
+  await expect(page.getByTestId('new-deck-title')).toBeFocused();
+  await expect(page.getByTestId('new-deck-title')).toHaveAccessibleDescription(
+    'Title is required.',
+  );
+});
+
+test('the page has one h1, named tables and a labelled present column', async ({ mount, page }) => {
+  await stubApi(page, { '/api/decks': { json: decksLibrary } });
+  await mount(<DecksPage />, route);
+
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Decks');
+  const own = page.getByRole('table', { name: 'Your decks' });
+  const shared = page.getByRole('table', { name: 'Shared with you' });
+  await expect(own).toHaveCount(1);
+  await expect(shared).toHaveCount(1);
+  for (const table of [own, shared]) {
+    await expect(table.getByRole('columnheader').last()).toHaveAccessibleName('Present');
+    await expect(table.getByRole('columnheader').last().locator('span')).toHaveClass(/sr-only/);
+  }
 });
 
 test('empty state', async ({ mount, page }) => {
