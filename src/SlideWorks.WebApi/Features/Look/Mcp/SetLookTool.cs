@@ -18,8 +18,8 @@ public sealed class SetLookTool
         [Description("The deck's id.")] string deck,
         [Description("The template, as list_templates names it, such as talk, workshop or update.")] string? template = null,
         [Description("The palette, as list_palettes names it, such as cobalt or ember.")] string? palette = null,
-        [Description("The logo: the id of a completed upload_image on this deck, or null to remove the logo.")] JsonElement logo = default,
+        [Description("The logo: the id of a completed upload_image on this deck, or null to remove the logo.")] JsonElement? logo = null,
         [Description("true to mark the deck as a draft, false to clear the mark.")] bool? draft = null,
-        [Description("Chrome overrides, any of { \"tracker\": true|false, \"footer\": \"author\"|\"date\"|\"off\", \"progress\": true|false }. A key set to null goes back to the template's default; a key left out keeps its current value.")] JsonElement chrome = default)
-        => McpToolErrors.Run(() => commands.SetFromAgentAsync(deck, new LookChangeRequest(template, palette, logo, draft, chrome).ToChange()));
+        [Description("Chrome overrides, any of { \"tracker\": true|false, \"footer\": \"author\"|\"date\"|\"off\", \"progress\": true|false }. A key set to null goes back to the template's default; a key left out keeps its current value.")] JsonElement? chrome = null)
+        => McpToolErrors.Run(() => commands.SetFromAgentAsync(deck, new LookChangeRequest(template, palette, logo ?? default, draft, chrome ?? default).ToChange()));
 }
