@@ -33,6 +33,12 @@ function gate() {
 // its JSON is parsed and React renders.
 const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 200)));
 
+// The fixture deck after an agent added a fourth slide.
+const longerDeck: DeckPlayView = {
+  ...deckPlay,
+  slides: [...deckPlay.slides, { ...deckPlay.slides[1], number: 4 }],
+};
+
 test('player page loads deck and renders player', async ({ mount, page }) => {
   await stubApi(page, { [playPath]: { json: deckPlay } });
   await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
@@ -53,13 +59,15 @@ test('player page refetches on DeckChanged', async ({ mount, page }) => {
   let reads = 0;
   await page.route(`**${playPath}`, (route) => {
     reads += 1;
-    return route.fulfill({ json: reads === 1 ? deckPlay : longer });
+    return route.fulfill({ json: reads <= 2 ? deckPlay : longer });
   });
   await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
 
   await expect(page.getByTestId('slide-3')).toHaveCount(1);
   await expect(page.getByTestId('slide-4')).toHaveCount(0);
   await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
+  // The join's own re-read comes first.
+  await expect.poll(() => reads).toBe(2);
 
   // The presenter is on slide 2 when the deck changes.
   await page.evaluate(() => {
@@ -73,7 +81,7 @@ test('player page refetches on DeckChanged', async ({ mount, page }) => {
   hub.push({ type: 'deckChanged', deckId: deckPlay.id });
 
   await expect(page.getByTestId('slide-4')).toHaveCount(1);
-  expect(reads).toBe(2);
+  expect(reads).toBe(3);
   // The same Player took the new deck: it was not remounted, and stayed on slide 2.
   expect(await player!.evaluate((element) => element.isConnected)).toBe(true);
   expect(await windowHash(page)).toBe('#2');
@@ -92,24 +100,26 @@ test('player page keeps the newest deck when an older re-read answers last', asy
   let reads = 0;
   await page.route(`**${playPath}`, async (route) => {
     reads += 1;
-    if (reads === 2) {
+    if (reads === 3) {
       // The older re-read: the deck before slide 4 was added, answering last.
       await held.opened;
       return route.fulfill({ json: deckPlay });
     }
-    return route.fulfill({ json: reads === 1 ? deckPlay : longer });
+    return route.fulfill({ json: reads <= 2 ? deckPlay : longer });
   });
   await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
   await expect(page.getByTestId('slide-3')).toHaveCount(1);
   await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
+  // The join's own re-read comes first.
+  await expect.poll(() => reads).toBe(2);
 
   hub.push({ type: 'deckChanged', deckId: deckPlay.id });
-  await expect.poll(() => reads).toBe(2);
+  await expect.poll(() => reads).toBe(3);
   hub.push({ type: 'deckChanged', deckId: deckPlay.id });
   await expect(page.getByTestId('slide-4')).toHaveCount(1);
 
   held.release();
-  await expect.poll(() => reads).toBe(3);
+  await expect.poll(() => reads).toBe(4);
   await settle(page);
 
   await expect(page.getByTestId('slide-4')).toHaveCount(1);
@@ -123,7 +133,7 @@ test('player page ignores a re-read for the deck it moved away from', async ({ m
   let reads = 0;
   await page.route(`**${playPath}`, async (route) => {
     reads += 1;
-    if (reads === 2) {
+    if (reads === 3) {
       await held.opened;
       await route.fulfill({ json: deckPlay });
       released = true;
@@ -140,10 +150,12 @@ test('player page ignores a re-read for the deck it moved away from', async ({ m
   );
   await expect(page.getByTestId('player')).toHaveAttribute('aria-label', deckPlay.title);
   await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
+  // The join's own re-read comes first.
+  await expect.poll(() => reads).toBe(2);
 
   // The deck changes, and while its re-read is still out, the viewer opens another deck.
   hub.push({ type: 'deckChanged', deckId: deckPlay.id });
-  await expect.poll(() => reads).toBe(2);
+  await expect.poll(() => reads).toBe(3);
   await page.getByTestId('goto-path').fill(`/d/${other.id}/${other.slug}`);
   await page.getByTestId('goto').click();
   await expect(page.getByTestId('player')).toHaveAttribute('aria-label', 'Other');
@@ -156,6 +168,85 @@ test('player page ignores a re-read for the deck it moved away from', async ({ m
   await expect(page.getByTestId('player')).toHaveAttribute('aria-label', 'Other');
 });
 
+// A change that lands after the first read but before JoinDeck completes sends
+// no event to this page, so the page re-reads once it has joined.
+test('player page re-reads once it has joined, showing a change made before the join', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page, { holdJoins: true });
+  let reads = 0;
+  await page.route(`**${playPath}`, (route) => {
+    reads += 1;
+    return route.fulfill({ json: reads === 1 ? deckPlay : longerDeck });
+  });
+  await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
+  await expect(page.getByTestId('slide-3')).toHaveCount(1);
+  await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
+
+  // The viewer is on slide 2 when an agent adds slide 4, while the join is still out.
+  await page.evaluate(() => {
+    window.location.hash = '#2';
+  });
+  await expect.poll(() => windowHash(page)).toBe('#2');
+  const player = await page.getByTestId('player').elementHandle();
+  await settle(page);
+  expect(reads).toBe(1);
+  hub.releaseJoins();
+
+  await expect(page.getByTestId('slide-4')).toHaveCount(1);
+  expect(reads).toBe(2);
+  // The same Player took the new deck, still on slide 2.
+  expect(await player!.evaluate((element) => element.isConnected)).toBe(true);
+  expect(await windowHash(page)).toBe('#2');
+});
+
+test('player page waits for its first read before the join re-reads', async ({ mount, page }) => {
+  const hub = await stubDeckHub(page);
+  const first = gate();
+  let reads = 0;
+  await page.route(`**${playPath}`, async (route) => {
+    reads += 1;
+    if (reads === 1) {
+      await first.opened;
+      return route.fulfill({ json: deckPlay });
+    }
+    return route.fulfill({ json: longerDeck });
+  });
+  await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
+  await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
+
+  // Joined while the first read is still out: nothing is thrown away for a re-read.
+  await settle(page);
+  expect(reads).toBe(1);
+  first.release();
+
+  await expect(page.getByTestId('slide-4')).toHaveCount(1);
+  expect(reads).toBe(2);
+});
+
+test('player page re-reads when a reconnect joins again', async ({ mount, page }) => {
+  const hub = await stubDeckHub(page);
+  let reads = 0;
+  await page.route(`**${playPath}`, (route) => {
+    reads += 1;
+    return route.fulfill({ json: reads <= 2 ? deckPlay : longerDeck });
+  });
+  await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
+  await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
+  await expect.poll(() => reads).toBe(2);
+  await expect(page.getByTestId('slide-3')).toHaveCount(1);
+  const player = await page.getByTestId('player').elementHandle();
+
+  // The connection drops, slide 4 is added while it is down, and SignalR reconnects.
+  hub.drop();
+
+  await expect.poll(() => hub.joined).toEqual([deckPlay.id, deckPlay.id]);
+  await expect(page.getByTestId('slide-4')).toHaveCount(1);
+  expect(reads).toBe(3);
+  expect(await player!.evaluate((element) => element.isConnected)).toBe(true);
+});
+
 test('player page 404 mid-presentation offers sign-in back to the current slide', async ({
   mount,
   page,
@@ -164,7 +255,7 @@ test('player page 404 mid-presentation offers sign-in back to the current slide'
   let reads = 0;
   await page.route(`**${playPath}`, (route) => {
     reads += 1;
-    return reads === 1
+    return reads <= 2
       ? route.fulfill({ json: deckPlay })
       : route.fulfill({ status: 404, json: { error: 'Deck not found.' } });
   });
@@ -172,6 +263,8 @@ test('player page 404 mid-presentation offers sign-in back to the current slide'
   await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
   await expect(page.getByTestId('player')).toBeVisible();
   await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
+  // The join's own re-read comes first.
+  await expect.poll(() => reads).toBe(2);
 
   // The viewer has moved on to slide 2 when the deck is made private.
   await page.evaluate(() => {

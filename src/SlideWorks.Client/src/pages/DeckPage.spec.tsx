@@ -24,6 +24,12 @@ function gate() {
 // its JSON is parsed and React renders.
 const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 200)));
 
+// The fixture deck after an agent added a fourth slide.
+const longerDeck: DeckPageView = {
+  ...deckPage,
+  slides: [...deckPage.slides, { ...deckPage.slides[1], number: 4, link: `${deckPage.playUrl}#4` }],
+};
+
 test('deck page grid shows thumbnails and notes of clicked slide', async ({ mount, page }) => {
   await stubApi(page, { '/api/me': { json: me }, [deckPath]: { json: deckPage } });
   await mount(<AppRoutes />, route);
@@ -129,12 +135,14 @@ test('deck page re-reads on DeckChanged', async ({ mount, page }) => {
   await stubApi(page, { '/api/me': { json: me } });
   await page.route(`**${deckPath}`, (route) => {
     reads += 1;
-    return route.fulfill({ json: reads === 1 ? deckPage : longer });
+    return route.fulfill({ json: reads <= 2 ? deckPage : longer });
   });
   await mount(<AppRoutes />, route);
 
   await expect(page.getByTestId('deck-thumb')).toHaveCount(3);
   await expect.poll(() => hub.joined).toEqual([deckPage.id]);
+  // The join's own re-read comes first.
+  await expect.poll(() => reads).toBe(2);
   await page.getByTestId('deck-thumb-select').nth(1).click();
 
   hub.push({ type: 'deckChanged', deckId: 'Zz9OtherDeck' });
@@ -142,7 +150,7 @@ test('deck page re-reads on DeckChanged', async ({ mount, page }) => {
 
   await expect(page.getByTestId('deck-thumb')).toHaveCount(4);
   await expect(page.getByTestId('deck-slide-count')).toHaveText('4 slides');
-  expect(reads).toBe(2);
+  expect(reads).toBe(3);
   // The selected slide survives the re-read.
   await expect(page.getByTestId('selected-number')).toHaveText('2');
 });
@@ -164,24 +172,26 @@ test('deck page keeps the newest deck when an older re-read answers last', async
   await stubApi(page, { '/api/me': { json: me } });
   await page.route(`**${deckPath}`, async (route) => {
     reads += 1;
-    if (reads === 2) {
+    if (reads === 3) {
       // The older re-read: the deck before slide 4 was added, answering last.
       await held.opened;
       return route.fulfill({ json: deckPage });
     }
-    return route.fulfill({ json: reads === 1 ? deckPage : longer });
+    return route.fulfill({ json: reads <= 2 ? deckPage : longer });
   });
   await mount(<AppRoutes />, route);
   await expect(page.getByTestId('deck-thumb')).toHaveCount(3);
   await expect.poll(() => hub.joined).toEqual([deckPage.id]);
+  // The join's own re-read comes first.
+  await expect.poll(() => reads).toBe(2);
 
   hub.push({ type: 'deckChanged', deckId: deckPage.id });
-  await expect.poll(() => reads).toBe(2);
+  await expect.poll(() => reads).toBe(3);
   hub.push({ type: 'deckChanged', deckId: deckPage.id });
   await expect(page.getByTestId('deck-thumb')).toHaveCount(4);
 
   held.release();
-  await expect.poll(() => reads).toBe(3);
+  await expect.poll(() => reads).toBe(4);
   await settle(page);
 
   await expect(page.getByTestId('deck-thumb')).toHaveCount(4);
@@ -197,7 +207,7 @@ test('deck page ignores a re-read for the deck it moved away from', async ({ mou
   await stubApi(page, { '/api/me': { json: me }, [`/api/decks/${other.id}`]: { json: other } });
   await page.route(`**${deckPath}`, async (route) => {
     reads += 1;
-    if (reads === 2) {
+    if (reads === 3) {
       await held.opened;
       await route.fulfill({ json: deckPage });
       released = true;
@@ -213,10 +223,12 @@ test('deck page ignores a re-read for the deck it moved away from', async ({ mou
   );
   await expect(page.getByTestId('deck-title')).toHaveText(deckPage.title);
   await expect.poll(() => hub.joined).toEqual([deckPage.id]);
+  // The join's own re-read comes first.
+  await expect.poll(() => reads).toBe(2);
 
   // The deck changes, and while its re-read is still out, the owner opens another deck.
   hub.push({ type: 'deckChanged', deckId: deckPage.id });
-  await expect.poll(() => reads).toBe(2);
+  await expect.poll(() => reads).toBe(3);
   await page.getByTestId('goto-path').fill(`/decks/${other.id}`);
   await page.getByTestId('goto').click();
   await expect(page.getByTestId('deck-title')).toHaveText('Other');
@@ -227,6 +239,79 @@ test('deck page ignores a re-read for the deck it moved away from', async ({ mou
 
   await expect(page.getByTestId('deck-page')).toHaveAttribute('data-deck-id', other.id);
   await expect(page.getByTestId('deck-title')).toHaveText('Other');
+});
+
+// A change that lands after the first read but before JoinDeck completes sends
+// no event to this page, so the page re-reads once it has joined.
+test('deck page re-reads once it has joined, showing a change made before the join', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page, { holdJoins: true });
+  let reads = 0;
+  await stubApi(page, { '/api/me': { json: me } });
+  await page.route(`**${deckPath}`, (route) => {
+    reads += 1;
+    return route.fulfill({ json: reads === 1 ? deckPage : longerDeck });
+  });
+  await mount(<AppRoutes />, route);
+  await expect(page.getByTestId('deck-thumb')).toHaveCount(3);
+  await expect.poll(() => hub.joined).toEqual([deckPage.id]);
+
+  // An agent adds slide 4 now: the join is still out, so no event reaches the page.
+  await settle(page);
+  expect(reads).toBe(1);
+  hub.releaseJoins();
+
+  await expect(page.getByTestId('deck-thumb')).toHaveCount(4);
+  await expect(page.getByTestId('deck-slide-count')).toHaveText('4 slides');
+  expect(reads).toBe(2);
+});
+
+test('deck page waits for its first read before the join re-reads', async ({ mount, page }) => {
+  const hub = await stubDeckHub(page);
+  const first = gate();
+  let reads = 0;
+  await stubApi(page, { '/api/me': { json: me } });
+  await page.route(`**${deckPath}`, async (route) => {
+    reads += 1;
+    if (reads === 1) {
+      await first.opened;
+      return route.fulfill({ json: deckPage });
+    }
+    return route.fulfill({ json: longerDeck });
+  });
+  await mount(<AppRoutes />, route);
+  await expect.poll(() => hub.joined).toEqual([deckPage.id]);
+
+  // Joined while the first read is still out: nothing is thrown away for a re-read.
+  await settle(page);
+  expect(reads).toBe(1);
+  first.release();
+
+  await expect(page.getByTestId('deck-thumb')).toHaveCount(4);
+  expect(reads).toBe(2);
+});
+
+test('deck page re-reads when a reconnect joins again', async ({ mount, page }) => {
+  const hub = await stubDeckHub(page);
+  let reads = 0;
+  await stubApi(page, { '/api/me': { json: me } });
+  await page.route(`**${deckPath}`, (route) => {
+    reads += 1;
+    return route.fulfill({ json: reads <= 2 ? deckPage : longerDeck });
+  });
+  await mount(<AppRoutes />, route);
+  await expect.poll(() => hub.joined).toEqual([deckPage.id]);
+  await expect.poll(() => reads).toBe(2);
+  await expect(page.getByTestId('deck-thumb')).toHaveCount(3);
+
+  // The connection drops, slide 4 is added while it is down, and SignalR reconnects.
+  hub.drop();
+
+  await expect.poll(() => hub.joined).toEqual([deckPage.id, deckPage.id]);
+  await expect(page.getByTestId('deck-thumb')).toHaveCount(4);
+  expect(reads).toBe(3);
 });
 
 test('saving in the sharing dialog re-reads the deck page once', async ({ mount, page }) => {
