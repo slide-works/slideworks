@@ -55,7 +55,7 @@ public partial class PlayerSharingTests : AcceptanceTest
     }
 
     // Signs in as Sam, makes a deck with "+ New deck", and shares it through PUT /api/decks/{id}/sharing with the
-    // browser's own session, as the sharing dialog does.
+    // browser's own session, as the sharing dialog does. It leaves the deck page, so the page is blank when it returns.
     private async Task<string> CreateSharedDeckAsync(string level, params string[] viewers)
     {
         var decks = new DecksPage(Page);
@@ -70,6 +70,9 @@ public partial class PlayerSharingTests : AcceptanceTest
             Headers = new Dictionary<string, string> { ["Origin"] = AcceptanceApp.BaseUrl },
         });
         response.Status.ShouldBe(200, await response.TextAsync());
+        // Every caller goes on as someone else. Sam's deck page is still reading (its look catalogue, and the re-read
+        // the sharing change's DeckChanged triggers), so close it before the cookie changes under it.
+        await LeavePageAsync();
         return id;
     }
 

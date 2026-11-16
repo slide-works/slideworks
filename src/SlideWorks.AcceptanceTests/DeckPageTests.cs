@@ -53,6 +53,7 @@ public partial class DeckPageTests : AcceptanceTest
     {
         var id = await CreateDeckAsync(TestUser.Sam, $"Private plan {Guid.NewGuid():N}");
         var player = new PlayerPage(Page);
+        await LeavePageAsync();
         await Page.Context.ClearCookiesAsync();
 
         await player.GotoAsync(id);
