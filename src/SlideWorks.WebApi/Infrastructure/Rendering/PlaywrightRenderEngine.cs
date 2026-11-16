@@ -1,0 +1,157 @@
+using Agoda.IoC.Core;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.Playwright;
+using SlideWorks.Core.Rendering;
+using SlideWorks.WebApi.Features.Render;
+
+namespace SlideWorks.WebApi.Infrastructure.Rendering;
+
+// The share card engine (L9, D11): the SPA's /card/{id} or /card/generic route in the shared headless Chromium, at
+// 1200x630, screenshotted once the page says data-ready. At most two pages render at once. Each render gets a fresh
+// browser context carrying a Card render token as the X-Render-Token header (and in the fragment, which the card page
+// reads and which never reaches the server); every request to another origin is aborted. A data-error on the page or
+// a failed image load fails the render with "Rendering failed: <text>", and a render that passes RenderOptions.Timeout
+// fails with "Rendering timed out". When the browser dies mid-render, it is started again and the render retried once.
+[RegisterSingleton(For = typeof(IRenderEngine))]
+public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens tokens, IConfiguration configuration, IServer server) : IRenderEngine, IDisposable
+{
+    public const int WIDTH = 1200;
+    public const int HEIGHT = 630;
+    public const string TIMED_OUT = "Rendering timed out";
+    public const string FAILED = "Rendering failed: ";
+
+    private const int MAX_PAGES = 2;
+    private const string CARD_TEST_ID = "share-card";
+    private const string SETTLED = "() => { const card = document.querySelector('[data-testid=share-card]'); return !!card && (card.dataset.ready === 'true' || card.hasAttribute('data-error')); }";
+    private const string IMAGE = "image";
+
+    private readonly SemaphoreSlim _pages = new(MAX_PAGES, MAX_PAGES);
+    private readonly RenderOptions _options = RenderOptions.From(configuration);
+
+    public Task<byte[]> RenderCardAsync(string deckId, CancellationToken ct) => RenderAsync(deckId, ct);
+
+    public Task<byte[]> RenderGenericCardAsync(CancellationToken ct) => RenderAsync(null, ct);
+
+    public void Dispose() => _pages.Dispose();
+
+    // The deadline covers the whole render: waiting for a page slot, starting the browser and the page itself. On the
+    // deadline the context is closed, so the abandoned render frees its slot straight away.
+    private async Task<byte[]> RenderAsync(string? deckId, CancellationToken ct)
+    {
+        var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(_options.Timeout);
+        var render = RenderInSlotAsync(deckId, deadline.Token);
+        _ = render.ContinueWith(_ => deadline.Dispose(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using (deadline.Token.Register(() => stopped.TrySetResult()))
+        {
+            if (await Task.WhenAny(render, stopped.Task) == render)
+            {
+                return await render;
+            }
+        }
+        ct.ThrowIfCancellationRequested();
+        throw new System.TimeoutException(TIMED_OUT);
+    }
+
+    private async Task<byte[]> RenderInSlotAsync(string? deckId, CancellationToken ct)
+    {
+        await _pages.WaitAsync(ct);
+        try
+        {
+            var chromium = await browser.GetAsync(ct);
+            try
+            {
+                return await RenderPageAsync(chromium, deckId, ct);
+            }
+            catch (PlaywrightException) when (!chromium.IsConnected && !ct.IsCancellationRequested)
+            {
+                return await RenderPageAsync(await browser.GetAsync(ct), deckId, ct);
+            }
+        }
+        finally
+        {
+            _pages.Release();
+        }
+    }
+
+    private async Task<byte[]> RenderPageAsync(IBrowser chromium, string? deckId, CancellationToken ct)
+    {
+        var origin = BaseUrl();
+        var headers = new Dictionary<string, string>();
+        Uri url;
+        if (deckId == null)
+        {
+            url = new Uri(origin, "card/generic");
+        }
+        else
+        {
+            var token = tokens.Issue(deckId, RenderPurpose.Card);
+            headers[RenderSessions.HEADER] = token;
+            url = new Uri(origin, $"card/{Uri.EscapeDataString(deckId)}#token={Uri.EscapeDataString(token)}");
+        }
+
+        await using var context = await chromium.NewContextAsync(new BrowserNewContextOptions
+        {
+            ViewportSize = new ViewportSize { Width = WIDTH, Height = HEIGHT },
+            ExtraHTTPHeaders = headers,
+        });
+        await using var closeOnDeadline = ct.Register(() => _ = context.CloseAsync());
+        context.SetDefaultTimeout((float)_options.Timeout.TotalMilliseconds);
+        await context.RouteAsync("**/*", route => SameOrigin(route.Request.Url, origin) ? route.ContinueAsync() : route.AbortAsync());
+
+        var imageFailed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var page = await context.NewPageAsync();
+        page.RequestFailed += (_, request) => FailOnImage(imageFailed, request, ok: false);
+        page.Response += (_, response) => FailOnImage(imageFailed, response.Request, response.Ok);
+
+        await page.GotoAsync(url.ToString());
+        var settled = page.WaitForFunctionAsync(SETTLED);
+        if (await Task.WhenAny(settled, imageFailed.Task) == imageFailed.Task)
+        {
+            throw Failed(await imageFailed.Task);
+        }
+        await settled;
+        var card = page.GetByTestId(CARD_TEST_ID);
+        var error = await card.GetAttributeAsync("data-error");
+        if (error != null)
+        {
+            throw Failed(error);
+        }
+        return await card.ScreenshotAsync(new LocatorScreenshotOptions { Type = ScreenshotType.Png });
+    }
+
+    private static void FailOnImage(TaskCompletionSource<string> imageFailed, IRequest request, bool ok)
+    {
+        if (!ok && request.ResourceType == IMAGE)
+        {
+            imageFailed.TrySetResult($"{IMAGE} {new Uri(request.Url).Segments[^1]}");
+        }
+    }
+
+    private static InvalidOperationException Failed(string text) => new(FAILED + text);
+
+    private static bool SameOrigin(string url, Uri origin) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri)
+        && Uri.Compare(uri, origin, UriComponents.SchemeAndServer, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0;
+
+    // SLIDEWORKS_RENDER_URL, else the address Kestrel actually listens on (port 0 under tests is resolved by then),
+    // with a wildcard host turned into loopback.
+    private Uri BaseUrl()
+    {
+        if (_options.BaseUrl != null)
+        {
+            return new Uri(_options.BaseUrl.GetLeftPart(UriPartial.Authority));
+        }
+        var addresses = server.Features.Get<IServerAddressesFeature>()?.Addresses ?? [];
+        var address = addresses.FirstOrDefault(a => a.StartsWith("http://", StringComparison.OrdinalIgnoreCase)) ?? addresses.FirstOrDefault()
+            ?? throw new RendererUnavailableException($"The app has no address for the card renderer; set {RenderOptions.URL_SETTING}");
+        var loopback = address
+            .Replace("://+", "://127.0.0.1", StringComparison.Ordinal)
+            .Replace("://*", "://127.0.0.1", StringComparison.Ordinal)
+            .Replace("://0.0.0.0", "://127.0.0.1", StringComparison.Ordinal)
+            .Replace("://[::]", "://[::1]", StringComparison.Ordinal);
+        return new Uri(new Uri(loopback).GetLeftPart(UriPartial.Authority));
+    }
+}

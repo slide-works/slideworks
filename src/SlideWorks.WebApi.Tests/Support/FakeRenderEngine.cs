@@ -28,7 +28,7 @@ public sealed class FakeRenderEngine : IRenderEngine
     // When set, every render throws this instead of returning the PNG.
     public Exception? ThrowOnRender { get; set; }
 
-    public void ThrowUnavailable() => ThrowOnRender = new RendererUnavailableException(UnavailableRenderEngine.MESSAGE);
+    public void ThrowUnavailable() => ThrowOnRender = new RendererUnavailableException("Card rendering isn't available");
 
     public void ThrowTimeout() => ThrowOnRender = new TimeoutException("Rendering timed out");
 
