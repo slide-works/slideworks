@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi;
+using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -13,8 +14,9 @@ namespace SlideWorks.AcceptanceTests;
 
 // Starts the real BFF once for the whole run, on a real Kestrel port a browser can reach: the production Program.cs,
 // the production DI and the SPA bundle that `pnpm run build` emitted into SlideWorks.WebApi/wwwroot. Only the database
-// file is the test's own, the test sign-in scheme is added so SignIn.AsAsync can sign a browser in as a TestUser, and
-// SLIDEWORKS_ADMIN_EMAIL is Ada's, so she is the admin from her first sign-in.
+// file and the data folder (where uploaded images go) are the run's own, both deleted when the run ends. The test
+// sign-in scheme is added so SignIn.AsAsync can sign a browser in as a TestUser, and SLIDEWORKS_ADMIN_EMAIL is Ada's, so
+// she is the admin from her first sign-in.
 // Browsers and the SPA never see a fake.
 //
 // The port is reserved before the host starts, so SLIDEWORKS_PUBLIC_URL can name it: links, OAuth metadata, the MCP
@@ -23,6 +25,7 @@ namespace SlideWorks.AcceptanceTests;
 public class AcceptanceApp
 {
     private string _dbPath = null!;
+    private string _dataPath = null!;
     private WebApplicationFactory<ApiMarker> _factory = null!;
 
     public static string BaseUrl { get; private set; } = null!;
@@ -34,6 +37,7 @@ public class AcceptanceApp
     public void StartApp()
     {
         _dbPath = Path.Combine(Path.GetTempPath(), $"slide-works-acceptance-{Guid.NewGuid():N}.db");
+        _dataPath = Directory.CreateTempSubdirectory("slide-works-acceptance-data-").FullName;
         var port = FreePort();
         BaseUrl = $"http://127.0.0.1:{port}";
         _factory = new WebApplicationFactory<ApiMarker>().WithWebHostBuilder(builder =>
@@ -42,6 +46,7 @@ public class AcceptanceApp
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["SLIDEWORKS_DB_PATH"] = _dbPath,
+                    [ImageStore.DATA_PATH_SETTING] = _dataPath,
                     ["SLIDEWORKS_PUBLIC_URL"] = BaseUrl,
                     [IUserDirectory.ADMIN_EMAIL_SETTING] = TestUser.Ada.Email,
                 }));
@@ -62,6 +67,7 @@ public class AcceptanceApp
         {
             File.Delete(_dbPath + suffix);
         }
+        Directory.Delete(_dataPath, recursive: true);
     }
 
     // A port nothing is listening on: bind port 0, read what the OS picked, and let it go for Kestrel to take.
