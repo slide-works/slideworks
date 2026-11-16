@@ -5,6 +5,7 @@ type PlayerControlsProps = {
   total: number;
   steps: number;
   canFullscreen: boolean;
+  fullscreen: boolean;
   onPrevious(): void;
   onNext(): void;
   onFullscreen(): void;
@@ -15,12 +16,13 @@ const BUTTON =
   'hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#93a8ff]';
 
 // The bar under the stage: previous and next, "n / total", one dot per step of
-// the current slide, the deck's progress, and fullscreen.
+// the current slide, the deck's progress, and fullscreen (or exit fullscreen).
 export function PlayerControls({
   position,
   total,
   steps,
   canFullscreen,
+  fullscreen,
   onPrevious,
   onNext,
   onFullscreen,
@@ -99,8 +101,8 @@ export function PlayerControls({
         <button
           type="button"
           data-testid="player-fullscreen"
-          aria-label="Fullscreen"
-          title="Fullscreen (F)"
+          aria-label={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          title={fullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
           className={BUTTON}
           onClick={onFullscreen}
         >

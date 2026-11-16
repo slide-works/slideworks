@@ -1,9 +1,18 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { DeckPlayView } from '../api/types';
 import { PlayerControls } from './PlayerControls';
 import { PlayerStage } from './PlayerStage';
 import { usePlayerKeys } from './usePlayerKeys';
 import { usePlayerNavigation } from './usePlayerNavigation';
+
+function subscribeFullscreen(onChange: () => void): () => void {
+  document.addEventListener('fullscreenchange', onChange);
+  return () => document.removeEventListener('fullscreenchange', onChange);
+}
+
+function isFullscreen(): boolean {
+  return document.fullscreenElement !== null;
+}
 
 // The deck player (K12): the scaled 1920×1080 stage over its control bar,
 // driven by keys, clicks, swipes and the `#slide.step` hash.
@@ -13,9 +22,14 @@ export function Player({ deck }: { deck: DeckPlayView }) {
   const navigation = usePlayerNavigation(stepCounts);
   const { position, next, previous, first, last } = navigation;
 
+  const fullscreen = useSyncExternalStore(subscribeFullscreen, isFullscreen);
   const toggleFullscreen = useCallback(() => {
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void root.current?.requestFullscreen();
+    // The browser may refuse (an iframe without allowfullscreen, a permissions
+    // policy); the player stays as it is, with no unhandled rejection. Without
+    // the API (iPhone Safari) the F key does nothing, as there's no button.
+    if (!document.fullscreenEnabled) return;
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else root.current?.requestFullscreen().catch(() => {});
   }, []);
 
   const keyActions = useMemo(
@@ -37,6 +51,7 @@ export function Player({ deck }: { deck: DeckPlayView }) {
         total={deck.slides.length}
         steps={stepCounts[position.slide - 1] ?? 0}
         canFullscreen={document.fullscreenEnabled}
+        fullscreen={fullscreen}
         onPrevious={previous}
         onNext={next}
         onFullscreen={toggleFullscreen}

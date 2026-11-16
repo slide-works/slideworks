@@ -21,8 +21,8 @@ function isTyping(target: EventTarget | null): boolean {
 
 // The player's keyboard: ←/→, Space and Shift+Space, PageUp and PageDown,
 // Home and End, and F for fullscreen. It returns before preventDefault while
-// the person types or composes with an IME, and leaves shortcuts that use a
-// modifier to the browser.
+// the person types or composes with an IME, leaves shortcuts that use a
+// modifier to the browser, and ignores auto-repeats of a held key.
 export function usePlayerKeys(actions: PlayerKeyActions): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -34,6 +34,9 @@ export function usePlayerKeys(actions: PlayerKeyActions): void {
       const action = actionFor(event, actions);
       if (!action) return;
       event.preventDefault();
+      // A held key (or a clicker that sends auto-repeats) is still swallowed,
+      // but only its first keydown moves: one press, one step or slide.
+      if (event.repeat) return;
       action();
     };
     window.addEventListener('keydown', onKeyDown);

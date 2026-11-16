@@ -13,14 +13,30 @@ function positionFromLocation(stepCounts: readonly number[]): PlayerPosition {
   return parseHash(window.location.hash, stepCounts) ?? FIRST_POSITION;
 }
 
+// The same position on a deck that changed under the player: a slide past the
+// new end becomes the last slide, and a step past its slide's last one is
+// clamped. An unchanged position comes back as the same object.
+function clampTo(position: PlayerPosition, stepCounts: readonly number[]): PlayerPosition {
+  const slide = Math.min(position.slide, Math.max(stepCounts.length, 1));
+  const step = Math.min(position.step, stepCounts[slide - 1] ?? 0);
+  return slide === position.slide && step === position.step ? position : { slide, step };
+}
+
 // The player's position, kept in the address bar as `#slide.step`. A deep link
 // is restored on load (anything invalid falls back to slide 1), every move
 // rewrites the hash with replaceState so a deck adds no history entry per
 // slide, and a hash changed from outside (the user edits it, or Back/Forward)
 // moves the player there. Each move is exactly one step, or one slide once the
-// slide's steps are all shown.
+// slide's steps are all shown. When the deck changes under the player (a live
+// refetch), the position is clamped onto it and the hash replaced.
 export function usePlayerNavigation(stepCounts: readonly number[]): PlayerNavigation {
   const [position, setPosition] = useState(() => positionFromLocation(stepCounts));
+  const [clampedFor, setClampedFor] = useState(stepCounts);
+  if (clampedFor !== stepCounts) {
+    // Adjusting state while rendering, so the stale position never paints.
+    setClampedFor(stepCounts);
+    setPosition((current) => clampTo(current, stepCounts));
+  }
 
   useEffect(() => {
     const hash = formatHash(position);

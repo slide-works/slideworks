@@ -72,6 +72,42 @@ test('arrow right reveals steps then advances one slide', async ({ mount, page }
   expect(await page.evaluate(() => window.history.length)).toBe(historyLength);
 });
 
+test('a held key moves one step, however many times it repeats', async ({ mount, page }) => {
+  await openAt(page, '#3');
+  await mount(<Player deck={sampleDeck} />);
+  await page.evaluate(() => {
+    const seen: { repeat: boolean; prevented: boolean }[] = [];
+    (window as unknown as { keysSeen: typeof seen }).keysSeen = seen;
+    // Added after the player's own listener, so it sees what the player did.
+    window.addEventListener('keydown', (event) =>
+      seen.push({ repeat: event.repeat, prevented: event.defaultPrevented }),
+    );
+  });
+
+  // Holding the key: one keydown, then auto-repeats until it is let go.
+  await page.keyboard.down('ArrowRight');
+  await page.keyboard.down('ArrowRight');
+  await page.keyboard.down('ArrowRight');
+  await page.keyboard.up('ArrowRight');
+
+  await expectHash(page, '#3.1');
+  await expect(page.getByTestId('player-steps')).toHaveAttribute('aria-label', 'Step 1 of 4');
+  // The repeats were swallowed too, so the page never scrolls under a held key.
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { keysSeen: { repeat: boolean; prevented: boolean }[] }).keysSeen,
+    ),
+  ).toEqual([
+    { repeat: false, prevented: true },
+    { repeat: true, prevented: true },
+    { repeat: true, prevented: true },
+  ]);
+
+  // The next press moves again.
+  await page.keyboard.press('ArrowRight');
+  await expectHash(page, '#3.2');
+});
+
 test('the other keys, buttons and click thirds move one step or slide each', async ({
   mount,
   page,
@@ -130,6 +166,42 @@ test('a swipe over 50 px moves one slide, a shorter one does not', async ({ moun
   await expectHash(page, '#2');
 });
 
+test('a two-finger touch is not a swipe', async ({ mount, page }) => {
+  await openAt(page, '#2');
+  await mount(<Player deck={sampleDeck} />);
+
+  // A pinch: one finger down, a second joins, then they lift one at a time,
+  // each far enough from where the first one started to pass for a swipe.
+  await page.getByTestId('player-stage').evaluate((stage) => {
+    const finger = (identifier: number, x: number) =>
+      new Touch({ identifier, target: stage, clientX: x, clientY: 300 });
+    const send = (type: string, touches: Touch[], changedTouches: Touch[]) =>
+      stage.dispatchEvent(new TouchEvent(type, { bubbles: true, touches, changedTouches }));
+    send('touchstart', [finger(1, 400)], [finger(1, 400)]);
+    send('touchstart', [finger(1, 400), finger(2, 500)], [finger(2, 500)]);
+    send('touchend', [finger(2, 600)], [finger(1, 300)]);
+    send('touchend', [], [finger(2, 600)]);
+  });
+  await expectHash(page, '#2');
+
+  // A one-finger swipe afterwards still moves.
+  await page.getByTestId('player-stage').evaluate((stage) => {
+    const finger = (x: number) =>
+      new Touch({ identifier: 3, target: stage, clientX: x, clientY: 300 });
+    stage.dispatchEvent(
+      new TouchEvent('touchstart', {
+        bubbles: true,
+        touches: [finger(400)],
+        changedTouches: [finger(400)],
+      }),
+    );
+    stage.dispatchEvent(
+      new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: [finger(320)] }),
+    );
+  });
+  await expectHash(page, '#3');
+});
+
 test('editing the hash navigates', async ({ mount, page }) => {
   await mount(<Player deck={sampleDeck} />);
   await expectOnSlide(page, 1);
@@ -174,6 +246,50 @@ test('keys ignored inside a textarea', async ({ mount, page }) => {
   await expectHash(page, '#1');
 });
 
+test('keys ignored inside an input, a select and a role=textbox', async ({ mount, page }) => {
+  await mount(
+    <div>
+      <input data-testid="field" />
+      <select data-testid="choice" defaultValue="a">
+        <option value="a">A</option>
+        <option value="b">B</option>
+      </select>
+      <div role="textbox" tabIndex={0} data-testid="custom-box">
+        <span tabIndex={0} data-testid="inside-box">
+          inside
+        </span>
+      </div>
+      <Player deck={sampleDeck} />
+    </div>,
+  );
+
+  await page.getByTestId('field').focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('End');
+  // The space reached the input, so the player returned before preventDefault.
+  await expect(page.getByTestId('field')).toHaveValue(' ');
+
+  await page.getByTestId('choice').focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('PageDown');
+  await page.keyboard.press('End');
+
+  await page.getByTestId('custom-box').focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Space');
+  await page.getByTestId('inside-box').focus();
+  await page.keyboard.press('PageDown');
+
+  await expectOnSlide(page, 1);
+  await expectHash(page, '#1');
+
+  // Out of the fields, the same key moves, so the listener was live.
+  await page.getByTestId('inside-box').blur();
+  await page.keyboard.press('ArrowRight');
+  await expectOnSlide(page, 2);
+});
+
 test('IME composition does not navigate', async ({ mount, page }) => {
   await mount(<Player deck={sampleDeck} />);
   const keydown = (init: { key: string; isComposing?: boolean; keyCode?: number }) =>
@@ -205,13 +321,57 @@ test('every slide stays rendered', async ({ mount, page }) => {
     if (slide.number === 4) {
       await expect(layer).toBeVisible();
       await expect(layer).not.toHaveAttribute('aria-hidden');
+      await expect(layer).not.toHaveAttribute('inert');
       continue;
     }
     await expect(layer).toBeHidden();
     await expect(layer).toHaveAttribute('aria-hidden', 'true');
+    // React 19 renders the boolean prop as the bare attribute.
+    await expect(layer).toHaveAttribute('inert', '');
     await expect(layer).toHaveCSS('visibility', 'hidden');
     await expect(layer).toHaveCSS('display', 'block');
   }
+});
+
+test('a deck that changes under the player keeps a valid position', async ({ mount, page }) => {
+  // The session history entry's key: a replaceState keeps it, a push makes a
+  // new one. (history.length can't tell here: the CT page is reused across
+  // tests and Chromium caps it at 50.)
+  const entryKey = () =>
+    page.evaluate(
+      () =>
+        (window as unknown as { navigation: { currentEntry: { key: string } } }).navigation
+          .currentEntry.key,
+    );
+  await openAt(page, `#${TOTAL}`);
+  const player = await mount(<Player deck={sampleDeck} />);
+  await expectOnSlide(page, TOTAL);
+  const key = await entryKey();
+
+  // A live refetch drops every slide after 5: the player lands on the new last slide.
+  const firstFive = { ...sampleDeck, slides: sampleDeck.slides.slice(0, 5) };
+  await player.update(<Player deck={firstFive} />);
+  await expect(page.getByTestId('player-count')).toHaveText('5 / 5');
+  await expect(page.getByTestId('slide-5')).toBeVisible();
+  await expectHash(page, '#5');
+  expect(await entryKey()).toBe(key);
+
+  // On slide 3 at its last step, slide 3 loses two items: the step is clamped.
+  await page.evaluate(() => {
+    window.history.replaceState(window.history.state, '', '#3.4');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+  });
+  await expect(page.getByTestId('player-steps')).toHaveAttribute('aria-label', 'Step 4 of 4');
+  const shorterSlide3 = {
+    ...firstFive,
+    slides: firstFive.slides.map((slide) => (slide.number === 3 ? { ...slide, steps: 2 } : slide)),
+  };
+  await player.update(<Player deck={shorterSlide3} />);
+  await expect(page.getByTestId('player-steps')).toHaveAttribute('aria-label', 'Step 2 of 2');
+  await expectHash(page, '#3.2');
+  await expect(page.getByTestId('slide-3')).toBeVisible();
+  // Both clamps replaced the hash: still the same history entry.
+  expect(await entryKey()).toBe(key);
 });
 
 test('phone 390px scales without horizontal overflow', async ({ mount, page }) => {
@@ -273,6 +433,45 @@ test('fullscreen button requests fullscreen', async ({ mount, page }) => {
   expect(
     await page.evaluate(() => (window as unknown as { fullscreenCalls: string[] }).fullscreenCalls),
   ).toEqual(['player', 'player']);
+});
+
+test('fullscreen button says exit while fullscreen', async ({ mount, page }) => {
+  await mount(<Player deck={sampleDeck} />);
+  const button = page.getByTestId('player-fullscreen');
+  await expect(button).toHaveAccessibleName('Fullscreen');
+
+  await button.click();
+  await expect
+    .poll(() => page.evaluate(() => document.fullscreenElement?.getAttribute('data-testid')))
+    .toBe('player');
+  await expect(button).toHaveAccessibleName('Exit fullscreen');
+
+  await button.click();
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement)).toBeNull();
+  await expect(button).toHaveAccessibleName('Fullscreen');
+});
+
+test('a refused fullscreen request is caught', async ({ mount, page }) => {
+  await mount(<Player deck={sampleDeck} />);
+  await page.evaluate(() => {
+    const state = { requests: 0, unhandled: 0 };
+    (window as unknown as { fullscreenState: typeof state }).fullscreenState = state;
+    window.addEventListener('unhandledrejection', () => state.unhandled++);
+    Element.prototype.requestFullscreen = function () {
+      state.requests++;
+      return Promise.reject(new TypeError('Permissions check failed'));
+    };
+  });
+
+  await page.getByTestId('player-fullscreen').click();
+  await page.keyboard.press('f');
+  // Let any unhandled rejection be reported before reading the count.
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+
+  expect(
+    await page.evaluate(() => (window as unknown as { fullscreenState: unknown }).fullscreenState),
+  ).toEqual({ requests: 2, unhandled: 0 });
+  await expect(page.getByTestId('player-fullscreen')).toHaveAccessibleName('Fullscreen');
 });
 
 test('reduced motion disables transitions', async ({ mount, page }) => {
