@@ -62,7 +62,7 @@ public class AgentTokensApprovalContractTests : OAuthContractFixture
     [Test]
     public async Task Validate_WhenPresenterRejected_ShouldReturnNull()
     {
-        var (_, presenterId, tokens) = await IssueTokensAsync();
+        var (_, presenterId, tokens) = await ApprovedNewPresenterTokensAsync();
         (await ValidateAsync(tokens.AccessToken)).ShouldNotBeNull();
 
         (await AccountsAsync(a => a.RevokeAsync(presenterId, by: null))).ShouldBe(AccountChange.Changed);
@@ -73,13 +73,13 @@ public class AgentTokensApprovalContractTests : OAuthContractFixture
     [Test]
     public async Task Refresh_WhenPresenterNotApproved_ShouldReturnNullAndKeepTheToken()
     {
-        var (client, presenterId, tokens) = await IssueTokensAsync();
-        await AccountsAsync(a => a.RevokeAsync(presenterId, by: null));
+        var (client, presenterId, tokens) = await ApprovedNewPresenterTokensAsync();
+        (await AccountsAsync(a => a.RevokeAsync(presenterId, by: null))).ShouldBe(AccountChange.Changed);
 
         (await RefreshAsync(tokens.RefreshToken, client.ClientId)).ShouldBeNull();
         (await RefreshAsync(tokens.RefreshToken, client.ClientId)).ShouldBeNull();
 
-        await AccountsAsync(a => a.ApproveAsync(presenterId, by: null));
+        (await AccountsAsync(a => a.ApproveAsync(presenterId, by: null))).ShouldBe(AccountChange.Changed);
         (await ValidateAsync(tokens.AccessToken)).ShouldNotBeNull("a refusal must not revoke the family");
         (await RefreshAsync(tokens.RefreshToken, client.ClientId)).ShouldNotBeNull("a refusal must not spend the refresh token");
     }
@@ -91,11 +91,19 @@ public class AgentTokensApprovalContractTests : OAuthContractFixture
         var tokens = await IssueForAsync(client, presenterId);
         (await RefreshAsync(tokens.RefreshToken, client.ClientId)).ShouldBeNull();
 
-        await AccountsAsync(a => a.ApproveAsync(presenterId, by: null));
+        (await AccountsAsync(a => a.ApproveAsync(presenterId, by: null))).ShouldBe(AccountChange.Changed);
         var rotated = await RefreshAsync(tokens.RefreshToken, client.ClientId);
 
         rotated.ShouldNotBeNull();
         (await ValidateAsync(rotated.AccessToken))!.PresenterId.ShouldBe(presenterId);
+    }
+
+    // A fresh person an admin has approved, so a test can reject or revoke them without touching the shared people (S7).
+    private async Task<(OAuthClient Client, Guid PresenterId, AgentTokenPair Tokens)> ApprovedNewPresenterTokensAsync()
+    {
+        var (client, presenterId) = await PendingPresenterAsync();
+        (await AccountsAsync(a => a.ApproveAsync(presenterId, by: null))).ShouldBe(AccountChange.Changed);
+        return (client, presenterId, await IssueForAsync(client, presenterId));
     }
 
     private async Task<(OAuthClient Client, Guid PresenterId)> PendingPresenterAsync()

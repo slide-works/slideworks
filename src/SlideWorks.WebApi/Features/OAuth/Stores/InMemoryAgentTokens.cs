@@ -20,9 +20,10 @@ public class InMemoryAgentTokens(TimeProvider clock, IServiceScopeFactory scopes
         }
     }
 
-    // The checks, the use mark and the replay revocation happen under one lock, as one conditional update would in SQL.
-    // The presenter's access is read first and a refusal changes nothing, so re-approval makes an unexpired refresh token
-    // work again; only a revoke kills tokens.
+    // The presenter's access is read before the lock, and a refusal changes nothing, so re-approval makes an unexpired
+    // refresh token work again; only a revoke kills tokens. That gap is safe: a revoke calls RevokeAllForPresenterAsync
+    // before it changes the state, and ValidateAsync refuses a non-approved presenter on every use. The checks, the use
+    // mark and the replay revocation then happen under one lock, as one conditional update would in SQL.
     public async Task<AgentTokenPair?> RefreshAsync(string refreshToken, string clientId)
     {
         Guid? presenterId;
@@ -51,7 +52,7 @@ public class InMemoryAgentTokens(TimeProvider clock, IServiceScopeFactory scopes
                 return null;
             }
             row.UsedAt = now;
-            return (IssuePair(row.FamilyId, row.ClientId, row.PresenterId, row.Scope, row.Resource));
+            return IssuePair(row.FamilyId, row.ClientId, row.PresenterId, row.Scope, row.Resource);
         }
     }
 
