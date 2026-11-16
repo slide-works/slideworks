@@ -1,4 +1,6 @@
 import { Callout } from '../blocks/Callout';
+import { LeadText } from '../blocks/LeadText';
+import { SlideHeading } from '../blocks/SlideHeading';
 import type { LayoutProps } from '../slots';
 import styles from './PracticeLayout.module.css';
 
@@ -9,21 +11,14 @@ export function PracticeLayout({ slots }: LayoutProps<'practice'>) {
   const { kicker, headline, do: doItems, comes_back: comesBack, avoid, callout } = slots;
   return (
     <div data-testid="layout-practice" className="sw-layout">
-      {kicker !== undefined ? (
-        <p data-testid="practice-kicker" className={styles.kicker}>
-          {kicker}
-        </p>
-      ) : null}
-      <h2 data-testid="practice-headline" className={styles.headline}>
-        {headline}
-      </h2>
+      <SlideHeading layout="practice" kicker={kicker} headline={headline} />
       <div data-testid="practice-body" className={`sw-body ${styles.columns}`}>
         <div className={styles.column}>
           <section data-testid="practice-do" className={styles.group}>
             <h3 className={styles.header}>Do</h3>
             {doItems.map((item, i) => (
               <p key={i} data-testid="practice-card" className={styles.card}>
-                <b className={styles.lead}>{item.lead}</b> {item.text}
+                <LeadText item={item} leadClassName={styles.lead} />
               </p>
             ))}
           </section>

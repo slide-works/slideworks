@@ -4,7 +4,7 @@ import { sampleDeck } from '../../test-support/fixtures/screens';
 import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { SlideDeck } from '../slots';
-import { MAX_LAYOUT, MAX_SLOTS } from './ContentLayouts.fixtures';
+import { FIT_FIXTURES } from './ContentLayouts.fixtures';
 
 // The bullets, two-column, practice and compare layouts with the callout
 // block, rendered through SlideRenderer inside the real frame.
@@ -33,9 +33,12 @@ const BAD = 'rgb(220, 38, 38)';
 
 type Box = { left: number; top: number; right: number; bottom: number };
 
-// What the layout draws, in canvas px from the slide's top left: the body's own
-// box, and the extent of every element and run of text inside the layout (text
-// that overflows its element is caught by its own rects). Also the footer's top.
+// What the layout draws, in canvas px from the slide's top left: every run of
+// text and every painted box (an image, or a background, shadow or border)
+// inside the layout. Layout boxes that only stretch to fill the body, such as
+// a column or the body itself, are left out, so a column of short text is
+// measured where its text ends. Also the top of every element box, the body's
+// own box, the headline's box and the footer's top.
 async function measure(page: Page, layoutTestId: string) {
   await page.evaluate(() => document.fonts.ready);
   return page.getByTestId(layoutTestId).evaluate((root: Element) => {
@@ -55,9 +58,19 @@ async function measure(page: Page, layoutTestId: string) {
       drawn.right = Math.max(drawn.right, box.right);
       drawn.bottom = Math.max(drawn.bottom, box.bottom);
     };
-    for (const element of root.querySelectorAll('*')) add(element.getBoundingClientRect());
     // A 20 px/1 kicker's glyphs rise a little above its line box; the boxes don't.
-    const boxTop = drawn.top;
+    let boxTop = Infinity;
+    for (const element of root.querySelectorAll('*')) {
+      const rect = element.getBoundingClientRect();
+      if (rect.width > 0 || rect.height > 0) boxTop = Math.min(boxTop, rel(rect).top);
+      const style = getComputedStyle(element);
+      const painted =
+        element.tagName === 'IMG' ||
+        style.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
+        style.boxShadow !== 'none' ||
+        parseFloat(style.borderTopWidth) > 0;
+      if (painted) add(rect);
+    }
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
       const range = document.createRange();
@@ -69,6 +82,16 @@ async function measure(page: Page, layoutTestId: string) {
     const footer = document.querySelector('[data-testid="slide-footer"]')!.getBoundingClientRect();
     return { drawn, boxTop, body, headline, footerTop: footer.top - slide.top };
   });
+}
+
+// An SVG image of the given natural size, served for /api/images/<id>.
+async function stubImage(page: Page, id: string, width: number, height: number) {
+  await page.route(`**/api/images/${id}`, (route) =>
+    route.fulfill({
+      contentType: 'image/svg+xml',
+      body: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="${width}" height="${height}" fill="#2563eb"/></svg>`,
+    }),
+  );
 }
 
 test('bullets renders the sample slide with bold leads', async ({ mount, page }) => {
@@ -181,6 +204,65 @@ test('two-column renders titles and paragraphs', async ({ mount, page }) => {
   await expect(page.getByTestId('two-column-image')).toHaveCount(0);
 });
 
+test('two-column image sits on a white card with a shadow, at most twice its size', async ({
+  mount,
+  page,
+}) => {
+  await stubImage(page, 'img_small', 120, 80);
+  await mount(
+    render({
+      ...sample(10),
+      layout: 'two-column',
+      slots: {
+        headline: 'A small picture',
+        left: { text: 'Next to it.' },
+        right: { image: { image: 'img_small', alt: 'A small picture' } },
+      },
+    }),
+  );
+  const image = page.getByTestId('two-column-image');
+  await expect
+    .poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
+    .toBe(120);
+  await expect(image).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(image).toHaveCSS('box-shadow', /14px 36px/);
+  // 120x80 is drawn at 240x160, centred in its column, not stretched to fill it.
+  await expect.poll(async () => (await image.boundingBox())?.width).toBe(240);
+  const box = (await image.boundingBox())!;
+  const column = (await page.getByTestId('two-column-right').boundingBox())!;
+  expect(box.height).toBeCloseTo(160, 0);
+  expect(box.x - column.x).toBeCloseTo((column.width - 240) / 2, 0);
+});
+
+test('two-column image fits a tall picture to the height that is left', async ({ mount, page }) => {
+  await stubImage(page, 'img_tall', 400, 2000);
+  await mount(
+    render({
+      ...sample(10),
+      layout: 'two-column',
+      slots: {
+        headline: 'A tall picture',
+        left: { text: 'Next to it.' },
+        right: { title: 'Tall', image: { image: 'img_tall', alt: 'A tall picture' } },
+      },
+    }),
+  );
+  const image = page.getByTestId('two-column-image');
+  await expect
+    .poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
+    .toBe(400);
+  const { body } = await measure(page, 'layout-two-column');
+  await expect
+    .poll(async () => {
+      const box = (await image.boundingBox())!;
+      return Math.round(box.width * 5 - box.height);
+    })
+    .toBe(0);
+  const box = (await image.boundingBox())!;
+  const slide = (await page.getByTestId('slide-frame').boundingBox())!;
+  expect(box.y + box.height - slide.y).toBeLessThanOrEqual(body.bottom + 0.5);
+});
+
 test('practice shows do comes-back avoid and callout tone', async ({ mount, page }) => {
   await mount(render(sample(8)));
 
@@ -266,6 +348,7 @@ test('compare failure and success panels', async ({ mount, page }) => {
   await expect(failure.getByTestId('compare-label')).toHaveCSS('color', BAD);
   await expect(failure.getByRole('heading', { level: 3 })).toHaveText('Slice by layer');
   await expect(failure.getByTestId('compare-sub')).toHaveCount(0);
+  await expect(failure.getByTestId('compare-point').nth(0)).toHaveCSS('list-style-type', 'disc');
   await expect(failure.getByTestId('compare-point')).toHaveText([
     'Database, then API, then UI',
     'Nothing to show for five sprints',
@@ -304,10 +387,15 @@ test('compare shows a panel sub when set', async ({ mount, page }) => {
   await expect(page.getByTestId('compare-sub')).toHaveText(['One launch', 'Nine releases']);
 });
 
-for (const [name, slots] of Object.entries(MAX_SLOTS)) {
-  const layout = MAX_LAYOUT[name as keyof typeof MAX_SLOTS];
+// The shared max-content fixtures (src/contracts/fit-fixtures.json): Title
+// Case text at the most the server accepts. Everything drawn stays within
+// LayoutRules' estimate below the body's top (to the pixel, as the CSS follows
+// its geometry) and above y = 996, so a layout that draws taller than the
+// server counts fails here.
+for (const [name, fixture] of Object.entries(FIT_FIXTURES)) {
   test(`max-length text stays inside 1920x1080: ${name}`, async ({ mount, page }) => {
     await stubApi(page, {});
+    const { layout, slots, estimate } = fixture;
     const steps = 'items' in slots ? slots.items.length : 0;
     await mount(render({ ...sample(3), layout, slots } as RenderableSlide, steps));
 
@@ -319,15 +407,19 @@ for (const [name, slots] of Object.entries(MAX_SLOTS)) {
     }
 
     const { drawn, boxTop, body, headline, footerTop } = await measure(page, `layout-${layout}`);
-    console.log(`${name}: body ${body.top}–${body.bottom}, drawn bottom ${drawn.bottom}`);
-    // The server's estimate assumes a headline of at most two 69 px lines.
+    console.log(
+      `${name}: body top ${body.top}, drawn bottom ${drawn.bottom}, estimate bottom ${body.top + estimate}`,
+    );
+    // The server's estimate assumes a headline of at most two 69 px lines, so
+    // the body starts at y = 150 + 42 + 2 × 69.12 + 46.
     expect(headline.bottom - headline.top).toBeLessThanOrEqual(2 * 64 * 1.08 + 1);
+    expect(body.top).toBeCloseTo(376.2, 0);
     expect(footerTop).toBeGreaterThanOrEqual(1023);
     expect(body.bottom).toBeLessThanOrEqual(996);
-    // Everything drawn stays in the content box, and runs no lower than y = 996.
     expect(drawn.left).toBeGreaterThanOrEqual(120);
     expect(drawn.right).toBeLessThanOrEqual(1800);
     expect(boxTop).toBeGreaterThanOrEqual(150);
+    expect(drawn.bottom).toBeLessThanOrEqual(body.top + estimate + 1);
     expect(drawn.bottom).toBeLessThanOrEqual(996);
   });
 }

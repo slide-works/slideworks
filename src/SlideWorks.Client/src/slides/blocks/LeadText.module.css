@@ -1,0 +1,5 @@
+/* A point's bold lead-in (the mockup's ul.bl b), in the accent's dark shade. */
+.lead {
+  color: var(--sw-accent-dark);
+  font-weight: 700;
+}

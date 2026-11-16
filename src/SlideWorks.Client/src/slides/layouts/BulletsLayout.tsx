@@ -1,6 +1,8 @@
 import { Callout } from '../blocks/Callout';
+import { LeadText } from '../blocks/LeadText';
+import { SlideHeading } from '../blocks/SlideHeading';
 import { Reveal } from '../Reveal';
-import type { BulletItem, LayoutProps } from '../slots';
+import type { LayoutProps } from '../slots';
 import styles from './BulletsLayout.module.css';
 
 // A headline over 1–8 points, each plain text or a bold lead plus text, with
@@ -11,27 +13,25 @@ export function BulletsLayout({ slots, step }: LayoutProps<'bullets'>) {
   const oneByOne = reveal === 'one-by-one';
   return (
     <div data-testid="layout-bullets" className="sw-layout">
-      {kicker !== undefined ? (
-        <p data-testid="bullets-kicker" className={styles.kicker}>
-          {kicker}
-        </p>
-      ) : null}
-      <h2 data-testid="bullets-headline" className={styles.headline}>
-        {headline}
-      </h2>
+      <SlideHeading layout="bullets" kicker={kicker} headline={headline} />
       <div data-testid="bullets-body" className="sw-body">
         <ul className={styles.items}>
-          {items.map((item, i) =>
-            oneByOne ? (
+          {items.map((item, i) => {
+            const text = (
+              <span data-testid="bullets-item">
+                <LeadText item={item} />
+              </span>
+            );
+            return oneByOne ? (
               <Reveal key={i} as="li" at={i + 1} step={step} className={styles.item}>
-                <ItemText item={item} />
+                {text}
               </Reveal>
             ) : (
               <li key={i} className={styles.item}>
-                <ItemText item={item} />
+                {text}
               </li>
-            ),
-          )}
+            );
+          })}
         </ul>
         {callout !== undefined ? (
           <div className={styles.callout}>
@@ -40,19 +40,5 @@ export function BulletsLayout({ slots, step }: LayoutProps<'bullets'>) {
         ) : null}
       </div>
     </div>
-  );
-}
-
-function ItemText({ item }: { item: BulletItem }) {
-  return (
-    <span data-testid="bullets-item">
-      {typeof item === 'string' ? (
-        item
-      ) : (
-        <>
-          <b className={styles.lead}>{item.lead}</b> {item.text}
-        </>
-      )}
-    </span>
   );
 }
