@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Features.OAuth.Stores;
 using SlideWorks.WebApi.Tests.OAuth.Authorize;
@@ -348,6 +349,100 @@ public class TokenTests : ApiTestFixture
         Clock.Advance(TimeSpan.FromMinutes(1));
         await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code));
     }
+
+    // RFC 6749 section 3.2: no parameter appears twice, so a second value can't be smuggled past a check that read the first.
+    [TestCase("code")]
+    [TestCase("client_id")]
+    [TestCase("code_verifier")]
+    [TestCase("grant_type")]
+    public async Task Token_WhenParameterRepeated_ShouldReturnInvalidRequest(string parameter)
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+        var fields = RedeemFields(code);
+        fields.Add(KeyValuePair.Create(parameter, fields.First(f => f.Key == parameter).Value));
+
+        var response = await _anonymous.PostAsync("/oauth/token", new FormUrlEncodedContent(fields));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        response.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
+        await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code));
+    }
+
+    [Test]
+    public async Task Revoke_WhenTokenRepeated_ShouldReturnInvalidRequest()
+    {
+        var (access, _) = await _endpoint.TokensAsync(_clientId);
+
+        var response = await _anonymous.PostAsync("/oauth/revoke", new FormUrlEncodedContent([KeyValuePair.Create("token", "not-a-token"), KeyValuePair.Create("token", access)]));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.OK);
+    }
+
+    // Only application/x-www-form-urlencoded (RFC 6749 section 4.1.3); the code isn't spent by a refused body.
+    [Test]
+    public async Task Token_WhenMultipartFormData_ShouldReturnInvalidRequest()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+        using var multipart = new MultipartFormDataContent();
+        foreach (var (name, value) in RedeemFields(code))
+        {
+            multipart.Add(new StringContent(value), name);
+        }
+
+        var response = await _anonymous.PostAsync("/oauth/token", multipart);
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        response.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
+        await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code));
+    }
+
+    [Test]
+    public async Task Token_WhenJson_ShouldReturnInvalidRequest()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var response = await _anonymous.PostAsJsonAsync("/oauth/token", RedeemFields(code).ToDictionary(f => f.Key, f => f.Value));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        response.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
+        await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code));
+    }
+
+    [Test]
+    public async Task Revoke_WhenMultipartFormData_ShouldReturnInvalidRequest()
+    {
+        var (access, _) = await _endpoint.TokensAsync(_clientId);
+        using var multipart = new MultipartFormDataContent { { new StringContent(access), "token" } };
+
+        var response = await _anonymous.PostAsync("/oauth/revoke", multipart);
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.OK);
+    }
+
+    // A charset parameter on the right media type is fine.
+    [Test]
+    public async Task Token_WhenFormUrlEncodedWithCharset_ShouldReturnTokens()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+        using var form = new FormUrlEncodedContent(RedeemFields(code));
+        form.Headers.ContentType!.CharSet = "utf-8";
+
+        var body = await TokenEndpoint.OkBodyAsync(await _anonymous.PostAsync("/oauth/token", form));
+
+        body.GetProperty("token_type").GetString().ShouldBe("Bearer");
+    }
+
+    private List<KeyValuePair<string, string>> RedeemFields(string code) =>
+    [
+        KeyValuePair.Create("grant_type", "authorization_code"),
+        KeyValuePair.Create("code", code),
+        KeyValuePair.Create("client_id", _clientId),
+        KeyValuePair.Create("redirect_uri", OAuthFlow.REDIRECT),
+        KeyValuePair.Create("code_verifier", OAuthFlow.VERIFIER),
+        KeyValuePair.Create("resource", OAuthFlow.Resource),
+    ];
 
     private async Task<AgentPrincipal?> ValidateAsync(string accessToken)
     {

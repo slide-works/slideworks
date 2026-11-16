@@ -10,6 +10,7 @@ namespace SlideWorks.WebApi.Features.OAuth.Token;
 [AllowAnonymous]
 [NoStore]
 [TokenRateLimit]
+[FormEncodedOnly]
 [OAuthTokenError]
 [Route("oauth")]
 public class OAuthTokenController(TokenGrants grants) : ApiControllerBase
