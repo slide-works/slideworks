@@ -22,7 +22,7 @@ public sealed record DeckPageSlide(
     public static DeckPageSlide From(Deck deck, Slide slide)
     {
         var number = slide.Position + 1;
-        var slots = JsonSerializer.Deserialize<JsonElement>(slide.SlotsJson);
+        var slots = SlideJson.Slots(slide);
         return new DeckPageSlide(
             number,
             slide.Layout,
@@ -30,7 +30,7 @@ public sealed record DeckPageSlide(
             HeadlineOf(slide.Layout, slots),
             slide.Steps,
             slide.Notes,
-            $"/d/{deck.Id}/{deck.Slug}#{number}",
+            DeckLinks.Slide(deck.Id, deck.Slug, number),
             slots);
     }
 
