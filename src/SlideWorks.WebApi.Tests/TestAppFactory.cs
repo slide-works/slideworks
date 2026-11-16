@@ -1,13 +1,19 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
+using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests;
 
 public static class TestAppFactory
 {
+    // SLIDEWORKS_PUBLIC_URL on every test host: the origin the test server answers on, so links, OAuth metadata and the
+    // cross-site write guard all agree with the requests the tests send.
+    public const string PUBLIC_URL = "http://localhost";
+
     // In-memory config is added after appsettings.*.json, so these values win
     // over the Development defaults.
     //
@@ -16,11 +22,10 @@ public static class TestAppFactory
     // never a test branch in production code. extraConfig carries any further
     // SLIDEWORKS_* values a fixture needs. configureServices runs after Program.cs has
     // registered everything, for a fixture that has to swap one more service the
-    // same way. Serilog owns the logger factory and ignores other providers, so a
+    // same way. Every host also gets TestAuthScheme, so a request signs in by naming a TestUser. Serilog owns the logger factory and ignores other providers, so a
     // logger is replaced per category rather than added as a provider.
     public static WebApplicationFactory<ApiMarker> Create(
         string dbPath,
-        string apiToken,
         FakeTimeProvider clock,
         Dictionary<string, string?>? extraConfig = null,
         Dictionary<string, HttpMessageHandler>? namedHandlers = null,
@@ -32,8 +37,7 @@ public static class TestAppFactory
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["SLIDEWORKS_DB_PATH"] = dbPath,
-                    ["SLIDEWORKS_API_TOKEN"] = apiToken,
-                    ["SLIDEWORKS_PUBLIC_URL"] = "http://localhost",
+                    ["SLIDEWORKS_PUBLIC_URL"] = PUBLIC_URL,
                 });
                 if (extraConfig != null)
                 {
@@ -41,6 +45,7 @@ public static class TestAppFactory
                 }
             });
             builder.ConfigureServices(services => services.AddSingleton<TimeProvider>(clock));
+            builder.ConfigureTestServices(TestAuthScheme.AddTo);
             foreach (var (name, handler) in namedHandlers ?? [])
             {
                 builder.ConfigureServices(services => services

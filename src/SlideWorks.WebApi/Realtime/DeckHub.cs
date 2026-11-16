@@ -24,7 +24,14 @@ public sealed class DeckHub : Hub
 
     // TODO: check the caller may view the deck through IDeckAccess, which lets anonymous viewers follow a deck shared by
     // link. Until then only a signed-in person may join, and an anonymous caller is refused as if the deck didn't exist.
-    public Task JoinDeck(string deckId) => Groups.AddToGroupAsync(Context.ConnectionId, GroupName(deckId));
+    public Task JoinDeck(string deckId)
+    {
+        if (Context.User?.Identity?.IsAuthenticated != true)
+        {
+            throw new HubException(DECK_NOT_FOUND);
+        }
+        return Groups.AddToGroupAsync(Context.ConnectionId, GroupName(deckId));
+    }
 
     public Task LeaveDeck(string deckId) => Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(deckId));
 }

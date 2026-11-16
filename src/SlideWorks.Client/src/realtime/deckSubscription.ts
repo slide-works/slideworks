@@ -4,7 +4,6 @@ import {
   LogLevel,
   type HubConnection,
 } from '@microsoft/signalr';
-import { getToken } from '../api/client';
 import type { DeckEvent } from './deckEvents';
 
 // The server side is src/SlideWorks.WebApi/Realtime/DeckHub.cs: JoinDeck(deckId) starts a deck's events, delivered as
@@ -22,14 +21,11 @@ export type RealtimeConnection = Pick<
 // withAutomaticReconnect, for a dropped connection. The last delay repeats.
 export const RETRY_DELAYS_MS: readonly number[] = [0, 2000, 5000, 10000, 30000];
 
-// WebSockets only: the hub offers no other transport. The token goes on the negotiate request as a bearer header and,
-// since a browser can't set headers on a WebSocket, on the upgrade as ?access_token= (accepted on /hubs only).
+// WebSockets only: the hub offers no other transport. The browser sends the session cookie on the negotiate request and
+// on the same-origin WebSocket upgrade, so there is no token to pass. Anyone may connect; JoinDeck decides.
 export function createDeckConnection(): RealtimeConnection {
   return new HubConnectionBuilder()
-    .withUrl(DECK_HUB_PATH, {
-      transport: HttpTransportType.WebSockets,
-      accessTokenFactory: () => getToken() ?? '',
-    })
+    .withUrl(DECK_HUB_PATH, { transport: HttpTransportType.WebSockets })
     .withAutomaticReconnect({
       nextRetryDelayInMilliseconds: ({ previousRetryCount }) =>
         RETRY_DELAYS_MS[Math.min(previousRetryCount, RETRY_DELAYS_MS.length - 1)],

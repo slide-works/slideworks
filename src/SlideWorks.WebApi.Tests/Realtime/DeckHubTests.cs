@@ -1,7 +1,9 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Realtime;
+using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Realtime;
 
@@ -70,18 +72,36 @@ public class DeckHubTests : ApiTestFixture
         DeckIdOf(await leaver.NextAsync()).ShouldBe(kept);
     }
 
-    [TestCase(null)]
-    [TestCase("not-a-token")]
-    public async Task Connect_WhenNoValidToken_ShouldBeRefused(string? token)
+    // Anyone may connect (K1): a viewer of a link-shared deck has no session. JoinDeck decides, and for now it refuses
+    // an anonymous caller exactly as it would an unknown deck.
+    [Test]
+    public async Task DeckHub_WhenAnonymousJoins_ShouldThrowDeckNotFound()
     {
-        var refused = await Should.ThrowAsync<HttpRequestException>(() => HubReceiver.StartAsync(Factory, token));
+        var anonymous = await HubReceiver.StartAsync(Factory, TestUser.Anonymous);
+        _receivers.Add(anonymous);
 
-        refused.StatusCode.ShouldBe(System.Net.HttpStatusCode.Unauthorized);
+        var refused = await Should.ThrowAsync<HubException>(() => anonymous.Connection.InvokeAsync("JoinDeck", TestDeckIds.New()));
+
+        refused.Message.ShouldContain(DeckHub.DECK_NOT_FOUND);
+    }
+
+    // The anonymous join is refused by JoinDeck, not by the connection: a signed-in connection still joins.
+    [Test]
+    public async Task Connect_WhenSignedInAsAnotherPerson_ShouldJoinAndReceive()
+    {
+        var deck = TestDeckIds.New();
+        var alex = await HubReceiver.StartAsync(Factory, TestUser.Alex);
+        _receivers.Add(alex);
+        await alex.Connection.InvokeAsync("JoinDeck", deck);
+
+        await Bus.PublishAsync(new DeckChanged(deck));
+
+        DeckIdOf(await alex.NextAsync()).ShouldBe(deck);
     }
 
     private async Task<HubReceiver> ConnectAsync()
     {
-        var receiver = await HubReceiver.StartAsync(Factory, TEST_TOKEN);
+        var receiver = await HubReceiver.StartAsync(Factory, SignedInAs);
         _receivers.Add(receiver);
         return receiver;
     }

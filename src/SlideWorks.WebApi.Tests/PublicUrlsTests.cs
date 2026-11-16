@@ -86,7 +86,7 @@ public class PublicUrlsTests : ApiTestFixture
     }
 
     private static Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<ApiMarker> HostWithoutPublicUrl(string dbPath, string environment) =>
-        TestAppFactory.Create(dbPath, "token", new FakeTimeProvider(), new() { ["SLIDEWORKS_PUBLIC_URL"] = "" })
+        TestAppFactory.Create(dbPath, new FakeTimeProvider(), new() { ["SLIDEWORKS_PUBLIC_URL"] = "" })
             .WithWebHostBuilder(builder => builder.UseEnvironment(environment));
 
     private static DefaultHttpContext RequestTo(string host)
