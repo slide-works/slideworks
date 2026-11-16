@@ -1,17 +1,28 @@
 // @vitest-environment node
 import { ESLint } from 'eslint';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
-// The guard rail in eslint.config.js: slot text is plain text, so every way of
-// injecting HTML fails the lint.
+// One ESLint for every case. Its first lint loads the config, the TypeScript
+// parser and the plugins, which takes seconds on a loaded host, so beforeAll
+// pays for that once and each case gets a generous timeout of its own.
+const TIMEOUT_MS = 30_000;
+let eslint: ESLint;
+
 async function lint(lines: string[]) {
-  const [result] = await new ESLint().lintText(lines.join('\n') + '\n', {
+  const [result] = await eslint.lintText(lines.join('\n') + '\n', {
     filePath: 'src/Snippet.tsx',
   });
   return result.messages;
 }
 
-describe('lint guard', () => {
+// The guard rail in eslint.config.js: slot text is plain text, so every way of
+// injecting HTML fails the lint.
+describe('lint guard', { timeout: TIMEOUT_MS }, () => {
+  beforeAll(async () => {
+    eslint = new ESLint();
+    await lint(['export const warm = 1;']);
+  }, TIMEOUT_MS);
+
   it.each([
     [
       'the JSX attribute',
