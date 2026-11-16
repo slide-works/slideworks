@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Infrastructure.Identity.Google;
+using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Identity.Google;
 
@@ -39,6 +40,21 @@ public class GoogleSignInTests : GoogleSignInFixture
         response.Headers.Location!.OriginalString.ShouldBe("/decks");
         await MeAsync(browser);
         (await StoredAsync("pending.person@example.test")).Access.ShouldBe(UserAccess.Pending);
+    }
+
+    // The test hosts set SLIDEWORKS_ADMIN_EMAIL to Ada's email, and nobody in this fixture is admin yet.
+    [Test]
+    public async Task SignIn_WhenAdminEmailAndNoAdmin_ShouldCreateApprovedAdmin()
+    {
+        using var browser = Browser();
+
+        using var response = await SignInAsync(browser, "sub-first-admin", TestUser.Ada.Email.ToUpperInvariant(), TestUser.Ada.Name);
+
+        response.Headers.Location!.OriginalString.ShouldBe("/decks");
+        await MeAsync(browser);
+        var stored = await StoredAsync(TestUser.Ada.Email);
+        stored.Access.ShouldBe(UserAccess.Approved);
+        stored.IsAdmin.ShouldBeTrue();
     }
 
     [Test]
