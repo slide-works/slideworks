@@ -3,7 +3,7 @@ import type { Page } from 'playwright/test';
 import { sampleDeck } from '../../test-support/fixtures/screens';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { SlideDeck } from '../slots';
-import { MAX_LAYOUT, MAX_PROSE, MAX_TITLE, MAX_WIDE } from './CardLayouts.fixtures';
+import { CARD_FIT_FIXTURES, cardFitFixture } from './CardLayouts.fixtures';
 
 // The numbered-cards, rules and cards layouts with the chip and badge blocks,
 // rendered through SlideRenderer inside the real frame.
@@ -33,9 +33,11 @@ const ACCENT_LIGHT = 'rgb(228, 234, 253)';
 
 type Box = { left: number; top: number; right: number; bottom: number };
 
-// What the layout draws, in canvas px from the slide's top left: the extent of
-// every element and run of text inside the layout (text that overflows its
-// element is caught by its own rects), the last list item's bottom, and the
+// What the layout draws, in canvas px from the slide's top left: every run of
+// text and every painted box (a background, shadow or border) inside the
+// layout, as ContentLayouts.spec measures it. Layout boxes that only stretch to
+// fill the body, such as the body itself or a list, are left out. Also the top
+// of every element box, the last list item's box, the body's box and the
 // footer's top.
 async function measure(page: Page, layoutTestId: string) {
   await page.evaluate(() => document.fonts.ready);
@@ -56,15 +58,25 @@ async function measure(page: Page, layoutTestId: string) {
       drawn.right = Math.max(drawn.right, box.right);
       drawn.bottom = Math.max(drawn.bottom, box.bottom);
     };
-    for (const element of root.querySelectorAll('*')) add(element.getBoundingClientRect());
     // A 20 px/1 kicker's glyphs rise a little above its line box; the boxes don't.
-    const boxTop = drawn.top;
+    let boxTop = Infinity;
+    for (const element of root.querySelectorAll('*')) {
+      const rect = element.getBoundingClientRect();
+      if (rect.width > 0 || rect.height > 0) boxTop = Math.min(boxTop, rel(rect).top);
+      const style = getComputedStyle(element);
+      const painted =
+        style.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
+        style.boxShadow !== 'none' ||
+        parseFloat(style.borderTopWidth) > 0;
+      if (painted) add(rect);
+    }
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
       // A rule's numeral is 150 px on a 0.85 line, so its text rect (the font's
       // whole ascent and descent, about 189 px) runs some 30 px past its line
       // box. Digits have no descenders, so its ink ends at the baseline: a
-      // zero-height probe on the baseline measures that instead.
+      // zero-height probe on the baseline measures that instead, and the
+      // numeral's left and right come from its own box.
       if (node.parentElement?.matches('[data-testid="rules-number"]')) {
         const probe = document.createElement('span');
         probe.style.display = 'inline-block';
@@ -72,6 +84,9 @@ async function measure(page: Page, layoutTestId: string) {
         node.parentElement.append(probe);
         const baseline = rel(probe.getBoundingClientRect()).bottom;
         probe.remove();
+        const numeral = rel(node.parentElement.getBoundingClientRect());
+        drawn.left = Math.min(drawn.left, numeral.left);
+        drawn.right = Math.max(drawn.right, numeral.right);
         drawn.bottom = Math.max(drawn.bottom, baseline);
         continue;
       }
@@ -252,45 +267,53 @@ test('cards one-by-one shows card n at step n', async ({ mount, page }) => {
   await expect(cards.nth(2)).toBeHidden();
 });
 
-for (const [name, slots] of Object.entries(MAX_PROSE)) {
-  const layout = MAX_LAYOUT[name as keyof typeof MAX_PROSE];
-  test(`max counts stay inside 1920x1080: ${name}`, async ({ mount, page }) => {
+// The shared max-content fixtures (src/contracts/fit-fixtures.json): prose,
+// Title Case and wide-letter text at the most the validator accepts, at each
+// layout's maximum count. Everything drawn stays inside x 120-1800 and
+// y 150-996, so the last card or rule clears the footer text at y = 1023. A rules fixture also stays within LayoutRules' estimate
+// below the body's top.
+for (const [name, fixture] of Object.entries(CARD_FIT_FIXTURES)) {
+  if (fixture.accepted === false) continue;
+  test(`max-length text stays inside 1920x1080: ${name}`, async ({ mount, page }) => {
+    const { layout, slots, estimate } = fixture;
     await mount(render({ ...sample(13), layout, slots } as RenderableSlide, 4));
 
-    const { drawn, boxTop, lastItem, footerTop } = await measure(page, `layout-${layout}`);
-    console.log(`prose ${name}: last item bottom ${lastItem.bottom}, drawn bottom ${drawn.bottom}`);
+    const { drawn, boxTop, body, lastItem, footerTop } = await measure(page, `layout-${layout}`);
+    console.log(
+      `${name}: body top ${body.top}, last item bottom ${lastItem.bottom}, drawn bottom ${drawn.bottom}` +
+        (estimate === undefined ? '' : `, estimate bottom ${body.top + estimate}`),
+    );
+    // The headline takes two lines (SlideHeading.spec), so the body starts at
+    // y = 150 + 42 + 2 x 69.12 + 46.
+    expect(body.top).toBeCloseTo(376.2, 0);
     expect(footerTop).toBeGreaterThanOrEqual(1023);
-    // Everything drawn stays in the content box, runs no lower than y = 996,
-    // and so the last card or rule clears the footer text at y = 1023.
     expect(drawn.left).toBeGreaterThanOrEqual(120);
     expect(drawn.right).toBeLessThanOrEqual(1800);
     expect(boxTop).toBeGreaterThanOrEqual(150);
     expect(lastItem.bottom).toBeLessThanOrEqual(996);
     expect(drawn.bottom).toBeLessThanOrEqual(996);
+    if (estimate !== undefined) expect(drawn.bottom).toBeLessThanOrEqual(body.top + estimate + 1);
   });
 }
 
-// Title Case and wide-letter text at the same limits run wider than the
-// server's 0.5 em estimate (SW-117), so they may run past y = 996; they are
-// measured and logged, and held only to the slide's sides.
-for (const [kind, set] of [
-  ['title case', MAX_TITLE],
-  ['wide', MAX_WIDE],
-] as const) {
-  for (const [name, slots] of Object.entries(set)) {
-    const layout = MAX_LAYOUT[name as keyof typeof set];
-    test(`max counts with ${kind} text stay inside the sides: ${name}`, async ({ mount, page }) => {
-      await mount(render({ ...sample(13), layout, slots } as RenderableSlide, 4));
+// Four rules of wide-letter text at the character limits estimate two lines of
+// text each, 634.8 px against the 620 px body (LayoutRules.Rules, SW-124), and
+// they draw past y = 996. The validator refuses them (FitFixturesTests), so
+// they are not a maximum to hold to 996; this checks the shared fixture still
+// says so and that the text stays inside the sides.
+test('max-length wide-letter rules are refused by the validator', async ({ mount, page }) => {
+  const fixture = cardFitFixture('rulesWide');
+  expect(fixture.layout).toBe('rules');
+  expect(fixture.accepted).toBe(false);
+  expect(fixture.refusedBy).toBe('fit');
+  expect(fixture.estimate).toBeGreaterThan(620);
 
-      const { drawn, lastItem } = await measure(page, `layout-${layout}`);
-      console.log(
-        `${kind} ${name}: last item bottom ${lastItem.bottom}, drawn bottom ${drawn.bottom}`,
-      );
-      expect(drawn.left).toBeGreaterThanOrEqual(120);
-      expect(drawn.right).toBeLessThanOrEqual(1800);
-    });
-  }
-}
+  await mount(render({ ...sample(14), slots: fixture.slots } as RenderableSlide, 4));
+  const { drawn, lastItem } = await measure(page, 'layout-rules');
+  console.log(`rulesWide: last item bottom ${lastItem.bottom}, drawn bottom ${drawn.bottom}`);
+  expect(drawn.left).toBeGreaterThanOrEqual(120);
+  expect(drawn.right).toBeLessThanOrEqual(1800);
+});
 
 test('screenshot: numbered-cards', async ({ mount }) => {
   const component = await mount(render(sample(13)));
@@ -305,7 +328,7 @@ test('screenshot: rules', async ({ mount }) => {
 // The rules layout at its maximum: four rules of the longest titles and text.
 test('screenshot: rules at max length', async ({ mount }) => {
   const component = await mount(
-    render({ ...sample(14), slots: MAX_PROSE.rules } as RenderableSlide, 4),
+    render({ ...sample(14), slots: cardFitFixture('rulesProse').slots } as RenderableSlide, 4),
   );
   await expect(component).toHaveScreenshot('layout-rules-max.png');
 });

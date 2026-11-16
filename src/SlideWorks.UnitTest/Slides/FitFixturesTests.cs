@@ -4,10 +4,13 @@ using SlideWorks.Core.Slides;
 
 namespace SlideWorks.UnitTest.Slides;
 
-// src/contracts/fit-fixtures.json holds the most Title Case text the fit check accepts for each content
-// layout case. The client's CT fit tests render the same fixtures and check they stay on the slide, so
-// this test is what ties those renders to the validator: each fixture is accepted, and one more word in
-// any of its "grow" fields (JSON pointers into slots) is refused.
+// src/contracts/fit-fixtures.json holds the most text the validator accepts for each content layout
+// case. The client's CT fit tests render the same fixtures and check they stay on the slide, so this
+// test is what ties those renders to the validator: each fixture is accepted, and one more word in any
+// of its "grow" fields (JSON pointers into slots) is refused. "refusedBy" says what refuses it: "fit",
+// the layout's fit rule (LayoutRules and SlideFit), or "length", a field's character limit, for the
+// layouts with no fit rule (numbered-cards, cards) and so filled to every limit. A fixture with
+// "accepted": false is past the maximum and is refused as it stands.
 [TestFixture]
 public class FitFixturesTests
 {
@@ -16,14 +19,28 @@ public class FitFixturesTests
     private static readonly Lazy<JsonObject> _fixtures = new(() =>
         JsonNode.Parse(File.ReadAllText(ContractFiles.PathOf("fit-fixtures.json")))!.AsObject());
 
-    private static IEnumerable<TestCaseData> Fixtures() =>
-        _fixtures.Value.Select(f => new TestCaseData(f.Key).SetArgDisplayNames(f.Key));
+    private static IEnumerable<TestCaseData> Fixtures(bool accepted) =>
+        _fixtures.Value.Where(f => IsAccepted(f.Value!) == accepted)
+            .Select(f => new TestCaseData(f.Key).SetArgDisplayNames(f.Key));
+
+    private static IEnumerable<TestCaseData> AcceptedFixtures() => Fixtures(accepted: true);
+
+    private static IEnumerable<TestCaseData> RefusedFixtures() => Fixtures(accepted: false);
 
     private static IEnumerable<TestCaseData> GrownFixtures() =>
         _fixtures.Value.SelectMany(f => f.Value!["grow"]!.AsArray()
             .Select(p => new TestCaseData(f.Key, p!.GetValue<string>()).SetArgDisplayNames(f.Key + p)));
 
-    [TestCaseSource(nameof(Fixtures))]
+    [Test]
+    public void Fixtures_WhenAccepted_ShouldEachGrowAtLeastOneField()
+    {
+        var ungrown = _fixtures.Value.Where(f => IsAccepted(f.Value!) && f.Value!["grow"]!.AsArray().Count == 0)
+            .Select(f => f.Key);
+
+        ungrown.ShouldBeEmpty();
+    }
+
+    [TestCaseSource(nameof(AcceptedFixtures))]
     public void Validate_WhenMaxFitFixture_ShouldAcceptIt(string name)
     {
         var fixture = _fixtures.Value[name]!;
@@ -31,6 +48,16 @@ public class FitFixturesTests
         var result = Validate(fixture, fixture["slots"]!);
 
         result.Errors.ShouldBeEmpty();
+    }
+
+    [TestCaseSource(nameof(RefusedFixtures))]
+    public void Validate_WhenFitFixturePastTheMax_ShouldRefuseIt(string name)
+    {
+        var fixture = _fixtures.Value[name]!;
+
+        var result = Validate(fixture, fixture["slots"]!);
+
+        result.Errors.ShouldHaveSingleItem().ShouldContain(RefusalOf(fixture), Case.Sensitive, $"{name} was not refused as expected");
     }
 
     [TestCaseSource(nameof(GrownFixtures))]
@@ -51,8 +78,19 @@ public class FitFixturesTests
 
         var result = Validate(fixture, slots);
 
-        result.IsValid.ShouldBeFalse($"{name}{pointer} with one more word was accepted");
+        result.Errors.ShouldHaveSingleItem().ShouldContain(RefusalOf(fixture), Case.Sensitive, $"{name}{pointer} with one more word was not refused as expected");
     }
+
+    private static bool IsAccepted(JsonNode fixture) => fixture["accepted"]?.GetValue<bool>() ?? true;
+
+    // The text of the one error the fixture's "refusedBy" expects: the fit rule's "too much text to
+    // fit" or a character limit's "at most N characters (got M)".
+    private static string RefusalOf(JsonNode fixture) => fixture["refusedBy"]!.GetValue<string>() switch
+    {
+        "fit" => "too much text to fit",
+        "length" => " characters (got ",
+        var other => throw new InvalidOperationException($"unknown refusedBy '{other}'"),
+    };
 
     private static SlideValidationResult Validate(JsonNode fixture, JsonNode slots)
     {
