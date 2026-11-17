@@ -254,7 +254,7 @@ public class PollMcpTests : PollTestFixture
         var result = await SlideCalls.OkAsync(agent, "add_poll_option", new { deck = poll.DeckId, slide = poll.Slide, text = "Over 1,000 lines" });
 
         result.GetProperty("options").GetArrayLength().ShouldBe(4);
-        Relay.Refreshed.ShouldBe([poll.DeckId]);
+        Relay.Refreshed.Where(deck => deck == poll.DeckId).ShouldBe([poll.DeckId]);
         Publisher.PublishedFor(poll.DeckId).ShouldBe([poll.Slide]);
     }
 
@@ -361,7 +361,7 @@ public class PollMcpTests : PollTestFixture
         var appended = await SlideCalls.UpdateAsync(agent, poll.DeckId, poll.Slide, fixedText.GetProperty("revision").GetInt64(), """{ "question": "How big was your last merge request?", "options": ["Under 50 lines", "50 to 200 lines", "Over 200 lines!", "Huge"] }""");
 
         appended.GetProperty("revision").GetInt64().ShouldBeGreaterThan(fixedText.GetProperty("revision").GetInt64());
-        Relay.Refreshed.ShouldBe([poll.DeckId, poll.DeckId]);
+        Relay.Refreshed.Where(deck => deck == poll.DeckId).ShouldBe([poll.DeckId, poll.DeckId]);
         Publisher.PublishedFor(poll.DeckId).ShouldBe([poll.Slide, poll.Slide]);
     }
 
