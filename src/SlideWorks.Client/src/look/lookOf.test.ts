@@ -22,6 +22,7 @@ describe('lookOf', () => {
       logo: null,
       draft: template.chrome.draft,
       footerDateLabel: '16 Nov 2026',
+      joinBar: false,
     });
   });
 
