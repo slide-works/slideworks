@@ -12,8 +12,10 @@ const PRESENTER = presenterJson satisfies JsonView<PresenterView> as PresenterVi
 const STATE = presentationStateJson satisfies Widen<PresentationState> as PresentationState;
 const LIVE = presentationsJson satisfies Widen<LivePresentationsView> as LivePresentationsView;
 
-// The sample deck "Ship smaller" as its owner presents it: 16 slides, notes on
-// slides 1, 8, 10 and 12, deep dives 5, 10 and 12, and a 30-minute talk length.
+// The sample deck "Ship smaller" as its owner presents it: 16 slides, deep dives
+// 5, 10 and 12, and a 30-minute talk length. Every slide has notes (screen
+// examples carry no nulls); slides 1, 8, 10 and 12 use the markup (**bold** and
+// "- " lines). For a slide without notes, set its notes to null in the test.
 export function presenterView(): PresenterView {
   return structuredClone(PRESENTER);
 }

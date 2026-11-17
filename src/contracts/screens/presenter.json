@@ -130,7 +130,7 @@
         "title": "Big batches hide the risk",
         "sub": "Why the quarter-long launch keeps slipping."
       },
-      "notes": null,
+      "notes": "Say: one line on slide 2, then move on.",
       "headline": "Big batches hide the risk"
     },
     {
@@ -162,7 +162,7 @@
         ],
         "reveal": "one-by-one"
       },
-      "notes": null,
+      "notes": "Say: one line on slide 3, then move on.",
       "headline": "Every slip we had last year started as a big batch"
     },
     {
@@ -179,7 +179,7 @@
         "detail": "Eight of our 12 launches waited on one last piece of work that had nothing to do with the rest.",
         "source": "Delivery data Jan–Oct, 12 launches."
       },
-      "notes": null,
+      "notes": "Say: one line on slide 4, then move on.",
       "headline": "It took us eleven weeks to get a change in front of a customer"
     },
     {
@@ -237,7 +237,7 @@
           }
         ]
       },
-      "notes": null,
+      "notes": "Say: one line on slide 5, then move on.",
       "headline": "One milestone each looks fair. Nothing reaches customers until sprint 6."
     },
     {
@@ -251,7 +251,7 @@
         "quote": "We stopped asking ‘is it done?’ and started asking ‘is it out?’ The second question is much harder to fudge.",
         "attribution": "Team lead, payments squad"
       },
-      "notes": null,
+      "notes": "Say: one line on slide 6, then move on.",
       "headline": "We stopped asking ‘is it done?’ and started asking ‘is it out?’ The second quest"
     },
     {
@@ -264,7 +264,7 @@
         "title": "Slice it thin",
         "sub": "How to cut work so each piece reaches a customer."
       },
-      "notes": null,
+      "notes": "Say: one line on slide 7, then move on.",
       "headline": "Slice it thin"
     },
     {
@@ -337,7 +337,7 @@
           ]
         }
       },
-      "notes": null,
+      "notes": "Say: one line on slide 9, then move on.",
       "headline": "The difference is when the customer gets to answer"
     },
     {
@@ -372,7 +372,7 @@
           }
         }
       },
-      "notes": "Only if someone asks how to find the thin release.\nWalk the map left to right, then draw the line.",
+      "notes": "Only if someone asks how to find the **thin release**.\nWalk the map left to right, then draw the line.",
       "headline": "A story map shows the thinnest release"
     },
     {
@@ -435,7 +435,7 @@
         ],
         "highlightRow": 3
       },
-      "notes": null,
+      "notes": "Say: one line on slide 11, then move on.",
       "headline": "Aim for slices a pair can ship inside a week"
     },
     {
@@ -493,7 +493,7 @@
           }
         ]
       },
-      "notes": null,
+      "notes": "Say: one line on slide 13, then move on.",
       "headline": "Four questions, in this order"
     },
     {
@@ -520,7 +520,7 @@
           }
         ]
       },
-      "notes": null,
+      "notes": "Say: one line on slide 14, then move on.",
       "headline": "Three rules for the first month"
     },
     {
@@ -553,7 +553,7 @@
           }
         ]
       },
-      "notes": null,
+      "notes": "Say: one line on slide 15, then move on.",
       "headline": "Everyone changes one habit"
     },
     {
@@ -567,7 +567,7 @@
         "sub": "Then tell us what you learned at the next demo.",
         "author": "Sam Rivera · Product Engineering"
       },
-      "notes": null,
+      "notes": "Say: one line on slide 16, then move on.",
       "headline": "Pick one story.\nShip half of it by Friday."
     }
   ],

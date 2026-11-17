@@ -98,13 +98,16 @@ describe('presenter.json', () => {
     expect(view.remoteUrl).toBe(`https://slideworks.example/remote?deck=${view.id}`);
   });
 
-  it('is the sample deck with notes on 1, 8, 10 and 12 and deep dives 5, 10 and 12', () => {
+  it('is the sample deck with deep dives 5, 10 and 12, and marked-up notes on 1, 8, 10 and 12', () => {
     const view = presenterView();
     expect(view.slides.map((s) => s.number)).toEqual(sampleDeck.slides.map((s) => s.number));
     expect(view.slides.map((s) => [s.layout, s.steps, s.slots])).toEqual(
       sampleDeck.slides.map((s) => [s.layout, s.steps, s.slots]),
     );
-    expect(view.slides.filter((s) => s.notes !== null).map((s) => s.number)).toEqual([
+    // Screen examples carry no nulls (K4): every slide has notes, and a test
+    // that needs a slide without notes sets that slide's notes to null.
+    expect(view.slides.every((s) => s.notes !== null)).toBe(true);
+    expect(view.slides.filter((s) => s.notes?.includes('**')).map((s) => s.number)).toEqual([
       1, 8, 10, 12,
     ]);
     expect(view.slides.filter((s) => s.deepDive).map((s) => s.number)).toEqual([5, 10, 12]);
@@ -129,7 +132,18 @@ describe('presentations.json', () => {
   });
 });
 
+function hasNull(value: unknown): boolean {
+  if (value === null) return true;
+  return typeof value === 'object' && Object.values(value).some(hasNull);
+}
+
 describe('the presenting samples', () => {
+  it('give every nullable field a non-null value', () => {
+    expect(hasNull(presenterView())).toBe(false);
+    expect(hasNull(presentationState())).toBe(false);
+    expect(hasNull(livePresentations())).toBe(false);
+  });
+
   it('describe one talk: the same deck, live on the same slide', () => {
     const view = presenterView();
     const state = presentationState();

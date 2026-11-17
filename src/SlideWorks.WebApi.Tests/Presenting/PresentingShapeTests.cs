@@ -122,7 +122,8 @@ public class PresentingShapeTests : ApiTestFixture
         SameJson(json, example).ShouldBeTrue(Differs(json, example));
         view.Slides.Select(s => s.Number).ShouldBe(Enumerable.Range(1, 16));
         view.Slides.Where(s => s.DeepDive).Select(s => s.Number).ShouldBe([5, 10, 12]);
-        view.Slides.Where(s => s.Notes != null).Select(s => s.Number).ShouldBe([1, 8, 10, 12]);
+        view.Slides.ShouldAllBe(s => s.Notes != null);
+        view.Slides.Where(s => s.Notes!.Contains("**", StringComparison.Ordinal)).Select(s => s.Number).ShouldBe([1, 8, 10, 12]);
         view.Slides.ShouldAllBe(s => s.Headline != null);
         view.Author.ShouldBe("Sam Rivera");
         view.TalkMinutes.ShouldBe(30);
