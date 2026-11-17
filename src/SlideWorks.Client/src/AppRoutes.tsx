@@ -27,7 +27,7 @@ const routes: RouteObject[] = [
   { path: '/card/generic', element: <CardPage /> },
   { path: '/card/:id', element: <CardPage /> },
   {
-    element: <SignedInGate>{() => <Outlet />}</SignedInGate>,
+    element: <SignedInGate>{(me) => <Outlet context={me} />}</SignedInGate>,
     children: [
       { path: 'decks/:id/present', element: <PresenterPage /> },
       { path: 'remote', element: <RemotePickPage /> },

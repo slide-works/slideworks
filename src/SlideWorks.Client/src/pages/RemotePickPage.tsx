@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { getLivePresentations } from '../api/presenter';
-import type { LivePresentation } from '../api/types';
+import type { LivePresentation, MeView } from '../api/types';
 import { LiveCard } from '../remote/LiveCard';
 
 // talks is null until the first read succeeds; a failed re-read keeps the last list and sets failed.
@@ -15,6 +15,8 @@ interface Read {
 // and one that isn't shows the list with a note. The list is read once, then again whenever the page becomes visible
 // (a phone coming back from the lock screen), with no polling.
 export function RemotePickPage() {
+  // The signed-in person, from the gate's Outlet context: the page makes no /api/me call of its own.
+  const me = useOutletContext<MeView>();
   const [params] = useSearchParams();
   const wanted = params.get('deck');
   const [read, setRead] = useState<Read>({ talks: null, failed: false });
@@ -73,6 +75,9 @@ export function RemotePickPage() {
       <h1 ref={heading} tabIndex={-1} className="text-[17px] font-bold outline-none">
         Presenting now
       </h1>
+      <p data-testid="remote-signed-in" className="text-xs text-[#94a3b8]">
+        Signed in as {me.name}
+      </p>
       {notLive && (
         <p data-testid="remote-not-live" role="status" className="text-xs text-[#fbbf24]">
           That talk isn't live right now.

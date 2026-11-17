@@ -25,6 +25,7 @@ test('remote pick page shows a card per live presentation', async ({ mount, page
   await stubApi(page, { '/api/me': { json: me }, [LIST]: { json: view } });
   await mount(<AppRoutes />, { hooksConfig: { route: '/remote' } });
 
+  await expect(page.getByTestId('remote-signed-in')).toHaveText(`Signed in as ${me.name}`);
   const cards = page.getByTestId('remote-live-card');
   await expect(cards).toHaveCount(2);
   await expect(cards.first().getByTestId('remote-live-title')).toHaveText('Ship smaller');
