@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using ModelContextProtocol.Client;
 using SlideWorks.AcceptanceTests.Pages;
@@ -22,7 +23,9 @@ public class PresentingJourneyTests : AcceptanceTest
     {
         var talk = await SeedTalkAsync($"Presenting {Guid.NewGuid():N}");
         await SignIn.AsAsync(Page, TestUser.Sam);
-        var view = await PresenterViewAsync(talk.Id);
+        var viewResponse = await Page.APIRequest.GetAsync($"/api/decks/{talk.Id}/presenter");
+        viewResponse.Status.ShouldBe(200, await viewResponse.TextAsync());
+        var view = (await viewResponse.JsonAsync())!.Value;
 
         // 1. The deck page's Present menu → Presenter view: this tab becomes the presenter window, and the audience
         // window opens as a popup in the same click.
@@ -37,7 +40,8 @@ public class PresentingJourneyTests : AcceptanceTest
         await Expect(audience.AudienceMode).ToBeVisibleAsync();
         await Expect(presenter.AudienceChips).ToHaveCountAsync(1);
         await Expect(audience.Controls).ToHaveCountAsync(0);
-        await ExpectBothOnSlideAsync(presenter, audience, 1);
+        await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
+        await Expect(audience.Layer(1)).ToHaveAttributeAsync("data-active", "true");
         await Expect(presenter.NotesBody).ToContainTextAsync(NotesOf(1));
 
         // The audience window is P3's audienceUrl. The player writes #slide.step into the hash as it follows, so the
@@ -46,11 +50,14 @@ public class PresentingJourneyTests : AcceptanceTest
 
         // 2. Keys in the presenter window move the audience window.
         await presenter.PressAsync("ArrowRight");
-        await ExpectBothOnSlideAsync(presenter, audience, 2);
+        await Expect(presenter.Count).ToHaveTextAsync($"2 / {SLIDES}");
+        await Expect(audience.Layer(2)).ToHaveAttributeAsync("data-active", "true");
         await presenter.PressAsync(" ");
-        await ExpectBothOnSlideAsync(presenter, audience, 3);
+        await Expect(presenter.Count).ToHaveTextAsync($"3 / {SLIDES}");
+        await Expect(audience.Layer(3)).ToHaveAttributeAsync("data-active", "true");
         await presenter.PressAsync("ArrowLeft");
-        await ExpectBothOnSlideAsync(presenter, audience, 2);
+        await Expect(presenter.Count).ToHaveTextAsync($"2 / {SLIDES}");
+        await Expect(audience.Layer(2)).ToHaveAttributeAsync("data-active", "true");
 
         // 3. B blacks the audience window out, and B again brings the slide back.
         await presenter.PressAsync("b");
@@ -59,26 +66,36 @@ public class PresentingJourneyTests : AcceptanceTest
         await presenter.PressAsync("b");
         await Expect(audience.Blackout).ToHaveCountAsync(0);
         await Expect(presenter.BlackBadge).ToHaveCountAsync(0);
-        await ExpectBothOnSlideAsync(presenter, audience, 2);
+        await Expect(presenter.Count).ToHaveTextAsync($"2 / {SLIDES}");
+        await Expect(audience.Layer(2)).ToHaveAttributeAsync("data-active", "true");
 
         // 4. O opens the overview; clicking slide 11 jumps both windows and closes it.
         await presenter.PressAsync("o");
         await Expect(presenter.Overview).ToBeVisibleAsync();
         await presenter.OverviewSlide(11).ClickAsync();
         await Expect(presenter.Overview).ToHaveCountAsync(0);
-        await ExpectBothOnSlideAsync(presenter, audience, 11);
+        await Expect(presenter.Count).ToHaveTextAsync($"11 / {SLIDES}");
+        await Expect(audience.Layer(11)).ToHaveAttributeAsync("data-active", "true");
 
         // 5. D turns on skip deep dives; → from 11 then steps over the deep dive at 12 to 13.
         await presenter.PressAsync("d");
         await Expect(presenter.SkipDeepDivesTool).ToHaveAttributeAsync("aria-pressed", "true");
         await presenter.PressAsync("ArrowRight");
-        await ExpectBothOnSlideAsync(presenter, audience, DEEP_DIVE + 1);
+        await Expect(presenter.Count).ToHaveTextAsync($"{DEEP_DIVE + 1} / {SLIDES}");
+        await Expect(audience.Layer(DEEP_DIVE + 1)).ToHaveAttributeAsync("data-active", "true");
         await Expect(audience.Layer(DEEP_DIVE)).ToHaveAttributeAsync("data-active", "false");
 
         // 6. The phone dialog shows P3's remoteUrl.
         await presenter.PhoneTool.ClickAsync();
         await Expect(presenter.PhoneConnect).ToBeVisibleAsync();
         await Expect(presenter.PhoneConnectUrl).ToHaveTextAsync(view.GetProperty("remoteUrl").GetString()!);
+
+        // 7. The deck page's own phone dialog, from the Present menu's "Control from your phone".
+        await deckPage.GotoAsync(talk.Id);
+        await deckPage.PresentMenu.ClickAsync();
+        await deckPage.PresentMenuPhone.ClickAsync();
+        await Expect(deckPage.PhoneConnect).ToBeVisibleAsync();
+        await Expect(deckPage.PhoneConnectUrl).ToHaveTextAsync(view.GetProperty("remoteUrl").GetString()!);
     }
 
     // Criterion: a share-link viewer who opens /d/:id/:slug?present while the owner presents gets the plain player
@@ -104,16 +121,17 @@ public class PresentingJourneyTests : AcceptanceTest
         // The viewer, anonymous in a browser of their own, opens the audience URL.
         await using var context = await Browser.NewContextAsync(ContextOptions());
         var viewerTab = await context.NewPageAsync();
-        var apiBodies = new List<IResponse>();
-        var hubFrames = new List<string>();
+        // Playwright raises these events off the test thread, so the lists are concurrent.
+        var apiBodies = new ConcurrentQueue<IResponse>();
+        var hubFrames = new ConcurrentQueue<string>();
         viewerTab.Response += (_, response) =>
         {
             if (new Uri(response.Url).AbsolutePath.StartsWith("/api/", StringComparison.Ordinal))
             {
-                apiBodies.Add(response);
+                apiBodies.Enqueue(response);
             }
         };
-        viewerTab.WebSocket += (_, socket) => socket.FrameReceived += (_, frame) => hubFrames.Add(frame.Text ?? "");
+        viewerTab.WebSocket += (_, socket) => socket.FrameReceived += (_, frame) => hubFrames.Enqueue(frame.Text ?? "");
         var viewer = new PlayerPage(viewerTab);
         await viewerTab.GotoAsync($"/d/{talk.Id}/{talk.Slug}?present");
 
@@ -125,34 +143,22 @@ public class PresentingJourneyTests : AcceptanceTest
         await Expect(presenter.AudienceChips).ToHaveCountAsync(0);
 
         var html = await viewerTab.ContentAsync();
-        apiBodies.ShouldNotBeEmpty();
+        var bodies = apiBodies.ToArray();
+        var frames = hubFrames.ToArray();
+        bodies.ShouldNotBeEmpty();
+        frames.ShouldNotBeEmpty();
         foreach (var number in Enumerable.Range(1, SLIDES))
         {
             html.ShouldNotContain(NotesOf(number));
-            foreach (var response in apiBodies)
+            foreach (var response in bodies)
             {
                 (await response.TextAsync()).ShouldNotContain(NotesOf(number), customMessage: response.Url);
             }
-            foreach (var frame in hubFrames)
+            foreach (var frame in frames)
             {
                 frame.ShouldNotContain(NotesOf(number));
             }
         }
-    }
-
-    // Waits until the presenter window's count and the audience window's visible slide are both slide {number}.
-    private async Task ExpectBothOnSlideAsync(PresenterPage presenter, PlayerPage audience, int number)
-    {
-        await Expect(presenter.Count).ToHaveTextAsync($"{number} / {SLIDES}");
-        await Expect(audience.Layer(number)).ToHaveAttributeAsync("data-active", "true");
-    }
-
-    // GET /api/decks/{id}/presenter (P3) with the page's own signed-in session.
-    private async Task<JsonElement> PresenterViewAsync(string deckId)
-    {
-        var response = await Page.APIRequest.GetAsync($"/api/decks/{deckId}/presenter");
-        response.Status.ShouldBe(200, await response.TextAsync());
-        return (await response.JsonAsync())!.Value;
     }
 
     private static string NotesOf(int number) => $"Speaker cue {number}: pause for a question here.";
