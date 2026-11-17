@@ -110,7 +110,21 @@ public class SlideValidatorTests
         var result = Validate("foo", "{}");
 
         result.Error.ShouldBe("layout: unknown layout 'foo' (known: title, divider, bullets, two-column, practice, compare, "
-            + "big-number, quote, image, table, chart, gantt, numbered-cards, rules, cards, close)");
+            + "big-number, quote, image, table, chart, gantt, numbered-cards, rules, cards, close, join)");
+    }
+
+    [TestCase("{}")]
+    [TestCase("""{ "kicker": "Join on your phone", "count": "shown" }""")]
+    [TestCase("""{ "count": "hidden" }""")]
+    public void Validate_WhenJoinSlotsAreValid_ShouldAcceptThem(string slots)
+    {
+        Validate("join", slots).Error.ShouldBeEmpty();
+    }
+
+    [Test]
+    public void Validate_WhenJoinCountIsMaybe_ShouldRefuseIt()
+    {
+        Validate("join", """{ "count": "maybe" }""").Error.ShouldBe("join.count: expected one of 'shown', 'hidden' (got 'maybe')");
     }
 
     [TestCase("""{ "headline": 5, "items": ["a"] }""", "bullets.headline: expected text")]
