@@ -12,6 +12,11 @@ import { Player } from './Player';
 // The owner's plain player while the deck is live: one more presenter-role client of the presentation. It follows the
 // state it finds, publishes only the moves made in it, and never overwrites a presentation another window drives.
 
+// The sample deck's three slides repeated to six, so a few presses in a row stay inside the deck.
+const deck = {
+  ...deckPlay,
+  slides: Array.from({ length: 6 }, (_, i) => ({ ...deckPlay.slides[i % 3], number: i + 1 })),
+};
 const join = { ...deckPlay.join, live: true };
 const open: LiveView = {
   sessionId: 'session-1',
@@ -52,18 +57,19 @@ async function mountLivePlayer(
   page: Page,
   state: PresentationState,
   hash = '',
+  options: { holdUpdates?: boolean; holdJoin?: boolean } = {},
 ) {
   await page.evaluate((h) => (window.location.hash = h), hash);
   await page.route(`**/api/decks/${deckPlay.id}/live`, (request) =>
     request.fulfill({ json: open }),
   );
   const hub = await stubDeckHub(page, {
-    presentation: { state },
+    presentation: { state, ...options },
     audience: { state: guestView('live').state },
   });
   await mount(
     <JoinProvider deckId={deckPlay.id} join={join} owner>
-      <Player deck={deckPlay} />
+      <Player deck={deck} />
     </JoinProvider>,
   );
   await expect(page.getByTestId('live-chip-end')).toBeVisible();
@@ -112,18 +118,150 @@ test('LivePlayer_WhenMovedWhileAWindowDrives_ShouldPublishTheMoveKeepingTheBlack
   expect(hub.updates).toEqual([{ slide: 3, step: 0, black: true, skipDeepDives: false }]);
 });
 
-test('LivePlayer_WhenNoWindowIsDriving_ShouldStartThePresentationAtItsOwnPositionOnce', async ({
+const untouched = (overrides: Partial<PresentationState> = {}) =>
+  stateAt(1, { timer: { state: 'notStarted', elapsedMs: 0 }, ...overrides });
+
+test('LivePlayer_WhenNobodyIsConnectedAndTheTalkIsUntouched_ShouldStartItAtItsOwnPositionOnce', async ({
   mount,
   page,
 }) => {
-  const hub = await mountLivePlayer(mount, page, stateAt(1, { connected: [audience] }), '#2');
+  const hub = await mountLivePlayer(
+    mount,
+    page,
+    untouched({ connected: [audience], skipDeepDives: true }),
+    '#2',
+  );
 
   await expect(page.getByTestId('slide-2')).toBeVisible();
   await expect
     .poll(() => hub.updates)
-    .toEqual([{ slide: 2, step: 0, black: false, skipDeepDives: false }]);
+    .toEqual([{ slide: 2, step: 0, black: false, skipDeepDives: true }]);
   await settle(page);
   expect(hub.updates).toHaveLength(1);
+});
+
+test('LivePlayer_WhenNobodyIsConnectedButTheTalkIsPausedMidway_ShouldAdoptItAndPublishNothing', async ({
+  mount,
+  page,
+}) => {
+  const hub = await mountLivePlayer(mount, page, stateAt(3, { connected: [audience] }), '#1');
+
+  await expect(page.getByTestId('slide-3')).toBeVisible();
+  await settle(page);
+  expect(hub.updates).toEqual([]);
+});
+
+test('LivePlayer_WhenNobodyIsConnectedButTheScreenIsBlack_ShouldAdoptItAndPublishNothing', async ({
+  mount,
+  page,
+}) => {
+  const hub = await mountLivePlayer(mount, page, untouched({ black: true }), '#2');
+
+  await expect(page.getByTestId('slide-1')).toBeVisible();
+  await settle(page);
+  expect(hub.updates).toEqual([]);
+});
+
+test('LivePlayer_WhenAWindowIsConnectedToAnUntouchedTalk_ShouldAdoptItAndPublishNothing', async ({
+  mount,
+  page,
+}) => {
+  const hub = await mountLivePlayer(mount, page, untouched({ connected: [window1] }), '#2');
+
+  await expect(page.getByTestId('slide-1')).toBeVisible();
+  await settle(page);
+  expect(hub.updates).toEqual([]);
+});
+
+test('LivePlayer_WhenKeysArePressedInsideOneRoundTrip_ShouldSendEachMoveFromTheLastTarget', async ({
+  mount,
+  page,
+}) => {
+  const hub = await mountLivePlayer(mount, page, stateAt(2, { connected: [window1] }), '', {
+    holdUpdates: true,
+  });
+  await expect(page.getByTestId('slide-2')).toBeVisible();
+
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+
+  await expect.poll(() => hub.updates.length).toBe(3);
+  const targets = hub.updates.map((u) => `${u.slide}.${u.step}`);
+  expect(new Set(targets).size).toBe(3);
+  hub.releaseUpdates();
+  const last = hub.updates[2];
+  await expect(page.getByTestId(`slide-${last.slide}`)).toBeVisible();
+  // The third target is where the talk is: slide 2 has moved on by three steps or slides.
+  expect(last.slide * 100 + last.step).toBeGreaterThan(200);
+});
+
+test('LivePlayer_WhenAnotherClientMovesAfterAPress_ShouldMoveOnFromTheirPosition', async ({
+  mount,
+  page,
+}) => {
+  const hub = await mountLivePlayer(mount, page, stateAt(2, { connected: [window1] }));
+  await expect(page.getByTestId('slide-2')).toBeVisible();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(() => hub.updates.length).toBe(1);
+  const before = hub.updates[0];
+
+  hub.pushState(stateAt(4, { seq: 900, connected: [window1] }));
+  await expect(page.getByTestId('slide-4')).toBeVisible();
+  await page.keyboard.press('ArrowRight');
+
+  await expect.poll(() => hub.updates.length).toBe(2);
+  expect(hub.updates[1].slide * 100 + hub.updates[1].step).toBeGreaterThan(400);
+  expect(before.slide).toBeLessThan(4);
+});
+
+test('LivePlayer_WhenAKeyIsPressedWhileTheFirstPublishIsInFlight_ShouldPublishItAfterTheSeed', async ({
+  mount,
+  page,
+}) => {
+  const hub = await mountLivePlayer(mount, page, untouched({ connected: [audience] }), '#2', {
+    holdUpdates: true,
+  });
+  await expect.poll(() => hub.updates.length).toBe(1);
+
+  await page.keyboard.press('ArrowRight');
+
+  await expect.poll(() => hub.updates.length).toBe(2);
+  expect(hub.updates[0]).toMatchObject({ slide: 2, step: 0 });
+  expect(hub.updates[1].slide * 100 + hub.updates[1].step).toBeGreaterThan(200);
+  hub.releaseUpdates();
+  await expect(page.getByTestId(`slide-${hub.updates[1].slide}`)).toBeVisible();
+});
+
+test('LivePlayer_WhenTheConnectionIsDown_ShouldFreezeTheMovesAndShowTheReconnectingNotice', async ({
+  mount,
+  page,
+}) => {
+  const hub = await mountLivePlayer(mount, page, stateAt(2, { connected: [window1] }), '', {
+    holdJoin: true,
+  });
+  await expect.poll(() => hub.presentationJoins.length).toBe(1);
+  hub.releasePresentationJoins();
+  await expect(page.getByTestId('slide-2')).toBeVisible();
+  await expect(page.getByTestId('player-reconnecting')).toHaveCount(0);
+
+  hub.drop();
+  await expect(page.getByTestId('player-reconnecting')).toContainText('Reconnecting');
+  await page.keyboard.press('ArrowRight');
+  await page
+    .getByTestId('player-next')
+    .click({ force: true })
+    .catch(() => undefined);
+  await settle(page);
+
+  await expect(page.getByTestId('slide-2')).toBeVisible();
+  expect(hub.updates).toEqual([]);
+  await expect.poll(() => hub.presentationJoins.length).toBe(2);
+  hub.pushState(stateAt(4, { seq: 900, connected: [window1] }));
+  hub.releasePresentationJoins();
+  await expect(page.getByTestId('slide-4')).toBeVisible();
+  await expect(page.getByTestId('player-reconnecting')).toHaveCount(0);
+  expect(hub.updates).toEqual([]);
 });
 
 test('LivePlayer_WhenAMovePublishFails_ShouldShowAMessageInTheChip', async ({ mount, page }) => {

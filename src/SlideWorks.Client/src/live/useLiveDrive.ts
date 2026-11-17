@@ -1,22 +1,40 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { AudienceControl } from '../player/Player';
 import type { PlayerPosition } from '../player/parseHash';
-import type { PresentationUpdate } from '../presentation/types';
+import type { PresentationState, PresentationUpdate } from '../presentation/types';
 import { clientId, usePresentation } from '../presentation/usePresentation';
 
 const PUBLISH_FAILED = 'Guests may not be following: could not publish your position.';
 const REFUSED = 'Guests cannot follow: the presentation refused this player.';
 
-// While the owner is live in the plain player (SW-5 D18), the player is one more presenter-role client of the
-// deck's presentation, under the same rules as SW-4's presenter window and the phone: it renders the presentation's
-// state and keeps no position of its own (D4), and it publishes only a move the user makes in it. It never overwrites
-// what is already running:
-// - a presentation another presenter window or phone is driving: the player adopts its position, and moves its view to it
-// - a presentation nobody drives (the one Go live just started, or one left idle): the player's own position is where
-//   the talk starts, published once; the black screen and skip setting stay as the state has them
-// - after a reconnect the player adopts the state it finds and publishes nothing
+// Nobody else drives it and nothing has moved since it started (the timer starts on the first move): the one case
+// where the player's own position may become the talk's. Anything else is somebody's talk, even with nobody connected
+// right now (a window reloading, a phone asleep, a talk left idle), so the player adopts it.
+function isUntouchedAndAlone(state: PresentationState): boolean {
+  const others = state.connected.some((c) => c.role !== 'audience' && c.clientId !== clientId());
+  return (
+    !others &&
+    state.timer.state === 'notStarted' &&
+    state.slide === 1 &&
+    state.step === 0 &&
+    !state.black
+  );
+}
+
+// While the owner is live in the plain player (SW-5 D18), the player is one more presenter-role client of the deck's
+// presentation, under the same rules as SW-4's presenter window and the phone: it renders the presentation's state
+// and publishes only a move the user makes in it. It never overwrites what is already running:
+// - a presentation that has been moved, or that another presenter window or phone is connected to: the player adopts
+//   its position and moves its view to it
+// - a presentation nobody is connected to and nothing has moved (the one Go live just started): the player's own
+//   position is where the talk starts, published once; the black screen and skip setting stay as the state has them
+// - after a reconnect the player adopts the state it finds and publishes nothing, and its moves are frozen meanwhile
 // While not active it joins nothing and returns undefined, so the player keeps its own position as before.
 // seed holds the player's own position (it changes with every render, so a ref), read once for the first publish.
+//
+// Moves are never computed from the last state alone: every publish records its target, and latest() answers with it
+// until the hub has answered them all, so presses inside one round trip send distinct targets and a state echoed
+// late never jumps the view back. The target goes when the last publish settles, and the server's state is the position.
 export function useLiveDrive(
   deckId: string,
   active: boolean,
@@ -31,58 +49,93 @@ export function useLiveDrive(
   // Ending the live session starts the next one afresh (adjusted while rendering, so a stale decision never paints).
   if (!active && decided) setDecided(false);
 
+  // The newest position asked for and how many publishes the hub hasn't answered yet. The ref is for the key handlers,
+  // which run between renders; the state is what the view shows.
+  const targetRef = useRef<PlayerPosition | null>(null);
+  const inFlightRef = useRef(0);
+  const [target, setTarget] = useState<PlayerPosition | null>(null);
+  const [inFlight, setInFlight] = useState(0);
+  if (inFlight === 0 && target !== null) setTarget(null);
+
   useEffect(() => {
     if (status === 'refused') onError(REFUSED);
   }, [status, onError]);
 
-  // Another presenter window or phone is driving the presentation: adopt its position, once (adjusted while rendering).
-  const driven =
-    state !== null &&
-    state.connected.some((c) => c.role !== 'audience' && c.clientId !== clientId());
-  if (active && !decided && status === 'live' && driven) setDecided(true);
+  const slide = state?.slide;
+  const step = state?.step;
+  useEffect(() => {
+    // The state is the position again once every publish has settled, and a connection that is down has none.
+    if (inFlight === 0 || status !== 'live') targetRef.current = null;
+  }, [inFlight, status, slide, step]);
+
+  const publish = useCallback(
+    (to: PresentationUpdate): Promise<void> => {
+      targetRef.current = { slide: to.slide, step: to.step };
+      setTarget(targetRef.current);
+      inFlightRef.current += 1;
+      setInFlight(inFlightRef.current);
+      return update(to)
+        .catch(() => onError(PUBLISH_FAILED))
+        .finally(() => {
+          inFlightRef.current -= 1;
+          setInFlight(inFlightRef.current);
+        });
+    },
+    [update, onError],
+  );
+
+  // Adopt the state: somebody else's talk (adjusted while rendering).
+  if (active && !decided && status === 'live' && state !== null && !isUntouchedAndAlone(state)) {
+    setDecided(true);
+  }
 
   useEffect(() => {
     if (!active) {
       deciding.current = false;
       return;
     }
-    if (decided || deciding.current || status !== 'live' || state === null || driven) return;
-    // Nobody drives it: the player's own position is where the talk starts.
+    if (decided || deciding.current || status !== 'live' || state === null) return;
+    // Untouched and alone: the player's own position is where the talk starts.
     deciding.current = true;
-    const { slide, step } = seed.current;
-    update({ slide, step, black: state.black, skipDeepDives: state.skipDeepDives }).then(
-      () => setDecided(true),
-      () => {
-        // Say so, and carry on following: the player's next move publishes again.
-        onError(PUBLISH_FAILED);
-        setDecided(true);
-      },
-    );
-  }, [active, decided, driven, status, state, update, seed, onError]);
+    const { slide: ownSlide, step: ownStep } = seed.current;
+    setDecided(true);
+    if (ownSlide === state.slide && ownStep === state.step) return;
+    void publish({
+      slide: ownSlide,
+      step: ownStep,
+      black: state.black,
+      skipDeepDives: state.skipDeepDives,
+    });
+  }, [active, decided, status, state, seed, publish]);
 
   const send = useCallback(
     (to: PresentationUpdate) => {
-      update(to).catch(() => onError(PUBLISH_FAILED));
+      void publish(to);
     },
-    [update, onError],
+    [publish],
   );
+  const latest = useCallback(() => targetRef.current, []);
 
-  const slide = state?.slide;
-  const step = state?.step;
   const black = state?.black ?? false;
   const skipDeepDives = state?.skipDeepDives ?? false;
+  const live = status === 'live';
   return useMemo(
     () =>
       active && status !== 'refused'
         ? {
-            position: decided && slide !== undefined && step !== undefined ? { slide, step } : null,
-            live: decided && status === 'live',
+            position:
+              decided && slide !== undefined && step !== undefined
+                ? (live && target) || { slide, step }
+                : null,
+            live: decided && live,
+            frozen: decided && !live,
             driven: false,
             black,
             skipDeepDives,
             send,
+            latest,
           }
         : undefined,
-    [active, status, decided, slide, step, black, skipDeepDives, send],
+    [active, status, decided, live, target, slide, step, black, skipDeepDives, send, latest],
   );
 }

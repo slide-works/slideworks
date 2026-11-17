@@ -33,6 +33,11 @@ export type AudienceControl = {
   black: boolean;
   skipDeepDives: boolean;
   send(update: PresentationUpdate): void;
+  // The owner's live player only: the newest position asked for and not yet answered, so a move is computed from it
+  // and not from the last state (two presses inside one round trip are two moves), or null when there is none.
+  latest?(): PlayerPosition | null;
+  // The owner's live player only: the connection is down, so moves wait for it and nothing moves that the room can't see.
+  frozen?: boolean;
 };
 
 function noop() {}
@@ -83,16 +88,20 @@ export function Player({
   );
   // While live, every move is the presentation's: the keys and the control bar ask for it and render the answer.
   const moves = useMemo(() => {
+    if (control?.frozen) return { next: noop, previous: noop, first: noop, last: noop };
     if (!control?.live) return navigation;
-    const { black, skipDeepDives, send } = control;
+    const { black, skipDeepDives, send, latest } = control;
+    // From the newest position asked for, so a press inside the last one's round trip goes on from it.
+    const from = () => latest?.() ?? position;
     const go = (to: PlayerPosition) => {
       // At the end of the deck, or with only skipped deep dives ahead, there is nothing to send.
-      if (to.slide === position.slide && to.step === position.step) return;
+      const now = from();
+      if (to.slide === now.slide && to.step === now.step) return;
       send({ ...to, black, skipDeepDives });
     };
     return {
-      next: () => go(nextPosition(position, stepCounts, deepDives, skipDeepDives)),
-      previous: () => go(previousPosition(position, stepCounts, deepDives, skipDeepDives)),
+      next: () => go(nextPosition(from(), stepCounts, deepDives, skipDeepDives)),
+      previous: () => go(previousPosition(from(), stepCounts, deepDives, skipDeepDives)),
       first: () => go({ slide: 1, step: 0 }),
       last: () => go({ slide: Math.max(stepCounts.length, 1), step: 0 }),
     };
@@ -121,7 +130,7 @@ export function Player({
       ref={root}
       data-testid="player"
       aria-label={deck.title}
-      className="flex h-dvh w-full flex-col overflow-hidden bg-[#05070d]"
+      className="relative flex h-dvh w-full flex-col overflow-hidden bg-[#05070d]"
     >
       {audience ? (
         <div className="relative flex min-h-0 flex-1 flex-col">
@@ -157,6 +166,15 @@ export function Player({
           joinBar={deck.look.joinBar}
           liveChip={!audience}
         />
+      )}
+      {control?.frozen && !audience && (
+        <p
+          data-testid="player-reconnecting"
+          role="status"
+          className="absolute inset-x-0 top-0 bg-[#b4580b] px-4 py-2 text-center text-sm text-white"
+        >
+          Reconnecting · the room won't follow your moves until it's back
+        </p>
       )}
       {notice}
     </section>
