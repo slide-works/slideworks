@@ -15,7 +15,7 @@ namespace SlideWorks.LoadTest;
 // PROBE_INTERVAL in three phases (before any voter joins, with every voter connected, and inside the answer window):
 //   step:   a presenter move on the poll slide (UpdatePresentation, the deep-dive switch flipped), hub call to its return;
 //   player: a fresh owner connection's first join (start + JoinPresentation as the audience window), as the player's;
-//   guest:  a fresh guest's join (GET poll view + start + JoinAudience), as a phone's.
+//   guest:  a fresh guest's join (start + JoinAudience + GET poll view), as a phone's.
 // With --close-at it also closes the poll that many seconds into the window and times the close.
 // Probes are their own connections, never voters: they add no samples to the gate's numbers.
 public sealed class Presenter(LoadOptions options, HttpClient http) : IAsyncDisposable
@@ -62,6 +62,8 @@ public sealed class Presenter(LoadOptions options, HttpClient http) : IAsyncDisp
         var acknowledgedBefore = state.Answered;
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/decks/{options.Deck}/polls/{options.Slide}/close");
         request.Headers.Add("Cookie", options.OwnerCookie);
+        // A signed-in write needs the app's own Origin (the app's cross-site write guard), as a browser sends it.
+        request.Headers.Add("Origin", options.Url.GetLeftPart(UriPartial.Authority));
         var started = Stopwatch.GetTimestamp();
         using var response = await http.SendAsync(request, ct);
         var ms = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -75,7 +77,7 @@ public sealed class Presenter(LoadOptions options, HttpClient http) : IAsyncDisp
         var text = new StringBuilder();
         foreach (var (name, samples) in _samples.OrderBy(p => p.Key, StringComparer.Ordinal))
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"probe {name,-16} n {samples.Count,3}   p50 {Percentile.Of(samples, 50):F0} ms   p95 {Percentile.Of(samples, 95):F0} ms   max {samples.Max():F0} ms");
+            text.AppendLine(CultureInfo.InvariantCulture, $"probe {name,-20} n {samples.Count,3}   p50 {Percentile.Of(samples, 50):F0} ms   p95 {Percentile.Of(samples, 95):F0} ms   max {samples.Max():F0} ms");
         }
         if (CloseLine != null)
         {
@@ -109,15 +111,13 @@ public sealed class Presenter(LoadOptions options, HttpClient http) : IAsyncDisp
     private async Task GuestJoinAsync(CancellationToken ct)
     {
         var cookie = $"sw_guest={Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16))}";
-        using (var request = new HttpRequestMessage(HttpMethod.Get, $"/api/join/{options.Code}/poll"))
-        {
-            request.Headers.Add("Cookie", cookie);
-            using var response = await http.SendAsync(request, ct);
-            response.EnsureSuccessStatusCode();
-        }
-        await using var hub = Hub(cookie);
+        await using var hub = Hub(options.Url, cookie);
         await hub.StartAsync(ct);
         await hub.InvokeAsync<JsonElement>("JoinAudience", options.Code, ct);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/join/{options.Code}/poll");
+        request.Headers.Add("Cookie", cookie);
+        using var response = await http.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
     }
 
     private async Task TimeAsync(string name, Func<Task> probe)
@@ -144,10 +144,11 @@ public sealed class Presenter(LoadOptions options, HttpClient http) : IAsyncDisp
         list.Add(ms);
     }
 
-    private HubConnection OwnerHub() => Hub(options.OwnerCookie!);
+    private HubConnection OwnerHub() => Hub(options.Url, options.OwnerCookie!);
 
-    private HubConnection Hub(string cookie) => new HubConnectionBuilder()
-        .WithUrl(new Uri(options.Url, "/hubs/deck"), o =>
+    // A connection over WebSockets only that sends cookie, as a browser on the app's own page does.
+    public static HubConnection Hub(Uri url, string cookie) => new HubConnectionBuilder()
+        .WithUrl(new Uri(url, "/hubs/deck"), o =>
         {
             o.Transports = HttpTransportType.WebSockets;
             o.Headers["Cookie"] = cookie;

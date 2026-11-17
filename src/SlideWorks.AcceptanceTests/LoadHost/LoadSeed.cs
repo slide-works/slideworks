@@ -27,6 +27,8 @@ public sealed record LoadSeed(string DeckId, string Code)
     {
         using var owner = new HttpClient { BaseAddress = new Uri(app.BaseUrl) };
         owner.DefaultRequestHeaders.Add(TestAuthScheme.HEADER, OWNER.Email);
+        // A signed-in write needs the app's own Origin (CrossSiteWriteGuard), as the browser sends it.
+        owner.DefaultRequestHeaders.Add("Origin", app.BaseUrl);
         var created = await owner.PostAsJsonAsync("/api/decks", new { title = "Load run" });
         created.EnsureSuccessStatusCode();
         var deckId = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;

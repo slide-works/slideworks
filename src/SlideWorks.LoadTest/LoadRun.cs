@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace SlideWorks.LoadTest;
 
@@ -87,8 +88,13 @@ public static class LoadRun
     // the tally it finds is what the voters' answers are counted from.
     private static async Task<int> BaselineAsync(LoadOptions options, HttpClient http, CancellationToken ct)
     {
+        var cookie = $"sw_guest={Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16))}";
+        // The app gives the poll view only to a guest on the session's roster, so this guest joins the audience first.
+        await using var hub = Presenter.Hub(options.Url, cookie);
+        await hub.StartAsync(ct);
+        await hub.InvokeAsync<System.Text.Json.JsonElement>("JoinAudience", options.Code, ct);
         using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/join/{options.Code}/poll");
-        request.Headers.Add("Cookie", $"sw_guest={Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16))}");
+        request.Headers.Add("Cookie", cookie);
         using var response = await http.SendAsync(request, ct);
         if (!response.IsSuccessStatusCode)
         {
