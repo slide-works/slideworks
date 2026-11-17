@@ -261,12 +261,7 @@ public sealed class StubTemplateDrafts : ITemplateDrafts
               "fileName": "northwind-sans-700.woff2",
               "contentType": "font/woff2",
               "bytes": 48212,
-              "meta": {
-                "family": "Northwind Sans",
-                "weight": 700,
-                "style": "normal",
-                "width": 0.56
-              },
+              "meta": {},
               "rightsConfirmed": true,
               "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/cf3f73c9bd0762db7f159baca0c9f006"
             },
@@ -276,12 +271,7 @@ public sealed class StubTemplateDrafts : ITemplateDrafts
               "fileName": "northwind-sans-800.woff2",
               "contentType": "font/woff2",
               "bytes": 48212,
-              "meta": {
-                "family": "Northwind Sans",
-                "weight": 800,
-                "style": "normal",
-                "width": 0.56
-              },
+              "meta": {},
               "rightsConfirmed": true,
               "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/3946544408c1d0bb1d978225e27d36ea"
             },
@@ -291,12 +281,7 @@ public sealed class StubTemplateDrafts : ITemplateDrafts
               "fileName": "northwind-text-400.woff2",
               "contentType": "font/woff2",
               "bytes": 48212,
-              "meta": {
-                "family": "Northwind Text",
-                "weight": 400,
-                "style": "normal",
-                "width": 0.56
-              },
+              "meta": {},
               "rightsConfirmed": true,
               "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/a1e3341a33c2729af930f6aecd21ab10"
             },
@@ -306,12 +291,7 @@ public sealed class StubTemplateDrafts : ITemplateDrafts
               "fileName": "northwind-mono-400.woff2",
               "contentType": "font/woff2",
               "bytes": 48212,
-              "meta": {
-                "family": "Northwind Mono",
-                "weight": 400,
-                "style": "normal",
-                "width": 0.56
-              },
+              "meta": {},
               "rightsConfirmed": true,
               "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/8ff223d8922a55e32af314efafccf350"
             },
@@ -321,10 +301,7 @@ public sealed class StubTemplateDrafts : ITemplateDrafts
               "fileName": "logo-light.svg",
               "contentType": "image/svg+xml",
               "bytes": 2318,
-              "meta": {
-                "width": 240,
-                "height": 64
-              },
+              "meta": {},
               "rightsConfirmed": false,
               "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/d00cf13ae19e49cf841ea758a9b84460"
             },
@@ -334,10 +311,7 @@ public sealed class StubTemplateDrafts : ITemplateDrafts
               "fileName": "logo-dark.svg",
               "contentType": "image/svg+xml",
               "bytes": 2296,
-              "meta": {
-                "width": 240,
-                "height": 64
-              },
+              "meta": {},
               "rightsConfirmed": false,
               "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/ee2e8795ed476090d166cdac72ca2ae9"
             },
@@ -347,10 +321,7 @@ public sealed class StubTemplateDrafts : ITemplateDrafts
               "fileName": "art.svg",
               "contentType": "image/svg+xml",
               "bytes": 18844,
-              "meta": {
-                "width": 1600,
-                "height": 900
-              },
+              "meta": {},
               "rightsConfirmed": false,
               "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/7fcef0f7c16a0ee4ecd9098d9b4ecc8c"
             }

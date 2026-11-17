@@ -3,8 +3,8 @@ using SlideWorks.WebApi.Features.Templates.Data;
 
 namespace SlideWorks.WebApi.Features.Templates.Views;
 
-// One stored file of a template draft. Meta is what the upload check found (a font's family, weight and width; an
-// image's size), as stored. Url serves the file.
+// One stored file of a template draft. Meta is what the upload check stored for the file, an object whose fields vary
+// by kind and {} when there is nothing; the screen sample leaves it empty. Url serves the file.
 public sealed record TemplateAssetView(
     string AssetId,
     TemplateAssetKind Kind,
