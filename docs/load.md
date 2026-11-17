@@ -60,7 +60,7 @@ DOTNET_gcServer=1 dotnet test src/SlideWorks.AcceptanceTests -c Release --no-bui
 # once $LOADHOST_DIR/seed.env exists:
 . $LOADHOST_DIR/seed.env
 flock -w 900 /tmp/slideworks-test.lock dotnet src/SlideWorks.LoadTest/bin/Release/net10.0/SlideWorks.LoadTest.dll \
-  --url $URL --code $CODE --voters 1000 --seconds 30 --owner-cookie "$OWNER_COOKIE" --deck $DECK --slide $SLIDE
+  --url $URL --hub-urls $HUB_URLS --code $CODE --voters 1000 --seconds 30 --owner-cookie "$OWNER_COOKIE" --deck $DECK --slide $SLIDE
 touch $LOADHOST_DIR/stop   # then check the port is free: ss -ltnp | grep 5510
 ```
 
@@ -89,6 +89,7 @@ runs reuse the open round; each run's results are counted from the round's answe
 | `--no-results` | off | Tallies are not expected (a poll whose results are not live): the results check is skipped. |
 | `--owner-cookie` | none | A `Cookie` header value for someone who can present the deck. With `--deck` and `--slide`, the harness joins the presentation as the presenter window does, moves it to the poll slide (which opens the round on arrival), and probes during the run (below). |
 | `--deck`, `--slide` | none | The deck's id and the poll's 1-based slide number, with `--owner-cookie`. |
+| `--hub-urls` | `--url` | Comma-separated origins of the same app; the voters' hub connections are spread over them, round robin. The load host prints them as `HUB_URLS` (127.0.0.1 to 127.0.0.8), because one client gets only its ephemeral port range per destination address and port (4,096 on this WSL host). |
 | `--close-at` | none | Seconds into the answer window at which the presenter closes the poll; prints how long the close took and how many answers were acknowledged before and after it. |
 
 It prints a table and then one JSON line (`writeP50Ms`, `writeP95Ms`, `writeP99Ms`, `resultsP95Ms`, `errors`,
@@ -115,7 +116,7 @@ later one, which can happen when thousands of voters share a few threads. The er
 ## Results
 
 Every run below measured the app at `main` 914f36b (the merge of PR #14; no app change since), with the harness and load host
-at 1552a8c (the 3,000 and 10,000 reruns at f4cf1fb, which adds `--hub-urls`), from Release builds, the app in the load host with server GC (`DOTNET_gcServer=1`), on one machine: 16 cores,
+at 1552a8c (the 3,000 and 10,000 reruns and the close runs at d2060b6, which adds `--hub-urls`; the same harness and host under the shas they had before a rebase, e6d4969 and f4cf1fb), from Release builds, the app in the load host with server GC (`DOTNET_gcServer=1`), on one machine: 16 cores,
 Ubuntu 24.04 under WSL2, harness and app on the same host over loopback. Four other agents were building and testing on the
 host at the time; each run held the test lock (`flock -w 900 /tmp/slideworks-test.lock`) so no other test ran during it,
 but builds did. The load average (1 min) is given at the start and end of each run. Every run used `--owner-cookie`, so the
