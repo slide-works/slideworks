@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Realtime.Presenting;
 using SlideWorks.WebApi.Tests.Decks;
@@ -25,8 +26,14 @@ public class AudienceRelayTests : ApiTestFixture
     private const string VIEWER = "viewer.person@guests.example";
     private const string DEEP_DIVE_TEXT = "Hidden appendix about pricing 91c2";
 
-    protected override Action<IServiceCollection>? ConfigureTestServices => services
-        => services.AddSingleton<SettablePresentations>().AddSingleton<IPresentations>(provider => provider.GetRequiredService<SettablePresentations>());
+    protected override Action<IServiceCollection>? ConfigureTestServices => services =>
+    {
+        services.AddSingleton<SettablePresentations>().AddSingleton<IPresentations>(provider => provider.GetRequiredService<SettablePresentations>());
+        services.AddSingleton<PhaseReadHold>();
+        services.AddScoped<IAudienceSessions>(provider => new HoldingSessions(
+            new AudienceSessions(provider.GetRequiredService<AppDbContext>(), provider.GetRequiredService<TimeProvider>()),
+            provider.GetRequiredService<PhaseReadHold>()));
+    };
 
     private SettablePresentations Presentations => Factory.Services.GetRequiredService<SettablePresentations>();
 
@@ -287,12 +294,16 @@ public class AudienceRelayTests : ApiTestFixture
         {
             await Task.Yield();
         }
+        // The session is saved as ended, but End has not reached the gate yet. Give an ungated End time to publish
+        // audienceEnded: with the gate nothing can arrive while the publish holds it, so this wait is only a miss without it.
+        var early = guest.NextAudienceAsync();
+        await Task.WhenAny(early, Task.Delay(500));
         Presentations.ReleaseGet();
         await move;
         (await ended).EnsureSuccessStatusCode();
         // A second audienceEnded after everything has settled marks the end of what could have been in flight.
         await Factory.Services.GetRequiredService<IAudienceEvents>().PublishAsync(new AudienceEnded(deck));
-        var types = new List<string>();
+        var types = new List<string> { (await early).GetProperty("type").GetString()! };
         while (types.Count(t => t == "audienceEnded") < 2)
         {
             types.Add((await guest.NextAudienceAsync()).GetProperty("type").GetString()!);
@@ -332,6 +343,52 @@ public class AudienceRelayTests : ApiTestFixture
         {
             seqs[i].ShouldBeGreaterThan(seqs[i - 1], $"seq {i}: {string.Join(", ", seqs)}");
         }
+    }
+
+    // A guest's phase read starts in the lobby, then Go live and the first live push happen, then the read's answer is built:
+    // its seq, taken before the read, is below the live push's.
+    [Test]
+    public async Task Join_WhenTheLobbyReadIsHeldAcrossGoLive_ShouldAnswerBelowTheFirstLivePush()
+    {
+        var deck = await SeedAsync();
+        await using (var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam))
+        {
+            await DeckSeed.AddSlideAsync(agent, deck, "join", "{}");
+        }
+        var code = (await GetLiveAsync(deck)).GetProperty("code").GetString()!;
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        (await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code)).GetProperty("phase").GetString().ShouldBe("lobby");
+        var hold = Factory.Services.GetRequiredService<PhaseReadHold>();
+        var held = hold.Arm();
+        var answer = Task.Run(() => Client.GetFromJsonAsync<JsonElement>($"/api/join/{code}"));
+        await held;
+
+        await GoLiveAsync(deck);
+        var live = await guest.NextAudienceAsync();
+        hold.Release();
+        var lobby = (await answer).GetProperty("state");
+
+        lobby.GetProperty("phase").GetString().ShouldBe("lobby");
+        live.GetProperty("phase").GetString().ShouldBe("live");
+        lobby.GetProperty("seq").GetInt64().ShouldBeLessThan(live.GetProperty("seq").GetInt64());
+    }
+
+    // The relay's own read (through the registry) is the gap: a newer state is published while it runs. The guest is in the
+    // group by then, so it must end on that newer state; a join that read first and joined the group after would miss it.
+    [Test]
+    public async Task JoinAudience_WhenAStateIsPublishedDuringTheRelaysRead_ShouldEndOnTheNewerState()
+    {
+        var (_, code) = await GoLiveAsync(await SeedAsync());
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        const long NEWER_REVISION = 9_999;
+        Presentations.AfterNextGet(id => Factory.Services.GetRequiredService<IAudienceEvents>()
+            .PublishAsync(new AudienceState(id, long.MaxValue / 2, AudiencePhase.Live, null, NEWER_REVISION, null)));
+
+        var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
+        var pushed = await guest.NextAudienceAsync();
+
+        pushed.GetProperty("revision").GetInt64().ShouldBe(NEWER_REVISION);
+        pushed.GetProperty("seq").GetInt64().ShouldBeGreaterThan(joined.GetProperty("seq").GetInt64());
     }
 
     private static async Task<long> JoinSeqAsync(GuestClient guest, string code, string phase)

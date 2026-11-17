@@ -20,7 +20,8 @@ namespace SlideWorks.WebApi.Realtime;
 // Following is derived, not remembered: any change for a deck whose session is open is published, so a restart with a
 // session still open in the database leaves guests fed from the first change after it. Started is safe to call again.
 // Nothing reached by a guest starts a presentation: a live session with none running is live with no current slide until
-// the presenter's rejoin brings it back. Seq comes from one source, floored to the clock, so it keeps rising across a restart and the lobby-live-ended cycle. A deck has
+// the presenter's rejoin brings it back. Seq comes from one source, floored to the clock, so it keeps rising across a restart and the lobby-live-ended cycle; an
+// answer takes its seq before it reads the phase. A deck has
 // an entry (its gate and seq) only while its session is open; the entry goes when the session ends.
 [RegisterSingleton]
 public sealed class AudienceFeed : IDisposable
@@ -47,15 +48,19 @@ public sealed class AudienceFeed : IDisposable
     public async Task<AudienceState?> CurrentAsync(string deckId)
     {
         await using var scope = _scopes.CreateAsyncScope();
+        // Taken before the phase is read, so an answer built from an older read always carries an older seq than any push
+        // that read could have missed (a lobby read that began before Go live, answered after the first live push).
+        var early = NextSeq();
         var (feed, found) = await EnterAsync(scope.ServiceProvider, deckId);
         if (feed is null)
         {
             // A lobby or an ended deck has no position to order and gets no entry, but its answer still comes from the one seq source.
-            return found is null ? null : await ComposeAsync(scope.ServiceProvider, found, NextSeq());
+            return found is null ? null : await ComposeAsync(scope.ServiceProvider, found, early);
         }
         try
         {
-            // Taken from the same source as pushed events, under the same gate, so every push that follows is higher.
+            // A live answer takes its seq again under the gate, from the same source as pushed events, so every push that
+            // follows is higher; its phase was read inside the gate, so it can't be older than a push that came before.
             // Reached by anonymous callers: it reads SW-4's state and never starts a presentation. A live session with no
             // presentation (a restart dropped it) is live with no current slide until the presenter's rejoin notifies us.
             return await ComposeAsync(scope.ServiceProvider, found!, NextSeq());

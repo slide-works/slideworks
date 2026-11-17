@@ -57,6 +57,11 @@ public sealed class SettablePresentations : IPresentations
         }
     }
 
+    // Runs once inside the next GetAsync, after it has read the state and before it answers: the registry changing under a read.
+    public void AfterNextGet(Func<string, Task>? hook) => Interlocked.Exchange(ref _afterGet, hook);
+
+    private Func<string, Task>? _afterGet;
+
     public async Task<PresentationState?> GetAsync(string deckId)
     {
         (TaskCompletionSource Entered, TaskCompletionSource Release)? held;
@@ -71,10 +76,17 @@ public sealed class SettablePresentations : IPresentations
             pair.Entered.TrySetResult();
             await pair.Release.Task;
         }
+        PresentationState? read;
         lock (_gate)
         {
-            return _states.GetValueOrDefault(deckId);
+            read = _states.GetValueOrDefault(deckId);
         }
+        var after = Interlocked.Exchange(ref _afterGet, null);
+        if (after != null)
+        {
+            await after(deckId);
+        }
+        return read;
     }
 
     public Task<PresentationState> StartAsync(string deckId)
