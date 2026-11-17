@@ -10,7 +10,7 @@ namespace SlideWorks.WebApi.Features.Qa;
 // - questionControl, the presenter's whole view from IQuestionModeration.ControlAsync, for audience-watch:{deckId};
 // - questionTally, while the deck is live with a Q&A round, for audience:{deckId}: the round's list revision from
 //   QaRevisions and the votes of only the questions another guest may see, that is neither hidden nor waiting.
-// Not live, or live with no round (questions off): the control only. Each event carries its type; which hub group gets it is
+// Not live, questions off (whatever round the view still names), or no round: the control only. Each event carries its type; which hub group gets it is
 // AudienceEventsRelay's job.
 //
 // Publishes for one deck run one at a time behind the deck's gate, with seq taken inside it, so one publish's events all go
@@ -45,7 +45,7 @@ public sealed class QuestionPublisher(IServiceScopeFactory scopes, IAudienceEven
             control = await scope.ServiceProvider.GetRequiredService<IQuestionModeration>().ControlAsync(deckId);
         }
         await events.PublishAsync(new QuestionControl(deckId, control with { Seq = stamp }));
-        if (!control.Live || control.Round is not { } round)
+        if (!control.Live || control.Settings.Questions == QaQuestions.Off || control.Round is not { } round)
         {
             return;
         }

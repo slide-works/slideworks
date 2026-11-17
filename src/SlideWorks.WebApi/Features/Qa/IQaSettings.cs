@@ -7,7 +7,8 @@ namespace SlideWorks.WebApi.Features.Qa;
 // QaSettings.Default; a slide with no switch row has QaSlideSwitch.On. Each change records activity, then calls
 // IAudienceRelay.RefreshAsync, then IQuestionPublisher.PublishAsync; questions leaving off while live calls
 // IQaRounds.EnsureAsync. The routes answer QaControlView by reading IQuestionModeration.ControlAsync after the change: this
-// seam never builds one, because moderation reads its settings here. Per request, because it uses the database.
+// seam never builds one, because moderation reads its settings here. It calls IQaRounds, never the other way round: the real
+// rounds read the settings row themselves, or the app won't start (a dependency cycle). Per request, because it uses the database.
 public interface IQaSettings
 {
     Task<QaSettings> GetAsync(string deckId);

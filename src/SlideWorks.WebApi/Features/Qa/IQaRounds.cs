@@ -1,7 +1,8 @@
 namespace SlideWorks.WebApi.Features.Qa;
 
 // The live session's Q&A round (Q2, Q6): one Q&A poll per deck, one open Q&A round per session. Per request, because it uses
-// the database.
+// the database. The dependency goes one way: IQaSettings calls IQaRounds, so the real rounds read the deck's settings row
+// themselves and never resolve IQaSettings, or the app won't start (a dependency cycle).
 public interface IQaRounds
 {
     // Go live: opens the session's Q&A round unless the deck has questions off. A session that already has one opens nothing.

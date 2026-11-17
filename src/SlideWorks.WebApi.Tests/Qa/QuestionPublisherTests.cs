@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Qa;
 using SlideWorks.WebApi.Features.Qa.Contracts;
@@ -100,6 +101,18 @@ public class QuestionPublisherTests : PollTestFixture
     }
 
     [Test]
+    public async Task PublishAsync_WhenQuestionsOffButTheViewHasARound_ShouldPublishTheControlOnly()
+    {
+        var deck = (await SeedPollAsync()).DeckId;
+        var round = NewRound();
+        Moderation.Set(deck, Live(round, [Question(1, QuestionState.Open, 3)]) with { Settings = QaSettings.Default with { Questions = QaQuestions.Off } });
+
+        var published = await PublishAsync(deck);
+
+        published.ShouldHaveSingleItem().ShouldBeOfType<QuestionControl>().Control.Round.ShouldBe(round);
+    }
+
+    [Test]
     public async Task PublishAsync_WhenCalledTwice_ShouldRaiseSeqAndKeepTheRevisionUntilBumped()
     {
         var deck = (await SeedPollAsync()).DeckId;
@@ -152,6 +165,22 @@ public class QuestionPublisherTests : PollTestFixture
         var first = Revisions.Current(round);
 
         Revisions.Current(round).ShouldBe(first);
+    }
+
+    [Test]
+    public void Next_WhenTheClockMovesForward_ShouldBeAtLeastTheClock()
+    {
+        var clock = new FakeTimeProvider(Clock.GetUtcNow());
+        var start = clock.GetUtcNow().ToUnixTimeMilliseconds();
+        var seq = new QaSeq(clock);
+        var first = seq.Next();
+
+        clock.Advance(TimeSpan.FromMinutes(5));
+        var next = seq.Next();
+
+        first.ShouldBeGreaterThanOrEqualTo(start);
+        next.ShouldBeGreaterThanOrEqualTo(clock.GetUtcNow().ToUnixTimeMilliseconds());
+        next.ShouldBeGreaterThan(first + 1);
     }
 
     // Publishes the deck and returns every Q&A event the publisher sent for it, in order.
