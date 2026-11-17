@@ -138,3 +138,21 @@ for (const live of [true, false]) {
     );
   });
 }
+
+test('JoinLayout shows a 40 character host in full inside x 120-1800', async ({ mount, page }) => {
+  const hostLabel = 'presentations.example-university.org/j';
+  await mount(
+    <JoinProvider deckId={deckPlay.id} join={{ ...join, hostLabel }} owner={false}>
+      <SlideRenderer slide={slide({})} deck={deck} total={1} step={0} />
+    </JoinProvider>,
+  );
+  const host = page.getByTestId('join-host');
+  await expect(host).toHaveText(hostLabel);
+  expect(await host.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  const frame = (await page.getByTestId('slide-frame').boundingBox())!;
+  for (const id of ['join-host', 'join-count']) {
+    const box = (await page.getByTestId(id).boundingBox())!;
+    expect(box.x + box.width - frame.x, `${id} right`).toBeLessThanOrEqual(1800.5);
+    expect(box.y + box.height - frame.y, `${id} bottom`).toBeLessThanOrEqual(996.5);
+  }
+});

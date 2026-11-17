@@ -245,11 +245,9 @@
 
 .sw-join-bar-text small {
   display: block;
-  overflow: hidden;
   color: var(--sw-night-2);
   font: 500 20px/1.2 var(--sw-font-mono);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .sw-join-bar-text b {

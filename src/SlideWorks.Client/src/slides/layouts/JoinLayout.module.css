@@ -43,6 +43,7 @@
   margin: 28px 0 0;
   color: var(--sw-night-2);
   font: 600 52px/1.2 var(--sw-font-mono);
+  overflow-wrap: anywhere;
 }
 
 .count,

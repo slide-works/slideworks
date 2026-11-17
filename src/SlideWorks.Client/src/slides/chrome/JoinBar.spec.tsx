@@ -147,3 +147,41 @@ test('screenshot: join bar on a dark slide', async ({ mount, page }) => {
   );
   await expect(page.getByTestId('slide-frame')).toHaveScreenshot('join-bar-dark.png');
 });
+
+const longHost = 'presentations.example-university.org/j';
+
+test('a 40 character host wraps in the join bar, shows in full and keeps the bar clear', async ({
+  mount,
+  page,
+}) => {
+  const look = lookViewOf('talk', 'cobalt', { draft: true, logo: { url: '/api/images/logo-1' } });
+  await mount(
+    <div style={lookStyle(look)}>
+      <JoinProvider
+        deckId={deckPlay.id}
+        join={{ ...deckPlay.join, live: true, hostLabel: longHost }}
+        owner={false}
+      >
+        <SlideRenderer slide={slide} deck={deckWith(true, look)} total={4} step={0} />
+      </JoinProvider>
+    </div>,
+  );
+  const host = page.getByTestId('join-bar').locator('small');
+  await expect(host).toHaveText(longHost);
+  expect(await host.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  const frame = (await page.getByTestId('slide-frame').boundingBox())!;
+  const bar = (await page.getByTestId('join-bar').boundingBox())!;
+  expect(bar.x).toBeGreaterThanOrEqual(frame.x);
+  expect(bar.x + bar.width).toBeLessThanOrEqual(frame.x + 1920);
+  expect(bar.y).toBeGreaterThanOrEqual(frame.y);
+  expect(bar.y + bar.height).toBeLessThanOrEqual(frame.y + 1080);
+  for (const id of ['slide-logo', 'draft-chip', 'slide-footer-text']) {
+    const box = (await page.getByTestId(id).boundingBox())!;
+    const apart =
+      box.x + box.width <= bar.x ||
+      bar.x + bar.width <= box.x ||
+      box.y + box.height <= bar.y ||
+      bar.y + bar.height <= box.y;
+    expect(apart, `${id} is clear of the wrapped join bar`).toBe(true);
+  }
+});
