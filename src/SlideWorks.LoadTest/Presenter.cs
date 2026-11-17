@@ -77,7 +77,8 @@ public sealed class Presenter(LoadOptions options, HttpClient http) : IAsyncDisp
         var text = new StringBuilder();
         foreach (var (name, samples) in _samples.OrderBy(p => p.Key, StringComparer.Ordinal))
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"probe {name,-20} n {samples.Count,3}   p50 {Percentile.Of(samples, 50):F0} ms   p95 {Percentile.Of(samples, 95):F0} ms   max {samples.Max():F0} ms");
+            // A handful of samples per phase: a p95 of 3 to 15 samples is just the maximum, so only the median and the maximum.
+            text.AppendLine(CultureInfo.InvariantCulture, $"probe {name,-20} median {Percentile.Of(samples, 50):F0} ms   max {samples.Max():F0} ms   of {samples.Count} samples");
         }
         if (CloseLine != null)
         {

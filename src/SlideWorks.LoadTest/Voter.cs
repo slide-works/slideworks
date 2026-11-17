@@ -184,6 +184,9 @@ public sealed class Voter(LoadOptions options, Uri hubBase, HttpClient http, Run
             }
             _resultsDone = true;
             state.RecordResultsTimeout(timeout.TotalMilliseconds);
+            // A voter who never saw its result is an error for the gate too, once (Fail keeps it to one per voter). It is
+            // never also a drop: _resultsDone makes a later Closed a no-op, and a dropped voter returned above.
+            Fail("results: timed out");
         }
     }
 
