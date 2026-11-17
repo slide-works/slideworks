@@ -293,7 +293,7 @@ Poll slide: a question and 2 to 8 options that the room answers on their phones 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
 | `question` | text | yes | up to 120 chars |  |
-| `options` | list of text | yes | 2–8 items; each up to 60 chars | Known by position: while a round is open they can be reworded or added to, not removed or reordered |
+| `options` | list of text | yes | 2–8 items; each up to 60 chars | Known by position: while a round is open they can be reworded or added to, not removed or reordered. Each option needs its own text: two that match, ignoring case and spaces at the ends, are refused |
 
 ## Inline blocks
 

@@ -161,3 +161,59 @@ ORDER BY started DESC, session_id;
 
 Joins before the slide count as 0 s and pull the median toward 0, so for a room that mostly joined before the join slide
 was shown, `median_seconds` says little about the join slide. Read it together with `before_slide`.
+
+## Poll response rate (SW-6)
+
+**What it counts:** for each closed poll round, the share of the guests in the room who answered. A high share means the
+question was easy to answer and the room could see it. A low share on a round with many people joined means they didn't
+get to it, or the poll wasn't worth answering.
+
+**Where it reads from:**
+
+- `PollRounds` has one row for each round of a poll slide in one audience session. A round is closed when `ClosedAt` is
+  set and `OpenedAt` is set. In the same transaction, closing writes `JoinedAtClose`, the number of guests in the
+  session's roster at that moment, and `Final`, a JSON snapshot of the result. `Final.answered` is how many guests had
+  an answer in the round.
+- A round with `ClosedAt` set and `OpenedAt` null is a draft that was discarded, never a round that ran, and has no
+  `Final`. A round with `ClosedAt` null is still draft or open. The query leaves out both.
+- `AudienceSessions` gives each round's session its deck.
+
+**Parameters:** `@from` (inclusive) and `@to` (exclusive), as UTC date-times such as `2026-11-16 00:00:00`. A round is in
+the window when it closed in it. Times are stored in the encoding described under Look adoption, and the query converts
+the parameters itself.
+
+**Rates over 1 and joined of 0:** guests can leave after answering, so `JoinedAtClose` can be smaller than
+`Final.answered`. The query caps `rate` at 1, as the presenter's panel and strip and `get_poll_results` do, and keeps
+`answered` and `joined` as they were stored, so a capped round can still be told apart. When `JoinedAtClose` is 0 or
+null, `rate` is null, not 0, so a round nobody was in for doesn't pull an average down. The query never divides by zero.
+
+**Columns:** `session_id`, `deck_id`, `slide_id`, `round_number`, `closed_at` (UTC), `answered`, `joined`, and `rate`, the
+Measure, from 0 to 1. Rows are newest first.
+
+```sql
+WITH bounds AS (
+  SELECT ((CAST(strftime('%s', @from) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS lo,
+         ((CAST(strftime('%s', @to) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS hi
+)
+SELECT r.SessionId AS session_id,
+       s.DeckId AS deck_id,
+       r.SlideId AS slide_id,
+       r.Number AS round_number,
+       datetime((r.ClosedAt >> 11) / 10000 - 62135596800, 'unixepoch') AS closed_at,
+       json_extract(r.Final, '$.answered') AS answered,
+       r.JoinedAtClose AS joined,
+       CASE WHEN COALESCE(r.JoinedAtClose, 0) = 0 THEN NULL
+            ELSE MIN(1.0, json_extract(r.Final, '$.answered') * 1.0 / r.JoinedAtClose)
+       END AS rate
+FROM PollRounds r
+JOIN AudienceSessions s ON s.Id = r.SessionId, bounds b
+WHERE r.OpenedAt IS NOT NULL
+  AND r.ClosedAt IS NOT NULL
+  AND r.Final IS NOT NULL
+  AND r.ClosedAt >= b.lo AND r.ClosedAt < b.hi
+ORDER BY r.ClosedAt DESC, r.SessionId, r.Number;
+```
+
+**Keep in step:** the query reads these columns, so a change to them changes the query. From `PollRounds`: `SessionId`,
+`SlideId`, `Number`, `OpenedAt`, `ClosedAt`, `JoinedAtClose` and `Final` (JSON with an `answered` key). From
+`AudienceSessions`: `Id` and `DeckId`. `PollResponseRateQueryTests` runs this query as written and fails when they drift.

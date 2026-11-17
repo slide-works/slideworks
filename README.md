@@ -79,6 +79,16 @@ publisher → IDeckEvents (in-process bus) → DeckEventsRelay → DeckHub group
 - Set `SLIDEWORKS_JOIN_URL` for a short join domain such as `https://slideworks.live`. See [`docs/self-hosting.md`](docs/self-hosting.md#live-audience-join) for DNS, TLS and what the proxy must keep.
 - Peak joined per session and the median time from the join slide to each join are SW-5's Measures, two queries in [`docs/measures.md`](docs/measures.md).
 
+## Live polls
+
+- A poll is a slide with the `poll` layout: a question of up to 120 characters and 2 to 8 options of up to 60 characters each, every option with its own text. An agent adds one with `add_slide`. The other settings are not slots: how many picks (one, or up to a number), when the room sees the counts (live, after the guest has answered, or after the poll closes), the correct answer and whether it opens when the presenter reaches the slide or by hand. An agent sets them with `update_poll`.
+- While the deck is live, a poll that opens on arrival opens when the presenter reaches its slide and closes when they move to another slide. The phones that joined swap the slide for the question and answer with a tap. Pick several has a Send button. A guest can change an answer while the poll is open, and each answer counts once.
+- The presenter window has a poll panel and the phone remote has a poll strip. Both open and close the poll, reveal the counts, show the correct answer and start a new round, and earlier rounds are kept. In the presenter window the keys are `P` (open or close), `R` (reveal) and `A` (show answer). New round has no key.
+- Only a person who can present the deck can run a poll, and the server checks it on every call. An agent with edit access can open and close a poll on a live deck (`open_poll`, `close_poll`) and read its results (`get_poll_results`), but can't reveal, show the answer or start a new round.
+- Counts a guest may not see are never sent to that guest, and nobody can list who picked what: results are totals only.
+- A guest can send 30 answers a minute. The server publishes new counts at most twice a second for each deck.
+- The response rate of each closed round (the guests who answered, out of the guests who had joined when it closed) is SW-6's Measure, a query in [`docs/measures.md`](docs/measures.md). The 1,000-voter load run is in [`docs/load.md`](docs/load.md).
+
 ## Templates and palettes
 
 A deck's look is a **template** plus a **palette**, and nothing else. There are no themes, and a slide never stores a
