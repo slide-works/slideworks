@@ -113,8 +113,11 @@ for (const size of SIZES) {
 
     // A refused Open: the strip shows its message.
     api.setLive(false);
-    await page.getByTestId(STRIP.open).click();
-    await expect(page.getByTestId(STRIP.error)).toBeVisible();
+    // The strip ignores taps for a moment after the phase changes (SW-278), so tap until one is taken.
+    await expect(async () => {
+      await page.getByTestId(STRIP.open).click();
+      await expect(page.getByTestId(STRIP.error)).toBeVisible({ timeout: 400 });
+    }).toPass();
     await expectNavIntact(page, before, size.height, 'in draft with an error');
 
     // Open and hidden from the room: Close and Reveal, with the error still showing from the refusal.

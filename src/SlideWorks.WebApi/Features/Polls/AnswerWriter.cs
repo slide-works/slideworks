@@ -17,8 +17,9 @@ namespace SlideWorks.WebApi.Features.Polls;
 // queue order, so two answers from one guest in one group can't both replace the same revision. An answer is replaced,
 // revision + 1, never deleted.
 //
-// Only after the commit does the tally change: IPollTallies.ApplyAsync once per written answer, in order, then each waiter
-// gets its result. A group that fails to commit fails every waiter in it, and nothing of it is applied. Disposing the writer
+// Before the transaction begins, the writer reads each of the group's rounds from the tally, so a round is loaded from its
+// rows before this group writes any (LoadTalliesAsync). Only after the commit does the tally change: IPollTallies.ApplyAsync
+// once per written answer, in order, then each waiter gets its result. A group that fails to commit fails every waiter in it, and nothing of it is applied. Disposing the writer
 // (the host shutting down) stops the loop and fails whatever is still queued, so no waiter hangs.
 [RegisterSingleton]
 public sealed class AnswerWriter : IDisposable
@@ -29,6 +30,8 @@ public sealed class AnswerWriter : IDisposable
     private readonly IPollTallies _tallies;
     private readonly TimeProvider _clock;
     private readonly ILogger<AnswerWriter> _log;
+    // Unbounded: every queued answer is a request already waiting on it, from a guest on the roster within its 30 a minute,
+    // so the queue is bounded by the room; a bound would only turn a burst into refusals.
     private readonly Channel<Queued> _queue = Channel.CreateUnbounded<Queued>(new UnboundedChannelOptions { SingleReader = true });
     private readonly CancellationTokenSource _stopping = new();
 
@@ -108,8 +111,13 @@ public sealed class AnswerWriter : IDisposable
     }
 
     // Commits one group. Never throws: a failed commit fails the group's waiters.
-    private async Task CommitAsync(List<Queued> group, CancellationToken stopping)
+    private async Task CommitAsync(List<Queued> all, CancellationToken stopping)
     {
+        var group = await LoadTalliesAsync(all);
+        if (group.Count == 0)
+        {
+            return;
+        }
         List<Written> written;
         try
         {
@@ -128,6 +136,8 @@ public sealed class AnswerWriter : IDisposable
         {
             try
             {
+                // Its Changed handlers only mark the deck dirty (the pump publishes on its own timer), so this can't stall the
+                // loop on a publish.
                 await _tallies.ApplyAsync(write.Queued.Round, write.OldPicks, write.Answer.Picks);
             }
             catch (Exception ex)
@@ -146,6 +156,36 @@ public sealed class AnswerWriter : IDisposable
             // Every answer not written was stale at commit time.
             queued.Done.TrySetResult(null);
         }
+    }
+
+    // Reads each of the group's rounds from the tally before any of its rows is written, outside the write transaction. A
+    // round the tally has not loaded yet is loaded now, from rows that hold none of this group's answers, so every answer
+    // applied after the commit is a delta on top of an exact count: a load triggered by the first ApplyAsync would already
+    // hold the whole group and count the rest twice, as would a read that first touched the round between commit and apply.
+    // This loop is the only writer of answer rows and the tally keeps an open round once loaded, so nothing can slip in
+    // between. A loaded round costs an in-memory read: no query. When a round's read throws (its load failed), that round's
+    // waiters get the exception and nothing of it is written, with no retry: the next answer's read loads it again. The
+    // group's other rounds go ahead. Returns the answers whose rounds were read.
+    private async Task<List<Queued>> LoadTalliesAsync(List<Queued> group)
+    {
+        var failed = new HashSet<Guid>();
+        foreach (var round in group.GroupBy(q => q.RoundId).Select(g => g.First().Round))
+        {
+            try
+            {
+                await _tallies.ReadAsync(round.RoundId, round.OptionCount);
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "The tally of round {RoundId} could not be read before its answers were written", round.RoundId);
+                failed.Add(Guid.Parse(round.RoundId));
+                foreach (var queued in group.Where(q => q.Round.RoundId == round.RoundId))
+                {
+                    queued.Done.TrySetException(ex);
+                }
+            }
+        }
+        return failed.Count == 0 ? group : [.. group.Where(q => !failed.Contains(q.RoundId))];
     }
 
     private async Task<List<Written>> WriteGroupAsync(List<Queued> group, CancellationToken stopping)
