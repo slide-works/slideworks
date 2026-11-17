@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.Core.Polls;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Join;
 using SlideWorks.WebApi.Features.Polls;
@@ -17,16 +18,16 @@ using SlideWorks.WebApi.Tests.Support;
 namespace SlideWorks.WebApi.Tests.Polls;
 
 // The batching answer writer (V5, D16), mostly under PUT /api/join/{code}/poll/answer: queued answers commit in groups of at
-// most MAX_GROUP, a round that
-// closes before an answer's group commits makes that answer stale and uncounted, a burst racing a close never counts an
-// answer it refused, and a group that fails to commit fails every waiter and applies nothing to the tally.
+// most MAX_GROUP, a round that closes before an answer's group commits makes that answer stale and uncounted, a burst racing
+// the real close never counts an answer it refused, and a group that fails to commit fails every waiter and applies nothing
+// to the tally.
 //
 // The app's database is watched at the EF boundary: Saves counts each save that writes a round's answers and fails those of
 // a round a test poisons, and Starts tells a test when the next transaction begins. Many guests are put on the session's
-// roster through IAudienceRoster, as the hub's JoinAudience does, without a socket each. Closing a round races the writer
-// through CloseInOneTransactionAsync, which closes as V4's Close does, in one write transaction that counts the rows: the
-// real close is not in this wave, and PollRowSeed.CloseAsync reads the rows outside its write. The fakes and the app are
-// shared by the fixture, so every test seeds a deck, a code, rounds and guests of its own.
+// roster through IAudienceRoster, as the hub's JoinAudience does, without a socket each. The close-versus-burst race closes
+// through the real IPolls.CloseAsync; the tests that hold SQLite's write lock themselves close inside that held transaction
+// with CloseAsync below, as V4's Close does, since no service can join a transaction the test holds. The fakes and the app
+// are shared by the fixture, so every test seeds a deck, a code, rounds and guests of its own.
 [TestFixture]
 [CancelAfter(120000)]
 public class AnswerWriterTests : PollTestFixture
@@ -75,7 +76,7 @@ public class AnswerWriterTests : PollTestFixture
             await hold.RollbackAsync();
         }
         var results = await BoundedAsync(Task.WhenAll(queued.Prepend(held)));
-        var closed = await CloseInOneTransactionAsync(round.Id);
+        var closed = (await Rows.CloseAsync(round.Id, joinedAtClose: BURST + 1)).Final!;
 
         results.ShouldAllBe(written => written != null && written.Revision == 1);
         closed.Answered.ShouldBe(BURST + 1);
@@ -133,7 +134,7 @@ public class AnswerWriterTests : PollTestFixture
             var inLoop = number % 2 == 1;
             var applied = 0;
             var committed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            var closed = new TaskCompletionSource<PollFinal>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var closed = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             using var watch = Tallies.Changed(async changed =>
             {
                 if (changed.RoundId != round.Id.ToString() || Interlocked.Increment(ref applied) != closeAfter)
@@ -143,7 +144,7 @@ public class AnswerWriterTests : PollTestFixture
                 committed.TrySetResult();
                 if (inLoop)
                 {
-                    closed.TrySetResult(await CloseInOneTransactionAsync(round.Id));
+                    closed.TrySetResult(await CloseWithPollsAsync(poll, round.Id));
                 }
             });
             var answers = guests.Select((guest, i) => AnswerAsync(http, poll.Code, guest, new AnswerRequest(round.Id.ToString(), [i % 3], 0))).ToList();
@@ -151,17 +152,17 @@ public class AnswerWriterTests : PollTestFixture
             if (!inLoop)
             {
                 await Task.Delay(Random.Shared.Next(0, 4), CancellationToken.None);
-                closed.TrySetResult(await CloseInOneTransactionAsync(round.Id));
+                closed.TrySetResult(await CloseWithPollsAsync(poll, round.Id));
             }
-            var final = await BoundedAsync(closed.Task);
+            var answered = await BoundedAsync(closed.Task);
             var responses = await BoundedAsync(Task.WhenAll(answers));
 
             responses.ShouldAllBe(r => r.StatusCode == HttpStatusCode.OK || r.StatusCode == HttpStatusCode.Conflict, $"round {number}");
-            final.Answered.ShouldBe(responses.Count(r => r.StatusCode == HttpStatusCode.OK), $"round {number}");
-            Tallies.Applied.Count(a => a.Round.RoundId == round.Id.ToString()).ShouldBe(final.Answered, $"round {number}");
-            accepted += final.Answered;
+            answered.ShouldBe(responses.Count(r => r.StatusCode == HttpStatusCode.OK), $"round {number}");
+            Tallies.Applied.Count(a => a.Round.RoundId == round.Id.ToString()).ShouldBe(answered, $"round {number}");
+            accepted += answered;
             stale += responses.Count(r => r.StatusCode == HttpStatusCode.Conflict);
-            mixed += final.Answered > 0 && final.Answered < RACE_GUESTS ? 1 : 0;
+            mixed += answered > 0 && answered < RACE_GUESTS ? 1 : 0;
         }
 
         // How many closes landed mid-burst depends on the host's speed, so it is reported, not asserted: the assertions above
@@ -219,14 +220,15 @@ public class AnswerWriterTests : PollTestFixture
         return await scope.ServiceProvider.GetRequiredService<IPollAnswers>().SubmitAsync(code, guestId, request);
     }
 
-    private async Task<PollFinal> CloseInOneTransactionAsync(Guid roundId)
+    // Closes the poll's open round through the real IPolls.CloseAsync, which counts the rows into Final in one write
+    // transaction (V4), and returns how many answered by its closed view, which carries Final's count.
+    private async Task<int> CloseWithPollsAsync(SeededPoll poll, Guid roundId)
     {
         await using var scope = Factory.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await using var transaction = await db.Database.BeginTransactionAsync();
-        var final = await CloseAsync(db, roundId);
-        await transaction.CommitAsync();
-        return final;
+        var view = await scope.ServiceProvider.GetRequiredService<IPolls>().CloseAsync(poll.DeckId, poll.Slide);
+        view.Phase.ShouldBe(PollPhase.Closed);
+        view.Round.ShouldBe(roundId.ToString());
+        return view.Answered;
     }
 
     // Closes the round inside the caller's transaction as V4's Close does: ClosedAt, and Final counted from the answer rows.

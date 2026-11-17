@@ -75,11 +75,14 @@ public sealed class PollRowSeed(IServiceProvider services)
     }
 
     // Closes the round: ClosedAt, JoinedAtClose and Final (the slide's option texts now, the count per option and how many
-    // answered, from the answer rows). With answerShown, the answer is shown too.
+    // answered, from the answer rows). With answerShown, the answer is shown too. It counts the rows and writes the close in
+    // one write transaction (BEGIN IMMEDIATE), as Polls.CloseAsync does, so an answer that commits around it is either in
+    // Final or refused as stale by the answer writer.
     public async Task<PollRound> CloseAsync(Guid roundId, int joinedAtClose, bool answerShown = false)
     {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await using var transaction = await db.Database.BeginTransactionAsync();
         var round = await db.PollRounds.SingleAsync(r => r.Id == roundId);
         var slots = await db.Slides.AsNoTracking().Where(s => s.Id == round.SlideId).Select(s => s.SlotsJson).SingleAsync();
         using var parsed = JsonDocument.Parse(slots);
@@ -93,6 +96,7 @@ public sealed class PollRowSeed(IServiceProvider services)
         round.Final = new PollFinal(options, counts, answers.Count);
         round.AnswerShownAt = answerShown ? now : null;
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
         return round;
     }
 
