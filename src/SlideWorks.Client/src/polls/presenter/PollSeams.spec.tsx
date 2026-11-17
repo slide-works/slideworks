@@ -11,18 +11,11 @@ import {
 } from '../../test-support/fixtures/screens';
 import { stubApi } from '../../test-support/stubApi';
 import type { SlideDeck } from '../../slides/slots';
-import {
-  POLL_PANEL_TEST_IDS,
-  POLL_SLIDE_TEST_IDS,
-  POLL_STRIP_TEST_IDS,
-  pollSlideRowTestId,
-} from '../testIds';
+import { POLL_PANEL_TEST_IDS, POLL_SLIDE_TEST_IDS, pollSlideRowTestId } from '../testIds';
 import { PollControlFixture } from './PollControlFixture';
 import { PollPanel } from './PollPanel';
-import { PollStrip } from './PollStrip';
 
-// SW-6 wave 0.1's seams in the browser: the poll slide in the player page and as a deck-page thumbnail, the panel and
-// strip stubs under the control fixture. The poll control routes' stub has its own spec (stubPollControlApi.spec.tsx).
+// SW-6 wave 0.1's seams in the browser: the poll slide in the player page and as a deck-page thumbnail, the panel stub under the control fixture. The poll control routes' stub has its own spec (stubPollControlApi.spec.tsx).
 
 const QUESTION = 'How big was your last merge request?';
 const OPTIONS = ['Under 50 lines', '50 to 200 lines', '200 to 1,000 lines', 'Over 1,000 lines'];
@@ -97,22 +90,4 @@ test('the panel stub shows the phase from the control fixture, and says when the
   );
   await expect(page.getByTestId(POLL_PANEL_TEST_IDS.empty)).toBeVisible();
   await expect(page.getByTestId(POLL_PANEL_TEST_IDS.state)).toHaveCount(0);
-});
-
-test('the strip stub shows the phase from the control fixture, and nothing when there is no poll', async ({
-  mount,
-  page,
-}) => {
-  const strip = await mount(
-    <PollControlFixture deckId="deck-1" control={pollControlView('open')}>
-      <PollStrip deckId="deck-1" />
-    </PollControlFixture>,
-  );
-  await expect(page.getByTestId(POLL_STRIP_TEST_IDS.state)).toHaveText('open');
-  await strip.update(
-    <PollControlFixture deckId="deck-1" control={null}>
-      <PollStrip deckId="deck-1" />
-    </PollControlFixture>,
-  );
-  await expect(page.getByTestId(POLL_STRIP_TEST_IDS.strip)).toHaveCount(0);
 });
