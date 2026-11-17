@@ -15,6 +15,10 @@ namespace SlideWorks.WebApi.Realtime.Presenting;
 // go. Every check that can refuse a call runs before anything changes, so a refused call changes, sends and notifies
 // nothing. A state with no connections is kept for KEEP_IDLE and dropped by the next call that finds it (no timer).
 //
+// Every duration here (the running talk timer, KEEP_IDLE, the started label's age) is measured between monotonic
+// TimeProvider timestamps (GetTimestamp/GetElapsedTime), never as a difference of wall-clock times, so a wall-clock step
+// (NTP, a VM or WSL clock sync) neither adds nor removes time. The wall clock is read only for clockMinutes.
+//
 // SignalR runs OnDisconnectedAsync (LeaveAllAsync) without waiting for the connection's hub calls still in flight, so a
 // join can still be on its way (in the hub's access check or the deck read) when its connection's leave has already
 // run. LeaveAllAsync therefore marks the connection closed, and a join adds its entry only if, in the same step under
@@ -64,7 +68,7 @@ public sealed class Presentations(
             {
                 throw new HubException(CONNECTION_CLOSED);
             }
-            var now = clock.GetUtcNow();
+            var now = clock.GetTimestamp();
             var live = Current(deckId, now) ?? Create(deckId, facts, resume, now);
             foreach (var replaced in live.Join(connectionId, clientId, role, Label(label)))
             {
@@ -84,7 +88,7 @@ public sealed class Presentations(
         PresentationState state;
         await using (await LockAsync(deckId))
         {
-            var now = clock.GetUtcNow();
+            var now = clock.GetTimestamp();
             var live = Joined(connectionId, deckId, facts, now);
             live.Move(update, facts!.Steps, now);
             state = await AcceptAsync(live, now);
@@ -99,7 +103,7 @@ public sealed class Presentations(
         PresentationState state;
         await using (await LockAsync(deckId))
         {
-            var now = clock.GetUtcNow();
+            var now = clock.GetTimestamp();
             var live = Joined(connectionId, deckId, facts, now);
             live.Time(command, now);
             state = await AcceptAsync(live, now);
@@ -115,7 +119,7 @@ public sealed class Presentations(
         {
             await hub.Groups.RemoveFromGroupAsync(connectionId, DeckHub.PresentationGroupName(deckId));
             Unindex(connectionId, deckId);
-            var now = clock.GetUtcNow();
+            var now = clock.GetTimestamp();
             var live = Current(deckId, now);
             if (live != null && live.Leave(connectionId, now))
             {
@@ -144,8 +148,8 @@ public sealed class Presentations(
 
     public async Task<LivePresentationsView> ListLiveAsync(Guid ownerId)
     {
-        var now = clock.GetUtcNow();
-        var snapshots = new List<(PresentationState State, DateTimeOffset CreatedAt)>();
+        var now = clock.GetTimestamp();
+        var snapshots = new List<(PresentationState State, long CreatedAt)>();
         foreach (var deckId in _states.Keys)
         {
             await using (await LockAsync(deckId))
@@ -176,7 +180,7 @@ public sealed class Presentations(
                 decks[s.State.DeckId].Title,
                 s.State.Slide,
                 decks[s.State.DeckId].Total,
-                StartedLabel(now - s.CreatedAt),
+                StartedLabel(clock.GetElapsedTime(s.CreatedAt, now)),
                 s.State.Connected.Select(c => new LiveWindow(c.Role, c.Label)).ToList()))
             .ToList());
     }
@@ -190,7 +194,7 @@ public sealed class Presentations(
         PresentationState? state = null;
         await using (await LockAsync(deckId))
         {
-            var now = clock.GetUtcNow();
+            var now = clock.GetTimestamp();
             var live = Current(deckId, now);
             if (live != null)
             {
@@ -212,7 +216,7 @@ public sealed class Presentations(
         }
         await using (await LockAsync(deckId))
         {
-            var now = clock.GetUtcNow();
+            var now = clock.GetTimestamp();
             return _states.TryGetValue(deckId, out var live) && !live.Expired(now) ? live.Snapshot(now) : null;
         }
     }
@@ -223,7 +227,7 @@ public sealed class Presentations(
         PresentationState state;
         await using (await LockAsync(deckId))
         {
-            var now = clock.GetUtcNow();
+            var now = clock.GetTimestamp();
             var existing = Current(deckId, now);
             if (existing != null)
             {
@@ -255,7 +259,7 @@ public sealed class Presentations(
     }
 
     // The deck's current state, dropping it first when it has sat with no connections for KEEP_IDLE. Under the lock.
-    private Live? Current(string deckId, DateTimeOffset now)
+    private Live? Current(string deckId, long now)
     {
         if (!_states.TryGetValue(deckId, out var live))
         {
@@ -270,9 +274,9 @@ public sealed class Presentations(
     }
 
     // A new epoch from resume (clamped, its timer kept as sent), or at slide 1, step 0, timer notStarted. Under the lock.
-    private Live Create(string deckId, DeckFacts? facts, PresentationResume? resume, DateTimeOffset now)
+    private Live Create(string deckId, DeckFacts? facts, PresentationResume? resume, long now)
     {
-        var live = new Live(deckId, NewEpoch(), facts?.TalkMinutes, now);
+        var live = new Live(clock, deckId, NewEpoch(), facts?.TalkMinutes, now);
         if (resume != null)
         {
             live.Resume(resume, facts?.Steps ?? [], now);
@@ -283,7 +287,7 @@ public sealed class Presentations(
 
     // The state this connection may change: refused with NOT_PRESENTING, before anything changes, when the deck is gone,
     // has no state, or this connection holds no entry in it. Under the lock.
-    private Live Joined(string connectionId, string deckId, DeckFacts? facts, DateTimeOffset now)
+    private Live Joined(string connectionId, string deckId, DeckFacts? facts, long now)
     {
         var live = facts == null ? null : Current(deckId, now);
         if (live == null || !live.Holds(connectionId))
@@ -294,7 +298,7 @@ public sealed class Presentations(
     }
 
     // Raises seq and sends the state to the group. Under the lock.
-    private async Task<PresentationState> AcceptAsync(Live live, DateTimeOffset now)
+    private async Task<PresentationState> AcceptAsync(Live live, long now)
     {
         live.Seq++;
         var state = live.Snapshot(now);
@@ -409,8 +413,9 @@ public sealed class Presentations(
     // One connection's entry in connected (P1). Order is its join order; a replacing join keeps the entry's place.
     private sealed record Entry(string ConnectionId, PresentationConnection Connection, long Order);
 
-    // One deck's mutable state. Touched only under the deck's lock.
-    private sealed class Live(string deckId, string epoch, int? talkMinutes, DateTimeOffset createdAt)
+    // One deck's mutable state. Touched only under the deck's lock. Every instant it keeps (createdAt, the timer's start,
+    // the idle mark) is a monotonic TimeProvider timestamp, and every duration is measured between two of them.
+    private sealed class Live(TimeProvider clock, string deckId, string epoch, int? talkMinutes, long createdAt)
     {
         private readonly List<Entry> _entries = [];
         private long _nextOrder;
@@ -420,12 +425,12 @@ public sealed class Presentations(
         private bool _skipDeepDives;
         private TimerState _timer = TimerState.NotStarted;
         private long _bankedMs;
-        private DateTimeOffset _runningSince;
-        private DateTimeOffset? _idleSince = createdAt;
+        private long _runningSince;
+        private long? _idleSince = createdAt;
 
         public string DeckId { get; } = deckId;
 
-        public DateTimeOffset CreatedAt { get; } = createdAt;
+        public long CreatedAt { get; } = createdAt;
 
         public long Seq { get; set; }
 
@@ -433,7 +438,7 @@ public sealed class Presentations(
 
         public bool HasWindow => _entries.Exists(e => e.Connection.Role is PresentationRole.Presenter or PresentationRole.Audience);
 
-        public bool Expired(DateTimeOffset now) => _entries.Count == 0 && _idleSince != null && now - _idleSince >= KEEP_IDLE;
+        public bool Expired(long now) => _entries.Count == 0 && _idleSince is { } idleSince && clock.GetElapsedTime(idleSince, now) >= KEEP_IDLE;
 
         public bool Holds(string connectionId) => _entries.Exists(e => e.ConnectionId == connectionId);
 
@@ -450,7 +455,7 @@ public sealed class Presentations(
         }
 
         // Removes the entry this connection holds, if it still holds one. True when something was removed.
-        public bool Leave(string connectionId, DateTimeOffset now)
+        public bool Leave(string connectionId, long now)
         {
             if (_entries.RemoveAll(e => e.ConnectionId == connectionId) == 0)
             {
@@ -463,7 +468,7 @@ public sealed class Presentations(
             return true;
         }
 
-        public void Resume(PresentationResume resume, IReadOnlyList<int> steps, DateTimeOffset now)
+        public void Resume(PresentationResume resume, IReadOnlyList<int> steps, long now)
         {
             (_slide, _step) = Clamp(resume.Slide, resume.Step, steps);
             _black = resume.Black;
@@ -473,7 +478,7 @@ public sealed class Presentations(
             _runningSince = now;
         }
 
-        public void Move(PresentationUpdate update, IReadOnlyList<int> steps, DateTimeOffset now)
+        public void Move(PresentationUpdate update, IReadOnlyList<int> steps, long now)
         {
             var (slide, step) = Clamp(update.Slide, update.Step, steps);
             if ((slide, step) != (_slide, _step) && _timer == TimerState.NotStarted)
@@ -486,7 +491,7 @@ public sealed class Presentations(
         }
 
         // pause stops a running timer; resume starts a paused or not-started one; reset goes back to 0 and notStarted.
-        public void Time(TimerCommand command, DateTimeOffset now)
+        public void Time(TimerCommand command, long now)
         {
             switch (command)
             {
@@ -505,7 +510,7 @@ public sealed class Presentations(
             }
         }
 
-        public PresentationState Snapshot(DateTimeOffset now) => new(
+        public PresentationState Snapshot(long now) => new(
             DeckId,
             epoch,
             Seq,
@@ -532,14 +537,14 @@ public sealed class Presentations(
             return (clampedSlide, Math.Clamp(step, 0, maxStep));
         }
 
-        private void Start(DateTimeOffset now)
+        private void Start(long now)
         {
             _bankedMs = 0;
             _runningSince = now;
             _timer = TimerState.Running;
         }
 
-        private long ElapsedMs(DateTimeOffset now)
-            => _timer == TimerState.Running ? _bankedMs + (long)(now - _runningSince).TotalMilliseconds : _bankedMs;
+        private long ElapsedMs(long now)
+            => _timer == TimerState.Running ? _bankedMs + (long)clock.GetElapsedTime(_runningSince, now).TotalMilliseconds : _bankedMs;
     }
 }
