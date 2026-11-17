@@ -133,8 +133,16 @@ public sealed class DeckHub(
             throw new HubException(NO_SESSION);
         }
         // Everything that can refuse comes before anything changes: a refused call leaves no group, roster or count behind.
-        var state = await relay.CurrentAsync(found.DeckId) ?? throw new HubException(NO_SESSION);
+        _ = await relay.CurrentAsync(found.DeckId) ?? throw new HubException(NO_SESSION);
         await Groups.AddToGroupAsync(Context.ConnectionId, AudienceGroupName(found.DeckId));
+        // Read again now the guest is in the group: a state published between the first read and the join would otherwise
+        // be missed by this guest. A state that arrives after this read reaches it through the group.
+        var state = await relay.CurrentAsync(found.DeckId);
+        if (state == null)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, AudienceGroupName(found.DeckId));
+            throw new HubException(NO_SESSION);
+        }
         if (found is { Phase: AudiencePhase.Live, SessionId: { } sessionId })
         {
             var count = await roster.JoinAsync(found.DeckId, sessionId, guestId, Context.ConnectionId);
