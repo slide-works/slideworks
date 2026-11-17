@@ -8,7 +8,9 @@ const REFUSED = 'Guests cannot follow: the presentation refused this window.';
 // state, so guests follow it. It joins the presentation as a presenter window and sends each slide and step the player
 // moves to. Drawn only while live: it renders nothing, and leaving it ends the join. A failed publish, or a join the
 // server refused, goes to onError, which the live session shows.
-// TODO: SW-230 decides which of this publisher and the presenter window publishes when both are open.
+// TODO: temporary. When this player and the presenter window are both open, both publish and the last one to move wins.
+// Exactly one of them must be the only publisher: this publisher should stop, or follow the presentation state, while a
+// presenter window is connected.
 export function LivePublisher({
   deckId,
   slide,

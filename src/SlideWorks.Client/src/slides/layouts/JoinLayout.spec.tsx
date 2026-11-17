@@ -132,8 +132,10 @@ test('JoinLayout draws no join bar even when the deck setting is on', async ({ m
 
 for (const live of [true, false]) {
   test(`screenshot: join slide ${live ? 'live' : 'not live'}`, async ({ mount, page }) => {
+    // Mounted as the owner, so the live slide shows the joined count, as the mockup does.
+    if (live) await stubOwnerLive(page, 8);
     await mount(
-      <JoinProvider deckId={deckPlay.id} join={{ ...join, live }} owner={false}>
+      <JoinProvider deckId={deckPlay.id} join={{ ...join, live }} owner={live}>
         <SlideRenderer slide={slide({})} deck={deck} total={1} step={0} />
       </JoinProvider>,
     );
