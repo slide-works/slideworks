@@ -111,5 +111,19 @@ public sealed class HubReceiver : IAsyncDisposable
         }
     }
 
+    // The next Q&A event ("questionTally", "questionControl" or "reactions") a connection receives, as NextPollEventAsync
+    // does for polls: any other audience event before it is skipped, and a Q&A event is never skipped.
+    public static async Task<JsonElement> NextQaEventAsync(Func<Task<JsonElement>> nextAudienceEvent)
+    {
+        while (true)
+        {
+            var frame = await nextAudienceEvent();
+            if (frame.GetProperty("type").GetString() is "questionTally" or "questionControl" or "reactions")
+            {
+                return frame;
+            }
+        }
+    }
+
     public ValueTask DisposeAsync() => Connection.DisposeAsync();
 }
