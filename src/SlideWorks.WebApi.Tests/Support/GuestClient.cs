@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -10,14 +11,17 @@ namespace SlideWorks.WebApi.Tests.Support;
 
 // An audience guest on the hub: anonymous, with a sw_guest cookie it mints itself (GuestCookie.NewId, the format the server
 // issues and accepts), connected over the chosen transport. Pass noCookie for a guest the server has never
-// seen. Tests of anything a guest does over the hub use this, never their own connection.
+// seen. Tests of anything a guest does over the hub use this, never their own connection. Its HTTP requests carry the
+// same cookie (or none) and the public Origin, as the guest's browser on the join page would.
 public sealed class GuestClient : IAsyncDisposable
 {
     private readonly HubReceiver _receiver;
+    private readonly HttpClient _http;
 
-    private GuestClient(HubReceiver receiver, string guestId)
+    private GuestClient(HubReceiver receiver, HttpClient http, string guestId)
     {
         _receiver = receiver;
+        _http = http;
         GuestId = guestId;
     }
 
@@ -32,11 +36,32 @@ public sealed class GuestClient : IAsyncDisposable
         bool noCookie = false)
     {
         var id = guestId ?? GuestCookie.NewId();
-        var receiver = await HubReceiver.StartAsync(factory, TestUser.Anonymous, transport, noCookie ? null : $"{GuestCookie.NAME}={id}");
-        return new GuestClient(receiver, id);
+        var cookie = noCookie ? null : $"{GuestCookie.NAME}={id}";
+        var receiver = await HubReceiver.StartAsync(factory, TestUser.Anonymous, transport, cookie);
+        var http = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });
+        http.DefaultRequestHeaders.Add("Origin", TestAppFactory.PUBLIC_URL);
+        if (cookie != null)
+        {
+            http.DefaultRequestHeaders.Add("Cookie", cookie);
+        }
+        return new GuestClient(receiver, http, id);
     }
 
     public Task<JsonElement> NextAudienceAsync() => _receiver.NextAudienceAsync();
 
-    public ValueTask DisposeAsync() => _receiver.DisposeAsync();
+    // GET /api/join/{code}/poll: the poll on screen, this guest's answer and the tally it may see (V5).
+    public Task<HttpResponseMessage> GetPollAsync(string code) => _http.GetAsync($"/api/join/{code}/poll");
+
+    // PUT /api/join/{code}/poll/answer with this body, usually an AnswerRequest; any other object goes as it serialises,
+    // for a test of a malformed body (V5).
+    public Task<HttpResponseMessage> AnswerAsync(string code, object body) => _http.PutAsJsonAsync($"/api/join/{code}/poll/answer", body);
+
+    // DeckHub.WatchPoll(code): joins poll-results:{roundId} when the server allows it, else throws HubException (V5).
+    public Task WatchPollAsync(string code) => Connection.InvokeAsync("WatchPoll", code);
+
+    public async ValueTask DisposeAsync()
+    {
+        _http.Dispose();
+        await _receiver.DisposeAsync();
+    }
 }
