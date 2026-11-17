@@ -4,7 +4,8 @@ using System.Text.Json;
 namespace SlideWorks.Core.Slides;
 
 // Rough text fitting against the default theme's 1920×1080 slide (design/sw-1-foundation mockups).
-// A line holds width / (font size × average glyph width) whole characters: 0.56 em for the Inter body
+// A line holds width / (font size × average glyph width) whole characters. The widths come from the
+// validation's FitWidths, never from a constant here; the built-in ones are 0.56 em for the Inter body
 // text, for the bold Plus Jakarta Sans headings and for table cells (rendered cells fill to about
 // 0.55 em). Body text is measured at 0.56, not its 0.47 em average, because Title Case runs at
 // 0.54 em (0.56 for a bold lead) and must fit too (SW-117). Lines dense with acronyms or all in
@@ -16,11 +17,6 @@ internal static class SlideFit
     // headline (2 × 69 px) and the body's 46 px top margin is 584 px. The body may run 36 px into the
     // 120 px bottom padding and still clear the footer, which starts at y = 1023.
     public const double BODY_HEIGHT = 620;
-
-    public const double BODY_EM = 0.56;
-    public const double HEAD_EM = 0.56;
-
-    public const double CELL_EM = 0.56;
 
     // Greedy word wrap: a word that doesn't fit after the last one starts the next line, and a word
     // longer than a whole line breaks across lines.

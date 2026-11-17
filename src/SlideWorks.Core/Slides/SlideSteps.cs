@@ -6,9 +6,12 @@ namespace SlideWorks.Core.Slides;
 // "one-by-one". Every other slide has none. Expects slots that passed SlideValidator.
 public static class SlideSteps
 {
-    public static int Count(string layout, JsonElement slots)
+    public static int Count(string layout, JsonElement slots) =>
+        LayoutCatalogue.Find(layout) is { } definition ? Count(definition, slots) : 0;
+
+    public static int Count(LayoutDefinition definition, JsonElement slots)
     {
-        var list = LayoutCatalogue.Find(layout)?.StepsFrom;
+        var list = definition.StepsFrom;
         if (list is null || slots.ValueKind != JsonValueKind.Object
             || !slots.TryGetProperty("reveal", out var reveal) || reveal.ValueKind != JsonValueKind.String
             || !string.Equals(reveal.GetString(), "one-by-one", StringComparison.Ordinal)

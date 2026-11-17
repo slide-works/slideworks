@@ -10,6 +10,9 @@ public sealed class SlotValidation
     private readonly List<string> _errors = [];
     private readonly List<string> _imageIds = [];
 
+    // The glyph widths the fit rules wrap text with: the built-in fonts', unless the deck's template brings its own.
+    public FitWidths Widths { get; init; } = FitWidths.Default;
+
     // Every failure counted, including those past MAX_ERRORS.
     public int ErrorCount { get; private set; }
 
