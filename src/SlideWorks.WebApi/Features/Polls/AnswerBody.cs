@@ -6,7 +6,8 @@ namespace SlideWorks.WebApi.Features.Polls;
 
 // The body of PUT /api/join/{code}/poll/answer (poll-answer.json "request", V5), read from the raw request body so that every
 // failure gets V5's { "error": "…" } instead of a ProblemDetails or a quiet default: a missing revision must not become 0, a
-// first answer. At most MAX_BYTES are read, as ImageStore counts an upload: a longer body is 413 and the rest is never read. Only the body's shape is checked here; the picks' rules (pick one, at most, unknown option, duplicate, none) are
+// first answer. At most MAX_BYTES are read, as ImageStore counts an upload: a longer body is 413 and the rest is never read.
+// Only the body's shape is checked here; the picks' rules (pick one, at most, unknown option, duplicate, none) are
 // IPollAnswers', which knows the poll. Unknown members are ignored. More picks than a poll can have options is refused
 // before any is read, so a long list is never copied.
 public static class AnswerBody
