@@ -161,5 +161,100 @@
       }
     ],
     "large": false
+  },
+  {
+    "cards": [
+      {
+        "title": "Plan the week",
+        "text": "Pick three outcomes and write them down.",
+        "chips": []
+      },
+      {
+        "title": "Build in small steps",
+        "text": "Merge every day so nothing waits.",
+        "chips": []
+      },
+      {
+        "title": "Review together",
+        "text": "Read the change before it ships.",
+        "chips": []
+      },
+      {
+        "title": "Measure the result",
+        "text": "Check the numbers a week later.",
+        "chips": []
+      }
+    ],
+    "large": true
+  },
+  {
+    "cards": [
+      {
+        "title": "Plan the week",
+        "text": "Pick three outcomes and write them down.",
+        "chips": []
+      },
+      {
+        "title": "Keep every change small enough to",
+        "text": "Merge every day so nothing waits.",
+        "chips": []
+      },
+      {
+        "title": "Review together",
+        "text": "Read the change before it ships.",
+        "chips": []
+      },
+      {
+        "title": "Measure the result",
+        "text": "Check the numbers a week later.",
+        "chips": []
+      }
+    ],
+    "large": false
+  },
+  {
+    "cards": [
+      {
+        "title": "Plan the week",
+        "text": "Pick three outcomes and write them down."
+      },
+      {
+        "title": "Build in small steps",
+        "text": "Merge every day so nothing waits.",
+        "chips": []
+      },
+      {
+        "title": "Review together",
+        "text": "Read the change before it ships."
+      }
+    ],
+    "large": true
+  },
+  {
+    "cards": [
+      {
+        "title": "Plan the week",
+        "text": "Pick three outcomes and write them down.",
+        "chips": []
+      },
+      {
+        "title": "Build in small steps",
+        "text": "Merge every day so nothing waits.",
+        "chips": []
+      },
+      {
+        "title": "Review together",
+        "text": "Read the change before it ships.",
+        "chips": [
+          "Weekly"
+        ]
+      },
+      {
+        "title": "Measure the result",
+        "text": "Check the numbers a week later.",
+        "chips": []
+      }
+    ],
+    "large": false
   }
 ]
