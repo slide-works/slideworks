@@ -13,6 +13,33 @@ public class PhoneRemoteRecoveryJourneyTests : AcceptanceTest
     private const int SLIDES = 10;
     private static readonly TimeSpan FRAME_TIMEOUT = TimeSpan.FromSeconds(15);
 
+    // Keeps every /hubs/deck WebSocket the page opens, so the test can drop one. Not Page.RouteWebSocketAsync: with
+    // Microsoft.Playwright 1.62.0 a routed socket breaks the run when its page closes. The driver then reports the route
+    // closed without a code, the .NET client's WebSocketRoute reads "code" anyway, and the KeyNotFoundException closes
+    // the whole Playwright connection, failing every later test on it.
+    private const string TRACK_HUB_SOCKETS = """
+        (() => {
+          const Native = window.WebSocket;
+          window.__testHubSockets = [];
+          window.WebSocket = class extends Native {
+            constructor(url, protocols) {
+              super(url, protocols);
+              if (String(url).includes('/hubs/deck')) window.__testHubSockets.push(this);
+            }
+          };
+        })();
+        """;
+
+    // Closes the page's open hub WebSockets the way a dropped network does for the app: an unclean code, so SignalR
+    // reconnects, and a real close the server sees. Returns how many it closed.
+    private const string DROP_HUB_SOCKETS = """
+        () => {
+          const open = window.__testHubSockets.filter(socket => socket.readyState === WebSocket.OPEN);
+          open.forEach(socket => socket.close(4000, 'Dropped by the test'));
+          return open.length;
+        }
+        """;
+
     [Test]
     public async Task SpeakerMode_WhenSomeoneElseOpensTheRemote_ShouldShowNotYoursAndLeaveTheConnectedListUnchanged()
     {
@@ -58,12 +85,7 @@ public class PhoneRemoteRecoveryJourneyTests : AcceptanceTest
 
         await using var phoneContext = await NewPhoneContextAsync(TestUser.Sam);
         var phonePage = await phoneContext.NewPageAsync();
-        IWebSocketRoute? hubSocket = null;
-        await phonePage.RouteWebSocketAsync("**/hubs/deck**", socket =>
-        {
-            socket.ConnectToServer();
-            hubSocket = socket;
-        });
+        await phonePage.AddInitScriptAsync(TRACK_HUB_SOCKETS);
         var speaker = new SpeakerPage(phonePage);
         await speaker.GotoAsync(deckId);
 
@@ -72,11 +94,10 @@ public class PhoneRemoteRecoveryJourneyTests : AcceptanceTest
         await Expect(speaker.Now).ToHaveAttributeAsync("data-slide", "8");
         await Expect(speaker.Count).ToHaveTextAsync($"8 / {SLIDES}");
         await Expect(presenter.PhoneChips).ToHaveCountAsync(1);
-        hubSocket.ShouldNotBeNull("The phone's hub WebSocket never went through the route.");
 
         // Hold the phone's reconnect at its negotiate request, then drop its socket.
         var reconnect = await HeldNegotiate.RouteAsync(phonePage);
-        await hubSocket.CloseAsync(new() { Code = 4000, Reason = "Dropped by the test" });
+        (await phonePage.EvaluateAsync<int>(DROP_HUB_SOCKETS)).ShouldBe(1, "The phone should have had one open hub WebSocket to drop.");
 
         await Expect(speaker.Reconnecting).ToBeVisibleAsync();
         await Expect(speaker.Status).ToHaveAttributeAsync("data-status", "reconnecting");
