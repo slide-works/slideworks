@@ -1,5 +1,7 @@
 import { useRef, type MouseEvent, type TouchEvent } from 'react';
 import type { DeckPlayView } from '../api/types';
+import { QuestionCardLayer } from '../qa/screen/QuestionCardLayer';
+import { ReactionsLayer } from '../qa/screen/ReactionsLayer';
 import type { SlideDeck } from '../slides/slots';
 import type { PlayerPosition } from './parseHash';
 import { PlayerSlide } from './PlayerSlide';
@@ -89,6 +91,8 @@ export function PlayerStage({ deck, slideDeck, position, onNext, onPrevious }: P
             step={slide.number === position.slide ? position.step : 0}
           />
         ))}
+        <QuestionCardLayer onQaSlide={deck.slides[position.slide - 1]?.layout === 'qa'} />
+        <ReactionsLayer />
       </div>
     </div>
   );

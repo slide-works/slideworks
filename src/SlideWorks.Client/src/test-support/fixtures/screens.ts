@@ -33,6 +33,7 @@ import type {
   MeView,
   SharingView,
 } from '../../api/types';
+import { DEFAULT_QA_TITLE } from '../../slides/layouts/qaTitle';
 import type { LayoutName, Slots } from '../../slides/slots';
 import { LAYOUT_SLOTS } from './layoutSlots';
 import type { JsonView, Widen } from './widen';
@@ -97,6 +98,37 @@ export function deckPageWithPoll(): DeckPageView {
           headline: null,
           steps: 0,
           slots: structuredClone(LAYOUT_SLOTS.poll),
+        }
+      : slide,
+  );
+  return view;
+}
+
+// SW-9: the play view and the deck page with slide 3, the last, made a qa slide (LAYOUT_SLOTS.qa's title). The
+// qa-control.json samples hold no slide of their own for it, so these decks fit any of them. The deck page's headline is
+// the slide's title. Each call returns a fresh copy.
+export const QA_SLIDE_NUMBER = 3;
+
+export function deckPlayWithQa(): DeckPlayView {
+  const view = structuredClone(deckPlay);
+  view.slides = view.slides.map((slide) =>
+    slide.number === QA_SLIDE_NUMBER
+      ? { ...slide, layout: 'qa', steps: 0, slots: structuredClone(LAYOUT_SLOTS.qa) }
+      : slide,
+  );
+  return view;
+}
+
+export function deckPageWithQa(): DeckPageView {
+  const view = structuredClone(deckPage);
+  view.slides = view.slides.map((slide) =>
+    slide.number === QA_SLIDE_NUMBER
+      ? {
+          ...slide,
+          layout: 'qa',
+          headline: LAYOUT_SLOTS.qa.title ?? DEFAULT_QA_TITLE,
+          steps: 0,
+          slots: structuredClone(LAYOUT_SLOTS.qa),
         }
       : slide,
   );

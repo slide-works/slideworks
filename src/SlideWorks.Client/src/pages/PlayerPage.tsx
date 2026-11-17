@@ -4,6 +4,8 @@ import { ApiError, api } from '../api/client';
 import type { DeckPlayView, MeView } from '../api/types';
 import { AudienceFollower } from '../player/AudienceFollower';
 import { Player } from '../player/Player';
+import { QaScreenLive } from '../qa/screen/QaScreenLive';
+import { ScreenReactionsLive } from '../qa/screen/ScreenReactionsLive';
 import { JoinProvider } from '../slides/JoinContext';
 import { PollScreenLive } from '../slides/PollScreenLive';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
@@ -130,7 +132,11 @@ export function PlayerPage() {
         <div data-testid="player-page" data-deck-id={id} className="contents">
           <JoinProvider deckId={load.view.id} join={load.view.join} owner={load.view.isOwner}>
             <PollScreenLive deckId={load.view.id} owner={load.view.isOwner}>
-              {audience ? <AudienceFollower deck={load.view} /> : <Player deck={load.view} />}
+              <QaScreenLive deckId={load.view.id} owner={load.view.isOwner}>
+                <ScreenReactionsLive deckId={load.view.id} owner={load.view.isOwner}>
+                  {audience ? <AudienceFollower deck={load.view} /> : <Player deck={load.view} />}
+                </ScreenReactionsLive>
+              </QaScreenLive>
             </PollScreenLive>
           </JoinProvider>
         </div>
