@@ -57,6 +57,25 @@ public sealed class GuestPage(IPage page)
 
     public ILocator PrivacyClose => page.GetByTestId("guest-privacy-close");
 
+    // The browser blocks the cookie the guest page needs, and its retry button.
+    public ILocator NeedsCookies => page.GetByTestId("guest-needs-cookies");
+
+    public ILocator NeedsCookiesRetry => page.GetByTestId("guest-needs-cookies-retry");
+
+    // The page's own load failure, and its retry button.
+    public ILocator Error => page.GetByTestId("guest-error");
+
+    public ILocator ErrorRetry => page.GetByTestId("guest-error-retry");
+
+    // The "Live" or "Offline" chip in the following header.
+    public ILocator Chip => page.GetByTestId("guest-chip");
+
+    // Shown in place of the slide while the session is live and the presenter has not published a position.
+    public ILocator WaitingForPresenter => page.GetByTestId("guest-waiting-for-presenter");
+
+    // Opens a link as typed or scanned, in full (the join host's address is another origin from the app's).
+    public async Task GotoUrlAsync(string url) => await page.GotoAsync(url);
+
     public async Task GotoAsync(string code) => await page.GotoAsync(PathFor(code));
 
     // The join host's form of the link: /{code}.
