@@ -10,7 +10,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-5-audience-join/`](sw-5-audience-join/) | SW-5 Audience join: QR code, join code and guest mode | Mockups reviewed, decisions D1–D8 settled, not built |
 | [`sw-6-polls/`](sw-6-polls/) | SW-6 Live multiple-choice polls | Built (decisions D1–D8 settled; the mockups differ in a few places, listed under "As built" in the SW-6 section) |
 | [`sw-9-qa-reactions/`](sw-9-qa-reactions/) | SW-9 Audience Q&A and reactions | Mockups reviewed, decisions D1–D9 settled, D10 proposed, not built |
-| [`sw-50-custom-templates/`](sw-50-custom-templates/) | SW-50 Custom templates, and the layout gaps a real deck found | Template mockups reviewed, decisions D4–D17 settled, not built. The layout gaps are not designed yet |
+| [`sw-50-custom-templates/`](sw-50-custom-templates/) | SW-50 Custom templates, and the layout gaps a real deck found | Template mockups reviewed, decisions D4–D17 settled. Layout gaps designed (three pages, decisions D18–D48 recorded as recommended, not reviewed). Not built |
 
 ## SW-1 Foundation
 
@@ -217,7 +217,7 @@ Open [`sw-9-qa-reactions/sw-9-mockups.html`](sw-9-qa-reactions/sw-9-mockups.html
 
 Open [`sw-50-custom-templates/sw-50-mockups.html`](sw-50-custom-templates/sw-50-mockups.html) in a browser. A person or an agent makes their own template: fonts, logos, title art, ornament, a palette and custom layouts. It is checked, published as a version and shared like a deck. The template editor is interactive: the tabs switch, the colour pickers re-skin the sample slides and re-run the contrast check, and the publish checklist follows. The example brand, Northwind, is made up. Brand templates are user content and never ship in this repo. The PNGs are screenshots of each section at 1300 px wide.
 
-SW-50 was first sketched in the SW-2 mockups (section 07) as "uploaded templates and deck import". It was split on 2026-11-17: importing a look from an existing deck is now SW-354. The same day, the built-in layout gaps found by rebuilding a real 44-slide deck were merged into SW-50. They are listed in the scope section and have no mockups yet.
+SW-50 was first sketched in the SW-2 mockups (section 07) as "uploaded templates and deck import". It was split on 2026-11-17: importing a look from an existing deck is now SW-354. The same day, the built-in layout gaps found by rebuilding a real 44-slide deck were merged into SW-50. Their mockups are three more pages, listed under "Layout gaps" below.
 
 | Screen | PNG |
 |---|---|
@@ -250,4 +250,43 @@ D1–D3 were settled with SW-2 on 2026-11-16 and are listed in its section. D2's
 - **D16. Light or dark:** a custom layout declares its surface: light, dark, or either, where the slide picks.
 - **D17. Motion:** none in SW-50 beyond step reveals. Named effects are a later story.
 
-Not designed yet: the built-in layout gaps (a callout on every content layout, inline emphasis, a statement layout, dark content slides, fuller cards, compare, quote, image and links layouts, parts with captions and an appendix, diagram blocks). Which diagrams become built-in blocks and which become custom layouts is decided in planning.
+### Layout gaps (2026-11-17)
+
+The built-in layout gaps (SW-356 to SW-373) were designed in three groups, each with a mockup page and a build spec. The decisions were recorded on SW-50 as recommended and have not been reviewed in a design round; the work item holds each one's question, answer and alternatives.
+
+| Group | Page | Build spec | Decisions |
+|---|---|---|---|
+| A: slots on existing layouts, chrome and parts, and the small items (SW-356, SW-357, SW-360, SW-361, SW-364, SW-367, SW-370 to SW-373) | [`sw-50-gaps-a.html`](sw-50-custom-templates/sw-50-gaps-a.html) | [`gaps-a.md`](sw-50-custom-templates/gaps-a.md) | D18–D28 |
+| B: new or wider layouts (SW-358, SW-359, SW-362, SW-363, SW-365, SW-366, SW-368) | [`sw-50-gaps-b.html`](sw-50-custom-templates/sw-50-gaps-b.html) | [`gaps-b.md`](sw-50-custom-templates/gaps-b.md) | D39–D48 |
+| C: diagram building blocks (SW-369) | [`sw-50-gaps-c.html`](sw-50-custom-templates/sw-50-gaps-c.html) | [`gaps-c.md`](sw-50-custom-templates/gaps-c.md) | D29–D38 |
+
+The pages draw slides in system fonts, so letter widths differ a little from the built-in fonts, and the fit figures in the specs are estimates to confirm when the real fixtures are made.
+
+| Group | Section | PNG |
+|---|---|---|
+| A | callout | [01-callout](sw-50-custom-templates/png/sw-50-gaps-a-01-callout.png) |
+| A | emphasis | [02-emphasis](sw-50-custom-templates/png/sw-50-gaps-a-02-emphasis.png) |
+| A | icons | [03-icons](sw-50-custom-templates/png/sw-50-gaps-a-03-icons.png) |
+| A | steps | [04-steps](sw-50-custom-templates/png/sw-50-gaps-a-04-steps.png) |
+| A | limits | [05-limits](sw-50-custom-templates/png/sw-50-gaps-a-05-limits.png) |
+| A | parts | [06-parts](sw-50-custom-templates/png/sw-50-gaps-a-06-parts.png) |
+| A | notes | [07-notes](sw-50-custom-templates/png/sw-50-gaps-a-07-notes.png) |
+| A | preview deck | [08-preview-deck](sw-50-custom-templates/png/sw-50-gaps-a-08-preview-deck.png) |
+| A | talk template | [09-talk-template](sw-50-custom-templates/png/sw-50-gaps-a-09-talk-template.png) |
+| A | shared | [10-shared](sw-50-custom-templates/png/sw-50-gaps-a-10-shared.png) |
+| B | scope | [00-scope](sw-50-custom-templates/png/sw-50-gaps-b-00-scope.png) |
+| B | surface | [01-surface](sw-50-custom-templates/png/sw-50-gaps-b-01-surface.png) |
+| B | statement | [02-statement](sw-50-custom-templates/png/sw-50-gaps-b-02-statement.png) |
+| B | cards | [03-cards](sw-50-custom-templates/png/sw-50-gaps-b-03-cards.png) |
+| B | compare | [04-compare](sw-50-custom-templates/png/sw-50-gaps-b-04-compare.png) |
+| B | quote | [05-quote](sw-50-custom-templates/png/sw-50-gaps-b-05-quote.png) |
+| B | links | [06-links](sw-50-custom-templates/png/sw-50-gaps-b-06-links.png) |
+| B | image | [07-image](sw-50-custom-templates/png/sw-50-gaps-b-07-image.png) |
+| B | decisions | [08-decisions](sw-50-custom-templates/png/sw-50-gaps-b-08-decisions.png) |
+| C | verdicts | [01-verdicts](sw-50-custom-templates/png/sw-50-gaps-c-01-verdicts.png) |
+| C | stack | [02-stack](sw-50-custom-templates/png/sw-50-gaps-c-02-stack.png) |
+| C | bars | [03-bars](sw-50-custom-templates/png/sw-50-gaps-c-03-bars.png) |
+| C | flow | [04-flow](sw-50-custom-templates/png/sw-50-gaps-c-04-flow.png) |
+| C | levels and facts | [05-levels-and-facts](sw-50-custom-templates/png/sw-50-gaps-c-05-levels-and-facts.png) |
+| C | custom layouts | [06-custom-layouts](sw-50-custom-templates/png/sw-50-gaps-c-06-custom-layouts.png) |
+| C | findings and hooks | [07-findings-and-hooks](sw-50-custom-templates/png/sw-50-gaps-c-07-findings-and-hooks.png) |
