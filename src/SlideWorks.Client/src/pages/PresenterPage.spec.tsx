@@ -15,6 +15,13 @@ const presenterPath = `/api/decks/${deckId}/presenter`;
 const paused = (overrides: Partial<PresentationState> = {}) =>
   presentationState({ timer: { state: 'paused', elapsedMs: 760000 }, ...overrides });
 
+// The deck's logo, drawn on every thumbnail.
+test.beforeEach(async ({ page }) => {
+  await page.route(`**${view.look.logo!.url}`, (route) =>
+    route.fulfill({ path: 'src/test-support/fixtures/sample-image.png', contentType: 'image/png' }),
+  );
+});
+
 // Stubs the API and the hub, mounts the presenter window and waits until it can be driven.
 async function openPresenter(
   page: Page,
@@ -61,7 +68,7 @@ test('PresenterPage_WhenArrowSpaceAndPageKeysPressed_ShouldMoveThroughUpdatePres
     { slide: 16, step: 0, black: false, skipDeepDives: false },
     { slide: 1, step: 0, black: false, skipDeepDives: false },
   ]);
-  // The previous button names where it goes.
+  // The next button names where it goes.
   await expect(page.getByTestId('presenter-next-button')).toHaveAccessibleName(
     'Next: slide 2: Big batches hide the risk',
   );
