@@ -6,7 +6,7 @@ using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks.Mcp;
 using SlideWorks.WebApi.Features.Decks.Views;
-using SlideWorks.WebApi.Features.Join.Views;
+using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure;
@@ -24,6 +24,7 @@ public class DeckQueries(
     IDeckAccess access,
     IActivityLog activity,
     IPublicUrls urls,
+    JoinViews joinViews,
     TimeProvider clock,
     ITemplateCatalogue templates,
     IPaletteCatalogue palettes)
@@ -56,7 +57,7 @@ public class DeckQueries(
             deck.Revision,
             IsOwner: true,
             DeckLinks.Play(deck.Id, deck.Slug),
-            JoinView.Placeholder,
+            await joinViews.ForAsync(deck),
             SharingSummary.From(deck.Sharing, viewerCount),
             DeckParts.Read(deck),
             LookViews.ForPage(deck, templates, palettes),

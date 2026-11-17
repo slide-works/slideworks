@@ -21,6 +21,7 @@ namespace SlideWorks.AcceptanceTests;
 //
 // The port is reserved before the host starts, so SLIDEWORKS_PUBLIC_URL can name it: links, OAuth metadata, the MCP
 // resource and the cross-site write guard then all agree with the address the browser uses, even outside a request.
+// SLIDEWORKS_JOIN_URL names the same port as localhost, which gives the run a join host that is not the app's host.
 [SetUpFixture]
 public class AcceptanceApp
 {
@@ -49,6 +50,8 @@ public class AcceptanceApp
                     ["SLIDEWORKS_DB_PATH"] = _dbPath,
                     [ImageStore.DATA_PATH_SETTING] = _dataPath,
                     ["SLIDEWORKS_PUBLIC_URL"] = BaseUrl,
+                    // The same server under a second host name, so the join host is a different origin from the app's.
+                    ["SLIDEWORKS_JOIN_URL"] = $"http://localhost:{port}",
                     [IUserDirectory.ADMIN_EMAIL_SETTING] = TestUser.Ada.Email,
                 }));
             builder.ConfigureTestServices(TestAuthScheme.AddTo);

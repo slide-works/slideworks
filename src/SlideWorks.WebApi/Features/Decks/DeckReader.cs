@@ -4,6 +4,7 @@ using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Decks.Mcp;
 using SlideWorks.WebApi.Features.Decks.Views;
+using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Slides;
@@ -20,6 +21,7 @@ public class DeckReader(
     ICurrentActor actor,
     IDeckAccess access,
     IPublicUrls urls,
+    JoinViews joinViews,
     ITemplateCatalogue templates,
     IPaletteCatalogue palettes)
 {
@@ -54,7 +56,7 @@ public class DeckReader(
     }
 
     private async Task<DeckPlayView> PlayAsync(Deck deck)
-        => DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), LookViews.From(deck, templates, palettes));
+        => DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), LookViews.From(deck, templates, palettes), await joinViews.ForAsync(deck));
 
     private Task<Deck> LoadDeckAsync(string deckId) => db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);
 

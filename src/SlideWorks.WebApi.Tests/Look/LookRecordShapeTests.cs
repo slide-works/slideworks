@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Decks.Views;
+using SlideWorks.WebApi.Features.Join.Views;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Look.Views;
 using SlideWorks.WebApi.Features.Slides;
@@ -42,7 +43,7 @@ public class LookRecordShapeTests : ApiTestFixture
             DeepDive = slide.GetProperty("deepDive").GetBoolean(),
         });
 
-        var json = Serialise(DeckPlayView.From(deck, slides, example.GetProperty("look").Deserialize<LookView>(AppJsonOptions())!));
+        var json = Serialise(DeckPlayView.From(deck, slides, example.GetProperty("look").Deserialize<LookView>(AppJsonOptions())!, example.GetProperty("join").Deserialize<JoinView>(AppJsonOptions())!));
 
         JsonShape.AssertMatches(json, "deck-play.json", ScreenShapes.DeckPlay);
         SameJson(json, example).ShouldBeTrue(Differs(json, example));

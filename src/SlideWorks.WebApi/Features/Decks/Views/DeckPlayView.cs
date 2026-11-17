@@ -16,6 +16,6 @@ public sealed record DeckPlayView(
     JoinView Join,
     IReadOnlyList<DeckPlaySlide> Slides)
 {
-    public static DeckPlayView From(Deck deck, IEnumerable<Slide> slides, LookView look)
-        => new(deck.Id, deck.Slug, deck.Title, deck.Author, DeckParts.Read(deck), look, JoinView.Placeholder, slides.Select(DeckPlaySlide.From).ToList());
+    public static DeckPlayView From(Deck deck, IEnumerable<Slide> slides, LookView look, JoinView join)
+        => new(deck.Id, deck.Slug, deck.Title, deck.Author, DeckParts.Read(deck), look, join, slides.Select(DeckPlaySlide.From).ToList());
 }
