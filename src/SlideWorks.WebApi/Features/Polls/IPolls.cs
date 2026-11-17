@@ -23,4 +23,9 @@ public interface IPolls
     // a poll. Seq comes from PollSeq. A closed round's Answered and Counts are its Final snapshot, written in the close
     // transaction; an open round's come from IPollTallies.
     Task<PollControlView?> ControlAsync(string deckId, int slide);
+
+    // Ending the live session: closes the session's open round with its Final, as CloseAsync does, or discards its draft
+    // (ClosedAt with no Final). Called once from LiveCommands.EndAsync, with the session it is about to end, before it is
+    // ended. Does nothing when the session has no unclosed round.
+    Task EndSessionAsync(string deckId, Guid sessionId);
 }

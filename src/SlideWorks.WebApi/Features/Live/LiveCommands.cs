@@ -6,6 +6,7 @@ using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Look.Views;
+using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -28,7 +29,7 @@ public class LiveCommands(
     IAudienceSessions sessions,
     IPresentations presentations,
     IJoinUrls joinUrls,
-    Polls.Polls polls,
+    IPolls polls,
     TimeProvider clock)
 {
     // SQLITE_CONSTRAINT_UNIQUE: the extended code, so a NOT NULL or primary key failure is never mistaken for the race.
@@ -71,7 +72,7 @@ public class LiveCommands(
             return;
         }
         // Before the session ends: an open poll round is closed with its final result, and a draft round is discarded (V4).
-        await polls.EndSessionAsync(deckId);
+        await polls.EndSessionAsync(deckId, session.Id);
         session.EndedAt = clock.GetUtcNow();
         await db.SaveChangesAsync();
         await roster.ClosedAsync(deckId, session.Id.ToString());

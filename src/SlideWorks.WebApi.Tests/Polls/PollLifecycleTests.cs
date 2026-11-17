@@ -30,6 +30,9 @@ public class PollLifecycleTests : PollTestFixture
 
     private static readonly string[] _secondOptions = ["The intro", "The demo", "The recap"];
 
+    // How long two racing requests may take before they are cancelled and the test fails rather than hangs.
+    private static readonly TimeSpan _raceBound = TimeSpan.FromSeconds(30);
+
     // Each refused action: the action, the state it is tried in, and the code it gives.
     private static readonly object[] _refusals =
     [
@@ -401,6 +404,80 @@ public class PollLifecycleTests : PollTestFixture
         view.GetProperty("number").GetInt32().ShouldBe(2);
         left.GetProperty("phase").GetString().ShouldBe("closed");
         (await StoredRoundAsync(draft.Id)).Final.ShouldBeNull();
+    }
+
+    [TestCase(false, PollRefusals.WRONG_PHASE)]
+    [TestCase(true, PollRefusals.ANOTHER_POLL_OPEN)]
+    public async Task Open_WhenTwoArriveAtOnce_ShouldOpenOneRoundAndRefuseTheOther(bool otherSlide, string code)
+    {
+        var poll = await SeedPollAsync();
+        var target = otherSlide ? (await AddSecondPollAsync(poll)).Slide : poll.Slide;
+        var entries = await ActivityCountAsync(poll.DeckId);
+
+        using var bound = new CancellationTokenSource(_raceBound);
+        var responses = await Task.WhenAll(
+            Client.PostAsync(ActionPath("open", poll.DeckId, poll.Slide), null, bound.Token),
+            Client.PostAsync(ActionPath("open", poll.DeckId, target), null, bound.Token));
+        var refused = responses.Single(r => r.StatusCode != HttpStatusCode.OK);
+        var body = await refused.Content.ReadFromJsonAsync<JsonElement>();
+        var phases = new List<string?>();
+        foreach (var slide in new[] { poll.Slide, target }.Distinct())
+        {
+            phases.Add((await ControlAsync(poll.DeckId, slide)).GetProperty("phase").GetString());
+        }
+
+        responses.Count(r => r.StatusCode == HttpStatusCode.OK).ShouldBe(1);
+        refused.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        body.GetProperty("error").GetString().ShouldBe(code);
+        phases.Count(phase => phase == "open").ShouldBe(1);
+        (await ActivityCountAsync(poll.DeckId)).ShouldBe(entries + 1);
+    }
+
+    [Test]
+    public async Task NewRound_WhenTwoArriveAtOnce_ShouldStartOneRoundAndRefuseTheOther()
+    {
+        var poll = await SeedPollAsync();
+        var first = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await Rows.CloseAsync(first.Id, joinedAtClose: 0);
+
+        using var bound = new CancellationTokenSource(_raceBound);
+        var responses = await Task.WhenAll(
+            Client.PostAsync(ActionPath("round", poll.DeckId, poll.Slide), null, bound.Token),
+            Client.PostAsync(ActionPath("round", poll.DeckId, poll.Slide), null, bound.Token));
+        var refused = responses.Single(r => r.StatusCode != HttpStatusCode.OK);
+        var body = await refused.Content.ReadFromJsonAsync<JsonElement>();
+        var view = await ControlAsync(poll.DeckId, poll.Slide);
+
+        responses.Count(r => r.StatusCode == HttpStatusCode.OK).ShouldBe(1);
+        refused.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        body.GetProperty("error").GetString().ShouldBe(PollRefusals.WRONG_PHASE);
+        view.GetProperty("phase").GetString().ShouldBe("open");
+        view.GetProperty("number").GetInt32().ShouldBe(2);
+        view.GetProperty("rounds").EnumerateArray().Select(Summary).ShouldBe(["1: 0 of 0"]);
+    }
+
+    [Test]
+    public async Task Open_WhenRefusedWhileAnotherSlideHoldsADraft_ShouldLeaveTheDraftUntouched()
+    {
+        var poll = await SeedPollAsync();
+        var (second, secondId) = await AddSecondPollAsync(poll);
+        var first = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await Rows.CloseAsync(first.Id, joinedAtClose: 0);
+        var other = await Rows.RoundAsync(secondId, poll.SessionId);
+        await Rows.CloseAsync(other.Id, joinedAtClose: 0);
+        var draft = await Rows.RoundAsync(secondId, poll.SessionId, PollPhase.Draft, number: 2);
+
+        var response = await Client.PostAsync(ActionPath("open", poll.DeckId, poll.Slide), null);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var kept = await StoredRoundAsync(draft.Id);
+        var view = await ControlAsync(poll.DeckId, second);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        body.GetProperty("error").GetString().ShouldBe(PollRefusals.WRONG_PHASE);
+        kept.ClosedAt.ShouldBeNull();
+        kept.OpenedAt.ShouldBeNull();
+        view.GetProperty("phase").GetString().ShouldBe("draft");
+        view.GetProperty("number").GetInt32().ShouldBe(2);
     }
 
     [Test]

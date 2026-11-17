@@ -18,15 +18,18 @@ namespace SlideWorks.WebApi.Features.Polls;
 // nothing. A change records its activity entry in that transaction; after the commit, and never inside it, it calls
 // IAudienceRelay.RefreshAsync and then IPollPublisher.PublishAsync, one after the other.
 //
+// No unique-index failure is caught: EF begins a SQLite transaction with BEGIN IMMEDIATE, which takes the write lock before
+// the phase is read, so a second Open or New round waits, re-reads the rows under the lock and is refused (wrong_phase or
+// another_poll_open) before it writes; the partial index can't be reached from one process.
+//
 // A draft row (OpenedAt null) exists only after New round on a manual poll. Opening or starting a round on one slide
 // discards another slide's draft first (ClosedAt with no Final); its number stays used up. Close writes ClosedAt,
 // JoinedAtClose and Final from the answer rows in one transaction, and the answer writer re-checks ClosedAt inside its own
 // commit, so an answer is either in Final or refused. Ending the live session calls EndSessionAsync, which closes an open
 // round the same way and discards a draft. Arrival is IPollArrival's: this class knows nothing of it.
 //
-// Per request. Registered for IPolls and as itself, for LiveCommands' one call to EndSessionAsync, which IPolls doesn't have.
+// Per request.
 [RegisterPerRequest(For = typeof(IPolls))]
-[RegisterPerRequest(Concrete = true)]
 public class Polls(
     AppDbContext db,
     PollReader reader,
@@ -154,15 +157,16 @@ public class Polls(
 
     public Task<PollControlView?> ControlAsync(string deckId, int slide) => reader.ControlAsync(deckId, slide);
 
-    // Ending the live session (LiveCommands.EndAsync, before the session ends): an open round is closed with its Final, as
-    // Close does, and a draft is discarded. Does nothing when the deck isn't live or no round is unclosed. A round on a slide
-    // that has since been deleted is closed but not published, since it has no slide number.
-    public async Task EndSessionAsync(string deckId)
+    // Ending the live session (LiveCommands.EndAsync, with the session it is ending, before it ends it): an open round is
+    // closed with its Final, as Close does, and a draft is discarded. Does nothing when the session has no unclosed round. A
+    // round on a slide that has since been deleted is closed but not published, since it has no slide number. It refreshes
+    // and publishes but reads no view, since the caller needs none.
+    public async Task EndSessionAsync(string deckId, Guid sessionId)
     {
         int? slide;
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
-            if (await reader.LiveSessionAsync(deckId) is not { } session || await rows.OpenRoundAsync(session) is not { } round)
+            if (await rows.OpenRoundAsync(sessionId) is not { } round)
             {
                 return;
             }
@@ -181,7 +185,8 @@ public class Polls(
         }
         if (slide != null)
         {
-            await AnnounceAsync(deckId, slide.Value);
+            await relay.RefreshAsync(deckId);
+            await publisher.PublishAsync(deckId, slide.Value);
         }
     }
 
