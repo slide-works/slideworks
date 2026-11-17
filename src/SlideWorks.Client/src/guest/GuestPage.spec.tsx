@@ -149,11 +149,17 @@ test('an unexpected JoinAudience failure shows a recoverable message, not a blan
   mount,
   page,
 }) => {
-  await stubDeckHub(page, {
+  const hub = await stubDeckHub(page, {
     audience: { state: guestView('live').state, refuse: 'something_else' as never },
   });
   await stubApi(page, { [joinPath]: { json: guestView('live') } });
   await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
   await expect(page.getByTestId(GUEST_TEST_IDS.error)).toBeVisible();
   await expect(page.getByTestId(GUEST_TEST_IDS.errorRetry)).toBeVisible();
+
+  // The refusal clears, and Try again brings the screens back.
+  hub.refuseAudience(undefined);
+  await page.getByTestId(GUEST_TEST_IDS.errorRetry).click();
+  await expect(page.getByTestId(GUEST_TEST_IDS.error)).toHaveCount(0);
+  await expect(page.getByTestId(GUEST_TEST_IDS.following)).toBeVisible();
 });

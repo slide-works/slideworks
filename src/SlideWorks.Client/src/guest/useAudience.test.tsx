@@ -20,6 +20,7 @@ const fake = vi.hoisted(() => {
   const connection = {
     start: vi.fn(async () => undefined),
     stop: vi.fn(async () => undefined),
+    state: 'Connected' as string,
     invoke: vi.fn(),
     on: vi.fn((name: string, handler: (...args: unknown[]) => void) => (handlers[name] = handler)),
     onreconnecting: vi.fn((handler: () => void) => (handlers.reconnecting = handler)),
@@ -64,6 +65,7 @@ const hubRefusal = (message: string) =>
 beforeEach(async () => {
   vi.clearAllMocks();
   vi.useRealTimers();
+  fake.connection.state = 'Connected';
   random.current = () => 0;
   fake.connection.invoke.mockResolvedValue(audienceState({ seq: 50 }));
   fake.get.mockResolvedValue(initial);
@@ -250,10 +252,147 @@ describe('useAudience', () => {
     expect(latest.status).toBe('live');
   });
 
-  it('never sets offline when a re-read says no_session while the hub is up', async () => {
-    fake.get.mockRejectedValueOnce(new ApiError(NO_SESSION, 404));
+  it('goes offline and stops re-reading when a re-read says no_session (the deck is gone)', async () => {
+    vi.useFakeTimers();
+    fake.get.mockRejectedValue(new ApiError(NO_SESSION, 404));
     await push(audienceState({ seq: 51, revision: 9 }));
-    expect(latest.status).toBe('live');
+    await act(async () => vi.advanceTimersByTimeAsync(JITTER_MS));
+    expect(latest.status).toBe('offline');
+
+    await act(async () => vi.advanceTimersByTimeAsync(60_000));
+    expect(fake.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not re-read once the talk has ended', async () => {
+    vi.useFakeTimers();
+    await act(async () => fake.handlers.audienceEvent({ type: 'audienceEnded' }));
+    await push(audienceState({ seq: 51, revision: 12, phase: 'ended', current: null }));
+    await act(async () => vi.advanceTimersByTimeAsync(60_000));
+    expect(fake.get).not.toHaveBeenCalled();
+  });
+
+  it('stops a failing re-read when the talk ends meanwhile', async () => {
+    vi.useFakeTimers();
+    fake.get.mockRejectedValue(new TypeError('Failed to fetch'));
+    await push(audienceState({ seq: 51, revision: 9 }));
+    await act(async () => vi.advanceTimersByTimeAsync(JITTER_MS));
+    expect(fake.get).toHaveBeenCalledTimes(1);
+
+    await act(async () => fake.handlers.audienceEvent({ type: 'audienceEnded' }));
+    await act(async () => vi.advanceTimersByTimeAsync(60_000));
+    expect(fake.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies audienceEnded whatever the seq of the last live state', async () => {
+    await push(audienceState({ seq: 900 }));
+    await act(async () => fake.handlers.audienceEvent({ type: 'audienceEnded' }));
+    expect(latest.state.phase).toBe('ended');
+    expect(latest.state.current).toBeNull();
+  });
+
+  it('applies a state with the held seq when its phase differs, and drops an exact repeat', async () => {
+    await push(audienceState({ seq: 50, phase: 'lobby', current: null }));
+    expect(latest.state.phase).toBe('lobby');
+
+    await push(audienceState({ seq: 50, phase: 'lobby', current: null, revision: 99 }));
+    expect(fake.get).not.toHaveBeenCalled();
+
+    await push(audienceState({ seq: 50, phase: 'live' }));
+    expect(latest.state.phase).toBe('live');
+  });
+
+  it('does not throw when an invoke is cancelled by a reconnect, and stays reconnecting', async () => {
+    await act(() => root.unmount());
+    let cancel!: (error: Error) => void;
+    fake.connection.invoke.mockReturnValueOnce(new Promise<AudienceState>((_, r) => (cancel = r)));
+    root = createRoot(document.createElement('div'));
+    await act(async () => root.render(createElement(Probe, { report })));
+    await flush();
+
+    await act(async () => fake.handlers.reconnecting());
+    await act(async () =>
+      cancel(new Error('Invocation canceled due to the underlying connection being closed.')),
+    );
+    expect(latest.status).toBe('reconnecting');
+  });
+
+  it('treats an invoke rejected while not connected as a connection error, not a failure', async () => {
+    await act(() => root.unmount());
+    fake.connection.invoke.mockRejectedValueOnce(
+      new Error("Cannot send data if the connection is not in the 'Connected' State."),
+    );
+    root = createRoot(document.createElement('div'));
+    await act(async () => root.render(createElement(Probe, { report })));
+    await flush();
+    expect(latest.status).toBe('connecting');
+  });
+
+  it('makes no call when a throttled rejoin timer would fire after the connection closed', async () => {
+    vi.useFakeTimers();
+    random.current = () => 0.5;
+    await act(async () => fake.handlers.reconnecting());
+    fake.connection.invoke.mockRejectedValueOnce(hubRefusal('too_many_attempts'));
+    await act(async () => fake.handlers.reconnected());
+    await act(async () => vi.advanceTimersByTimeAsync(JITTER_MS));
+    expect(latest.status).toBe('reconnecting');
+
+    fake.connection.invoke.mockClear();
+    await act(async () => fake.handlers.close());
+    await act(async () => vi.advanceTimersByTimeAsync(THROTTLED_RETRY_MS + SLOW_JITTER_MS));
+    expect(fake.connection.invoke).not.toHaveBeenCalled();
+    expect(latest.status).toBe('offline');
+  });
+
+  it('makes no call when the connection drops again before the rejoin timer fires', async () => {
+    vi.useFakeTimers();
+    random.current = () => 0.9;
+    fake.connection.invoke.mockClear();
+    await act(async () => fake.handlers.reconnecting());
+    await act(async () => fake.handlers.reconnected());
+    await act(async () => fake.handlers.reconnecting());
+    await act(async () => vi.advanceTimersByTimeAsync(JITTER_MS));
+    expect(fake.connection.invoke).not.toHaveBeenCalled();
+    expect(latest.status).toBe('reconnecting');
+  });
+
+  it('makes no call when the rejoin timer fires on a connection that is not connected', async () => {
+    vi.useFakeTimers();
+    random.current = () => 0.9;
+    fake.connection.invoke.mockClear();
+    await act(async () => fake.handlers.reconnected());
+    fake.connection.state = 'Reconnecting';
+    await act(async () => vi.advanceTimersByTimeAsync(JITTER_MS));
+    expect(fake.connection.invoke).not.toHaveBeenCalled();
+  });
+
+  it('throws an unnamed HubException for the error boundary', async () => {
+    await act(() => root.unmount());
+    fake.connection.invoke.mockRejectedValueOnce(
+      new Error(
+        "An unexpected error occurred invoking 'JoinAudience' on the server. HubException: ",
+      ),
+    );
+    const errors: unknown[] = [];
+    class Catch extends Component<{ children: ReactNode }, { failed: boolean }> {
+      state = { failed: false };
+      static getDerivedStateFromError() {
+        return { failed: true };
+      }
+      componentDidCatch(error: unknown) {
+        errors.push(error);
+      }
+      render() {
+        return this.state.failed ? null : this.props.children;
+      }
+    }
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    root = createRoot(document.createElement('div'));
+    await act(async () =>
+      root.render(createElement(Catch, null, createElement(Probe, { report }))),
+    );
+    await flush();
+    quiet.mockRestore();
+    expect(errors).toHaveLength(1);
   });
 
   it('waits a random extra before a re-read', async () => {
