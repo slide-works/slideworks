@@ -4,6 +4,7 @@ import type { Page } from 'playwright/test';
 import type { AudienceEvent, AudienceState } from '../guest/audienceEvents';
 import type { PollActivity, PollTally } from '../polls/types';
 import type { PresentationState, PresentationUpdate, TimerCommand } from '../presentation/types';
+import type { QaRoom, QuestionTally } from '../qa/types';
 import { DECK_NOT_FOUND } from '../realtime/hubErrors';
 
 // SignalR's JSON hub protocol ends every message with a record separator.
@@ -102,7 +103,8 @@ type Sink = { send(text: string): void };
 // with "not_answered" unless the guest has an answer in an open afterAnswer round (setPollWatchable, or stubPollApi's
 // hub option keeps it in step), and a watch lasts only as long as the connection that made it. pushPollTally sends an
 // audience tally to the connection, and a results tally only to a connection that watched. pushActivity moves the poll
-// on screen. With the transports option
+// on screen. pushQuestionTally sends a questionTally and pushRoom changes the room on the state (SW-9). With the
+// transports option
 // it offers only those transports, and plays WebSockets, Server-Sent Events (a small local server the page's event
 // stream is sent to) and long polling.
 //
@@ -449,6 +451,16 @@ export async function stubDeckHub(
     // closes or changes on screen. Later joins get that state too.
     pushActivity(activity: PollActivity | null) {
       audienceState = { ...audienceState!, seq: audienceState!.seq + 1, activity };
+      send(socket!, { type: 1, target: 'audienceEvent', arguments: [audienceState] });
+    },
+    // Sends one questionTally to the newest connection, as the hub does to the audience group (SW-9 Q5).
+    pushQuestionTally(tally: QuestionTally) {
+      send(socket!, { type: 1, target: 'audienceEvent', arguments: [tally] });
+    },
+    // Puts room on the audience state with the seq one higher and sends it, as the server does when a setting, the
+    // slide's switch, the round or the list revision changes (SW-9 Q1). Later joins get that state too.
+    pushRoom(room: QaRoom | null) {
+      audienceState = { ...audienceState!, seq: audienceState!.seq + 1, room };
       send(socket!, { type: 1, target: 'audienceEvent', arguments: [audienceState] });
     },
     // Changes the state later JoinAudience calls answer with, sending nothing: the state a reconnecting guest lands on.

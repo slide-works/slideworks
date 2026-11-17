@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import type { JoinView } from '../api/types';
 import { CANVAS_HEIGHT, CANVAS_WIDTH, useCanvasScale } from '../player/useCanvasScale';
 import { JoinProvider } from '../slides/JoinContext';
+import { GuestQa } from '../qa/guest/GuestQa';
 import { SlideRenderer } from '../slides/SlideRenderer';
 import type { SlideDeck } from '../slides/slots';
 import { ActivitySlot } from './ActivitySlot';
@@ -136,39 +137,41 @@ export function GuestFollowing({
           {reconnecting ? 'Offline' : 'Live'}
         </span>
       </header>
-      {current ? (
-        <MirroredSlide view={view} current={current} dimmed={reconnecting} />
-      ) : (
-        <div
-          data-testid={GUEST_TEST_IDS.waitingForPresenter}
-          role="status"
-          className="grid aspect-video w-full shrink-0 place-items-center rounded-[10px] border border-white/10 bg-black/30 text-sm text-(--sw-night-2) [@media(orientation:landscape)_and_(max-height:500px)]:w-[min(100cqw,calc(100cqh*16/9))] [@media(orientation:landscape)_and_(max-height:500px)]:rounded-none"
-        >
-          Waiting for the presenter
-        </div>
-      )}
-      {current && (
-        <div className="flex items-center gap-2.5 text-[11px] text-(--sw-night-muted) [@media(orientation:landscape)_and_(max-height:500px)]:hidden">
-          <span className="sr-only">{`Slide ${current.index} of ${current.count}`}</span>
-          <p data-testid={GUEST_TEST_IDS.progress} aria-hidden className="tabular-nums">
-            {`${current.index} / ${current.count}`}
-          </p>
-          <div aria-hidden className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full bg-(--sw-accent-glow)"
-              style={{ width: `${(current.index / current.count) * 100}%` }}
-            />
+      <GuestQa code={code} state={state} status={status} presenter={view.presenterName}>
+        {current ? (
+          <MirroredSlide view={view} current={current} dimmed={reconnecting} />
+        ) : (
+          <div
+            data-testid={GUEST_TEST_IDS.waitingForPresenter}
+            role="status"
+            className="grid aspect-video w-full shrink-0 place-items-center rounded-[10px] border border-white/10 bg-black/30 text-sm text-(--sw-night-2) [@media(orientation:landscape)_and_(max-height:500px)]:w-[min(100cqw,calc(100cqh*16/9))] [@media(orientation:landscape)_and_(max-height:500px)]:rounded-none"
+          >
+            Waiting for the presenter
           </div>
+        )}
+        {current && (
+          <div className="flex items-center gap-2.5 text-[11px] text-(--sw-night-muted) [@media(orientation:landscape)_and_(max-height:500px)]:hidden">
+            <span className="sr-only">{`Slide ${current.index} of ${current.count}`}</span>
+            <p data-testid={GUEST_TEST_IDS.progress} aria-hidden className="tabular-nums">
+              {`${current.index} / ${current.count}`}
+            </p>
+            <div aria-hidden className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full bg-(--sw-accent-glow)"
+                style={{ width: `${(current.index / current.count) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+        <div className="flex min-h-0 flex-1 flex-col [@media(orientation:landscape)_and_(max-height:500px)]:hidden">
+          <ActivitySlot
+            code={code}
+            activity={state.activity}
+            status={status}
+            presenter={view.presenterName}
+          />
         </div>
-      )}
-      <div className="flex min-h-0 flex-1 flex-col [@media(orientation:landscape)_and_(max-height:500px)]:hidden">
-        <ActivitySlot
-          code={code}
-          activity={state.activity}
-          status={status}
-          presenter={view.presenterName}
-        />
-      </div>
+      </GuestQa>
     </main>
   );
 }
