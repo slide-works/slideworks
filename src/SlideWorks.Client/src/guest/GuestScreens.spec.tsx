@@ -58,7 +58,10 @@ test('the offline screen stays through connecting, keeps backing off, and goes w
   mount,
   page,
 }) => {
-  await page.clock.install();
+  // Installed and paused before mount: an installed clock runs in real time until it is paused, so a slow mount would
+  // eat into the waits these tests drive with runFor.
+  await page.clock.install({ time: 0 });
+  await page.clock.pauseAt(1000);
   const view = guestView('lobby');
   let retries = 0;
   const screens = (status: 'offline' | 'connecting' | 'live') => (
@@ -147,7 +150,10 @@ test('the offline screen retries by itself after the base wait plus a random ext
   mount,
   page,
 }) => {
-  await page.clock.install();
+  // Installed and paused before mount: an installed clock runs in real time until it is paused, so a slow mount would
+  // eat into the waits these tests drive with runFor.
+  await page.clock.install({ time: 0 });
+  await page.clock.pauseAt(1000);
   const view = guestView('live');
   let retries = 0;
   await mount(
@@ -182,7 +188,10 @@ test('the lobby with a long title and presenter name does not scroll sideways at
 });
 
 test('"You\'re in" shows for 2 seconds, then the slide mirror', async ({ mount, page }) => {
-  await page.clock.install();
+  // Installed and paused before mount: an installed clock runs in real time until it is paused, so a slow mount would
+  // eat into the waits these tests drive with runFor.
+  await page.clock.install({ time: 0 });
+  await page.clock.pauseAt(1000);
   const view = guestView('live');
   await mount(<GuestScreens view={view} state={view.state} status="live" onRetry={noop} />);
   await expect(page.getByTestId(GUEST_TEST_IDS.joined)).toBeVisible();
