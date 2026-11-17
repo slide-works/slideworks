@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace SlideWorks.LoadTest;
 
@@ -15,10 +16,24 @@ public static class LoadRun
             BaseAddress = options.Url,
             Timeout = TimeSpan.FromSeconds(30),
         };
+        await using var presenter = options.OwnerCookie == null ? null : new Presenter(options, http);
+        if (presenter != null)
+        {
+            await presenter.StartAsync(ct);
+        }
         var state = new RunState(await BaselineAsync(options, http, ct));
-        var voters = Enumerable.Range(0, options.Voters).Select(_ => new Voter(options, http, state)).ToList();
+        var voters = Enumerable.Range(0, options.Voters).Select(i => new Voter(options, options.HubUrls[i % options.HubUrls.Count], http, state)).ToList();
+        var phase = "1 before";
+        using var stopProbes = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var probes = presenter?.ProbeAsync(() => phase, stopProbes.Token) ?? Task.CompletedTask;
         try
         {
+            if (presenter != null)
+            {
+                // A few probes with nobody joined, for comparison.
+                await Task.Delay(Presenter.PROBE_INTERVAL * 3, TimeProvider.System, ct);
+                phase = "2 joining";
+            }
             var started = Stopwatch.GetTimestamp();
             using var gate = new SemaphoreSlim(LoadOptions.MAX_JOINS_IN_FLIGHT);
             await Task.WhenAll(voters.Select(async voter =>
@@ -34,26 +49,52 @@ public static class LoadRun
                 }
             }));
             await progress.WriteLineAsync($"joined {state.Joined} of {options.Voters} in {Stopwatch.GetElapsedTime(started).TotalSeconds:F1} s; answering over {options.Seconds} s");
+            if (presenter != null)
+            {
+                phase = "3 connected";
+                await Task.Delay(Presenter.PROBE_INTERVAL * 3, TimeProvider.System, ct);
+                phase = "4 window";
+            }
             var window = TimeSpan.FromSeconds(options.Seconds);
+            var close = presenter != null && options.CloseAt is { } closeAt ? CloseLaterAsync(presenter, closeAt, state, ct) : Task.CompletedTask;
             await Task.WhenAll(voters.Where(v => v.Joined).Select(async voter =>
             {
                 await Task.Delay(window * Dice.NextDouble(), TimeProvider.System, ct);
                 await voter.AnswerAsync(ct);
             }));
+            await close;
+            await stopProbes.CancelAsync();
+            await probes;
+            if (presenter != null)
+            {
+                await progress.WriteAsync(presenter.Table());
+            }
             return LoadReport.From(options, state);
         }
         finally
         {
+            await stopProbes.CancelAsync();
             await Task.WhenAll(voters.Select(v => v.DisposeAsync().AsTask()));
         }
+    }
+
+    private static async Task CloseLaterAsync(Presenter presenter, double seconds, RunState state, CancellationToken ct)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(seconds), TimeProvider.System, ct);
+        await presenter.CloseAsync(state, ct);
     }
 
     // A fresh guest reads the poll first: a run against a poll that is not open would only measure refusals, so it stops, and
     // the tally it finds is what the voters' answers are counted from.
     private static async Task<int> BaselineAsync(LoadOptions options, HttpClient http, CancellationToken ct)
     {
+        var cookie = $"sw_guest={Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16))}";
+        // The app gives the poll view only to a guest on the session's roster, so this guest joins the audience first.
+        await using var hub = Presenter.Hub(options.Url, cookie);
+        await hub.StartAsync(ct);
+        await hub.InvokeAsync<System.Text.Json.JsonElement>("JoinAudience", options.Code, ct);
         using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/join/{options.Code}/poll");
-        request.Headers.Add("Cookie", $"sw_guest={Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16))}");
+        request.Headers.Add("Cookie", cookie);
         using var response = await http.SendAsync(request, ct);
         if (!response.IsSuccessStatusCode)
         {

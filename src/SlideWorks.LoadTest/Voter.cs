@@ -8,11 +8,11 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 namespace SlideWorks.LoadTest;
 
-// One guest, as a phone is: a sw_guest cookie of its own, the guest poll view, a hub connection over WebSockets that has
-// called JoinAudience, and one answer. It measures the answer's write (request sent to response read) and then how long the
+// One guest, as a phone is: a sw_guest cookie of its own, a hub connection over WebSockets that has called JoinAudience,
+// then the guest poll view, and one answer. It measures the answer's write (request sent to response read) and then how long the
 // first pollTally on its own connection whose answered count includes its answer took to arrive. It sends no Origin, as a
 // client that isn't a browser doesn't. Every refusal is counted by kind in RunState, never swallowed.
-public sealed class Voter(LoadOptions options, HttpClient http, RunState state) : IAsyncDisposable
+public sealed class Voter(LoadOptions options, Uri hubBase, HttpClient http, RunState state) : IAsyncDisposable
 {
     private const string HUB_PATH = "/hubs/deck";
     private const string AUDIENCE_EVENT = "audienceEvent";
@@ -39,15 +39,8 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
     {
         try
         {
-            var view = await ReadViewAsync(ct);
-            if (view is null)
-            {
-                return false;
-            }
-            _activity = view.Activity;
-            _revision = view.Mine?.Revision ?? 0;
             _hub = new HubConnectionBuilder()
-                .WithUrl(new Uri(options.Url, HUB_PATH), o =>
+                .WithUrl(new Uri(hubBase, HUB_PATH), o =>
                 {
                     o.Transports = HttpTransportType.WebSockets;
                     o.SkipNegotiation = false;
@@ -58,6 +51,14 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
             _hub.Closed += OnClosed;
             await StartHubAsync(ct);
             await _hub.InvokeAsync<JsonElement>("JoinAudience", options.Code, ct);
+            // The poll view only after JoinAudience: the app answers no_session to a guest who is not on the session's roster.
+            var view = await ReadViewAsync(ct);
+            if (view is null)
+            {
+                return false;
+            }
+            _activity = view.Activity;
+            _revision = view.Mine?.Revision ?? 0;
             Joined = true;
             state.RecordJoined();
             return true;
@@ -183,6 +184,9 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
             }
             _resultsDone = true;
             state.RecordResultsTimeout(timeout.TotalMilliseconds);
+            // A voter who never saw its result is an error for the gate too, once (Fail keeps it to one per voter). It is
+            // never also a drop: _resultsDone makes a later Closed a no-op, and a dropped voter returned above.
+            Fail("results: timed out");
         }
     }
 

@@ -18,7 +18,8 @@ export type StubPollControlOptions = {
   // The deck's poll slides in this session, each keyed by its view's `slide`. Default: the poll-control.json "open"
   // sample (slide 4). A slide with no poll here answers 404.
   polls?: PollControlView[];
-  // Whether the deck has an open audience session. Default true; Open refuses not_live without one.
+  // Whether the deck has an open audience session. Default true; Open refuses not_live without one. Without one, every
+  // poll in `polls` is held as the server reads it outside a session (notLive): draft, round 1, no rounds.
   live?: boolean;
   // Scripted answers, per route, that replace the stub's own for every call of that route. Nothing changes state.
   routes?: Partial<Record<PollCall, StubbedPollRoute>>;
@@ -35,6 +36,24 @@ const ACTION_OF_PATH: Readonly<Record<string, PollAction>> = {
 // The room sees the counts when the results are live, the round is revealed, or it is closed (PollVisibility.RoomSees).
 const roomSees = (view: PollControlView) =>
   view.settings.results === 'live' || view.revealed || view.phase === 'closed';
+
+// A poll's control view outside a live session, as PollReader gives it with no session: no rounds and nobody joined, so
+// draft with round number 1, nothing answered, revealed or shown; the question, options and settings as they are.
+function notLive(view: PollControlView): PollControlView {
+  const draft: PollControlView = {
+    ...view,
+    phase: 'draft',
+    round: null,
+    number: 1,
+    answered: 0,
+    joined: 0,
+    counts: view.options.map(() => 0),
+    revealed: false,
+    answerShown: false,
+    rounds: [],
+  };
+  return { ...draft, roomSeesCounts: roomSees(draft) };
+}
 
 // A fresh round on the same poll with the given number: nothing answered, nothing revealed or shown.
 function freshRound(
@@ -55,19 +74,21 @@ function freshRound(
   return { ...next, roomSeesCounts: roomSees(next) };
 }
 
-// Answers the presenter's six poll routes for deckId at the network boundary (SW-6 V4) the way the server will: GET
+// Answers the presenter's six poll routes for deckId at the network boundary the way the server does: GET
 // /api/decks/{id}/polls/{slide} and POST …/open, /close, /reveal, /answer and /round, over poll state it keeps per slide
-// for this deck. Each action checks V4's rules before it changes anything and refuses with 409 { error } and a
+// for this deck. Each action checks the server's rules before it changes anything and refuses with 409 { error } and a
 // POLL_REFUSALS code, changing nothing:
 // - open: not_live without a session; wrong_phase unless draft; another_poll_open while another slide's round is open.
 //   A draft left by New round on another slide (opens: manual) is discarded first, back to its closed round, as the
-//   server discards that draft row (SW-6 amendment to V2 and V4).
+//   server discards that draft row.
 // - close: wrong_phase unless open. The round joins `rounds`, and the room sees the counts.
 // - reveal: wrong_phase unless open; already_visible when the room already sees the counts.
 // - show answer: wrong_phase unless closed; no_correct when the poll has no correct option.
 // - new round: wrong_phase unless closed; another_poll_open while another slide's round is open, and another slide's
 //   draft is discarded first, as for open. The next round number on the slide, open when opens is onArrival and draft
 //   when manual. A discarded draft's number stays used up, so the round after it skips that number.
+// Without a session (live: false, or after setLive(false)) every poll reads as notLive: rounds belong to their session,
+// and the next session numbers them from 1 again.
 // Every answer, a read included, carries the next seq, as the server's PollSeq stamps each view. A slide with no poll
 // answers 404 { error: 'not_a_poll' } (the stub's wording; the server's text is its own). Returns each call the page
 // made, the state, setters for the state, and hold() to answer a route slowly.
@@ -76,11 +97,13 @@ export async function stubPollControlApi(
   deckId: string,
   { polls = [pollControlView('open')], live = true, routes = {} }: StubPollControlOptions = {},
 ) {
-  const views = new Map<number, PollControlView>(polls.map((p) => [p.slide, structuredClone(p)]));
+  const views = new Map<number, PollControlView>(
+    polls.map((p) => [p.slide, live ? structuredClone(p) : notLive(structuredClone(p))]),
+  );
   // The closed view a slide had before a manual New round left it in draft: restored when that draft is discarded.
   const beforeDraft = new Map<number, PollControlView>();
   // The highest round number each slide has handed out, drafts discarded since included.
-  const usedNumbers = new Map<number, number>(polls.map((p) => [p.slide, p.number]));
+  const usedNumbers = new Map<number, number>(live ? polls.map((p) => [p.slide, p.number]) : []);
   let isLive = live;
   let seq = Math.max(0, ...polls.map((p) => p.seq));
   const calls: PollControlCall[] = [];
@@ -202,15 +225,15 @@ export async function stubPollControlApi(
       seq = Math.max(seq, view.seq);
       usedNumbers.set(view.slide, Math.max(usedNumbers.get(view.slide) ?? 0, view.number));
     },
-    // Opens or ends the audience session, for not_live. Ending it closes an open round and discards a draft left by New
-    // round, as the server does.
+    // Opens or ends the audience session, for not_live. Ending it returns every poll to what the server reads with no
+    // session (notLive): draft, round 1, no rounds, nobody joined. The remembered drafts and used round numbers go too,
+    // so the next session numbers its rounds from 1.
     setLive(next: boolean) {
       isLive = next;
       if (next) return;
-      for (const view of [...views.values()]) {
-        if (view.phase === 'open') act('close', view);
-        else discardDraft(view.slide);
-      }
+      beforeDraft.clear();
+      usedNumbers.clear();
+      for (const view of [...views.values()]) stamp(notLive(view));
     },
     // Holds the answer to the next call of `call` until release(): a slow server. The state still changes on arrival.
     hold(call: PollCall) {

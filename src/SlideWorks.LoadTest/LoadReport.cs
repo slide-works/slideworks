@@ -23,7 +23,7 @@ public sealed record LoadReport(
     bool GatePassed,
     IReadOnlyList<string> GateFailures)
 {
-    // The gate (D8, V10): write p95 under 1 s, results p95 under 2 s, errors under 1%. It is only a gate at 1,000 voters; the
+    // The gate: write p95 under 1 s, results p95 under 2 s, errors under 1%. It is only a gate at 1,000 voters; the
     // larger runs are recorded, but the verdict is printed for every run. A results p95 of n/a fails unless tallies are not
     // expected (--no-results).
     public const double WRITE_P95_LIMIT_MS = 1000;
@@ -36,8 +36,9 @@ public sealed record LoadReport(
         var results = state.ResultsMs;
         var errors = state.ErrorCount();
         var writeP95 = Percentile.Of(write, 95);
-        // With no tally received at all there is nothing to measure: n/a, not the timeout.
-        var resultsP95 = state.ResultsReceived == 0 ? null : Percentile.Of(results, 95);
+        // With no tally received, or more voters timed out than received one, the percentile would mostly be the timeout
+        // itself and read as a latency: n/a instead, beside the received and timed-out counts. n/a fails the gate.
+        var resultsP95 = state.ResultsReceived == 0 || state.ResultsTimedOut > state.ResultsReceived ? null : Percentile.Of(results, 95);
         var errorRate = errors / (double)options.Voters;
         var failures = Failures(options, writeP95, resultsP95, errorRate);
         return new LoadReport(

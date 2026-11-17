@@ -8,7 +8,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-2-templates-palettes/`](sw-2-templates-palettes/) | SW-2 Templates and palettes (also covers SW-15 Wada palettes and SW-50 uploaded templates) | Built (SW-2's sections; Wada palettes and uploaded templates are still to come) |
 | [`sw-4-presenter/`](sw-4-presenter/) | SW-4 Presenter view and phone remote (SW-7 merged in) | Built (decisions D1–D6 settled, plan decisions D7–D17 as built; the user guide is [`docs/presenting.md`](../docs/presenting.md)) |
 | [`sw-5-audience-join/`](sw-5-audience-join/) | SW-5 Audience join: QR code, join code and guest mode | Mockups reviewed, decisions D1–D8 settled, not built |
-| [`sw-6-polls/`](sw-6-polls/) | SW-6 Live multiple-choice polls | Mockups reviewed, decisions D1–D8 settled, not built |
+| [`sw-6-polls/`](sw-6-polls/) | SW-6 Live multiple-choice polls | Built (decisions D1–D8 settled; the mockups differ in a few places, listed under "As built" in the SW-6 section) |
 | [`sw-9-qa-reactions/`](sw-9-qa-reactions/) | SW-9 Audience Q&A and reactions | Mockups reviewed, decisions D1–D9 settled, D10 proposed, not built |
 
 ## SW-1 Foundation
@@ -172,6 +172,16 @@ Open [`sw-6-polls/sw-6-mockups.html`](sw-6-polls/sw-6-mockups.html) in a browser
 - **D6. Correct answer:** optional on any poll. The presenter shows it with a separate button after closing. The slide marks the correct bar and each phone says whether its owner got it. There are no scores.
 - **D7. Reset:** New round asks the same question again from zero. Earlier rounds are kept, and the presenter panel and `get_poll_results` list them. The big screen shows only the current round.
 - **D8. Load and measure:** a run of 1,000 voters must pass before SW-6 ships, with sending an answer under 1 s at p95, results on screen under 2 s at p95 and errors under 1%. It runs on demand, not on every pull request. Runs at 3,000 and 10,000 voters are measured and written down, not gates. The measure is the response rate: people who answered ÷ guests joined when the poll closed.
+
+### As built
+
+The mockups are not edited. The product differs from them in these places, on purpose:
+
+- **Keys:** the presenter window uses `P` to open or close the poll, `R` to reveal results and `A` to show the answer. The mockup's `O` and `N` clash with SW-4's overview and notes keys, and New round has no key.
+- **Errors on the phone remote:** the mockup has no error state for the poll strip. A refused call shows its message over the slide preview, above the strip, so the strip keeps its height on a short screen. A dismiss button clears it.
+- **The answer count on a phone:** once a guest has answered, the phone shows "N answers so far" while the poll is open, also when the bars are hidden. The mockup shows it only when the bars show. A guest who hasn't answered yet sees no count.
+- **A changed poll:** the phone's card says "<presenter> changed the poll. Send this pick again?" The mockup names a new round.
+- **The join pill and the hidden-results chip on the big screen:** both use the theme's ink colour with paper-coloured text, from the look's tokens. The mockup draws them in its night colour with white text.
 
 ## SW-9 Audience Q&A and reactions
 
