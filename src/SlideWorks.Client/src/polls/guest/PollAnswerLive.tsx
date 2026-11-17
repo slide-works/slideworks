@@ -176,12 +176,15 @@ class AnswerSession {
     this.submit(this.held.picks);
   };
 
+  // Two callers, one rule (SW-271 D3). PollConflict's Clear, or with a failed or queued pick: the unsent pick is
+  // dropped and the card shows what the server holds for this guest in the round, mine's picks or nothing, idle.
+  // PollFoot's "Change my answer" after a send: the sent picks stay ticked, so nothing changes; the guest edits them
+  // and Send comes back once they differ from mine.
   readonly clear = () => {
-    const { state } = this.held;
-    this.set({
-      picks: [],
-      ...(state === 'conflict' || state === 'failed' ? { state: 'idle', error: null } : {}),
-    });
+    const { state, mine } = this.held;
+    if (state !== 'conflict' && state !== 'failed' && state !== 'queued') return;
+    this.queued = null;
+    this.set({ picks: mine?.picks ?? [], state: 'idle', error: null });
   };
 
   private readonly onTally = (tally: PollTally) => {

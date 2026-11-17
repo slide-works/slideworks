@@ -369,7 +369,7 @@ describe('PollAnswerLive pick several', () => {
 });
 
 describe('PollAnswerLive conflicts and failures', () => {
-  it('a 409 keeps the picks and is conflict; send then uses the revision from current, and clear empties the picks', async () => {
+  it('a 409 keeps the picks and is conflict; send then uses the revision from current, and clear drops the unsent picks for what the server holds', async () => {
     const activity = pickSeveral();
     await render(activity);
     await act(async () => latest().toggle(1));
@@ -400,7 +400,11 @@ describe('PollAnswerLive conflicts and failures', () => {
 
     await act(async () => latest().clear());
 
-    expect(latest()).toMatchObject({ state: 'idle', picks: [], mine: { picks: [3], revision: 6 } });
+    expect(latest()).toMatchObject({
+      state: 'idle',
+      picks: [3],
+      mine: { picks: [3], revision: 6 },
+    });
     expect(api.putPollAnswer).toHaveBeenCalledTimes(3);
   });
 
@@ -814,5 +818,76 @@ describe('PollAnswerLive coalesces pick-one sends', () => {
     act(() => latest().toggle(1));
 
     expect(api.putPollAnswer).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('PollAnswerLive clear', () => {
+  it('after a conflict with no answer held, Clear leaves nothing picked and is idle', async () => {
+    const activity = pickOne();
+    api.putPollAnswer.mockResolvedValueOnce({
+      type: 'stale',
+      current: view({ mine: null }, activity),
+    } satisfies AnswerOutcome);
+    await render(activity);
+    await act(async () => latest().toggle(2));
+    expect(latest()).toMatchObject({ state: 'conflict', picks: [2] });
+
+    await act(async () => latest().clear());
+
+    expect(latest()).toMatchObject({ state: 'idle', picks: [], mine: null, error: null });
+    expect(api.putPollAnswer).toHaveBeenCalledTimes(1);
+  });
+
+  it('after a send, Change my answer keeps the sent picks ticked, and Send goes again once they differ', async () => {
+    await render(pickSeveral());
+    await act(async () => latest().toggle(0));
+    await act(async () => latest().toggle(2));
+    await act(async () => latest().send());
+    expect(latest()).toMatchObject({
+      state: 'idle',
+      picks: [0, 2],
+      mine: { picks: [0, 2], revision: 1 },
+    });
+
+    await act(async () => latest().clear());
+    expect(latest()).toMatchObject({
+      state: 'idle',
+      picks: [0, 2],
+      mine: { picks: [0, 2], revision: 1 },
+    });
+
+    await act(async () => latest().toggle(2));
+    await act(async () => latest().toggle(3));
+    await act(async () => latest().send());
+    expect(puts()[1]).toEqual({ round: ROUND, picks: [0, 3], revision: 1 });
+    expect(latest()).toMatchObject({ state: 'idle', mine: { picks: [0, 3], revision: 2 } });
+  });
+
+  it('after a failure, Clear drops the unsent picks for the answer the server holds', async () => {
+    const activity = pickSeveral();
+    api.getGuestPoll.mockResolvedValueOnce(view({ mine: { picks: [1], revision: 1 } }, activity));
+    api.putPollAnswer.mockRejectedValueOnce(new ApiError('too_many_answers', 429));
+    await render(activity);
+    await act(async () => latest().toggle(3));
+    await act(async () => latest().send());
+    expect(latest()).toMatchObject({ state: 'failed', picks: [1, 3] });
+
+    await act(async () => latest().clear());
+
+    expect(latest()).toMatchObject({ state: 'idle', picks: [1], error: null });
+  });
+
+  it('while queued, Clear drops the queued pick so nothing goes when the connection is back', async () => {
+    const activity = pickOne();
+    await render(activity);
+    await render(activity, 'reconnecting');
+    await act(async () => latest().toggle(2));
+    expect(latest().state).toBe('queued');
+
+    await act(async () => latest().clear());
+    expect(latest()).toMatchObject({ state: 'idle', picks: [] });
+    await render(activity, 'live');
+
+    expect(api.putPollAnswer).not.toHaveBeenCalled();
   });
 });
