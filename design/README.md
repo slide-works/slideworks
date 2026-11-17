@@ -8,6 +8,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-2-templates-palettes/`](sw-2-templates-palettes/) | SW-2 Templates and palettes (also covers SW-15 Wada palettes and SW-50 uploaded templates) | Built (SW-2's sections; Wada palettes and uploaded templates are still to come) |
 | [`sw-4-presenter/`](sw-4-presenter/) | SW-4 Presenter view and phone remote (SW-7 merged in) | Built (decisions D1–D6 settled, plan decisions D7–D17 as built; the user guide is [`docs/presenting.md`](../docs/presenting.md)) |
 | [`sw-5-audience-join/`](sw-5-audience-join/) | SW-5 Audience join: QR code, join code and guest mode | Mockups reviewed, decisions D1–D8 settled, not built |
+| [`sw-6-polls/`](sw-6-polls/) | SW-6 Live multiple-choice polls | Mockups reviewed, decisions D1–D8 settled, not built |
 
 ## SW-1 Foundation
 
@@ -143,3 +144,30 @@ Open [`sw-5-audience-join/sw-5-mockups.html`](sw-5-audience-join/sw-5-mockups.ht
 - **D6. Joined count:** shown on the join slide (the layout can hide it) and always in the presenter's live chip.
 - **D7. Realtime:** SignalR on the existing `DeckHub`, with SSE and long-polling fallbacks for guests on networks that block WebSockets. There is no cap on guests per session.
 - **D8. Join domain:** joining has its own short domain. The QR holds `https://slideworks.live/482913`, and the bare domain is the page where you type the code. The domain is an instance setting (`SLIDEWORKS_JOIN_URL`), so a self-hosted instance can use its own or none. With none, links fall back to `{instance}/j/{code}` and `{instance}/join`.
+
+## SW-6 Live polls
+
+Open [`sw-6-polls/sw-6-mockups.html`](sw-6-polls/sw-6-mockups.html) in a browser. A poll is a slide: the presenter reaches it, the phones that joined in SW-5 swap the slide for the question, and the bars on the big screen grow as answers arrive. The live demo is interactive. Press ▶ in the presenter window to reach the poll slide, tap an option on the phone to answer, then close the poll, reveal hidden results, show the correct answer or start a new round. The settings under the demo switch between pick one, pick up to 2 and a poll with a correct answer, and between the three results settings. The PNGs are screenshots of each section at 1300 px wide.
+
+| Screen | PNG |
+|---|---|
+| Scope: what SW-6 ships, and what SW-8 to SW-11 add | [01-scope](sw-6-polls/png/sw-6-01-scope.png) |
+| Live demo: the presenter window runs a poll and a guest's phone answers it | [02-live-demo](sw-6-polls/png/sw-6-02-live-demo.png) |
+| Every phone state: choosing, pick several, sent, closed, correct answer, a changed poll, a dropped connection, not open yet, a named poll | [03-phone-states](sw-6-polls/png/sw-6-03-phone-states.png) |
+| On the big screen: live, hidden, closed, correct answer, pick up to 2, before it opens | [04-big-screen](sw-6-polls/png/sw-6-04-big-screen.png) |
+| Presenter controls: the lifecycle, the controls and the phone remote strip | [05-presenter-controls](sw-6-polls/png/sw-6-05-presenter-controls.png) |
+| The poll model: methods, the results setting, rules, privacy and the measure | [06-poll-model](sw-6-polls/png/sw-6-06-poll-model.png) |
+| The agent's side: an MCP session and the tools | [07-agent-mcp](sw-6-polls/png/sw-6-07-agent-mcp.png) |
+| Realtime and load | [08-realtime-load](sw-6-polls/png/sw-6-08-realtime-load.png) |
+| Design questions and the answers given | [09-questions-answered](sw-6-polls/png/sw-6-09-questions-answered.png) |
+
+### Decisions (2026-11-17)
+
+- **D1. Where a poll lives:** a `poll` slide layout, with one poll per slide. The question and the options are slots, so an agent adds a poll with `add_slide`. Settings and answers live in poll tables keyed by the slide.
+- **D2. Opening and closing:** a poll opens when the presenter reaches its slide. It closes when the presenter presses Close or moves to another slide. A per-poll setting, `opens: manual`, makes it open by hand.
+- **D3. Sending:** for pick-one, a tap sends the answer and tapping another option changes it. A Send button appears only where several picks are needed.
+- **D4. Results setting:** every poll has one of three settings: live, after you've answered, or after the poll closes. Live is the default. The presenter always sees the counts, and a phone never shows results before its owner has answered.
+- **D5. Privacy:** SW-6 ships private polls only. An answer is stored against the guest ID from SW-5, which has no name, and nobody sees who picked what. The model keeps a privacy field so named polls can arrive with nicknames in the quiz Feature (SW-11).
+- **D6. Correct answer:** optional on any poll. The presenter shows it with a separate button after closing. The slide marks the correct bar and each phone says whether its owner got it. There are no scores.
+- **D7. Reset:** New round asks the same question again from zero. Earlier rounds are kept, and the presenter panel and `get_poll_results` list them. The big screen shows only the current round.
+- **D8. Load and measure:** a run of 1,000 voters must pass before SW-6 ships, with sending an answer under 1 s at p95, results on screen under 2 s at p95 and errors under 1%. It runs on demand, not on every pull request. Runs at 3,000 and 10,000 voters are measured and written down, not gates. The measure is the response rate: people who answered ÷ guests joined when the poll closed.
