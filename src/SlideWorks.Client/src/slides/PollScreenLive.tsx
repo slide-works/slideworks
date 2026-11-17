@@ -14,13 +14,14 @@ import { readPollControl } from '../polls/presenter/pollControlApi';
 import type { PollControlView } from '../polls/types';
 import type { PresentationState } from '../presentation/types';
 import { useDeckConnection } from '../realtime/useDeckConnection';
+import { useJoin } from './JoinContext';
 import { PollScreenProvider, pollScreenOf } from './PollContext';
 import { useSlideNumber } from './slideNumber';
 
 export type PollScreenLiveProps = {
   deckId: string;
-  // The same flag JoinProvider takes: the viewer may be a person who can present the deck. Anyone else gets null, and
-  // the provider makes no call.
+  // The same flag JoinProvider takes: the viewer may be a person who can present the deck (DeckPlayView.isOwner, which
+  // the server computes with the can-present rule). Anyone else gets null, and the provider makes no call.
   owner: boolean;
   children: ReactNode;
 };
@@ -61,17 +62,24 @@ function isPresentationState(value: unknown): value is PresentationState {
 }
 
 // The poll slide's live screen in the player and the audience window (SW-6 V7), inside JoinProvider. For a person who
-// can present (the owner flag, confirmed by the live session) while the deck is live, it watches the deck's audience (WatchAudience, again after every reconnect), follows the presenter's slide from SW-4's
-// presentation state, reads GET /api/decks/{id}/polls/{slide} when that slide is a poll slide (on arrival, after a
-// reconnect, and when a poll slide appears there), and follows pollControl. Views are kept per slide and a view with a
-// lower or equal seq than the one held for its slide is dropped. The screen is the presenter's slide's view through
-// pollScreenOf, so counts stay off the slide while the room can't see them. Anyone else, and a page with no
-// presentation state yet, gets null: empty tracks.
+// can present the deck (the owner flag, which the play view computes from the same can-present rule as GET /live and the
+// poll routes), it follows the presenter's slide from SW-4's presentation state from the moment it mounts, so a state
+// that arrives before the live session is confirmed, or before the deck goes live, is not lost. While the live session
+// confirms the viewer and the deck is live, it watches the deck's audience (WatchAudience, again after every
+// reconnect), reads GET /api/decks/{id}/polls/{slide} when the presenter's slide is a poll slide (on arrival, after
+// each watch, and when a poll slide appears there), and follows pollControl. Views are kept per slide and a view with a
+// lower or equal seq than the one held for its slide is dropped, as is a read for a slide the presenter has left. The
+// screen is the presenter's slide's view through pollScreenOf, so counts stay off the slide while the room can't see
+// them. Anyone else, a page outside a JoinProvider, a deck that isn't live and a page with no presentation state yet
+// get null: empty tracks.
 export function PollScreenLive({ deckId, owner, children }: PollScreenLiveProps) {
-  // The flag only says the viewer may present; the deck's live session (JoinProvider's, around this provider) confirms
-  // it, as it does for the live chip. Rounds exist only in a live session, so there is no live data while not live.
+  // Outside a JoinProvider there is no live session to confirm the viewer, so nothing to follow.
+  const inJoin = useJoin() !== null;
+  const listening = owner && deckId !== '' && inJoin;
+  // The flag only says the viewer may present; the deck's live session (JoinProvider's) confirms it, as it does for
+  // the live chip. Rounds exist only in a live session, so there is no live data while not live.
   const session = useLiveSessionContext();
-  const active = owner && deckId !== '' && session.liveView !== null && session.live;
+  const active = listening && session.liveView !== null && session.live;
   const connection = useDeckConnection();
   const [presenterSlide, setPresenterSlide] = useState<number | null>(null);
   const [views, setViews] = useState<ReadonlyMap<number, PollControlView>>(new Map());
@@ -89,27 +97,36 @@ export function PollScreenLive({ deckId, owner, children }: PollScreenLiveProps)
     });
   }, []);
 
-  // A new deck, or a new live session, starts from nothing: no view of an earlier session, and no read before the
-  // next watch.
+  // A new deck starts from nothing. The presenter's slide outlives a live session ending or starting (the presentation
+  // goes on and sends nothing new), but the views and the watch don't: no view of an earlier session shows, and no
+  // read comes before the next watch.
+  const [shownDeck, setShownDeck] = useState(deckId);
+  if (shownDeck !== deckId) {
+    setShownDeck(deckId);
+    setPresenterSlide(null);
+  }
   const scope = `${deckId}:${active}`;
   const [shownScope, setShownScope] = useState(scope);
   if (shownScope !== scope) {
     setShownScope(scope);
-    setPresenterSlide(null);
     setViews(new Map());
     setWatched(0);
   }
 
   const lastState = useRef<PresentationState | null>(null);
   useEffect(() => {
-    if (!active) return;
+    if (!listening) return;
     lastState.current = null;
-    const stopState = connection.on(PRESENTATION_STATE_METHOD, (state: unknown) => {
+    return connection.on(PRESENTATION_STATE_METHOD, (state: unknown) => {
       if (!isPresentationState(state) || state.deckId !== deckId) return;
       if (!newerState(state, lastState.current)) return;
       lastState.current = state;
       setPresenterSlide(state.slide);
     });
+  }, [listening, connection, deckId]);
+
+  useEffect(() => {
+    if (!active) return;
     const stopEvents = connection.on(AUDIENCE_EVENT_METHOD, (event: unknown) => {
       if (isAudienceEvent(event) && event.type === 'pollControl') apply(event.control);
     });
@@ -126,7 +143,6 @@ export function PollScreenLive({ deckId, owner, children }: PollScreenLiveProps)
     });
     return () => {
       gone = true;
-      stopState();
       stopEvents();
       stopUp();
     };
@@ -165,7 +181,7 @@ export function PollScreenLive({ deckId, owner, children }: PollScreenLiveProps)
   const source = useMemo(() => (view === undefined ? null : pollScreenOf(view)), [view]);
 
   return (
-    <PollSlidesContext value={active ? mark : null}>
+    <PollSlidesContext value={listening ? mark : null}>
       <PollScreenProvider source={source}>{children}</PollScreenProvider>
     </PollSlidesContext>
   );
