@@ -12,19 +12,36 @@ public class PlayerLiveMovesTests : AcceptanceTest
     private const int SLIDES = 5;
 
     // Delivers every hub message to the page 300 ms late, in order, as a slow network would, and counts the position updates
-    // the page has sent.
+    // the page has sent, the ones the hub has not answered yet and the deliveries still waiting, so a test can wait for the
+    // answers and echoes to arrive.
     private const string SLOW_HUB_ANSWERS =
         """
         (() => {
           const Native = window.WebSocket;
           window.__updatesSent = 0;
+          window.__updatesOpen = new Set();
+          window.__deliveriesPending = 0;
           class SlowSocket extends Native {
             send(data) {
-              if (typeof data === 'string' && data.includes('UpdatePresentation')) window.__updatesSent += 1;
+              if (typeof data === 'string' && data.includes('UpdatePresentation')) {
+                window.__updatesSent += 1;
+                const id = /"invocationId":"([^"]+)"/.exec(data);
+                if (id) window.__updatesOpen.add(id[1]);
+              }
               return super.send(data);
             }
             set onmessage(handler) {
-              super.onmessage = handler ? (event) => setTimeout(() => handler.call(this, event), 300) : handler;
+              super.onmessage = handler
+                ? (event) => {
+                    window.__deliveriesPending += 1;
+                    setTimeout(() => {
+                      handler.call(this, event);
+                      window.__deliveriesPending -= 1;
+                      const answered = /"type":3,"invocationId":"([^"]+)"|"invocationId":"([^"]+)","type":3/.exec(event.data);
+                      if (answered) window.__updatesOpen.delete(answered[1] ?? answered[2]);
+                    }, 300);
+                  }
+                : handler;
             }
             get onmessage() {
               return super.onmessage;
@@ -81,6 +98,9 @@ public class PlayerLiveMovesTests : AcceptanceTest
 
         await Expect(player.Count).ToHaveTextAsync($"5 / {SLIDES}");
         await Expect(phone.Slide).ToHaveAttributeAsync("data-slide", "5");
+        // The delayed answers and echoes of all four publishes reach the page, and the view stays where the keys put it.
+        await Page.WaitForFunctionAsync(
+            "() => window.__updatesSent >= 4 && window.__updatesOpen.size === 0 && window.__deliveriesPending === 0");
         await Expect(player.Count).ToHaveTextAsync($"5 / {SLIDES}");
     }
 
