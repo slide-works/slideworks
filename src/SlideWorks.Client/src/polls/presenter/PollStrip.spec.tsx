@@ -319,6 +319,32 @@ test('an error is laid over the preview above the strip: the strip keeps its hei
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
 });
 
+test('a dismissed error shows again when the same one arrives after the error cleared', async ({
+  mount,
+  page,
+}) => {
+  const message = "Couldn't load this slide's poll. Check your connection.";
+  const component = await mount(strip(pollControlView('open'), { error: message }));
+  await page.getByRole('button', { name: 'Dismiss this message' }).click();
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+
+  await component.update(strip(pollControlView('open'), { error: null }));
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+  await component.update(strip(pollControlView('open'), { error: message }));
+  await expect(page.getByTestId(IDS.error)).toHaveText(message);
+});
+
+test('dismissing the error from the keyboard leaves focus on the strip', async ({
+  mount,
+  page,
+}) => {
+  await mount(strip(pollControlView('open'), { error: 'The poll had already moved on.' }));
+  await page.getByRole('button', { name: 'Dismiss this message' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.strip)).toBeFocused();
+});
+
 test('a count that changes leaves focus on the button', async ({ mount, page }) => {
   const component = await mount(strip(pollControlView('open', { answered: 10, joined: 40 })));
   await page.getByTestId(IDS.close).focus();

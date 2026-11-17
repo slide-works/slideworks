@@ -35,9 +35,10 @@ export function PollStrip({ deckId }: { deckId: string }) {
   const focusInside = useRef(false);
   // A tap is ignored while its call is in flight: a second tap would only come back refused.
   const [busy, setBusy] = useState(false);
-  // The error the presenter dismissed. The provider keeps an error until the next call, so a dismissed one stays hidden
-  // until then; the next tap on a control clears this and shows whatever that call answers.
-  const [dismissed, setDismissed] = useState<string | null>(null);
+  // Whether the presenter dismissed the error showing now. It resets when the provider clears the error (the next call,
+  // or a new slide), so the next error always shows, the same sentence included.
+  const [dismissed, setDismissed] = useState(false);
+  if (error === null && dismissed) setDismissed(false);
   const phase = control?.phase;
   const announced = useCalmAnnouncement(
     control === null ? '' : `${control.answered} ${control.answered === 1 ? 'answer' : 'answers'}`,
@@ -79,7 +80,7 @@ export function PollStrip({ deckId }: { deckId: string }) {
   const run = (action: () => Promise<void>) => async () => {
     if (busy || guarded.current) return;
     guard();
-    setDismissed(null);
+    setDismissed(false);
     setBusy(true);
     try {
       await action();
@@ -202,7 +203,7 @@ export function PollStrip({ deckId }: { deckId: string }) {
       <span role="status" aria-live="polite" className="sr-only">
         {announced}
       </span>
-      {error !== null && error !== dismissed && (
+      {error !== null && !dismissed && (
         <div className="flex items-start gap-1 rounded-xl border border-red-300/40 bg-red-950 p-2 absolute inset-x-0 bottom-full z-10 mb-1">
           <p
             data-testid={POLL_STRIP_TEST_IDS.error}
@@ -215,7 +216,11 @@ export function PollStrip({ deckId }: { deckId: string }) {
             type="button"
             aria-label="Dismiss this message"
             className="grid size-11 shrink-0 place-items-center rounded-lg border border-white/25 text-lg leading-none text-red-100 focus-visible:outline-2 focus-visible:outline-indigo-300 forced-colors:border-2"
-            onClick={() => setDismissed(error)}
+            onClick={() => {
+              setDismissed(true);
+              // The button is going away: focus goes to the strip, not to the page.
+              stripRef.current?.focus();
+            }}
           >
             <span aria-hidden>×</span>
           </button>
