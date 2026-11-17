@@ -9,6 +9,7 @@ using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Look.Mcp;
 using SlideWorks.WebApi.Features.Look.Views;
 using SlideWorks.WebApi.Features.Sharing;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Realtime;
@@ -31,7 +32,8 @@ public class LookCommands(
     IDeckEvents events,
     TimeProvider clock,
     ITemplateCatalogue templates,
-    IPaletteCatalogue palettes)
+    IPaletteCatalogue palettes,
+    IDeckLooks looks)
 {
     public const string TOOL = "set_look";
     public const string NOTHING_TO_CHANGE = "Nothing to change";
@@ -40,7 +42,7 @@ public class LookCommands(
     public async Task<LookChangeResult> SetAsync(string deckId, LookChange change, string? tool)
     {
         var (deck, warnings) = await ChangeAsync(deckId, change, tool);
-        return new LookChangeResult(LookViews.ForPage(deck, templates, palettes), warnings);
+        return new LookChangeResult(await looks.ForPageAsync(deck, CancellationToken.None), warnings);
     }
 
     // set_look: the same change, with the look in get_deck's terms.
