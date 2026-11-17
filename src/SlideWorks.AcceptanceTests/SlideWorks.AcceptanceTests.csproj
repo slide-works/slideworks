@@ -21,7 +21,7 @@
 
   <!-- The shared test people and JSON shape checks, compiled from the API test project so both use the same ones. -->
   <ItemGroup>
-    <Compile Include="..\SlideWorks.WebApi.Tests\Support\**\*.cs" Link="Support\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\SlideWorks.WebApi.Tests\Support\**\*.cs" Exclude="..\SlideWorks.WebApi.Tests\Support\GuestClient.cs" Link="Support\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!-- Hosts the BFF (API plus the built SPA bundle in its wwwroot) on a real Kestrel port. -->
