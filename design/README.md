@@ -9,6 +9,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-4-presenter/`](sw-4-presenter/) | SW-4 Presenter view and phone remote (SW-7 merged in) | Built (decisions D1–D6 settled, plan decisions D7–D17 as built; the user guide is [`docs/presenting.md`](../docs/presenting.md)) |
 | [`sw-5-audience-join/`](sw-5-audience-join/) | SW-5 Audience join: QR code, join code and guest mode | Mockups reviewed, decisions D1–D8 settled, not built |
 | [`sw-6-polls/`](sw-6-polls/) | SW-6 Live multiple-choice polls | Mockups reviewed, decisions D1–D8 settled, not built |
+| [`sw-9-qa-reactions/`](sw-9-qa-reactions/) | SW-9 Audience Q&A and reactions | Mockups reviewed, decisions D1–D9 settled, D10 proposed, not built |
 
 ## SW-1 Foundation
 
@@ -171,3 +172,32 @@ Open [`sw-6-polls/sw-6-mockups.html`](sw-6-polls/sw-6-mockups.html) in a browser
 - **D6. Correct answer:** optional on any poll. The presenter shows it with a separate button after closing. The slide marks the correct bar and each phone says whether its owner got it. There are no scores.
 - **D7. Reset:** New round asks the same question again from zero. Earlier rounds are kept, and the presenter panel and `get_poll_results` list them. The big screen shows only the current round.
 - **D8. Load and measure:** a run of 1,000 voters must pass before SW-6 ships, with sending an answer under 1 s at p95, results on screen under 2 s at p95 and errors under 1%. It runs on demand, not on every pull request. Runs at 3,000 and 10,000 voters are measured and written down, not gates. The measure is the response rate: people who answered ÷ guests joined when the poll closed.
+
+## SW-9 Audience Q&A and reactions
+
+Open [`sw-9-qa-reactions/sw-9-mockups.html`](sw-9-qa-reactions/sw-9-mockups.html) in a browser. The guest page from SW-5 gets a second tab, Questions, where anyone can ask and upvote for the whole session, and a row of five reactions under the slide. The presenter gets a Questions panel in the SW-4 presenter window. The live demo is interactive. The room asks, upvotes and reacts on its own. On the phone you can ask, upvote and react. In the presenter panel you can show a question on screen, mark it answered, hide it and approve it. The settings under the demo switch review-first, names, reactions, where a shown question appears, and a slide with questions and reactions off. The PNGs are screenshots of each section at 1300 px wide.
+
+| Screen | PNG |
+|---|---|
+| Scope: what SW-9 ships, and what it leaves to SW-8, SW-11 and SW-12 | [01-scope](sw-9-qa-reactions/png/sw-9-01-scope.png) |
+| Live demo: the presenter window runs a Q&A and a guest's phone asks, upvotes and reacts | [02-demo](sw-9-qa-reactions/png/sw-9-02-demo.png) |
+| Every phone state: reactions, the list, empty, asking, with a name, sent, waiting for approval, on screen and answered, a poll opening, hidden, a dropped connection, closed | [03-phone](sw-9-qa-reactions/png/sw-9-03-phone.png) |
+| On the big screen: a question over any slide, the `qa` slide, one question up, empty, reactions, not live | [04-screen](sw-9-qa-reactions/png/sw-9-04-screen.png) |
+| Presenter controls: the question lifecycle, the controls and the phone remote strip | [05-controls](sw-9-qa-reactions/png/sw-9-05-controls.png) |
+| The Q&A model: how it maps onto SW-6's poll model, the settings, rules, privacy and the measure | [06-model](sw-9-qa-reactions/png/sw-9-06-model.png) |
+| The agent's side: an MCP session and the tools | [07-mcp](sw-9-qa-reactions/png/sw-9-07-mcp.png) |
+| Realtime and limits | [08-realtime](sw-9-qa-reactions/png/sw-9-08-realtime.png) |
+| Design questions and the answers given | [09-questions](sw-9-qa-reactions/png/sw-9-09-questions.png) |
+
+### Decisions (2026-11-17)
+
+- **D1. Where Q&A lives on the phone:** the guest page gets two tabs at the bottom. Slide is the SW-5 page with SW-6's poll card. Questions is the list, with the number of open questions on the tab.
+- **D2. On by default:** questions and reactions are both on for every live session. Each can be turned off for the whole deck or for one slide.
+- **D3. Names:** a question is anonymous by default. The ask sheet has a "Show my name" switch and a free-text name, shown with that question only. A deck setting can turn names off.
+- **D4. Review:** a question shows on phones at once, and the presenter can hide it. A per-deck "review first" setting makes new questions wait for approval. Nothing reaches the big screen unless the presenter shows it.
+- **D5. The big screen:** Show on screen puts one question over any slide as a card, and a `qa` slide layout lists the top five. A deck setting says where a shown question appears.
+- **D6. Reactions:** five fixed emoji: thumbs up, heart, laugh, wow and clap. They float up the edge of the big screen and add to a counter in the presenter panel. Other phones don't receive them.
+- **D7. A poll opening while a guest is on Questions:** the phone switches to the Slide tab by itself, unless the ask sheet is open.
+- **D8. The model:** Q&A is a real poll on SW-6's model. It is one poll per deck with a round per live session, where a question is an option the audience appended and a guest's upvotes are one answer. SW-6's contracts change before it is built: a poll that isn't keyed by a slide, one open round per session per kind, and options as rows. Approve, hide, answered and on screen are a separate `Question` row that the poll doesn't know about.
+- **D9. Measure and load:** the measure is questions asked per session, and the share of joined guests who asked, upvoted or reacted at least once. SW-6's load harness gets one more script: 1,000 guests who each upvote three questions and tap ten reactions within 30 seconds, held to SW-6's gates and run by hand.
+- **D10. Detail of D2 and D5 (proposed, not yet confirmed):** a slide with questions or reactions off hides the reaction row and replaces asking with "Questions are off on this slide" while it is on screen; the list and upvotes stay. The deck setting `show_on` has two values: `any_slide`, the default, where the card lays over whatever slide is up, and `qa_slide`, where a shown question appears only while a Q&A slide is up.
