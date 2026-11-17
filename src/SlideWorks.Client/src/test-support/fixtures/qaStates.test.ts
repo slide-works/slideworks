@@ -7,7 +7,37 @@ import questionVotesJson from '@contracts/screens/question-votes.json' with { ty
 import questionsReportJson from '@contracts/screens/questions-report.json' with { type: 'json' };
 import { describe, expect, it } from 'vitest';
 import { REACTION_EMOJI } from '../../qa/emoji';
-import { ASK_REFUSALS, QA_REFUSALS } from '../../qa/types';
+import {
+  ASK_REFUSALS,
+  QA_REFUSALS,
+  type AskedQuestion,
+  type AskRequest,
+  type GuestQuestion,
+  type GuestQuestionsView,
+  type MyVotes,
+  type QaControlView,
+  type QaCounts,
+  type QaQuestion,
+  type QaQuestions,
+  type QaRoom,
+  type QaRoomQuestions,
+  type QaSettings,
+  type QaShowOn,
+  type QaSlidePatch,
+  type QaSlideView,
+  type QuestionControl,
+  type QuestionsReport,
+  type QuestionsReportQuestion,
+  type QuestionsReportSession,
+  type QuestionState,
+  type QuestionStatus,
+  type QuestionTally,
+  type QuestionVotes,
+  type ReactionsBurst,
+  type StaleVotes,
+  type TooManyQuestions,
+  type VoteRequest,
+} from '../../qa/types';
 import {
   askedQuestion,
   askInvalid,
@@ -39,8 +69,11 @@ import {
 } from './qaStates';
 
 const keys = (value: object) => Object.keys(value).sort();
-const ROOM_KEYS = ['listRevision', 'names', 'questions', 'reactions', 'round'];
-const GUEST_QUESTION_KEYS = [
+// Each list is typed by what it mirrors, so a field or a union member dropped from qa/types.ts fails tsc here, and a key
+// the JSON doesn't have fails the comparison (satisfies in qaStates.ts covers the other direction).
+const keysOf = <T>(...names: (keyof T & string)[]) => [...names].sort();
+const ROOM_KEYS = keysOf<QaRoom>('listRevision', 'names', 'questions', 'reactions', 'round');
+const GUEST_QUESTION_KEYS = keysOf<GuestQuestion>(
   'age',
   'name',
   'number',
@@ -49,13 +82,22 @@ const GUEST_QUESTION_KEYS = [
   'text',
   'votes',
   'yours',
-];
-const VIEW_KEYS = ['mine', 'questions', 'room'];
-const MINE_KEYS = ['picks', 'revision'];
-const SETTINGS_KEYS = ['names', 'questions', 'reactions', 'review', 'showOn'];
-const SWITCH_KEYS = ['questions', 'reactions', 'slide'];
-const QA_QUESTION_KEYS = ['age', 'hidden', 'name', 'number', 'onScreen', 'state', 'text', 'votes'];
-const CONTROL_KEYS = [
+);
+const VIEW_KEYS = keysOf<GuestQuestionsView>('mine', 'questions', 'room');
+const MINE_KEYS = keysOf<MyVotes>('picks', 'revision');
+const SETTINGS_KEYS = keysOf<QaSettings>('names', 'questions', 'reactions', 'review', 'showOn');
+const SWITCH_KEYS = keysOf<QaSlideView>('questions', 'reactions', 'slide');
+const QA_QUESTION_KEYS = keysOf<QaQuestion>(
+  'age',
+  'hidden',
+  'name',
+  'number',
+  'onScreen',
+  'state',
+  'text',
+  'votes',
+);
+const CONTROL_KEYS = keysOf<QaControlView>(
   'counts',
   'here',
   'live',
@@ -66,10 +108,12 @@ const CONTROL_KEYS = [
   'seq',
   'settings',
   'slides',
-];
-const ROOM_QUESTIONS = ['open', 'closed', 'offHere', 'off'];
-const STATUSES = ['open', 'answered', 'waiting', 'hidden'];
-const STORED_STATES = ['waiting', 'open', 'answered'];
+);
+const ROOM_QUESTIONS: QaRoomQuestions[] = ['open', 'closed', 'offHere', 'off'];
+const STATUSES: QuestionStatus[] = ['open', 'answered', 'waiting', 'hidden'];
+const STORED_STATES: QuestionState[] = ['waiting', 'open', 'answered'];
+const SETTING_QUESTIONS: QaQuestions[] = ['open', 'closed', 'off'];
+const SHOW_ON: QaShowOn[] = ['anySlide', 'qaSlide'];
 
 describe('qa-room.json', () => {
   it.each(['open', 'closed', 'offHere', 'off'] as const)('the %s sample round-trips', (sample) => {
@@ -141,10 +185,10 @@ describe('guest-questions.json', () => {
 describe('question-ask.json', () => {
   it('round-trips the request and the 201', () => {
     expect(askRequest()).toEqual(questionAskJson.request);
-    expect(keys(askRequest())).toEqual(['name', 'text']);
+    expect(keys(askRequest())).toEqual(keysOf<AskRequest>('name', 'text'));
     const created = askedQuestion();
     expect(created).toEqual(questionAskJson.created);
-    expect(keys(created)).toEqual(['mine', 'question']);
+    expect(keys(created)).toEqual(keysOf<AskedQuestion>('mine', 'question'));
     expect(keys(created.question)).toEqual(GUEST_QUESTION_KEYS);
     expect(keys(created.mine)).toEqual(MINE_KEYS);
     expect(created.question.yours).toBe(true);
@@ -160,18 +204,18 @@ describe('question-ask.json', () => {
     ]);
     expect(askRefusals().map((body) => body.error)).toEqual([...ASK_REFUSALS]);
     expect(tooManyQuestions()).toEqual({ error: 'too_many_questions', retryAfter: 42 });
-    expect(keys(tooManyQuestions())).toEqual(['error', 'retryAfter']);
+    expect(keys(tooManyQuestions())).toEqual(keysOf<TooManyQuestions>('error', 'retryAfter'));
   });
 });
 
 describe('question-votes.json', () => {
   it('round-trips the request, the 200 and the 409', () => {
     expect(voteRequest()).toEqual(questionVotesJson.request);
-    expect(keys(voteRequest())).toEqual(['picks', 'revision', 'round']);
+    expect(keys(voteRequest())).toEqual(keysOf<VoteRequest>('picks', 'revision', 'round'));
     expect(votesAccepted()).toEqual(questionVotesJson.accepted);
     expect(keys(votesAccepted())).toEqual(MINE_KEYS);
     expect(votesStale()).toEqual(questionVotesJson.stale);
-    expect(keys(votesStale())).toEqual(['current', 'error']);
+    expect(keys(votesStale())).toEqual(keysOf<StaleVotes>('current', 'error'));
     expect(votesStale().error).toBe('stale');
     expect(votesStale().current).toEqual(guestQuestions('view'));
   });
@@ -192,7 +236,9 @@ describe('qa-control.json', () => {
     expect(view).toEqual(qaControlJson[sample]);
     expect(keys(view)).toEqual(CONTROL_KEYS);
     expect(keys(view.settings)).toEqual(SETTINGS_KEYS);
-    expect(keys(view.counts)).toEqual(['answered', 'hidden', 'open', 'waiting']);
+    expect(SETTING_QUESTIONS).toContain(view.settings.questions);
+    expect(SHOW_ON).toContain(view.settings.showOn);
+    expect(keys(view.counts)).toEqual(keysOf<QaCounts>('answered', 'hidden', 'open', 'waiting'));
     expect(keys(view.reactions)).toEqual([...REACTION_EMOJI].sort());
     if (view.here) expect(keys(view.here)).toEqual(SWITCH_KEYS);
     for (const slide of view.slides) expect(keys(slide)).toEqual(SWITCH_KEYS);
@@ -223,8 +269,10 @@ describe('qa-control.json', () => {
   it('round-trips the settings and slide requests and holds one 409 body per refusal code', () => {
     expect(qaSettingsRequest()).toEqual(qaControlJson.settingsRequest);
     expect(keys(qaSettingsRequest())).toEqual(SETTINGS_KEYS);
+    expect(SETTING_QUESTIONS).toContain(qaSettingsRequest().questions);
+    expect(SHOW_ON).toContain(qaSettingsRequest().showOn);
     expect(qaSlideRequest()).toEqual(qaControlJson.slideRequest);
-    expect(keys(qaSlideRequest())).toEqual(['questions', 'reactions']);
+    expect(keys(qaSlideRequest())).toEqual(keysOf<QaSlidePatch>('questions', 'reactions'));
     expect(qaRefusals().map((body) => body.error)).toEqual([...QA_REFUSALS]);
   });
 });
@@ -233,11 +281,15 @@ describe('questions-report.json', () => {
   it('round-trips', () => {
     const report = questionsReport();
     expect(report).toEqual(questionsReportJson);
-    expect(keys(report)).toEqual(['sessions']);
+    expect(keys(report)).toEqual(keysOf<QuestionsReport>('sessions'));
     for (const session of report.sessions) {
-      expect(keys(session)).toEqual(['answered', 'asked', 'hidden', 'questions', 'startedAt']);
+      expect(keys(session)).toEqual(
+        keysOf<QuestionsReportSession>('answered', 'asked', 'hidden', 'questions', 'startedAt'),
+      );
       for (const question of session.questions) {
-        expect(keys(question)).toEqual(['askedAt', 'name', 'state', 'text', 'votes']);
+        expect(keys(question)).toEqual(
+          keysOf<QuestionsReportQuestion>('askedAt', 'name', 'state', 'text', 'votes'),
+        );
         expect(STATUSES).toContain(question.state);
       }
     }
@@ -253,13 +305,16 @@ describe('questions-report.json', () => {
 describe('the Q&A events in audience-events.json', () => {
   it('round-trips questionTally, questionControl and reactions', () => {
     expect(questionTally()).toEqual(audienceEventsJson.questionTally);
-    expect(keys(questionTally())).toEqual(['listRevision', 'round', 'type', 'votes']);
-    for (const votes of questionTally().votes) expect(keys(votes)).toEqual(['number', 'votes']);
+    expect(keys(questionTally())).toEqual(
+      keysOf<QuestionTally>('listRevision', 'round', 'type', 'votes'),
+    );
+    for (const votes of questionTally().votes)
+      expect(keys(votes)).toEqual(keysOf<QuestionVotes>('number', 'votes'));
     expect(questionControl()).toEqual(audienceEventsJson.questionControl);
-    expect(keys(questionControl())).toEqual(['control', 'type']);
+    expect(keys(questionControl())).toEqual(keysOf<QuestionControl>('control', 'type'));
     expect(questionControl().control).toEqual(qaControlView('live'));
     expect(reactionsBurst()).toEqual(audienceEventsJson.reactions);
-    expect(keys(reactionsBurst())).toEqual(['counts', 'slide', 'type']);
+    expect(keys(reactionsBurst())).toEqual(keysOf<ReactionsBurst>('counts', 'slide', 'type'));
     expect(keys(reactionsBurst().counts)).toEqual([...REACTION_EMOJI].sort());
   });
 

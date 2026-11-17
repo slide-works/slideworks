@@ -26,6 +26,15 @@ describe('guest.json', () => {
     expect(guestView('ended').state.current).toBeNull();
   });
 
+  it('carries the room only while live, and drops it on request', () => {
+    expect(guestView('live').state.room?.questions).toBe('open');
+    expect(guestView('lobby').state.room).toBeNull();
+    expect(guestView('ended').state.room).toBeNull();
+    const noRoom = guestView('live', { room: null });
+    expect(noRoom.state.room).toBeNull();
+    expect({ ...noRoom.state, room: guestJson.live.state.room }).toEqual(guestJson.live.state);
+  });
+
   it('has a deck URL only when the deck is shared by link', () => {
     expect(guestView('live').deckUrl).toBe(
       'https://slideworks.example/d/7Kq2xYp9LmQa/ship-smaller',

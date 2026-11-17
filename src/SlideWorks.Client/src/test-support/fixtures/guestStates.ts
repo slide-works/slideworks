@@ -21,9 +21,14 @@ const EVENTS = audienceEventsJson satisfies {
   joinedCount: Widen<JoinedCount>;
 };
 
-// GET /api/join/{code} in each phase: live (on slide 3 of the sample deck), lobby and ended.
-export function guestView(phase: GuestPhaseName = 'live'): GuestView {
-  return structuredClone(GUESTS[phase]) as unknown as GuestView;
+// GET /api/join/{code} in each phase: live (on slide 3 of the sample deck), lobby and ended. The live sample's state
+// carries room (questions open); pass { room: null } for a live page with no Q&A.
+export function guestView(
+  phase: GuestPhaseName = 'live',
+  overrides: Partial<Pick<AudienceState, 'room'>> = {},
+): GuestView {
+  const view = structuredClone(GUESTS[phase]) as unknown as GuestView;
+  return { ...view, state: { ...view.state, ...overrides } };
 }
 
 // One audienceEvent of each type, as it arrives on the hub.

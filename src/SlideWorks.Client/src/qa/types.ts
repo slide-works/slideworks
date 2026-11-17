@@ -86,9 +86,13 @@ export const ASK_REFUSALS = ['questions_closed', 'questions_off', 'questions_off
 
 export type AskRefusalCode = (typeof ASK_REFUSALS)[number];
 
-// A 400 names the rule ("text: required", "text: at most 200", "name: at most 30", "name: not allowed"), or is
-// no_guest; 404 is no_session; a 409 is one of ASK_REFUSALS or questions_off; 429 is too_many_attempts or
-// too_many_votes; 413 is a body over its size limit.
+// The error body of the guest's Q&A and reaction routes (Q4, Q7; GuestQaErrors.cs), by route:
+// - every route: 400 no_guest, 404 no_session, 429 too_many_attempts (SW-6's guest rules), 413 a body over its limit.
+// - asking: 400 "text: required", "text: at most 200", "name: at most 30" or "name: not allowed"; 409 one of
+//   ASK_REFUSALS; 429 too_many_questions, with retryAfter (TooManyQuestions).
+// - votes: 400 "picks: unknown question 7" or "picks: duplicate"; 409 stale, with current (StaleVotes), or
+//   questions_off; 429 too_many_votes.
+// - reactions: 400 "emoji: unknown"; 409 reactions_off; 429 too_many_reactions.
 export type QaError = { error: string };
 
 // Asking's 429: past 3 questions a minute per guest. `retryAfter` is whole seconds.

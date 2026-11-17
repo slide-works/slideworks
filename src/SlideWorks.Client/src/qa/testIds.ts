@@ -30,6 +30,8 @@ export const QA_REACTION_ROW_TEST_IDS = {
   row: 'qa-reaction-row',
   // A failed tap's message
   error: 'qa-reaction-row-error',
+  // The emoji that pops up from a tapped button; absent with reduced motion
+  pop: 'qa-reaction-pop',
 } as const;
 
 // One reaction button, named "React thumbs up", showing its emoji.
@@ -215,8 +217,10 @@ export const QA_PANEL_TEST_IDS = {
   tabAnswered: 'qa-panel-tab-answered',
   // "Hidden 1"
   tabHidden: 'qa-panel-tab-hidden',
-  // "Top ▾" / "Newest ▾"
+  // "Top ▾" / "Newest ▾", and its two options when it opens as a menu: "Top" and "Newest"
   sort: 'qa-panel-sort',
+  sortTop: 'qa-panel-sort-top',
+  sortNewest: 'qa-panel-sort-newest',
   rows: 'qa-panel-rows',
   // "No open questions. They appear here as the room asks."
   emptyOpen: 'qa-panel-empty-open',
@@ -265,9 +269,11 @@ export const QA_SETTINGS_STRIP_TEST_IDS = {
   names: 'qa-settings-strip-names',
   // "Reactions on|off"
   reactions: 'qa-settings-strip-reactions',
-  // This slide's switch: questions and reactions
+  // This slide's switch: questions and reactions, each with its reason when the deck has that feature off
   slideQuestions: 'qa-settings-strip-slide-questions',
+  slideQuestionsReason: 'qa-settings-strip-slide-questions-reason',
   slideReactions: 'qa-settings-strip-slide-reactions',
+  slideReactionsReason: 'qa-settings-strip-slide-reactions-reason',
   // A failed change's message; the control goes back
   error: 'qa-settings-strip-error',
 } as const;
