@@ -14,6 +14,7 @@ public static class TalkLengthRequest
     public const int MAX = 600;
     public const string MINUTES = "minutes";
     public const string RANGE = "minutes: must be a whole number from 1 to 600, or null to clear the talk length";
+    public const string SHAPE = "minutes: must be a whole number or null";
 
     public static int? Read(JsonElement body)
     {
@@ -37,7 +38,7 @@ public static class TalkLengthRequest
             {
                 JsonValueKind.Null => null,
                 JsonValueKind.Number when minutes.Value.TryGetInt32(out var whole) => whole,
-                _ => throw new BadRequestException(RANGE),
+                _ => throw new BadRequestException(SHAPE),
             };
     }
 

@@ -16,6 +16,9 @@ namespace SlideWorks.WebApi.Tests.Presenting;
 [TestFixture]
 public class TalkLengthTests : ApiTestFixture
 {
+    private const string RANGE = "minutes: must be a whole number from 1 to 600, or null to clear the talk length";
+    private const string SHAPE = "minutes: must be a whole number or null";
+
     private readonly TalkLengthCalls _presentations = new();
 
     protected override Action<IServiceCollection>? ConfigureTestServices => services => services.AddSingleton<IPresentations>(_presentations);
@@ -32,7 +35,8 @@ public class TalkLengthTests : ApiTestFixture
 
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         (await received.Reader.ReadAsync()).ShouldBeOfType<DeckChanged>().DeckId.ShouldBe(deck);
-        received.Reader.TryRead(out _).ShouldBeFalse();
+        var marker = await PublishMarkerAsync(deck);
+        (await received.Reader.ReadAsync()).ShouldBeSameAs(marker);
         var after = await PageAsync(deck);
         after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64() + 1);
         var entry = (await DeckSeed.ActivityAsync(Client, deck))[0];
@@ -68,16 +72,17 @@ public class TalkLengthTests : ApiTestFixture
         (await TalkMinutesAsync(deck)).ShouldBe(minutes);
     }
 
-    [TestCase("""{ "minutes": 0 }""")]
-    [TestCase("""{ "minutes": 601 }""")]
-    [TestCase("""{ "minutes": -5 }""")]
-    [TestCase("""{ "minutes": 30.5 }""")]
-    [TestCase("""{ "minutes": "30" }""")]
-    [TestCase("""{ }""")]
-    [TestCase("""{ "minutes": 30, "extra": true }""")]
-    [TestCase("""{ "length": 30 }""")]
-    [TestCase("""[30]""")]
-    public async Task Put_WhenRefused_ShouldReturn400AndChangeNothing(string body)
+    [TestCase("""{ "minutes": 0 }""", RANGE)]
+    [TestCase("""{ "minutes": 601 }""", RANGE)]
+    [TestCase("""{ "minutes": -5 }""", RANGE)]
+    [TestCase("""{ "minutes": 30.5 }""", SHAPE)]
+    [TestCase("""{ "minutes": 3000000000 }""", SHAPE)]
+    [TestCase("""{ "minutes": "30" }""", SHAPE)]
+    [TestCase("""{ }""", "minutes: required; a number of minutes, or null to clear the talk length")]
+    [TestCase("""{ "minutes": 30, "extra": true }""", "unknown key 'extra'; expected minutes")]
+    [TestCase("""{ "length": 30 }""", "unknown key 'length'; expected minutes")]
+    [TestCase("""[30]""", "body: must be an object such as { \"minutes\": 30 }")]
+    public async Task Put_WhenRefused_ShouldReturn400AndChangeNothing(string body, string error)
     {
         var deck = await CreateDeckAsync();
         await PutAsync(deck, """{ "minutes": 20 }""");
@@ -88,12 +93,13 @@ public class TalkLengthTests : ApiTestFixture
         var response = await PutAsync(deck, body);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest, await response.Content.ReadAsStringAsync());
-        (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString().ShouldNotBeNullOrEmpty();
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString().ShouldBe(error);
         var after = await PageAsync(deck);
         after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64());
         after.GetProperty("activity").GetArrayLength().ShouldBe(before.GetProperty("activity").GetArrayLength());
         (await TalkMinutesAsync(deck)).ShouldBe(20);
-        received.Reader.TryRead(out _).ShouldBeFalse();
+        var marker = await PublishMarkerAsync(deck);
+        (await received.Reader.ReadAsync()).ShouldBeSameAs(marker);
         _presentations.For(deck).ShouldBe([20]);
     }
 
@@ -117,7 +123,31 @@ public class TalkLengthTests : ApiTestFixture
         after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64());
         after.GetProperty("activity").GetArrayLength().ShouldBe(1);
         (await TalkMinutesAsync(deck)).ShouldBeNull();
-        received.Reader.TryRead(out _).ShouldBeFalse();
+        var marker = await PublishMarkerAsync(deck);
+        (await received.Reader.ReadAsync()).ShouldBeSameAs(marker);
+        _presentations.For(deck).ShouldBeEmpty();
+    }
+
+    // A non-whole number is a shape error (D3), refused before the owner check, so a non-owner gets 400 like the owner does.
+    [Test]
+    public async Task Put_WhenNotTheOwnerSendsANonWholeNumber_ShouldReturn400AndChangeNothing()
+    {
+        var deck = await CreateDeckAsync();
+        using var alex = ClientFor(TestUser.Alex);
+        var before = await PageAsync(deck);
+        var received = Channel.CreateUnbounded<DeckEvent>();
+        using var subscription = Factory.Services.GetRequiredService<IDeckEvents>().Subscribe(deck, e => received.Writer.WriteAsync(e).AsTask());
+
+        var response = await alex.PutAsync($"/api/decks/{deck}/talk-length", Json("""{ "minutes": 30.5 }"""));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString().ShouldBe(SHAPE);
+        var after = await PageAsync(deck);
+        after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64());
+        after.GetProperty("activity").GetArrayLength().ShouldBe(1);
+        (await TalkMinutesAsync(deck)).ShouldBeNull();
+        var marker = await PublishMarkerAsync(deck);
+        (await received.Reader.ReadAsync()).ShouldBeSameAs(marker);
         _presentations.For(deck).ShouldBeEmpty();
     }
 
@@ -135,6 +165,15 @@ public class TalkLengthTests : ApiTestFixture
         var response = await Client.PostAsJsonAsync("/api/decks", new { title = "Talk length" });
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+    }
+
+    // Delivery keeps publish order per subscriber, so once a marker published now comes through, everything the finished
+    // calls published has come through before it. Records compare by value, so the test checks the marker with ShouldBeSameAs.
+    private async Task<DeckChanged> PublishMarkerAsync(string deck)
+    {
+        var marker = new DeckChanged(deck);
+        await Factory.Services.GetRequiredService<IDeckEvents>().PublishAsync(marker);
+        return marker;
     }
 
     private static StringContent Json(string body) => new(body, System.Text.Encoding.UTF8, "application/json");
