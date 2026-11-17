@@ -64,4 +64,23 @@ public class LayoutClassPrefixTests
     {
         Should.Throw<ArgumentException>(() => LayoutClassPrefix.Of("0a1b2c3d", "bar-chart").Apply(className)).ParamName.ShouldBe("className");
     }
+
+    [TestCase("cl-0a1b2c3d-bar-chart__bar", true)]
+    [TestCase("cl-0a1b2c3d-bar-chart__is-alert", true)]
+    [TestCase("cl-0a1b2c3d-bar-chart__cl-ffffffff-other", true)]
+    [TestCase("bar", false)]
+    [TestCase("", false)]
+    [TestCase(null, false)]
+    [TestCase("cl-0a1b2c3d-bar-chart__", false)]
+    [TestCase("cl-0a1b2c3d-bar-chart__bar fixed", false)]
+    [TestCase("cl-0a1b2c3d-bar-chart__bar__x", false)]
+    [TestCase("cl-ffffffff-bar-chart__bar", false)]
+    [TestCase("cl-0a1b2c3d-bar__bar", false)]
+    [TestCase("CL-0a1b2c3d-bar-chart__bar", false)]
+    public void Owns_WhenAStoredClassIsChecked_ShouldAcceptOnlyThisLayoutsClasses(string? className, bool owned)
+    {
+        var prefix = LayoutClassPrefix.Of("0a1b2c3d", "bar-chart");
+
+        prefix.Owns(className).ShouldBe(owned);
+    }
 }
