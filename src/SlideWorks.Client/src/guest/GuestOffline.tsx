@@ -1,15 +1,27 @@
 import { useEffect, useRef } from 'react';
 import { GUEST_TEST_IDS } from './testIds';
 
-// Live updates can't reach the phone (every transport failed, or it is offline). It explains and retries.
+// How often the offline screen tries again by itself.
+export const OFFLINE_RETRY_MS = 5000;
+
+// Live updates can't reach the phone (every transport failed, or it is offline). It explains and retries: every few
+// seconds on its own while it is shown, and at once on "Try now". It sits on the shell's night surface.
 export function GuestOffline({ onRetry }: { onRetry: () => void }) {
   const heading = useRef<HTMLHeadingElement>(null);
+  const retry = useRef(onRetry);
+  useEffect(() => {
+    retry.current = onRetry;
+  });
   useEffect(() => heading.current?.focus(), []);
+  useEffect(() => {
+    const timer = setInterval(() => retry.current(), OFFLINE_RETRY_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <main
       data-testid={GUEST_TEST_IDS.offline}
-      className="flex min-h-96 flex-1 flex-col items-center justify-center gap-3.5 bg-(--sw-night) px-6 text-center text-white"
+      className="flex flex-1 flex-col items-center justify-center gap-3.5 px-6 text-center"
     >
       <div
         aria-hidden
@@ -41,7 +53,7 @@ export function GuestOffline({ onRetry }: { onRetry: () => void }) {
       <button
         type="button"
         data-testid={GUEST_TEST_IDS.offlineRetry}
-        aria-label="Try to reach the room again"
+        aria-label="Try now to reach the room"
         onClick={onRetry}
         className="mt-3 min-h-12 w-full rounded-xl bg-white/10 px-4 text-base font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sw-accent-glow)"
       >
