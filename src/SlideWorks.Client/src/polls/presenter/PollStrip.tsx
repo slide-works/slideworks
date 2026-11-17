@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { PollPhase } from '../types';
+import { useCalmAnnouncement } from '../guest/useCalmAnnouncement';
 import { POLL_STRIP_TEST_IDS } from '../testIds';
 import { usePollControl } from './usePollControl';
 
@@ -11,12 +12,16 @@ const PLAIN = `${BUTTON} border-white/10 bg-white/10 text-slate-100`;
 const PRIMARY = `${BUTTON} border-transparent bg-[#3b5bdb] text-white`;
 const STOP = `${BUTTON} border-red-300/40 bg-red-600/25 text-red-200`;
 
+// How long taps are ignored after a tap or after the phase changes under the thumb. A control that appears where the
+// last tap landed (Close where Open was, on a double tap or a fast response) must not take that tap. The buttons are
+// not drawn disabled for this time, so the strip does not flicker.
+const TAP_GUARD_MS = 500;
+
 // The poll strip on the presenter's phone remote (SW-6 V8), between the slide and the notes: the state, the answer count
 // and the rate, and the controls the phase allows. Nothing at all, and no space, on a slide with no poll.
 //
-// The three control slots keep their columns so a tap never lands on a different control than the one aimed at when
-// the phase changes under the thumb: Open or Close in the first, Reveal or Show answer in the second, New round in the
-// third. Close and New round never share a column.
+// Columns: Close in the first, Reveal and Show answer in the second, Open and New round in the third, so Close never
+// shares a column with Open or New round. The tap guard covers the rest.
 export function PollStrip({ deckId }: { deckId: string }) {
   const { control, open, close, reveal, showAnswer, newRound, error } = usePollControl(deckId);
   const stripRef = useRef<HTMLElement>(null);
@@ -26,6 +31,36 @@ export function PollStrip({ deckId }: { deckId: string }) {
   // A tap is ignored while its call is in flight: a second tap would only come back refused.
   const [busy, setBusy] = useState(false);
   const phase = control?.phase;
+  const announced = useCalmAnnouncement(
+    control === null ? '' : `${control.answered} ${control.answered === 1 ? 'answer' : 'answers'}`,
+  );
+  // Taps are ignored while this is true; a timer ends it, so no clock is read.
+  const guarded = useRef(false);
+  const guardTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const guard = () => {
+    guarded.current = true;
+    if (guardTimer.current !== null) clearTimeout(guardTimer.current);
+    guardTimer.current = setTimeout(() => {
+      guarded.current = false;
+      guardTimer.current = null;
+    }, TAP_GUARD_MS);
+  };
+  // The poll the thumb is looking at: a new slide, round or phase starts the guard (not the first one on the page).
+  const poll = control === null ? 'none' : `${control.slide}:${control.number}:${control.phase}`;
+  const lastPoll = useRef(poll);
+  useEffect(() => {
+    if (lastPoll.current !== poll) {
+      lastPoll.current = poll;
+      guard();
+    }
+    // guard only touches refs
+  }, [poll]);
+  useEffect(
+    () => () => {
+      if (guardTimer.current !== null) clearTimeout(guardTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (focusInside.current && document.activeElement === document.body) stripRef.current?.focus();
@@ -34,7 +69,8 @@ export function PollStrip({ deckId }: { deckId: string }) {
   if (control === null) return null;
   const { answered, joined, question, settings } = control;
   const run = (action: () => Promise<void>) => async () => {
-    if (busy) return;
+    if (busy || guarded.current) return;
+    guard();
     setBusy(true);
     try {
       await action();
@@ -68,12 +104,19 @@ export function PollStrip({ deckId }: { deckId: string }) {
       ref={stripRef}
       tabIndex={-1}
       data-testid={POLL_STRIP_TEST_IDS.strip}
-      aria-label="Poll"
+      aria-label={`Poll, ${control.phase}: ${question}`}
       onFocus={() => {
         focusInside.current = true;
       }}
       onBlur={(event) => {
-        if (event.relatedTarget !== null && !event.currentTarget.contains(event.relatedTarget))
+        // Focus left the strip for another element, or for the page (a tap on the notes): a later phase change must
+        // not pull it back. A button removed under the presenter keeps the flag, as it is no longer connected.
+        if (
+          (event.relatedTarget === null ? event.target.isConnected : true) &&
+          !(
+            event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)
+          )
+        )
           focusInside.current = false;
       }}
       className="mx-4 mt-3 grid gap-2.5 rounded-xl border border-gray-800 bg-[#111827] p-2.5 outline-none"
@@ -86,24 +129,30 @@ export function PollStrip({ deckId }: { deckId: string }) {
         >
           {PHASE_LABEL[control.phase]}
         </span>
-        <b data-testid={POLL_STRIP_TEST_IDS.answered} className="font-mono text-lg leading-none">
+        <b
+          aria-hidden
+          data-testid={POLL_STRIP_TEST_IDS.answered}
+          className="font-mono text-lg leading-none"
+        >
           {answered}
         </b>{' '}
-        <span className="text-xs text-slate-400">{answered === 1 ? 'answer' : 'answers'}</span>
+        <span aria-hidden className="text-xs text-slate-400">
+          {answered === 1 ? 'answer' : 'answers'}
+        </span>
         {joined > 0 && (
           <>
             <span aria-hidden className="text-xs text-slate-400">
               ·
             </span>
             <span data-testid={POLL_STRIP_TEST_IDS.rate} className="text-xs text-slate-400">
-              {Math.round((answered / joined) * 100)}% of {joined}
+              {Math.min(100, Math.round((answered / joined) * 100))}% of {joined}
             </span>
           </>
         )}
       </div>
       <div className="grid grid-cols-3 gap-1.5">
         {control.phase === 'draft' &&
-          button(POLL_STRIP_TEST_IDS.open, 'Open', 'Open poll', open, 'col-span-3', PRIMARY)}
+          button(POLL_STRIP_TEST_IDS.open, 'Open', 'Open poll', open, 'col-start-3', PRIMARY)}
         {control.phase === 'open' && (
           <>
             {button(POLL_STRIP_TEST_IDS.close, 'Close', 'Close poll', close, 'col-start-1', STOP)}
@@ -141,6 +190,9 @@ export function PollStrip({ deckId }: { deckId: string }) {
           </>
         )}
       </div>
+      <span role="status" aria-live="polite" className="sr-only">
+        {announced}
+      </span>
       {error !== null && (
         <p data-testid={POLL_STRIP_TEST_IDS.error} role="alert" className="text-sm text-red-300">
           {error}

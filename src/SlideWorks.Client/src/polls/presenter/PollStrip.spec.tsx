@@ -101,6 +101,7 @@ test('a single answer reads "1 answer"', async ({ mount, page }) => {
 });
 
 test('every button names the question and sends its own action', async ({ mount, page }) => {
+  await page.clock.install();
   const actions: PollAction[] = [];
   const onAction = (action: PollAction) => void actions.push(action);
   const names: Record<string, [string, PollAction]> = {
@@ -121,12 +122,14 @@ test('every button names the question and sends its own action', async ({ mount,
   ];
   for (const state of states) {
     await component.update(strip(state, { onAction }));
+    await page.clock.runFor(600);
     for (const id of ALL) {
       if ((await page.getByTestId(id).count()) === 0) continue;
       const [name, action] = names[id];
       await expect(page.getByTestId(id)).toHaveAccessibleName(`${name}: ${QUESTION}`);
       await page.getByTestId(id).click();
       expect(actions.at(-1)).toBe(action);
+      await page.clock.runFor(600);
     }
   }
   expect(actions).toEqual(['open', 'close', 'reveal', 'showAnswer', 'newRound']);
@@ -165,16 +168,120 @@ test('at 360 px every button is at least 48 px tall and wide, and nothing scroll
   }
 });
 
-test('Close and New round never share a column, so a tap meant for one cannot land on the other', async ({
+test('Open, Close and New round sit in columns that never overlap Close', async ({
   mount,
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   const component = await mount(strip(pollControlView('open', { roomSeesCounts: false })));
   const close = (await page.getByTestId(IDS.close).boundingBox())!;
+  const reveal = (await page.getByTestId(IDS.reveal).boundingBox())!;
   await component.update(strip(pollControlView('closed')));
   const newRound = (await page.getByTestId(IDS.newRound).boundingBox())!;
-  expect(newRound.x).toBeGreaterThanOrEqual(close.x + close.width);
+  await component.update(strip(pollControlView('draft')));
+  const open = (await page.getByTestId(IDS.open).boundingBox())!;
+  expect(open.x).toBeGreaterThanOrEqual(reveal.x + reveal.width);
+  expect(newRound.x).toBeGreaterThanOrEqual(reveal.x + reveal.width);
+  expect(open.x).toBeGreaterThanOrEqual(close.x + close.width);
+});
+
+test('a double tap on Open sends one open and nothing else', async ({ mount, page }) => {
+  await page.clock.install();
+  const actions: PollAction[] = [];
+  await mount(strip(pollControlView('draft'), { onAction: (a) => void actions.push(a) }));
+  await page.clock.runFor(600);
+  await page.getByTestId(IDS.open).dblclick();
+  expect(actions).toEqual(['open']);
+});
+
+test('a tap where Open was, right after the poll opens, does nothing; after the guard time Close works', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await page.clock.install();
+  const actions: PollAction[] = [];
+  const onAction = (a: PollAction) => void actions.push(a);
+  const component = await mount(strip(pollControlView('draft'), { onAction }));
+  await page.clock.runFor(600);
+  const open = (await page.getByTestId(IDS.open).boundingBox())!;
+  await page.getByTestId(IDS.open).click();
+  await component.update(strip(pollControlView('open', { roomSeesCounts: false }), { onAction }));
+  await expect(page.getByTestId(IDS.close)).toBeVisible();
+
+  // Where Open was: nothing now sits there that could be mistaken, and a tap anywhere on the strip is ignored.
+  await page.mouse.click(open.x + open.width / 2, open.y + open.height / 2);
+  await page.getByTestId(IDS.close).click({ force: true });
+  await page.getByTestId(IDS.reveal).click({ force: true });
+  expect(actions).toEqual(['open']);
+
+  await page.clock.runFor(600);
+  await page.getByTestId(IDS.close).click();
+  expect(actions).toEqual(['open', 'close']);
+});
+
+test('the guard does not draw the buttons disabled', async ({ mount, page }) => {
+  await page.clock.install();
+  const component = await mount(strip(pollControlView('draft')));
+  await page.clock.runFor(600);
+  await component.update(strip(pollControlView('open', { roomSeesCounts: false })));
+  await expect(page.getByTestId(IDS.close)).toBeEnabled();
+  await expect(page.getByTestId(IDS.close)).not.toHaveAttribute('aria-busy');
+});
+
+test('the rate never shows above 100%, and the real numbers stay', async ({ mount, page }) => {
+  await mount(strip(pollControlView('open', { answered: 45, joined: 40 })));
+  await expect(page.getByTestId(IDS.rate)).toHaveText('100% of 40');
+  await expect(page.getByTestId(IDS.answered)).toHaveText('45');
+});
+
+test('the strip is named with its state and question, so a screen reader hears the new state', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount(strip(pollControlView('open')));
+  await expect(page.getByTestId(IDS.strip)).toHaveAccessibleName(`Poll, open: ${QUESTION}`);
+  await component.update(strip(pollControlView('closed')));
+  await expect(page.getByTestId(IDS.strip)).toHaveAccessibleName(`Poll, closed: ${QUESTION}`);
+});
+
+test('the answer count is announced politely, once at first and then calmly', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount(strip(pollControlView('open', { answered: 10, joined: 40 })));
+  const region = page.getByTestId(IDS.strip).getByRole('status');
+  await expect(region).toHaveAttribute('aria-live', 'polite');
+  await expect(region).toHaveText('10 answers');
+  await component.update(strip(pollControlView('open', { answered: 11, joined: 40 })));
+  await expect(page.getByTestId(IDS.answered)).toHaveText('11');
+  await expect(region).toHaveText('11 answers');
+});
+
+test('focus that left the strip is not pulled back by a later phase change', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount(
+    <>
+      <p data-testid="elsewhere" style={{ marginTop: 200 }}>
+        Notes
+      </p>
+      {strip(pollControlView('open'))}
+    </>,
+  );
+  await page.getByTestId(IDS.close).focus();
+  await page.getByTestId('elsewhere').click();
+  await component.update(
+    <>
+      <p data-testid="elsewhere" style={{ marginTop: 200 }}>
+        Notes
+      </p>
+      {strip(pollControlView('closed'))}
+    </>,
+  );
+  await expect(page.getByTestId(IDS.close)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.strip)).not.toBeFocused();
 });
 
 test('a failed call shows its message as given, announced', async ({ mount, page }) => {
@@ -204,36 +311,44 @@ test('when the button under the thumb goes away with the phase, focus moves to t
   await expect(page.getByTestId(IDS.strip)).toBeFocused();
 });
 
-test('in forced-colors mode each state and each button keeps a visible edge and its text', async ({
+test('in forced-colors mode every state and button gets a 2 px edge, and differs by its text', async ({
   mount,
   page,
 }) => {
-  await page.emulateMedia({ forcedColors: 'active' });
   const closed = pollControlView('closed');
   closed.settings.correct = 1;
   closed.answerShown = false;
-  const component = await mount(strip(pollControlView('draft')));
   const states: [PollControlView, string, string[]][] = [
     [pollControlView('draft'), 'Draft', [IDS.open]],
     [pollControlView('open', { roomSeesCounts: false }), 'Open', [IDS.close, IDS.reveal]],
     [closed, 'Closed', [IDS.showAnswer, IDS.newRound]],
   ];
-  const labels = new Map<string, string>();
+  const component = await mount(strip(states[0][0]));
+  const edges = (id: string) =>
+    page.getByTestId(id).evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { width: parseFloat(style.borderTopWidth), color: style.borderTopColor };
+    });
+  const seen = new Map<string, number>();
+
+  // Without forced colors the edges are 1 px (the pill and the plain buttons): the 2 px below is the mode's doing.
+  await component.update(strip(states[1][0]));
+  expect((await edges(IDS.state)).width).toBe(1);
+  expect((await edges(IDS.reveal)).width).toBe(1);
+
+  await page.emulateMedia({ forcedColors: 'active' });
   for (const [state, text, buttons] of states) {
     await component.update(strip(state));
     await expect(page.getByTestId(IDS.state)).toHaveText(text);
-    labels.set(text, text);
-    const pill = await page
-      .getByTestId(IDS.state)
-      .evaluate((el) => getComputedStyle(el).borderTopWidth);
-    expect(parseFloat(pill)).toBeGreaterThan(0);
+    expect((await edges(IDS.state)).width).toBe(2);
     for (const id of buttons) {
-      const button = page.getByTestId(id);
-      await expect(button).toBeVisible();
-      await expect(button).not.toHaveText('');
-      const width = await button.evaluate((el) => getComputedStyle(el).borderTopWidth);
-      expect(parseFloat(width)).toBeGreaterThan(0);
+      await expect(page.getByTestId(id)).not.toHaveText('');
+      const edge = await edges(id);
+      expect(edge.width).toBe(2);
+      // Open is transparent outside forced colors; the mode gives it a system colour.
+      expect(edge.color).not.toBe('rgba(0, 0, 0, 0)');
+      seen.set(await page.getByTestId(id).innerText(), edge.width);
     }
   }
-  expect(labels.size).toBe(3);
+  expect([...seen.keys()].sort()).toEqual(['Close', 'New round', 'Open', 'Reveal', 'Show answer']);
 });
