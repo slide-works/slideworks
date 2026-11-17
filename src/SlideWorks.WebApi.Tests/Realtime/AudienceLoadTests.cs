@@ -67,17 +67,20 @@ public class AudienceLoadTests : ApiTestFixture
         var lastMoveAnswered = loaded[^1].Answered;
         var duringTheWalk = joins.Count(join => join.Answered > firstMoveAsked && join.Answered < lastMoveAnswered);
         var answerTimes = joins.Select(join => join.Answered - join.Asked).Order().ToList();
-        await TestContext.Progress.WriteLineAsync($"LOAD quiet moves ms: {Describe(quiet.Select(m => m.Took))}");
-        await TestContext.Progress.WriteLineAsync($"LOAD loaded moves ms: {Describe(loaded.Select(m => m.Took))} with {GUESTS} guests joining in {BATCHES} batches");
-        await TestContext.Progress.WriteLineAsync(
+        var numbers = string.Join(
+            Environment.NewLine,
+            $"LOAD quiet moves ms: {Describe(quiet.Select(m => m.Took))}",
+            $"LOAD loaded moves ms: {Describe(loaded.Select(m => m.Took))} with {GUESTS} guests joining in {BATCHES} batches",
             $"LOAD join answer ms: median {Ms(answerTimes[answerTimes.Count / 2])} max {Ms(answerTimes[^1])}; "
             + $"{duringTheWalk} of {joins.Count} answered between the first and the last move (walk {Ms(lastMoveAnswered - firstMoveAsked)} ms)");
-        finalSlides.Length.ShouldBe(GUESTS);
-        finalSlides.ShouldAllBe(slide => slide == SLIDES);
-        joins.Count.ShouldBe(GUESTS);
-        loaded.Count.ShouldBe(BATCHES);
-        duringTheWalk.ShouldBeGreaterThanOrEqualTo((int)(GUESTS * MIN_OVERLAP_SHARE), "the joins should be in flight while the presenter moves");
-        loaded.ShouldAllBe(move => move.Took < MOVE_BOUND);
+        // Progress shows only at a detailed verbosity, so every assertion carries the numbers in its message too.
+        await TestContext.Progress.WriteLineAsync(numbers);
+        finalSlides.Length.ShouldBe(GUESTS, numbers);
+        finalSlides.ShouldAllBe(slide => slide == SLIDES, numbers);
+        joins.Count.ShouldBe(GUESTS, numbers);
+        loaded.Count.ShouldBe(BATCHES, numbers);
+        duringTheWalk.ShouldBeGreaterThanOrEqualTo((int)(GUESTS * MIN_OVERLAP_SHARE), $"the joins should be in flight while the presenter moves{Environment.NewLine}{numbers}");
+        loaded.ShouldAllBe(move => move.Took < MOVE_BOUND, $"every move should be acknowledged within {MOVE_BOUND.TotalMilliseconds} ms{Environment.NewLine}{numbers}");
     }
 
     // Moves slide 1 to SLIDES, one slide at a time with MOVE_EVERY_MS between moves and none before the first. beforeMove runs

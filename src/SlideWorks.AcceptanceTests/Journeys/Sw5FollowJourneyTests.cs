@@ -193,10 +193,10 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         await Expect(guest.Slide).ToHaveAttributeAsync("data-step", "2");
     }
 
-    // A live deck with no slides has no position to show. What the phone shows is a product call, so this holds only that it
-    // stays on the guest page in a phase screen (no error, no offline screen, no slide) and doesn't crash.
+    // A live deck with no slides has no position to show: the phone follows, with the waiting placeholder in place of a slide.
+    // The test ids are asserted, not the wording, which is a product call that is still open.
     [Test]
-    public async Task Guest_WhenTheLiveDeckHasNoSlides_ShouldShowAPhaseScreenWithoutAnErrorOrASlide()
+    public async Task Guest_WhenTheLiveDeckHasNoSlides_ShouldFollowWithTheWaitingPlaceholderInPlaceOfASlide()
     {
         string deckId;
         await using (var agent = await AgentSeed.ConnectAsync(TestUser.Sam))
@@ -211,7 +211,8 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         var guest = new GuestPage(await phone.NewPageAsync());
         await guest.GotoUrlAsync(joinUrl);
 
-        await Expect(guest.Root).ToBeVisibleAsync();
+        await Expect(guest.Following).ToBeVisibleAsync();
+        await Expect(guest.WaitingForPresenter).ToBeVisibleAsync();
         await Expect(guest.Loading).ToHaveCountAsync(0);
         await Expect(guest.Error).ToHaveCountAsync(0);
         await Expect(guest.Offline).ToHaveCountAsync(0);
