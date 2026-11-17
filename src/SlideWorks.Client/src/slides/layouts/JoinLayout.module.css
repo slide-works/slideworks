@@ -1,0 +1,81 @@
+/* The join slide (dark), in canvas px: the QR code (780 square) on the left, the text beside it. */
+.join {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: safe center;
+  gap: 72px;
+}
+
+/* The QR code sits on a white card (the code's own quiet zone), rounded, with a shadow, as the mockup's .qrcard at 2x. */
+.qr {
+  flex: none;
+  width: 780px;
+  height: 780px;
+  overflow: hidden;
+  border-radius: 36px;
+  box-shadow: 0 40px 120px color-mix(in srgb, var(--sw-night) 45%, transparent);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--sw-accent-glow);
+  font: 700 36px/1.2 var(--sw-font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.code {
+  margin: 32px 0 0;
+  font: 800 176px/1 var(--sw-font-head);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.host {
+  margin: 28px 0 0;
+  color: var(--sw-night-2);
+  font: 600 52px/1.2 var(--sw-font-mono);
+  overflow-wrap: anywhere;
+}
+
+.count,
+.notLive {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin: 28px 0 0;
+  font: 600 44px/1.2 var(--sw-font-body);
+}
+
+.count {
+  color: var(--sw-good-soft);
+}
+
+.notLive {
+  color: var(--sw-night-muted);
+  font-size: 36px;
+}
+
+.count i,
+.notLive i {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.count i {
+  background: var(--sw-good);
+}
+
+.notLive i {
+  background: var(--sw-night-muted);
+}

@@ -13,8 +13,10 @@ public sealed class ApiExceptionFilterAttribute : ExceptionFilterAttribute
         ObjectResult? result = context.Exception switch
         {
             NotFoundException e => new NotFoundObjectResult(new ErrorResponse(e.Message)),
+            ForbiddenException e => new ObjectResult(new ErrorResponse(e.Message)) { StatusCode = StatusCodes.Status403Forbidden },
             BadRequestException e => new BadRequestObjectResult(new ErrorResponse(e.Message)),
             ConflictException e => new ConflictObjectResult(new ErrorResponse(e.Message)),
+            TooManyRequestsException e => new ObjectResult(new ErrorResponse(e.Message)) { StatusCode = StatusCodes.Status429TooManyRequests },
             PayloadTooLargeException e => new ObjectResult(new ErrorResponse(e.Message)) { StatusCode = StatusCodes.Status413PayloadTooLarge },
             _ => null,
         };

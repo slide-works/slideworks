@@ -1,3 +1,4 @@
+using SlideWorks.WebApi.Features.Join.Views;
 using SlideWorks.WebApi.Features.Look.Views;
 
 namespace SlideWorks.WebApi.Features.Decks.Views;
@@ -13,6 +14,7 @@ public sealed record DeckPageView(
     long Revision,
     bool IsOwner,
     string PlayUrl,
+    JoinView Join,
     SharingSummary Sharing,
     IReadOnlyList<string> Parts,
     DeckLookView Look,

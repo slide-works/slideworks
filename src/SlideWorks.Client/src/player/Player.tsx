@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { DeckPlayView } from '../api/types';
+import { LivePublisher } from '../live/LivePublisher';
+import { useLiveSessionContext } from '../live/LiveSessionProvider';
 import { deepDivesOf } from '../look/deepDivesOf';
 import { nextPosition, previousPosition } from '../presentation/navigate';
 import type { PresentationUpdate } from '../presentation/types';
@@ -88,6 +90,10 @@ export function Player({
   const { next, previous, first, last } = moves;
   const driven = audience?.driven ?? false;
 
+  // The owner's player publishes its position to guests while the deck is live (SW-5 D18).
+  const session = useLiveSessionContext();
+  const live = session.live;
+
   const fullscreen = useSyncExternalStore(subscribeFullscreen, isFullscreen);
   const toggleFullscreen = useCallback(() => {
     // The browser may refuse (an iframe without allowfullscreen, a permissions
@@ -133,6 +139,7 @@ export function Player({
       )}
       {!driven && (
         <PlayerControls
+          deckTitle={deck.title}
           position={position}
           total={deck.slides.length}
           steps={stepCounts[position.slide - 1] ?? 0}
@@ -141,6 +148,16 @@ export function Player({
           onPrevious={previous}
           onNext={next}
           onFullscreen={toggleFullscreen}
+          joinBar={deck.look.joinBar}
+          liveChip={!audience}
+        />
+      )}
+      {live && !audience && (
+        <LivePublisher
+          deckId={deck.id}
+          slide={position.slide}
+          step={position.step}
+          onError={session.reportError}
         />
       )}
       {notice}

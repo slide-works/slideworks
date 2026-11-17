@@ -5,6 +5,7 @@ import { AppRoutes } from '../AppRoutes';
 import { GoTo } from '../test-support/GoTo';
 import { LocationProbe } from '../test-support/LocationProbe';
 import { deckPlay, me } from '../test-support/fixtures/screens';
+import { guestView } from '../test-support/fixtures/guestStates';
 import { stubApi } from '../test-support/stubApi';
 import { stubDeckHub } from '../test-support/stubDeckHub';
 
@@ -266,7 +267,22 @@ test('player page sends no re-read after it unmounts with a join waiting on its 
 });
 
 test('player page re-reads when a reconnect joins again', async ({ mount, page }) => {
-  const hub = await stubDeckHub(page);
+  const hub = await stubDeckHub(page, { audience: { state: guestView('live').state } });
+  // The owner: GET live answers 200, which is what draws the chip.
+  await stubApi(page, {
+    [`/api/decks/${deckPlay.id}/live`]: {
+      json: {
+        sessionId: null,
+        code: deckPlay.join.code,
+        codeLabel: deckPlay.join.codeLabel,
+        joinUrl: deckPlay.join.joinUrl,
+        hostLabel: deckPlay.join.hostLabel,
+        live: false,
+        joinedCount: 0,
+        joinBar: false,
+      },
+    },
+  });
   let reads = 0;
   await page.route(`**${playPath}`, (route) => {
     reads += 1;
@@ -291,12 +307,19 @@ test('player page 404 mid-presentation offers sign-in back to the current slide'
   mount,
   page,
 }) => {
-  const hub = await stubDeckHub(page);
+  const hub = await stubDeckHub(page, { audience: { state: guestView('live').state } });
+  // A signed-out viewer of a link deck: the play view says they are not the owner, so GET live is never called, no chip is
+  // drawn and no redirect happens.
+  let liveReads = 0;
+  await page.route(`**/api/decks/${deckPlay.id}/live`, (route) => {
+    liveReads += 1;
+    return route.fulfill({ status: 403, json: { error: "Only the deck's owner can go live" } });
+  });
   let reads = 0;
   await page.route(`**${playPath}`, (route) => {
     reads += 1;
     return reads <= 2
-      ? route.fulfill({ json: deckPlay })
+      ? route.fulfill({ json: { ...deckPlay, isOwner: false } })
       : route.fulfill({ status: 404, json: { error: 'Deck not found.' } });
   });
   await stubApi(page, { '/api/me': signedOut });
@@ -305,6 +328,7 @@ test('player page 404 mid-presentation offers sign-in back to the current slide'
   await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
   // The join's own re-read comes first.
   await expect.poll(() => reads).toBe(2);
+  await expect(page.getByTestId('live-chip')).toHaveCount(0);
 
   // The viewer has moved on to slide 2 when the deck is made private.
   await page.evaluate(() => {
@@ -317,6 +341,8 @@ test('player page 404 mid-presentation offers sign-in back to the current slide'
     'href',
     `/signin?returnTo=${encodeURIComponent(`${canonical}#2`)}`,
   );
+  await expect(page.getByTestId('live-chip')).toHaveCount(0);
+  expect(liveReads).toBe(0);
 });
 
 test('player page redirects to canonical slug keeping hash', async ({ mount, page }) => {
@@ -401,4 +427,80 @@ test('player page screenshot', async ({ mount, page }) => {
   await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
   await expect(page.getByTestId('player')).toBeVisible();
   await expect(page).toHaveScreenshot('player-page.png');
+});
+
+test('player page mounts the live chip and re-reads the deck when liveChanged arrives', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page, { audience: { state: guestView('live').state } });
+  // The owner: GET live answers 200, which is what draws the chip.
+  await stubApi(page, {
+    [`/api/decks/${deckPlay.id}/live`]: {
+      json: {
+        sessionId: null,
+        code: deckPlay.join.code,
+        codeLabel: deckPlay.join.codeLabel,
+        joinUrl: deckPlay.join.joinUrl,
+        hostLabel: deckPlay.join.hostLabel,
+        live: false,
+        joinedCount: 0,
+        joinBar: false,
+      },
+    },
+  });
+  let reads = 0;
+  await page.route(`**${playPath}`, (route) => {
+    reads += 1;
+    return route.fulfill({
+      json: reads <= 2 ? deckPlay : { ...deckPlay, join: { ...deckPlay.join, live: true } },
+    });
+  });
+  await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
+  await expect(page.getByTestId('live-chip')).toBeVisible();
+  await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
+  await expect.poll(() => reads).toBe(2);
+
+  hub.push({ type: 'liveChanged', deckId: deckPlay.id });
+
+  await expect.poll(() => reads).toBe(3);
+});
+
+// A GET live that would fail with a 500, to prove who calls it.
+async function stubBrokenLive(page: Page, view: DeckPlayView) {
+  let liveReads = 0;
+  await page.route(`**/api/decks/${deckPlay.id}/live`, (route) => {
+    liveReads += 1;
+    return route.fulfill({ status: 500, json: { error: 'boom' } });
+  });
+  await stubDeckHub(page, { audience: { state: guestView('live').state } });
+  await stubApi(page, { [playPath]: { json: view } });
+  return () => liveReads;
+}
+
+test('player page for a non-owner never calls GET live, so no chip and no error', async ({
+  mount,
+  page,
+}) => {
+  const liveReads = await stubBrokenLive(page, { ...deckPlay, isOwner: false });
+
+  await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
+  await expect(page.getByTestId('player')).toBeVisible();
+  await settle(page);
+
+  expect(liveReads()).toBe(0);
+  await expect(page.getByTestId('live-chip')).toHaveCount(0);
+  await expect(page.getByTestId('live-chip-error')).toHaveCount(0);
+});
+
+test('player page for the owner shows the error slot when GET live fails', async ({
+  mount,
+  page,
+}) => {
+  const liveReads = await stubBrokenLive(page, { ...deckPlay, isOwner: true });
+
+  await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
+
+  await expect(page.getByTestId('live-chip-error')).toBeVisible();
+  expect(liveReads()).toBeGreaterThan(0);
 });

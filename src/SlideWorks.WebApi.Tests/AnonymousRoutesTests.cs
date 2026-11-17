@@ -50,6 +50,17 @@ public class AnonymousRoutesTests : ApiTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
+    // GET live answers a signed-out viewer through the owner check (404 here, the deck is unknown), never the sign-in gate.
+    [Test]
+    public async Task GetLive_WhenAnonymousAndSignInRequiredElsewhere_ShouldBeAnsweredByTheOwnerCheck()
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await anonymous.GetAsync("/api/decks/abc/live");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
     [TestCase("/api/cards/abc.png")]
     public async Task Head_WhenAnonymousAndSignInRequiredElsewhere_ShouldReturn200(string path)
     {
@@ -108,6 +119,19 @@ public class AnonymousRoutesTests : ApiTestFixture
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent);
         return (deck, await ImageSeed.UploadAsync(agent, Factory, deck, ImageSeed.Bytes("image/png")));
+    }
+
+    // With no SLIDEWORKS_JOIN_URL there is no join host: the app host serves the keypad and a join link itself (J7).
+    [TestCase("/join")]
+    [TestCase("/j/482913")]
+    public async Task NoJoinUrl_WhenAppHost_ShouldServeJoinAndJ(string path)
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await anonymous.GetAsync(path);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await response.Content.ReadAsStringAsync()).ShouldContain("SlideWorks");
     }
 
     private static string CreateWebRoot()

@@ -7,7 +7,8 @@
     "chrome": {
       "tracker": false,
       "footer": "date",
-      "progress": true
+      "progress": true,
+      "joinBar": true
     }
   },
   "response": {
@@ -107,10 +108,12 @@
       },
       "draft": true,
       "footerDateLabel": "16 Nov 2026",
+      "joinBar": true,
       "chromeOverrides": {
         "tracker": false,
         "footer": "date",
-        "progress": true
+        "progress": true,
+        "joinBar": true
       },
       "contrast": {
         "pass": true,

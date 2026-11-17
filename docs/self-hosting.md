@@ -15,6 +15,7 @@ Every setting is an environment variable with the `SLIDEWORKS_` prefix, except `
 | Variable | Required | What it does |
 |---|---|---|
 | `SLIDEWORKS_PUBLIC_URL` | Yes, outside Development | The URL people and agents reach SlideWorks at, such as `https://slides.example.com`. It's the app's only source for its own scheme and host: deck links, the OAuth and MCP metadata, the sign-in callback, the `Secure` flag on the session cookie, and the cross-site write guard all use it. The server refuses to start without it outside Development, and refuses a value that isn't an absolute `http` or `https` URL. Serve SlideWorks at the root of its host, because a path in this URL isn't used as a base path. |
+| `SLIDEWORKS_JOIN_URL` | No | A short domain for the join links an audience scans or types, such as `https://slideworks.live`. It must be an absolute `http` or `https` origin with no path, query or fragment, and the server refuses to start with anything else. Join links, the QR code and the address a join slide prints come from it, never from a request's `Host` header. Unset, join links are `<SLIDEWORKS_PUBLIC_URL>/j/<code>`, and slides print the public host with `/j`. |
 | `SLIDEWORKS_GOOGLE_CLIENT_ID` | For sign-in | The Google OAuth client's ID. |
 | `SLIDEWORKS_GOOGLE_CLIENT_SECRET` | For sign-in | The Google OAuth client's secret. Sign-in is on only when both Google values are set. With neither set, the server still runs, `/signin` says sign-in isn't set up, and `/signin/google` answers 503. With only one set, the server logs a warning and sign-in stays off. |
 | `SLIDEWORKS_ADMIN_EMAIL` | Recommended | The Google email of the first admin. When that person signs in and no admin exists yet, they become an approved admin. It's honoured only while no admin exists, so it's harmless to leave it set. If it's unset and there is no admin, the server logs a warning at startup, because nobody can approve sign-ups. |
@@ -84,12 +85,12 @@ Migrations run on startup, so a new image upgrades the database itself.
 Run SlideWorks behind a proxy that ends TLS and forwards plain HTTP to port 8080. The proxy needs to:
 
 - Forward every path to the container, including `/mcp`, `/oauth/*`, `/.well-known/*`, `/signin-google` and `/hubs/deck`.
-- Pass WebSocket upgrades on `/hubs/deck`, which carries live updates.
+- Pass WebSocket upgrades on `/hubs/deck`, which carries live updates. See [Live audience join](#live-audience-join) for the transports and the Host header.
 - Allow request bodies up to 10 MB, the image upload limit.
 
-`SLIDEWORKS_PUBLIC_URL` is the source of truth for the app's scheme and host. SlideWorks never reads `X-Forwarded-Proto`, `X-Forwarded-Host` or the `Host` header to decide its own address, so a forged header can't change a link, the OAuth metadata or the sign-in callback. If the proxy serves `https://slides.example.com`, set exactly that, and the session cookie is `Secure` even though the container sees plain HTTP.
+`SLIDEWORKS_PUBLIC_URL` is the source of truth for the app's scheme and host. SlideWorks never reads `X-Forwarded-Proto` or `X-Forwarded-Host` to decide its own address, and it reads the `Host` header only to choose between the two configured origins (the public URL and, when set, the join URL), so a forged header can't produce a link, OAuth metadata or sign-in callback for any other address. If the proxy serves `https://slides.example.com`, set exactly that, and the session cookie is `Secure` even though the container sees plain HTTP.
 
-`SLIDEWORKS_TRUSTED_PROXIES` is the one exception, and it covers the client IP only. The IP is used only for the per-caller rate limits: 10 a minute on `/oauth/register`, and 60 a minute shared by `/oauth/token` and `/oauth/revoke`. Behind a proxy, set it to the proxy's address, such as `172.18.0.0/16` for a proxy on the same Docker network. Otherwise every request arrives from the proxy, and every client shares one rate-limit budget.
+`SLIDEWORKS_TRUSTED_PROXIES` is the one exception, and it covers the client IP only. The IP is used only for the per-caller rate limits: 10 a minute on `/oauth/register`, 60 a minute shared by `/oauth/token` and `/oauth/revoke`, and the join-code guessing limit (see [Live audience join](#live-audience-join)). Behind a proxy, set it to the proxy's address, such as `172.18.0.0/16` for a proxy on the same Docker network. Otherwise every request arrives from the proxy, and every client shares one rate-limit budget.
 
 When it's set:
 
@@ -113,6 +114,65 @@ slides.example.com {
     reverse_proxy slide-works:8080
 }
 ```
+
+## Live audience join
+
+An audience joins a live talk on their phones with a six-digit code or a QR code. This works with no extra setup, on the
+public URL, at `<SLIDEWORKS_PUBLIC_URL>/j/<code>`. A separate short domain makes the link and the QR code shorter to read out
+and scan. This section covers that domain and what the proxy must allow for guests.
+
+### A join domain
+
+1. Choose a short domain, such as `slideworks.live`. Add a DNS record for it that points at the same proxy as the public
+   URL (an A or AAAA record, or a CNAME).
+2. Get a TLS certificate for it. Caddy and most cloud load balancers do this for you once the proxy has a site block for
+   the name; otherwise issue one as you would for the public URL.
+3. Route the join domain to the same container, and **keep the `Host` header** the guest's browser sent. SlideWorks tells the
+   two domains apart by `Host`, and `X-Forwarded-Host` is never trusted. A proxy that rewrites `Host` to the container's
+   name (nginx's `proxy_set_header Host $proxy_host;`, or a load balancer that replaces it) makes every request look like the
+   public domain.
+4. Set `SLIDEWORKS_JOIN_URL=https://slideworks.live` (in `.env` with Docker Compose) and run `docker compose up -d`, which
+   re-reads `.env` where `docker compose restart` does not. Join links, the QR code and the address a join slide prints
+   now use it.
+
+```
+slides.example.com, slideworks.live {
+    reverse_proxy slide-works:8080
+}
+```
+
+Caddy keeps `Host` by default. With nginx, use `proxy_set_header Host $host;`.
+
+### What the join domain serves
+
+The join domain serves only what a guest needs: the code page (`/join`), the guest page (`/j/<code>` and `/<six digits>`),
+the guest API (`/api/join/*` and `/api/images/*`), the realtime hub (`/hubs/deck`), the app's assets, `/favicon.svg` and
+`/health`. Its `/` redirects to `/join`. Every other path redirects (302) to the same path on the public URL, so the app, the
+API and the agent endpoints are never reachable under the join domain. The public URL serves the guest pages as well.
+
+### Guests need cookies
+
+A guest is identified by the `sw_guest` cookie: 128 random bits, `HttpOnly`, `SameSite=Lax`, set for 12 hours (and `Secure` on https) and
+scoped to the host that set it. SlideWorks sets it on the first lookup and uses it to count each guest once, so a guest who has
+cookies blocked can't join. A guest who opens the public URL and the join domain is two guests.
+
+### Code guessing limit
+
+To stop people guessing codes, each caller address gets 10 wrong codes a minute. Once they are used up, every lookup from
+that address gets a 429 `too_many_attempts` until the minute ends, including a correct one. A correct code never counts
+towards the 10. A caller can also have at most 100 lookups in flight at once. The caller address is the client IP, grouped
+by /64 for IPv6, and it comes from `X-Forwarded-For` only when `SLIDEWORKS_TRUSTED_PROXIES` covers your proxy (see above). A
+venue whose guests all share one address, such as one office or conference network behind NAT, shares one budget, so a room
+of guests who mistype codes can lock the whole venue out for up to a minute. A correct code never uses up the budget, but while
+the address is locked out, guests with the right code are refused too. They get in once the minute ends. Phones already
+following keep their screen and retry by themselves.
+
+### Realtime through the proxy
+
+Guests follow the presenter over the `/hubs/deck` hub. It uses WebSockets, and falls back to Server-Sent Events and then
+long polling when a network blocks them. Your proxy must pass WebSocket upgrades. For the fallbacks it must also not
+buffer responses on `/hubs/deck` and must allow long-lived requests: with nginx, `proxy_buffering off;` and a
+`proxy_read_timeout` of at least 100 seconds.
 
 ## 4. Sign in
 

@@ -2,7 +2,7 @@
 
 Web slide decks that agents build over MCP and anyone presents from a URL.
 
-An agent builds a deck from ready-made building blocks (title, divider, bullets, compare, table, chart, timeline and more) without writing any HTML. A person opens the deck by link, shares it, and presents it in the browser on a laptop or a phone. A presenter can give the talk from a laptop with a presenter window (notes, timer, overview) while the audience window follows, and drives the talk from a phone remote. Later work adds audience features: QR join, live polls, word clouds and Q&A.
+An agent builds a deck from ready-made building blocks (title, divider, bullets, compare, table, chart, timeline and more) without writing any HTML. A person opens the deck by link, shares it, and presents it in the browser on a laptop or a phone. A presenter can give the talk from a laptop with a presenter window (notes, timer, overview) while the audience window follows, and drives the talk from a phone remote. An audience joins a live talk from their phones with a QR code or a six-digit code and follows the slide on screen. Later work adds live polls, word clouds and Q&A.
 
 Designs are in [`design/`](design/). The plan lives in the ShipLean project **SW**: SW-1 is the foundation, SW-2 to SW-15 the increments after it.
 
@@ -60,16 +60,24 @@ The owner of a deck presents it from the Present menu: a presenter window (notes
 
 ## Realtime
 
-Live updates go over one SignalR hub on WebSockets:
+Live updates go over one SignalR hub (WebSockets, with Server-Sent Events and long polling as fallbacks):
 
 ```
 publisher → IDeckEvents (in-process bus) → DeckEventsRelay → DeckHub group "deck:<id>" → subscribeToDeck → screen
 ```
 
-- Server: `src/SlideWorks.WebApi/Realtime/`. `DeckHub` at `/hubs/deck` (WebSockets only) has `JoinDeck(deckId)` and `LeaveDeck(deckId)` and sends `deckEvent` messages. Events are records deriving from `DeckEvent`, serialised with a `type` discriminator. Publish with `IDeckEvents.PublishAsync`; delivery is off the request and in order.
+- Server: `src/SlideWorks.WebApi/Realtime/`. `DeckHub` at `/hubs/deck` (WebSockets, with Server-Sent Events and long polling as fallbacks) has `JoinDeck(deckId)` and `LeaveDeck(deckId)` and sends `deckEvent` messages. For the audience it has `JoinAudience(code)` and `LeaveAudience(code)` for guests (group `audience:{deckId}`) and `WatchAudience(deckId)` for the owner (group `audience-watch:{deckId}`), and sends `audienceEvent` messages. Deck events are records deriving from `DeckEvent`, serialised with a `type` discriminator. Publish with `IDeckEvents.PublishAsync`; delivery is off the request and in order. Audience events derive from `AudienceEvent` and go through `IAudienceEvents` and `AudienceEventsRelay`.
 - Client: `src/SlideWorks.Client/src/realtime/`. `subscribeToDeck` connects, joins, rejoins after a reconnect and retries the first connect with back-off; `useDeckRealtime(deckId, onEvent)` wraps it for a screen. `deckEvents.ts` mirrors the event types.
 - Auth: anyone may connect, so a viewer of a deck shared by link can follow it without signing in. The session cookie identifies a signed-in person, and `JoinDeck` refuses a deck the caller can't view. The cross-site write guard refuses a negotiate or connect that carries another site's `Origin`.
 - One process: the bus is in memory and SignalR keeps groups per process. A second instance needs a cross-process bridge and a SignalR backplane first.
+
+## Audience join
+
+- Every deck has a standing six-digit join code. **Go live** (the live chip in the player) opens a session behind it, and **End** closes it. Guests who arrive before Go live wait in a lobby.
+- A guest opens `/join` and types the code, or scans the QR code, which opens `/j/<code>`. There is no name and no account. The phone mirrors the slide on screen, with no notes, timer or other slides sent to it.
+- The `join` layout shows the code, the QR code and, if the layout allows it, how many have joined. A deck setting puts a small QR code and the code on every slide while live.
+- Set `SLIDEWORKS_JOIN_URL` for a short join domain such as `https://slideworks.live`. See [`docs/self-hosting.md`](docs/self-hosting.md#live-audience-join) for DNS, TLS and what the proxy must keep.
+- Peak joined per session and the median time from the join slide to each join are SW-5's Measures, two queries in [`docs/measures.md`](docs/measures.md).
 
 ## Templates and palettes
 
@@ -117,7 +125,8 @@ Every setting is an environment variable. [`docs/self-hosting.md`](docs/self-hos
 
 | Variable | What |
 |---|---|
-| `SLIDEWORKS_PUBLIC_URL` | Required outside Development. The URL people and agents reach SlideWorks at. It is the only source of the app's scheme and host; `X-Forwarded-*` and `Host` are never trusted for them. Development uses `http://localhost:3000` |
+| `SLIDEWORKS_PUBLIC_URL` | Required outside Development. The URL people and agents reach SlideWorks at. It is the only source of the app's scheme and host; `X-Forwarded-*` is never trusted, and `Host` only chooses between this and the join URL. Development uses `http://localhost:3000` |
+| `SLIDEWORKS_JOIN_URL` | Optional. A short domain for the join links an audience scans, such as `https://slideworks.live`: an absolute `http` or `https` origin with no path, or the server refuses to start. Unset, join links are `<public URL>/j/<code>` |
 | `SLIDEWORKS_GOOGLE_CLIENT_ID`, `SLIDEWORKS_GOOGLE_CLIENT_SECRET` | Sign in with Google, on only when both are set. Redirect URI `<public URL>/signin-google` |
 | `SLIDEWORKS_ADMIN_EMAIL` | The first admin's Google email, honoured only while no admin exists. New people wait on `/pending` until an admin approves them on `/admin/users` |
 | `SLIDEWORKS_DB_PATH` | SQLite file, default `/data/slide-works.db`. The cookie keys live in `slide-works-keys/` next to it |

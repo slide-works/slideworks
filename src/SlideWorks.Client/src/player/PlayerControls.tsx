@@ -1,6 +1,8 @@
+import { LiveChip } from '../live/LiveChip';
 import type { PlayerPosition } from './parseHash';
 
 type PlayerControlsProps = {
+  deckTitle: string;
   position: PlayerPosition;
   total: number;
   steps: number;
@@ -9,6 +11,10 @@ type PlayerControlsProps = {
   onPrevious(): void;
   onNext(): void;
   onFullscreen(): void;
+  // The deck's look.joinBar, so the live chip's toggle follows a change made anywhere.
+  joinBar: boolean;
+  // False in the audience window, which follows the talk and never goes live itself. Defaults to true.
+  liveChip?: boolean;
 };
 
 const BUTTON =
@@ -18,6 +24,7 @@ const BUTTON =
 // The bar under the stage: previous and next, "n / total", one dot per step of
 // the current slide, the deck's progress, and fullscreen (or exit fullscreen).
 export function PlayerControls({
+  deckTitle,
   position,
   total,
   steps,
@@ -26,6 +33,8 @@ export function PlayerControls({
   onPrevious,
   onNext,
   onFullscreen,
+  joinBar,
+  liveChip = true,
 }: PlayerControlsProps) {
   const progress = total > 0 ? (position.slide / total) * 100 : 0;
   return (
@@ -97,6 +106,7 @@ export function PlayerControls({
           style={{ width: `${progress}%` }}
         />
       </span>
+      {liveChip && <LiveChip deckTitle={deckTitle} joinBar={joinBar} />}
       {canFullscreen && (
         <button
           type="button"

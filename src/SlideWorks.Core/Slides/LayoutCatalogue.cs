@@ -1,6 +1,6 @@
 namespace SlideWorks.Core.Slides;
 
-// The 16 layouts and 5 inline blocks (K2, D8). Names and slot fields are frozen in the plan's
+// The 17 layouts and 5 inline blocks (K2, D8). Names and slot fields are frozen in the plan's
 // section 4. The limits come from the mockup CSS so that a slide at its limits fits 1920×1080: a
 // headline wraps to at most two lines, and where counts times lengths could overflow, a fit rule in
 // LayoutRules checks the text the slide actually has.
@@ -172,6 +172,11 @@ public static class LayoutCatalogue
             Opt("sub", new TextSlot(110)),
             Opt("author", new TextSlot(60)),
         ], rules: LayoutRules.Close),
+        new("join", "Join slide (dark): a QR code, the join code and the address, so the room can follow the talk on their phones. The code and the QR come from the live session, never from the slots.", true,
+        [
+            Opt("kicker", new TextSlot(KICKER), "Defaults to 'Join on your phone'"),
+            Opt("count", new EnumSlot("shown", "hidden") { Default = "shown" }, "'shown' (the default) shows how many have joined; 'hidden' leaves the count off"),
+        ]),
     ];
 
     public static IReadOnlyList<string> LayoutNames { get; } = Layouts.Select(l => l.Name).ToArray();

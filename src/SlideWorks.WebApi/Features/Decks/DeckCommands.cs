@@ -1,4 +1,8 @@
+using System.Security.Cryptography;
 using Agoda.IoC.Core;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using SlideWorks.Core.Join;
 using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
@@ -19,11 +23,14 @@ public class DeckCommands(
     IDeckEvents events,
     TimeProvider clock,
     ITemplateCatalogue templates,
-    IPaletteCatalogue palettes)
+    IPaletteCatalogue palettes,
+    ILogger<DeckCommands> logger)
 {
     private const int TITLE_MAX_LENGTH = 120;
     private const int SUBTITLE_MAX_LENGTH = 200;
     private const int AUTHOR_MAX_LENGTH = 80;
+    private const int JOIN_CODE_TRIES = 5;
+    private const int SQLITE_CONSTRAINT = 19;
 
     // tool is the MCP tool's name when an agent calls, for the change log, and null from the web.
     public async Task<Deck> CreateAsync(CreateDeckRequest request, string? tool)
@@ -58,8 +65,7 @@ public class DeckCommands(
 
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
-            db.Decks.Add(deck);
-            await db.SaveChangesAsync();
+            await SaveWithJoinCodeAsync(deck);
             await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, $"created the deck from the {template.Name} template with the {palette.Label} palette"));
             await transaction.CommitAsync();
         }
@@ -67,6 +73,31 @@ public class DeckCommands(
         await events.PublishAsync(new DeckChanged(deck.Id));
         return deck;
     }
+
+    // Assigns the standing join code (J1). A unique-index conflict on the code draws a new one, at most JOIN_CODE_TRIES in all.
+    private async Task SaveWithJoinCodeAsync(Deck deck)
+    {
+        using var random = RandomNumberGenerator.Create();
+        for (var attempt = 1; attempt <= JOIN_CODE_TRIES; attempt++)
+        {
+            deck.JoinCode = JoinCodes.New(random);
+            db.Decks.Add(deck);
+            try
+            {
+                await db.SaveChangesAsync();
+                return;
+            }
+            catch (DbUpdateException ex) when (IsJoinCodeConflict(ex))
+            {
+                db.Entry(deck).State = EntityState.Detached;
+            }
+        }
+        logger.LogError("No free join code for deck {DeckId} after {Tries} tries", deck.Id, JOIN_CODE_TRIES);
+        throw new InvalidOperationException($"No free join code for deck {deck.Id} after {JOIN_CODE_TRIES} tries.");
+    }
+
+    private static bool IsJoinCodeConflict(DbUpdateException ex)
+        => ex.InnerException is SqliteException { SqliteErrorCode: SQLITE_CONSTRAINT } inner && inner.Message.Contains("Decks.JoinCode", StringComparison.Ordinal);
 
     private static string Required(string field, string? value, int maxLength)
         => Optional(field, value, maxLength) ?? throw new BadRequestException($"{field}: required");

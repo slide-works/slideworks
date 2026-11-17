@@ -4,6 +4,7 @@ import { ApiError, api } from '../api/client';
 import type { DeckPageLook, DeckPageView } from '../api/types';
 import { SharingDialog } from '../components/SharingDialog';
 import { LookPanel } from '../look/LookPanel';
+import { JoinProvider } from '../slides/JoinContext';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { ActivityFeed } from './deck/ActivityFeed';
 import { DeckHeader } from './deck/DeckHeader';
@@ -129,27 +130,29 @@ export function DeckPage() {
     view.slides.find((candidate) => candidate.number === selected) ?? view.slides.at(-1);
 
   return (
-    <section data-testid="deck-page" data-deck-id={view.id} className="grid gap-5">
-      <DeckHeader view={view} onShare={() => setSharing(true)} />
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <SlideGrid
-          view={view}
-          selected={slide?.number ?? 0}
-          onSelect={(number) => setSelection({ id, number })}
-        />
-        <div className="grid gap-4">
-          {view.isOwner && <LookPanel deck={view} onSaved={showLook} />}
-          {slide && <SelectedSlide slide={slide} />}
-          <ActivityFeed rows={view.activity} isOwner={view.isOwner} />
-          <LaterOnThisPage />
+    <JoinProvider deckId={view.id} join={view.join} owner={view.isOwner}>
+      <section data-testid="deck-page" data-deck-id={view.id} className="grid gap-5">
+        <DeckHeader view={view} onShare={() => setSharing(true)} />
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <SlideGrid
+            view={view}
+            selected={slide?.number ?? 0}
+            onSelect={(number) => setSelection({ id, number })}
+          />
+          <div className="grid gap-4">
+            {view.isOwner && <LookPanel deck={view} onSaved={showLook} />}
+            {slide && <SelectedSlide slide={slide} />}
+            <ActivityFeed rows={view.activity} isOwner={view.isOwner} />
+            <LaterOnThisPage />
+          </div>
         </div>
-      </div>
-      <SharingDialog
-        deckId={view.id}
-        open={sharing}
-        onClose={() => setSharing(false)}
-        onSaved={() => void read()}
-      />
-    </section>
+        <SharingDialog
+          deckId={view.id}
+          open={sharing}
+          onClose={() => setSharing(false)}
+          onSaved={() => void read()}
+        />
+      </section>
+    </JoinProvider>
   );
 }

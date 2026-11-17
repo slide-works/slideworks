@@ -17,6 +17,7 @@ public sealed record LookChangeRequest(string? Template, string? Palette, JsonEl
     private const string TRACKER = "tracker";
     private const string FOOTER = "footer";
     private const string PROGRESS = "progress";
+    private const string JOIN_BAR = "joinBar";
     private static readonly string[] FOOTERS = ["author", "date", "off"];
 
     public LookChange ToChange() => new(Template, Palette, LogoOf(Logo), Draft, ChromeOf(Chrome));
@@ -44,6 +45,7 @@ public sealed record LookChangeRequest(string? Template, string? Palette, JsonEl
         Change<bool?>? tracker = null;
         Change<string?>? footer = null;
         Change<bool?>? progress = null;
+        bool? joinBar = null;
         foreach (var key in chrome.EnumerateObject())
         {
             switch (key.Name)
@@ -57,11 +59,16 @@ public sealed record LookChangeRequest(string? Template, string? Palette, JsonEl
                 case PROGRESS:
                     progress = new Change<bool?>(Flag(key));
                     break;
+                case JOIN_BAR:
+                    joinBar = key.Value.ValueKind is JsonValueKind.True or JsonValueKind.False
+                        ? key.Value.GetBoolean()
+                        : throw new BadRequestException("chrome.joinBar: must be true or false");
+                    break;
                 default:
                     throw new BadRequestException($"chrome: unknown key '{key.Name}'; expected tracker, footer or progress");
             }
         }
-        return tracker is null && footer is null && progress is null ? null : new ChromeChange(tracker, footer, progress);
+        return tracker is null && footer is null && progress is null && joinBar is null ? null : new ChromeChange(tracker, footer, progress, joinBar);
     }
 
     private static bool? Flag(JsonProperty key) => key.Value.ValueKind switch

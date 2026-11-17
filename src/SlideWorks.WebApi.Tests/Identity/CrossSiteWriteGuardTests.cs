@@ -11,6 +11,9 @@ namespace SlideWorks.WebApi.Tests.Identity;
 public class CrossSiteWriteGuardTests : ApiTestFixture
 {
     private const string FOREIGN_ORIGIN = "https://attacker.example";
+    private const string JOIN_ORIGIN = "http://join.example";
+
+    protected override Dictionary<string, string?> ExtraConfig => new() { ["SLIDEWORKS_JOIN_URL"] = JOIN_ORIGIN };
 
     [Test]
     public async Task Post_WhenForeignOrigin_ShouldReturn403()
@@ -151,6 +154,44 @@ public class CrossSiteWriteGuardTests : ApiTestFixture
         (await response.Content.ReadAsStringAsync()).ShouldNotContain("Cross-site request refused");
     }
 
+    // The audience hub is reached over Server-Sent Events and long polling too (D7). Each is a plain GET on /hubs/deck, so
+    // the guard that refuses another site's negotiate and WebSocket upgrade must refuse these as well, and a request from
+    // our own origin or with none must reach the hub.
+    [Test]
+    public async Task CrossSiteWriteGuard_WhenForeignOriginOnSse_ShouldRefuse()
+    {
+        using var client = Factory.CreateClient();
+
+        var foreign = await client.SendAsync(Transport("text/event-stream", FOREIGN_ORIGIN));
+        var own = await client.SendAsync(Transport("text/event-stream", TestAppFactory.PUBLIC_URL));
+
+        foreign.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        own.StatusCode.ShouldNotBe(HttpStatusCode.Forbidden);
+    }
+
+    [Test]
+    public async Task CrossSiteWriteGuard_WhenForeignOriginOnLongPolling_ShouldRefuse()
+    {
+        using var client = Factory.CreateClient();
+
+        var foreign = await client.SendAsync(Transport(accept: null, FOREIGN_ORIGIN));
+        var own = await client.SendAsync(Transport(accept: null, TestAppFactory.PUBLIC_URL));
+
+        foreign.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        own.StatusCode.ShouldNotBe(HttpStatusCode.Forbidden);
+    }
+
+    private static HttpRequestMessage Transport(string? accept, string origin, string host = TestAppFactory.PUBLIC_URL)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{host}/hubs/deck?id=not-a-connection");
+        if (accept != null)
+        {
+            request.Headers.Add("Accept", accept);
+        }
+        request.Headers.Add("Origin", origin);
+        return request;
+    }
+
     private static HttpRequestMessage Write(HttpMethod method, string? origin, string path = "/api/anything")
     {
         var request = new HttpRequestMessage(method, path) { Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json") };
@@ -160,5 +201,31 @@ public class CrossSiteWriteGuardTests : ApiTestFixture
             request.Headers.Add("Origin", origin);
         }
         return request;
+    }
+
+    // J7: the guard's logic is unchanged. Origin must be the origin chosen for the request, so the join origin is refused on the
+    // app host.
+    [Test]
+    public async Task CrossSiteWriteGuard_WhenJoinOriginOnAppHost_ShouldRefuse()
+    {
+        using var client = Factory.CreateClient();
+
+        var response = await client.SendAsync(Transport("text/event-stream", JOIN_ORIGIN));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    // On the join host the origin chosen is the join origin, so the hub accepts a guest's page there, and refuses the app's own
+    // origin.
+    [Test]
+    public async Task CrossSiteWriteGuard_WhenJoinOriginOnJoinHost_ShouldAllowHub()
+    {
+        using var client = Factory.CreateClient();
+
+        var own = await client.SendAsync(Transport("text/event-stream", JOIN_ORIGIN, JOIN_ORIGIN));
+        var appOrigin = await client.SendAsync(Transport("text/event-stream", TestAppFactory.PUBLIC_URL, JOIN_ORIGIN));
+
+        own.StatusCode.ShouldNotBe(HttpStatusCode.Forbidden);
+        appOrigin.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 }

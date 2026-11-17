@@ -6,6 +6,13 @@
   "revision": 7,
   "isOwner": true,
   "playUrl": "/d/7Kq2xYp9LmQa/ship-smaller",
+  "join": {
+    "code": "482913",
+    "codeLabel": "482 913",
+    "joinUrl": "https://slideworks.live/482913",
+    "hostLabel": "slideworks.live",
+    "live": false
+  },
   "sharing": {
     "level": "link",
     "viewerCount": 0
@@ -107,10 +114,12 @@
     },
     "draft": true,
     "footerDateLabel": "16 Nov 2026",
+    "joinBar": false,
     "chromeOverrides": {
       "tracker": false,
       "footer": "date",
-      "progress": true
+      "progress": true,
+      "joinBar": false
     },
     "contrast": {
       "pass": true,
@@ -175,7 +184,9 @@
           "Feedback in days, not quarters.",
           "A merge that's small enough to review in one sitting."
         ],
-        "avoid": ["\"API first, UI later.\" That's two batches, not two slices."],
+        "avoid": [
+          "\"API first, UI later.\" That's two batches, not two slices."
+        ],
         "callout": {
           "tone": "bad",
           "text": "If a slice can't be demoed to a customer, it isn't a slice yet."

@@ -99,7 +99,8 @@
       "url": "/api/images/img_logo0001"
     },
     "draft": true,
-    "footerDateLabel": "16 Nov 2026"
+    "footerDateLabel": "16 Nov 2026",
+    "joinBar": false
   },
   "slides": [
     {

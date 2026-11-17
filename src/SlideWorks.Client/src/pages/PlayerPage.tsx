@@ -4,6 +4,7 @@ import { ApiError, api } from '../api/client';
 import type { DeckPlayView, MeView } from '../api/types';
 import { AudienceFollower } from '../player/AudienceFollower';
 import { Player } from '../player/Player';
+import { JoinProvider } from '../slides/JoinContext';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { PlayerMessage } from './deck/PlayerMessage';
 
@@ -126,7 +127,9 @@ export function PlayerPage() {
       }
       return (
         <div data-testid="player-page" data-deck-id={id} className="contents">
-          {audience ? <AudienceFollower deck={load.view} /> : <Player deck={load.view} />}
+          <JoinProvider deckId={load.view.id} join={load.view.join} owner={load.view.isOwner}>
+            {audience ? <AudienceFollower deck={load.view} /> : <Player deck={load.view} />}
+          </JoinProvider>
         </div>
       );
   }

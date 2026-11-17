@@ -10,6 +10,7 @@ using SlideWorks.WebApi.Features.Accounts.Admin;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Decks.Views;
+using SlideWorks.WebApi.Features.Join.Views;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Look.Views;
 using SlideWorks.WebApi.Features.Sharing.Views;
@@ -93,6 +94,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
             example.GetProperty("revision").GetInt64(),
             IsOwner: true,
             PlayUrl: "/d/7Kq2xYp9LmQa/ship-smaller",
+            example.GetProperty("join").Deserialize<JoinView>(AppJsonOptions())!,
             SharingSummary.From(DeckSharing.Link, 0),
             ["The cost", "Slice it", "Ship it", "Make it stick"],
             example.GetProperty("look").Deserialize<DeckLookView>(AppJsonOptions())!,
@@ -115,7 +117,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
         var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]", Template = "workshop", Palette = "cobalt" };
         var slide = DeckPageSlide.From(deck, new Slide { DeckId = deck.Id, Layout = "bullets", SlotsJson = """{ "items": ["One"] }""" });
         var view = new DeckPageView(deck.Id, deck.Slug, deck.Title, null, 0, false, "/d/7Kq2xYp9LmQa/ship-smaller",
-            SharingSummary.From(DeckSharing.Private, 0), [], LookViews.ForPage(deck, Templates, Palettes), [slide],
+            new JoinView("482913", "482 913", "https://slideworks.live/482913", "slideworks.live", false), SharingSummary.From(DeckSharing.Private, 0), [], LookViews.ForPage(deck, Templates, Palettes), [slide],
             [ActivityRow.From(Entry("Sam Rivera", ActorKind.Person, ActorVia.Web, null, "created the deck"), "just now")]);
 
         var json = Serialise(view);

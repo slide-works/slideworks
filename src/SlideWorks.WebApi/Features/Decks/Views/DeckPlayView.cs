@@ -1,10 +1,12 @@
+using SlideWorks.WebApi.Features.Join.Views;
 using SlideWorks.WebApi.Features.Look.Views;
 using SlideWorks.WebApi.Features.Slides;
 
 namespace SlideWorks.WebApi.Features.Decks.Views;
 
 // GET /api/play/{id}: everything the player needs in one request (deck-play.json, K4). The same shape as the sample
-// deck (K3). It never contains notes. Look is the deck's resolved look (L6).
+// deck (K3). It never contains notes. Look is the deck's resolved look (L6) and Join how the room reaches it (J1). IsOwner is true only for the signed-in person who owns the deck, the same rule as
+// Go live (IDeckAccess.CanPresentAsync); it is false for every other viewer, and always on the render API.
 public sealed record DeckPlayView(
     string Id,
     string Slug,
@@ -12,8 +14,10 @@ public sealed record DeckPlayView(
     string? Author,
     IReadOnlyList<string> Parts,
     LookView Look,
+    JoinView Join,
+    bool IsOwner,
     IReadOnlyList<DeckPlaySlide> Slides)
 {
-    public static DeckPlayView From(Deck deck, IEnumerable<Slide> slides, LookView look)
-        => new(deck.Id, deck.Slug, deck.Title, deck.Author, DeckParts.Read(deck), look, slides.Select(DeckPlaySlide.From).ToList());
+    public static DeckPlayView From(Deck deck, IEnumerable<Slide> slides, LookView look, JoinView join, bool isOwner)
+        => new(deck.Id, deck.Slug, deck.Title, deck.Author, DeckParts.Read(deck), look, join, isOwner, slides.Select(DeckPlaySlide.From).ToList());
 }

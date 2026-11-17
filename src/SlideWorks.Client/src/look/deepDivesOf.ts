@@ -1,3 +1,4 @@
+import { DEFAULT_JOIN_KICKER } from '../slides/layouts/joinKicker';
 import type { DeepDive, LayoutName, Slots } from '../slides/slots';
 
 type DeepDiveSource = {
@@ -19,6 +20,8 @@ function headlineOf(slide: DeepDiveSource): string {
       return slide.slots.title;
     case 'quote':
       return slide.slots.quote;
+    case 'join':
+      return slide.slots.kicker ?? DEFAULT_JOIN_KICKER;
     default:
       return slide.slots.headline;
   }

@@ -1047,5 +1047,16 @@
       ],
       "caption": "It is still cheap to change course and nobody has to guess how far along the work really is the team ships a small slice of work toeeeeeeeee"
     }
+  },
+  "joinKicker": {
+    "layout": "join",
+    "grow": [
+      "/kicker"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Join on your phone and follow the talk x",
+      "count": "shown"
+    }
   }
 }

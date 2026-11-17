@@ -55,4 +55,51 @@ public static class ScreenShapes
     public static string PresentationStateFile => Path.Combine(JsonShape.ScreensDirectory(), "..", "presentation-state.json");
 
     public static readonly JsonShapeOptions PresentationState = new() { NullablePaths = ["talkMinutes"] };
+
+    // SW-5's guest view (guest.json, J3). The file holds three samples, "live", "lobby" and "ended"; check a real response
+    // against one sample with JsonShape.AssertMatches(actual, sample, "guest.json", ScreenShapes.Guest). The lobby and ended
+    // samples are null where a live guest has a slide, so they are checked as the same shape with these paths nullable.
+    public static readonly JsonShapeOptions Guest = new()
+    {
+        NullablePaths = ["deckUrl", "state.current", "state.activity", "look.logo", "look.template.titleArt"],
+        OpaquePaths = ["state.current.slots"],
+    };
+
+    // The same paths for the whole file, which JsonShape checks against itself.
+    public static readonly JsonShapeOptions GuestFile = new()
+    {
+        NullablePaths =
+        [
+            "live.state.activity", "lobby.deckUrl", "lobby.state.current", "lobby.state.activity",
+            "ended.state.current", "ended.state.activity",
+        ],
+        OpaquePaths = ["live.state.current.slots"],
+    };
+
+    // The live view (live.json, J2): GET, POST and DELETE-less reads of /api/decks/{id}/live. sessionId is null when live is false.
+    public static readonly JsonShapeOptions Live = new() { NullablePaths = ["sessionId"] };
+
+    // The audience events (audience-events.json, J4): one sample of each, as properties named by the event type. The state
+    // sample is a live one, so a lobby or ended state is checked with current and activity nullable.
+    public static readonly JsonShapeOptions AudienceEvents = new()
+    {
+        NullablePaths = ["audienceState.activity"],
+        OpaquePaths = ["audienceState.current.slots"],
+    };
+
+    // One event's own paths, for a frame checked against a single sample: AudienceState or an event with no nulls.
+    public static readonly JsonShapeOptions AudienceState = new()
+    {
+        NullablePaths = ["current", "activity"],
+        OpaquePaths = ["current.slots"],
+    };
+
+    // The nullable and opaque paths for each screen file when JsonShapeTests checks a sample against itself. A file with
+    // no entry is checked with slides[].slots opaque, which is every play-shaped screen.
+    public static JsonShapeOptions SelfCheckOf(string file) => file switch
+    {
+        "guest.json" => GuestFile,
+        "audience-events.json" => AudienceEvents,
+        _ => new JsonShapeOptions { OpaquePaths = ["slides[].slots"] },
+    };
 }

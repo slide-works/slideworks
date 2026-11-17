@@ -1,4 +1,7 @@
-import type { Page, WebSocketRoute } from 'playwright/test';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import type { Page } from 'playwright/test';
+import type { AudienceEvent, AudienceState } from '../guest/audienceEvents';
 import type { PresentationState, PresentationUpdate, TimerCommand } from '../presentation/types';
 import { DECK_NOT_FOUND } from '../realtime/hubErrors';
 
@@ -28,12 +31,29 @@ export interface StubPresentationOptions {
   holdJoin?: boolean;
 }
 
+// The hub's transports (SW-5 D7), in the order the real server's negotiate answer lists them.
+export type StubTransport = 'WebSockets' | 'ServerSentEvents' | 'LongPolling';
+
+export interface StubAudienceOptions {
+  // The state JoinAudience answers with. A later pushAudienceEvent of an audienceState changes it for later joins.
+  state: AudienceState;
+  // Refuse every JoinAudience with this HubException message, as the hub does for an unknown code ("no_session"), a
+  // guest with no sw_guest cookie ("no_guest") or one that missed too often ("too_many_attempts").
+  refuse?: 'no_session' | 'no_guest' | 'too_many_attempts';
+}
+
 export interface StubDeckHubOptions {
   // Leave each JoinDeck unanswered until releaseJoins(), as a slow join would be.
   holdJoins?: boolean;
   // Play the presentation calls (contract P2) too. Without it, JoinPresentation, UpdatePresentation and SetTimer are
   // answered as a method the hub doesn't have.
   presentation?: StubPresentationOptions;
+  // Play the audience calls (contract J4) too. Without it, JoinAudience, LeaveAudience and WatchAudience are answered as
+  // a method the hub doesn't have.
+  audience?: StubAudienceOptions;
+  // The transports negotiate offers. All three when left out, as the real hub does, so a client that can use any of them
+  // gets WebSockets. Give one to force a fallback.
+  transports?: readonly StubTransport[];
 }
 
 // The arguments of one JoinPresentation, in the order the hub takes them (P2).
@@ -62,6 +82,9 @@ type Reply = { result(value?: unknown): void; error(message: string): void };
 // answer runs unless fail() has armed a failure for the method.
 type HubMethod = { record?(args: unknown[]): void; answer(args: unknown[], reply: Reply): void };
 
+// Somewhere to send hub frames: a WebSocket, a held long poll or an open event stream.
+type Sink = { send(text: string): void };
+
 // Component tests only: plays the deck hub (/hubs/deck) at the network boundary, deck events and presentations both.
 // It answers negotiate, the handshake and JoinDeck, records the deck ids each JoinDeck asked for, and pushes deckEvents
 // to the client the way the server does. With the presentation option it also answers JoinPresentation (or refuses
@@ -71,10 +94,14 @@ type HubMethod = { record?(args: unknown[]): void; answer(args: unknown[], reply
 // a missing method, so a test fails fast instead of waiting. It can hold joins and drop the connection, and it counts
 // the WebSockets the page opens. It reloads the page, so call it before mount().
 //
+// With the audience option it also answers JoinAudience (or refuses it), records LeaveAudience and WatchAudience, and
+// pushes "audienceEvent" messages with pushAudienceEvent. With the transports option it offers only those transports,
+// and plays WebSockets, Server-Sent Events (a small local server the page's event stream is sent to) and long polling.
+//
 // Each hub method is one entry in the methods map below: a new method is a new entry.
 export async function stubDeckHub(
   page: Page,
-  { holdJoins = false, presentation }: StubDeckHubOptions = {},
+  { holdJoins = false, presentation, audience, transports }: StubDeckHubOptions = {},
 ) {
   const joined: unknown[] = [];
   const leftDecks: unknown[] = [];
@@ -88,9 +115,15 @@ export async function stubDeckHub(
   let refusing = presentation?.refuse ?? false;
   let current = presentation ? structuredClone(presentation.state) : undefined;
   let sockets = 0;
-  let socket: WebSocketRoute | undefined;
+  let socket: Sink | undefined;
+  const audienceJoins: string[] = [];
+  const audienceLeaves: string[] = [];
+  const watches: string[] = [];
+  const transportsUsed: StubTransport[] = [];
+  let audienceState = audience?.state && structuredClone(audience.state);
+  let audienceRefusal = audience?.refuse;
 
-  const send = (ws: WebSocketRoute, message: object) => ws.send(`${JSON.stringify(message)}${RS}`);
+  const send = (ws: Sink, message: object) => ws.send(`${JSON.stringify(message)}${RS}`);
   const broadcast = (state: PresentationState) =>
     socket && send(socket, { type: 1, target: 'presentationState', arguments: [state] });
   const change = (to: Partial<PresentationState>): PresentationState => {
@@ -101,6 +134,10 @@ export async function stubDeckHub(
   // The presentation methods exist only with the presentation option.
   const presenting = (method: HubMethod): HubMethod | undefined =>
     presentation ? method : undefined;
+
+  // The audience methods exist only with the audience option.
+  const audienceMethod = (method: HubMethod): HubMethod | undefined =>
+    audience ? method : undefined;
 
   const methods: Record<string, HubMethod | undefined> = {
     JoinDeck: {
@@ -170,9 +207,22 @@ export async function stubDeckHub(
       record: ([deckId]) => leaves.push(deckId),
       answer: (_, reply) => reply.result(),
     },
+    JoinAudience: audienceMethod({
+      record: ([code]) => audienceJoins.push(code as string),
+      answer: (_, reply) =>
+        audienceRefusal ? reply.error(audienceRefusal) : reply.result(audienceState),
+    }),
+    LeaveAudience: audienceMethod({
+      record: ([code]) => audienceLeaves.push(code as string),
+      answer: (_, reply) => reply.result(),
+    }),
+    WatchAudience: audienceMethod({
+      record: ([deckId]) => watches.push(deckId as string),
+      answer: (_, reply) => reply.result(),
+    }),
   };
 
-  const invoke = (ws: WebSocketRoute, message: HubMessage) => {
+  const invoke = (ws: Sink, message: HubMessage) => {
     const target = message.target ?? '';
     const args = message.arguments ?? [];
     // A send() (no invocationId) gets no completion.
@@ -198,26 +248,122 @@ export async function stubDeckHub(
     method.answer(args, reply);
   };
 
-  await page.route('**/hubs/deck/negotiate**', (route) =>
-    route.fulfill({
+  const offered = transports ?? (['WebSockets', 'ServerSentEvents', 'LongPolling'] as const);
+  // Long polling keeps one state per connection, found by the token negotiate gave it (the id= query value), so a poll
+  // held by a dropped connection can never take the next connection's frames.
+  type PollState = { token: string; queued: string[]; first: boolean; wake?: () => void };
+  let connections = 0;
+  let poll: PollState = { token: '', queued: [], first: true };
+  await page.route('**/hubs/deck/negotiate**', (route) => {
+    // A new connection: the previous one's held poll is answered with 204 and forgotten.
+    connections += 1;
+    const old = poll;
+    poll = { token: `token-${connections}`, queued: [], first: true };
+    old.wake?.();
+    return route.fulfill({
       json: {
         negotiateVersion: 1,
-        connectionId: 'conn-1',
-        connectionToken: 'token-1',
-        availableTransports: [{ transport: 'WebSockets', transferFormats: ['Text', 'Binary'] }],
+        connectionId: `conn-${connections}`,
+        connectionToken: poll.token,
+        availableTransports: offered.map((transport) => ({
+          transport,
+          transferFormats: transport === 'WebSockets' ? ['Text', 'Binary'] : ['Text'],
+        })),
       },
-    }),
-  );
+    });
+  });
+
+  // What the hub does with the frames a client sent, whichever transport carried them.
+  const receive = (sink: Sink, raw: string) => {
+    for (const frame of raw.split(RS).filter(Boolean)) {
+      const message = JSON.parse(frame) as HubMessage;
+      if (message.protocol !== undefined) sink.send(`{}${RS}`);
+      else if (message.type === 1) invoke(sink, message);
+    }
+  };
+
   await page.routeWebSocket(/\/hubs\/deck\?/, (ws) => {
     sockets += 1;
     socket = ws;
-    ws.onMessage((raw) => {
-      for (const frame of String(raw).split(RS).filter(Boolean)) {
-        const message = JSON.parse(frame) as HubMessage;
-        if (message.protocol !== undefined) ws.send(`{}${RS}`);
-        else if (message.type === 1) invoke(ws, message);
-      }
+    transportsUsed.push('WebSockets');
+    ws.onMessage((raw) => receive(ws, String(raw)));
+  });
+
+  // Long polling: a GET is a poll (the first is answered at once, as the client waits for it to connect), a POST carries
+  // the client's frames, a DELETE ends the connection. A poll is held until the hub has something to send.
+  const longPollSink = (state: PollState): Sink => ({
+    send(text) {
+      state.queued.push(text);
+      state.wake?.();
+    },
+  });
+  // Server-Sent Events: the page's event stream is sent to a local server that holds it open, because a fulfilled route
+  // can't stream. The client's frames still arrive as POSTs, handled like the long poll's.
+  let stream: import('node:http').ServerResponse | undefined;
+  const eventStream: Sink = { send: (text) => stream?.write(`data: ${text}\n\n`) };
+  // The server lives as long as the stream it serves: it closes when that stream ends (the client stopped, dropped or
+  // the page went away) or when the page closes, so no server outlives its test even though the page is reused.
+  // The browser reaches it at 127.0.0.1, so this needs the browser on the same host as the test, as it is in CI's
+  // Playwright image; a remote browser (connectOptions) could not.
+  const streamUrl = async () => {
+    const server = createServer((request, response) => {
+      response.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': String(request.headers.origin ?? '*'),
+        'Access-Control-Allow-Credentials': 'true',
+      });
+      response.write(':\n\n');
+      stream = response;
+      socket = eventStream;
+      transportsUsed.push('ServerSentEvents');
+      response.on('close', () => {
+        if (stream === response) stream = undefined;
+        closeServer();
+      });
     });
+    const closeServer = () => {
+      page.off('close', closeServer);
+      server.closeAllConnections();
+      server.close();
+    };
+    page.once('close', closeServer);
+    await new Promise<void>((done) => server.listen(0, '127.0.0.1', done));
+    return `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
+  };
+
+  await page.route(/\/hubs\/deck\?/, async (route) => {
+    const request = route.request();
+    const method = request.method();
+    const token = new URL(request.url()).searchParams.get('id');
+    if (method === 'POST') {
+      const sink = socket === eventStream ? eventStream : longPollSink(poll);
+      // Frames from a connection that has been replaced are dropped.
+      if (sink === eventStream || token === poll.token) receive(sink, request.postData() ?? '');
+      await route.fulfill({ status: 200, body: '' });
+    } else if (method === 'DELETE') {
+      await route.fulfill({ status: 202, body: '' });
+    } else if ((await request.headerValue('accept'))?.includes('text/event-stream')) {
+      await route.continue({ url: await streamUrl() });
+    } else {
+      const mine = poll;
+      if (token !== mine.token) {
+        await route.fulfill({ status: 204, body: '' });
+        return;
+      }
+      if (mine.first) {
+        mine.first = false;
+        socket = longPollSink(mine);
+        transportsUsed.push('LongPolling');
+        await route.fulfill({ status: 200, body: '' });
+        return;
+      }
+      if (mine.queued.length === 0) await new Promise<void>((wake) => (mine.wake = wake));
+      mine.wake = undefined;
+      // A poll whose connection was replaced while it was held gets nothing.
+      if (mine !== poll) await route.fulfill({ status: 204, body: '' });
+      else await route.fulfill({ status: 200, body: mine.queued.splice(0).join('') });
+    }
   });
   // The component-test page is loaded before the test starts, and the
   // WebSocket route only takes effect in a page loaded after it is set.
@@ -237,6 +383,27 @@ export async function stubDeckHub(
     // How many WebSockets the page has opened to the hub.
     get sockets() {
       return sockets;
+    },
+    // Each JoinAudience's code, in order, refused and failed ones included.
+    audienceJoins,
+    // Each LeaveAudience's code, in order.
+    audienceLeaves,
+    // Each WatchAudience's deck id, in order.
+    watches,
+    // The transport of each connection the page made, in order.
+    transportsUsed,
+    // Sends one "audienceEvent" to the newest connection. An audienceState also becomes the state later joins get.
+    pushAudienceEvent(event: AudienceEvent) {
+      if (event.type === 'audienceState') audienceState = structuredClone(event);
+      send(socket!, { type: 1, target: 'audienceEvent', arguments: [event] });
+    },
+    // Changes the state later JoinAudience calls answer with, sending nothing: the state a reconnecting guest lands on.
+    setAudienceState(state: AudienceState) {
+      audienceState = structuredClone(state);
+    },
+    // Refuses every later JoinAudience with message (on), or answers them again (off).
+    refuseAudience(message: StubAudienceOptions['refuse']) {
+      audienceRefusal = message;
     },
     // Sends to the newest connection: the page's current deck.
     push(event: unknown) {

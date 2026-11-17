@@ -49,6 +49,11 @@ public static class JsonShape
     {
         if (example.ValueKind == JsonValueKind.Null)
         {
+            // An example that is null at a nullable path (an always-null field, or a sample of the empty case) matches null.
+            if (actual.ValueKind == JsonValueKind.Null && rules.Nullable.Contains(path))
+            {
+                return;
+            }
             problems.Add($"{Describe(path)}: the example is null; give it a non-null value so its kind is known");
             return;
         }

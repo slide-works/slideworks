@@ -40,6 +40,7 @@ const REQUIRED_SLOT_KEYS = {
   rules: ['headline', 'rules'],
   cards: ['headline', 'cards'],
   close: ['headline'],
+  join: [],
 } as const satisfies { [L in LayoutName]: readonly RequiredKeys<Slots[L]>[] };
 
 type UnlistedRequiredKey = {

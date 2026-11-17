@@ -111,7 +111,8 @@ public class LookCommands(
             deck.ChromeJson = new ChromeOverridesView(
                 chrome.Tracker is null ? overrides.Tracker : chrome.Tracker.Value,
                 chrome.Footer is null ? overrides.Footer : chrome.Footer.Value,
-                chrome.Progress is null ? overrides.Progress : chrome.Progress.Value).ToJson();
+                chrome.Progress is null ? overrides.Progress : chrome.Progress.Value,
+                chrome.JoinBar ?? overrides.JoinBar).ToJson();
         }
         deck.Revision += 1;
         deck.UpdatedAt = clock.GetUtcNow();

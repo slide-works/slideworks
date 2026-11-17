@@ -30,6 +30,7 @@ public class ImageUploads(
     IPublicUrls urls,
     ImageStore store,
     RenderSessions renderSessions,
+    IAudienceSessions audienceSessions,
     TimeProvider clock)
 {
     public const string TOOL = "upload_image";
@@ -109,17 +110,23 @@ public class ImageUploads(
     }
 
     // The image's file when its upload has completed and the caller may view its deck; otherwise 404, the same for an
-    // unknown image as for a forbidden one.
-    public async Task<StoredImage> OpenAsync(string imageId)
+    // unknown image as for a forbidden one. A guest (guestId, from the sw_guest cookie) may also view the images of a deck
+    // with an open session (J3): they are on the slides they are following.
+    public async Task<StoredImage> OpenAsync(string imageId, string? guestId = null)
     {
         var image = await db.DeckImages.AsNoTracking().SingleOrDefaultAsync(i => i.Id == imageId && i.UploadedAt != null);
         // A headless render page reads its own deck's images with its render token (L9), whoever the deck is shared with.
-        if (image == null || (!renderSessions.AllowsImagesOf(image.DeckId) && !await access.CanViewAsync(image.DeckId, actor)))
+        if (image == null || !await MayViewAsync(image.DeckId, guestId))
         {
             throw new NotFoundException(IMAGE_NOT_FOUND);
         }
         return new StoredImage(store.PathFor(image.DeckId, image.Id), image.ContentType, $"\"{image.Id}.{image.UploadedAt!.Value.ToUnixTimeMilliseconds()}\"");
     }
+
+    private async Task<bool> MayViewAsync(string deckId, string? guestId)
+        => renderSessions.AllowsImagesOf(deckId)
+            || await access.CanViewAsync(deckId, actor)
+            || (guestId is not null && (await audienceSessions.ForDeckAsync(deckId))?.Phase == AudiencePhase.Live);
 
     // The image whose upload this token still opens: unused, unexpired, and on a deck whose owner is approved now.
     private IQueryable<DeckImage> LiveUpload(string hash)

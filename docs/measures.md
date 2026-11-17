@@ -77,3 +77,87 @@ FROM scored;
 **Columns:** `new_decks` (created in the window), `adopted` (on a built-in look with no override), `adopted_pct` (the
 Measure, as a percentage; null when no deck was created), and `relooked` (new decks whose template or palette was
 changed after creation).
+
+## Audience join (SW-5)
+
+Two queries, one for each Measure of the audience join: how many people a talk reached, and how quickly they joined once
+the room could see the join slide. Both read from the audience sessions SlideWorks keeps for each Go live.
+
+**Where it reads from:**
+
+- `AudienceSessions` has one row for each time a deck went live. `StartedAt` is when Go live ran, and `PeakJoined` is the
+  most distinct guests connected at once during that session. `JoinSlideFirstShownAt` is the first time the live
+  presentation was on a `join` slide, and is null when it never was.
+- `AudienceJoins` has one row for each guest in a session. `JoinedAt` is when the guest joined.
+
+**Parameters:** `@from` (inclusive) and `@to` (exclusive), as UTC date-times such as `2026-11-16 00:00:00`. A session is in
+the window when it started in it. Times are stored in the encoding described under Look adoption, and both queries
+convert the parameters themselves.
+
+### Peak joined per session
+
+**Columns:** `session_id`, `deck_id`, `started_at` (UTC), and `peak_joined`, the Measure. Rows are newest session first.
+
+```sql
+WITH bounds AS (
+  SELECT ((CAST(strftime('%s', @from) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS lo,
+         ((CAST(strftime('%s', @to) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS hi
+)
+SELECT s.Id AS session_id,
+       s.DeckId AS deck_id,
+       datetime((s.StartedAt >> 11) / 10000 - 62135596800, 'unixepoch') AS started_at,
+       s.PeakJoined AS peak_joined
+FROM AudienceSessions s, bounds b
+WHERE s.StartedAt >= b.lo AND s.StartedAt < b.hi
+ORDER BY s.StartedAt DESC, s.Id;
+```
+
+### Seconds from the join slide to each join
+
+A guest who joined in the lobby is recorded as joining when Go live ran, and a guest can join before the join slide is
+first shown, so some joins come before the slide. The query counts those as 0 seconds (clamped, not excluded).
+
+**Columns:** `session_id`, `deck_id`, `started_at` (UTC), `joins` (guests counted, including the clamped ones),
+`before_slide` (how many of those joined before the join slide was first shown, and so count as 0), and `median_seconds`,
+the Measure. A session whose join slide was never shown has no row. Rows are newest session first.
+
+```sql
+WITH bounds AS (
+  SELECT ((CAST(strftime('%s', @from) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS lo,
+         ((CAST(strftime('%s', @to) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS hi
+),
+gaps AS (
+  SELECT j.SessionId AS session_id,
+         s.DeckId AS deck_id,
+         s.StartedAt AS started,
+         MAX(0, ((j.JoinedAt >> 11) - (s.JoinSlideFirstShownAt >> 11)) / 10000.0) AS seconds,
+         CASE WHEN j.JoinedAt <= s.JoinSlideFirstShownAt THEN 1 ELSE 0 END AS before_join
+  FROM AudienceJoins j
+  JOIN AudienceSessions s ON s.Id = j.SessionId, bounds b
+  WHERE s.JoinSlideFirstShownAt IS NOT NULL
+    AND s.StartedAt >= b.lo AND s.StartedAt < b.hi
+),
+ranked AS (
+  SELECT session_id,
+         deck_id,
+         started,
+         seconds,
+         ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY seconds) AS rn,
+         COUNT(*) OVER (PARTITION BY session_id) AS n,
+         SUM(before_join) OVER (PARTITION BY session_id) AS before_slide
+  FROM gaps
+)
+SELECT session_id,
+       deck_id,
+       datetime((started >> 11) / 10000 - 62135596800, 'unixepoch') AS started_at,
+       n AS joins,
+       before_slide,
+       ROUND(AVG(seconds), 1) AS median_seconds
+FROM ranked
+WHERE rn IN ((n + 1) / 2, (n + 2) / 2)
+GROUP BY session_id, deck_id, started, n, before_slide
+ORDER BY started DESC, session_id;
+```
+
+Joins before the slide count as 0 s and pull the median toward 0, so for a room that mostly joined before the join slide
+was shown, `median_seconds` says little about the join slide. Read it together with `before_slide`.

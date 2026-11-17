@@ -1,0 +1,37 @@
+{
+  "audienceState": {
+    "type": "audienceState",
+    "seq": 43,
+    "phase": "live",
+    "current": {
+      "index": 3,
+      "count": 12,
+      "layout": "bullets",
+      "slots": {
+        "kicker": "Slice it",
+        "headline": "Slice by what a customer can do",
+        "items": [
+          "Start from one user action",
+          {
+            "lead": "Hard-code the second case.",
+            "text": "Generalise on the third."
+          },
+          "Ship behind a flag"
+        ],
+        "reveal": "one-by-one"
+      },
+      "steps": 3,
+      "step": 1,
+      "black": false
+    },
+    "revision": 7,
+    "activity": null
+  },
+  "audienceEnded": {
+    "type": "audienceEnded"
+  },
+  "joinedCount": {
+    "type": "joinedCount",
+    "count": 37
+  }
+}

@@ -66,12 +66,13 @@ public static class AuthSetup
     }
 
     // Authentication and authorization run after static files and routing, so endpoint metadata such as AllowAnonymous
-    // applies. PublicOriginMiddleware comes first, so every cookie, the write guard and any sign-in callback URL see the
+    // applies. PublicOriginMiddleware comes first, then JoinHostRouting (the join host serves only the join paths), so every cookie, the write guard and any sign-in callback URL see the
     // public URL's scheme and host. The write guard sits between authentication and authorization: it needs to know
     // whether the caller is signed in, and it must refuse a cross-site write before any endpoint runs.
     public static WebApplication UseSlideWorksAuth(this WebApplication app)
     {
         app.UseMiddleware<PublicOriginMiddleware>();
+        app.UseMiddleware<JoinHostRouting>();
         app.UseAuthentication();
         app.UseMiddleware<CrossSiteWriteGuard>();
         app.UseAuthorization();

@@ -95,8 +95,10 @@ var version = ApiMarker.Assembly
 app.MapGet("/health", () => Results.Ok(new { status = "ok", version })).AllowAnonymous();
 app.MapControllers();
 app.MapSlideWorksMcp();
-// Live updates for decks, over WebSockets only; see Realtime/DeckHub.cs.
-app.MapHub<DeckHub>(DeckHub.PATH, options => options.Transports = HttpTransportType.WebSockets);
+// Live updates for decks and the audience: WebSockets, then Server-Sent Events, then long polling for guests on networks
+// that block the first (D7); see Realtime/DeckHub.cs.
+app.MapHub<DeckHub>(DeckHub.PATH, options => options.Transports =
+    HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling);
 // Unknown routes fall back to the SPA for client-side routing, except under
 // /api and /hubs, which must keep returning 404 rather than the SPA shell. The shell
 // is anonymous: the player (/d/:id/:slug) opens for viewers who never sign in.

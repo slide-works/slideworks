@@ -15,6 +15,9 @@ services:
       # OAuth metadata and the sign-in callback are built from it). The app
       # refuses to start without it.
       - SLIDEWORKS_PUBLIC_URL=${SLIDEWORKS_PUBLIC_URL:-}
+      # Optional: a short domain for audience join links, an origin with no path
+      # (such as https://slideworks.live). Unset, join links use the public URL.
+      - SLIDEWORKS_JOIN_URL=${SLIDEWORKS_JOIN_URL:-}
       # Required: signs the short-lived render tokens headless pages use (at least
       # 32 random characters, e.g. `openssl rand -base64 32`). The app refuses to
       # start without it.

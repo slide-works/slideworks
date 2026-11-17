@@ -21,12 +21,13 @@ export const LAYOUT_NAMES = [
   'rules',
   'cards',
   'close',
+  'join',
 ] as const;
 
 export type LayoutName = (typeof LAYOUT_NAMES)[number];
 
 // Title, divider and close slides use the dark surface; every other layout is light.
-export const DARK_LAYOUTS: readonly LayoutName[] = ['title', 'divider', 'close'];
+export const DARK_LAYOUTS: readonly LayoutName[] = ['title', 'divider', 'close', 'join'];
 
 // A panel's tone (SW-2 L4). good, bad and info stay valid for ever as aliases of
 // positive, negative and accent (D15); stored slides are never rewritten.
@@ -196,6 +197,9 @@ export type CardsSlots = { kicker?: string; headline: string; cards: Card[]; rev
 // headline may carry \n line breaks; it is the only slot that does.
 export type CloseSlots = { headline: string; sub?: string; author?: string };
 
+// The join slide's slots (SW-5 J6). The code and the QR come from the live session, never from the slots.
+export type JoinSlots = { kicker?: string; count?: 'shown' | 'hidden' };
+
 export type Slots = {
   title: TitleSlots;
   divider: DividerSlots;
@@ -213,6 +217,7 @@ export type Slots = {
   rules: RulesSlots;
   cards: CardsSlots;
   close: CloseSlots;
+  join: JoinSlots;
 };
 
 // Every top-level slot key of each layout, at runtime. The `satisfies` clause
@@ -235,6 +240,7 @@ export const SLOT_KEYS = {
   rules: ['kicker', 'headline', 'rules', 'reveal'],
   cards: ['kicker', 'headline', 'cards', 'reveal'],
   close: ['headline', 'sub', 'author'],
+  join: ['kicker', 'count'],
 } as const satisfies { [L in LayoutName]: readonly (keyof Slots[L])[] };
 
 type UnlistedSlotKey = {

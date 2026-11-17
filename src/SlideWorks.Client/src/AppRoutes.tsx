@@ -1,5 +1,7 @@
 import { Navigate, Outlet, useRoutes, type RouteObject } from 'react-router-dom';
 import { App } from './App';
+import { GuestRoute } from './guest/GuestRoute';
+import { JoinCodePage } from './guest/JoinCodePage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { CardPage } from './pages/CardPage';
 import { ConsentPage } from './pages/ConsentPage';
@@ -23,6 +25,11 @@ const routes: RouteObject[] = [
   { path: '/pending', element: <PendingPage /> },
   { path: '/d/:id/:slug', element: <PlayerPage /> },
   { path: '/d/:id', element: <PlayerPage /> },
+  // The guest pages (SW-5 J5): anyone with a join code, no sign-in. /j/{code} is what both hosts serve; the bare /{code}
+  // is for the join host. A segment that is not six digits is not a code.
+  { path: '/join', element: <JoinCodePage /> },
+  { path: '/j/:code', element: <GuestRoute /> },
+  { path: '/:code', element: <GuestRoute /> },
   { path: '/render/:id/:n', element: <RenderPage /> },
   { path: '/card/generic', element: <CardPage /> },
   { path: '/card/:id', element: <CardPage /> },
