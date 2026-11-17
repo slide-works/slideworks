@@ -140,6 +140,7 @@ public static class ScreenShapes
             "notAnswered.activity.correct", "notAnswered.mine", "notAnswered.tally.counts",
             "noPoll.activity", "noPoll.mine", "noPoll.tally",
             "notOpen.activity.round", "notOpen.activity.max", "notOpen.activity.correct", "notOpen.mine", "notOpen.tally",
+            "joinedLate.activity.max", "joinedLate.activity.correct", "joinedLate.mine",
         ],
     };
 
