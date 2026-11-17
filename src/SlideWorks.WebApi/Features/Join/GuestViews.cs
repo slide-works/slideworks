@@ -16,8 +16,8 @@ namespace SlideWorks.WebApi.Features.Join;
 // served from the join host (D21). The look's logo is served to a guest only while live (D1), so a lobby or ended screen must
 // not render it. IAudienceSessions decides whether the code means anything and which phase
 // it is in, and IAudienceRelay supplies the position; nothing here computes a phase. A code with no session is 404
-// "no_session", the same body whatever the reason. Only misses count toward the rate limit (S2): a hit is never limited, and
-// once the caller's misses are used up a further miss is 429 "too_many_attempts".
+// "no_session", the same body whatever the reason. Only misses count toward the rate limit (S2, D20): once the caller's misses are
+// used up, every lookup is 429 "too_many_attempts", a real code included.
 [RegisterPerRequest]
 public class GuestViews(
     AppDbContext db,

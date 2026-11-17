@@ -110,6 +110,19 @@ public class AnonymousRoutesTests : ApiTestFixture
         return (deck, await ImageSeed.UploadAsync(agent, Factory, deck, ImageSeed.Bytes("image/png")));
     }
 
+    // With no SLIDEWORKS_JOIN_URL there is no join host: the app host serves the keypad and a join link itself (J7).
+    [TestCase("/join")]
+    [TestCase("/j/482913")]
+    public async Task NoJoinUrl_WhenAppHost_ShouldServeJoinAndJ(string path)
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await anonymous.GetAsync(path);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await response.Content.ReadAsStringAsync()).ShouldContain("SlideWorks");
+    }
+
     private static string CreateWebRoot()
     {
         var root = Path.Combine(Path.GetTempPath(), $"slide-works-webroot-{Guid.NewGuid():N}");

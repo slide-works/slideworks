@@ -11,6 +11,9 @@ namespace SlideWorks.WebApi.Tests.Identity;
 public class CrossSiteWriteGuardTests : ApiTestFixture
 {
     private const string FOREIGN_ORIGIN = "https://attacker.example";
+    private const string JOIN_ORIGIN = "http://join.example";
+
+    protected override Dictionary<string, string?> ExtraConfig => new() { ["SLIDEWORKS_JOIN_URL"] = JOIN_ORIGIN };
 
     [Test]
     public async Task Post_WhenForeignOrigin_ShouldReturn403()
@@ -178,9 +181,9 @@ public class CrossSiteWriteGuardTests : ApiTestFixture
         own.StatusCode.ShouldNotBe(HttpStatusCode.Forbidden);
     }
 
-    private static HttpRequestMessage Transport(string? accept, string origin)
+    private static HttpRequestMessage Transport(string? accept, string origin, string host = TestAppFactory.PUBLIC_URL)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, "/hubs/deck?id=not-a-connection");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{host}/hubs/deck?id=not-a-connection");
         if (accept != null)
         {
             request.Headers.Add("Accept", accept);
@@ -198,5 +201,31 @@ public class CrossSiteWriteGuardTests : ApiTestFixture
             request.Headers.Add("Origin", origin);
         }
         return request;
+    }
+
+    // J7: the guard's logic is unchanged. Origin must be the origin chosen for the request, so the join origin is refused on the
+    // app host.
+    [Test]
+    public async Task CrossSiteWriteGuard_WhenJoinOriginOnAppHost_ShouldRefuse()
+    {
+        using var client = Factory.CreateClient();
+
+        var response = await client.SendAsync(Transport("text/event-stream", JOIN_ORIGIN));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    // On the join host the origin chosen is the join origin, so the hub accepts a guest's page there, and refuses the app's own
+    // origin.
+    [Test]
+    public async Task CrossSiteWriteGuard_WhenJoinOriginOnJoinHost_ShouldAllowHub()
+    {
+        using var client = Factory.CreateClient();
+
+        var own = await client.SendAsync(Transport("text/event-stream", JOIN_ORIGIN, JOIN_ORIGIN));
+        var appOrigin = await client.SendAsync(Transport("text/event-stream", TestAppFactory.PUBLIC_URL, JOIN_ORIGIN));
+
+        own.StatusCode.ShouldNotBe(HttpStatusCode.Forbidden);
+        appOrigin.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 }
