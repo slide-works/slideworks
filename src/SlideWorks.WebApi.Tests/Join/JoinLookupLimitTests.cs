@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Infrastructure.RateLimits;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Mcp;
@@ -85,37 +86,38 @@ public class JoinLookupLimitTests : ApiTestFixture
         miss.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
+    // A parallel guesser can have up to MAX_IN_FLIGHT lookups unsettled, so the 404s are bounded, not exactly 10, and the
+    // bound is what is asserted: what answered 404 is at most MAX_MISSES + MAX_IN_FLIGHT - 1, and once they have settled the
+    // caller is refused.
     [Test]
-    public async Task JoinLookup_WhenThirtyParallelMisses_ShouldAnswerNoMoreThanTenWith404()
+    public async Task JoinLookup_WhenThirtyParallelMisses_ShouldRefuseTheNextLookup()
     {
         using var anonymous = ClientFor(TestUser.Anonymous);
 
         var responses = await Task.WhenAll(Enumerable.Range(0, 30).Select(_ => anonymous.GetAsync("/api/join/999999")));
 
-        responses.Count(r => r.StatusCode == HttpStatusCode.NotFound).ShouldBe(10);
-        responses.Count(r => r.StatusCode == HttpStatusCode.TooManyRequests).ShouldBe(20);
+        responses.Count(r => r.StatusCode == HttpStatusCode.NotFound).ShouldBeInRange(10, JoinLookupLimiter.MAX_MISSES + JoinLookupLimiter.MAX_IN_FLIGHT - 1);
+        responses.ShouldAllBe(r => r.StatusCode == HttpStatusCode.NotFound || r.StatusCode == HttpStatusCode.TooManyRequests);
+        (await anonymous.GetAsync("/api/join/999999")).StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
     }
 
     [Test]
-    public async Task JoinLookup_WhenParallelHitsBelowTheLimit_ShouldNeverRefuseAndLeaveNothingCounted()
+    public async Task JoinLookup_WhenThirtyParallelHits_ShouldAllBeServedAndCountNothing()
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deckId = await DeckSeed.CreateDeckAsync(agent);
         Sessions.Set(CODE, deckId, SESSION, AudiencePhase.Live);
         Relay.Set(new AudienceState(deckId, 1, AudiencePhase.Live, new AudienceSlide(1, 1, "title", JsonDocument.Parse("""{"title":"Ship smaller"}""").RootElement, 0, 0, false), 0, null));
         using var anonymous = ClientFor(TestUser.Anonymous);
-        var statuses = new List<HttpStatusCode>();
-        for (var round = 0; round < 5; round++)
-        {
-            statuses.AddRange((await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => anonymous.GetAsync($"/api/join/{CODE}")))).Select(r => r.StatusCode));
-        }
+
+        var hits = await Task.WhenAll(Enumerable.Range(0, 30).Select(_ => anonymous.GetAsync($"/api/join/{CODE}")));
         var misses = new List<HttpStatusCode>();
         for (var i = 0; i < 11; i++)
         {
             misses.Add((await anonymous.GetAsync("/api/join/999999")).StatusCode);
         }
 
-        statuses.ShouldAllBe(s => s == HttpStatusCode.OK);
+        hits.ShouldAllBe(r => r.StatusCode == HttpStatusCode.OK);
         misses.Count(s => s == HttpStatusCode.NotFound).ShouldBe(10);
         misses[^1].ShouldBe(HttpStatusCode.TooManyRequests);
     }

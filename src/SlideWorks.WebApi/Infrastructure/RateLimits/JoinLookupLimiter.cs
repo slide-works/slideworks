@@ -6,23 +6,26 @@ namespace SlideWorks.WebApi.Infrastructure.RateLimits;
 
 // The rate limit on guessing join codes (J3, D20). Only misses count: a caller gets MAX_MISSES misses in a fixed one-minute
 // window on the app's clock, and once they are used up Allow is false for every lookup until the window ends, a real code
-// included. Allow reserves a slot before the lookup and a hit refunds it, so parallel lookups can't beat the limit and a
-// completed hit is never counted; a hit is refused all the same while the caller is over the limit, so the limit can't be
-// walked around by interleaving guesses with a known code. Callers are keyed by CallerKey, so everyone behind one NAT shares
-// a budget. Per process, like the rest of SlideWorks' in-memory state; windows that have ended are swept at most once a
-// minute.
+// included. A hit is never counted, but is refused all the same while the caller is over the limit, so the limit can't be
+// walked around by interleaving guesses with a known code. Lookups still in flight are tracked apart from misses: Allow
+// registers one, and Hit or Miss settles it. A caller can have at most MAX_IN_FLIGHT lookups unsettled, so a parallel guesser
+// gets at most MAX_MISSES + MAX_IN_FLIGHT - 1 misses answered per window, while a room of real guests (a synchronised
+// re-read, a mass rejoin) is not refused below MAX_IN_FLIGHT. Callers are keyed by CallerKey, so everyone behind one NAT
+// shares a budget. Per process, like the rest of SlideWorks' in-memory state; windows that have ended are swept at most once
+// a minute, and a settle that arrives after its window ended is ignored, so no slot outlives its window.
 [RegisterSingleton(For = typeof(IJoinLookupLimiter))]
 public sealed class JoinLookupLimiter(TimeProvider clock) : IJoinLookupLimiter
 {
     public const int MAX_MISSES = 10;
+
+    public const int MAX_IN_FLIGHT = 100;
 
     private static readonly TimeSpan WINDOW = TimeSpan.FromMinutes(1);
 
     private readonly ConcurrentDictionary<string, Window> _windows = new(StringComparer.Ordinal);
     private long _nextSweepTicks;
 
-    // Reserves a slot: the attempt counts now, before the lookup, so parallel lookups can't all pass before any miss is
-    // counted. A hit gives the slot back; a miss keeps it; a lookup that fails with neither keeps it until the window ends.
+    // Registers a lookup in flight. False once the window's misses are used up or too many lookups are unsettled.
     public bool Allow(string callerKey)
     {
         var now = clock.GetUtcNow();
@@ -31,7 +34,7 @@ public sealed class JoinLookupLimiter(TimeProvider clock) : IJoinLookupLimiter
         {
             if (!_windows.TryGetValue(callerKey, out var current))
             {
-                if (_windows.TryAdd(callerKey, new Window(now, 1)))
+                if (_windows.TryAdd(callerKey, new Window(now, 0, 1)))
                 {
                     return true;
                 }
@@ -39,37 +42,38 @@ public sealed class JoinLookupLimiter(TimeProvider clock) : IJoinLookupLimiter
             }
             if (now - current.Start >= WINDOW)
             {
-                if (_windows.TryUpdate(callerKey, new Window(now, 1), current))
+                if (_windows.TryUpdate(callerKey, new Window(now, 0, 1), current))
                 {
                     return true;
                 }
                 continue;
             }
-            if (current.Misses >= MAX_MISSES)
+            if (current.Misses >= MAX_MISSES || current.InFlight >= MAX_IN_FLIGHT)
             {
                 return false;
             }
-            if (_windows.TryUpdate(callerKey, current with { Misses = current.Misses + 1 }, current))
+            if (_windows.TryUpdate(callerKey, current with { InFlight = current.InFlight + 1 }, current))
             {
                 return true;
             }
         }
     }
 
-    // The slot Allow reserved stays counted.
-    public void Miss(string callerKey)
-    {
-    }
+    // The lookup found no session: it is settled and counts as a miss.
+    public void Miss(string callerKey) => Settle(callerKey, misses: 1);
 
-    // Gives the reserved slot back. A window left with nothing reserved is dropped. A hit that lands after its window ended
-    // can give back a slot of the next window, so the budget can be one more than 10 at a window edge at most.
-    public void Hit(string callerKey)
+    // The lookup found a session: it is settled and counts for nothing.
+    public void Hit(string callerKey) => Settle(callerKey, misses: 0);
+
+    private void Settle(string callerKey, int misses)
     {
-        while (_windows.TryGetValue(callerKey, out var current))
+        var now = clock.GetUtcNow();
+        while (_windows.TryGetValue(callerKey, out var current) && now - current.Start < WINDOW)
         {
-            var done = current.Misses <= 1
+            var next = current with { Misses = current.Misses + misses, InFlight = Math.Max(0, current.InFlight - 1) };
+            var done = next.Misses == 0 && next.InFlight == 0
                 ? _windows.TryRemove(new KeyValuePair<string, Window>(callerKey, current))
-                : _windows.TryUpdate(callerKey, current with { Misses = current.Misses - 1 }, current);
+                : _windows.TryUpdate(callerKey, next, current);
             if (done)
             {
                 return;
@@ -93,5 +97,5 @@ public sealed class JoinLookupLimiter(TimeProvider clock) : IJoinLookupLimiter
         }
     }
 
-    private sealed record Window(DateTimeOffset Start, int Misses);
+    private sealed record Window(DateTimeOffset Start, int Misses, int InFlight);
 }
