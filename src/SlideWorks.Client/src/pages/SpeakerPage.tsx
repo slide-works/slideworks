@@ -253,7 +253,10 @@ function SpeakerMode({
               send({ slide: n, step: 0 });
               closeSheet('next');
             }}
-            onClose={() => closeSheet('slides')}
+            onClose={() => {
+              // A row calls onJump then onClose: keep the jump's focus target (Next).
+              if (focusAfter.current !== 'next') closeSheet('slides');
+            }}
           />
         </div>
       ) : (
