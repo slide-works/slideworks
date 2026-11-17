@@ -22,7 +22,7 @@ try
     var report = await LoadRun.RunAsync(options, Console.Out, cancel.Token);
     Console.WriteLine(report.Table());
     Console.WriteLine(report.Json());
-    return 0;
+    return report.GatePassed ? 0 : 3;
 }
 catch (OperationCanceledException)
 {

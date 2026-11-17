@@ -10,25 +10,33 @@ public sealed record LoadOptions(
     int Voters,
     double Seconds,
     string Pick,
-    double ResultsTimeoutSeconds)
+    double ResultsTimeoutSeconds,
+    bool NoResults)
 {
     public const int MAX_JOINS_IN_FLIGHT = 50;
 
+    public const string NO_RESULTS = "--no-results";
+
     public const string USAGE =
         "Usage: SlideWorks.LoadTest --code <join code> [--url http://localhost:5510] [--voters 100] [--seconds 10]\n"
-        + "                           [--pick random|<n>[,<n>...]] [--results-timeout 10]\n"
-        + "  --pick takes 0-based option positions; random (the default) picks one option per voter.";
+        + "                           [--pick random|<n>[,<n>...]] [--results-timeout 10] [--no-results]\n"
+        + "  --pick takes 0-based option positions; random (the default) picks one option per voter.\n"
+        + "  --no-results says tallies are not expected (a run against the stub routes, or a poll whose results are not live): the\n"
+        + "  results check is skipped. Without it, a poll whose results are not live is refused and a results p95 of n/a fails the gate.\n"
+        + "  Exit codes: 0 gate passed, 3 gate failed, 1 poll not open or app unreachable, 2 bad option.";
 
     public static LoadOptions Parse(IReadOnlyList<string> args)
     {
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
-        for (var i = 0; i < args.Count; i += 2)
+        var noResults = args.Contains(NO_RESULTS);
+        var pairs = args.Where(a => a != NO_RESULTS).ToList();
+        for (var i = 0; i < pairs.Count; i += 2)
         {
-            if (!args[i].StartsWith("--", StringComparison.Ordinal) || i + 1 >= args.Count)
+            if (!pairs[i].StartsWith("--", StringComparison.Ordinal) || i + 1 >= pairs.Count)
             {
-                throw new ArgumentException($"Unexpected argument '{args[i]}'.");
+                throw new ArgumentException($"Unexpected argument '{pairs[i]}'.");
             }
-            values[args[i]] = args[i + 1];
+            values[pairs[i]] = pairs[i + 1];
         }
         var unknown = values.Keys.Except(["--url", "--code", "--voters", "--seconds", "--pick", "--results-timeout"]).ToList();
         if (unknown.Count > 0)
@@ -50,7 +58,7 @@ public sealed record LoadOptions(
         var timeout = Positive(values, "--results-timeout", 10);
         var pick = values.GetValueOrDefault("--pick", "random");
         PickChoice.Validate(pick);
-        return new LoadOptions(url, code.Trim(), voters, seconds, pick, timeout);
+        return new LoadOptions(url, code.Trim(), voters, seconds, pick, timeout, noResults);
     }
 
     private static int Whole(Dictionary<string, string> values, string name, int fallback)

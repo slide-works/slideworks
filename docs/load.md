@@ -26,10 +26,18 @@ All durations are measured with `Stopwatch`, never by subtracting clock readings
   A voter that does not see such a tally within `--results-timeout` counts at the full timeout, so a slow app shows up as
   a high p95 rather than a missing one. When no voter sees one, results p95 is `n/a`, as it is against the stub routes,
   where the tally never publishes.
-- **Errors** are voters that failed to join or whose answer was not a 200 (a 409 stale, a 429, a dropped connection, a
-  timeout). The error rate is errors divided by voters, and each kind is listed.
+- **Errors** are voters that failed to join or whose answer was not a 200 (a 409 stale, a 429, a timeout), and voters
+  whose hub connection dropped. A voter counts as at most one error, so the error rate is errors divided by voters, and
+  each kind is listed.
+- **Dropped connections** are voters whose WebSocket failed to start, or closed (other than by the harness at the end)
+  before their tally arrived. Each is one error, shown again as its own count in the table and the JSON line. A voter that
+  dropped is not also counted as a results timeout and adds no results sample, so look at the dropped count before
+  trusting results p95.
 
-The run stops with an error, before joining anyone, when the poll is not open.
+The run stops with an error, before joining anyone, when the poll is not open, or when its results setting is not live: a
+guest gets no counts under another setting, so the starting count would read 0 and the results would look faster than they
+are. Pass `--no-results` to run anyway with results timing off. Anyone else answering the poll during a run also makes the
+results read low, so run it on a poll nobody else is using.
 
 ## Running it
 
@@ -50,19 +58,29 @@ The run stops with an error, before joining anyone, when the poll is not open.
 | `--seconds` | 10 | The window the answers are spread over. |
 | `--pick` | `random` | `random` picks one option per voter; or 0-based positions such as `1` or `0,2`. |
 | `--results-timeout` | 10 | Seconds a voter waits for the tally that includes its answer. |
+| `--no-results` | off | Tallies are not expected (the stub routes, or a poll whose results are not live): the results check is skipped. |
 
 It prints a table and then one JSON line (`writeP50Ms`, `writeP95Ms`, `writeP99Ms`, `resultsP95Ms`, `errors`,
-`errorRate`, and the counts), and exits 0 when the run completed, 1 when the poll was not open or the app was
-unreachable, and 2 for a bad option.
+`errorRate`, `dropped`, the counts, `gatePassed` and `gateFailures`), and exits 0 when the gate passed, 3 when it
+failed, 1 when the poll was not open (or not live) or the app was unreachable, and 2 for a bad option.
 
 Each voter holds a WebSocket and a cookie, so a run of 10,000 voters needs a raised open-file limit on the machine that runs
 it (`ulimit -n 20000`) and on the app's.
 
 ## Gate
 
-1,000 voters must pass: write p95 under 1 s, results p95 under 2 s, errors under 1%. Results for 3,000 and 10,000 voters
-are measured and recorded, not gated. Run the poll's own measure (people who answered divided by guests joined when the
-poll closed) from `docs/measures.md`.
+1,000 voters must pass: write p95 under 1 s, results p95 under 2 s, errors under 1%. The tool checks this itself after the
+table and prints `GATE PASS` or `GATE FAIL` with each reason, and exits non-zero on a fail. It prints the verdict for every
+run, but only the 1,000-voter run is a gate; results for 3,000 and 10,000 voters are measured and recorded.
+
+A results p95 of `n/a` (no voter saw its tally) is a fail, because against the real tally publisher it means results
+never arrived. It passes only with `--no-results`, for a run where tallies are not expected, such as against the stub
+routes. Also run the poll's own measure (people who answered divided by guests joined when the poll closed) from
+`docs/measures.md`.
+
+The results time can read a little low when the harness handles the answers of an earlier commit group after those of a
+later one, which can happen when thousands of voters share a few threads. The error is bounded by one pump interval
+(500 ms), so treat a result near 2 s with that in mind.
 
 ## Results
 

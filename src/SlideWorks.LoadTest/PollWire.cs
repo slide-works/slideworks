@@ -10,7 +10,7 @@ public static class PollWire
 
     public sealed record View(Activity? Activity, Mine? Mine, Tally? Tally);
 
-    public sealed record Activity(string? Round, string? Phase, IReadOnlyList<string>? Options);
+    public sealed record Activity(string? Round, string? Phase, IReadOnlyList<string>? Options, string? Results);
 
     public sealed record Mine(int Revision);
 

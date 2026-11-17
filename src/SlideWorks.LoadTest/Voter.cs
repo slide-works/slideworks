@@ -26,6 +26,10 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
     private int _awaited = int.MaxValue;
     private long _reachedAt;
     private TaskCompletionSource? _reached;
+    private bool _errored;
+    private bool _dropped;
+    private bool _resultsDone;
+    private volatile bool _disposing;
 
     public bool Joined { get; private set; }
 
@@ -51,7 +55,8 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
                 })
                 .Build();
             _hub.On<JsonElement>(AUDIENCE_EVENT, OnAudienceEvent);
-            await _hub.StartAsync(ct);
+            _hub.Closed += OnClosed;
+            await StartHubAsync(ct);
             await _hub.InvokeAsync<JsonElement>("JoinAudience", options.Code, ct);
             Joined = true;
             state.RecordJoined();
@@ -59,7 +64,7 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
         }
         catch (Exception e) when (e is not OperationCanceledException || !ct.IsCancellationRequested)
         {
-            state.RecordError($"join: {Describe(e)}");
+            Fail($"join: {Describe(e)}");
             return false;
         }
     }
@@ -69,7 +74,7 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
     {
         if (_activity?.Round is not { Length: > 0 } round || _activity.Options is not { Count: > 0 } optionList || _activity.Phase != "open")
         {
-            state.RecordError($"answer: no open round (phase {_activity?.Phase ?? "none"})");
+            Fail($"answer: no open round (phase {_activity?.Phase ?? "none"})");
             return;
         }
         var picks = PickChoice.For(options.Pick, optionList.Count);
@@ -86,7 +91,7 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
         }
         catch (Exception e) when (e is not OperationCanceledException || !ct.IsCancellationRequested)
         {
-            state.RecordError($"answer: {Describe(e)}");
+            Fail($"answer: {Describe(e)}");
             return;
         }
         using (response)
@@ -94,16 +99,27 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
             var writeMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                state.RecordError($"answer: {await RefusalAsync(response, ct)}");
+                Fail($"answer: {await RefusalAsync(response, ct)}");
                 return;
             }
             var acknowledgedAt = Stopwatch.GetTimestamp();
+            if (options.NoResults)
+            {
+                // Tallies are not expected, so there is nothing more to wait for.
+                state.RecordWrite(writeMs);
+                lock (_lock)
+                {
+                    _resultsDone = true;
+                }
+                return;
+            }
             await WaitForResultsAsync(state.RecordWrite(writeMs), acknowledgedAt, ct);
         }
     }
 
     public async ValueTask DisposeAsync()
     {
+        _disposing = true;
         if (_hub is not null)
         {
             await _hub.DisposeAsync();
@@ -117,7 +133,7 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
         using var response = await http.SendAsync(request, ct);
         if (response.StatusCode != HttpStatusCode.OK)
         {
-            state.RecordError($"join: view {await RefusalAsync(response, ct)}");
+            Fail($"join: view {await RefusalAsync(response, ct)}");
             return null;
         }
         return await response.Content.ReadFromJsonAsync<PollWire.View>(PollWire.JSON, ct);
@@ -131,8 +147,13 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
         lock (_lock)
         {
             _awaited = awaited;
+            if (_dropped)
+            {
+                return;
+            }
             if (_seenAnswered >= awaited)
             {
+                _resultsDone = true;
                 state.RecordResults(0);
                 return;
             }
@@ -146,11 +167,69 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
         {
             lock (_lock)
             {
+                if (_dropped)
+                {
+                    return;
+                }
                 state.RecordResults(Math.Max(0, Stopwatch.GetElapsedTime(acknowledgedAt, _reachedAt).TotalMilliseconds));
             }
             return;
         }
-        state.RecordResultsTimeout(timeout.TotalMilliseconds);
+        lock (_lock)
+        {
+            if (_dropped)
+            {
+                return;
+            }
+            _resultsDone = true;
+            state.RecordResultsTimeout(timeout.TotalMilliseconds);
+        }
+    }
+
+    // A connection that fails to start counts as dropped (and the join fails with it); one that closes before this voter has
+    // its tally, other than through our own dispose, is dropped too. A voter is one error at most, and a dropped voter's
+    // wait for results ends without a sample, so it is neither also a timeout nor a result.
+    private async Task StartHubAsync(CancellationToken ct)
+    {
+        try
+        {
+            await _hub!.StartAsync(ct);
+        }
+        catch (Exception) when (!ct.IsCancellationRequested)
+        {
+            state.RecordDropped();
+            throw;
+        }
+    }
+
+    private Task OnClosed(Exception? error)
+    {
+        lock (_lock)
+        {
+            if (_disposing || _resultsDone || _dropped)
+            {
+                return Task.CompletedTask;
+            }
+            _dropped = true;
+            state.RecordDropped();
+            Fail($"hub: connection closed{(error is null ? string.Empty : ": " + error.Message)}");
+            _reached?.TrySetResult();
+        }
+        return Task.CompletedTask;
+    }
+
+    // One error per voter: the first reason counts, so a voter that dropped and then had a refusal is not counted twice.
+    private void Fail(string kind)
+    {
+        lock (_lock)
+        {
+            if (_errored)
+            {
+                return;
+            }
+            _errored = true;
+            state.RecordError(kind);
+        }
     }
 
     // Only a pollTally for this round counts. The harness reads leniently: other events and unknown fields are ignored.
@@ -167,6 +246,7 @@ public sealed class Voter(LoadOptions options, HttpClient http, RunState state) 
             _seenAnswered = Math.Max(_seenAnswered, count);
             if (_seenAnswered >= _awaited && _reached is { Task.IsCompleted: false })
             {
+                _resultsDone = true;
                 _reachedAt = Stopwatch.GetTimestamp();
                 _reached.TrySetResult();
             }

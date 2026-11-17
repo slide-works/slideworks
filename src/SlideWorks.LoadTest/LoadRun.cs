@@ -64,6 +64,13 @@ public static class LoadRun
         {
             throw new InvalidOperationException($"The poll is not open (phase {view?.Activity?.Phase ?? "none"}). Open a poll round on the deck and run again.");
         }
+        // The tally a guest gets follows the poll's results setting. Under any other the thresholds would start from 0 and the
+        // results would read low, so the run is refused unless tallies are not expected at all.
+        if (!options.NoResults && !string.Equals(view.Activity.Results, "live", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"The poll's results setting is '{view.Activity.Results ?? "unknown"}', not 'live', so the results timing would read low. Set the poll to live results, or pass {LoadOptions.NO_RESULTS}.");
+        }
         return view.Tally?.Answered ?? 0;
     }
 }

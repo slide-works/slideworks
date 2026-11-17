@@ -10,6 +10,7 @@ public sealed class RunState(int baselineAnswered)
     private readonly Dictionary<string, int> _errors = new(StringComparer.Ordinal);
     private int _acknowledged;
     private int _resultsTimedOut;
+    private int _dropped;
 
     public int BaselineAnswered { get; } = baselineAnswered;
 
@@ -33,6 +34,9 @@ public sealed class RunState(int baselineAnswered)
             return new Dictionary<string, int>(_errors);
         }
     }
+
+    // Voters whose hub connection failed to start, or closed before their tally arrived. Each is also one error, once.
+    public int Dropped { get { lock (_lock) { return _dropped; } } }
 
     public int ErrorCount() => ErrorsByKind().Values.Sum();
 
@@ -65,6 +69,14 @@ public sealed class RunState(int baselineAnswered)
         {
             _resultsTimedOut++;
             _resultsMs.Add(timeoutMs);
+        }
+    }
+
+    public void RecordDropped()
+    {
+        lock (_lock)
+        {
+            _dropped++;
         }
     }
 
