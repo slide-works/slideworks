@@ -40,12 +40,15 @@ export function usePlayerNavigation(
   const [local, setPosition] = useState(() => positionFromLocation(stepCounts));
   const [followed, setFollowed] = useState<PlayerPosition | null>(null);
   const incoming = follow?.position ?? null;
-  if (incoming && (followed?.slide !== incoming.slide || followed.step !== incoming.step)) {
-    // The next followed position overrides a local one, and a player that loses its connection stays where it was.
+  const following = follow?.live ?? false;
+  const differs = (a: PlayerPosition | null, b: PlayerPosition) =>
+    a?.slide !== b.slide || a.step !== b.step;
+  if (incoming && (differs(followed, incoming) || (following && differs(local, incoming)))) {
+    // The next followed position overrides a local one, even an unchanged one after a reconnect: no second position
+    // while live (D4). A player that loses its connection stays where it was.
     setFollowed(incoming);
     setPosition(incoming);
   }
-  const following = follow?.live ?? false;
   const position = following && incoming ? incoming : local;
   const [clampedFor, setClampedFor] = useState(stepCounts);
   if (clampedFor !== stepCounts) {

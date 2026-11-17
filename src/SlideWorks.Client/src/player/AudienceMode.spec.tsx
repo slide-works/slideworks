@@ -66,10 +66,7 @@ test('audience mode hides the controls while driven and shows them when only aud
 }) => {
   const hub = await openAudience(page, stateAt(2));
   await mount(<AppRoutes />, { hooksConfig: { route: audienceRoute } });
-  await expect(count(page))
-    .toHaveText(`2 / ${TOTAL}`)
-    .catch(() => undefined);
-  await expect(page.getByTestId('player-stage')).toBeVisible();
+  await expect(page.getByTestId('slide-2')).toBeVisible();
   await expect(page.getByTestId('player-controls')).toHaveCount(0);
 
   hub.pushState(stateAt(2, { connected: [audience] }));
@@ -105,10 +102,10 @@ test('audience mode keys send updates and render the answer', async ({ mount, pa
   await expect(page.getByTestId('slide-2')).toBeVisible();
   expect(hub.updates).toEqual([{ slide: 2, step: 0, black: false, skipDeepDives: true }]);
 
-  // Slide 3 is a deep dive, and the presentation skips them.
+  // Slide 3 is a deep dive, and the presentation skips them: nothing to send.
   await page.keyboard.press('ArrowRight');
   await settle(page);
-  expect(hub.updates).toHaveLength(2);
+  expect(hub.updates).toHaveLength(1);
   await expect(page.getByTestId('slide-2')).toBeVisible();
 
   await page.keyboard.press('Home');
@@ -142,7 +139,8 @@ test('audience mode shows a message when an update fails', async ({ mount, page 
 
   hub.fail('UpdatePresentation', 'Not presenting');
   await page.keyboard.press('ArrowRight');
-  await expect(page.getByTestId('audience-error')).toBeVisible();
+  // Inside the player section, so it shows when that section is fullscreen.
+  await expect(page.getByTestId('player').getByTestId('audience-error')).toBeVisible();
   await expect(page.getByTestId('slide-1')).toBeVisible();
 
   await page.keyboard.press('ArrowRight');
@@ -171,6 +169,8 @@ test('audience mode falls back to the plain player when the join is refused', as
   await mount(<AppRoutes />, { hooksConfig: { route: audienceRoute } });
 
   await expect(page.getByTestId('player-controls')).toBeVisible();
+  await expect.poll(() => hub.presentationJoins).toHaveLength(1);
+  expect(hub.presentationJoins[0]).toMatchObject({ role: 'audience', deckId: deckPlay.id });
   await expect(page.getByTestId('audience-mode')).toHaveCount(0);
   await expect(count(page)).toHaveText(`1 / ${TOTAL}`);
   await page.keyboard.press('ArrowRight');
@@ -205,4 +205,54 @@ test('audience mode refetches the deck on DeckChanged over the one socket', asyn
   await expect(page.getByTestId('slide-4')).toHaveCount(1);
   await expect(page.getByTestId('slide-2')).toBeVisible();
   expect(hub.sockets).toBe(1);
+});
+
+test('audience mode freezes while offline, moves locally, and the live state wins on reconnect', async ({
+  mount,
+  page,
+}) => {
+  const hub = await openAudience(page, stateAt(2, { black: true }));
+  await mount(<AppRoutes />, { hooksConfig: { route: audienceRoute } });
+  await expect(page.getByTestId('slide-2')).toBeVisible();
+  await joined(page);
+
+  // The connection drops and the rejoin fails, so the window stays offline.
+  hub.fail('JoinPresentation', 'Server busy', { sticky: true });
+  hub.drop();
+  await expect.poll(() => hub.sockets).toBe(2);
+  await expect(page.getByTestId('slide-2')).toBeVisible();
+  await expect(page.getByTestId('blackout')).toBeVisible();
+  await expect(page.getByTestId('player-controls')).toHaveCount(0);
+
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('slide-3')).toBeVisible();
+  expect(hub.updates).toEqual([]);
+
+  // Back online to the same presentation state: it wins over the local move.
+  hub.stopFailing('JoinPresentation');
+  await expect(page.getByTestId('slide-2')).toBeVisible({ timeout: 15_000 });
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('#2');
+});
+
+test('audience mode keeps ?present through the redirect to the deck slug', async ({
+  mount,
+  page,
+}) => {
+  const hub = await openAudience(page, stateAt(2));
+  await mount(<AppRoutes />, { hooksConfig: { route: `/d/${deckPlay.id}?present` } });
+
+  await expect(page.getByTestId('audience-mode')).toBeVisible();
+  await expect(page.getByTestId('slide-2')).toBeVisible();
+  expect(hub.presentationJoins).toHaveLength(1);
+});
+
+test('audience mode sends nothing at the end of the deck', async ({ mount, page }) => {
+  const hub = await openAudience(page, stateAt(3));
+  await mount(<AppRoutes />, { hooksConfig: { route: audienceRoute } });
+  await expect(page.getByTestId('slide-3')).toBeVisible();
+  await joined(page);
+
+  await page.keyboard.press('ArrowRight');
+  await settle(page);
+  expect(hub.updates).toEqual([]);
 });

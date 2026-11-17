@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { DeckPlayView } from '../api/types';
 import { deepDivesOf } from '../look/deepDivesOf';
@@ -36,7 +37,16 @@ function noop() {}
 
 // The deck player (K12): the scaled 1920×1080 stage over its control bar,
 // driven by keys, clicks, swipes and the `#slide.step` hash.
-export function Player({ deck, audience }: { deck: DeckPlayView; audience?: AudienceControl }) {
+export function Player({
+  deck,
+  audience,
+  notice,
+}: {
+  deck: DeckPlayView;
+  audience?: AudienceControl;
+  // A message over the stage, inside the element that goes fullscreen.
+  notice?: ReactNode;
+}) {
   const root = useRef<HTMLElement>(null);
   const stepCounts = useMemo(() => deck.slides.map((slide) => slide.steps), [deck.slides]);
   // What every slide knows about the deck, with the look from the play view.
@@ -63,7 +73,11 @@ export function Player({ deck, audience }: { deck: DeckPlayView; audience?: Audi
   const moves = useMemo(() => {
     if (!audience?.live) return navigation;
     const { black, skipDeepDives, send } = audience;
-    const go = (to: { slide: number; step: number }) => send({ ...to, black, skipDeepDives });
+    const go = (to: PlayerPosition) => {
+      // At the end of the deck, or with only skipped deep dives ahead, there is nothing to send.
+      if (to.slide === position.slide && to.step === position.step) return;
+      send({ ...to, black, skipDeepDives });
+    };
     return {
       next: () => go(nextPosition(position, stepCounts, deepDives, skipDeepDives)),
       previous: () => go(previousPosition(position, stepCounts, deepDives, skipDeepDives)),
@@ -129,6 +143,7 @@ export function Player({ deck, audience }: { deck: DeckPlayView; audience?: Audi
           onFullscreen={toggleFullscreen}
         />
       )}
+      {notice}
     </section>
   );
 }

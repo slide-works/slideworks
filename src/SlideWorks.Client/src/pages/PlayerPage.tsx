@@ -16,7 +16,7 @@ type Load =
 
 // /d/:id/:slug (and /d/:id): the player, open to anonymous viewers, from one
 // GET /api/play/{id} (DeckPlayView). A missing or old slug is replaced by the
-// deck's own, keeping the hash. It re-reads when the deck changes.
+// deck's own, keeping the query (?present) and the hash. It re-reads when the deck changes.
 export function PlayerPage() {
   const { id = '', slug } = useParams();
   const location = useLocation();
