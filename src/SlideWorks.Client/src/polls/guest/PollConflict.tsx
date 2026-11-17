@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { PollActivity } from '../types';
 import { POLL_CARD_TEST_IDS } from '../testIds';
 
@@ -11,13 +12,55 @@ export type PollConflictProps = {
   onClear: () => void;
 };
 
+const BUTTON =
+  'flex min-h-11 flex-1 items-center justify-center rounded-xl px-3 text-[14px] font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sw-accent-dark)';
+
 // A 409 came back: the answer went against an old round or revision. The pick is kept and the card asks again. Focus
-// moves to the message.
-export function PollConflict({ presenter }: PollConflictProps) {
-  // TODO: say what changed and offer Send it and Clear; until then it says only that the poll changed.
+// moves to the message when the card appears, so a screen reader reads it at once.
+export function PollConflict({ activity, presenter, onSend, onClear }: PollConflictProps) {
+  const message = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    message.current?.focus();
+  }, []);
+
+  const what =
+    activity.number > 1
+      ? `${presenter} started round ${activity.number}.`
+      : `${presenter} changed the poll.`;
   return (
-    <div data-testid={POLL_CARD_TEST_IDS.conflict} role="alert">
-      {`${presenter} changed the poll. Your pick is kept.`}
+    <div
+      data-testid={POLL_CARD_TEST_IDS.conflict}
+      className="grid gap-2 rounded-xl bg-(--sw-warn-soft) px-3 py-2.5 text-(--sw-warn-ink)"
+    >
+      <p
+        ref={message}
+        tabIndex={-1}
+        role="alert"
+        data-testid={POLL_CARD_TEST_IDS.conflictMessage}
+        className="text-[13px] leading-snug font-semibold outline-none"
+      >
+        {`${what} Send this pick again?`}
+      </p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          data-testid={POLL_CARD_TEST_IDS.conflictSend}
+          aria-label={`Send it: ${activity.question}`}
+          onClick={onSend}
+          className={`${BUTTON} bg-(--sw-accent) text-(--sw-on-accent)`}
+        >
+          Send it
+        </button>
+        <button
+          type="button"
+          data-testid={POLL_CARD_TEST_IDS.conflictClear}
+          aria-label={`Clear: ${activity.question}`}
+          onClick={onClear}
+          className={`${BUTTON} border-[1.5px] border-(--sw-grid) bg-(--sw-paper) text-(--sw-ink)`}
+        >
+          Clear
+        </button>
+      </div>
     </div>
   );
 }
