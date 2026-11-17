@@ -27,8 +27,9 @@ function JoinValueProvider({ join, children }: { join: JoinView; children: React
 }
 
 // Provides the join to the slides under it, and the deck's live session to the chip. The owner's live state comes from
-// the live session and anyone else's from join.live, which the page re-reads on liveChanged. owner is false for a
-// viewer who is not the owner, and for pages with no live session (the render page).
+// the live session and anyone else's from join.live, which the page re-reads on liveChanged. owner means the viewer may
+// be the owner; the live session confirms it, and shows no chip until it does. It is false for a viewer who can't be
+// the owner, and for pages with no live session (the render page).
 export function JoinProvider({
   deckId,
   join,

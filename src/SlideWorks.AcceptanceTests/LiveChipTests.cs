@@ -12,8 +12,10 @@ public class LiveChipTests : AcceptanceTest
         var decks = new DecksPage(Page);
         await SignIn.AsAsync(Page, TestUser.Sam);
         await decks.GotoAsync();
-        await decks.CreateDeckAsync($"Live chip {Guid.NewGuid():N}");
+        var title = $"Live chip {Guid.NewGuid():N}";
+        await decks.CreateDeckAsync(title);
         var deck = new DeckPage(Page);
+        await Expect(deck.Title).ToHaveTextAsync(title);
         await Expect(deck.Present).ToBeVisibleAsync();
         var player = new PlayerPage(Page);
 

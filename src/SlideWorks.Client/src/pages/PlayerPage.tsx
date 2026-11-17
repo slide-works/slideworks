@@ -121,6 +121,7 @@ export function PlayerPage() {
       }
       return (
         <div data-testid="player-page" data-deck-id={id} className="contents">
+          {/* TODO: owner stands for "may be the owner"; the live session confirms it from GET /api/decks/{id}/live. */}
           <JoinProvider deckId={load.view.id} join={load.view.join} owner>
             <Player deck={load.view} />
           </JoinProvider>

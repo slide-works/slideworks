@@ -41,3 +41,10 @@ test('QrCode is pure black on white, in a dark look too', async ({ mount, page }
   await expect(svg.locator('path')).toHaveAttribute('fill', '#000000');
   await expect(svg).toHaveAttribute('aria-label', 'Join code');
 });
+
+test('QrCode encodes at error-correction level M', () => {
+  // The format information's level bits after masking: M reads dark then light at row 8, columns 0 and 1.
+  const matrix = qrMatrix(TEXT);
+  expect(matrix[8][0]).toBe(true);
+  expect(matrix[8][1]).toBe(false);
+});

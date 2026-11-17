@@ -403,7 +403,7 @@ test('player page screenshot', async ({ mount, page }) => {
   await expect(page).toHaveScreenshot('player-page.png');
 });
 
-test('player page mounts the live chip and re-reads on liveChanged, showing the new live state', async ({
+test('player page mounts the live chip and re-reads the deck when liveChanged arrives', async ({
   mount,
   page,
 }) => {
