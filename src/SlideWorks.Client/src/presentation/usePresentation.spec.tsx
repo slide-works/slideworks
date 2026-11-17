@@ -253,6 +253,41 @@ test('usePresentation resumes a running timer from the time it shows', async ({ 
   expect(resume.timer.elapsedMs).toBeGreaterThanOrEqual(760000);
 });
 
+test('usePresentation resumes a running timer with a whole number of milliseconds', async ({
+  mount,
+  page,
+}) => {
+  // The hub's elapsedMs is a whole number (P1), and a fraction fails the join. performance.now() has a fraction of a
+  // millisecond on a real page, but Playwright's clock keeps whole ones, so from 2 s on the paused clock this page's
+  // performance.now() reads 0.4 ms later: the time since the state that arrived at 1 s has a fraction.
+  await page.clock.install({ time: 0 });
+  await page.addInitScript(() => {
+    const now = performance.now.bind(performance);
+    performance.now = () => {
+      const t = now();
+      return t >= 2000 ? t + 0.4 : t;
+    };
+  });
+  const hub = await stubDeckHub(page, { presentation: { state: presentationState() } });
+  await page.clock.pauseAt(1000);
+  await mount(<PresentationHarness deckId={deckId} />);
+  await expect(status(page)).toHaveText('live');
+  await page.clock.runFor(4415);
+  await expect(page.getByTestId('elapsed')).toHaveText('12:44');
+
+  hub.drop();
+  await expect(status(page)).toHaveText('reconnecting');
+  // The reconnect's first attempt waits 0 ms, on the paused clock.
+  await page.clock.runFor(1);
+
+  await expect.poll(() => hub.presentationJoins.length).toBe(2);
+  expect(hub.presentationJoins[1].resume).toMatchObject({
+    timer: { state: 'running', elapsedMs: 764416 },
+  });
+  await expect(status(page)).toHaveText('live');
+  await expect(page.getByTestId('elapsed')).toHaveText('12:44');
+});
+
 test('usePresentation rejoins when the page becomes visible again', async ({ mount, page }) => {
   const hub = await stubDeckHub(page, { presentation: { state: presentationState() } });
   await mount(<PresentationHarness deckId={deckId} />);
