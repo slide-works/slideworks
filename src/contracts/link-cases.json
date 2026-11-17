@@ -130,5 +130,17 @@
   {
     "value": "example.org/a",
     "ok": false
+  },
+  {
+    "value": " https://example.org",
+    "ok": false
+  },
+  {
+    "value": "https://example.org ",
+    "ok": false
+  },
+  {
+    "value": "\thttps://example.org",
+    "ok": false
   }
 ]
