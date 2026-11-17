@@ -211,3 +211,52 @@ test('a queued pick is dropped with a message when the poll closed while the pho
   );
   expect(api.answers).toEqual([]);
 });
+
+const pickSeveral = pollActivity('open', { pick: 'upTo', max: 2, results: 'live' });
+
+test('Change my answer keeps the sent picks ticked, and Send comes back once they differ', async ({
+  mount,
+  page,
+}) => {
+  const { api } = await guestOnPoll(page, pickSeveral, notAnswered(pickSeveral));
+  await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+  await page.getByTestId(pollOptionTestId(0)).check();
+  await page.getByTestId(pollOptionTestId(2)).check();
+  await page.getByTestId(POLL_CARD_TEST_IDS.send).click();
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.sent)).toBeVisible();
+
+  await page.getByTestId(POLL_CARD_TEST_IDS.change).click();
+
+  await expect(page.getByTestId(pollOptionTestId(0))).toBeChecked();
+  await expect(page.getByTestId(pollOptionTestId(2))).toBeChecked();
+  await page.getByTestId(pollOptionTestId(2)).uncheck();
+  await page.getByTestId(pollOptionTestId(3)).check();
+  await page.getByTestId(POLL_CARD_TEST_IDS.send).click();
+  await expect.poll(() => api.view.mine).toEqual({ picks: [0, 3], revision: 2 });
+  expect(api.answers).toEqual([
+    { round: pickSeveral.round, picks: [0, 2], revision: 0 },
+    { round: pickSeveral.round, picks: [0, 3], revision: 1 },
+  ]);
+});
+
+test('Clear after a conflict drops the kept pick and shows what the server holds', async ({
+  mount,
+  page,
+}) => {
+  const { api } = await guestOnPoll(page, pickSeveral, notAnswered(pickSeveral));
+  await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+  await expect(page.getByTestId(pollOptionTestId(1))).toBeEnabled();
+  // The guest answered from another tab meanwhile, so the phone's revision 0 is stale.
+  api.setView({ ...api.view, mine: { picks: [3], revision: 1 } });
+  await page.getByTestId(pollOptionTestId(1)).check();
+  await page.getByTestId(POLL_CARD_TEST_IDS.send).click();
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.conflict)).toBeVisible();
+  await expect(page.getByTestId(pollOptionTestId(1))).toBeChecked();
+
+  await page.getByTestId(POLL_CARD_TEST_IDS.conflictClear).click();
+
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.conflict)).toHaveCount(0);
+  await expect(page.getByTestId(pollOptionTestId(1))).not.toBeChecked();
+  await expect(page.getByTestId(pollOptionTestId(3))).toBeChecked();
+  expect(api.answers).toHaveLength(1);
+});
