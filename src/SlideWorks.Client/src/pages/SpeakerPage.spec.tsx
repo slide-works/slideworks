@@ -55,8 +55,12 @@ test('speaker mode joins as a phone and shows the slide, the next row and the no
   await expect(page.getByTestId('speaker-next-note')).toHaveText('2 deep dives ahead');
   await expect(page.getByTestId('speaker-notes')).toContainText('Keep each slice under a week');
   await expect(page.getByTestId('speaker-time-left')).toHaveText('17:20 left');
-  await expect(page.getByTestId('speaker-next')).toHaveAccessibleName('Next: slide 9');
-  await expect(page.getByTestId('speaker-previous')).toHaveAccessibleName('Previous: slide 7');
+  await expect(page.getByTestId('speaker-next')).toHaveAccessibleName(
+    'Next: slide 9: The difference is when the customer gets to answer',
+  );
+  await expect(page.getByTestId('speaker-previous')).toHaveAccessibleName(
+    'Previous: slide 7: Slice it thin',
+  );
 });
 
 test('Next and Previous send the positions navigate works out', async ({ mount, page }) => {
@@ -156,11 +160,13 @@ test('reconnecting disables the buttons, keeps the notes, and sends nothing', as
   await expect.poll(() => hub.presentationJoins.length).toBe(1);
   hub.releasePresentationJoins();
   await live(page);
+  await page.getByTestId('speaker-next').focus();
 
   hub.drop();
 
   await expect(page.getByTestId('speaker-reconnecting')).toBeVisible();
   await expect(page.getByTestId('speaker-reconnecting')).toContainText('stays on slide 12');
+  await expect(page.getByTestId('speaker-reconnecting')).toBeFocused();
   for (const id of [
     'speaker-next',
     'speaker-previous',
@@ -180,6 +186,47 @@ test('reconnecting disables the buttons, keeps the notes, and sends nothing', as
   await live(page);
   await expect(page.getByTestId('speaker-reconnecting')).toHaveCount(0);
   await expect(page.getByTestId('speaker-next')).toBeEnabled();
+  await expect(page.getByTestId('speaker-next')).toBeFocused();
+  expect(hub.updates).toEqual([]);
+});
+
+test('Next at the end of the deck hands focus to Previous', async ({ mount, page }) => {
+  const hub = await open(page, { state: paused({ slide: 15 }) });
+  await mount(<AppRoutes />, route);
+  await live(page);
+  await page.getByTestId('speaker-next').focus();
+
+  await page.keyboard.press('Enter');
+
+  await expect(page.getByTestId('speaker-count')).toHaveText('16 / 16');
+  expect(hub.updates).toEqual([{ slide: 16, step: 0, black: false, skipDeepDives: false }]);
+  await expect(page.getByTestId('speaker-next')).toBeDisabled();
+  await expect(page.getByTestId('speaker-next')).toHaveAccessibleName(
+    'Next: at the end of the deck',
+  );
+  await expect(page.getByTestId('speaker-previous')).toBeFocused();
+});
+
+test('an open sheet hides while reconnecting and takes focus back when live again', async ({
+  mount,
+  page,
+}) => {
+  const hub = await open(page, { state: paused(), holdJoin: true });
+  await mount(<AppRoutes />, route);
+  await expect.poll(() => hub.presentationJoins.length).toBe(1);
+  hub.releasePresentationJoins();
+  await live(page);
+  await page.getByTestId('speaker-slides').click();
+  await expect(page.getByTestId('slides-sheet')).toBeVisible();
+
+  hub.drop();
+
+  await expect(page.getByTestId('slides-sheet')).toHaveCount(0);
+  await expect(page.getByTestId('speaker-reconnecting')).toBeFocused();
+  await expect.poll(() => hub.presentationJoins.length).toBe(2);
+  hub.releasePresentationJoins();
+  await expect(page.getByTestId('slides-sheet')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close slides' })).toBeFocused();
   expect(hub.updates).toEqual([]);
 });
 
@@ -220,6 +267,46 @@ test('a failed update shows a message and the slide stays', async ({ mount, page
   await page.getByTestId('speaker-next').click();
   await expect(page.getByTestId('speaker-count')).toHaveText('9 / 16');
   await expect(page.getByTestId('speaker-error')).toHaveCount(0);
+});
+
+test('a failed timer call shows a message and the timer stays as it was', async ({
+  mount,
+  page,
+}) => {
+  const hub = await open(page, { state: presentationState() });
+  await mount(<AppRoutes />, route);
+  await live(page);
+  hub.fail('SetTimer', 'Not presenting');
+
+  await page.getByTestId('speaker-timer').click();
+
+  await expect(page.getByTestId('speaker-error')).toHaveText(
+    "That didn't reach the talk, so nothing changed. Try again.",
+  );
+  await expect(page.getByTestId('speaker-timer')).toHaveAttribute('data-state', 'running');
+  expect(hub.timers).toEqual(['pause']);
+});
+
+test('a presenter view that fails to load says so, and Try again loads it', async ({
+  mount,
+  page,
+}) => {
+  let calls = 0;
+  await stubApi(page, { '/api/me': { json: me } });
+  await page.route(`**${presenterPath}`, (r) => {
+    calls += 1;
+    return calls === 1
+      ? r.fulfill({ status: 500, json: { error: 'Something went wrong.' } })
+      : r.fulfill({ json: view });
+  });
+  await stubDeckHub(page, { presentation: { state: paused() } });
+  await mount(<AppRoutes />, route);
+
+  await expect(page.getByTestId('speaker-load-failed')).toContainText("Couldn't load this talk.");
+  await page.getByTestId('speaker-load-retry').click();
+
+  await live(page);
+  await expect(page.getByTestId('speaker-count')).toHaveText('8 / 16');
 });
 
 test('tapping the timer pauses it, and tapping again resumes it', async ({ mount, page }) => {

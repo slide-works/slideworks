@@ -90,7 +90,12 @@ export function SpeakerPage() {
           <p data-testid="speaker-load-failed" role="alert">
             Couldn't load this talk. {load.message}
           </p>
-          <button type="button" className="btn-primary" onClick={() => setAttempt((n) => n + 1)}>
+          <button
+            type="button"
+            data-testid="speaker-load-retry"
+            className="btn-primary"
+            onClick={() => setAttempt((n) => n + 1)}
+          >
             Try loading the talk again
           </button>
         </div>
@@ -128,7 +133,11 @@ function SpeakerMode({
   const [error, setError] = useState('');
   const slidesRef = useRef<HTMLButtonElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
+  const previousRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const reconnectingRef = useRef<HTMLDivElement>(null);
+  // The last element in the page that had focus, to tell a focus the page took away from one the speaker moved.
+  const lastFocused = useRef<Element | null>(null);
   // Focus goes where the last action leaves the speaker: into the sheet when it opens, back to its button when it closes.
   const focusAfter = useRef<'sheet' | 'slides' | 'next' | null>(null);
 
@@ -142,12 +151,22 @@ function SpeakerMode({
   const preview = nextPreview(pos, stepCounts, deepDives, skip);
   const next = nextPosition(pos, stepCounts, deepDives, skip);
   const previous = previousPosition(pos, stepCounts, deepDives, skip);
+  // The buttons' subjects, with the slide's headline as the slides sheet names it: "slide 9: The difference is…".
+  const withHeadline = (words: string, slide: number) => {
+    const headline = view.slides[slide - 1]?.headline;
+    return headline ? `${words}: ${headline}` : words;
+  };
   const previousLabel =
     previous === pos
       ? null
-      : previous.slide === pos.slide && previous.step > 0
-        ? `reveal ${previous.step} of ${stepCounts[pos.slide - 1]}`
-        : `slide ${previous.slide}`;
+      : withHeadline(
+          previous.slide === pos.slide && previous.step > 0
+            ? `reveal ${previous.step} of ${stepCounts[pos.slide - 1]}`
+            : `slide ${previous.slide}`,
+          previous.slide,
+        );
+  const nextButtonLabel =
+    preview.kind === 'end' ? null : withHeadline(nextLabel(view, preview), preview.slide);
   const shown = view.slides[state.slide - 1];
   const part = shown?.part ? (view.parts[shown.part - 1] ?? null) : null;
   // The sheet is only open while live: a jump while reconnecting would go nowhere.
@@ -160,6 +179,30 @@ function SpeakerMode({
     else if (target === 'slides') slidesRef.current?.focus();
     else if (target === 'next') nextRef.current?.focus();
   }, [showSheet]);
+
+  // When the focused control goes away or is disabled under the speaker (the end or start of the deck, a drop to
+  // reconnecting, the sheet hiding or coming back with the connection), focus moves to what they can use now instead
+  // of dropping to the page: into the sheet, to the reconnecting notice, or to whichever of Next and Previous works.
+  useEffect(() => {
+    const active = document.activeElement;
+    const lost =
+      (active instanceof HTMLButtonElement && active.disabled) ||
+      (active === document.body &&
+        lastFocused.current !== null &&
+        (!lastFocused.current.isConnected ||
+          (lastFocused.current instanceof HTMLButtonElement && lastFocused.current.disabled)));
+    if (!lost) return;
+    const target = showSheet
+      ? sheetRef.current?.querySelector('button')
+      : !live
+        ? reconnectingRef.current
+        : nextButtonLabel !== null
+          ? nextRef.current
+          : previousLabel !== null
+            ? previousRef.current
+            : null;
+    target?.focus();
+  });
 
   const send = (change: Partial<PresentationUpdate>) => {
     setError('');
@@ -191,7 +234,15 @@ function SpeakerMode({
   };
 
   return (
-    <main data-testid="speaker-page" data-deck-id={id} data-status={status} className={PAGE_CLASS}>
+    <main
+      data-testid="speaker-page"
+      data-deck-id={id}
+      data-status={status}
+      className={PAGE_CLASS}
+      onFocus={(event) => {
+        lastFocused.current = event.target;
+      }}
+    >
       {showSheet ? (
         <div ref={sheetRef} className="min-h-0 flex-1 overflow-auto">
           <SlidesSheet
@@ -219,8 +270,10 @@ function SpeakerMode({
           />
           {status !== 'live' && (
             <div
+              ref={reconnectingRef}
               data-testid="speaker-reconnecting"
               role="status"
+              tabIndex={-1}
               className="mx-4 mt-2 rounded-xl border border-red-300/40 bg-red-950/60 px-3 py-2.5 text-sm"
             >
               <b>Lost the connection to the laptop.</b> The laptop stays on slide {state.slide} and
@@ -248,11 +301,12 @@ function SpeakerMode({
           )}
           <NavButtons
             previous={previousLabel}
-            next={preview.kind === 'end' ? null : nextLabel(view, preview)}
+            next={nextButtonLabel}
             disabled={!live}
             onPrevious={() => send(previous)}
             onNext={() => send(next)}
             nextRef={nextRef}
+            previousRef={previousRef}
           />
           <ActionRow
             skipDeepDives={skip}

@@ -8,9 +8,12 @@ export function useWakeLock(active: boolean) {
     if (!active) return;
     let gone = false;
     let sentinel: WakeLockSentinel | null = null;
+    // A request in flight: a visibility change meanwhile must not start a second one, so only one lock is ever held.
+    let pending = false;
 
     const request = async () => {
-      if (document.visibilityState !== 'visible' || sentinel !== null) return;
+      if (document.visibilityState !== 'visible' || sentinel !== null || pending) return;
+      pending = true;
       try {
         const lock = await navigator.wakeLock.request('screen');
         if (gone) {
@@ -23,6 +26,8 @@ export function useWakeLock(active: boolean) {
         });
       } catch {
         // Unsupported (navigator.wakeLock is undefined) or refused: nothing to hold.
+      } finally {
+        pending = false;
       }
     };
     const onVisible = () => void request();

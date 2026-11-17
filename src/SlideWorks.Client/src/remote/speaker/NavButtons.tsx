@@ -1,7 +1,8 @@
 import type { Ref } from 'react';
 
 type Props = {
-  // What each button goes to, in words ("slide 7", "reveal 2 of 4"), or null at the start or the end of the deck.
+  // What each button goes to, in words with the slide's headline ("slide 7: Slice it thin"), or null at the start or the
+  // end of the deck.
   previous: string | null;
   next: string | null;
   disabled: boolean;
@@ -9,13 +10,24 @@ type Props = {
   onNext(): void;
   // The Next button, so the page can put focus there after a jump.
   nextRef?: Ref<HTMLButtonElement>;
+  // The Previous button, for focus when Next is disabled under it at the end of the deck.
+  previousRef?: Ref<HTMLButtonElement>;
 };
 
 // Previous (small) and Next (large, under the thumb). Disabled while not live: a tap is never queued for later (P8).
-export function NavButtons({ previous, next, disabled, onPrevious, onNext, nextRef }: Props) {
+export function NavButtons({
+  previous,
+  next,
+  disabled,
+  onPrevious,
+  onNext,
+  nextRef,
+  previousRef,
+}: Props) {
   return (
     <div className="grid grid-cols-[76px_minmax(0,1fr)] gap-2 px-4 pt-2.5 pb-1.5">
       <button
+        ref={previousRef}
         type="button"
         data-testid="speaker-previous"
         aria-label={previous ? `Previous: ${previous}` : 'Previous: at the start of the deck'}

@@ -40,6 +40,9 @@ public sealed class SpeakerPage(IPage page)
     // The current slide's notes ("Notes for slide n (last known)" while reconnecting).
     public ILocator Notes => page.GetByTestId("speaker-notes");
 
+    // "· reveal k of n" in the notes' header, only on a slide with reveals.
+    public ILocator NotesStep => page.GetByTestId("speaker-notes-step");
+
     public ILocator Next => page.GetByTestId("speaker-next");
     public ILocator Previous => page.GetByTestId("speaker-previous");
     public ILocator Slides => page.GetByTestId("speaker-slides");
@@ -50,6 +53,13 @@ public sealed class SpeakerPage(IPage page)
 
     public ILocator Reconnecting => page.GetByTestId("speaker-reconnecting");
     public ILocator NotYours => page.GetByTestId("speaker-not-yours");
+
+    // "Joining the talk…", until the presenter view has loaded and the first state has arrived.
+    public ILocator Connecting => page.GetByTestId("speaker-connecting");
+
+    // The presenter view failed to load (other than a 404), and the button that loads it again.
+    public ILocator LoadFailed => page.GetByTestId("speaker-load-failed");
+    public ILocator LoadRetry => page.GetByTestId("speaker-load-retry");
 
     // A call that failed ("That didn't reach the talk…").
     public ILocator Error => page.GetByTestId("speaker-error");
