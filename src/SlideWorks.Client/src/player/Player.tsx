@@ -38,6 +38,10 @@ export type AudienceControl = {
   latest?(): PlayerPosition | null;
   // The owner's live player only: the connection is down, so moves wait for it and nothing moves that the room can't see.
   frozen?: boolean;
+  // The owner's live player only: the first join has taken a while, so a notice says the player is connecting.
+  connecting?: boolean;
+  // The owner's live player only: the connection dropped after the player had joined.
+  reconnecting?: boolean;
 };
 
 function noop() {}
@@ -167,7 +171,16 @@ export function Player({
           liveChip={!audience}
         />
       )}
-      {control?.frozen && !audience && (
+      {control?.connecting && !audience && (
+        <p
+          data-testid="player-connecting"
+          role="status"
+          className="absolute inset-x-0 top-0 bg-[#b4580b] px-4 py-2 text-center text-sm text-white"
+        >
+          Connecting · the room won't follow your moves until it's done
+        </p>
+      )}
+      {control?.reconnecting && !audience && (
         <p
           data-testid="player-reconnecting"
           role="status"

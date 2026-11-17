@@ -5,6 +5,7 @@ import type { PresentationState, PresentationUpdate } from '../presentation/type
 import { clientId, usePresentation } from '../presentation/usePresentation';
 
 const PUBLISH_FAILED = 'Guests may not be following: could not publish your position.';
+const SLOW_JOIN_MS = 1000;
 const REFUSED = 'Guests cannot follow: the presentation refused this player.';
 
 // Nobody else drives it and nothing has moved since it started (the timer starts on the first move): the one case
@@ -28,6 +29,8 @@ function isUntouchedAndAlone(state: PresentationState): boolean {
 //   its position and moves its view to it
 // - a presentation nobody is connected to and nothing has moved (the one Go live just started): the player's own
 //   position is where the talk starts, published once; the black screen and skip setting stay as the state has them
+// - a join that is not answered within a second freezes the moves and shows a Connecting notice: until then a press
+//   moves the view as before, and the seed reads it
 // - after a reconnect the player adopts the state it finds and publishes nothing, and its moves are frozen meanwhile
 // While not active it joins nothing and returns undefined, so the player keeps its own position as before.
 // seed holds the player's own position (it changes with every render, so a ref), read once for the first publish.
@@ -56,6 +59,19 @@ export function useLiveDrive(
   const [target, setTarget] = useState<PlayerPosition | null>(null);
   const [inFlight, setInFlight] = useState(0);
   if (inFlight === 0 && target !== null) setTarget(null);
+
+  // A first join that takes longer than a second freezes the moves and a notice says the player is connecting. A press
+  // inside the first second moves the view and the seed reads it, so Go live doesn't flash a notice or drop keys.
+  const waiting = active && !decided && status !== 'refused';
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!waiting) return;
+    const timer = setTimeout(() => setSlow(true), SLOW_JOIN_MS);
+    return () => {
+      clearTimeout(timer);
+      setSlow(false);
+    };
+  }, [waiting]);
 
   useEffect(() => {
     if (status === 'refused') onError(REFUSED);
@@ -128,7 +144,9 @@ export function useLiveDrive(
                 ? (live && target) || { slide, step }
                 : null,
             live: decided && live,
-            frozen: decided && !live,
+            frozen: (waiting && slow) || (decided && !live),
+            reconnecting: decided && !live,
+            connecting: waiting && slow,
             driven: false,
             black,
             skipDeepDives,
@@ -136,6 +154,20 @@ export function useLiveDrive(
             latest,
           }
         : undefined,
-    [active, status, decided, live, target, slide, step, black, skipDeepDives, send, latest],
+    [
+      active,
+      status,
+      decided,
+      live,
+      waiting,
+      slow,
+      target,
+      slide,
+      step,
+      black,
+      skipDeepDives,
+      send,
+      latest,
+    ],
   );
 }

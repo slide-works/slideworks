@@ -326,3 +326,74 @@ test('LivePlayer_WhenThePresentationRefusesTheJoin_ShouldShowAMessageInTheChip',
 
   await expect(page.getByTestId('live-chip-error')).toContainText('refused');
 });
+
+test('LivePlayer_WhenTheFirstJoinIsSlow_ShouldFreezeTheMovesAndShowAConnectingNoticeAfterAWhile', async ({
+  mount,
+  page,
+}) => {
+  const hub = await mountLivePlayer(mount, page, stateAt(2, { connected: [window1] }), '', {
+    holdJoin: true,
+  });
+  await expect.poll(() => hub.presentationJoins.length).toBe(1);
+  await expect(page.getByTestId('player-connecting')).toHaveCount(0);
+
+  await expect(page.getByTestId('player-connecting')).toContainText('Connecting');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('slide-1')).toBeVisible();
+  expect(hub.updates).toEqual([]);
+  await expect(page.getByTestId('player-reconnecting')).toHaveCount(0);
+
+  hub.releasePresentationJoins();
+  await expect(page.getByTestId('slide-2')).toBeVisible();
+  await expect(page.getByTestId('player-connecting')).toHaveCount(0);
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('slide-3')).toBeVisible();
+  expect(hub.updates).toEqual([{ slide: 3, step: 0, black: false, skipDeepDives: false }]);
+});
+
+test('LivePlayer_WhenTheFirstJoinKeepsFailing_ShouldKeepTheMovesFrozenAndSayItIsConnecting', async ({
+  mount,
+  page,
+}) => {
+  await page.route(`**/api/decks/${deckPlay.id}/live`, (request) =>
+    request.fulfill({ json: open }),
+  );
+  const hub = await stubDeckHub(page, {
+    presentation: { state: stateAt(2, { connected: [window1] }) },
+    audience: { state: guestView('live').state },
+  });
+  hub.fail('JoinPresentation', 'boom', { sticky: true });
+  await mount(
+    <JoinProvider deckId={deckPlay.id} join={join} owner>
+      <Player deck={deck} />
+    </JoinProvider>,
+  );
+
+  await expect(page.getByTestId('player-connecting')).toBeVisible();
+  await page.keyboard.press('ArrowRight');
+  await settle(page);
+  await expect(page.getByTestId('slide-1')).toBeVisible();
+  expect(hub.updates).toEqual([]);
+});
+
+test('LivePlayer_WhenThePresentationRefusesTheJoin_ShouldNotShowTheConnectingNotice', async ({
+  mount,
+  page,
+}) => {
+  await page.route(`**/api/decks/${deckPlay.id}/live`, (request) =>
+    request.fulfill({ json: open }),
+  );
+  await stubDeckHub(page, {
+    presentation: { state: stateAt(2), refuse: true },
+    audience: { state: guestView('live').state },
+  });
+  await mount(
+    <JoinProvider deckId={deckPlay.id} join={join} owner>
+      <Player deck={deckPlay} />
+    </JoinProvider>,
+  );
+
+  await expect(page.getByTestId('live-chip-error')).toContainText('refused');
+  await settle(page);
+  await expect(page.getByTestId('player-connecting')).toHaveCount(0);
+});
