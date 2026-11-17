@@ -7,6 +7,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-1-foundation/`](sw-1-foundation/) | SW-1 Foundation: agent-built web decks over MCP | Mockups reviewed, decisions D3–D9 settled, built on the SW-1 branch |
 | [`sw-2-templates-palettes/`](sw-2-templates-palettes/) | SW-2 Templates and palettes (also covers SW-15 Wada palettes and SW-50 uploaded templates) | Built (SW-2's sections; Wada palettes and uploaded templates are still to come) |
 | [`sw-4-presenter/`](sw-4-presenter/) | SW-4 Presenter view and phone remote (SW-7 merged in) | Mockups reviewed, decisions D1–D6 settled, not built |
+| [`sw-5-audience-join/`](sw-5-audience-join/) | SW-5 Audience join: QR code, join code and guest mode | Mockups reviewed, decisions D1–D8 settled, not built |
 
 ## SW-1 Foundation
 
@@ -117,3 +118,28 @@ The phone remote was planned as its own Feature, SW-7. It is merged into SW-4 by
 - **D5. Timer:** the presenter can set an optional talk length per deck. The timer then shows the time left, turns amber at 5 minutes left and red when over.
 - **D6. Phone layout:** the current slide is shown first and fills the width. The next slide sits beside its label, and the notes scroll underneath. Next is the big button.
 
+## SW-5 Audience join
+
+Open [`sw-5-audience-join/sw-5-mockups.html`](sw-5-audience-join/sw-5-mockups.html) in a browser. Nearly every attendee joins by scanning the QR code with a phone, so the phone page comes first and the presenter's side second. The live demo is interactive. Press Go live and step through the deck on the laptop, and the phone follows: it joins, mirrors the slide, shows the activity card on the interactive slide, and ends with the session. The toggles try the join bar, a dropped connection and joining before Go live. The PNGs are screenshots of each section at 1300 px wide.
+
+| Screen | PNG |
+|---|---|
+| Scope: what SW-5 ships, and what SW-6 onwards adds | [01-scope](sw-5-audience-join/png/sw-5-01-scope.png) |
+| The 10-second journey: camera, joined, following, an interactive slide | [02-journey](sw-5-audience-join/png/sw-5-02-journey.png) |
+| Live demo: the presenter's laptop drives a guest's phone | [03-live-demo](sw-5-audience-join/png/sw-5-03-live-demo.png) |
+| Every phone state: typing the code, a wrong code, the lobby, following, reconnecting, privacy, ended, offline, landscape | [04-phone-states](sw-5-audience-join/png/sw-5-04-phone-states.png) |
+| On the big screen: the join slide, the join bar, the join slide before Go live | [05-big-screen](sw-5-audience-join/png/sw-5-05-big-screen.png) |
+| The code and the join link | [06-code-and-link](sw-5-audience-join/png/sw-5-06-code-and-link.png) |
+| Realtime and privacy | [07-realtime-privacy](sw-5-audience-join/png/sw-5-07-realtime-privacy.png) |
+| Design questions and the answers given | [08-questions-answered](sw-5-audience-join/png/sw-5-08-questions-answered.png) |
+
+### Decisions (2026-11-17)
+
+- **D1. Join code:** 6 digits, from 100000 to 999999, shown as `482 913`. It is typed on a numeric keypad and read out as two triples.
+- **D2. Guest identity:** guests give no name. A guest is a random ID kept in the browser for the session, so a reload doesn't count twice. A later activity (Q&A, a quiz) may ask for a nickname when it starts, if it needs one.
+- **D3. Between interactive slides:** the phone shows the current slide with a "nothing to answer yet" card below it. An interactive slide (SW-6 onwards) takes over that card. Guests can't browse back through past slides.
+- **D4. Code lifetime:** each deck has one standing code. Every Go live opens a new session behind it, so the QR never changes and answers stay separate per run. A guest who joins before Go live waits in a lobby.
+- **D5. Join bar:** a small QR code and the code in the corner of every slide. It is off by default, as a deck setting with a toggle in the presenter's live chip.
+- **D6. Joined count:** shown on the join slide (the layout can hide it) and always in the presenter's live chip.
+- **D7. Realtime:** SignalR on the existing `DeckHub`, with SSE and long-polling fallbacks for guests on networks that block WebSockets. There is no cap on guests per session.
+- **D8. Join domain:** joining has its own short domain. The QR holds `https://slideworks.live/482913`, and the bare domain is the page where you type the code. The domain is an instance setting (`SLIDEWORKS_JOIN_URL`), so a self-hosted instance can use its own or none. With none, links fall back to `{instance}/j/{code}` and `{instance}/join`.

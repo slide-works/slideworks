@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-5 mockups: audience join</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script type="application/json" data-lavish-revisions>
+[{ "id": "r1", "label": "Round 1", "timestamp": "2026-11-17T09:30:00Z", "summary": "slideworks.live join domain, no guest cap, answers recorded" }]
+</script>
+<style>
+/* =====================================================================
+   Review-page chrome: same light ledger as the SW-1 / SW-2 mockups
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", system-ui, sans-serif;
+  --head: "Plus Jakarta Sans", "Inter", sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+
+  /* SlideWorks app tokens (src/SlideWorks.Client/src/theme/tokens.css) used by the phone page */
+  --sw-night: #0b1020; --sw-night-2: #cbd5e1; --sw-night-muted: #8c97ad; --sw-night-line: #334155;
+  --sw-accent: #2f5bea; --sw-accent-light: #e4eafd; --sw-accent-glow: #a5b8ff; --sw-accent-dark: #1e3a8a;
+  --sw-paper: #f7f8fa; --sw-card: #fff; --sw-ink: #111827; --sw-muted: #5b6474; --sw-grid: #e3e6ec;
+  --sw-good: #16a34a; --sw-warn: #ea580c; --sw-bad: #dc2626; --sw-stamp: #fcd34d;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 16px 80px; }
+h1, h2, h3 { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 22px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { margin: 0; color: var(--muted); max-width: 860px; font-size: 15px; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 10px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 900px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.grid2 > * { min-width: 0; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); font: 500 13px/1.2 var(--ui); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* scope */
+.scope { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .scope { grid-template-columns: minmax(0, 1fr); } }
+.scope .card { padding: 16px 18px; }
+.scope h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.scope ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.scope li { position: relative; padding-left: 22px; }
+.scope li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.scope .later-list li::before { background: var(--later); opacity: .55; }
+.scope .k { font: 500 12px/1.5 var(--mono); color: var(--later); }
+
+/* journey strip */
+.journey { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .journey { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .journey { grid-template-columns: minmax(0, 1fr); } }
+.step-cap { margin-top: 12px; display: grid; gap: 3px; text-align: center; }
+.step-cap .t { font: 500 12px/1 var(--mono); color: var(--accent-dark); }
+.step-cap b { font-weight: 600; }
+.step-cap span { color: var(--muted); font-size: 12.5px; }
+.budget { margin-top: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 12px 16px; }
+.budget .bar { flex: 1 1 260px; display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.budget .bar i { display: block; height: 100%; }
+
+/* =====================================================================
+   Phone frame + the guest page (mobile web, SlideWorks tokens)
+   ===================================================================== */
+.phone { width: 292px; max-width: 100%; margin: 0 auto; border-radius: 40px; padding: 10px; background: #11151d; box-shadow: var(--raise), inset 0 0 0 2px #2a303b; }
+.ps { position: relative; border-radius: 31px; overflow: hidden; height: 600px; display: flex; flex-direction: column; color: #fff; font-family: var(--ui);
+  background: radial-gradient(420px 320px at 100% 105%, rgb(47 91 234 / .38), transparent 62%), radial-gradient(300px 260px at -10% -8%, rgb(47 91 234 / .12), transparent 60%), var(--sw-night); }
+.ps.light { background: var(--sw-paper); color: var(--sw-ink); }
+.sbar { flex: none; height: 38px; padding: 12px 22px 0; display: flex; justify-content: space-between; font: 600 12.5px/1 var(--ui); }
+.sbar .ic { display: flex; gap: 5px; align-items: center; }
+.sbar .ic i { display: block; width: 15px; height: 9px; border-radius: 2px; border: 1.5px solid currentColor; opacity: .9; }
+.sbar .ic b { display: block; width: 4px; height: 9px; background: currentColor; border-radius: 1px; opacity: .9; }
+.island { position: absolute; top: 10px; left: 50%; translate: -50% 0; width: 84px; height: 22px; border-radius: 12px; background: #000; z-index: 5; }
+.pbody { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 16px 10px; gap: 12px; position: relative; }
+.urlbar { flex: none; margin: 0 14px 12px; padding: 8px 12px; border-radius: 13px; background: rgb(255 255 255 / .1); display: flex; gap: 6px; align-items: center; justify-content: center; font: 500 12px/1 var(--ui); color: rgb(255 255 255 / .82); }
+.ps.light .urlbar { background: #e7e9ee; color: #3b4352; }
+.urlbar svg { width: 10px; height: 10px; }
+
+.g-top { display: flex; align-items: center; gap: 8px; }
+.g-mark { width: 22px; height: 22px; border-radius: 6px; background: var(--sw-accent); display: grid; place-items: center; font: 800 11px/1 var(--head); color: #fff; flex: none; }
+.g-deck { min-width: 0; flex: 1; }
+.g-deck b { display: block; font: 700 13px/1.2 var(--head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-deck span { display: block; font-size: 11px; color: var(--sw-night-muted); }
+.live { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font: 600 10.5px/1 var(--ui); background: rgb(22 163 74 / .18); color: #86efac; white-space: nowrap; }
+.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 0 rgb(74 222 128 / .7); animation: pulse 1.8s infinite; }
+.live.amber { background: rgb(234 88 12 / .2); color: #fdba74; }
+.live.amber::before { background: #fb923c; animation: none; }
+.live.grey { background: rgb(255 255 255 / .1); color: var(--sw-night-2); }
+.live.grey::before { background: var(--sw-night-muted); animation: none; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgb(74 222 128 / .6); } 70% { box-shadow: 0 0 0 6px rgb(74 222 128 / 0); } 100% { box-shadow: 0 0 0 0 rgb(74 222 128 / 0); } }
+
+.mirror { border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgb(0 0 0 / .35); outline: 1px solid rgb(255 255 255 / .08); }
+.slidemeta { display: flex; justify-content: space-between; align-items: center; font: 500 11px/1 var(--ui); color: var(--sw-night-muted); margin-top: -4px; }
+.slidemeta .prog { flex: 1; height: 3px; margin: 0 10px; border-radius: 3px; background: rgb(255 255 255 / .12); overflow: hidden; }
+.slidemeta .prog i { display: block; height: 100%; background: var(--sw-accent-glow); }
+
+.wait { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 10px; padding: 0 8px; border-radius: 14px; border: 1px dashed rgb(255 255 255 / .16); }
+.wait .dots { display: flex; gap: 6px; }
+.wait .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--sw-accent-glow); opacity: .3; animation: blink 1.4s infinite; }
+.wait .dots i:nth-child(2) { animation-delay: .2s; } .wait .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 40% { opacity: 1; } }
+.wait b { font: 700 15px/1.3 var(--head); }
+.wait p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--sw-night-2); }
+
+.g-foot { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--sw-night-muted); }
+.g-foot a { color: var(--sw-accent-glow); text-decoration: none; font-weight: 500; }
+
+.big-h { font: 800 24px/1.15 var(--head); letter-spacing: -.01em; }
+.lede { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--sw-night-2); }
+.pbtn { display: flex; align-items: center; justify-content: center; min-height: 50px; border-radius: 14px; background: var(--sw-accent); color: #fff; font: 700 16px/1 var(--ui); border: 0; width: 100%; }
+.pbtn.ghost { background: rgb(255 255 255 / .1); }
+.tick { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: rgb(22 163 74 / .2); color: #4ade80; }
+.tick svg { width: 32px; height: 32px; }
+
+.codebox { display: grid; grid-template-columns: repeat(3, 1fr) 10px repeat(3, 1fr); gap: 6px; }
+.codebox span { height: 48px; border-radius: 10px; display: grid; place-items: center; background: rgb(255 255 255 / .08); border: 1.5px solid rgb(255 255 255 / .14); font: 700 22px/1 var(--head); }
+.codebox span.cur { border-color: var(--sw-accent-glow); box-shadow: 0 0 0 3px rgb(165 184 255 / .25); }
+.codebox span.bad { border-color: #f87171; }
+.codebox em { display: block; }
+.err { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgb(220 38 38 / .16); color: #fecaca; font-size: 12.5px; line-height: 1.4; }
+.keypad { margin: auto -16px -10px; padding: 8px 6px 10px; background: #1d2230; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.keypad span { height: 40px; border-radius: 7px; background: #3a4152; display: grid; place-items: center; font: 500 19px/1 var(--ui); }
+.keypad span.blank { background: transparent; }
+
+.banner { position: absolute; left: 12px; right: 12px; top: 4px; z-index: 4; padding: 9px 12px; border-radius: 12px; font-size: 12px; line-height: 1.35; display: flex; gap: 8px; align-items: center; }
+.banner.amber { background: #7c2d12; color: #ffedd5; }
+.banner .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgb(255 237 213 / .35); border-top-color: #ffedd5; animation: spin 0.9s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sheet-dim { position: absolute; inset: 0; background: rgb(0 0 0 / .55); z-index: 6; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 7; background: #161c2c; border-radius: 20px 20px 0 0; padding: 10px 18px 22px; display: grid; gap: 10px; }
+.sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .25); margin: 0 auto 4px; }
+.sheet h4 { margin: 0; font: 700 16px/1.25 var(--head); }
+.sheet ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+.sheet li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; font-size: 12.5px; line-height: 1.4; color: var(--sw-night-2); }
+.sheet li svg { width: 16px; height: 16px; color: var(--sw-accent-glow); margin-top: 1px; }
+
+.activity { flex: 1; border-radius: 14px; background: #fff; color: var(--sw-ink); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.activity .tag { align-self: flex-start; font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--later); background: var(--later-soft); padding: 4px 7px; border-radius: 5px; }
+.activity b { font: 700 16px/1.3 var(--head); }
+.activity .opt { padding: 12px; border-radius: 10px; border: 1.5px solid var(--sw-grid); font-size: 13.5px; font-weight: 500; }
+.activity .note { margin-top: auto; font-size: 11px; color: var(--sw-muted); }
+
+/* camera */
+.cam { position: absolute; inset: 0; background: linear-gradient(160deg, #2b2f38, #14161b 60%, #0c0d10); }
+.cam .screen { position: absolute; left: 34px; right: 22px; top: 150px; height: 170px; transform: perspective(500px) rotateY(-12deg) rotateX(4deg); border-radius: 4px; background: var(--sw-night); box-shadow: 0 0 60px rgb(165 184 255 / .25); display: flex; gap: 10px; align-items: center; padding: 14px; filter: blur(.3px); }
+.cam .screen .q { width: 104px; height: 104px; background: #fff; border-radius: 4px; padding: 5px; flex: none; }
+.cam .screen .txt { display: grid; gap: 6px; }
+.cam .screen .txt i { display: block; height: 7px; border-radius: 4px; background: rgb(255 255 255 / .7); }
+.cam .reticle { position: absolute; left: 44px; top: 158px; width: 128px; height: 128px; border: 2.5px solid #facc15; border-radius: 14px; transform: perspective(500px) rotateY(-12deg); }
+.cam .chip { position: absolute; left: 50%; top: 340px; translate: -50% 0; display: flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 999px; background: #facc15; color: #1a1a1a; font: 600 12.5px/1 var(--ui); white-space: nowrap; box-shadow: 0 6px 20px rgb(0 0 0 / .4); }
+.cam .shutter { position: absolute; left: 50%; bottom: 38px; translate: -50% 0; width: 62px; height: 62px; border-radius: 50%; border: 4px solid #fff; }
+.cam .shutter::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: #fff; }
+.cam .mode { position: absolute; left: 0; right: 0; bottom: 112px; text-align: center; font: 600 11px/1 var(--ui); letter-spacing: .1em; color: #facc15; }
+
+/* landscape phone */
+.phone.land { width: 600px; border-radius: 34px; }
+.phone.land .ps { height: 268px; border-radius: 26px; flex-direction: row; align-items: center; justify-content: center; background: #000; }
+.phone.land .ps .mirror { width: 470px; border-radius: 6px; box-shadow: none; outline: none; }
+.phone.land .lside { position: absolute; right: 14px; top: 50%; translate: 0 -50%; display: grid; gap: 10px; justify-items: center; }
+
+/* gallery of phone states */
+.states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 18px; }
+@media (max-width: 1100px) { .states { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .states { grid-template-columns: minmax(0, 1fr); } }
+.states .wide { grid-column: span 2; }
+@media (max-width: 1100px) { .states .wide { grid-column: 1 / -1; } }
+@media (max-width: 680px) { .phone.land { width: 100%; } .phone.land .ps .mirror { width: 78%; } }
+.st-cap { margin-top: 10px; display: grid; gap: 3px; }
+.st-cap b { font-weight: 600; }
+.st-cap span { color: var(--muted); font-size: 12.5px; }
+.st-cap code { color: var(--accent-dark); }
+
+/* =====================================================================
+   Slides (drawn at 960x540, half the 1920x1080 canvas, scaled to fit)
+   ===================================================================== */
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sw-paper); }
+.frame > .sl { position: absolute; left: 0; top: 0; transform: scale(var(--s, .3)); transform-origin: 0 0; }
+.sl { width: 960px; height: 540px; padding: 75px 60px 60px; display: flex; flex-direction: column; background: var(--sw-paper); color: var(--sw-ink); font-family: var(--ui); position: relative; overflow: hidden; }
+.sl::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--sw-accent); }
+.sl.dark { color: #fff; background: radial-gradient(550px 350px at 88% 112%, rgb(47 91 234 / .45), transparent 62%), radial-gradient(450px 300px at -5% -10%, rgb(125 150 255 / .12), transparent 60%), var(--sw-night); }
+.sl .kick { font: 600 13px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--sw-accent); margin-bottom: 14px; }
+.sl.dark .kick { color: var(--sw-accent-glow); }
+.sl h2 { font: 800 46px/1.08 var(--head); letter-spacing: -.02em; margin: 0; }
+.sl h3 { font: 700 30px/1.15 var(--head); margin: 0 0 22px; letter-spacing: -.01em; }
+.sl .sub { margin-top: 18px; font-size: 19px; color: var(--sw-night-2); }
+.sl .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; }
+.sl .cards div { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 2px rgb(15 23 42 / .06), 0 14px 36px rgb(15 23 42 / .09); }
+.sl .cards b { display: block; font: 700 19px/1.2 var(--head); margin-bottom: 8px; }
+.sl .cards span { font-size: 14px; color: var(--sw-muted); line-height: 1.45; }
+.sl .cards .num { font: 800 36px/1 var(--head); color: var(--sw-accent); margin-bottom: 10px; }
+.sl .statement { flex: 1; display: flex; align-items: center; font: 800 54px/1.1 var(--head); letter-spacing: -.02em; max-width: 760px; }
+.sl .statement em { font-style: normal; color: var(--sw-accent); }
+.sl .sprog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--sw-accent); }
+.sl .foot { position: absolute; left: 60px; right: 60px; bottom: 16px; display: flex; justify-content: space-between; font-size: 11px; color: var(--sw-muted); }
+.sl.dark .foot { color: var(--sw-night-muted); }
+/* QR join slide */
+.sl.join { flex-direction: row; align-items: center; gap: 54px; padding: 60px 70px; }
+.sl.join .qrcard { width: 390px; height: 390px; flex: none; background: #fff; border-radius: 18px; padding: 14px; box-shadow: 0 20px 60px rgb(0 0 0 / .45); }
+.sl.join .qrcard svg { width: 100%; height: 100%; display: block; }
+.sl.join .jtext { display: grid; gap: 14px; }
+.sl.join .jurl { font: 600 26px/1.2 var(--mono); color: var(--sw-night-2); }
+.sl.join .jcode { font: 800 88px/1 var(--head); letter-spacing: .04em; }
+.sl.join .jcount { display: inline-flex; align-items: center; gap: 10px; font: 600 22px/1 var(--ui); color: #86efac; }
+.sl.join .jcount i { width: 10px; height: 10px; border-radius: 50%; background: #4ade80; }
+/* poll placeholder slide (SW-6) */
+.sl .pollopts { display: grid; gap: 12px; max-width: 640px; }
+.sl .pollopts div { display: flex; justify-content: space-between; padding: 14px 18px; border-radius: 10px; background: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .06); font-size: 17px; font-weight: 500; }
+.sl .pollopts div span { color: var(--sw-muted); font-size: 14px; }
+/* join bar on every slide */
+.sl .joinbar { position: absolute; right: 18px; bottom: 14px; display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 7px; border-radius: 10px; background: var(--sw-night); color: #fff; font: 600 12px/1.2 var(--ui); z-index: 3; box-shadow: 0 6px 16px rgb(15 23 42 / .25); }
+.sl.dark .joinbar { background: rgb(255 255 255 / .1); }
+.sl .joinbar .mq { width: 44px; height: 44px; background: #fff; border-radius: 5px; padding: 3px; }
+.sl .joinbar .mq svg { width: 100%; height: 100%; display: block; }
+.sl .joinbar small { display: block; font: 500 10px/1.2 var(--mono); color: var(--sw-night-2); }
+.sl .joinbar b { font: 800 17px/1 var(--head); letter-spacing: .03em; }
+
+/* =====================================================================
+   Live demo: presenter laptop + guest phone
+   ===================================================================== */
+.demo { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; }
+@media (max-width: 980px) { .demo { grid-template-columns: minmax(0, 1fr); } }
+.laptop { background: #1a1f2b; border-radius: 14px 14px 4px 4px; padding: 10px 10px 0; box-shadow: var(--raise); }
+.laptop .scr { border-radius: 6px; overflow: hidden; background: #000; }
+@media (max-width: 680px) { .laptop .base { margin: 0 -10px !important; } }
+.laptop .base { height: 14px; margin: 0 -26px; background: linear-gradient(#c9ced8, #a9b0bd); border-radius: 0 0 14px 14px; }
+.ptool { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #0f1420; color: #cbd5e1; font: 500 12px/1 var(--ui); }
+.ptool .tb { border: 0; background: rgb(255 255 255 / .08); color: #fff; padding: 6px 9px; border-radius: 6px; font: 600 12px/1 var(--ui); cursor: pointer; }
+.ptool .tb:disabled { opacity: .35; cursor: default; }
+.ptool .count { font-family: var(--mono); color: #94a3b8; }
+.ptool .sp { flex: 1; }
+.ptool .golive { background: var(--sw-accent); }
+.ptool .livechip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 6px; background: rgb(22 163 74 / .18); color: #86efac; font: 600 12px/1 var(--ui); }
+.ptool .livechip b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.ptool .livechip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.ptool .endb { background: rgb(220 38 38 / .25); color: #fecaca; }
+.dctl { margin-top: 14px; padding: 12px 14px; display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center; }
+.dctl label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
+.dctl .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+.demo-notes { margin: 12px 0 0; padding: 0 0 0 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+.fade { animation: fadein .35s ease; }
+@keyframes fadein { from { opacity: .2; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* big-screen section */
+.screens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 860px) { .screens { grid-template-columns: minmax(0, 1fr); } }
+.screens .card { padding: 10px; }
+.screens .frame { border-radius: 6px; border: 1px solid var(--line); }
+.screens .cap { padding: 10px 4px 4px; display: grid; gap: 4px; }
+.screens .cap b { font-weight: 600; }
+.screens .cap span { color: var(--muted); font-size: 12.5px; }
+.rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; }
+.rules li { position: relative; padding-left: 22px; font-size: 13px; }
+.rules li::before { content: "✓"; position: absolute; left: 2px; top: 0; color: var(--ok); font-weight: 700; }
+
+/* url anatomy */
+.anat { padding: 18px; overflow: hidden; }
+.anat-row { display: flex; flex-wrap: wrap; gap: 0; padding: 14px 18px 4px; background: #f6f8ff; border: 1px solid #c7d3fb; border-radius: 12px; }
+.anat-row .seg { display: grid; gap: 8px; min-width: 0; }
+.anat-row .u { font: 400 clamp(17px, 3.2vw, 30px)/1.2 var(--mono); color: var(--text); padding-bottom: 8px; border-bottom: 2px solid var(--line-2); overflow-wrap: anywhere; }
+.anat-row .seg.acc .u { color: var(--accent); border-color: var(--accent); }
+.anat-row .seg.dk .u { color: var(--accent-dark); border-color: var(--accent-dark); }
+.anat-row .seg.dk b { font-weight: 600; }
+.anat-row .l { font-size: 12.5px; color: var(--muted); padding: 0 8px 10px 0; min-height: 28px; }
+.anat-row .seg.acc .l { color: var(--accent); } .anat-row .seg.dk .l { color: var(--accent-dark); }
+.anat-foot { display: flex; gap: 8px 28px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: var(--muted); }
+.anat-foot b { color: var(--text); font-weight: 600; }
+.diagram { padding: 18px; overflow: hidden; }
+.diagram svg { width: 100%; height: auto; display: block; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 10px; border-bottom: 1px solid var(--line); }
+.tbl td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl td:first-child { font-family: var(--mono); font-size: 12.5px; color: var(--accent-dark); white-space: nowrap; }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl-wrap { overflow-x: auto; }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px 18px; }
+.q h3 { font: 600 15px/1.35 var(--ui); margin-bottom: 4px; }
+.q .why { color: var(--muted); margin: 0 0 10px; }
+.q .choices { display: grid; gap: 6px; }
+.q label.choice { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.q label.choice:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.q label.choice input { margin: 3px 0 0; accent-color: var(--accent); }
+.q label.choice b { font-weight: 600; }
+.q label.choice span:not(.rec) { display: block; color: var(--muted); font-size: 12.5px; }
+.q .rec { display: inline-block; font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.q textarea { width: 100%; margin-top: 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.4 var(--ui); resize: vertical; }
+.q .qfoot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.q .state { font-size: 12.5px; color: var(--faint); }
+.q .state.queued { color: var(--ok); font-weight: 600; }
+.copyall { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.copyall textarea { width: 100%; }
+</style>
+</head>
+<body>
+<main>
+
+<header class="page-head">
+  <div class="eyebrow">SW-5 · SlideWorks · mockups 17 Nov 2026</div>
+  <h1>Audience join: scan, land, follow</h1>
+  <p>Nearly everyone joins by pointing a phone camera at the screen, so the phone page is the product and the presenter's side is support. The goal is to go from QR to joined with zero taps after the camera, keep the phone in step with the presenter, and make it obvious that guests need no app and no account. The live demo below drives a phone from a presenter's laptop. Seven questions at the end need your call before planning.</p>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#scope">Scope</a>
+  <a href="#journey">10-second journey</a>
+  <a href="#demo">Live demo</a>
+  <a href="#states">Every phone state</a>
+  <a href="#screen">On the big screen</a>
+  <a href="#link">Code and link</a>
+  <a href="#realtime">Realtime and privacy</a>
+  <a href="#questions">Questions</a>
+</nav>
+
+<!-- ============================== SCOPE ============================== -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">01</span><h2>What SW-5 ships</h2></div>
+  <div class="scope">
+    <div class="card">
+      <h3><span class="pill acc"><span class="dot"></span>In SW-5</span></h3>
+      <ul>
+        <li>The presenter's <b>Go live</b> in the player opens a session with a 6-digit code and a join link</li>
+        <li>A <b>join</b> slide layout with a large QR code, the short link and the code, plus a joined count</li>
+        <li>An optional <b>join bar</b> (small QR + code) in the corner of every slide</li>
+        <li>A <b>guest page</b> for phones: no account, follows the current slide, shows a waiting state</li>
+        <li>A <b>join domain</b>, <code>slideworks.live</code>: the QR opens <code>slideworks.live/482913</code>, and the bare domain is the type-the-code page</li>
+        <li>The <b>session channel</b> on the existing SignalR deck hub, with no guest cap, which SW-6 to SW-11 build on</li>
+        <li>A <b>privacy sheet</b> on the phone that says what a guest leaves behind</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="pill later"><span class="dot"></span>Later Features</span></h3>
+      <ul class="later-list">
+        <li><span class="k">SW-6+</span> polls, word clouds and Q&amp;A in the activity card (mocked here only as a placeholder)</li>
+        <li><span class="k">later</span> phone remote and speaker notes for the presenter (not the guest page)</li>
+        <li><span class="k">later</span> guests browsing back through past slides</li>
+        <li><span class="k">never</span> an app install or a guest sign-in</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== JOURNEY ============================== -->
+<section class="block" id="journey">
+  <div class="sec-head"><span class="n">02</span><h2>The 10-second journey</h2><span class="pill ok">0 taps after the camera</span></div>
+  <p class="sec-sub">Camera, then the browser, then you're in. There is no Join button, name field or cookie banner in the way. The page joins on load and says so. A guest who opens it before the talk starts lands in a lobby (see <a href="#states">states</a>).</p>
+  <div class="journey">
+    <div><div class="phone"><div class="ps" data-phone="camera"></div></div>
+      <div class="step-cap"><span class="t">0 s</span><b>Point the camera</b><span>The native camera spots the QR code. Tap the yellow chip. That is the only tap.</span></div></div>
+    <div><div class="phone"><div class="ps" data-phone="joined"></div></div>
+      <div class="step-cap"><span class="t">~2 s</span><b>You're in</b><span>The page joins on load, confirms it with a tick and says who else is here. It needs no button.</span></div></div>
+    <div><div class="phone"><div class="ps" data-phone="following" data-slide="3"></div></div>
+      <div class="step-cap"><span class="t">from then</span><b>Follow along</b><span>The current slide, kept in step with the presenter. People at the back can read it.</span></div></div>
+    <div><div class="phone"><div class="ps" data-phone="activity"></div></div>
+      <div class="step-cap"><span class="t">on an interactive slide</span><b>Something to do</b><span>Polls (SW-6) take over the card when the presenter reaches them, then hand back to the slide.</span></div></div>
+  </div>
+  <div class="card budget">
+    <b style="font-weight:600">Time budget</b>
+    <div class="bar" aria-label="Time budget bar"><i style="width:30%;background:#c7d3fb"></i><i style="width:18%;background:#8ea5f6"></i><i style="width:22%;background:var(--accent)"></i><i style="width:30%;background:var(--ok-soft)"></i></div>
+    <span class="pill grey">camera 3 s</span><span class="pill grey">page load &lt; 1.5 s on 4G</span><span class="pill acc">socket + join &lt; 1 s</span><span class="pill ok">slack</span>
+  </div>
+</section>
+
+<!-- ============================== DEMO ============================== -->
+<section class="block" id="demo">
+  <div class="sec-head"><span class="n">03</span><h2>Live demo: drive the phone from the laptop</h2></div>
+  <p class="sec-sub">Press <b>Go live</b>, then step through the deck. The phone follows. On the join slide the joined count ticks up. Slide 4 is an interactive slide, so the phone shows its activity card. Use the toggles to try the join bar, a dropped connection and ending the session.</p>
+  <div class="demo">
+    <div>
+      <div class="laptop">
+        <div class="scr">
+          <div class="frame" id="dSlide"></div>
+          <div class="ptool">
+            <button class="tb" id="dPrev" aria-label="Previous slide">◀</button>
+            <button class="tb" id="dNext" aria-label="Next slide">▶</button>
+            <span class="count" id="dCount">1 / 6</span>
+            <span class="sp"></span>
+            <span id="dLiveSlot"></span>
+          </div>
+        </div>
+        <div class="base"></div>
+      </div>
+      <div class="card dctl">
+        <span class="lbl">Try</span>
+        <label><input type="checkbox" id="dBar"> Join bar on every slide</label>
+        <label><input type="checkbox" id="dDrop"> Drop the phone's connection</label>
+        <button class="btn" id="dEarly">Phone joins before Go live</button>
+        <button class="btn ghost" id="dReset">Reset</button>
+      </div>
+      <ul class="demo-notes">
+        <li>Go live sits in the player toolbar. It opens a session for this run of the deck. Ending it closes every phone.</li>
+        <li>The live chip shows the code and the joined count, so the presenter never needs the join slide to read the code out.</li>
+        <li>A phone that reconnects lands on the current slide. It never replays the slides it missed.</li>
+      </ul>
+    </div>
+    <div><div class="phone"><div class="ps" id="dPhone"></div></div></div>
+  </div>
+</section>
+
+<!-- ============================== STATES ============================== -->
+<section class="block" id="states">
+  <div class="sec-head"><span class="n">04</span><h2>Every phone state</h2></div>
+  <p class="sec-sub">One page, <code>slideworks.live/{code}</code>, with every state on it. The deck's palette colours the page, here the default Cobalt on the night surface, which reads well in a dark room. Targets are at least 48 px tall. Nothing scrolls sideways.</p>
+  <div class="states">
+    <div><div class="phone"><div class="ps" data-phone="code"></div></div>
+      <div class="st-cap"><b>Type the code</b><span><code>slideworks.live</code> with no code: the home page is the keypad. A numeric keypad (<code>inputmode="numeric"</code>). It joins as soon as the sixth digit is typed.</span></div></div>
+    <div><div class="phone"><div class="ps" data-phone="badcode"></div></div>
+      <div class="st-cap"><b>Wrong or ended code</b><span>Says what to check. It never shows a 404, and the digits stay so the guest can fix one.</span></div></div>
+    <div><div class="phone"><div class="ps" data-phone="lobby"></div></div>
+      <div class="st-cap"><b>Before Go live</b><span>The code is known before the talk (Q4). Early joiners wait here, and the page moves on by itself.</span></div></div>
+    <div><div class="phone"><div class="ps" data-phone="following" data-slide="5"></div></div>
+      <div class="st-cap"><b>Following</b><span>The slide mirror with a progress strip. The card below it says there is nothing to answer yet.</span></div></div>
+    <div><div class="phone"><div class="ps" data-phone="reconnecting" data-slide="5"></div></div>
+      <div class="st-cap"><b>Reconnecting</b><span>The last slide stays on screen. An amber banner shows, and the page catches up silently when the connection is back.</span></div></div>
+    <div><div class="phone"><div class="ps" data-phone="privacy"></div></div>
+      <div class="st-cap"><b>Privacy sheet</b><span>Opens from "Guest · Privacy" in the footer. It uses four plain lines and no legal text.</span></div></div>
+    <div><div class="phone"><div class="ps" data-phone="ended"></div></div>
+      <div class="st-cap"><b>Session ended</b><span>A thank-you message. It links to the slides only if the presenter shared the deck by link.</span></div></div>
+    <div><div class="phone"><div class="ps" data-phone="nojs"></div></div>
+      <div class="st-cap"><b>Network blocks live updates</b><span>When even the SSE and long-polling fallbacks fail, or the phone is offline, the page explains and retries. There is no guest cap (D7).</span></div></div>
+    <div class="wide"><div class="phone land"><div class="ps" data-phone="landscape"></div></div>
+      <div class="st-cap" style="text-align:center"><b>Turn the phone sideways</b><span>In landscape the slide fills the screen, which helps people far from the projector.</span></div></div>
+  </div>
+</section>
+
+<!-- ============================== BIG SCREEN ============================== -->
+<section class="block" id="screen">
+  <div class="sec-head"><span class="n">05</span><h2>On the big screen</h2></div>
+  <p class="sec-sub">There are two places to show the way in: a dedicated join slide for the start of the talk, and an optional join bar on every slide for late arrivals. Both read the live session, so the code is never typed into the deck.</p>
+  <div class="screens">
+    <div class="card"><div class="frame" data-slide-static="1"></div>
+      <div class="cap"><b>Join slide · layout <code>join</code></b><span>The QR code is 780 px on the 1920 canvas, far over the 280 px minimum, so it scans from the back row. The short link and code sit beside it, and the joined count rises as people arrive. An agent adds it with <code>add_slide(layout: "join")</code>.</span></div></div>
+    <div class="card"><div class="frame" data-slide-static="2" data-bar="1"></div>
+      <div class="cap"><b>Join bar on a content slide</b><span>The bar sits bottom right, above the progress bar. It is a deck setting, so the presenter can switch it on mid-talk.</span></div></div>
+    <div class="card"><div class="frame" data-slide-static="1" data-nosession="1"></div>
+      <div class="cap"><b>Join slide before Go live</b><span>It renders the deck's standing code (Q4) and shows "Not live yet" instead of a count. In the editor and thumbnails it shows the same.</span></div></div>
+    <div class="card" style="padding:16px 18px">
+      <b style="font-weight:600">Rules carried over from an earlier live-poll prototype (SW-1 catalogue §3)</b>
+      <ul class="rules" style="margin-top:10px">
+        <li>The link uses a path (<code>slideworks.live/482913</code>), never a <code>#fragment</code>, which is lost across redirects</li>
+        <li>The short link is printed under the QR for anyone whose camera won't scan</li>
+        <li>The QR is at least 280 px on the canvas, with a quiet zone and error-correction level M</li>
+        <li>The join slide goes early in the talk, and the join bar catches latecomers</li>
+        <li>Guests don't sign in, unlike the prototype, which made voters sign in first</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== LINK ============================== -->
+<section class="block" id="link" data-lavish-revision="r1">
+  <div class="sec-head"><span class="n">06</span><h2>Code and link</h2></div>
+  <p class="sec-sub">Joining has its own short domain, <code>slideworks.live</code>, which is easy to say from the stage and short enough to type. The code is easy to read aloud across a room, is typed on a numeric keypad, and is short enough for the QR to stay coarse (a version 3 grid) and scan from the back row.</p>
+  <div class="card anat">
+    <div class="anat-row" role="img" aria-label="Join link anatomy: https:// then the join domain slideworks.live, then the 6-digit code 482913.">
+      <div class="seg"><span class="u" style="color:var(--faint)">https://</span><span class="l"></span></div>
+      <div class="seg acc"><span class="u">slideworks.live/</span><span class="l">join domain (instance setting)</span></div>
+      <div class="seg dk"><span class="u"><b>482913</b></span><span class="l">6-digit code</span></div>
+    </div>
+    <div class="anat-foot"><span><b>Scanned:</b> the QR holds the whole link, so the guest needs no taps beyond the camera chip.</span><span><b>Typed:</b> <code>slideworks.live</code>, then 482 913</span><span><b>Self-hosted without a join domain:</b> <code>{instance}/j/482913</code> and <code>{instance}/join</code></span></div>
+  </div>
+  <div class="card tbl-wrap" style="margin-top:14px">
+    <table class="tbl">
+      <thead><tr><th>Choice</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>6 digits, shown 482 913</td><td>That is a million codes, and only live or standing codes are reserved. It is read out as two triples and typed on a numeric keypad. Mentimeter uses 8 digits because it runs at global scale, and a self-hosted instance doesn't need that (Q1).</td></tr>
+        <tr><td>no 0-prefix codes</td><td>The code runs from 100000 to 999999, so it never starts with a 0 that people drop when they read it out.</td></tr>
+        <tr><td>slideworks.live/{code}</td><td>The shortest link possible keeps the QR small. The join domain resolves the code to a session, and a dead code shows the "check the code" state, not a 404.</td></tr>
+        <tr><td>slideworks.live</td><td>The bare domain is the keypad page, like menti.com. It is all the presenter has to say out loud.</td></tr>
+        <tr><td>join domain setting</td><td>An instance setting seeded by an env var (<code>SLIDEWORKS_JOIN_URL</code>), so SlideWorks stays generic. The hosted instance sets it to <code>https://slideworks.live</code>. When it is unset, links fall back to <code>{instance}/j/{code}</code> and <code>{instance}/join</code>.</td></tr>
+        <tr><td>rate limit</td><td>Typed codes are limited to 10 wrong tries a minute per IP, so nobody can walk the code space to drop into other people's talks.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================== REALTIME ============================== -->
+<section class="block" id="realtime">
+  <div class="sec-head"><span class="n">07</span><h2>Realtime and privacy</h2></div>
+  <p class="sec-sub">SW-1 already ships a SignalR hub (<code>/hubs/deck</code>, WebSockets only) that tells open players a deck changed. SW-5 adds a session group to the same hub. The presenter's player publishes its position, and every guest in the group receives it. This settles the "WebSocket vs SSE" question in the Feature: SignalR, with a fallback for venue Wi-Fi (Q7).</p>
+  <div class="card diagram">
+    <svg viewBox="0 0 1180 300" role="img" aria-label="Presenter player sends SetPosition to the deck hub. The hub stores session state and broadcasts sessionState to the session group of guest phones. Guests call JoinSession with the code and get the current state back. The hub also sends joinedCount back to the presenter.">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#5b6474"/></marker>
+        <marker id="arA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#2f5bea"/></marker></defs>
+      <rect x="30" y="90" width="230" height="120" rx="12" fill="#fff" stroke="#d3d8e0"/>
+      <text x="145" y="128" text-anchor="middle" font-family="Inter" font-size="16" font-weight="600" fill="#1b2230">Presenter player</text>
+      <text x="145" y="152" text-anchor="middle" font-family="Inter" font-size="13" fill="#5b6474">signed in, owns the deck</text>
+      <text x="145" y="176" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#1e3a8a">GoLive · SetPosition · End</text>
+
+      <rect x="440" y="60" width="300" height="180" rx="14" fill="#f6f8ff" stroke="#c7d3fb"/>
+      <text x="590" y="96" text-anchor="middle" font-family="Inter" font-size="16" font-weight="600" fill="#1b2230">Deck hub (SW-1)</text>
+      <text x="590" y="118" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#5b6474">/hubs/deck · SignalR</text>
+      <rect x="470" y="134" width="240" height="40" rx="8" fill="#fff" stroke="#c7d3fb"/>
+      <text x="590" y="159" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#1e3a8a">group session:{id}</text>
+      <rect x="470" y="184" width="240" height="40" rx="8" fill="#fff" stroke="#c7d3fb"/>
+      <text x="590" y="209" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#1e3a8a">state: slide, step, activity</text>
+
+      <rect x="920" y="40" width="230" height="64" rx="12" fill="#0b1020"/>
+      <text x="1035" y="78" text-anchor="middle" font-family="Inter" font-size="15" font-weight="600" fill="#fff">Guest phone</text>
+      <rect x="920" y="118" width="230" height="64" rx="12" fill="#0b1020"/>
+      <text x="1035" y="156" text-anchor="middle" font-family="Inter" font-size="15" font-weight="600" fill="#fff">Guest phone</text>
+      <rect x="920" y="196" width="230" height="64" rx="12" fill="#0b1020" opacity=".55"/>
+      <text x="1035" y="234" text-anchor="middle" font-family="Inter" font-size="15" font-weight="600" fill="#fff">… the whole room, no cap</text>
+
+      <path d="M262 132 H436" stroke="#2f5bea" stroke-width="2" marker-end="url(#arA)"/>
+      <text x="349" y="122" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#2f5bea">SetPosition(3, 0)</text>
+      <path d="M438 186 H264" stroke="#5b6474" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+      <text x="349" y="208" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#5b6474">joinedCount 23</text>
+
+      <path d="M742 110 C 830 110, 840 72, 916 72" stroke="#2f5bea" stroke-width="2" fill="none" marker-end="url(#arA)"/>
+      <path d="M742 150 H916" stroke="#2f5bea" stroke-width="2" marker-end="url(#arA)"/>
+      <text x="830" y="140" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#2f5bea">sessionState</text>
+      <path d="M916 238 C 840 238, 830 214, 744 214" stroke="#5b6474" stroke-width="2" fill="none" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+      <text x="830" y="266" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#5b6474">JoinSession(482913) → state</text>
+    </svg>
+  </div>
+
+  <div class="grid2" style="margin-top:14px">
+    <div class="card tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Message</th><th>Carries</th></tr></thead>
+        <tbody>
+          <tr><td>JoinSession(code)</td><td>Guest → hub. Returns the current state: deck id, slide, step, activity, ended. A late joiner or a reconnect lands here.</td></tr>
+          <tr><td>sessionState</td><td>Hub → guests on every move. The slide index and step only. Guests render the slide from the deck JSON they fetched once.</td></tr>
+          <tr><td>sessionEnded</td><td>Hub → guests. Shows the ended state and closes the socket.</td></tr>
+          <tr><td>joinedCount</td><td>Hub → presenter and the join slide, at most once a second.</td></tr>
+          <tr><td>GoLive / SetPosition / End</td><td>Presenter → hub. Only the deck's owner or an editor may call them, the same check as editing.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card" style="padding:16px 18px">
+      <b style="font-weight:600">Privacy model, as the phone states it</b>
+      <ul class="rules" style="margin-top:10px">
+        <li><b>No account and no name.</b> A guest is a random ID kept in this browser for the session, so a reload doesn't count twice (Q2).</li>
+        <li><b>The presenter sees totals,</b> never who answered what. That holds for every SW-6+ activity, not just polls.</li>
+        <li><b>No tracking.</b> The page sets one first-party cookie and loads no analytics or third-party scripts, so it needs no cookie banner.</li>
+        <li><b>Answers live with the session.</b> Deleting the session or the deck deletes them.</li>
+      </ul>
+      <b style="font-weight:600;display:block;margin-top:14px">Measures (the Feature said "to confirm")</b>
+      <ul class="rules" style="margin-top:8px">
+        <li>Peak joined per session, against a room size the presenter can type in after the talk</li>
+        <li>Median seconds from the join slide first shown to each join</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== QUESTIONS ============================== -->
+<section class="block" id="questions" data-lavish-question-group>
+  <div class="sec-head"><span class="n">08</span><h2>Questions before planning</h2></div>
+  <div class="card" data-lavish-revision="r1" style="padding:12px 16px;margin:0 0 14px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">Answered 17 Nov.</b> Q1–Q6 went as recommended. Q7 uses SignalR with fallbacks and <b>no guest cap</b>. The join domain is <code>slideworks.live</code>. All are recorded as decisions D1–D8 on SW-5.</div>
+  <div class="qs">
+
+    <form class="card q" data-lavish-question="code-format">
+      <h3>Q1 · What does the join code look like?</h3>
+      <p class="why">It gets read aloud, typed on a phone and encoded in the QR.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="6 digits (482 913)" checked><div><b>6 digits, shown as 482 913</b><span class="rec">recommended</span><span>Numeric keypad, two easy triples. A million codes is plenty for one instance.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="8 digits (4829 1307)"><div><b>8 digits, shown as 4829 1307</b><span>Like Mentimeter. Harder to guess and slower to type.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Word pair (brave-otter)"><div><b>A word pair, like brave-otter</b><span>Fun to say, but it needs the full keyboard and autocorrect gets in the way.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="guest-identity">
+      <h3>Q2 · Does a guest give a name?</h3>
+      <p class="why">Every field on the way in costs joiners. Later features (Q&amp;A, quiz leaderboards) may want a nickname.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="No name in SW-5; a later activity may ask for a nickname when it needs one" checked><div><b>No name now. An activity asks for a nickname when it needs one</b><span class="rec">recommended</span><span>Zero fields on join. A quiz in a later Feature can ask "Pick a nickname" at its own start.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Optional nickname on the join page"><div><b>An optional nickname on the join page</b><span>Most people skip it, and it adds a screen and a button.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Required name"><div><b>A required name</b><span>Good for a classroom register, but it costs the most joiners.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="phone-between">
+      <h3>Q3 · What does the phone show between interactive slides?</h3>
+      <p class="why">The Feature says the phone "follows the presenter's current slide" and "shows a waiting state". This decides whether those are one screen or two.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Mirror the current slide with a 'nothing to answer yet' card below (as mocked)" checked><div><b>The current slide with a "nothing to answer yet" card below</b><span class="rec">recommended</span><span>As mocked. It helps the back row and remote attendees, and it proves the page is live.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Waiting card only (slide title, no slide image)"><div><b>Only a waiting card with the slide title</b><span>Lighter, and it keeps eyes on the presenter, but the phone feels idle.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Mirror plus swipe back through past slides"><div><b>The mirror plus swiping back through past slides</b><span>Useful for note-takers. It needs a "back to live" control and more scope.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="code-lifetime">
+      <h3>Q4 · How long does a code last?</h3>
+      <p class="why">A code that is known before the talk can go in the invite or on a printed sheet, and the join slide renders correctly in the editor.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Standing code per deck; each Go live opens a new session behind it" checked><div><b>A standing code per deck. Each Go live opens a new session behind it</b><span class="rec">recommended</span><span>The QR never changes. Answers stay separate per run, and early joiners wait in the lobby.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="New code every Go live"><div><b>A new code every Go live</b><span>Simplest. The code can't be shared ahead, and the join slide only shows it once the presenter is live.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Standing code with a Regenerate button"><div><b>A standing code with a Regenerate button</b><span>As recommended, plus a way out if a code leaks to the wrong room.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="join-bar">
+      <h3>Q5 · Is the join bar on by default?</h3>
+      <p class="why">It catches latecomers, but it sits on every slide and covers a corner of the canvas.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Off by default; deck setting + toggle in the live chip" checked><div><b>Off by default. A deck setting, plus a toggle in the live chip</b><span class="rec">recommended</span><span>Decks look as authored. The presenter turns it on when the room is filling slowly.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="On by default while live"><div><b>On by default while live</b><span>The most joins, but every slide gets a badge the author didn't ask for.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Shown until the first interactive slide, then hidden"><div><b>Shown until the first interactive slide, then hidden</b><span>Clever, but a presenter can't predict it.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="joined-count">
+      <h3>Q6 · Does the room see the joined count?</h3>
+      <p class="why">A rising number on the join slide nudges the room ("23 joined"). Some presenters don't want a low number on screen.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Yes on the join slide; always in the presenter's live chip" checked><div><b>Yes on the join slide, and always in the presenter's live chip</b><span class="rec">recommended</span><span>As mocked. The join slide layout can hide it with a slot flag.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Presenter only"><div><b>Presenter only</b><span>No social proof on screen.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="transport">
+      <h3>Q7 · Realtime transport and limits</h3>
+      <p class="why">The SW-1 hub is WebSockets only. Venue and corporate Wi-Fi sometimes block WebSockets, and phones on 4G switch networks. <b>Answered: the fallbacks, with no cap ("let them in").</b></p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="SignalR on the existing hub; SSE + long-polling fallback for guests; no guest cap" checked><div><b>SignalR on the existing hub, with SSE and long-polling fallback for guests and no guest cap</b><span class="rec">answered</span><span>Turning the fallback on is a config change. My recommendation had a 500-guest cap, and Joel dropped it: "no cap, let them in".</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="SignalR WebSockets only, as SW-1"><div><b>SignalR over WebSockets only, as in SW-1</b><span>One code path, but some guests can't connect.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Separate SSE endpoint for guests"><div><b>A separate SSE endpoint for guests</b><span>Guests only receive, so SSE fits, but it is a second realtime stack to keep.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)">no cap, let them in</textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+  </div>
+
+  <div class="copyall">
+    <button type="button" class="btn" id="copyAll">Copy all answers</button>
+    <span id="copyStatus" role="status" aria-live="polite" style="color:var(--muted);font-size:13px"></span>
+  </div>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const JOIN_URL = 'https://slideworks.live/482913';
+  const CODE = '482 913';
+  const DECK = { title: 'Shipping smaller changes', who: 'Sam Rivera', when: 'Team offsite · 17 Nov' };
+
+  // ---------- QR code (qrcode-generator from the CDN, with a placeholder if it fails to load) ----------
+  function qrSvg(text) {
+    if (typeof qrcode !== 'function') {
+      return '<svg viewBox="0 0 29 29" xmlns="http://www.w3.org/2000/svg"><rect width="29" height="29" fill="#fff"/><path d="M0 0h7v7H0zM22 0h7v7h-7zM0 22h7v7H0z" fill="#111"/><text x="14.5" y="16" font-size="3" text-anchor="middle" fill="#5b6474">QR</text></svg>';
+    }
+    const qr = qrcode(0, 'M'); qr.addData(text); qr.make();
+    const n = qr.getModuleCount(), m = 2, size = n + m * 2;
+    let d = '';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += 'M' + (c + m) + ' ' + (r + m) + 'h1v1h-1z';
+    return '<svg viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"><rect width="' + size + '" height="' + size + '" fill="#fff"/><path d="' + d + '" fill="#0b1020"/></svg>';
+  }
+  const QR = qrSvg(JOIN_URL);
+
+  // ---------- the demo deck ----------
+  const N = 6;
+  function slideHTML(i, opts = {}) {
+    const bar = opts.bar ? '<div class="joinbar"><div class="mq">' + QR + '</div><div><small>slideworks.live</small><b>' + CODE + '</b></div></div>' : '';
+    const prog = '<div class="sprog" style="width:' + ((i + 1) / N * 100) + '%"></div>';
+    const foot = (dark) => '<div class="foot"><span>' + DECK.title + '</span><span>' + (i + 1) + ' / ' + N + '</span></div>';
+    switch (i) {
+      case 0: return '<div class="sl dark"><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div class="kick">' + DECK.when + '</div><h2>' + DECK.title + '</h2><div class="sub">' + DECK.who + '</div></div>' + bar + '</div>';
+      case 1: {
+        const count = opts.noSession ? '<span class="jcount" style="color:#cbd5e1"><i style="background:#8c97ad"></i>Not live yet: early joiners wait in the lobby</span>'
+          : '<span class="jcount"><i></i><span data-count>' + (opts.count ?? 23) + '</span> joined</span>';
+        return '<div class="sl dark join"><div class="qrcard">' + QR + '</div><div class="jtext"><div class="kick" style="margin:0;font-size:18px">Join on your phone</div><div class="jcode">' + CODE + '</div><div class="jurl">slideworks.live</div>' + count + '</div></div>';
+      }
+      case 2: return '<div class="sl"><div class="kick">Why small batches</div><h3>Smaller changes ship faster and break less</h3><div class="cards"><div><div class="num">4×</div><b>Faster review</b><span>Under 200 lines gets a first review within the hour.</span></div><div><div class="num">−60%</div><b>Fewer rollbacks</b><span>When something breaks, there is less to look through.</span></div><div><div class="num">1</div><b>One idea per change</b><span>Easy to name, easy to revert, easy to explain.</span></div></div>' + foot() + prog + bar + '</div>';
+      case 3: return '<div class="sl"><div class="kick">Poll · SW-6</div><h3>How big was your last merge request?</h3><div class="pollopts"><div>Under 50 lines <span>scan to answer</span></div><div>50 to 200 lines <span></span></div><div>200 to 1,000 lines <span></span></div><div>Don\'t ask <span></span></div></div>' + foot() + prog + bar + '</div>';
+      case 4: return '<div class="sl"><div class="kick">The one rule</div><div class="statement"><span>Merge something to main <em>every day</em>.</span></div>' + foot() + prog + bar + '</div>';
+      case 5: return '<div class="sl dark"><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div class="kick">Thank you</div><h2>Questions?</h2><div class="sub">Slides: slideworks.example/d/7Kq2</div></div>' + bar + '</div>';
+    }
+  }
+  const slideTitles = ['Title', 'Join', 'Why small batches', 'Poll', 'The one rule', 'Questions?'];
+
+  // scale every .frame's slide to the frame width
+  const ro = new ResizeObserver(entries => { for (const e of entries) e.target.style.setProperty('--s', e.contentRect.width / 960); });
+  function mountFrame(frame, i, opts) { frame.innerHTML = slideHTML(i, opts); if (!frame._obs) { ro.observe(frame); frame._obs = true; } }
+  function frameHTML(i, opts) { return '<div class="frame" data-mount="' + i + '" data-opts=\'' + JSON.stringify(opts || {}) + '\'></div>'; }
+  function hydrate(root) { root.querySelectorAll('[data-mount]').forEach(f => { mountFrame(f, +f.dataset.mount, JSON.parse(f.dataset.opts)); f.removeAttribute('data-mount'); }); }
+
+  // ---------- phone page states ----------
+  const lock = '<svg viewBox="0 0 10 12" fill="currentColor"><path d="M2 5V3.5a3 3 0 0 1 6 0V5h.5A1.5 1.5 0 0 1 10 6.5v4A1.5 1.5 0 0 1 8.5 12h-7A1.5 1.5 0 0 1 0 10.5v-4A1.5 1.5 0 0 1 1.5 5zm1.3 0h3.4V3.5a1.7 1.7 0 0 0-3.4 0z"/></svg>';
+  const sbar = (light) => '<div class="island"></div><div class="sbar"><span>9:41</span><span class="ic"><b></b><i></i></span></div>';
+  const url = (path) => '<div class="urlbar">' + lock + '<span>slideworks.live' + (path || '') + '</span></div>';
+  const top = (chip) => '<div class="g-top"><div class="g-mark">S</div><div class="g-deck"><b>' + DECK.title + '</b><span>' + DECK.who + '</span></div>' + chip + '</div>';
+  const foot = '<div class="g-foot"><span>Guest · no account</span><a href="#states">Privacy</a></div>';
+  const tickSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const meta = (i) => '<div class="slidemeta"><span>Slide ' + (i + 1) + '</span><span class="prog"><i style="width:' + ((i + 1) / N * 100) + '%"></i></span><span>' + N + '</span></div>';
+  const waitCard = '<div class="wait"><div class="dots"><i></i><i></i><i></i></div><b>Nothing to answer yet</b><p>Polls and questions appear here when the presenter gets to them. Keep this page open.</p></div>';
+
+  function phone(state, o = {}) {
+    const i = o.slide ?? 2;
+    switch (state) {
+      case 'camera':
+        return '<div class="cam"><div class="screen"><div class="q">' + QR + '</div><div class="txt"><i style="width:80px"></i><i style="width:110px;height:14px"></i><i style="width:60px"></i></div></div><div class="reticle"></div>' +
+          '<div class="chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>slideworks.live</div><div class="mode">PHOTO</div><div class="shutter"></div></div>' + sbar();
+      case 'joined':
+        return sbar() + '<div class="pbody" style="justify-content:center;align-items:center;text-align:center;gap:14px">' +
+          '<div class="tick">' + tickSvg + '</div><div class="big-h">You\'re in</div><p class="lede">' + DECK.title + '<br><span style="color:var(--sw-night-muted)">with ' + DECK.who + ' and <b style="color:#fff">' + (o.count ?? 23) + '</b> others</span></p>' +
+          '<p class="lede" style="font-size:12px;color:var(--sw-night-muted);margin-top:16px">No app, no account.<br>This page follows the slides by itself.</p></div>' + url('/482913');
+      case 'following':
+        return sbar() + '<div class="pbody">' + top('<span class="live">Live</span>') + '<div class="mirror">' + frameHTML(i) + '</div>' + meta(i) + waitCard + foot + '</div>' + url('/482913');
+      case 'reconnecting':
+        return sbar() + '<div class="pbody">' + '<div class="banner amber"><span class="spin"></span>Reconnecting… you\'ll catch up by yourself.</div>' + top('<span class="live amber">Offline</span>') + '<div class="mirror" style="opacity:.6">' + frameHTML(i) + '</div>' + meta(i) + waitCard + foot + '</div>' + url('/482913');
+      case 'activity':
+        return sbar() + '<div class="pbody">' + top('<span class="live">Live</span>') +
+          '<div class="activity"><span class="tag">Poll · built in SW-6</span><b>How big was your last merge request?</b><div class="opt">Under 50 lines</div><div class="opt">50 to 200 lines</div><div class="opt">200 to 1,000 lines</div><div class="opt">Don\'t ask</div><div class="note">SW-5 ships only the slot this card fills.</div></div>' + foot + '</div>' + url('/482913');
+      case 'code':
+        return sbar() + '<div class="pbody" style="gap:14px"><div class="g-top"><div class="g-mark">S</div><b style="font:700 14px/1 var(--head)">SlideWorks</b></div>' +
+          '<div class="big-h" style="margin-top:14px">Join a presentation</div><p class="lede">Type the code on the screen.</p>' +
+          '<div class="codebox"><span>4</span><span>8</span><span>2</span><em></em><span>9</span><span class="cur">1</span><span></span></div>' +
+          '<p class="lede" style="font-size:11.5px;color:var(--sw-night-muted)">It joins as soon as you type the last digit.</p>' +
+          '<div class="keypad">' + ['1','2','3','4','5','6','7','8','9','','0','⌫'].map(k => '<span' + (k === '' ? ' class="blank"' : '') + '>' + k + '</span>').join('') + '</div></div>';
+      case 'badcode':
+        return sbar() + '<div class="pbody" style="gap:14px"><div class="g-top"><div class="g-mark">S</div><b style="font:700 14px/1 var(--head)">SlideWorks</b></div>' +
+          '<div class="big-h" style="margin-top:14px">Join a presentation</div><p class="lede">Type the code on the screen.</p>' +
+          '<div class="codebox"><span class="bad">4</span><span class="bad">8</span><span class="bad">2</span><em></em><span class="bad">9</span><span class="bad">3</span><span class="bad">1</span></div>' +
+          '<div class="err"><span>⚠</span><span>No live presentation uses <b>482 931</b>. Check the code on the screen. Did you swap two digits?</span></div>' +
+          '<div style="margin-top:auto;display:grid;gap:8px"><button class="pbtn ghost" type="button">Clear and try again</button></div></div>' + url('');
+      case 'lobby':
+        return sbar() + '<div class="pbody">' + top('<span class="live grey">Not started</span>') +
+          '<div class="wait" style="border-style:solid;background:rgb(255 255 255 / .04)"><div class="dots"><i></i><i></i><i></i></div><b>Starting soon</b><p>You\'re in early. This page moves on by itself when ' + DECK.who.split(' ')[0] + ' starts. You can lock your phone.</p></div>' +
+          '<div class="g-foot" style="justify-content:center;color:var(--sw-night-2)"><span><b style="color:#fff">' + (o.count ?? 7) + '</b> people waiting</span></div>' + foot + '</div>' + url('/482913');
+      case 'privacy':
+        return sbar() + '<div class="pbody">' + top('<span class="live">Live</span>') + '<div class="mirror">' + frameHTML(2) + '</div>' + waitCard + '</div>' +
+          '<div class="sheet-dim"></div><div class="sheet"><div class="grab"></div><h4>You\'re a guest</h4><ul>' +
+          '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>No account and no name. We keep a random ID in this browser so you count once.</span></li>' +
+          '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><span>The presenter sees totals, not who answered what.</span></li>' +
+          '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/></svg><span>No ads, no trackers, no third-party scripts.</span></li>' +
+          '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span>Your answers are kept with this session and deleted with it.</span></li>' +
+          '</ul><button class="pbtn" type="button" style="margin-top:4px">Got it</button></div>';
+      case 'ended':
+        return sbar() + '<div class="pbody" style="justify-content:center;align-items:center;text-align:center;gap:14px">' +
+          '<div class="tick" style="background:rgb(165 184 255 / .15);color:var(--sw-accent-glow)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 21s-7-4.4-9.3-9A5.3 5.3 0 0 1 12 6.4 5.3 5.3 0 0 1 21.3 12C19 16.6 12 21 12 21z"/></svg></div>' +
+          '<div class="big-h">Thanks for joining</div><p class="lede">' + DECK.title + ' has ended.<br>You can close this page.</p>' +
+          '<div style="width:100%;margin-top:18px;display:grid;gap:8px"><button class="pbtn ghost" type="button">Open the slides</button><span style="font-size:11px;color:var(--sw-night-muted)">Shown only when the deck is shared by link</span></div></div>' + url('/482913');
+      case 'nojs':
+        return sbar() + '<div class="pbody" style="justify-content:center;align-items:center;text-align:center;gap:14px">' +
+          '<div class="tick" style="background:rgb(234 88 12 / .18);color:#fdba74"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="currentColor"/><path d="M3 3l18 18"/></svg></div>' +
+          '<div class="big-h" style="font-size:21px">Can\'t reach the room</div><p class="lede">This network may block live updates, or you\'re offline. We\'ll keep trying every few seconds.</p>' +
+          '<div style="width:100%;margin-top:14px"><button class="pbtn ghost" type="button">Try now</button></div></div>' + url('/482913');
+      case 'landscape':
+        return '<div class="mirror">' + frameHTML(2) + '</div>';
+    }
+    return '';
+  }
+  function renderPhone(el, state, o) { el.className = 'ps'; el.innerHTML = phone(state, o); hydrate(el); }
+
+  document.querySelectorAll('[data-phone]').forEach(el => renderPhone(el, el.dataset.phone, { slide: el.dataset.slide ? +el.dataset.slide - 1 : undefined }));
+  document.querySelectorAll('[data-slide-static]').forEach(f => mountFrame(f, +f.dataset.slideStatic, { bar: !!f.dataset.bar, noSession: !!f.dataset.nosession, count: 23 }));
+  // the bar demo frame shows content slide 3 (index 2)
+  const barFrame = document.querySelector('[data-bar="1"]'); if (barFrame) mountFrame(barFrame, 2, { bar: true });
+
+  // ---------- live demo ----------
+  const S = { i: 0, live: false, ended: false, count: 0, bar: false, drop: false, early: false, timer: null };
+  const dSlide = document.getElementById('dSlide'), dPhone = document.getElementById('dPhone');
+  const dPrev = document.getElementById('dPrev'), dNext = document.getElementById('dNext'), dCount = document.getElementById('dCount'), dLiveSlot = document.getElementById('dLiveSlot');
+  let lastPhoneKey = '';
+
+  function tickJoins() {
+    clearTimeout(S.timer);
+    if (!S.live || S.ended) return;
+    const target = 41;
+    if (S.count < target && (S.i === 1 || S.count < 6)) {
+      S.count += Math.random() < .35 ? 2 : 1;
+      if (S.count > target) S.count = target;
+      paint(false);
+    }
+    S.timer = setTimeout(tickJoins, 450 + Math.random() * 700);
+  }
+
+  function paint(full = true) {
+    const showBar = S.bar && S.live && !S.ended && S.i !== 1;
+    mountFrame(dSlide, S.i, { bar: showBar, count: S.count, noSession: !S.live });
+    dCount.textContent = (S.i + 1) + ' / ' + N;
+    dPrev.disabled = S.i === 0; dNext.disabled = S.i === N - 1;
+    if (S.ended) dLiveSlot.innerHTML = '<span class="count">Session ended</span> <button class="tb golive" id="dGo">Go live again</button>';
+    else if (!S.live) dLiveSlot.innerHTML = '<button class="tb golive" id="dGo">Go live</button>';
+    else dLiveSlot.innerHTML = '<span class="livechip">Live <b>' + CODE + '</b> · ' + S.count + ' joined</span> <button class="tb endb" id="dEnd">End</button>';
+    const go = document.getElementById('dGo'); if (go) go.onclick = () => { S.live = true; S.ended = false; S.count = S.early ? 3 : 0; paint(); tickJoins(); };
+    const end = document.getElementById('dEnd'); if (end) end.onclick = () => { S.ended = true; S.live = false; clearTimeout(S.timer); paint(); };
+
+    // phone
+    let state, o = { slide: S.i, count: Math.max(0, S.count - 1) };
+    if (S.ended) state = 'ended';
+    else if (!S.live) state = S.early ? 'lobby' : 'code';
+    else if (S.drop) state = 'reconnecting';
+    else if (S.i === 1) state = 'joined';
+    else if (S.i === 3) state = 'activity';
+    else state = 'following';
+    if (!S.live && S.early) o.count = 3;
+    const key = state + ':' + (state === 'reconnecting' ? '' : S.i) + ':' + (state === 'joined' || state === 'lobby' ? o.count : '');
+    if (key !== lastPhoneKey) {
+      const sameScreen = lastPhoneKey.split(':')[0] === state && (state === 'joined' || state === 'lobby');
+      renderPhone(dPhone, state, o);
+      if (!sameScreen) { dPhone.classList.remove('fade'); void dPhone.offsetWidth; dPhone.classList.add('fade'); }
+      lastPhoneKey = key;
+    }
+  }
+  dPrev.onclick = () => { if (S.i > 0) { S.i--; paint(); } };
+  dNext.onclick = () => { if (S.i < N - 1) { S.i++; paint(); } };
+  document.getElementById('dBar').onchange = e => { S.bar = e.target.checked; paint(); };
+  document.getElementById('dDrop').onchange = e => { S.drop = e.target.checked; paint(); };
+  document.getElementById('dEarly').onclick = () => { S.early = true; if (!S.live) { S.ended = false; } paint(); };
+  document.getElementById('dReset').onclick = () => {
+    Object.assign(S, { i: 0, live: false, ended: false, count: 0, bar: false, drop: false, early: false }); clearTimeout(S.timer);
+    document.getElementById('dBar').checked = false; document.getElementById('dDrop').checked = false; lastPhoneKey = ''; paint();
+  };
+  ro.observe(dSlide); dSlide._obs = true;
+  paint();
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input, textarea, select, button')) return;
+    const r = document.getElementById('demo').getBoundingClientRect();
+    if (r.top > innerHeight || r.bottom < 0) return;
+    if (e.key === 'ArrowRight') dNext.click(); if (e.key === 'ArrowLeft') dPrev.click();
+  });
+
+  // ---------- questions: local state until "Queue answer" ----------
+  document.querySelectorAll('form.q').forEach(form => {
+    const state = form.querySelector('.state');
+    form.addEventListener('change', () => { if (state.classList.contains('queued')) { state.textContent = 'Changed since queued. Queue again to replace.'; state.classList.remove('queued'); } });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const key = form.dataset.lavishQuestion;
+      const title = form.querySelector('h3').textContent.trim();
+      const fd = new FormData(form);
+      const note = (fd.get('note') || '').toString().trim();
+      const answer = (fd.get('a') || '').toString();
+      const data = { question: key, answer }; if (note) data.note = note;
+      const prompt = 'SW-5 mockups, ' + title + ' → ' + answer + (note ? '. Note: ' + note : '') + '. Record this as a decision on SW-5 and update the mockups if it changes them.';
+      if (window.lavish && window.lavish.queuePrompt) {
+        window.lavish.queuePrompt(prompt, { tag: 'choice', text: title + ': ' + answer, element: form, queueKey: key, data });
+        state.textContent = 'Queued. Press Send to agent in the Lavish bar.';
+      } else {
+        state.textContent = 'Lavish is not running. Use "Copy all answers" below.';
+      }
+      state.classList.add('queued');
+    });
+  });
+  document.getElementById('copyAll').addEventListener('click', async () => {
+    const out = [...document.querySelectorAll('form.q')].map(f => {
+      const fd = new FormData(f); const note = (fd.get('note') || '').toString().trim();
+      return f.querySelector('h3').textContent.trim() + ': ' + fd.get('a') + (note ? ' (note: ' + note + ')' : '');
+    }).join('\n');
+    const st = document.getElementById('copyStatus');
+    try { await navigator.clipboard.writeText(out); st.textContent = 'Answers copied.'; }
+    catch { const t = document.createElement('textarea'); t.value = out; t.rows = 8; t.readOnly = true; document.querySelector('.copyall').appendChild(t); t.select(); st.textContent = 'Clipboard blocked. Copy the answers below.'; }
+  });
+})();
+</script>
+</body>
+</html>
