@@ -72,6 +72,7 @@ public class PollDataTests : PollTestFixture
         var seeded = await SeedPollAsync();
         var round = await Rows.RoundAsync(seeded.SlideId, seeded.SessionId);
         await Rows.AnswerAsync(round.Id, "guest-1", 0);
+        await Rows.CloseAsync(round.Id, joinedAtClose: 1);
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, SignedInAs);
 
         await SlideCalls.OkAsync(agent, SlideEdits.DELETE_TOOL, new { deck = seeded.DeckId, slide = seeded.Slide });
