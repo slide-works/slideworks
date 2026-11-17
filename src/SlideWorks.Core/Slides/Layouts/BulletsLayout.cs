@@ -5,14 +5,14 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class BulletsLayout
 {
-    public static LayoutDefinition Definition { get; } = new("bullets", "A headline over 1–8 points, each plain text or a bold lead plus text. Can reveal one point per step.", false,
+    public static LayoutDefinition Definition { get; } = new("bullets", "A headline over 1–8 points, each plain text or a bold lead plus text. Can reveal one point per step.", LayoutSurface.Light,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),
         Req("items", new ListSlot(LeadOrText(200, 60, 160), 1, 8), "Each point is a string, or {lead, text} for a bold lead-in"),
         Opt("reveal", Reveal(), REVEAL),
         Opt("callout", new BlockSlot(InlineBlocks.Callout)),
-    ], stepsFrom: "items", rules: Rule);
+    ], steps: StepPlan.List("items"), rules: Rule);
 
     private static void Rule(JsonElement slots, string path, SlotValidation validation)
     {

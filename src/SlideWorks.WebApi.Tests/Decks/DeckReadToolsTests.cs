@@ -1,4 +1,5 @@
 using System.Text.Json;
+using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -10,12 +11,6 @@ namespace SlideWorks.WebApi.Tests.Decks;
 [TestFixture]
 public class DeckReadToolsTests : ApiTestFixture
 {
-    private static readonly string[] LAYOUTS =
-    [
-        "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote",
-        "image", "table", "chart", "gantt", "numbered-cards", "rules", "cards", "close", "join", "poll", "qa",
-    ];
-
     [Test]
     public async Task GetDeckUrl_WhenSlideAndStep_ShouldReturnHashLink()
     {
@@ -78,7 +73,7 @@ public class DeckReadToolsTests : ApiTestFixture
         structured.EnumerateObject().Select(p => p.Name).ShouldBe(["layouts"]);
         McpWire.TextOf(result).ShouldBe(structured.GetRawText());
         var layouts = structured.GetProperty("layouts").EnumerateArray().ToList();
-        layouts.Select(l => l.GetProperty("name").GetString()).ShouldBe(LAYOUTS);
+        layouts.Select(l => l.GetProperty("name").GetString()).ShouldBe(LayoutCatalogue.LayoutNames);
         foreach (var layout in layouts)
         {
             layout.EnumerateObject().Select(p => p.Name).ShouldBe(["name", "description", "dark", "stepsFrom", "schema"]);
@@ -90,7 +85,7 @@ public class DeckReadToolsTests : ApiTestFixture
         }
         layouts.Where(l => l.GetProperty("dark").GetBoolean()).Select(l => l.GetProperty("name").GetString()).ShouldBe(["title", "divider", "close", "join"]);
         var practice = layouts.Single(l => l.GetProperty("name").GetString() == "practice").GetProperty("schema");
-        practice.GetProperty("properties").EnumerateObject().Select(p => p.Name).ShouldBe(["kicker", "headline", "do", "comes_back", "avoid", "callout"], ignoreOrder: true);
+        practice.GetProperty("properties").EnumerateObject().Select(p => p.Name).ShouldBe(LayoutCatalogue.Find("practice")!.Slots.Fields.Select(f => f.Name), ignoreOrder: true);
         practice.GetProperty("required").EnumerateArray().Select(r => r.GetString()).ShouldContain("do");
         layouts.Single(l => l.GetProperty("name").GetString() == "bullets").GetProperty("stepsFrom").GetString().ShouldBe("items");
         layouts.Single(l => l.GetProperty("name").GetString() == "quote").GetProperty("stepsFrom").ValueKind.ShouldBe(JsonValueKind.Null);

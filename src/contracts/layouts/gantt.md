@@ -1,4 +1,4 @@
-Dark: no. Steps: none.
+Surface: light. Steps: none.
 
 ## gantt
 

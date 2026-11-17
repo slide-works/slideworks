@@ -5,7 +5,7 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class PracticeLayout
 {
-    public static LayoutDefinition Definition { get; } = new("practice", "A practice: what to do, what comes back and what to avoid, with an optional callout.", false,
+    public static LayoutDefinition Definition { get; } = new("practice", "A practice: what to do, what comes back and what to avoid, with an optional callout.", LayoutSurface.Light,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),

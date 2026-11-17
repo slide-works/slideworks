@@ -1,4 +1,4 @@
-Dark: no. Steps: one per `cards` item when `reveal` is `one-by-one`.
+Surface: light. Steps: one per `cards` item when `reveal` is `one-by-one`.
 
 ## cards
 

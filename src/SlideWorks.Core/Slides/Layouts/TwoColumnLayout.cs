@@ -5,7 +5,7 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class TwoColumnLayout
 {
-    public static LayoutDefinition Definition { get; } = new("two-column", "A headline over two columns. Each column holds a list of points, a paragraph or an image.", false,
+    public static LayoutDefinition Definition { get; } = new("two-column", "A headline over two columns. Each column holds a list of points, a paragraph or an image.", LayoutSurface.Light,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),

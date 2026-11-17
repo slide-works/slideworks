@@ -12,7 +12,7 @@ public sealed class ImageSlot : ISlotType
     private readonly ObjectSlot _shape = new(
     [
         new SlotField("image", new TextSlot(IMAGE_ID_MAX_LENGTH), true, "The image id that upload_image returned"),
-        new SlotField("alt", new TextSlot(200), true, "What the image shows, for screen readers"),
+        new SlotField("alt", new TextSlot(500), true, "What the image shows, for screen readers"),
     ]);
 
     public IReadOnlyList<SlotField> Fields => _shape.Fields;

@@ -3,8 +3,8 @@ using System.Text.Json.Nodes;
 
 namespace SlideWorks.Core.Slides;
 
-// One layout: its frozen name, a one-line description for agents, whether it is a dark slide, its
-// slot schema, and the list an agent can reveal one item per step.
+// One layout: its frozen name, a one-line description for agents, the surface it is drawn on, its
+// slot schema, what it reveals step by step, and whether it draws the tracker.
 public sealed class LayoutDefinition
 {
     public const string JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema";
@@ -14,30 +14,52 @@ public sealed class LayoutDefinition
     public LayoutDefinition(
         string name,
         string description,
+        LayoutSurface surface,
+        IReadOnlyList<SlotField> fields,
+        StepPlan? steps = null,
+        Action<JsonElement, string, SlotValidation>? rules = null,
+        bool tracker = true)
+    {
+        Name = name;
+        Description = description;
+        Surface = surface;
+        Slots = new ObjectSlot(fields);
+        Steps = steps;
+        Tracker = tracker;
+        _rules = rules;
+    }
+
+    // The constructor from before surfaces and step plans: a dark flag and one reveal list.
+    public LayoutDefinition(
+        string name,
+        string description,
         bool dark,
         IReadOnlyList<SlotField> fields,
         string? stepsFrom = null,
         Action<JsonElement, string, SlotValidation>? rules = null)
+        : this(name, description, dark ? LayoutSurface.Dark : LayoutSurface.Light, fields, stepsFrom is null ? null : StepPlan.List(stepsFrom), rules)
     {
-        Name = name;
-        Description = description;
-        Dark = dark;
-        Slots = new ObjectSlot(fields);
-        StepsFrom = stepsFrom;
-        _rules = rules;
     }
 
     public string Name { get; }
 
     public string Description { get; }
 
-    public bool Dark { get; }
+    public LayoutSurface Surface { get; }
+
+    public bool Dark => Surface == LayoutSurface.Dark;
 
     public ObjectSlot Slots { get; }
 
-    // The list field whose items appear one per step when reveal is "one-by-one" (K2), or null when
-    // the layout has no steps.
-    public string? StepsFrom { get; }
+    // What the layout reveals step by step (K16), or null when it has no steps of its own.
+    public StepPlan? Steps { get; }
+
+    // The first list field whose items appear one per step when reveal is "one-by-one" (K2), or
+    // null when the plan has no list.
+    public string? StepsFrom => Steps?.FirstList;
+
+    // False when the layout leaves the deck's tracker out.
+    public bool Tracker { get; }
 
     public JsonObject ToJsonSchema()
     {

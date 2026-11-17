@@ -5,7 +5,7 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class ChartLayout
 {
-    public static LayoutDefinition Definition { get; } = new("chart", "A line or bar chart of 1–3 series, with an optional marker line and caption.", false,
+    public static LayoutDefinition Definition { get; } = new("chart", "A line or bar chart of 1–3 series, with an optional marker line and caption.", LayoutSurface.Light,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),

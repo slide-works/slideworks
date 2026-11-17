@@ -56,8 +56,13 @@ public static class LayoutsDoc
     private static string RenderLayout(LayoutDefinition layout)
     {
         var doc = new StringBuilder();
-        var steps = layout.StepsFrom is null ? "none" : $"one per `{layout.StepsFrom}` item when `reveal` is `one-by-one`";
-        doc.Append(CultureInfo.InvariantCulture, $"Dark: {(layout.Dark ? "yes" : "no")}. Steps: {steps}.\n");
+        var surface = layout.Surface switch
+        {
+            LayoutSurface.Dark => "dark",
+            LayoutSurface.Either => "either",
+            _ => "light",
+        };
+        doc.Append(CultureInfo.InvariantCulture, $"Surface: {surface}. Steps: {layout.Steps?.Phrase ?? "none"}.{(layout.Tracker ? "" : " No tracker.")}\n");
         doc.Append(CultureInfo.InvariantCulture, $"\n## {layout.Name}\n\n{layout.Description}\n\n");
         doc.Append("| Slot | Kind | Required | Limits | Notes |\n|---|---|---|---|---|\n");
         foreach (var field in layout.Slots.Fields)

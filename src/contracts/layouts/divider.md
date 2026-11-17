@@ -1,4 +1,4 @@
-Dark: yes. Steps: none.
+Surface: dark. Steps: none.
 
 ## divider
 
