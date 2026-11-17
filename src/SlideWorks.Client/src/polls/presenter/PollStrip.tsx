@@ -7,7 +7,7 @@ import { usePollControl } from './usePollControl';
 const PHASE_LABEL: Record<PollPhase, string> = { draft: 'Draft', open: 'Open', closed: 'Closed' };
 
 const BUTTON =
-  'grid min-h-12 min-w-11 place-items-center rounded-[9px] border px-1 text-center text-xs leading-tight font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300 aria-busy:opacity-60 forced-colors:border-2';
+  'grid min-h-12 min-w-11 place-items-center [@media(max-height:600px)]:min-h-11 rounded-[9px] border px-1 text-center text-xs leading-tight font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300 aria-busy:opacity-60 forced-colors:border-2';
 const PLAIN = `${BUTTON} border-white/10 bg-white/10 text-slate-100`;
 const PRIMARY = `${BUTTON} border-transparent bg-[#3b5bdb] text-white`;
 const STOP = `${BUTTON} border-red-300/40 bg-red-600/25 text-red-200`;
@@ -20,6 +20,11 @@ const TAP_GUARD_MS = 500;
 // The poll strip on the presenter's phone remote (SW-6 V8), between the slide and the notes: the state, the answer count
 // and the rate, and the controls the phase allows. Nothing at all, and no space, on a slide with no poll.
 //
+// On a short screen (height up to 600 px) the strip is compact. An error is a message laid over the slide preview above
+// the strip, at every height, instead of a row in it: a row would make the page taller than a short screen and push
+// Slides, Skip and Blackout off. The preview is not a control; the message's dismiss button, or the next tap on a
+// control, clears it.
+//
 // Columns: Close in the first, Reveal and Show answer in the second, Open and New round in the third, so Close never
 // shares a column with Open or New round. The tap guard covers the rest.
 export function PollStrip({ deckId }: { deckId: string }) {
@@ -30,6 +35,9 @@ export function PollStrip({ deckId }: { deckId: string }) {
   const focusInside = useRef(false);
   // A tap is ignored while its call is in flight: a second tap would only come back refused.
   const [busy, setBusy] = useState(false);
+  // The error the presenter dismissed. The provider keeps an error until the next call, so a dismissed one stays hidden
+  // until then; the next tap on a control clears this and shows whatever that call answers.
+  const [dismissed, setDismissed] = useState<string | null>(null);
   const phase = control?.phase;
   const announced = useCalmAnnouncement(
     control === null ? '' : `${control.answered} ${control.answered === 1 ? 'answer' : 'answers'}`,
@@ -71,6 +79,7 @@ export function PollStrip({ deckId }: { deckId: string }) {
   const run = (action: () => Promise<void>) => async () => {
     if (busy || guarded.current) return;
     guard();
+    setDismissed(null);
     setBusy(true);
     try {
       await action();
@@ -119,13 +128,13 @@ export function PollStrip({ deckId }: { deckId: string }) {
         )
           focusInside.current = false;
       }}
-      className="mx-4 mt-3 grid gap-2.5 rounded-xl border border-gray-800 bg-[#111827] p-2.5 outline-none"
+      className="relative mx-4 mt-3 grid gap-2.5 rounded-xl border border-gray-800 bg-[#111827] p-2.5 outline-none [@media(max-height:600px)]:mt-1 [@media(max-height:600px)]:gap-1 [@media(max-height:600px)]:p-1.5"
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span
           data-testid={POLL_STRIP_TEST_IDS.state}
           data-phase={control.phase}
-          className="rounded-full border border-white/25 px-2 py-0.5 text-xs font-semibold text-slate-100 forced-colors:border-2"
+          className="rounded-full border border-white/25 px-2 py-0.5 [@media(max-height:600px)]:py-0 text-xs font-semibold text-slate-100 forced-colors:border-2"
         >
           {PHASE_LABEL[control.phase]}
         </span>
@@ -193,10 +202,24 @@ export function PollStrip({ deckId }: { deckId: string }) {
       <span role="status" aria-live="polite" className="sr-only">
         {announced}
       </span>
-      {error !== null && (
-        <p data-testid={POLL_STRIP_TEST_IDS.error} role="alert" className="text-sm text-red-300">
-          {error}
-        </p>
+      {error !== null && error !== dismissed && (
+        <div className="flex items-start gap-1 rounded-xl border border-red-300/40 bg-red-950 p-2 absolute inset-x-0 bottom-full z-10 mb-1">
+          <p
+            data-testid={POLL_STRIP_TEST_IDS.error}
+            role="alert"
+            className="min-w-0 flex-1 py-2.5 text-sm text-red-200"
+          >
+            {error}
+          </p>
+          <button
+            type="button"
+            aria-label="Dismiss this message"
+            className="grid size-11 shrink-0 place-items-center rounded-lg border border-white/25 text-lg leading-none text-red-100 focus-visible:outline-2 focus-visible:outline-indigo-300 forced-colors:border-2"
+            onClick={() => setDismissed(error)}
+          >
+            <span aria-hidden>×</span>
+          </button>
+        </div>
       )}
     </section>
   );

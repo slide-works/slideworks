@@ -90,8 +90,14 @@ async function expectNavIntact(page: Page, before: Layout, height: number, state
     expect(box.y, at).toBeGreaterThanOrEqual(0);
     expect(box.y + box.height, at).toBeLessThanOrEqual(height);
   }
-  // Not asserted: whether the row below Next (Slides, Skip, Blackout) stays on screen. At 360x568 the strip makes the
-  // page scroll and pushes that row down; this was measured and reported on SW-277 for SW-278's fix round.
+  // The page does not grow taller than the screen, and the row below Next (Slides, Skip deep dives, Blackout) is wholly
+  // inside it (SW-278's fix for the 568 px screen).
+  expect(now.scrollHeight, `page height with the strip ${state}`).toBe(height);
+  for (const id of ['speaker-slides', 'speaker-skip', 'speaker-blackout']) {
+    const box = (await page.getByTestId(id).boundingBox())!;
+    expect(box.y, `${id} with the strip ${state}`).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height, `${id} with the strip ${state}`).toBeLessThanOrEqual(height);
+  }
 }
 
 let seq = 9000;

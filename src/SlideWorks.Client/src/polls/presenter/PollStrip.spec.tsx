@@ -292,6 +292,33 @@ test('a failed call shows its message as given, announced', async ({ mount, page
   await expect(page.getByTestId(IDS.error)).toHaveAttribute('role', 'alert');
 });
 
+test('an error is laid over the preview above the strip: the strip keeps its height, and the message can be dismissed', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 568 });
+  const component = await mount(
+    <div style={{ marginTop: 300 }}>{strip(pollControlView('open'))}</div>,
+  );
+  const before = (await page.getByTestId(IDS.strip).boundingBox())!;
+  await component.update(
+    <div style={{ marginTop: 300 }}>
+      {strip(pollControlView('open'), {
+        error: "The deck isn't live, so the poll can't open. Go live first, then open it.",
+      })}
+    </div>,
+  );
+  const after = (await page.getByTestId(IDS.strip).boundingBox())!;
+  const message = (await page.getByTestId(IDS.error).boundingBox())!;
+  expect(after.height).toBe(before.height);
+  expect(after.y).toBe(before.y);
+  expect(message.y + message.height).toBeLessThanOrEqual(after.y);
+  const dismiss = page.getByRole('button', { name: 'Dismiss this message' });
+  expect((await dismiss.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await dismiss.click();
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+});
+
 test('a count that changes leaves focus on the button', async ({ mount, page }) => {
   const component = await mount(strip(pollControlView('open', { answered: 10, joined: 40 })));
   await page.getByTestId(IDS.close).focus();
