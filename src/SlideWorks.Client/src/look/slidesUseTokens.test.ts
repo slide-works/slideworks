@@ -24,13 +24,14 @@ const SCANNED = ['slides/', 'qa/screen/'];
 // colour and font from a var(--sw-…) token, so a deck's template and palette
 // re-skin it. The tests and their fixtures may spell out the colours they
 // assert, so they are not scanned. Keys are paths under src/.
+// A *.helpers file is spec-only support and must never be imported by a component.
 const sources = Object.fromEntries(
   SCANNED.flatMap((folder) =>
     fs
       .readdirSync(new URL(folder, srcDir), { recursive: true, encoding: 'utf8' })
       .map((file) => folder + file.replaceAll('\\', '/'))
       .filter((file) => /\.(ts|tsx|css)$/.test(file))
-      .filter((file) => !/\.(spec|test|fixtures)\.[a-z]+$/.test(file))
+      .filter((file) => !/\.(spec|test|fixtures|helpers)\.[a-z]+$/.test(file))
       .map((file) => [file, fs.readFileSync(new URL(file, srcDir), 'utf8')]),
   ),
 );
@@ -67,6 +68,14 @@ function literalsIn(source: string): string[] {
   return found;
 }
 
+/** Every import of a *.helpers module in a source file, as "line: specifier". */
+function helperImportsIn(source: string): string[] {
+  const pattern = /\b(?:from|import)\s*\(?\s*['"]([^'"]*\.helpers(?:\.[a-z]+)?)['"]/g;
+  return [...source.matchAll(pattern)].map(
+    (match) => `${source.slice(0, match.index).split('\n').length}: ${match[1]}`,
+  );
+}
+
 const paletteKeys = Object.keys(palettesJson.palettes.find((palette) => palette.isDefault)!.tokens);
 
 describe('slides use tokens', () => {
@@ -81,6 +90,31 @@ describe('slides use tokens', () => {
       literalsIn(source).map((literal) => `${file}:${literal}`),
     );
     expect(literals).toEqual([]);
+  });
+
+  it('has no component that imports a spec-only helpers file', () => {
+    const imports = Object.entries(sources).flatMap(([file, source]) =>
+      helperImportsIn(source).map((found) => `${file}:${found}`),
+    );
+    expect(imports).toEqual([]);
+  });
+
+  it.each([
+    ['a named import', "import { mountCards } from './CardLayouts.helpers';"],
+    ['an import with its extension', "import { mountCards } from './CardLayouts.helpers.tsx';"],
+    ['a side-effect import', "import '../layouts/CardLayouts.helpers';"],
+    ['a dynamic import', "const helpers = await import('./CardLayouts.helpers');"],
+    ['a re-export', "export * from './CardLayouts.helpers';"],
+  ])('finds %s of a helpers file', (_form, source) => {
+    expect(helperImportsIn(source)).not.toEqual([]);
+  });
+
+  it.each([
+    ['an import of a component', "import { CardsLayout } from './CardsLayout';"],
+    ['a file with helpers in its name', "import { fit } from './layoutHelpers';"],
+    ['a mention in a comment', '// see CardLayouts.helpers for the spec mounts'],
+  ])('does not count %s', (_form, source) => {
+    expect(helperImportsIn(source)).toEqual([]);
   });
 
   it('declares every palette token in tokens.css', () => {
