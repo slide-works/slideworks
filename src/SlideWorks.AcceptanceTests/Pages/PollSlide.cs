@@ -7,6 +7,8 @@ namespace SlideWorks.AcceptanceTests.Pages;
 // together. Per-option members take the option's 0-based position, the same index as an answer's picks.
 public sealed class PollSlide(ILocator slide)
 {
+    // A display: contents wrapper inside the layout's root (layout-poll), with no box of its own: visibility checks work,
+    // but bounding boxes, screenshots, scrolling and hovering need the slide locator (layout-poll) instead.
     public ILocator Root => slide.GetByTestId("poll-slide");
 
     // The join pill, top right, while the deck is live.
