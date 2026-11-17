@@ -139,4 +139,8 @@ export const LAYOUT_SLOTS: { [L in keyof Slots]: Slots[L] } = {
     author: 'Sam Rivera · Product Engineering',
   },
   join: { kicker: 'Join on your phone', count: 'shown' },
+  poll: {
+    question: 'How big was your last merge request?',
+    options: ['Under 50 lines', '50 to 200 lines', '200 to 1,000 lines', 'Over 1,000 lines'],
+  },
 };
