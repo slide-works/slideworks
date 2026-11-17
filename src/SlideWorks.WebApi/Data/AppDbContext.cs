@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
@@ -8,6 +9,7 @@ using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.OAuth;
 using SlideWorks.WebApi.Features.Polls.Data;
+using SlideWorks.WebApi.Features.Qa.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Slides;
 
@@ -44,6 +46,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<PollRound> PollRounds => Set<PollRound>();
 
     public DbSet<PollAnswer> PollAnswers => Set<PollAnswer>();
+
+    public DbSet<PollOption> PollOptions => Set<PollOption>();
+
+    public DbSet<Question> Questions => Set<Question>();
+
+    public DbSet<QaSettingsRow> QaSettingsRows => Set<QaSettingsRow>();
+
+    public DbSet<QaSlideSwitchRow> QaSlideSwitchRows => Set<QaSlideSwitchRow>();
+
+    public DbSet<ReactionTotal> ReactionTotals => Set<ReactionTotal>();
+
+    public DbSet<ReactionGuest> ReactionGuests => Set<ReactionGuest>();
 
     // SQLite can't compare or ORDER BY a DateTimeOffset stored as TEXT, so every one is stored as a sortable integer.
     // Expiry checks and newest-first lists then run in SQL.
@@ -115,6 +129,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         ConfigurePolls(modelBuilder);
 
+        ConfigureQa(modelBuilder);
+
         modelBuilder.Entity<OAuthClientRow>(client => client.HasKey(c => c.ClientId));
 
         modelBuilder.Entity<OAuthRequestRow>(request => request.HasKey(r => r.Id));
@@ -129,31 +145,55 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         });
     }
 
-    // SW-6's poll tables (V1, V2). Nothing cascades from a deck, a slide or a session to a poll, a round or an answer:
-    // slides are soft-deleted and keep their poll, rounds and answers, and app code removes none of them.
+    // SW-6's poll tables (V1, V2), made general by SW-9 (Q2): a poll is a slide's poll or the deck's one Q&A poll, and a
+    // session has at most one unclosed round of each kind. Kind is stored by name ('Slide', 'Qa'); a check constraint ties
+    // it to SlideId on both the poll and the round. Nothing cascades from a deck, a slide or a session to a poll, a round,
+    // an option or an answer: slides are soft-deleted and keep their poll, rounds and answers, and app code removes none
+    // of them.
     private static void ConfigurePolls(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Poll>(poll =>
         {
-            poll.HasKey(p => p.SlideId);
+            poll.HasKey(p => p.Id);
             poll.HasOne<Slide>().WithOne().HasForeignKey<Poll>(p => p.SlideId).OnDelete(DeleteBehavior.Restrict);
+            poll.HasIndex(p => p.SlideId).IsUnique().HasFilter("\"SlideId\" IS NOT NULL");
             poll.HasOne<Deck>().WithMany().HasForeignKey(p => p.DeckId).OnDelete(DeleteBehavior.Restrict);
+            poll.HasIndex(p => p.DeckId, "IX_Polls_DeckId");
+            // At most one Q&A poll per deck.
+            poll.HasIndex(p => p.DeckId).IsUnique().HasFilter("\"Kind\" = 'Qa'").HasDatabaseName("IX_Polls_DeckId_Qa");
+            poll.Property(p => p.Kind).HasConversion<string>();
             poll.Property(p => p.Pick).HasConversion<string>();
             poll.Property(p => p.Results).HasConversion<string>();
             poll.Property(p => p.Opens).HasConversion<string>();
             poll.Property(p => p.Privacy).HasConversion<string>();
+            poll.ToTable(table => table.HasCheckConstraint(
+                "CK_Polls_Kind_SlideId", "(\"Kind\" = 'Slide' AND \"SlideId\" IS NOT NULL) OR (\"Kind\" = 'Qa' AND \"SlideId\" IS NULL)"));
         });
 
         modelBuilder.Entity<PollRound>(round =>
         {
+            round.HasOne<Poll>().WithMany().HasForeignKey(r => r.PollId).OnDelete(DeleteBehavior.Restrict);
             round.HasOne<Slide>().WithMany().HasForeignKey(r => r.SlideId).OnDelete(DeleteBehavior.Restrict);
             round.HasOne<AudienceSession>().WithMany().HasForeignKey(r => r.SessionId).OnDelete(DeleteBehavior.Restrict);
-            round.HasIndex(r => new { r.SlideId, r.SessionId, r.Number }).IsUnique();
-            // At most one round per session without ClosedAt (draft or open, D12), so two opens can never both land.
-            round.HasIndex(r => r.SessionId).IsUnique().HasFilter("\"ClosedAt\" IS NULL").HasDatabaseName("IX_PollRounds_SessionId_Open");
+            round.HasIndex(r => new { r.PollId, r.SessionId, r.Number }).IsUnique();
+            // At most one round per session and kind without ClosedAt (draft or open, D12; SW-9 Q2), so two opens can never
+            // both land, and a slide round and a Q&A round can be open side by side.
+            round.HasIndex(r => new { r.SessionId, r.Kind }).IsUnique().HasFilter("\"ClosedAt\" IS NULL").HasDatabaseName("IX_PollRounds_SessionId_Kind_Open");
+            round.Property(r => r.Kind).HasConversion<string>();
             round.Property(r => r.Final).HasConversion(
                 final => final == null ? null : JsonSerializer.Serialize(final, JsonSerializerOptions.Web),
                 json => json == null ? null : JsonSerializer.Deserialize<PollFinal>(json, JsonSerializerOptions.Web));
+            round.ToTable(table => table.HasCheckConstraint(
+                "CK_PollRounds_Kind_SlideId", "(\"Kind\" = 'Slide' AND \"SlideId\" IS NOT NULL) OR (\"Kind\" = 'Qa' AND \"SlideId\" IS NULL)"));
+        });
+
+        modelBuilder.Entity<PollOption>(option =>
+        {
+            option.HasKey(o => new { o.RoundId, o.Position });
+            option.HasOne<PollRound>().WithMany().HasForeignKey(o => o.RoundId).OnDelete(DeleteBehavior.Restrict);
+            option.Property(o => o.Text).HasMaxLength(PollOption.TEXT_MAX);
+            // SQLite ignores a column's length, so the limit is a check.
+            option.ToTable(table => table.HasCheckConstraint("CK_PollOptions_Text_Length", $"length(\"Text\") <= {PollOption.TEXT_MAX}"));
         });
 
         modelBuilder.Entity<PollAnswer>(answer =>
@@ -162,4 +202,71 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             answer.HasOne<PollRound>().WithMany().HasForeignKey(a => a.RoundId).OnDelete(DeleteBehavior.Restrict);
         });
     }
+
+    // SW-9's own rows (Q2): a question per Q&A option, a deck's settings, a slide's switch, and the reaction totals and who
+    // reacted. Enums are stored by name, and a check holds each to its enum's names, since a row EF can't read back would
+    // break the read of every row beside it. SQLite ignores a column's length, so the limits are checks. Every foreign key is
+    // Restrict: nothing cascades from a deck, a slide, a session or an option, and app code removes none of these rows.
+    private static void ConfigureQa(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Question>(question =>
+        {
+            question.HasKey(q => new { q.RoundId, q.Position });
+            // One question per option, at the option's key.
+            question.HasOne<PollOption>().WithOne().HasForeignKey<Question>(q => new { q.RoundId, q.Position }).OnDelete(DeleteBehavior.Restrict);
+            // At most one question per round on screen.
+            question.HasIndex(q => q.RoundId).IsUnique().HasFilter("\"OnScreen\" = 1").HasDatabaseName("IX_Questions_RoundId_OnScreen");
+            question.Property(q => q.State).HasConversion<string>();
+            question.Property(q => q.Name).HasMaxLength(QuestionText.MAX_NAME);
+            question.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_Questions_Name_Length", $"\"Name\" IS NULL OR length(\"Name\") <= {QuestionText.MAX_NAME}");
+                table.HasCheckConstraint("CK_Questions_State", OneOf<QuestionState>("State"));
+                // Only an open question that isn't hidden can be on screen.
+                table.HasCheckConstraint("CK_Questions_OnScreen", $"\"OnScreen\" = 0 OR (\"State\" = '{nameof(QuestionState.Open)}' AND \"HiddenAt\" IS NULL)");
+            });
+        });
+
+        modelBuilder.Entity<QaSettingsRow>(settings =>
+        {
+            settings.HasKey(s => s.DeckId);
+            settings.HasOne<Deck>().WithOne().HasForeignKey<QaSettingsRow>(s => s.DeckId).OnDelete(DeleteBehavior.Restrict);
+            settings.Property(s => s.Questions).HasConversion<string>();
+            settings.Property(s => s.ShowOn).HasConversion<string>();
+            settings.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_QaSettingsRows_Questions", OneOf<QaQuestions>("Questions"));
+                table.HasCheckConstraint("CK_QaSettingsRows_ShowOn", OneOf<QaShowOn>("ShowOn"));
+            });
+        });
+
+        modelBuilder.Entity<QaSlideSwitchRow>(slideSwitch =>
+        {
+            slideSwitch.HasKey(s => s.SlideId);
+            slideSwitch.HasOne<Slide>().WithOne().HasForeignKey<QaSlideSwitchRow>(s => s.SlideId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ReactionTotal>(total =>
+        {
+            total.HasKey(t => new { t.SessionId, t.SlideId, t.Emoji });
+            total.HasOne<AudienceSession>().WithMany().HasForeignKey(t => t.SessionId).OnDelete(DeleteBehavior.Restrict);
+            total.HasOne<Slide>().WithMany().HasForeignKey(t => t.SlideId).OnDelete(DeleteBehavior.Restrict);
+            total.Property(t => t.Emoji).HasConversion<string>();
+            total.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_ReactionTotals_Count", "\"Count\" >= 0");
+                table.HasCheckConstraint("CK_ReactionTotals_Emoji", OneOf<ReactionEmoji>("Emoji"));
+            });
+        });
+
+        modelBuilder.Entity<ReactionGuest>(guest =>
+        {
+            guest.HasKey(g => new { g.SessionId, g.GuestId });
+            guest.HasOne<AudienceSession>().WithMany().HasForeignKey(g => g.SessionId).OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    // A check that the column holds one of the enum's names, as HasConversion<string>() stores them.
+    private static string OneOf<T>(string column) where T : struct, Enum
+        => $"\"{column}\" IN ({string.Join(", ", Enum.GetNames<T>().Select(name => $"'{name}'"))})";
 }

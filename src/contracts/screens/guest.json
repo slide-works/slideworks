@@ -127,7 +127,14 @@
         "black": false
       },
       "revision": 7,
-      "activity": null
+      "activity": null,
+      "room": {
+        "round": "4f1d2c8e-9a7b-4e3f-8c21-6b5a0d9e7f12",
+        "questions": "open",
+        "names": true,
+        "reactions": true,
+        "listRevision": 57
+      }
     }
   },
   "lobby": {
@@ -238,7 +245,8 @@
       "phase": "lobby",
       "current": null,
       "revision": 7,
-      "activity": null
+      "activity": null,
+      "room": null
     }
   },
   "ended": {
@@ -349,7 +357,8 @@
       "phase": "ended",
       "current": null,
       "revision": 7,
-      "activity": null
+      "activity": null,
+      "room": null
     }
   }
 }

@@ -2,6 +2,7 @@ using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Polls;
+using SlideWorks.WebApi.Features.Qa;
 using SlideWorks.WebApi.Features.Slides;
 using SlideWorks.WebApi.Realtime.Presenting;
 using System.Collections.Concurrent;
@@ -13,8 +14,9 @@ namespace SlideWorks.WebApi.Realtime;
 // Carries the presenter's position to the guests (J4). It follows SW-4's presentation state (IPresentationObserver) and
 // the deck's own changes (IDeckEvents), and publishes an audienceState for every one that lands on a deck with an open
 // session. The phase always comes from IAudienceSessions and the one slide on screen is projected with no notes and no
-// deep-dive mark (D15); Current and Activity are filled only while the phase is live. Activity is what IAudienceActivity
-// says is on screen (a poll, V3), serialised as it goes to the guest.
+// deep-dive mark (D15); Current, Activity and Room are filled only while the phase is live. Activity is what IAudienceActivity
+// says is on screen (a poll, V3), and Room what IAudienceRoom says the room may do (SW-9 Q1), each serialised as it goes
+// to the guest.
 //
 // It is a singleton because it is an observer, so IAudienceSessions and the database are reached through a scope per call.
 // It never reads the request or the caller. IPresentations is resolved per call too, because the registry takes the
@@ -209,7 +211,7 @@ public sealed class AudienceFeed : IDisposable
     {
         if (found.Phase != AudiencePhase.Live)
         {
-            return new AudienceState(found.DeckId, seq, found.Phase, null, 0, null);
+            return new AudienceState(found.DeckId, seq, found.Phase, null, 0, null, null);
         }
         var presentation = await services.GetRequiredService<IPresentations>().GetAsync(found.DeckId);
         var db = services.GetRequiredService<AppDbContext>();
@@ -218,7 +220,23 @@ public sealed class AudienceFeed : IDisposable
             .Where(s => s.DeckId == found.DeckId && s.DeletedAt == null)
             .OrderBy(s => s.Position)
             .ToListAsync();
-        return new AudienceState(found.DeckId, seq, AudiencePhase.Live, Project(slides, presentation), revision, await ActivityAsync(services, found.DeckId));
+        return new AudienceState(
+            found.DeckId,
+            seq,
+            AudiencePhase.Live,
+            Project(slides, presentation),
+            revision,
+            await ActivityAsync(services, found.DeckId),
+            await RoomAsync(services, found.DeckId));
+    }
+
+    // What the room may do on the slide on screen (SW-9 Q1, Q3), in the scope the caller opened (the seam is per request).
+    // Read only while live: the phase above decides, so every other phase carries a null room whatever the seam would say.
+    // Like the activity it is read under the deck's feed gate, so it must only read; IAudienceRoom never publishes.
+    private static async Task<JsonElement?> RoomAsync(IServiceProvider services, string deckId)
+    {
+        var room = await services.GetRequiredService<IAudienceRoom>().ForDeckAsync(deckId);
+        return room is null ? null : JsonSerializer.SerializeToElement(room, JsonSerializerOptions.Web);
     }
 
     // The activity on screen, in the scope the caller opened (the seam is per request). It is called under the deck's feed

@@ -28,6 +28,22 @@ public class PollSettingsRulesTests
     }
 
     [Test]
+    public void Check_WhenMaxWithAny_ShouldNameMax()
+    {
+        var settings = PollSettings.Default with { Pick = PollPick.Any, Max = 2 };
+
+        PollSettingsRules.Check(settings, 4).ShouldBe("max: only when pick is upTo");
+    }
+
+    [Test]
+    public void Check_WhenAnyWithoutMax_ShouldPass()
+    {
+        var settings = PollSettings.Default with { Pick = PollPick.Any };
+
+        PollSettingsRules.Check(settings, 4).ShouldBeNull();
+    }
+
+    [Test]
     public void Check_WhenUpToWithoutMax_ShouldNameMax()
     {
         var settings = PollSettings.Default with { Pick = PollPick.UpTo };

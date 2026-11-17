@@ -159,6 +159,26 @@ public class AnonymousRoutesTests : ApiTestFixture
         (await response.Content.ReadAsStringAsync()).ShouldContain("no_guest", Case.Sensitive);
     }
 
+    // Q4, Q7: a guest's question and reaction routes are anonymous too. With no sw_guest cookie they answer 400 no_guest
+    // themselves, never the sign-in gate.
+    [TestCase("GET", "/api/join/482913/questions", null)]
+    [TestCase("POST", "/api/join/482913/questions", """{"text":"Why?","name":null}""")]
+    [TestCase("PUT", "/api/join/482913/questions/votes", """{"round":"r","picks":[1],"revision":0}""")]
+    [TestCase("POST", "/api/join/482913/reactions", """{"emoji":"clap"}""")]
+    public async Task JoinQaRoute_WhenAnonymousAndSignInRequiredElsewhere_ShouldBeAnsweredByTheRoute(string method, string path, string? json)
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var request = new HttpRequestMessage(new HttpMethod(method), path)
+        {
+            Content = json is null ? null : new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
+        };
+
+        var response = await anonymous.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).ShouldContain("no_guest", Case.Sensitive);
+    }
+
     private static string CreateWebRoot()
     {
         var root = Path.Combine(Path.GetTempPath(), $"slide-works-webroot-{Guid.NewGuid():N}");

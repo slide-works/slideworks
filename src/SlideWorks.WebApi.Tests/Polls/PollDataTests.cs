@@ -110,7 +110,7 @@ public class PollDataTests : PollTestFixture
         var duplicate = await Should.ThrowAsync<DbUpdateException>(() => Rows.RoundAsync(seeded.SlideId, seeded.SessionId, number: 2));
 
         second.Number.ShouldBe(2);
-        duplicate.InnerException!.Message.ShouldContain("UNIQUE constraint failed: PollRounds.SlideId, PollRounds.SessionId, PollRounds.Number");
+        duplicate.InnerException!.Message.ShouldContain("UNIQUE constraint failed: PollRounds.PollId, PollRounds.SessionId, PollRounds.Number");
     }
 
     [Test]
@@ -188,9 +188,10 @@ public class PollDataTests : PollTestFixture
             SELECT on_delete AS Value FROM pragma_foreign_key_list('Polls')
             UNION ALL SELECT on_delete FROM pragma_foreign_key_list('PollRounds')
             UNION ALL SELECT on_delete FROM pragma_foreign_key_list('PollAnswers')
+            UNION ALL SELECT on_delete FROM pragma_foreign_key_list('PollOptions')
             """).ToListAsync();
 
-        actions.Count.ShouldBe(5);
+        actions.Count.ShouldBe(7);
         actions.ShouldAllBe(action => action == "RESTRICT");
     }
 

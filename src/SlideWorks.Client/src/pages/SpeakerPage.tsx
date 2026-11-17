@@ -16,6 +16,8 @@ import { JoinProvider } from '../slides/JoinContext';
 import { SlidesSheet } from '../remote/SlidesSheet';
 import { PollControlLive } from '../polls/presenter/PollControlLive';
 import { PollStrip } from '../polls/presenter/PollStrip';
+import { QaControlLive } from '../qa/presenter/QaControlLive';
+import { QaStrip } from '../qa/presenter/QaStrip';
 import { ActionRow } from '../remote/speaker/ActionRow';
 import { deviceLabel } from '../remote/speaker/deviceLabel';
 import { NavButtons } from '../remote/speaker/NavButtons';
@@ -135,13 +137,15 @@ export function SpeakerPage() {
   return (
     <JoinProvider deckId={load.view.id} join={load.view.join} owner>
       <PollControlLive deckId={id} slide={presentation.state.slide}>
-        <SpeakerMode
-          id={id}
-          view={load.view}
-          state={presentation.state}
-          presentation={presentation}
-          refreshFailed={refreshFailed}
-        />
+        <QaControlLive deckId={id} slide={presentation.state.slide}>
+          <SpeakerMode
+            id={id}
+            view={load.view}
+            state={presentation.state}
+            presentation={presentation}
+            refreshFailed={refreshFailed}
+          />
+        </QaControlLive>
       </PollControlLive>
     </JoinProvider>
   );
@@ -328,6 +332,7 @@ function SpeakerMode({
             />
           </div>
           <PollStrip deckId={id} />
+          <QaStrip deckId={id} />
           <div className="mt-3 flex min-h-0 flex-1 flex-col">
             <SpeakerNotes view={view} slide={state.slide} step={state.step} lastKnown={!live} />
           </div>

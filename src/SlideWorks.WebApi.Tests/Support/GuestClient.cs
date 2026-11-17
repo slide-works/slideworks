@@ -59,6 +59,19 @@ public sealed class GuestClient : IAsyncDisposable
     // DeckHub.WatchPoll(code): joins poll-results:{roundId} when the server allows it, else throws HubException (V5).
     public Task WatchPollAsync(string code) => Connection.InvokeAsync("WatchPoll", code);
 
+    // GET /api/join/{code}/questions: the room, the questions this guest may see and its own upvotes (Q4).
+    public Task<HttpResponseMessage> GetQuestionsAsync(string code) => _http.GetAsync($"/api/join/{code}/questions");
+
+    // POST /api/join/{code}/questions with this body, usually an AskRequest; any other object goes as it serialises, for a
+    // test of a malformed body (Q4).
+    public Task<HttpResponseMessage> AskAsync(string code, object body) => _http.PostAsJsonAsync($"/api/join/{code}/questions", body);
+
+    // PUT /api/join/{code}/questions/votes with this body, usually a VoteRequest; any other object goes as it serialises (Q4).
+    public Task<HttpResponseMessage> VoteAsync(string code, object body) => _http.PutAsJsonAsync($"/api/join/{code}/questions/votes", body);
+
+    // POST /api/join/{code}/reactions with this body, usually a ReactionRequest; any other object goes as it serialises (Q7).
+    public Task<HttpResponseMessage> ReactAsync(string code, object body) => _http.PostAsJsonAsync($"/api/join/{code}/reactions", body);
+
     public async ValueTask DisposeAsync()
     {
         _http.Dispose();

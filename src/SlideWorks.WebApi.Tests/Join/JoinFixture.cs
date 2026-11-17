@@ -29,7 +29,7 @@ public abstract class JoinFixture : ApiTestFixture
     protected void Open(string code, string deckId)
     {
         Sessions.Set(code, deckId, SESSION, AudiencePhase.Live);
-        Relay.Set(new AudienceState(deckId, 1, AudiencePhase.Live, new AudienceSlide(1, 1, "title", Slots("""{"title":"Ship smaller"}"""), 0, 0, false), 0, null));
+        Relay.Set(new AudienceState(deckId, 1, AudiencePhase.Live, new AudienceSlide(1, 1, "title", Slots("""{"title":"Ship smaller"}"""), 0, 0, false), 0, null, null));
     }
 
     protected static JsonElement Slots(string json)

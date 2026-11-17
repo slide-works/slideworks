@@ -143,4 +143,5 @@ export const LAYOUT_SLOTS: { [L in keyof Slots]: Slots[L] } = {
     question: 'How big was your last merge request?',
     options: ['Under 50 lines', '50 to 200 lines', '200 to 1,000 lines', 'Over 1,000 lines'],
   },
+  qa: { title: 'Your questions' },
 };

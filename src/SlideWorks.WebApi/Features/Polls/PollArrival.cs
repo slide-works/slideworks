@@ -30,8 +30,8 @@ public class PollArrival(AppDbContext db, IPolls polls, ILogger<PollArrival> log
             .Select(s => new
             {
                 SessionId = s.Id,
-                UnclosedSlideId = db.PollRounds.Where(r => r.SessionId == s.Id && r.ClosedAt == null).Select(r => (Guid?)r.SlideId).FirstOrDefault(),
-                UnclosedOpened = db.PollRounds.Where(r => r.SessionId == s.Id && r.ClosedAt == null).Any(r => r.OpenedAt != null),
+                UnclosedSlideId = db.PollRounds.Where(r => r.SessionId == s.Id && r.Kind == PollKind.Slide && r.ClosedAt == null).Select(r => r.SlideId).FirstOrDefault(),
+                UnclosedOpened = db.PollRounds.Where(r => r.SessionId == s.Id && r.Kind == PollKind.Slide && r.ClosedAt == null).Any(r => r.OpenedAt != null),
                 SlideId = db.Slides.Where(x => x.DeckId == deckId && x.DeletedAt == null && x.Position == position).Select(x => (Guid?)x.Id).FirstOrDefault(),
                 Layout = db.Slides.Where(x => x.DeckId == deckId && x.DeletedAt == null && x.Position == position).Select(x => x.Layout).FirstOrDefault(),
             })

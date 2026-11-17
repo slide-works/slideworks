@@ -7,7 +7,8 @@ public static class PollSettingsRules
     // The first rule the settings break, or null when they are valid for a poll with this many options.
     public static string? Check(PollSettings settings, int optionCount)
     {
-        if (settings.Pick == PollPick.One && settings.Max is not null)
+        // One has a single pick and Any (SW-9's upvotes) has no maximum, so only UpTo takes one.
+        if (settings.Pick != PollPick.UpTo && settings.Max is not null)
         {
             return "max: only when pick is upTo";
         }

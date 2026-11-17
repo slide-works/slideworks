@@ -7,6 +7,7 @@ using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Look.Views;
 using SlideWorks.WebApi.Features.Polls;
+using SlideWorks.WebApi.Features.Qa;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -16,7 +17,7 @@ using SlideWorks.WebApi.Realtime.Presenting;
 namespace SlideWorks.WebApi.Features.Live;
 
 // Go live, End and the live state (J2). Every check (who may see the deck, who owns it) runs before any write, so a refused
-// call changes nothing. Go live is idempotent: it opens a session, or returns the one that is open.
+// call changes nothing. Go live is idempotent: it opens a session (and its Q&A round), or returns the one that is open.
 [RegisterPerRequest]
 public class LiveCommands(
     AppDbContext db,
@@ -30,6 +31,8 @@ public class LiveCommands(
     IPresentations presentations,
     IJoinUrls joinUrls,
     IPolls polls,
+    IQaRounds qaRounds,
+    IReactions reactions,
     TimeProvider clock)
 {
     // SQLITE_CONSTRAINT_UNIQUE: the extended code, so a NOT NULL or primary key failure is never mistaken for the race.
@@ -55,6 +58,9 @@ public class LiveCommands(
         var (sessionId, opened) = open == null ? await OpenAsync(deckId) : (open.Value, false);
         if (opened)
         {
+            // After the session row exists and before the first live state goes out, so that state already carries the
+            // round. Only the call that opened the session opens it: a second Go live on a live deck opens nothing.
+            await qaRounds.OpenAsync(deckId, sessionId);
             await relay.StartedAsync(deckId);
             await roster.OpenedAsync(deckId, sessionId.ToString());
             await activity.RecordAsync(deckId, ActivityEntry.By(actor, tool: null, "went live"));
@@ -73,6 +79,9 @@ public class LiveCommands(
         }
         // Before the session ends: an open poll round is closed with its final result, and a draft round is discarded (V4).
         await polls.EndSessionAsync(deckId, session.Id);
+        // Then the session's Q&A round is closed, and the reactions still in memory are written (SW-9 Q6, Q7).
+        await qaRounds.CloseAsync(deckId, session.Id);
+        await reactions.EndSessionAsync(session.Id);
         session.EndedAt = clock.GetUtcNow();
         await db.SaveChangesAsync();
         await roster.ClosedAsync(deckId, session.Id.ToString());

@@ -59,7 +59,7 @@ public class Polls(
             }
             else
             {
-                db.PollRounds.Add(new PollRound { Id = Guid.NewGuid(), SlideId = poll.Id, SessionId = session, Number = PollReader.NextNumber(rounds), OpenedAt = now });
+                db.PollRounds.Add(new PollRound { Id = Guid.NewGuid(), PollId = await rows.SlidePollIdAsync(poll.Id), Kind = PollKind.Slide, SlideId = poll.Id, SessionId = session, Number = PollReader.NextNumber(rounds), OpenedAt = now });
             }
             await db.SaveChangesAsync();
             await RecordAsync(deckId, $"opened poll on slide {slide}");
@@ -147,7 +147,7 @@ public class Polls(
             await DiscardAsync(other, now);
             number = PollReader.NextNumber(rounds);
             var opened = settings.Opens == PollOpens.OnArrival ? now : (DateTimeOffset?)null;
-            db.PollRounds.Add(new PollRound { Id = Guid.NewGuid(), SlideId = poll.Id, SessionId = session.Value, Number = number, OpenedAt = opened });
+            db.PollRounds.Add(new PollRound { Id = Guid.NewGuid(), PollId = await rows.SlidePollIdAsync(poll.Id), Kind = PollKind.Slide, SlideId = poll.Id, SessionId = session.Value, Number = number, OpenedAt = opened });
             await db.SaveChangesAsync();
             await RecordAsync(deckId, $"started round {number} of poll on slide {slide}");
             await transaction.CommitAsync();

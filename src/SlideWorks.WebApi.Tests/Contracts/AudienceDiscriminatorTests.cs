@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using SlideWorks.Core.Qa;
+using SlideWorks.WebApi.Features.Qa.Contracts;
 using SlideWorks.WebApi.Realtime;
 
 namespace SlideWorks.WebApi.Tests.Contracts;
@@ -16,7 +18,7 @@ public class AudienceDiscriminatorTests : ApiTestFixture
     [Test]
     public void AudienceState_WhenDeclaredAsItsOwnType_ShouldCarryTheDiscriminatorThroughTheHubOptions()
     {
-        var state = new AudienceState("7Kq2xYp9LmQa", 3, AudiencePhase.Lobby, null, 1, null);
+        var state = new AudienceState("7Kq2xYp9LmQa", 3, AudiencePhase.Lobby, null, 1, null, null);
 
         var json = JsonSerializer.Serialize(state, HubJson);
 
@@ -26,7 +28,7 @@ public class AudienceDiscriminatorTests : ApiTestFixture
     [Test]
     public void AudienceState_WhenDeclaredAsObject_ShouldCarryTheDiscriminatorThroughTheHubOptions()
     {
-        var json = JsonSerializer.Serialize<object>(new AudienceState("7Kq2xYp9LmQa", 3, AudiencePhase.Lobby, null, 1, null), HubJson);
+        var json = JsonSerializer.Serialize<object>(new AudienceState("7Kq2xYp9LmQa", 3, AudiencePhase.Lobby, null, 1, null, null), HubJson);
 
         json.ShouldContain("\"type\":\"audienceState\"");
     }
@@ -44,8 +46,28 @@ public class AudienceDiscriminatorTests : ApiTestFixture
     }
 
     [Test]
+    public void QuestionTally_WhenDeclaredAsItsOwnType_ShouldCarryTheDiscriminator()
+    {
+        JsonSerializer.Serialize(new QuestionTally("7Kq2xYp9LmQa", "r1", 3, []), HubJson).ShouldContain("\"type\":\"questionTally\"");
+    }
+
+    [Test]
+    public void QuestionControl_WhenDeclaredAsItsOwnType_ShouldCarryTheDiscriminator()
+    {
+        var control = new QaControlView(1, false, null, QaSettings.Default, null, [], new QaCounts(0, 0, 0, 0), null, [], ReactionCounts.Zero);
+
+        JsonSerializer.Serialize(new QuestionControl("7Kq2xYp9LmQa", control), HubJson).ShouldContain("\"type\":\"questionControl\"");
+    }
+
+    [Test]
+    public void ReactionsBurst_WhenDeclaredAsItsOwnType_ShouldCarryTheReactionsDiscriminator()
+    {
+        JsonSerializer.Serialize(new ReactionsBurst("7Kq2xYp9LmQa", 2, ReactionCounts.Zero), HubJson).ShouldContain("\"type\":\"reactions\"");
+    }
+
+    [Test]
     public void AudienceState_ShouldNeverWriteTheDeckId()
     {
-        JsonSerializer.Serialize(new AudienceState("7Kq2xYp9LmQa", 3, AudiencePhase.Lobby, null, 1, null), HubJson).ShouldNotContain("7Kq2xYp9LmQa");
+        JsonSerializer.Serialize(new AudienceState("7Kq2xYp9LmQa", 3, AudiencePhase.Lobby, null, 1, null, null), HubJson).ShouldNotContain("7Kq2xYp9LmQa");
     }
 }

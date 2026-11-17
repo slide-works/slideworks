@@ -382,7 +382,7 @@ public class AudienceRelayTests : ApiTestFixture
         await using var guest = await GuestClient.ConnectAsync(Factory);
         const long NEWER_REVISION = 9_999;
         Presentations.AfterNextGet(id => Factory.Services.GetRequiredService<IAudienceEvents>()
-            .PublishAsync(new AudienceState(id, long.MaxValue / 2, AudiencePhase.Live, null, NEWER_REVISION, null)));
+            .PublishAsync(new AudienceState(id, long.MaxValue / 2, AudiencePhase.Live, null, NEWER_REVISION, null, null)));
 
         var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
         var pushed = await guest.NextAudienceAsync();

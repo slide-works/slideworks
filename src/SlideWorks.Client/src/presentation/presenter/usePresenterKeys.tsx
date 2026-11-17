@@ -15,6 +15,8 @@ export type PresenterKeyActions = {
   toggleBlack(): void;
   toggleSkip(): void;
   resetTimer(): void;
+  // Q: opens or closes the Questions panel (SW-9 D18). Given only where the window has the panel.
+  questions?(): void;
 };
 
 // The poll's keys in the presenter window (SW-6 D19): P opens or closes the poll, R reveals the results, A shows the
@@ -46,9 +48,10 @@ function activates(target: EventTarget | null): boolean {
 }
 
 // The presenter window's keys (P8): → Space PgDn next; ← PgUp previous; Home and End; a number then Enter jumps; N
-// notes; O overview; Esc closes; B and . blackout; D skip deep dives; T timer reset. Keys are ignored in inputs, while
-// composing and with a modifier held. While something is open on top (overview, phone dialog) only O, N and Esc work,
-// so the overview's own keys never move the talk. actions may change on every render without re-subscribing; null
+// notes; O overview; Esc closes; B and . blackout; D skip deep dives; T timer reset; Q the Questions panel (SW-9). Keys
+// are ignored in inputs, while composing and with a modifier held. While something is open on top (overview, phone
+// dialog) only O, N and Esc work, so the overview's own keys never move the talk. Q is a toggle, so a held Q's repeats
+// are ignored. actions may change on every render without re-subscribing; null
 // (nothing to drive yet) ignores every key.
 export function usePresenterKeys(actions: PresenterKeyActions | null, overlayOpen: boolean) {
   const latest = useRef({ actions, overlayOpen });
@@ -79,6 +82,7 @@ export function usePresenterKeys(actions: PresenterKeyActions | null, overlayOpe
         return;
       }
 
+      if (event.repeat && key.toLowerCase() === 'q') return;
       const handler = handlerFor(key, act, covered, activates(event.target));
       if (!handler) return;
       event.preventDefault();
@@ -172,6 +176,8 @@ function handlerFor(
       return act.toggleSkip;
     case 't':
       return act.resetTimer;
+    case 'q':
+      return act.questions;
   }
   return undefined;
 }

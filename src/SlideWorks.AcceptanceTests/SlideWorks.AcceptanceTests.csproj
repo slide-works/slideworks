@@ -20,10 +20,10 @@
   </ItemGroup>
 
   <!-- The shared test people and JSON shape checks, compiled from the API test project so both use the same ones. The
-       poll seeds and their fixture are left out: they build on the API test project's own fixture, MCP client and
-       registry stand-in, and acceptance tests never write poll rows. -->
+       poll and Q&A seeds and their fixtures are left out: they build on the API test project's own fixture, MCP client and
+       registry stand-in, and acceptance tests never write poll or Q&A rows. -->
   <ItemGroup>
-    <Compile Include="..\SlideWorks.WebApi.Tests\Support\**\*.cs" Exclude="..\SlideWorks.WebApi.Tests\Support\GuestClient.cs;..\SlideWorks.WebApi.Tests\Support\PollSeed.cs;..\SlideWorks.WebApi.Tests\Support\PollRowSeed.cs;..\SlideWorks.WebApi.Tests\Support\PollTestFixture.cs" Link="Support\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\SlideWorks.WebApi.Tests\Support\**\*.cs" Exclude="..\SlideWorks.WebApi.Tests\Support\GuestClient.cs;..\SlideWorks.WebApi.Tests\Support\PollSeed.cs;..\SlideWorks.WebApi.Tests\Support\PollRowSeed.cs;..\SlideWorks.WebApi.Tests\Support\PollTestFixture.cs;..\SlideWorks.WebApi.Tests\Support\QaSeed.cs;..\SlideWorks.WebApi.Tests\Support\QaRowSeed.cs;..\SlideWorks.WebApi.Tests\Support\QaTestFixture.cs" Link="Support\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!-- Hosts the BFF (API plus the built SPA bundle in its wwwroot) on a real Kestrel port. -->

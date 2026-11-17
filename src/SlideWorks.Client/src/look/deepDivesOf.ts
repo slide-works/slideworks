@@ -1,4 +1,5 @@
 import { DEFAULT_JOIN_KICKER } from '../slides/layouts/joinKicker';
+import { DEFAULT_QA_TITLE } from '../slides/layouts/qaTitle';
 import type { DeepDive, LayoutName, Slots } from '../slides/slots';
 
 type DeepDiveSource = {
@@ -12,7 +13,7 @@ type DeepDiveSource = {
 }[LayoutName];
 
 // A slide's headline as the divider lists it: its headline slot, or the title
-// of a title or divider slide, a quote slide's quote, or a poll slide's question.
+// of a title or divider slide, a quote slide's quote, a poll slide's question, or a qa slide's title.
 function headlineOf(slide: DeepDiveSource): string {
   switch (slide.layout) {
     case 'title':
@@ -24,6 +25,8 @@ function headlineOf(slide: DeepDiveSource): string {
       return slide.slots.kicker ?? DEFAULT_JOIN_KICKER;
     case 'poll':
       return slide.slots.question;
+    case 'qa':
+      return slide.slots.title ?? DEFAULT_QA_TITLE;
     default:
       return slide.slots.headline;
   }

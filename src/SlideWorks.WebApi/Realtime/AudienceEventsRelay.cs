@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Agoda.IoC.Core;
 using Microsoft.AspNetCore.SignalR;
 using SlideWorks.WebApi.Features.Polls.Contracts;
+using SlideWorks.WebApi.Features.Qa.Contracts;
 
 namespace SlideWorks.WebApi.Realtime;
 
@@ -10,7 +11,10 @@ namespace SlideWorks.WebApi.Realtime;
 // audienceEnded to audience:{deckId} (guests), joinedCount to audience-watch:{deckId} (the owner). A poll's events are
 // routed so nothing a guest may not see reaches a guest: pollControl, which carries counts and the correct answer, goes to
 // audience-watch:{deckId} only; pollTally goes by its Target, Audience to audience:{deckId} and Results to
-// poll-results:{roundId}, which only DeckHub.WatchPoll joins. An event of any other type has no route and is not sent.
+// poll-results:{roundId}, which only DeckHub.WatchPoll joins. SW-9's events (Q5, Q7) likewise: questionTally, which holds
+// only questions another guest may see, goes to audience:{deckId}; questionControl, which holds every question, and
+// reactions, which never reach a phone, go to audience-watch:{deckId} only. The relay routes and nothing more: what each
+// event holds and how often it goes are its publisher's. An event of any other type has no route and is not sent.
 // All go on the method "audienceEvent". A joinedCount goes at most once a second per deck: the first goes at once, and a
 // change inside the second waits for it to pass and sends the latest count then, so the owner always ends on the true number.
 [RegisterSingleton(For = typeof(IHostedService))]
@@ -53,6 +57,9 @@ public sealed class AudienceEventsRelay(IAudienceEvents events, IHubContext<Deck
         AudienceState or AudienceEnded => SendAsync(DeckHub.AudienceGroupName(audienceEvent.DeckId), audienceEvent),
         PollControl control => SendAsync(DeckHub.AudienceWatchGroupName(control.DeckId), control),
         PollTally tally => SendAsync(TallyGroup(tally), tally),
+        QuestionTally tally => SendAsync(DeckHub.AudienceGroupName(tally.DeckId), tally),
+        QuestionControl control => SendAsync(DeckHub.AudienceWatchGroupName(control.DeckId), control),
+        ReactionsBurst burst => SendAsync(DeckHub.AudienceWatchGroupName(burst.DeckId), burst),
         _ => throw new InvalidOperationException($"No hub group for the audience event {audienceEvent.GetType().Name}"),
     };
 

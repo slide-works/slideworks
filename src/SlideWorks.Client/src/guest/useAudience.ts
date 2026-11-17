@@ -2,6 +2,7 @@ import { HubConnectionState, type HubConnection } from '@microsoft/signalr';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, api } from '../api/client';
 import type { PollTally } from '../polls/types';
+import type { QuestionTally } from '../qa/types';
 import { createAudienceConnection } from '../realtime/audienceConnection';
 import { AUDIENCE_EVENT_METHOD, isAudienceEvent, type AudienceState } from './audienceEvents';
 import { NO_SESSION, TOO_MANY_ATTEMPTS, type GuestView } from './guestView';
@@ -34,12 +35,36 @@ export type AudiencePolls = {
   watchPoll(): Promise<void>;
 };
 
+// The questions' side of the audience connection (SW-9 Q5, Q8), for the phone's Questions tab. Its identity never changes.
+// - onTally: calls listener with every questionTally the connection receives, in order, one call each, and returns the
+//   unsubscribe. Only tallies that arrive after subscribing are delivered, so subscribe before GET
+//   /api/join/{code}/questions. The room (audienceState.room) is on state, not here.
+export type AudienceQuestions = {
+  onTally(listener: (tally: QuestionTally) => void): () => void;
+};
+
 export type Audience = {
   view: GuestView;
   state: AudienceState;
   status: AudienceStatus;
   polls: AudiencePolls;
+  questions: AudienceQuestions;
 };
+
+// Calls each listener with value, on a copy of the set, so a listener that unsubscribes while being called doesn't skip
+// the next one. A listener that throws doesn't stop the others: its error is thrown again on its own, where the page's
+// error reporting sees it.
+function handToEach<T>(listeners: Set<(value: T) => void>, value: T) {
+  for (const listener of [...listeners]) {
+    try {
+      listener(value);
+    } catch (error) {
+      queueMicrotask(() => {
+        throw error;
+      });
+    }
+  }
+}
 
 // The text the real hub's error completion ends with when JoinAudience throws HubException(message) (J4).
 const NO_GUEST = 'no_guest';
@@ -64,7 +89,8 @@ const hubRefusal = (error: unknown, message: string) =>
 // or the deck has gone (no_session: offline). A state with the same seq as the held one is applied only when its phase
 // differs (lobby to live), and audienceEnded is applied whatever the seq. Re-reads and rejoins wait a random extra
 // so a room of phones doesn't hit the server together. polls hands each pollTally to its subscribers and invokes
-// WatchPoll on the same connection (SW-6).
+// WatchPoll on the same connection (SW-6). questions hands each questionTally to its subscribers (SW-9); the room comes
+// with each state.
 export function useAudience(
   code: string,
   initial: GuestView,
@@ -91,6 +117,16 @@ export function useAudience(
         live.current
           ? live.current.connection.invoke<void>('WatchPoll', live.current.code)
           : Promise.reject(new Error('The audience connection is closed.')),
+    }),
+    [],
+  );
+  const questionListeners = useRef(new Set<(tally: QuestionTally) => void>());
+  const questions = useMemo<AudienceQuestions>(
+    () => ({
+      onTally: (listener) => {
+        questionListeners.current.add(listener);
+        return () => void questionListeners.current.delete(listener);
+      },
     }),
     [],
   );
@@ -224,20 +260,11 @@ export function useAudience(
         // Whatever the seq: the ended answers can carry a lower one than the last live state.
         lastPhase = 'ended';
         setState((current) => ({ ...current, phase: 'ended', current: null }));
-      } else if (event.type === 'pollTally' && active) {
-        // A copy, so a listener that unsubscribes while being called doesn't skip the next one. A listener that throws
-        // doesn't stop the others: its error is thrown again on its own, where the page's error reporting sees it.
-        for (const listener of [...tallyListeners.current]) {
-          try {
-            listener(event);
-          } catch (error) {
-            queueMicrotask(() => {
-              throw error;
-            });
-          }
-        }
-      }
-      // pollControl goes only to the presenter's screens: a guest never receives it, so nothing reads it here.
+      } else if (event.type === 'pollTally' && active) handToEach(tallyListeners.current, event);
+      else if (event.type === 'questionTally' && active)
+        handToEach(questionListeners.current, event);
+      // pollControl, questionControl and reactions go only to the presenter's screens: a guest never receives them, so
+      // nothing reads them here.
     });
     connection.onreconnecting(() => {
       // A rejoin still waiting belongs to the connection that just dropped; onreconnected schedules the next.
@@ -266,5 +293,5 @@ export function useAudience(
   }, [code, initial]);
 
   if (failure) throw failure;
-  return { view, state, status, polls };
+  return { view, state, status, polls, questions };
 }

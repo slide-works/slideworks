@@ -427,13 +427,18 @@ namespace SlideWorks.WebApi.Migrations
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.Polls.Data.Poll", b =>
                 {
-                    b.Property<Guid>("SlideId")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("Correct")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("DeckId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -456,11 +461,26 @@ namespace SlideWorks.WebApi.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.HasKey("SlideId");
+                    b.Property<Guid?>("SlideId")
+                        .HasColumnType("TEXT");
 
-                    b.HasIndex("DeckId");
+                    b.HasKey("Id");
 
-                    b.ToTable("Polls");
+                    b.HasIndex("DeckId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Polls_DeckId_Qa")
+                        .HasFilter("\"Kind\" = 'Qa'");
+
+                    b.HasIndex("SlideId")
+                        .IsUnique()
+                        .HasFilter("\"SlideId\" IS NOT NULL");
+
+                    b.HasIndex(new[] { "DeckId" }, "IX_Polls_DeckId");
+
+                    b.ToTable("Polls", t =>
+                        {
+                            t.HasCheckConstraint("CK_Polls_Kind_SlideId", "(\"Kind\" = 'Slide' AND \"SlideId\" IS NOT NULL) OR (\"Kind\" = 'Qa' AND \"SlideId\" IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.Polls.Data.PollAnswer", b =>
@@ -486,6 +506,30 @@ namespace SlideWorks.WebApi.Migrations
                     b.ToTable("PollAnswers");
                 });
 
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Polls.Data.PollOption", b =>
+                {
+                    b.Property<Guid>("RoundId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("RoundId", "Position");
+
+                    b.ToTable("PollOptions", t =>
+                        {
+                            t.HasCheckConstraint("CK_PollOptions_Text_Length", "length(\"Text\") <= 200");
+                        });
+                });
+
             modelBuilder.Entity("SlideWorks.WebApi.Features.Polls.Data.PollRound", b =>
                 {
                     b.Property<Guid>("Id")
@@ -504,11 +548,18 @@ namespace SlideWorks.WebApi.Migrations
                     b.Property<int?>("JoinedAtClose")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Number")
                         .HasColumnType("INTEGER");
 
                     b.Property<long?>("OpenedAt")
                         .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("PollId")
+                        .HasColumnType("TEXT");
 
                     b.Property<long?>("RevealedAt")
                         .HasColumnType("INTEGER");
@@ -516,20 +567,161 @@ namespace SlideWorks.WebApi.Migrations
                     b.Property<Guid>("SessionId")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("SlideId")
+                    b.Property<Guid?>("SlideId")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SessionId")
+                    b.HasIndex("SlideId");
+
+                    b.HasIndex("SessionId", "Kind")
                         .IsUnique()
-                        .HasDatabaseName("IX_PollRounds_SessionId_Open")
+                        .HasDatabaseName("IX_PollRounds_SessionId_Kind_Open")
                         .HasFilter("\"ClosedAt\" IS NULL");
 
-                    b.HasIndex("SlideId", "SessionId", "Number")
+                    b.HasIndex("PollId", "SessionId", "Number")
                         .IsUnique();
 
-                    b.ToTable("PollRounds");
+                    b.ToTable("PollRounds", t =>
+                        {
+                            t.HasCheckConstraint("CK_PollRounds_Kind_SlideId", "(\"Kind\" = 'Slide' AND \"SlideId\" IS NOT NULL) OR (\"Kind\" = 'Qa' AND \"SlideId\" IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.QaSettingsRow", b =>
+                {
+                    b.Property<string>("DeckId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Names")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Questions")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Reactions")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Review")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ShowOn")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("DeckId");
+
+                    b.ToTable("QaSettingsRows", t =>
+                        {
+                            t.HasCheckConstraint("CK_QaSettingsRows_Questions", "\"Questions\" IN ('Open', 'Closed', 'Off')");
+
+                            t.HasCheckConstraint("CK_QaSettingsRows_ShowOn", "\"ShowOn\" IN ('AnySlide', 'QaSlide')");
+                        });
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.QaSlideSwitchRow", b =>
+                {
+                    b.Property<Guid>("SlideId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Questions")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Reactions")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("SlideId");
+
+                    b.ToTable("QaSlideSwitchRows");
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.Question", b =>
+                {
+                    b.Property<Guid>("RoundId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("AnsweredAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("AskedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("GuestId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("HiddenAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("OnScreen")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("RoundId", "Position");
+
+                    b.HasIndex("RoundId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Questions_RoundId_OnScreen")
+                        .HasFilter("\"OnScreen\" = 1");
+
+                    b.ToTable("Questions", t =>
+                        {
+                            t.HasCheckConstraint("CK_Questions_Name_Length", "\"Name\" IS NULL OR length(\"Name\") <= 30");
+
+                            t.HasCheckConstraint("CK_Questions_OnScreen", "\"OnScreen\" = 0 OR (\"State\" = 'Open' AND \"HiddenAt\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_Questions_State", "\"State\" IN ('Waiting', 'Open', 'Answered')");
+                        });
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.ReactionGuest", b =>
+                {
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GuestId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("SessionId", "GuestId");
+
+                    b.ToTable("ReactionGuests");
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.ReactionTotal", b =>
+                {
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SlideId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Emoji")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("SessionId", "SlideId", "Emoji");
+
+                    b.HasIndex("SlideId");
+
+                    b.ToTable("ReactionTotals", t =>
+                        {
+                            t.HasCheckConstraint("CK_ReactionTotals_Count", "\"Count\" >= 0");
+
+                            t.HasCheckConstraint("CK_ReactionTotals_Emoji", "\"Emoji\" IN ('ThumbsUp', 'Heart', 'Laugh', 'Wow', 'Clap')");
+                        });
                 });
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.Sharing.DeckViewer", b =>
@@ -647,8 +839,7 @@ namespace SlideWorks.WebApi.Migrations
                     b.HasOne("SlideWorks.WebApi.Features.Slides.Slide", null)
                         .WithOne()
                         .HasForeignKey("SlideWorks.WebApi.Features.Polls.Data.Poll", "SlideId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.Polls.Data.PollAnswer", b =>
@@ -660,7 +851,72 @@ namespace SlideWorks.WebApi.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Polls.Data.PollOption", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Polls.Data.PollRound", null)
+                        .WithMany()
+                        .HasForeignKey("RoundId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SlideWorks.WebApi.Features.Polls.Data.PollRound", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Polls.Data.Poll", null)
+                        .WithMany()
+                        .HasForeignKey("PollId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SlideWorks.WebApi.Features.Live.AudienceSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SlideWorks.WebApi.Features.Slides.Slide", null)
+                        .WithMany()
+                        .HasForeignKey("SlideId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.QaSettingsRow", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Decks.Deck", null)
+                        .WithOne()
+                        .HasForeignKey("SlideWorks.WebApi.Features.Qa.Data.QaSettingsRow", "DeckId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.QaSlideSwitchRow", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Slides.Slide", null)
+                        .WithOne()
+                        .HasForeignKey("SlideWorks.WebApi.Features.Qa.Data.QaSlideSwitchRow", "SlideId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.Question", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Polls.Data.PollOption", null)
+                        .WithOne()
+                        .HasForeignKey("SlideWorks.WebApi.Features.Qa.Data.Question", "RoundId", "Position")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.ReactionGuest", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Live.AudienceSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.ReactionTotal", b =>
                 {
                     b.HasOne("SlideWorks.WebApi.Features.Live.AudienceSession", null)
                         .WithMany()

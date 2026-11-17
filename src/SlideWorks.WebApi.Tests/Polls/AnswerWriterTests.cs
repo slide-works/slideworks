@@ -58,7 +58,7 @@ public class AnswerWriterTests : PollTestFixture
     {
         var poll = await SeedPollAsync();
         var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
-        var target = new PollRoundRef(poll.DeckId, poll.Slide, poll.SlideId, poll.SessionId.ToString(), round.Id.ToString(), PollSeed.OPTIONS.Length);
+        var target = new PollRoundRef(poll.DeckId, PollKind.Slide, poll.Slide, poll.SlideId, poll.SessionId.ToString(), round.Id.ToString(), PollSeed.OPTIONS.Length);
         var writer = Factory.Services.GetRequiredService<AnswerWriter>();
 
         // Hold SQLite's write lock while the writer is on a first answer's group, queue the 500 behind it, then let go: the

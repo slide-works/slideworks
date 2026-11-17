@@ -5,7 +5,7 @@ import { LAYOUT_NAMES } from '../../slides/slots';
 import { audienceEnded, audienceState, guestView, joinedCount } from './guestStates';
 
 const keys = (value: object) => Object.keys(value).sort();
-const STATE_KEYS = ['activity', 'current', 'phase', 'revision', 'seq', 'type'];
+const STATE_KEYS = ['activity', 'current', 'phase', 'revision', 'room', 'seq', 'type'];
 
 describe('guest.json', () => {
   it.each(['live', 'lobby', 'ended'] as const)('the %s sample round-trips', (phase) => {
@@ -24,6 +24,15 @@ describe('guest.json', () => {
     expect(LAYOUT_NAMES).toContain(current.layout);
     expect(guestView('lobby').state.current).toBeNull();
     expect(guestView('ended').state.current).toBeNull();
+  });
+
+  it('carries the room only while live, and drops it on request', () => {
+    expect(guestView('live').state.room?.questions).toBe('open');
+    expect(guestView('lobby').state.room).toBeNull();
+    expect(guestView('ended').state.room).toBeNull();
+    const noRoom = guestView('live', { room: null });
+    expect(noRoom.state.room).toBeNull();
+    expect({ ...noRoom.state, room: guestJson.live.state.room }).toEqual(guestJson.live.state);
   });
 
   it('has a deck URL only when the deck is shared by link', () => {
@@ -48,6 +57,9 @@ describe('audience-events.json', () => {
       'joinedCount',
       'pollControl',
       'pollTally',
+      'questionControl',
+      'questionTally',
+      'reactions',
     ]);
     for (const [name, sample] of Object.entries(audienceEventsJson)) expect(sample.type).toBe(name);
   });

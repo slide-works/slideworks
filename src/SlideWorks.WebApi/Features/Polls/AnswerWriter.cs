@@ -12,17 +12,22 @@ namespace SlideWorks.WebApi.Features.Polls;
 // the commit in flight, and under a burst the queue fills while a commit runs and the groups grow with the load.
 //
 // Inside each transaction (SQLite's BEGIN IMMEDIATE, so no other write runs beside it) the round is read again: an answer to
-// a round that is closed, or not opened, by then is stale and nothing of it is written. Closing a round is one write
+// a round that is closed, or not opened, by then is Closed and nothing of it is written. Closing a round is one write
 // transaction too, so an answer is either in the round's Final or refused. The revision is checked again there as well, in
-// queue order, so two answers from one guest in one group can't both replace the same revision. An answer is replaced,
-// revision + 1, never deleted.
+// queue order, so two answers from one guest in one group can't both replace the same revision: the second is Stale. An
+// answer is replaced, revision + 1, never deleted. Every kind of round goes through it the same way (SW-9 Q3): it is
+// IRoundAnswerWriter, which IPollAnswers calls for a slide poll and SW-9's asking and voting seams call for a Q&A round.
 //
 // Before the transaction begins, the writer reads each of the group's rounds from the tally, so a round is loaded from its
 // rows before this group writes any (LoadTalliesAsync). Only after the commit does the tally change: IPollTallies.ApplyAsync
 // once per written answer, in order, then each waiter gets its result. A group that fails to commit fails every waiter in it, and nothing of it is applied. Disposing the writer
 // (the host shutting down) stops the loop and fails whatever is still queued, so no waiter hangs.
-[RegisterSingleton]
-public sealed class AnswerWriter : IDisposable
+//
+// One instance is both AnswerWriter (SW-6's writer tests queue on it directly) and IRoundAnswerWriter, through Seam: two
+// plain registrations would make two writers, each with its own queue and loop.
+[RegisterSingleton(Concrete = true)]
+[RegisterSingleton(For = typeof(IRoundAnswerWriter), Factory = typeof(Seam))]
+public sealed class AnswerWriter : IRoundAnswerWriter, IDisposable
 {
     public const int MAX_GROUP = 200;
 
@@ -45,18 +50,25 @@ public sealed class AnswerWriter : IDisposable
         _ = Task.Run(() => RunAsync(_stopping.Token), CancellationToken.None);
     }
 
-    // Queues the guest's answer to the round and completes once its group has committed: with the answer as written (its
-    // sorted picks and new revision), or null when it was stale at commit time (the round closed or isn't open, or the
-    // guest's revision is no longer expectedRevision). Throws what the group's commit threw when it failed.
-    public Task<MyAnswer?> WriteAsync(PollRoundRef round, string guestId, int expectedRevision, IReadOnlyList<int> picks)
+    // Queues the guest's answer to the round, its picks sorted ascending, and completes once its group has committed: Written
+    // with the answer as written (its picks and new revision), Closed when the round was not open at commit time, or Stale when the guest's revision
+    // was no longer expectedRevision. Throws what the group's commit threw when it failed.
+    public Task<RoundWrite> ReplaceAsync(PollRoundRef round, string guestId, IReadOnlyList<int> picks, int expectedRevision)
     {
-        var queued = new Queued(round, Guid.Parse(round.RoundId), guestId, expectedRevision, picks);
+        var queued = new Queued(round, Guid.Parse(round.RoundId), guestId, expectedRevision, [.. picks.Order()]);
         if (!_queue.Writer.TryWrite(queued))
         {
             throw new ObjectDisposedException(nameof(AnswerWriter), "The answer writer has stopped.");
         }
         return queued.Done.Task;
     }
+
+    // SW-6's form of ReplaceAsync, which its writer tests call: the answer as written, or null when it was Stale or Closed.
+    // TODO: only SW-6's writer tests call this; it goes when they move to ReplaceAsync.
+    public async Task<MyAnswer?> WriteAsync(PollRoundRef round, string guestId, int expectedRevision, IReadOnlyList<int> picks)
+        => await ReplaceAsync(round, guestId, picks, expectedRevision) is RoundWrite.Written written
+            ? new MyAnswer(written.Picks, written.Revision)
+            : null;
 
     // Stops taking answers and cancels the loop, which fails the group it holds and everything still queued, then ends. It
     // doesn't wait for the loop: a commit in flight is cancelled, and its waiters fail too.
@@ -119,9 +131,10 @@ public sealed class AnswerWriter : IDisposable
             return;
         }
         List<Written> written;
+        HashSet<Guid> open;
         try
         {
-            written = await WriteGroupAsync(group, stopping);
+            (written, open) = await WriteGroupAsync(group, stopping);
         }
         catch (Exception ex)
         {
@@ -153,8 +166,8 @@ public sealed class AnswerWriter : IDisposable
         }
         foreach (var queued in group)
         {
-            // Every answer not written was stale at commit time.
-            queued.Done.TrySetResult(null);
+            // Every answer not written was refused at commit time: its round wasn't open, or its revision had moved on.
+            queued.Done.TrySetResult(open.Contains(queued.RoundId) ? new RoundWrite.Stale() : new RoundWrite.Closed());
         }
     }
 
@@ -188,17 +201,18 @@ public sealed class AnswerWriter : IDisposable
         return failed.Count == 0 ? group : [.. group.Where(q => !failed.Contains(q.RoundId))];
     }
 
-    private async Task<List<Written>> WriteGroupAsync(List<Queued> group, CancellationToken stopping)
+    // The answers written, and the group's rounds that were open inside the transaction.
+    private async Task<(List<Written> Written, HashSet<Guid> Open)> WriteGroupAsync(List<Queued> group, CancellationToken stopping)
     {
         await using var scope = _scopes.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await using var transaction = await db.Database.BeginTransactionAsync(stopping);
 
         var roundIds = group.Select(q => q.RoundId).Distinct().ToList();
-        var open = await db.PollRounds.AsNoTracking()
+        var open = (await db.PollRounds.AsNoTracking()
             .Where(r => roundIds.Contains(r.Id) && r.OpenedAt != null && r.ClosedAt == null)
             .Select(r => r.Id)
-            .ToListAsync(stopping);
+            .ToListAsync(stopping)).ToHashSet();
         var guestIds = group.Where(q => open.Contains(q.RoundId)).Select(q => q.GuestId).Distinct().ToList();
         var current = await db.PollAnswers
             .Where(a => open.Contains(a.RoundId) && guestIds.Contains(a.GuestId))
@@ -227,20 +241,26 @@ public sealed class AnswerWriter : IDisposable
                 answer.Revision++;
                 answer.UpdatedAt = now;
             }
-            written.Add(new Written(queued, oldPicks, new MyAnswer(queued.Picks, answer.Revision)));
+            written.Add(new Written(queued, oldPicks, new RoundWrite.Written(queued.Picks, answer.Revision)));
         }
         if (written.Count > 0)
         {
             await db.SaveChangesAsync(stopping);
         }
         await transaction.CommitAsync(stopping);
-        return written;
+        return (written, open);
     }
 
     private sealed record Queued(PollRoundRef Round, Guid RoundId, string GuestId, int ExpectedRevision, IReadOnlyList<int> Picks)
     {
-        public TaskCompletionSource<MyAnswer?> Done { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<RoundWrite> Done { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
-    private sealed record Written(Queued Queued, IReadOnlyList<int> OldPicks, MyAnswer Answer);
+    private sealed record Written(Queued Queued, IReadOnlyList<int> OldPicks, RoundWrite.Written Answer);
+
+    // Resolves IRoundAnswerWriter to the app's one AnswerWriter.
+    public sealed class Seam : IComponentFactory<IRoundAnswerWriter>
+    {
+        public IRoundAnswerWriter Build(IComponentResolver c) => c.Resolve<AnswerWriter>();
+    }
 }

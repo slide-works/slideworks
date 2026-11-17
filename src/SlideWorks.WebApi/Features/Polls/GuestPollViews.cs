@@ -58,8 +58,7 @@ public class GuestPollViews(AppDbContext db, IAudienceSessions sessions, IAudien
             return new GuestPollView(activity, null, null, false);
         }
         var mine = await MineAsync(roundId, guestId);
-        var results = (await rows.SettingsAsync(round.SlideId)
-            ?? throw new InvalidOperationException($"Round {round.Id} has no poll settings for slide {round.SlideId}.")).Results;
+        var results = (await rows.RoundSettingsAsync(round)).Results;
         var closed = round.ClosedAt is not null;
         var counts = closed ? FinalOf(round) : await tallies.ReadAsync(activity.Round, activity.Options.Count);
         var sees = PollVisibility.GuestSees(PollVisibility.RoomSees(results, round.RevealedAt is not null, closed), results, mine is not null);

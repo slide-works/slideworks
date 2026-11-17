@@ -13,7 +13,7 @@ public class DeckReadToolsTests : ApiTestFixture
     private static readonly string[] LAYOUTS =
     [
         "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote",
-        "image", "table", "chart", "gantt", "numbered-cards", "rules", "cards", "close", "join", "poll",
+        "image", "table", "chart", "gantt", "numbered-cards", "rules", "cards", "close", "join", "poll", "qa",
     ];
 
     [Test]
@@ -67,7 +67,7 @@ public class DeckReadToolsTests : ApiTestFixture
     }
 
     [Test]
-    public async Task ListLayouts_ShouldReturnEighteenWithSchemas()
+    public async Task ListLayouts_ShouldReturnNineteenWithSchemas()
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
 

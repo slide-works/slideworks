@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.Core.Polls;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Join;
 using SlideWorks.WebApi.Features.Polls;
@@ -98,7 +99,7 @@ public class AnswerTallyTests : PollTestFixture
     }
 
     private static PollRoundRef RefOf(SeededPoll poll, PollRound round)
-        => new(poll.DeckId, poll.Slide, poll.SlideId, poll.SessionId.ToString(), round.Id.ToString(), PollSeed.OPTIONS.Length);
+        => new(poll.DeckId, PollKind.Slide, poll.Slide, poll.SlideId, poll.SessionId.ToString(), round.Id.ToString(), PollSeed.OPTIONS.Length);
 
     // Guests on the live session's roster, each with an sw_guest id of its own.
     private async Task<List<string>> SeatGuestsAsync(SeededPoll poll, int count)

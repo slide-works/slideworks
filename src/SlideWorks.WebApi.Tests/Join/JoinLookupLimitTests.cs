@@ -74,7 +74,7 @@ public class JoinLookupLimitTests : ApiTestFixture
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deckId = await DeckSeed.CreateDeckAsync(agent);
         Sessions.Set(CODE, deckId, SESSION, AudiencePhase.Live);
-        Relay.Set(new AudienceState(deckId, 1, AudiencePhase.Live, new AudienceSlide(1, 1, "title", JsonDocument.Parse("""{"title":"Ship smaller"}""").RootElement, 0, 0, false), 0, null));
+        Relay.Set(new AudienceState(deckId, 1, AudiencePhase.Live, new AudienceSlide(1, 1, "title", JsonDocument.Parse("""{"title":"Ship smaller"}""").RootElement, 0, 0, false), 0, null, null));
         using var anonymous = ClientFor(TestUser.Anonymous);
         for (var i = 0; i < 25; i++)
         {
@@ -107,7 +107,7 @@ public class JoinLookupLimitTests : ApiTestFixture
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deckId = await DeckSeed.CreateDeckAsync(agent);
         Sessions.Set(CODE, deckId, SESSION, AudiencePhase.Live);
-        Relay.Set(new AudienceState(deckId, 1, AudiencePhase.Live, new AudienceSlide(1, 1, "title", JsonDocument.Parse("""{"title":"Ship smaller"}""").RootElement, 0, 0, false), 0, null));
+        Relay.Set(new AudienceState(deckId, 1, AudiencePhase.Live, new AudienceSlide(1, 1, "title", JsonDocument.Parse("""{"title":"Ship smaller"}""").RootElement, 0, 0, false), 0, null, null));
         using var anonymous = ClientFor(TestUser.Anonymous);
 
         var hits = await Task.WhenAll(Enumerable.Range(0, 30).Select(_ => anonymous.GetAsync($"/api/join/{CODE}")));

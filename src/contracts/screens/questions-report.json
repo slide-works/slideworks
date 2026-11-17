@@ -1,0 +1,76 @@
+{
+  "sessions": [
+    {
+      "startedAt": "2026-11-17T09:00:00+00:00",
+      "asked": 6,
+      "answered": 1,
+      "hidden": 1,
+      "questions": [
+        {
+          "text": "How do you split a big change?",
+          "name": "Priya",
+          "state": "open",
+          "votes": 14,
+          "askedAt": "2026-11-17T09:12:00+00:00"
+        },
+        {
+          "text": "What is the smallest slice you have shipped?",
+          "name": null,
+          "state": "open",
+          "votes": 9,
+          "askedAt": "2026-11-17T09:15:00+00:00"
+        },
+        {
+          "text": "Do feature flags count as shipping?",
+          "name": "Sam K",
+          "state": "answered",
+          "votes": 6,
+          "askedAt": "2026-11-17T09:16:00+00:00"
+        },
+        {
+          "text": "Who reviews the slices?",
+          "name": null,
+          "state": "waiting",
+          "votes": 1,
+          "askedAt": "2026-11-17T09:22:00+00:00"
+        },
+        {
+          "text": "Why is this talk so long?",
+          "name": null,
+          "state": "hidden",
+          "votes": 2,
+          "askedAt": "2026-11-17T09:23:00+00:00"
+        },
+        {
+          "text": "How do you handle database migrations?",
+          "name": null,
+          "state": "open",
+          "votes": 3,
+          "askedAt": "2026-11-17T09:24:00+00:00"
+        }
+      ]
+    },
+    {
+      "startedAt": "2026-11-10T09:30:00+00:00",
+      "asked": 2,
+      "answered": 2,
+      "hidden": 0,
+      "questions": [
+        {
+          "text": "Is the recording shared afterwards?",
+          "name": "Alex",
+          "state": "answered",
+          "votes": 4,
+          "askedAt": "2026-11-10T09:41:00+00:00"
+        },
+        {
+          "text": "Can we get the slides?",
+          "name": null,
+          "state": "answered",
+          "votes": 11,
+          "askedAt": "2026-11-10T09:52:00+00:00"
+        }
+      ]
+    }
+  ]
+}

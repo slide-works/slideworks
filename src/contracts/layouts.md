@@ -28,6 +28,7 @@ Error paths name the failing field with 0-based indexes, such as `practice.do[2]
 | [`close`](#close) | yes | none | Closing slide (dark): a short headline of up to three written lines, with an optional sub and author. |
 | [`join`](#join) | yes | none | Join slide (dark): a QR code, the join code and the address, so the room can follow the talk on their phones. The code and the QR come from the live session, never from the slots. |
 | [`poll`](#poll) | no | none | Poll slide: a question and 2 to 8 options that the room answers on their phones while the deck is live. The poll's settings (how many picks, when results show, the correct answer, when it opens) are set with update_poll, never in the slots. |
+| [`qa`](#qa) | no | none | Q&A slide: the room's questions, most upvoted first, while the deck is live, and one question at full size when the presenter shows it. The questions come from the live session, never from the slots; the Q&A settings are set with update_qa. |
 
 ## title
 
@@ -294,6 +295,14 @@ Poll slide: a question and 2 to 8 options that the room answers on their phones 
 |---|---|---|---|---|
 | `question` | text | yes | up to 120 chars |  |
 | `options` | list of text | yes | 2–8 items; each up to 60 chars | Known by position: while a round is open they can be reworded or added to, not removed or reordered. Each option needs its own text: two that match, ignoring case and spaces at the ends, are refused |
+
+## qa
+
+Q&A slide: the room's questions, most upvoted first, while the deck is live, and one question at full size when the presenter shows it. The questions come from the live session, never from the slots; the Q&A settings are set with update_qa.
+
+| Slot | Kind | Required | Limits | Notes |
+|---|---|---|---|---|
+| `title` | text | no | up to 80 chars | Defaults to 'Questions from the room' |
 
 ## Inline blocks
 
