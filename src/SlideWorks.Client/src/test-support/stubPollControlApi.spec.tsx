@@ -152,8 +152,29 @@ test("opening a poll discards another slide's draft from New round, back to its 
   const manual = closed({ slide: 2 });
   manual.settings = { ...manual.settings, opens: 'manual' };
   await stubPollControlApi(page, deckId, { polls: [manual, draft()] });
-  expect((await send(page, 2, 'newRound')).body.phase).toBe('draft');
+  expect((await send(page, 2, 'newRound')).body).toMatchObject({ phase: 'draft', number: 2 });
   expect((await send(page, 4, 'open')).body.phase).toBe('open');
+  expect((await send(page, 2)).body).toMatchObject({ phase: 'closed', number: 1 });
+  // The discarded draft used up number 2, so the next round on slide 2 is 3.
+  await send(page, 4, 'close');
+  expect((await send(page, 2, 'newRound')).body).toMatchObject({ phase: 'draft', number: 3 });
+});
+
+test("new round refuses another_poll_open while another slide's round is open", async ({
+  page,
+}) => {
+  await stubPollControlApi(page, deckId, { polls: [closed(), open({ slide: 3 })] });
+  await expectRefused(page, 4, 'newRound', 'another_poll_open');
+});
+
+test("new round discards another slide's draft from New round first, as open does", async ({
+  page,
+}) => {
+  const manual = closed({ slide: 2 });
+  manual.settings = { ...manual.settings, opens: 'manual' };
+  await stubPollControlApi(page, deckId, { polls: [manual, closed()] });
+  expect((await send(page, 2, 'newRound')).body.phase).toBe('draft');
+  expect((await send(page, 4, 'newRound')).body).toMatchObject({ phase: 'open', number: 2 });
   expect((await send(page, 2)).body).toMatchObject({ phase: 'closed', number: 1 });
 });
 

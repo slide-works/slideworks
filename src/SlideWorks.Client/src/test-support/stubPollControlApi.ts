@@ -36,13 +36,17 @@ const ACTION_OF_PATH: Readonly<Record<string, PollAction>> = {
 const roomSees = (view: PollControlView) =>
   view.settings.results === 'live' || view.revealed || view.phase === 'closed';
 
-// A fresh round on the same poll: number + 1, nothing answered, nothing revealed or shown.
-function freshRound(view: PollControlView, phase: 'draft' | 'open'): PollControlView {
+// A fresh round on the same poll with the given number: nothing answered, nothing revealed or shown.
+function freshRound(
+  view: PollControlView,
+  phase: 'draft' | 'open',
+  number: number,
+): PollControlView {
   const next: PollControlView = {
     ...view,
-    number: view.number + 1,
+    number,
     phase,
-    round: phase === 'open' ? `round-${view.slide}-${view.number + 1}` : null,
+    round: phase === 'open' ? `round-${view.slide}-${number}` : null,
     answered: 0,
     counts: view.options.map(() => 0),
     revealed: false,
@@ -61,7 +65,9 @@ function freshRound(view: PollControlView, phase: 'draft' | 'open'): PollControl
 // - close: wrong_phase unless open. The round joins `rounds`, and the room sees the counts.
 // - reveal: wrong_phase unless open; already_visible when the room already sees the counts.
 // - show answer: wrong_phase unless closed; no_correct when the poll has no correct option.
-// - new round: wrong_phase unless closed. Round number + 1, open when opens is onArrival and draft when manual.
+// - new round: wrong_phase unless closed; another_poll_open while another slide's round is open, and another slide's
+//   draft is discarded first, as for open. The next round number on the slide, open when opens is onArrival and draft
+//   when manual. A discarded draft's number stays used up, so the round after it skips that number.
 // Every answer, a read included, carries the next seq, as the server's PollSeq stamps each view. A slide with no poll
 // answers 404 { error: 'not_a_poll' } (the stub's wording; the server's text is its own). Returns each call the page
 // made, the state, setters for the state, and hold() to answer a route slowly.
@@ -73,6 +79,8 @@ export async function stubPollControlApi(
   const views = new Map<number, PollControlView>(polls.map((p) => [p.slide, structuredClone(p)]));
   // The closed view a slide had before a manual New round left it in draft: restored when that draft is discarded.
   const beforeDraft = new Map<number, PollControlView>();
+  // The highest round number each slide has handed out, drafts discarded since included.
+  const usedNumbers = new Map<number, number>(polls.map((p) => [p.slide, p.number]));
   let isLive = live;
   let seq = Math.max(0, ...polls.map((p) => p.seq));
   const calls: PollControlCall[] = [];
@@ -87,12 +95,22 @@ export async function stubPollControlApi(
 
   const refuse = (error: PollRefusalCode) => ({ status: 409, json: { error } });
 
-  // A draft that New round left on a slide goes back to the closed round before it; its number is used up.
+  // A draft that New round left on a slide goes back to the closed round before it. Its number stays in usedNumbers,
+  // so the next New round on that slide gets the number after it, never the same number again.
   const discardDraft = (slide: number) => {
     const closed = beforeDraft.get(slide);
     if (views.get(slide)?.phase !== 'draft' || closed === undefined) return;
     beforeDraft.delete(slide);
     stamp(closed);
+  };
+
+  // Open and New round start a round on one slide: refused while another slide's round is open, and any other slide's
+  // draft is discarded first. Returns the refusal, or null once the drafts are discarded.
+  const startOn = (slide: number) => {
+    const others = [...views.values()].filter((other) => other.slide !== slide);
+    if (others.some((other) => other.phase === 'open')) return refuse('another_poll_open');
+    for (const other of others) discardDraft(other.slide);
+    return null;
   };
 
   // The action's answer: a refusal changes nothing; an accepted action stores and returns the new view.
@@ -101,9 +119,8 @@ export async function stubPollControlApi(
       case 'open': {
         if (!isLive) return refuse('not_live');
         if (view.phase !== 'draft') return refuse('wrong_phase');
-        const others = [...views.values()].filter((other) => other.slide !== view.slide);
-        if (others.some((other) => other.phase === 'open')) return refuse('another_poll_open');
-        for (const other of others) discardDraft(other.slide);
+        const refused = startOn(view.slide);
+        if (refused !== null) return refused;
         beforeDraft.delete(view.slide);
         const opened: PollControlView = {
           ...view,
@@ -139,9 +156,13 @@ export async function stubPollControlApi(
         return { status: 200, json: stamp({ ...view, answerShown: true }) };
       case 'newRound': {
         if (view.phase !== 'closed') return refuse('wrong_phase');
+        const refused = startOn(view.slide);
+        if (refused !== null) return refused;
         const manual = view.settings.opens === 'manual';
         if (manual) beforeDraft.set(view.slide, view);
-        return { status: 200, json: stamp(freshRound(view, manual ? 'draft' : 'open')) };
+        const number = Math.max(view.number, usedNumbers.get(view.slide) ?? 0) + 1;
+        usedNumbers.set(view.slide, number);
+        return { status: 200, json: stamp(freshRound(view, manual ? 'draft' : 'open', number)) };
       }
     }
   }
@@ -179,6 +200,7 @@ export async function stubPollControlApi(
     setPoll(view: PollControlView) {
       views.set(view.slide, structuredClone(view));
       seq = Math.max(seq, view.seq);
+      usedNumbers.set(view.slide, Math.max(usedNumbers.get(view.slide) ?? 0, view.number));
     },
     // Opens or ends the audience session, for not_live. Ending it closes an open round and discards a draft left by New
     // round, as the server does.
