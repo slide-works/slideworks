@@ -308,19 +308,11 @@ test('player page 404 mid-presentation offers sign-in back to the current slide'
   page,
 }) => {
   const hub = await stubDeckHub(page, { audience: { state: guestView('live').state } });
-  // The owner: GET live answers 200, which is what draws the chip.
+  // A signed-out viewer of a link deck: GET live answers 403 (not the owner), so no chip is drawn and no redirect happens.
   await stubApi(page, {
     [`/api/decks/${deckPlay.id}/live`]: {
-      json: {
-        sessionId: null,
-        code: deckPlay.join.code,
-        codeLabel: deckPlay.join.codeLabel,
-        joinUrl: deckPlay.join.joinUrl,
-        hostLabel: deckPlay.join.hostLabel,
-        live: false,
-        joinedCount: 0,
-        joinBar: false,
-      },
+      status: 403,
+      json: { error: "Only the deck's owner can go live" },
     },
   });
   let reads = 0;
@@ -336,6 +328,7 @@ test('player page 404 mid-presentation offers sign-in back to the current slide'
   await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
   // The join's own re-read comes first.
   await expect.poll(() => reads).toBe(2);
+  await expect(page.getByTestId('live-chip')).toHaveCount(0);
 
   // The viewer has moved on to slide 2 when the deck is made private.
   await page.evaluate(() => {
@@ -348,6 +341,7 @@ test('player page 404 mid-presentation offers sign-in back to the current slide'
     'href',
     `/signin?returnTo=${encodeURIComponent(`${canonical}#2`)}`,
   );
+  await expect(page.getByTestId('live-chip')).toHaveCount(0);
 });
 
 test('player page redirects to canonical slug keeping hash', async ({ mount, page }) => {

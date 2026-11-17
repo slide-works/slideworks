@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SlideWorks.WebApi.Infrastructure;
 
@@ -8,7 +9,10 @@ namespace SlideWorks.WebApi.Features.Live;
 [Route("api/decks/{id}/live")]
 public class LiveController(LiveCommands commands) : ApiControllerBase
 {
+    // Anonymous so a signed-out or pending viewer of the player is answered by the owner check (404 or 403) and never meets
+    // the global 401 or pending_approval redirects. It has no side effects, and POST and DELETE stay behind the gate.
     [HttpGet]
+    [AllowAnonymous]
     [ProducesResponseType<LiveView>(StatusCodes.Status200OK)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]

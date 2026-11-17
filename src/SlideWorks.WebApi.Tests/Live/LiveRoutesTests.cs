@@ -154,6 +154,85 @@ public class LiveRoutesTests : ApiTestFixture
     }
 
     [Test]
+    public async Task LiveGet_WhenAnonymousOnLinkDeck_ShouldBeForbiddenNotChallenged()
+    {
+        var shared = await SharingApi.CreateDeckAsync(Client, "Shared");
+        await SharingApi.PutOkAsync(Client, shared, "link");
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        var response = await anonymous.GetAsync($"/api/decks/{shared}/live");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await response.Content.ReadAsStringAsync()).ShouldContain("Only the deck's owner can go live");
+    }
+
+    [Test]
+    public async Task LiveGet_WhenAnonymousOnPrivateDeck_ShouldBeNotFound()
+    {
+        var hidden = await SharingApi.CreateDeckAsync(Client, "Hidden");
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        var response = await anonymous.GetAsync($"/api/decks/{hidden}/live");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task LiveGet_WhenPendingPersonOnLinkDeck_ShouldBeForbiddenButNotPendingApproval()
+    {
+        var shared = await SharingApi.CreateDeckAsync(Client, "Shared");
+        await SharingApi.PutOkAsync(Client, shared, "link");
+        using var pending = ClientFor(TestUser.NewPending());
+
+        var response = await pending.GetAsync($"/api/decks/{shared}/live");
+        var body = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden, body);
+        body.ShouldNotContain("pending_approval");
+    }
+
+    [Test]
+    public async Task LiveGet_WhenAnonymousAndDeckIsLive_ShouldNeverReturnALiveView()
+    {
+        var shared = await SharingApi.CreateDeckAsync(Client, "Shared");
+        await SharingApi.PutOkAsync(Client, shared, "link");
+        await PostLiveAsync(shared);
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        var response = await anonymous.GetAsync($"/api/decks/{shared}/live");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await response.Content.ReadAsStringAsync()).ShouldNotContain("sessionId");
+    }
+
+    [Test]
+    public async Task LivePostAndDelete_WhenAnonymous_ShouldStayBehindTheGate()
+    {
+        var shared = await SharingApi.CreateDeckAsync(Client, "Shared");
+        await SharingApi.PutOkAsync(Client, shared, "link");
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        var post = await anonymous.PostAsync($"/api/decks/{shared}/live", null);
+        var delete = await anonymous.DeleteAsync($"/api/decks/{shared}/live");
+
+        post.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        delete.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await GetLiveAsync(shared)).GetProperty("live").GetBoolean().ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task LiveGet_WhenOwner_ShouldReturnTheLiveView()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+
+        var response = await Client.GetAsync($"/api/decks/{deck}/live");
+        var live = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        JsonShape.AssertMatches(live, "live.json", ScreenShapes.Live);
+    }
+
+    [Test]
     public async Task Render_WhenLive_ShouldCarryTheJoinObject()
     {
         var deck = await SharingApi.CreateDeckAsync(Client);

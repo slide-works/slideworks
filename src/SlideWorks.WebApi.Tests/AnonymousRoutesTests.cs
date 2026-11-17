@@ -50,6 +50,17 @@ public class AnonymousRoutesTests : ApiTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
+    // GET live answers a signed-out viewer through the owner check (404 here, the deck is unknown), never the sign-in gate.
+    [Test]
+    public async Task GetLive_WhenAnonymousAndSignInRequiredElsewhere_ShouldBeAnsweredByTheOwnerCheck()
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await anonymous.GetAsync("/api/decks/abc/live");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
     [TestCase("/api/cards/abc.png")]
     public async Task Head_WhenAnonymousAndSignInRequiredElsewhere_ShouldReturn200(string path)
     {
