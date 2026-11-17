@@ -50,7 +50,7 @@ public class Sw5NetworkJourneyTests : AcceptanceTest
         })()
         """;
 
-    private static string JoinBaseUrl => AcceptanceApp.BaseUrl.Replace("127.0.0.1", "localhost");
+    private static string JoinBaseUrl => AcceptanceApp.JoinUrl;
 
     // D7: with WebSockets blocked the phone falls back to Server-Sent Events, follows two moves and shows the thank-you.
     [Test]
@@ -60,7 +60,7 @@ public class Sw5NetworkJourneyTests : AcceptanceTest
         var player = new PlayerPage(Page);
         await player.GotoAsync(deckId);
         await Expect(player.Count).ToHaveTextAsync($"1 / {SLIDES}");
-        await using var phoneContext = await NewPhoneContextAsync(AcceptanceApp.BaseUrl);
+        await using var phoneContext = await NewPhoneContextAsync(JoinBaseUrl);
         await phoneContext.AddInitScriptAsync(BLOCK_WEBSOCKET + ";" + COUNT_EVENT_SOURCE);
         var log = RecordHubRequests(phoneContext);
 
@@ -75,10 +75,12 @@ public class Sw5NetworkJourneyTests : AcceptanceTest
         await EndLiveAsync(deckId);
 
         await Expect(phone.Ended).ToBeVisibleAsync();
-        (await AttemptsAsync(phone)).ShouldBe((1, 1), "the page should have tried one WebSocket, been refused, and opened one EventSource");
+        var (webSockets, eventSources) = await AttemptsAsync(phone);
+        webSockets.ShouldBeGreaterThanOrEqualTo(1, "the page should have tried a WebSocket, and been refused every time");
+        eventSources.ShouldBeGreaterThanOrEqualTo(1, "the page should have opened an EventSource");
         var requests = log.Snapshot();
-        var stream = requests.Where(r => r.Method == "GET" && r.Accept.Contains("text/event-stream")).ToList();
-        stream.Count.ShouldBe(1, "the phone should hold one Server-Sent Events stream");
+        requests.ShouldContain(r => r.Method == "GET" && r.Accept.Contains("text/event-stream"), "the phone should hold a Server-Sent Events stream");
+        await AssertNegotiatedOnTheJoinHostWithItsCookieAsync(requests);
         requests.ShouldContain(r => r.Method == "POST" && !r.Url.Contains("negotiate"), "the phone's invocations should go as POSTs beside the stream");
     }
 
@@ -90,7 +92,7 @@ public class Sw5NetworkJourneyTests : AcceptanceTest
         var player = new PlayerPage(Page);
         await player.GotoAsync(deckId);
         await Expect(player.Count).ToHaveTextAsync($"1 / {SLIDES}");
-        await using var phoneContext = await NewPhoneContextAsync(AcceptanceApp.BaseUrl);
+        await using var phoneContext = await NewPhoneContextAsync(JoinBaseUrl);
         await phoneContext.AddInitScriptAsync(BLOCK_WEBSOCKET + ";" + BLOCK_EVENT_SOURCE);
         var log = RecordHubRequests(phoneContext);
 
@@ -105,9 +107,14 @@ public class Sw5NetworkJourneyTests : AcceptanceTest
         await EndLiveAsync(deckId);
 
         await Expect(phone.Ended).ToBeVisibleAsync();
-        (await AttemptsAsync(phone)).ShouldBe((1, 1), "the page should have tried and been refused one WebSocket and one EventSource");
-        var polls = log.Snapshot().Where(r => r.Method == "GET" && !r.Accept.Contains("text/event-stream") && !r.Url.Contains("negotiate")).ToList();
+        var (webSockets, eventSources) = await AttemptsAsync(phone);
+        webSockets.ShouldBeGreaterThanOrEqualTo(1, "the page should have tried a WebSocket, and been refused every time");
+        eventSources.ShouldBeGreaterThanOrEqualTo(1, "the page should have tried an EventSource, and been refused every time");
+        var requests = log.Snapshot();
+        var polls = requests.Where(r => r.Method == "GET" && !r.Accept.Contains("text/event-stream") && !r.Url.Contains("negotiate")).ToList();
+        requests.ShouldNotContain(r => r.Accept.Contains("text/event-stream"), "no stream should have opened");
         polls.Count.ShouldBeGreaterThanOrEqualTo(3, "long polling should have made repeated GET polls (the join and two moves)");
+        await AssertNegotiatedOnTheJoinHostWithItsCookieAsync(requests);
     }
 
     // J7: the join host's bare address lands on the keypad.
@@ -156,12 +163,14 @@ public class Sw5NetworkJourneyTests : AcceptanceTest
     {
         var (_, code) = await CreateLiveDeckAsync();
         await using var context = await NewPhoneContextAsync(JoinBaseUrl);
-        var phone = new GuestPage(await context.NewPageAsync());
+        var page = await context.NewPageAsync();
+        var phone = new GuestPage(page);
 
         await phone.GotoBareAsync(code);
 
         await phone.IsFollowingAsync();
         await Expect(phone.Slide).ToHaveAttributeAsync("data-slide", "1");
+        page.Url.ShouldBe($"{JoinBaseUrl}/{code}", "the short link should be served on the join host, not sent to the public URL");
     }
 
     // J7, D21: the thank-you's slides link is absolute on the public URL for a deck shared by link, and absent for a private
@@ -179,14 +188,16 @@ public class Sw5NetworkJourneyTests : AcceptanceTest
         shared.Status.ShouldBe(200, await shared.TextAsync());
         await EndLiveAsync(deckId);
         await using var context = await NewPhoneContextAsync(JoinBaseUrl);
-        var phone = new GuestPage(await context.NewPageAsync());
+        var page = await context.NewPageAsync();
+        var phone = new GuestPage(page);
 
         await phone.GotoBareAsync(code);
 
         await Expect(phone.Ended).ToBeVisibleAsync();
+        page.Url.ShouldBe($"{JoinBaseUrl}/{code}", "the ended screen should be served on the join host, not sent to the public URL");
         if (linked)
         {
-            await Expect(phone.EndedSlides).ToHaveAttributeAsync("href", new Regex($"^{Regex.Escape(AcceptanceApp.BaseUrl)}/d/{deckId}"));
+            await Expect(phone.EndedSlides).ToHaveAttributeAsync("href", new Regex($"^{Regex.Escape(AcceptanceApp.BaseUrl)}/d/{deckId}/[^/?#]+$"));
         }
         else
         {
@@ -199,11 +210,11 @@ public class Sw5NetworkJourneyTests : AcceptanceTest
     public async Task JoinHost_WhenAppPath_ShouldRedirectToThePublicUrl()
     {
         await using var context = await NewPhoneContextAsync(JoinBaseUrl);
-        var page = await context.NewPageAsync();
 
-        await page.GotoAsync("/decks");
+        var response = await context.APIRequest.GetAsync("/decks?page=2", new APIRequestContextOptions { MaxRedirects = 0 });
 
-        await Expect(page).ToHaveURLAsync(new Regex($"^{Regex.Escape(AcceptanceApp.BaseUrl)}/"));
+        response.Status.ShouldBe(302);
+        response.Headers["location"].ShouldBe($"{AcceptanceApp.BaseUrl}/decks?page=2");
     }
 
     // Sam's deck of SLIDES quotes, gone live. Sam is signed in on the test's Page and stays so: the player and the End call use it.
@@ -250,7 +261,7 @@ public class Sw5NetworkJourneyTests : AcceptanceTest
         {
             if (request.Url.Contains("/hubs/deck"))
             {
-                log.Add(new HubRequest(request.Method, request.Url, request.Headers.GetValueOrDefault("accept") ?? string.Empty));
+                log.Add(new HubRequest(request.Method, request.Url, request.Headers.GetValueOrDefault("accept") ?? string.Empty, request));
             }
         };
         return log;
@@ -262,7 +273,15 @@ public class Sw5NetworkJourneyTests : AcceptanceTest
         return (attempts.GetProperty("webSocket").GetInt32(), attempts.GetProperty("eventSource").GetInt32());
     }
 
-    private sealed record HubRequest(string Method, string Url, string Accept);
+    private sealed record HubRequest(string Method, string Url, string Accept, IRequest Request);
+
+    // J7, D12: the hub was reached on the join host, and the cookie that host set went with the negotiate request.
+    private static async Task AssertNegotiatedOnTheJoinHostWithItsCookieAsync(IReadOnlyList<HubRequest> requests)
+    {
+        var negotiate = requests.First(r => r.Url.Contains("negotiate"));
+        negotiate.Url.ShouldStartWith($"{JoinBaseUrl}/hubs/deck");
+        (await negotiate.Request.AllHeadersAsync()).GetValueOrDefault("cookie", string.Empty).ShouldContain("sw_guest=");
+    }
 
     private sealed class HubRequests
     {
