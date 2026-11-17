@@ -53,6 +53,22 @@ public class AudienceDataTests : ApiTestFixture
         (await db.AudienceJoins.CountAsync(j => j.SessionId == other.Id)).ShouldBe(1);
     }
 
+    [Test]
+    public async Task AudienceSessions_WhenSecondOpenSessionForADeck_ShouldBeRefused()
+    {
+        var deckId = await CreateDeckAsync("Double click");
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var now = Clock.GetUtcNow();
+        db.AudienceSessions.Add(new AudienceSession { Id = Guid.NewGuid(), DeckId = deckId, StartedAt = now, EndedAt = now.AddMinutes(5) });
+        db.AudienceSessions.Add(new AudienceSession { Id = Guid.NewGuid(), DeckId = deckId, StartedAt = now.AddMinutes(10) });
+        await db.SaveChangesAsync();
+
+        db.AudienceSessions.Add(new AudienceSession { Id = Guid.NewGuid(), DeckId = deckId, StartedAt = now.AddMinutes(11) });
+
+        await Should.ThrowAsync<DbUpdateException>(() => db.SaveChangesAsync());
+    }
+
     private async Task<string> CreateDeckAsync(string title)
     {
         var response = await Client.PostAsJsonAsync("/api/decks", new { title });

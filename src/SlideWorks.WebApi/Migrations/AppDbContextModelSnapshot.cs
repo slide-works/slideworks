@@ -262,6 +262,11 @@ namespace SlideWorks.WebApi.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DeckId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AudienceSessions_DeckId_Open")
+                        .HasFilter("\"EndedAt\" IS NULL");
+
                     b.HasIndex("DeckId", "StartedAt");
 
                     b.ToTable("AudienceSessions");

@@ -19,10 +19,20 @@ namespace SlideWorks.WebApi.Migrations
                 nullable: false,
                 defaultValue: "");
 
-            // Backfills a distinct code for every existing deck before the unique index goes on. 387911 shares no factor
-            // with 900000, so stepping the row id by it, from a random start, visits distinct codes in 100000-999999.
-            var start = System.Security.Cryptography.RandomNumberGenerator.GetInt32(900000);
-            migrationBuilder.Sql($"UPDATE Decks SET JoinCode = CAST(100000 + ((rowid * 387911 + {start}) % 900000) AS TEXT);");
+            // Backfills a distinct random code for every existing deck before the unique index goes on: as many codes as
+            // there are decks are drawn without repeats from 100000-999999 (shuffled by random()) and handed out in row
+            // order. Nothing about one deck's code says anything about another's.
+            migrationBuilder.Sql("""
+                CREATE TEMP TABLE JoinCodePool AS
+                WITH RECURSIVE codes(v) AS (SELECT 100000 UNION ALL SELECT v + 1 FROM codes WHERE v < 999999)
+                SELECT v FROM codes ORDER BY random() LIMIT (SELECT COUNT(*) FROM Decks);
+                """);
+            migrationBuilder.Sql("""
+                WITH ranked AS (SELECT rowid AS rid, row_number() OVER (ORDER BY rowid) AS rn FROM Decks)
+                UPDATE Decks SET JoinCode = (
+                    SELECT CAST(p.v AS TEXT) FROM JoinCodePool p JOIN ranked r ON p.rowid = r.rn WHERE r.rid = Decks.rowid);
+                """);
+            migrationBuilder.Sql("DROP TABLE JoinCodePool;");
 
             migrationBuilder.CreateTable(
                 name: "AudienceSessions",
@@ -70,6 +80,13 @@ namespace SlideWorks.WebApi.Migrations
                 table: "Decks",
                 column: "JoinCode",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AudienceSessions_DeckId_Open",
+                table: "AudienceSessions",
+                column: "DeckId",
+                unique: true,
+                filter: "\"EndedAt\" IS NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AudienceSessions_DeckId_StartedAt",

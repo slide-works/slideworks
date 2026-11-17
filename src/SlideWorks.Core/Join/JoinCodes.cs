@@ -11,7 +11,8 @@ public static class JoinCodes
 
     private const int RANGE = MAX - MIN + 1;
 
-    // The largest multiple of RANGE that fits a uint; draws at or above it are redrawn so every code is equally likely.
+    // The highest draw kept. Draws 0 to LIMIT are a whole multiple of RANGE values, so each code is equally likely; a
+    // larger draw is thrown away and redrawn.
     private const uint LIMIT = uint.MaxValue - (uint.MaxValue % RANGE) - 1;
 
     public static string New(RandomNumberGenerator random)

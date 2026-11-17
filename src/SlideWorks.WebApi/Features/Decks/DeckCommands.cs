@@ -77,9 +77,10 @@ public class DeckCommands(
     // Assigns the standing join code (J1). A unique-index conflict on the code draws a new one, at most JOIN_CODE_TRIES in all.
     private async Task SaveWithJoinCodeAsync(Deck deck)
     {
+        using var random = RandomNumberGenerator.Create();
         for (var attempt = 1; attempt <= JOIN_CODE_TRIES; attempt++)
         {
-            deck.JoinCode = JoinCodes.New(RandomNumberGenerator.Create());
+            deck.JoinCode = JoinCodes.New(random);
             db.Decks.Add(deck);
             try
             {

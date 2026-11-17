@@ -51,6 +51,9 @@ public class JoinCodeMigrationTests
         codes.Count.ShouldBe(DECK_COUNT);
         codes.Distinct().Count().ShouldBe(DECK_COUNT);
         codes.ShouldAllBe(c => c.Length == 6 && c.All(char.IsAsciiDigit) && int.Parse(c) >= 100000 && int.Parse(c) <= 999999);
+        // Random, not a sequence a known code could extend: consecutive differences (mod the range) are not all equal.
+        var numbers = (await db.Database.SqlQueryRaw<string>("SELECT JoinCode AS Value FROM Decks ORDER BY rowid").ToListAsync()).Select(int.Parse).ToList();
+        numbers.Zip(numbers.Skip(1), (a, b) => (((b - a) % 900000) + 900000) % 900000).Distinct().Count().ShouldBeGreaterThan(1);
         (await db.Database.GetPendingMigrationsAsync()).ShouldBeEmpty();
     }
 }

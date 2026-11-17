@@ -11,7 +11,7 @@ using SlideWorks.WebApi.Data;
 namespace SlideWorks.WebApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261117033008_Sw5AudienceJoin")]
+    [Migration("20261117033635_Sw5AudienceJoin")]
     partial class Sw5AudienceJoin
     {
         /// <inheritdoc />
@@ -264,6 +264,11 @@ namespace SlideWorks.WebApi.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DeckId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AudienceSessions_DeckId_Open")
+                        .HasFilter("\"EndedAt\" IS NULL");
 
                     b.HasIndex("DeckId", "StartedAt");
 

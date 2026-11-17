@@ -95,6 +95,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             session.HasOne<Deck>().WithMany().HasForeignKey(s => s.DeckId);
             session.HasIndex(s => new { s.DeckId, s.StartedAt });
+            // At most one open session per deck, so a double-clicked Go live cannot open two.
+            session.HasIndex(s => s.DeckId).IsUnique().HasFilter("\"EndedAt\" IS NULL").HasDatabaseName("IX_AudienceSessions_DeckId_Open");
         });
 
         modelBuilder.Entity<AudienceJoin>(join =>
