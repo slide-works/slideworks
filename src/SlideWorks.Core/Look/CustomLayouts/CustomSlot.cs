@@ -15,4 +15,10 @@ public sealed record CustomSlot(
 {
     // The name a list of scalars gives its value inside data-each.
     public const string ITEM = "item";
+
+    // The two slots.json type names the contract's own code reads: a list (data-each) and an enum
+    // (data-variant).
+    public const string LIST = "list";
+
+    public const string ENUM = "enum";
 }

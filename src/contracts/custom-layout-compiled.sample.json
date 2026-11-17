@@ -78,7 +78,13 @@
                           }
                         ],
                         "variants": [
-                          "state"
+                          {
+                            "slot": "state",
+                            "classes": {
+                              "normal": "cl-0a1b2c3d-bar-chart__is-normal",
+                              "alert": "cl-0a1b2c3d-bar-chart__is-alert"
+                            }
+                          }
                         ],
                         "children": []
                       }
