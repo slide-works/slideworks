@@ -588,6 +588,131 @@ namespace SlideWorks.WebApi.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.QaSettingsRow", b =>
+                {
+                    b.Property<string>("DeckId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Names")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Questions")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Reactions")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Review")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ShowOn")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("DeckId");
+
+                    b.ToTable("QaSettingsRows");
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.QaSlideSwitchRow", b =>
+                {
+                    b.Property<Guid>("SlideId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Questions")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Reactions")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("SlideId");
+
+                    b.ToTable("QaSlideSwitchRows");
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.Question", b =>
+                {
+                    b.Property<Guid>("RoundId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("AnsweredAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("AskedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("GuestId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("HiddenAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("OnScreen")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("RoundId", "Position");
+
+                    b.HasIndex("RoundId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Questions_RoundId_OnScreen")
+                        .HasFilter("\"OnScreen\" = 1");
+
+                    b.ToTable("Questions", t =>
+                        {
+                            t.HasCheckConstraint("CK_Questions_Name_Length", "\"Name\" IS NULL OR length(\"Name\") <= 30");
+                        });
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.ReactionGuest", b =>
+                {
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GuestId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("SessionId", "GuestId");
+
+                    b.ToTable("ReactionGuests");
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.ReactionTotal", b =>
+                {
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SlideId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Emoji")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("SessionId", "SlideId", "Emoji");
+
+                    b.HasIndex("SlideId");
+
+                    b.ToTable("ReactionTotals", t =>
+                        {
+                            t.HasCheckConstraint("CK_ReactionTotals_Count", "\"Count\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("SlideWorks.WebApi.Features.Sharing.DeckViewer", b =>
                 {
                     b.Property<string>("DeckId")
@@ -742,6 +867,57 @@ namespace SlideWorks.WebApi.Migrations
                         .WithMany()
                         .HasForeignKey("SlideId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.QaSettingsRow", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Decks.Deck", null)
+                        .WithOne()
+                        .HasForeignKey("SlideWorks.WebApi.Features.Qa.Data.QaSettingsRow", "DeckId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.QaSlideSwitchRow", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Slides.Slide", null)
+                        .WithOne()
+                        .HasForeignKey("SlideWorks.WebApi.Features.Qa.Data.QaSlideSwitchRow", "SlideId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.Question", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Polls.Data.PollOption", null)
+                        .WithOne()
+                        .HasForeignKey("SlideWorks.WebApi.Features.Qa.Data.Question", "RoundId", "Position")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.ReactionGuest", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Live.AudienceSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.ReactionTotal", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Live.AudienceSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SlideWorks.WebApi.Features.Slides.Slide", null)
+                        .WithMany()
+                        .HasForeignKey("SlideId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.Sharing.DeckViewer", b =>

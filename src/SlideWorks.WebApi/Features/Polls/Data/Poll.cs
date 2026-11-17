@@ -46,5 +46,21 @@ public class Poll
         Privacy = settings.Privacy,
     };
 
-    public PollSettings ToSettings() => new(Pick, Max, Results, Correct, Opens, Privacy);
+    // The deck's Q&A poll (SW-9 Q2): pick any (a guest's upvotes), results live, opened by the Q&A rounds service and never
+    // on arrival, private, no slide. The one place its settings are written.
+    public static Poll ForQa(string deckId) => new()
+    {
+        Id = Guid.NewGuid(),
+        Kind = PollKind.Qa,
+        SlideId = null,
+        DeckId = deckId,
+        Pick = PollPick.Any,
+        Max = null,
+        Results = PollResults.Live,
+        Correct = null,
+        Opens = PollOpens.Manual,
+        Privacy = PollPrivacy.Private,
+    };
+
+    public PollSettings ToSettings()=> new(Pick, Max, Results, Correct, Opens, Privacy);
 }

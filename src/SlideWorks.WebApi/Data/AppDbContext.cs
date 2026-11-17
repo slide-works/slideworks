@@ -7,7 +7,9 @@ using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.OAuth;
+using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Polls.Data;
+using SlideWorks.WebApi.Features.Qa.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Slides;
 
@@ -46,6 +48,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<PollAnswer> PollAnswers => Set<PollAnswer>();
 
     public DbSet<PollOption> PollOptions => Set<PollOption>();
+
+    public DbSet<Question> Questions => Set<Question>();
+
+    public DbSet<QaSettingsRow> QaSettingsRows => Set<QaSettingsRow>();
+
+    public DbSet<QaSlideSwitchRow> QaSlideSwitchRows => Set<QaSlideSwitchRow>();
+
+    public DbSet<ReactionTotal> ReactionTotals => Set<ReactionTotal>();
+
+    public DbSet<ReactionGuest> ReactionGuests => Set<ReactionGuest>();
 
     // SQLite can't compare or ORDER BY a DateTimeOffset stored as TEXT, so every one is stored as a sortable integer.
     // Expiry checks and newest-first lists then run in SQL.
@@ -117,6 +129,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         ConfigurePolls(modelBuilder);
 
+        ConfigureQa(modelBuilder);
+
         modelBuilder.Entity<OAuthClientRow>(client => client.HasKey(c => c.ClientId));
 
         modelBuilder.Entity<OAuthRequestRow>(request => request.HasKey(r => r.Id));
@@ -186,6 +200,53 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             answer.HasKey(a => new { a.RoundId, a.GuestId });
             answer.HasOne<PollRound>().WithMany().HasForeignKey(a => a.RoundId).OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    // SW-9's own rows (Q2): a question per Q&A option, a deck's settings, a slide's switch, and the reaction totals and who
+    // reacted. Enums are stored by name. SQLite ignores a column's length, so the limits are checks. Every foreign key is
+    // Restrict: nothing cascades from a deck, a slide, a session or an option, and app code removes none of these rows.
+    private static void ConfigureQa(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Question>(question =>
+        {
+            question.HasKey(q => new { q.RoundId, q.Position });
+            // One question per option, at the option's key.
+            question.HasOne<PollOption>().WithOne().HasForeignKey<Question>(q => new { q.RoundId, q.Position }).OnDelete(DeleteBehavior.Restrict);
+            // At most one question per round on screen.
+            question.HasIndex(q => q.RoundId).IsUnique().HasFilter("\"OnScreen\" = 1").HasDatabaseName("IX_Questions_RoundId_OnScreen");
+            question.Property(q => q.State).HasConversion<string>();
+            question.Property(q => q.Name).HasMaxLength(QuestionText.MAX_NAME);
+            question.ToTable(table => table.HasCheckConstraint("CK_Questions_Name_Length", $"\"Name\" IS NULL OR length(\"Name\") <= {QuestionText.MAX_NAME}"));
+        });
+
+        modelBuilder.Entity<QaSettingsRow>(settings =>
+        {
+            settings.HasKey(s => s.DeckId);
+            settings.HasOne<Deck>().WithOne().HasForeignKey<QaSettingsRow>(s => s.DeckId).OnDelete(DeleteBehavior.Restrict);
+            settings.Property(s => s.Questions).HasConversion<string>();
+            settings.Property(s => s.ShowOn).HasConversion<string>();
+        });
+
+        modelBuilder.Entity<QaSlideSwitchRow>(slideSwitch =>
+        {
+            slideSwitch.HasKey(s => s.SlideId);
+            slideSwitch.HasOne<Slide>().WithOne().HasForeignKey<QaSlideSwitchRow>(s => s.SlideId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ReactionTotal>(total =>
+        {
+            total.HasKey(t => new { t.SessionId, t.SlideId, t.Emoji });
+            total.HasOne<AudienceSession>().WithMany().HasForeignKey(t => t.SessionId).OnDelete(DeleteBehavior.Restrict);
+            total.HasOne<Slide>().WithMany().HasForeignKey(t => t.SlideId).OnDelete(DeleteBehavior.Restrict);
+            total.Property(t => t.Emoji).HasConversion<string>();
+            total.ToTable(table => table.HasCheckConstraint("CK_ReactionTotals_Count", "\"Count\" >= 0"));
+        });
+
+        modelBuilder.Entity<ReactionGuest>(guest =>
+        {
+            guest.HasKey(g => new { g.SessionId, g.GuestId });
+            guest.HasOne<AudienceSession>().WithMany().HasForeignKey(g => g.SessionId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
