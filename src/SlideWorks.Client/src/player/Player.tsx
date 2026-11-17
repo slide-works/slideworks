@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { DeckPlayView } from '../api/types';
+import { LivePublisher } from '../live/LivePublisher';
+import { useLiveSessionContext } from '../live/LiveSessionProvider';
 import { deepDivesOf } from '../look/deepDivesOf';
 import type { SlideDeck } from '../slides/slots';
 import { PlayerControls } from './PlayerControls';
@@ -35,6 +37,9 @@ export function Player({ deck }: { deck: DeckPlayView }) {
   const navigation = usePlayerNavigation(stepCounts);
   const { position, next, previous, first, last } = navigation;
 
+  // The owner's player publishes its position to guests while the deck is live (SW-5 D18).
+  const live = useLiveSessionContext().live;
+
   const fullscreen = useSyncExternalStore(subscribeFullscreen, isFullscreen);
   const toggleFullscreen = useCallback(() => {
     // The browser may refuse (an iframe without allowfullscreen, a permissions
@@ -65,6 +70,7 @@ export function Player({ deck }: { deck: DeckPlayView }) {
         onNext={next}
         onPrevious={previous}
       />
+      {live && <LivePublisher deckId={deck.id} slide={position.slide} step={position.step} />}
       <PlayerControls
         deckTitle={deck.title}
         position={position}

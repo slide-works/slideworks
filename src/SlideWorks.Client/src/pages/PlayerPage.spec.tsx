@@ -5,6 +5,7 @@ import { AppRoutes } from '../AppRoutes';
 import { GoTo } from '../test-support/GoTo';
 import { LocationProbe } from '../test-support/LocationProbe';
 import { deckPlay, me } from '../test-support/fixtures/screens';
+import { guestView } from '../test-support/fixtures/guestStates';
 import { stubApi } from '../test-support/stubApi';
 import { stubDeckHub } from '../test-support/stubDeckHub';
 
@@ -266,7 +267,22 @@ test('player page sends no re-read after it unmounts with a join waiting on its 
 });
 
 test('player page re-reads when a reconnect joins again', async ({ mount, page }) => {
-  const hub = await stubDeckHub(page);
+  const hub = await stubDeckHub(page, { audience: { state: guestView('live').state } });
+  // The owner: GET live answers 200, which is what draws the chip.
+  await stubApi(page, {
+    [`/api/decks/${deckPlay.id}/live`]: {
+      json: {
+        sessionId: null,
+        code: deckPlay.join.code,
+        codeLabel: deckPlay.join.codeLabel,
+        joinUrl: deckPlay.join.joinUrl,
+        hostLabel: deckPlay.join.hostLabel,
+        live: false,
+        joinedCount: 0,
+        joinBar: false,
+      },
+    },
+  });
   let reads = 0;
   await page.route(`**${playPath}`, (route) => {
     reads += 1;
@@ -291,7 +307,22 @@ test('player page 404 mid-presentation offers sign-in back to the current slide'
   mount,
   page,
 }) => {
-  const hub = await stubDeckHub(page);
+  const hub = await stubDeckHub(page, { audience: { state: guestView('live').state } });
+  // The owner: GET live answers 200, which is what draws the chip.
+  await stubApi(page, {
+    [`/api/decks/${deckPlay.id}/live`]: {
+      json: {
+        sessionId: null,
+        code: deckPlay.join.code,
+        codeLabel: deckPlay.join.codeLabel,
+        joinUrl: deckPlay.join.joinUrl,
+        hostLabel: deckPlay.join.hostLabel,
+        live: false,
+        joinedCount: 0,
+        joinBar: false,
+      },
+    },
+  });
   let reads = 0;
   await page.route(`**${playPath}`, (route) => {
     reads += 1;
@@ -407,7 +438,22 @@ test('player page mounts the live chip and re-reads the deck when liveChanged ar
   mount,
   page,
 }) => {
-  const hub = await stubDeckHub(page);
+  const hub = await stubDeckHub(page, { audience: { state: guestView('live').state } });
+  // The owner: GET live answers 200, which is what draws the chip.
+  await stubApi(page, {
+    [`/api/decks/${deckPlay.id}/live`]: {
+      json: {
+        sessionId: null,
+        code: deckPlay.join.code,
+        codeLabel: deckPlay.join.codeLabel,
+        joinUrl: deckPlay.join.joinUrl,
+        hostLabel: deckPlay.join.hostLabel,
+        live: false,
+        joinedCount: 0,
+        joinBar: false,
+      },
+    },
+  });
   let reads = 0;
   await page.route(`**${playPath}`, (route) => {
     reads += 1;
