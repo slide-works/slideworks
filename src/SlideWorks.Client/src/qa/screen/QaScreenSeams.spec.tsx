@@ -171,5 +171,20 @@ test('the layers mount once over the player canvas when their hooks give values'
   const canvas = page.getByTestId('player-canvas');
   await expect(page.getByTestId(`slide-${QA_SLIDE_NUMBER}`)).toBeVisible();
   await expect(canvas.getByTestId(QA_CARD_TEST_IDS.layer)).toHaveCount(1);
+  await expect(canvas.getByTestId(QA_CARD_TEST_IDS.layer)).toHaveAttribute('data-qa-slide', 'true');
   await expect(canvas.getByTestId(QA_REACTIONS_LAYER_TEST_IDS.layer)).toHaveCount(1);
+});
+
+test('the card layer is told no qa slide is up on another slide', async ({ mount, page }) => {
+  await page.evaluate((hash) => window.history.replaceState(null, '', hash), '#1');
+  await mountPlayer(
+    mount,
+    page,
+    <QaScreenFixture control={qaControlView('live')}>
+      <Player deck={deckPlayWithQa()} />
+    </QaScreenFixture>,
+  );
+
+  await expect(page.getByTestId('slide-1')).toBeVisible();
+  await expect(page.getByTestId(QA_CARD_TEST_IDS.layer)).toHaveAttribute('data-qa-slide', 'false');
 });

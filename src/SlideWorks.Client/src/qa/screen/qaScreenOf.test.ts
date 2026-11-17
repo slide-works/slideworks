@@ -59,9 +59,18 @@ describe('qaScreenOf', () => {
       open(6, 2),
       open(7, 0),
     ];
-    const screen = qaScreenOf(qaControlView('live', { questions, onScreen: null }));
+    const control = qaControlView('live', { questions, onScreen: null });
+    control.counts = { ...control.counts, open: 7 };
+    const screen = qaScreenOf(control);
     expect(screen?.top.map((row) => row.number)).toEqual([5, 2, 3, 1, 6]);
+    expect(screen?.total).toBe(7);
     expect(screen?.onScreen).toBeNull();
+  });
+
+  it('gives no question up when onScreen names a number not in the list', () => {
+    const screen = qaScreenOf(qaControlView('live', { onScreen: 99 }));
+    expect(screen?.onScreen).toBeNull();
+    expect(screen?.top).toHaveLength(3);
   });
 
   it('leaves hidden, waiting and answered questions off the list', () => {
