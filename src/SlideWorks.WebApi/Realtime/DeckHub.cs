@@ -116,8 +116,8 @@ public sealed class DeckHub(
 
     // A guest follows a deck by its join code. Needs the sw_guest cookie. A code that finds no session counts as a miss
     // toward the rate limit and is refused as NO_SESSION; a caller out of misses is refused before the lookup. The guest
-    // joins the group in every phase (a lobby guest waits for the state that makes it live) but counts on the roster only
-    // while the session is live. Returns the current state.
+    // joins the group and the roster in every phase (a lobby guest waits for the state that makes it live, and is counted
+    // when it does). Returns the current state.
     public async Task<AudienceState> JoinAudience(string code)
     {
         var guestId = GuestCookie.IdOf(Context.GetHttpContext()) ?? throw new HubException(NO_GUEST);
@@ -143,9 +143,11 @@ public sealed class DeckHub(
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, AudienceGroupName(found.DeckId));
             throw new HubException(NO_SESSION);
         }
-        if (found is { Phase: AudiencePhase.Live, SessionId: { } sessionId })
+        // Every phase goes on the roster (D22): a lobby guest is counted when the session opens. Only a live session's count
+        // is told to the owner.
+        var count = await roster.JoinAsync(found.DeckId, found.SessionId, guestId, Context.ConnectionId);
+        if (found.Phase == AudiencePhase.Live)
         {
-            var count = await roster.JoinAsync(found.DeckId, sessionId, guestId, Context.ConnectionId);
             await audienceEvents.PublishAsync(new JoinedCount(found.DeckId, count));
         }
         return state;

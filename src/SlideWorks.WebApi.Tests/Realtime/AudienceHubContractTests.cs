@@ -210,7 +210,7 @@ public class AudienceHubContractTests : ApiTestFixture
     }
 
     [Test]
-    public async Task JoinAudience_WhenLobby_ShouldFollowButNotCountOnTheRoster()
+    public async Task JoinAudience_WhenLobby_ShouldFollowAndSitOnTheRosterWithNoSession()
     {
         var (deck, code) = await LiveDeckAsync(AudiencePhase.Lobby);
         var guest = await GuestAsync();
@@ -220,7 +220,7 @@ public class AudienceHubContractTests : ApiTestFixture
 
         joined.GetProperty("phase").GetString().ShouldBe("lobby");
         (await guest.NextAudienceAsync()).GetProperty("phase").GetString().ShouldBe("live");
-        Roster.Joins.ShouldNotContain(join => join.Deck == deck);
+        Roster.Joins.Where(join => join.Deck == deck).ShouldBe([(deck, null, guest.GuestId)]);
     }
 
     [Test]
@@ -375,12 +375,12 @@ public class AudienceHubContractTests : ApiTestFixture
     private sealed class RecordingRoster : IAudienceRoster
     {
         private readonly Lock _gate = new();
-        private readonly List<(string Deck, string Session, string Guest)> _joins = [];
+        private readonly List<(string Deck, string? Session, string Guest)> _joins = [];
         private readonly List<string> _leaves = [];
 
         private Dictionary<string, int> Counts { get; } = [];
 
-        public IReadOnlyList<(string Deck, string Session, string Guest)> Joins
+        public IReadOnlyList<(string Deck, string? Session, string Guest)> Joins
         {
             get
             {
@@ -404,7 +404,7 @@ public class AudienceHubContractTests : ApiTestFixture
 
         private Dictionary<string, string> Decks { get; } = [];
 
-        public Task<int> JoinAsync(string deckId, string sessionId, string guestId, string connectionId)
+        public Task<int> JoinAsync(string deckId, string? sessionId, string guestId, string connectionId)
         {
             lock (_gate)
             {
@@ -437,6 +437,10 @@ public class AudienceHubContractTests : ApiTestFixture
         }
 
         public Task<int> CountAsync(string sessionId) => Task.FromResult(0);
+
+        public Task OpenedAsync(string deckId, string sessionId) => Task.CompletedTask;
+
+        public Task ClosedAsync(string deckId) => Task.CompletedTask;
     }
 
     private sealed class SwitchableLimiter : IJoinLookupLimiter

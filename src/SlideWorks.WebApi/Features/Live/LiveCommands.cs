@@ -53,6 +53,7 @@ public class LiveCommands(
         var (sessionId, opened) = open == null ? await OpenAsync(deckId) : (open.Value, false);
         if (opened)
         {
+            await roster.OpenedAsync(deckId, sessionId.ToString());
             await relay.StartedAsync(deckId);
             await activity.RecordAsync(deckId, ActivityEntry.By(actor, tool: null, "went live"));
             await events.PublishAsync(new LiveChanged(deckId));
@@ -70,6 +71,7 @@ public class LiveCommands(
         }
         session.EndedAt = clock.GetUtcNow();
         await db.SaveChangesAsync();
+        await roster.ClosedAsync(deckId);
         await relay.EndedAsync(deckId);
         await activity.RecordAsync(deckId, ActivityEntry.By(actor, tool: null, "ended live session"));
         await events.PublishAsync(new LiveChanged(deckId));
