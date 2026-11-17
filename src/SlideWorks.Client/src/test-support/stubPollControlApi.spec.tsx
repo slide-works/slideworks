@@ -178,10 +178,72 @@ test("new round discards another slide's draft from New round first, as open doe
   expect((await send(page, 2)).body).toMatchObject({ phase: 'closed', number: 1 });
 });
 
-test('ending the session closes the open round', async ({ page }) => {
-  const stub = await stubPollControlApi(page, deckId, { polls: [open()] });
+// What the server reads with no live session (PollReader): rounds belong to their session.
+const notLive = (view: PollControlView) => ({
+  phase: 'draft',
+  round: null,
+  number: 1,
+  answered: 0,
+  joined: 0,
+  counts: view.options.map(() => 0),
+  revealed: false,
+  answerShown: false,
+  rounds: [],
+  roomSeesCounts: view.settings.results === 'live',
+  question: view.question,
+  options: view.options,
+  settings: view.settings,
+});
+
+test('ending the session returns every poll to draft, number 1, no rounds', async ({ page }) => {
+  // Slide 4's open round hides its results until close; slide 2's draft has live results.
+  const hidden = open();
+  const live = draft({ slide: 2 });
+  const stub = await stubPollControlApi(page, deckId, { polls: [hidden, live] });
+  const before = (await send(page, 4)).body.seq;
   stub.setLive(false);
-  expect((await send(page, 4)).body).toMatchObject({ phase: 'closed', roomSeesCounts: true });
+  const after = (await send(page, 4)).body;
+  expect(after).toMatchObject(notLive(hidden));
+  expect(after.roomSeesCounts).toBe(false);
+  expect(after.seq).toBeGreaterThan(before);
+  expect((await send(page, 2)).body).toMatchObject({ ...notLive(live), roomSeesCounts: true });
+  await expectRefused(page, 4, 'open', 'not_live');
+});
+
+test('ending the session forgets a closed round and its history; the next session counts from 1', async ({
+  page,
+}) => {
+  const second = closed({
+    number: 2,
+    rounds: [
+      { number: 1, answered: 3, joined: 4 },
+      { number: 2, answered: 5, joined: 6 },
+    ],
+  });
+  const manual = closed({ slide: 2 });
+  manual.settings = { ...manual.settings, opens: 'manual' };
+  const stub = await stubPollControlApi(page, deckId, { polls: [second, manual] });
+  // A draft left by New round on slide 2, and its used-up number, go with the session too.
+  expect((await send(page, 2, 'newRound')).body.phase).toBe('draft');
+  stub.setLive(false);
+  expect((await send(page, 4)).body).toMatchObject(notLive(second));
+  expect((await send(page, 2)).body).toMatchObject(notLive(manual));
+
+  stub.setLive(true);
+  expect((await send(page, 4, 'open')).body).toMatchObject({ phase: 'open', number: 1 });
+  expect((await send(page, 4, 'close')).body).toMatchObject({
+    phase: 'closed',
+    rounds: [{ number: 1, answered: 0, joined: 0 }],
+  });
+  expect((await send(page, 4, 'newRound')).body).toMatchObject({ phase: 'open', number: 2 });
+  await send(page, 4, 'close');
+  expect((await send(page, 2, 'open')).body).toMatchObject({ phase: 'open', number: 1 });
+});
+
+test('polls passed without a session read as the server reads them with none', async ({ page }) => {
+  const second = closed({ number: 2, rounds: [{ number: 1, answered: 3, joined: 4 }] });
+  await stubPollControlApi(page, deckId, { polls: [second], live: false });
+  expect((await send(page, 4)).body).toMatchObject(notLive(second));
 });
 
 test('a scripted route replaces the answer and changes nothing; network-down drops it', async ({
