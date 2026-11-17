@@ -23,7 +23,7 @@ public sealed record LoadReport(
     bool GatePassed,
     IReadOnlyList<string> GateFailures)
 {
-    // The gate (D8, V10): write p95 under 1 s, results p95 under 2 s, errors under 1%. It is only a gate at 1,000 voters; the
+    // The gate: write p95 under 1 s, results p95 under 2 s, errors under 1%. It is only a gate at 1,000 voters; the
     // larger runs are recorded, but the verdict is printed for every run. A results p95 of n/a fails unless tallies are not
     // expected (--no-results).
     public const double WRITE_P95_LIMIT_MS = 1000;

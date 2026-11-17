@@ -43,7 +43,7 @@ public sealed class RunState(int baselineAnswered)
     public void RecordJoined() { lock (_lock) { Joined++; } }
 
     // The voter's answer got its 200. Returns the tally the voter should wait for: the baseline plus every answer
-    // acknowledged up to and including this one, which all committed before they were acknowledged (V5).
+    // acknowledged up to and including this one, which all committed before they were acknowledged.
     public int RecordWrite(double ms)
     {
         lock (_lock)
