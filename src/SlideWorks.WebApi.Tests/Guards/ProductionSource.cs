@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace SlideWorks.WebApi.Tests.Guards;
 
 // The production source files a guard test reads. They are found by walking up from the test binaries to the folder that
@@ -22,5 +24,23 @@ public static class ProductionSource
         return Directory.Exists(directory)
             ? Directory.GetFiles(directory, pattern, SearchOption.AllDirectories).Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)).Order().ToList()
             : [];
+    }
+
+    // The files matching any of the glob patterns, relative to the WebApi project ("**" crosses folders, "*" does not).
+    public static IReadOnlyList<string> Matching(IEnumerable<string> globs)
+    {
+        var root = WebApiDirectory();
+        var matchers = globs.Select(glob => new Regex(
+            "^" + Regex.Escape(glob).Replace(@"\*\*/", "(.*/)?").Replace(@"\*", "[^/]*") + "$", RegexOptions.CultureInvariant)).ToList();
+        return Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(f =>
+            {
+                var relative = Path.GetRelativePath(root, f).Replace(Path.DirectorySeparatorChar, '/');
+                return matchers.Any(m => m.IsMatch(relative));
+            })
+            .Order()
+            .ToList();
     }
 }

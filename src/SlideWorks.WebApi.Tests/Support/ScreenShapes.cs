@@ -76,8 +76,8 @@ public static class ScreenShapes
         OpaquePaths = ["live.state.current.slots"],
     };
 
-    // The live view (live.json, J2): GET, POST and DELETE-less reads of /api/decks/{id}/live.
-    public static readonly JsonShapeOptions Live = new();
+    // The live view (live.json, J2): GET, POST and DELETE-less reads of /api/decks/{id}/live. sessionId is null when live is false.
+    public static readonly JsonShapeOptions Live = new() { NullablePaths = ["sessionId"] };
 
     // The audience events (audience-events.json, J4): one sample of each, as properties named by the event type. The state
     // sample is a live one, so a lobby or ended state is checked with current and activity nullable.
