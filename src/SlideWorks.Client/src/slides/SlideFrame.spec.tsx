@@ -20,7 +20,15 @@ const deck = {
 // A plain function, not a component: CT can only mount components from source files.
 function slide(props: Partial<Omit<SlideFrameProps, 'children'>> = {}) {
   return (
-    <SlideFrame layout="bullets" surface="light" part={2} number={3} total={16} {...deck} {...props}>
+    <SlideFrame
+      layout="bullets"
+      surface="light"
+      part={2}
+      number={3}
+      total={16}
+      {...deck}
+      {...props}
+    >
       <h2>Every slip we had last year started as a big batch</h2>
     </SlideFrame>
   );
@@ -74,6 +82,79 @@ test('divider and close slides are dark without tracker or footer', async ({ mou
     await expect(page.getByTestId('slide-footer')).toHaveCount(0);
     await component.unmount();
   }
+});
+
+test('content slide, dark', async ({ mount, page }) => {
+  await mount(slide({ surface: 'dark' }));
+
+  const frame = page.getByTestId('slide-frame');
+  await expect(frame).toHaveAttribute('data-surface', 'dark');
+  // Only the always-dark layouts carry data-dark and its night backdrop.
+  await expect(frame).toHaveAttribute('data-dark', 'false');
+  const nightInk = await tokenColour(page, '--sw-night-ink');
+  expect(await tokenColour(page, '--sw-ink')).toBe(nightInk);
+  await expect(frame).toHaveCSS('color', nightInk);
+  await expect(frame).toHaveCSS('background-color', await tokenColour(page, '--sw-night'));
+  await expect(page.getByTestId('part-tracker-part')).toHaveCount(4);
+  await expect(page.getByTestId('slide-footer-text')).toHaveText(
+    '3 / 16 · Ship smaller · Sam Rivera',
+  );
+});
+
+test('a light slide and an always-dark slide keep their own tokens', async ({ mount, page }) => {
+  const component = await mount(slide());
+  const frame = page.getByTestId('slide-frame');
+  await expect(frame).toHaveAttribute('data-surface', 'light');
+  const lightInk = await tokenColour(page, '--sw-ink');
+  const lightGoodSoft = await tokenColour(page, '--sw-good-soft');
+  expect(lightInk).not.toBe(await tokenColour(page, '--sw-night-ink'));
+
+  await component.update(slide({ layout: 'join', surface: 'dark', part: null }));
+  await expect(frame).toHaveAttribute('data-surface', 'dark');
+  await expect(frame).toHaveAttribute('data-dark', 'true');
+  expect(await tokenColour(page, '--sw-ink')).toBe(lightInk);
+  expect(await tokenColour(page, '--sw-good-soft')).toBe(lightGoodSoft);
+});
+
+test('statement has no tracker', async ({ mount, page }) => {
+  await mount(slide({ layout: 'statement' }));
+
+  await expect(page.getByTestId('slide-frame')).toHaveAttribute('data-layout', 'statement');
+  await expect(page.getByTestId('part-tracker')).toHaveCount(0);
+  await expect(page.getByTestId('slide-footer-text')).toHaveText(
+    '3 / 16 · Ship smaller · Sam Rivera',
+  );
+});
+
+test("the footer's text sits where it did with an empty end span", async ({ mount, page }) => {
+  await mount(slide());
+
+  const footer = page.getByTestId('slide-footer');
+  const end = page.getByTestId('slide-footer-end');
+  await expect(end).toBeEmpty();
+  expect(await footer.evaluate((e) => e.lastElementChild?.className)).toBe('sw-footer-end');
+  expect((await end.boundingBox())!.width).toBe(0);
+  const text = await page.getByTestId('slide-footer-text').boundingBox();
+  expect(text).toMatchObject({ x: 120, y: 1023, height: 17 });
+  // The same footer without its end span, as it was drawn before the span was always there.
+  const before = await footer.evaluate((element) => {
+    const copy = element.cloneNode(true) as HTMLElement;
+    copy.lastElementChild!.remove();
+    element.after(copy);
+    const box = copy.firstElementChild!.getBoundingClientRect();
+    copy.remove();
+    return { x: box.x, y: box.y, width: box.width, height: box.height };
+  });
+  expect(text).toEqual(before);
+});
+
+test('the layers take no space and no pointer events', async ({ mount, page }) => {
+  await mount(slide());
+
+  const layers = page.getByTestId('slide-layers');
+  await expect(layers).toHaveCSS('position', 'absolute');
+  await expect(layers).toHaveCSS('pointer-events', 'none');
+  await expect(layers).toBeEmpty();
 });
 
 test('deck without parts shows no tracker', async ({ mount, page }) => {
