@@ -91,7 +91,8 @@ public class PollPumpTests : ApiTestFixture
         var failed = Published.PublishedFor(_deck).Count;
         await ChangeAsync();
         Clock.Advance(PollTallyPump.Interval);
-        var after = await PublishedAsync(1);
+        await WithinAsync(Watched.PublishedAsync(_deck, 2));
+        var after = Published.PublishedFor(_deck);
 
         failed.ShouldBe(0);
         after.ShouldBe([SLIDE]);
