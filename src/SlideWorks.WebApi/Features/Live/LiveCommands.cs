@@ -25,25 +25,32 @@ public class LiveCommands(
     IDeckEvents events,
     IAudienceRelay relay,
     IAudienceRoster roster,
+    IAudienceSessions sessions,
     IPresentations presentations,
     IJoinUrls joinUrls,
     TimeProvider clock)
 {
-    private const int SQLITE_CONSTRAINT = 19;
+    // SQLITE_CONSTRAINT_UNIQUE: the extended code, so a NOT NULL or primary key failure is never mistaken for the race.
+    private const int SQLITE_CONSTRAINT_UNIQUE = 2067;
+    private const string OPEN_SESSION_INDEX = "IX_AudienceSessions_DeckId_Open";
+    private const string OPEN_SESSION_COLUMN = "AudienceSessions.DeckId";
 
     public async Task<LiveView> GetAsync(string deckId)
     {
         var deck = await RequireOwnerAsync(deckId);
-        return await ViewAsync(deck, await OpenSessionAsync(deckId));
+        // The phase rule lives in IAudienceSessions only: live is its answer, not a query of this class.
+        var found = await sessions.ForDeckAsync(deckId);
+        return await ViewAsync(deck, found?.Phase == AudiencePhase.Live ? Guid.Parse(found.SessionId!) : null);
     }
 
     public async Task<LiveView> GoLiveAsync(string deckId)
     {
         var deck = await RequireOwnerAsync(deckId);
+        // Idempotent, so a repeat call also brings back a presentation state a restart dropped. It runs before the session
+        // row is written, so a failure here leaves no open session behind.
+        await presentations.StartAsync(deckId);
         var open = await OpenSessionAsync(deckId);
         var (sessionId, opened) = open == null ? await OpenAsync(deckId) : (open.Value, false);
-        // Idempotent, so a repeat call also brings back a presentation state a restart dropped.
-        await presentations.StartAsync(deckId);
         if (opened)
         {
             await relay.StartedAsync(deckId);
@@ -64,7 +71,7 @@ public class LiveCommands(
         session.EndedAt = clock.GetUtcNow();
         await db.SaveChangesAsync();
         await relay.EndedAsync(deckId);
-        await activity.RecordAsync(deckId, ActivityEntry.By(actor, tool: null, "ended the live session"));
+        await activity.RecordAsync(deckId, ActivityEntry.By(actor, tool: null, "ended live session"));
         await events.PublishAsync(new LiveChanged(deckId));
     }
 
@@ -108,8 +115,8 @@ public class LiveCommands(
     }
 
     private static bool IsOpenSessionConflict(DbUpdateException ex)
-        => ex.InnerException is SqliteException { SqliteErrorCode: SQLITE_CONSTRAINT } inner
-            && inner.Message.Contains("AudienceSessions.DeckId", StringComparison.Ordinal);
+        => ex.InnerException is SqliteException { SqliteExtendedErrorCode: SQLITE_CONSTRAINT_UNIQUE } inner
+            && (inner.Message.Contains(OPEN_SESSION_COLUMN, StringComparison.Ordinal) || inner.Message.Contains(OPEN_SESSION_INDEX, StringComparison.Ordinal));
 
     private async Task<LiveView> ViewAsync(Deck deck, Guid? sessionId)
     {

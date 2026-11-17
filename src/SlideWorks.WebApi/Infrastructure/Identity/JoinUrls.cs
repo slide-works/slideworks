@@ -46,6 +46,10 @@ public class JoinUrls : IJoinUrls
         {
             throw new InvalidOperationException($"{CONFIG_KEY} must be an absolute http or https URL, not '{value}'.");
         }
+        if (uri.UserInfo.Length > 0)
+        {
+            throw new InvalidOperationException($"{CONFIG_KEY} must not contain a user name or password.");
+        }
         if (uri.AbsolutePath != "/" || uri.Query.Length > 0 || uri.Fragment.Length > 0)
         {
             throw new InvalidOperationException($"{CONFIG_KEY} must be an origin with no path, query or fragment, such as https://slideworks.live, not '{value}'.");

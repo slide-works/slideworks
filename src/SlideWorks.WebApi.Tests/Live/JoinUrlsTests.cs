@@ -35,6 +35,8 @@ public class JoinUrlsTests
     [TestCase("https://slideworks.live/?x=1")]
     [TestCase("ftp://slideworks.live")]
     [TestCase("slideworks.live")]
+    [TestCase("https://u:p@slideworks.live")]
+    [TestCase("https://user@slideworks.live")]
     public void Startup_WhenJoinUrlHasPath_ShouldRefuse(string value)
     {
         var dbPath = TestAppFactory.NewDatabasePath();
@@ -45,6 +47,7 @@ public class JoinUrlsTests
             var error = Should.Throw<Exception>(() => factory.Services);
 
             Messages(error).ShouldContain(JoinUrls.CONFIG_KEY);
+            Messages(error).ShouldNotContain("u:p");
         }
         finally
         {

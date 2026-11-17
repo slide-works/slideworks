@@ -3,6 +3,11 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using SlideWorks.Core.Rendering;
+using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Features.Live;
+using SlideWorks.WebApi.Features.Render;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Realtime.Presenting;
 using SlideWorks.WebApi.Tests.Decks;
@@ -16,8 +21,11 @@ namespace SlideWorks.WebApi.Tests.Live;
 [TestFixture]
 public class LiveRoutesTests : ApiTestFixture
 {
+    private readonly OneShotSaveGate _gate = new();
+
     protected override Action<IServiceCollection>? ConfigureTestServices => services =>
     {
+        services.ConfigureDbContext<AppDbContext>(options => options.AddInterceptors(_gate));
         FakeAudienceRelay.AddTo(services);
         services.AddSingleton<PresentationStartSpy>().AddSingleton<IPresentations>(provider => provider.GetRequiredService<PresentationStartSpy>());
     };
@@ -98,6 +106,74 @@ public class LiveRoutesTests : ApiTestFixture
     }
 
     [Test]
+    public async Task LivePost_WhenAnotherCallOpensTheSessionFirst_ShouldReturnThatSession()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        JsonElement? winner = null;
+        _gate.Before = async () => winner = await PostLiveAsync(deck);
+
+        var loser = await PostLiveAsync(deck);
+
+        winner.ShouldNotBeNull();
+        loser.GetProperty("sessionId").GetString().ShouldBe(winner.Value.GetProperty("sessionId").GetString());
+        Relay.Started.Where(id => id == deck).ShouldHaveSingleItem();
+        (await DeckSeed.ActivityAsync(Client, deck)).Count(e => e.GetProperty("summary").GetString() == "went live").ShouldBe(1);
+    }
+
+    [Test]
+    public async Task LiveDelete_WhenNotOwnerAndDeckIsLive_ShouldRefuseAndStayLive()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        await SharingApi.PutOkAsync(Client, deck, "link");
+        await PostLiveAsync(deck);
+        using var alex = ClientFor(TestUser.Alex);
+
+        var refused = await alex.DeleteAsync($"/api/decks/{deck}/live");
+
+        refused.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await GetLiveAsync(deck)).GetProperty("live").GetBoolean().ShouldBeTrue();
+        Relay.Ended.ShouldNotContain(deck);
+        (await DeckSeed.ActivityAsync(Client, deck)).ShouldNotContain(e => e.GetProperty("summary").GetString() == "ended live session");
+    }
+
+    [Test]
+    public async Task LiveGet_WhenNotOwner_ShouldRefuseByVisibility()
+    {
+        var shared = await SharingApi.CreateDeckAsync(Client, "Shared");
+        await SharingApi.PutOkAsync(Client, shared, "link");
+        var hidden = await SharingApi.CreateDeckAsync(Client, "Hidden");
+        using var alex = ClientFor(TestUser.Alex);
+
+        var forbidden = await alex.GetAsync($"/api/decks/{shared}/live");
+        var notFound = await alex.GetAsync($"/api/decks/{hidden}/live");
+        var hiddenDelete = await alex.DeleteAsync($"/api/decks/{hidden}/live");
+
+        forbidden.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        notFound.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        hiddenDelete.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task Render_WhenLive_ShouldCarryTheJoinObject()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        var live = await PostLiveAsync(deck);
+        var token = Factory.Services.GetRequiredService<IRenderTokens>().Issue(deck, RenderPurpose.Preview);
+        using var anonymous = ClientFor(TestUser.Anonymous);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/render/{deck}");
+        request.Headers.Add(RenderController.TOKEN_HEADER, token);
+
+        using var response = await anonymous.SendAsync(request);
+        var render = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var join = render.GetProperty("join");
+        join.GetProperty("code").GetString().ShouldBe(live.GetProperty("code").GetString());
+        join.GetProperty("joinUrl").GetString().ShouldBe(live.GetProperty("joinUrl").GetString());
+        join.GetProperty("live").GetBoolean().ShouldBeTrue();
+    }
+
+    [Test]
     public async Task LiveDelete_WhenLive_ShouldEndAndPublishLiveChanged()
     {
         var deck = await SharingApi.CreateDeckAsync(Client);
@@ -115,7 +191,7 @@ public class LiveRoutesTests : ApiTestFixture
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         (await changes.Reader.ReadAsync(timeout.Token)).ShouldBeOfType<LiveChanged>();
         (await changes.Reader.ReadAsync(timeout.Token)).ShouldBeOfType<LiveChanged>();
-        (await DeckSeed.ActivityAsync(Client, deck))[0].GetProperty("summary").GetString().ShouldBe("ended the live session");
+        (await DeckSeed.ActivityAsync(Client, deck))[0].GetProperty("summary").GetString().ShouldBe("ended live session");
     }
 
     [Test]
