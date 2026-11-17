@@ -45,6 +45,8 @@ public class AudienceFramePrivacyTests : ApiTestFixture
         AssertMatches(pushedState, "audienceState", ScreenShapes.AudienceState);
         AssertMatches(ended, "audienceEnded", new JsonShapeOptions());
         AssertMatches(count, "joinedCount", new JsonShapeOptions());
+        PollActivityKeys.Of(joined.GetProperty("activity")).ShouldBeSubsetOf(PollActivityKeys.All);
+        PollActivityKeys.Of(pushedState.GetProperty("activity")).ShouldBeSubsetOf(PollActivityKeys.All);
         foreach (var frame in new[] { joined, pushedState, ended, count })
         {
             frame.GetRawText().ShouldNotContain(deck, Case.Sensitive);

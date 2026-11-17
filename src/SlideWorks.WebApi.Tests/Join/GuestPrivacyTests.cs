@@ -35,6 +35,7 @@ public class GuestPrivacyTests : JoinFixture
         JsonShape.AssertMatches(body, sample.RootElement.GetProperty("live"), "guest.json", ScreenShapes.Guest);
         body.EnumerateObject().Select(p => p.Name).ShouldBe(["deckTitle", "presenterName", "look", "deckUrl", "state"], ignoreOrder: true);
         body.GetProperty("state").EnumerateObject().Select(p => p.Name).ShouldBe(["type", "seq", "phase", "current", "revision", "activity"], ignoreOrder: true);
+        PollActivityKeys.Of(body.GetProperty("state").GetProperty("activity")).ShouldBeSubsetOf(PollActivityKeys.All);
         raw.ShouldNotContain(NOTES);
         raw.ShouldNotContain(DEEP_DIVE);
         raw.ShouldNotContain(VIEWER);
