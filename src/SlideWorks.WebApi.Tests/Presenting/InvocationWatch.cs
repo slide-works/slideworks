@@ -4,33 +4,39 @@ using Microsoft.AspNetCore.SignalR;
 namespace SlideWorks.WebApi.Tests.Presenting;
 
 // A hub filter a fixture adds with ConfigureTestServices: it completes once the server has finished running a hub method
-// for a connection, whether the method returned or threw. A test waits on it to read what a call did after its caller's
-// connection closed, when the caller can no longer get the result.
+// for a connection, with the exception the method threw, or null when it returned. A test waits on it to read what a call
+// did after its caller's connection closed, when the caller can no longer get the result.
 public sealed class InvocationWatch : IHubFilter
 {
-    private readonly ConcurrentDictionary<(string ConnectionId, string Method), TaskCompletionSource> _done = new();
+    private readonly ConcurrentDictionary<(string ConnectionId, string Method), TaskCompletionSource<Exception?>> _done = new();
 
     public async ValueTask<object?> InvokeMethodAsync(HubInvocationContext invocationContext, Func<HubInvocationContext, ValueTask<object?>> next)
     {
+        var done = Completion(invocationContext.Context.ConnectionId, invocationContext.HubMethodName);
         try
         {
-            return await next(invocationContext);
+            var result = await next(invocationContext);
+            done.TrySetResult(null);
+            return result;
         }
-        finally
+        catch (Exception e)
         {
-            Completion(invocationContext.Context.ConnectionId, invocationContext.HubMethodName).TrySetResult();
+            done.TrySetResult(e);
+            throw;
         }
     }
 
-    public async Task FinishedAsync(string connectionId, string method)
+    // The exception the server's hub method threw for this connection, or null when it returned.
+    public async Task<Exception?> FinishedAsync(string connectionId, string method)
     {
         var done = Completion(connectionId, method).Task;
         if (await Task.WhenAny(done, Task.Delay(TimeSpan.FromSeconds(10))) != done)
         {
             throw new TimeoutException($"The server did not finish {method} for {connectionId}.");
         }
+        return await done;
     }
 
-    private TaskCompletionSource Completion(string connectionId, string method)
-        => _done.GetOrAdd((connectionId, method), _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+    private TaskCompletionSource<Exception?> Completion(string connectionId, string method)
+        => _done.GetOrAdd((connectionId, method), _ => new TaskCompletionSource<Exception?>(TaskCreationOptions.RunContinuationsAsynchronously));
 }
