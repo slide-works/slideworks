@@ -19,6 +19,15 @@
     <EmbeddedResource Include="Features\Render\PreviewInstructions.md" LogicalName="SlideWorks.WebApi.Features.Render.PreviewInstructions.md" />
   </ItemGroup>
 
+  <!-- The template screen samples the stub template services answer. They go when the stubs go. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\contracts\screens\templates.json" LogicalName="SlideWorks.WebApi.Features.Templates.Samples.templates.json" />
+    <EmbeddedResource Include="..\contracts\screens\template-editor.json" LogicalName="SlideWorks.WebApi.Features.Templates.Samples.template-editor.json" />
+    <EmbeddedResource Include="..\contracts\screens\template-sharing.json" LogicalName="SlideWorks.WebApi.Features.Templates.Samples.template-sharing.json" />
+    <EmbeddedResource Include="..\contracts\screens\template-public.json" LogicalName="SlideWorks.WebApi.Features.Templates.Samples.template-public.json" />
+    <EmbeddedResource Include="..\contracts\screens\layout-review.json" LogicalName="SlideWorks.WebApi.Features.Templates.Samples.layout-review.json" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\SlideWorks.Core\SlideWorks.Core.csproj" />
   </ItemGroup>
