@@ -1,0 +1,1604 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-4 mockups: presenting from the laptop and the phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+
+/* =====================================================================
+   Review-page chrome: light ledger (Inter for UI, Plex Mono for data)
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", system-ui, sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 20px 80px; }
+h1, h2, h3 { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 26px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { margin: 0; color: var(--muted); max-width: 860px; font-size: 15px; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 18px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 900px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
+.grid2 > *, .grid3 > *, .flex > * { min-width: 0; }
+
+/* scope strip */
+.scope { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .scope { grid-template-columns: minmax(0, 1fr); } }
+.scope .card { padding: 16px 18px; }
+.scope h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.scope ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.scope li { position: relative; padding-left: 22px; color: var(--text); }
+.scope li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.scope .later-list li::before { background: var(--later); opacity: .55; }
+.scope .later-list li span.k { font: 500 12px/1.5 var(--mono); color: var(--later); }
+
+/* diagram */
+.diagram { padding: 18px; overflow: hidden; }
+.diagram svg { width: 100%; height: auto; display: block; }
+
+/* ---------- browser + phone mockups ---------- */
+.browser { border-radius: 12px; overflow: hidden; border: 1px solid var(--line-2); background: var(--surface); box-shadow: var(--raise); }
+.browser-bar { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #e9ecf1; border-bottom: 1px solid var(--line-2); }
+.browser-bar .dots { display: flex; gap: 6px; }
+.browser-bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: #c9ced7; display: block; }
+.browser-bar .url { flex: 1; min-width: 0; background: #fff; border-radius: 6px; padding: 4px 10px; font: 400 12px/1.4 var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browser-bar .url b { color: var(--text); font-weight: 500; }
+
+/* app chrome inside mocks */
+.app { background: #f6f7f9; font-size: 13px; }
+.app-top { display: flex; align-items: center; gap: 14px; padding: 10px 18px; background: #fff; border-bottom: 1px solid var(--line); }
+.logo { display: flex; align-items: center; gap: 8px; font: 700 14px/1 var(--ui); letter-spacing: -.01em; }
+.logo svg { width: 22px; height: 22px; }
+.app-top nav { display: flex; gap: 2px; }
+.app-top nav a { text-decoration: none; color: var(--muted); padding: 5px 10px; border-radius: 6px; font-weight: 500; }
+.app-top nav a.on { background: var(--surface-2); color: var(--text); }
+.app-top .sp { flex: 1; }
+.search { width: 220px; max-width: 30vw; padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--faint); background: #fbfbfc; }
+@media (max-width: 640px) { .search, .app-top nav a:not(.on) { display: none; } }
+.avatar { width: 26px; height: 26px; border-radius: 50%; background: #dfe6f7; color: var(--accent-dark); display: grid; place-items: center; font: 600 11px/1 var(--ui); flex: none; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); font: 500 13px/1.2 var(--ui); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.later { border-style: dashed; color: var(--faint); cursor: default; }
+.btn svg { width: 14px; height: 14px; }
+.app-body { padding: 18px; }
+.app-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.app-h h3 { font: 650 18px/1.2 var(--ui); font-weight: 650; }
+.app-h .sp { flex: 1; }
+
+.connect { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 14px; background: var(--accent-soft); border: 1px solid #cfdafb; border-radius: 8px; color: var(--accent-dark); }
+.connect code { background: #fff; padding: 3px 8px; border-radius: 5px; color: var(--text); }
+
+table.ledger { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.ledger th { text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ledger td { padding: 0 12px; height: 34px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ledger tr:last-child td { border-bottom: 0; }
+.ledger tr:hover td { background: #fafbfd; }
+.ledger td.t { font-weight: 550; font-weight: 600; white-space: normal; }
+.ledger td.t small { display: block; font: 400 12px/1.3 var(--ui); color: var(--faint); }
+.ledger td.num { font-family: var(--mono); font-size: 12.5px; text-align: right; color: var(--muted); }
+.ledger td.who { color: var(--muted); }
+.ledger td.who .agent { color: var(--text); }
+.ledger td.act { text-align: right; }
+.mini-thumb { width: 64px; height: 36px; border-radius: 3px; overflow: hidden; border: 1px solid var(--line); display: block; }
+.table-wrap { overflow-x: auto; }
+
+/* deck page */
+.deck-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; }
+@media (max-width: 980px) { .deck-layout { grid-template-columns: minmax(0, 1fr); } }
+.thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 720px) { .thumbs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.thumb { all: unset; display: block; cursor: pointer; border-radius: 7px; }
+.thumb .frame { border-radius: 6px; border: 1px solid var(--line); box-shadow: 0 1px 2px rgb(16 24 40 / .05); }
+.thumb.sel .frame { outline: 2px solid var(--accent); outline-offset: 2px; }
+.thumb .cap { display: flex; justify-content: space-between; gap: 6px; padding: 5px 2px 0; font-size: 12px; color: var(--muted); }
+.thumb .cap code { font-size: 11.5px; color: var(--faint); }
+.side { display: grid; gap: 12px; align-content: start; }
+.side .card { padding: 14px; }
+.side h4 { margin: 0 0 8px; font: 600 12px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.feed li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; font-size: 12.5px; line-height: 1.4; }
+.feed .ic { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: var(--surface-2); color: var(--muted); font: 600 10px/1 var(--mono); }
+.feed .ic.ag { background: #f1ecff; color: var(--later); }
+.feed time { color: var(--faint); font-size: 11.5px; display: block; }
+.notes-box { background: #fffbeb; border: 1px solid #f6e3a6; border-radius: 7px; padding: 10px 12px; font-size: 13px; line-height: 1.45; }
+.later-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* share dialog */
+.dialog-stage { padding: 30px 16px; background: rgb(15 23 42 / .32); display: grid; place-items: center; }
+.dialog { width: 100%; max-width: 520px; background: #fff; border-radius: 12px; box-shadow: 0 24px 56px -16px rgb(16 24 40 / .4); overflow: hidden; }
+.dialog header { padding: 16px 18px 6px; }
+.dialog header h3 { font: 650 16px/1.3 var(--ui); font-weight: 650; }
+.dialog header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.dialog .body { padding: 10px 18px 16px; display: grid; gap: 8px; }
+.opt { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.opt:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.opt input { margin: 2px 0 0; accent-color: var(--accent); }
+.opt b { display: block; font-weight: 600; }
+.opt span { color: var(--muted); font-size: 12.5px; }
+.people { display: none; margin-top: 8px; }
+.opt:has(input:checked) .people { display: block; }
+.chips-in { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; border: 1px solid var(--line-2); border-radius: 6px; background: #fff; }
+.chip-p { display: inline-flex; gap: 6px; align-items: center; padding: 2px 4px 2px 2px; border-radius: 999px; background: var(--surface-2); font-size: 12.5px; }
+.chip-p .avatar { width: 20px; height: 20px; font-size: 9.5px; }
+.chips-in .ph { color: var(--faint); padding: 2px 4px; font-size: 12.5px; }
+.linkrow { display: flex; gap: 8px; align-items: center; padding: 10px 18px; background: var(--surface-2); border-top: 1px solid var(--line); }
+.linkrow code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dialog footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); }
+
+/* player */
+.player-stage { position: relative; background: #05070d; padding: 18px 18px 64px; }
+.player-stage .frame { box-shadow: 0 10px 40px rgb(0 0 0 / .45); border-radius: 2px; }
+.pctl { position: absolute; left: 18px; right: 18px; bottom: 12px; display: flex; align-items: center; gap: 10px; color: #cbd5e1; font: 500 12.5px/1 var(--ui); }
+.pctl button { all: unset; cursor: pointer; width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: rgb(255 255 255 / .08); color: #e2e8f0; }
+.pctl button:hover { background: rgb(255 255 255 / .16); }
+.pctl button:focus-visible { outline: 2px solid #93a8ff; }
+.pctl svg { width: 16px; height: 16px; }
+.pctl .count { font-family: var(--mono); min-width: 74px; text-align: center; }
+.pctl .bar { flex: 1; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .12); overflow: hidden; }
+.pctl .bar i { display: block; height: 100%; background: #6d8bff; width: 0; transition: width .3s; }
+.pctl .steps { display: flex; gap: 4px; }
+.pctl .steps i { width: 6px; height: 6px; border-radius: 50%; background: rgb(255 255 255 / .2); }
+.pctl .steps i.on { background: #a5b8ff; }
+.player-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+@media (max-width: 980px) { .player-wrap { grid-template-columns: minmax(0, 1fr); } }
+.phone { width: 300px; max-width: 100%; margin: 0 auto; border-radius: 36px; padding: 12px; background: #11151d; box-shadow: var(--raise), inset 0 0 0 2px #2a303b; }
+.phone-screen { border-radius: 26px; overflow: hidden; background: #05070d; height: 580px; display: flex; flex-direction: column; }
+.phone-url { margin: 30px 12px 0; padding: 6px 10px; border-radius: 8px; background: #1b2130; color: #94a3b8; font: 400 11px/1.3 var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phone-canvas { flex: 1; display: flex; align-items: center; padding: 0 0; position: relative; }
+.phone-canvas .frame { width: 100%; }
+.tapzones { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; pointer-events: none; }
+.tapzones span { border: 1px dashed rgb(165 184 255 / .28); display: grid; place-items: end center; padding-bottom: 8px; color: rgb(165 184 255 / .7); font: 500 10px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; }
+.tapzones span:nth-child(2) { border-left: 0; border-right: 0; }
+.phone .pctl { position: static; padding: 10px 12px 16px; }
+.phone .pctl .bar { min-width: 0; }
+.rules-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.rules-list li { position: relative; padding-left: 22px; font-size: 13px; }
+.rules-list li::before { content: "✓"; position: absolute; left: 2px; top: 0; color: var(--ok); font-weight: 700; }
+
+/* slide frames + gallery */
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #fff; }
+.frame > .sw { position: absolute; left: 0; top: 0; transform: scale(var(--s, .1)); transform-origin: 0 0; }
+.gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 760px) { .gallery { grid-template-columns: minmax(0, 1fr); } }
+.g-item { padding: 10px; }
+.g-item .frame { border-radius: 6px; border: 1px solid var(--line); }
+.g-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 2px 2px; }
+.g-meta code.layout { font-weight: 500; color: var(--accent-dark); background: var(--accent-soft); padding: 1px 7px; border-radius: 5px; }
+.g-meta .slot { font: 400 11.5px/18px var(--mono); color: var(--muted); background: var(--surface-2); padding: 0 6px; border-radius: 4px; }
+
+/* agent session */
+.session { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 980px) { .session { grid-template-columns: minmax(0, 1fr); } }
+.term { background: #0f1420; color: #d6deeb; border-radius: 10px; padding: 14px 16px; font: 400 12.5px/1.6 var(--mono); overflow-x: auto; }
+.term .c { color: #7f8ba3; }
+.term .call { color: #a5b8ff; }
+.term .ok { color: #7ee2a8; }
+.term .s { color: #f5c97a; }
+.term .k { color: #9ad1ff; }
+.term pre { margin: 0; white-space: pre; }
+.tools { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tools td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tools td:first-child { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; color: var(--accent-dark); }
+.tools tr:last-child td { border-bottom: 0; }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px 18px; }
+.q h3 { font: 600 15px/1.35 var(--ui); margin-bottom: 4px; }
+.q .why { color: var(--muted); margin: 0 0 10px; }
+.q .choices { display: grid; gap: 6px; }
+.q label.choice { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.q label.choice:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.q label.choice input { margin: 3px 0 0; accent-color: var(--accent); }
+.q label.choice b { font-weight: 600; }
+.q label.choice span:not(.rec) { display: block; color: var(--muted); font-size: 12.5px; }
+.q .rec { display: inline-block; font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.q textarea { width: 100%; margin-top: 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.4 var(--ui); resize: vertical; }
+.q .qfoot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.q .state { font-size: 12.5px; color: var(--faint); }
+.q .state.queued { color: var(--ok); font-weight: 600; }
+
+/* =====================================================================
+   SlideWorks default theme (neutral port of an existing hand-built HTML deck engine)
+   Canvas 1920x1080. No org branding.
+   ===================================================================== */
+.sw {
+  --d-paper: #f7f8fa; --d-card: #ffffff; --d-ink: #111827; --d-muted: #5b6474; --d-grid: #e3e6ec;
+  --d-acc: #2f5bea; --d-acc-dark: #1e3a8a; --d-acc-light: #e4eafd; --d-acc-glow: #a5b8ff;
+  --d-ok: #16a34a; --d-bad: #dc2626; --d-warn: #ea580c;
+  --d-night: #0b1020; --d-night-2: #cbd5e1; --d-night-muted: #8c97ad;
+  --d-head: "Plus Jakarta Sans", "Inter", sans-serif; --d-body: "Inter", sans-serif;
+  --d-lift: 0 1px 2px rgba(15, 23, 42, .06), 0 14px 36px rgba(15, 23, 42, .09);
+  width: 1920px; height: 1080px; box-sizing: border-box; padding: 150px 120px 120px;
+  display: flex; flex-direction: column; background: var(--d-paper); color: var(--d-ink);
+  font-family: var(--d-body); overflow: hidden; position: relative;
+}
+.sw * { box-sizing: border-box; }
+.sw::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: var(--d-acc); z-index: 3; }
+.sw.dark { color: #fff; background: radial-gradient(1100px 700px at 88% 112%, rgba(47, 91, 234, .45), transparent 62%), radial-gradient(900px 600px at -5% -10%, rgba(125, 150, 255, .12), transparent 60%), var(--d-night); }
+.sw .snav { position: absolute; top: 40px; left: 120px; right: 120px; display: flex; gap: 8px; }
+.sw .snav span { flex: 1; padding-top: 12px; border-top: 4px solid var(--d-grid); font: 700 14px/1 var(--d-body); letter-spacing: .14em; text-transform: uppercase; color: var(--d-muted); opacity: .75; }
+.sw .snav span.past { border-top-color: #b9c8f8; }
+.sw .snav span.on { border-top-color: var(--d-acc); color: var(--d-acc-dark); opacity: 1; }
+.sw .sfoot { position: absolute; left: 120px; right: 120px; bottom: 40px; display: flex; justify-content: space-between; font: 500 17px/1 var(--d-body); color: var(--d-muted); }
+.sw .sfoot b { color: var(--d-acc-dark); }
+.sw.dark .sfoot { color: var(--d-night-muted); }
+.sw.dark .sfoot b { color: #fff; }
+.sw .sprog { position: absolute; left: 0; bottom: 0; height: 5px; background: var(--d-acc); }
+.sw .kicker { font: 700 20px/1 var(--d-body); letter-spacing: .18em; text-transform: uppercase; color: var(--d-acc); margin: 0 0 22px; }
+.sw.dark .kicker { color: var(--d-acc-glow); }
+.sw .h { font: 800 64px/1.08 var(--d-head); letter-spacing: -.025em; margin: 0; max-width: 1560px; text-wrap: balance; }
+.sw .h em { font-style: normal; color: var(--d-acc); }
+.sw .lead { font: 400 28px/1.4 var(--d-body); color: var(--d-muted); margin: 20px 0 0; max-width: 1500px; }
+.sw .bd { flex: 1; min-height: 0; margin-top: 46px; display: flex; flex-direction: column; }
+.sw .src { font: 400 19px/1.4 var(--d-body); color: var(--d-muted); margin-top: auto; }
+.sw .f { transition: opacity .45s ease, transform .5s ease; }
+.player-host .sw .f:not(.on) { opacity: 0; transform: translateY(16px); }
+
+/* title */
+.sw.title { justify-content: center; padding-left: 160px; }
+.sw.title .dots { display: flex; gap: 14px; margin-bottom: 44px; }
+.sw.title .dots i { width: 18px; height: 18px; border-radius: 50%; background: var(--d-acc-glow); opacity: .9; }
+.sw.title .dots i:nth-child(2) { opacity: .6; } .sw.title .dots i:nth-child(3) { opacity: .35; }
+.sw.title h1 { font: 800 168px/.95 var(--d-head); letter-spacing: -.04em; margin: 0; }
+.sw.title .t-sub { font: 600 52px/1.15 var(--d-head); margin: 34px 0 0; max-width: 1500px; letter-spacing: -.01em; }
+.sw.title .t-tag { font: 400 34px/1.3 var(--d-body); font-style: italic; color: var(--d-acc-glow); margin: 30px 0 0; }
+.sw.title .byline { margin-top: 76px; font: 500 28px/1 var(--d-body); color: var(--d-night-2); display: flex; gap: 22px; align-items: center; }
+.sw.title .byline i { width: 2px; height: 30px; background: #334155; }
+.sw .stamp { position: absolute; right: 120px; top: 70px; font: 700 17px/1 var(--d-body); letter-spacing: .16em; text-transform: uppercase; color: #fcd34d; border: 2px solid #fcd34d; border-radius: 999px; padding: 10px 18px; }
+
+/* divider + journey */
+.sw.divider { justify-content: center; padding-left: 160px; }
+.sw.divider .num { font: 800 240px/.9 var(--d-head); letter-spacing: -.05em; background: linear-gradient(180deg, #c3d0ff, #5b7cff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sw.divider h2 { font: 800 104px/1.02 var(--d-head); letter-spacing: -.035em; margin: 40px 0 0; max-width: 1300px; }
+.sw.divider .sub { font: 400 40px/1.3 var(--d-body); color: var(--d-night-2); margin: 28px 0 0; }
+.sw .journey { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 80px; width: 1500px; }
+.sw .journey::before { content: ""; position: absolute; left: 11px; right: 0; top: 11px; height: 2px; background: #334155; }
+.sw .journey div { position: relative; padding-top: 44px; }
+.sw .journey div::before { content: ""; position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #475569; background: var(--d-night); }
+.sw .journey div.past::before { background: var(--d-acc); border-color: var(--d-acc); }
+.sw .journey div.on::before { background: #8ea5ff; border-color: #c3d0ff; box-shadow: 0 0 0 8px rgba(142, 165, 255, .2); }
+.sw .journey b { display: block; font: 700 18px/1 var(--d-body); letter-spacing: .14em; text-transform: uppercase; color: var(--d-night-2); }
+.sw .journey span { display: block; margin-top: 12px; font: 400 18px/1 var(--d-body); color: #64748b; }
+.sw .journey .on span { color: var(--d-acc-glow); }
+
+/* bullets */
+.sw ul.bl { list-style: none; margin: 0; padding: 0; display: grid; gap: 30px; max-width: 1500px; }
+.sw ul.bl li { position: relative; padding-left: 52px; font: 400 36px/1.35 var(--d-body); }
+.sw ul.bl li::before { content: ""; position: absolute; left: 0; top: 16px; width: 18px; height: 18px; border-radius: 4px; background: var(--d-acc); }
+.sw ul.bl li b { font-weight: 700; color: var(--d-acc-dark); }
+
+/* big number */
+.sw .bign { display: grid; grid-template-columns: 820px 1fr; gap: 80px; align-items: center; flex: 1; }
+.sw .bign .n { font: 800 300px/.9 var(--d-head); letter-spacing: -.06em; color: var(--d-acc); }
+.sw .bign .n small { font-size: 110px; letter-spacing: -.03em; color: var(--d-acc-dark); }
+.sw .bign p { font: 500 40px/1.3 var(--d-head); margin: 0; }
+.sw .bign p + p { font: 400 28px/1.45 var(--d-body); color: var(--d-muted); margin-top: 26px; }
+
+/* gantt */
+.sw .gantt { display: grid; grid-template-columns: 360px repeat(6, 1fr); row-gap: 40px; column-gap: 8px; align-items: center; }
+.sw .gantt .hd { font: 700 17px/1 var(--d-body); letter-spacing: .14em; text-transform: uppercase; color: var(--d-muted); padding-bottom: 6px; border-bottom: 2px solid var(--d-grid); }
+.sw .gantt .lab { font: 600 28px/1.2 var(--d-body); }
+.sw .gantt .bar { height: 76px; border-radius: 12px; display: flex; align-items: center; padding: 0 22px; font: 800 17px/1 var(--d-body); letter-spacing: .14em; color: #fff; }
+.sw .gantt .bar.done { background: var(--d-acc); }
+.sw .gantt .bar.slip { background: repeating-linear-gradient(135deg, var(--d-warn) 0 18px, #f08a46 18px 36px); }
+.sw .gantt .bar.stop { background: #fff; color: var(--d-bad); box-shadow: inset 0 0 0 3px var(--d-bad); }
+.sw .gantt .ship { grid-column: 7; justify-self: center; font: 800 17px/1 var(--d-body); letter-spacing: .14em; color: var(--d-ok); }
+
+/* quote */
+.sw .quote { margin: auto 0; padding-left: 48px; border-left: 8px solid var(--d-acc); font: 700 62px/1.22 var(--d-head); letter-spacing: -.02em; max-width: 1480px; }
+.sw .quote cite { display: block; margin-top: 34px; font: 400 28px/1.3 var(--d-body); font-style: normal; color: var(--d-muted); letter-spacing: 0; }
+
+/* practice */
+.sw .practice { display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; }
+.sw .col-h { display: flex; align-items: center; gap: 12px; font: 700 18px/1 var(--d-body); letter-spacing: .16em; text-transform: uppercase; color: var(--d-acc); margin-bottom: 16px; }
+.sw .col-h::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: currentColor; }
+.sw .col-h.ok { color: var(--d-ok); } .sw .col-h.bad { color: var(--d-bad); }
+.sw .it { background: var(--d-card); border-radius: 12px; box-shadow: var(--d-lift); padding: 22px 26px; font: 400 25px/1.4 var(--d-body); margin-bottom: 14px; }
+.sw .it b { color: var(--d-acc-dark); font-weight: 600; }
+.sw .it.ok { box-shadow: var(--d-lift), inset 6px 0 0 var(--d-ok); padding-left: 34px; }
+.sw .it.bad { box-shadow: var(--d-lift), inset 6px 0 0 var(--d-bad); padding-left: 34px; }
+.sw .callout { border-radius: 14px; padding: 28px 36px; font: 700 28px/1.35 var(--d-head); background: var(--d-acc-light); color: var(--d-acc-dark); }
+.sw .callout.bad { background: #fdecec; color: var(--d-ink); box-shadow: inset 6px 0 0 var(--d-bad); }
+
+/* compare */
+.sw .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; flex: 1; }
+.sw .panel { background: var(--d-card); border-radius: 18px; box-shadow: var(--d-lift); padding: 44px 48px; border-top: 10px solid var(--d-bad); }
+.sw .panel.good { border-top-color: var(--d-ok); }
+.sw .panel .tag { font: 800 18px/1 var(--d-body); letter-spacing: .16em; text-transform: uppercase; color: var(--d-bad); }
+.sw .panel.good .tag { color: var(--d-ok); }
+.sw .panel h3 { font: 800 44px/1.1 var(--d-head); letter-spacing: -.02em; margin: 18px 0 26px; }
+.sw .panel ul { margin: 0; padding: 0 0 0 30px; display: grid; gap: 16px; font: 400 27px/1.4 var(--d-body); }
+
+/* two-column + image */
+.sw .two { display: grid; grid-template-columns: 1fr 1.05fr; gap: 64px; flex: 1; align-items: start; }
+.sw .two ul.bl li { font-size: 30px; }
+.sw figure { margin: 0; }
+.sw figure .img { border-radius: 16px; overflow: hidden; box-shadow: var(--d-lift); background: #fff; }
+.sw figcaption { margin-top: 16px; font: 400 20px/1.3 var(--d-body); color: var(--d-muted); }
+
+/* table */
+.sw table.st { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--d-card); border-radius: 16px; box-shadow: var(--d-lift); overflow: hidden; font: 400 27px/1.3 var(--d-body); }
+.sw table.st th { text-align: left; font: 700 17px/1 var(--d-body); letter-spacing: .14em; text-transform: uppercase; color: var(--d-muted); padding: 22px 30px; background: #eef1f6; }
+.sw table.st td { padding: 22px 30px; border-top: 1px solid var(--d-grid); }
+.sw table.st td.n { font-weight: 700; font-variant-numeric: tabular-nums; }
+.sw table.st tr.hl td { background: #f2f5ff; }
+.sw .badge { display: inline-block; padding: 7px 14px; border-radius: 999px; font: 700 16px/1 var(--d-body); letter-spacing: .1em; text-transform: uppercase; }
+.sw .badge.ok { background: #dcfce7; color: #166534; } .sw .badge.bad { background: #fee2e2; color: #991b1b; } .sw .badge.warn { background: #ffedd5; color: #9a3412; } .sw .badge.acc { background: var(--d-acc-light); color: var(--d-acc-dark); }
+
+/* chart */
+.sw .chart { flex: 1; display: grid; grid-template-columns: 1fr 420px; gap: 60px; align-items: stretch; }
+.sw .chart svg text { font-family: var(--d-body); }
+.sw .chart aside { align-self: center; }
+
+/* numbered cards */
+.sw .ncards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; flex: 1; align-content: start; }
+.sw .ncard { background: var(--d-card); border-radius: 16px; box-shadow: var(--d-lift); padding: 34px 32px 38px; }
+.sw .ncard .no { font: 800 64px/1 var(--d-head); color: var(--d-acc); }
+.sw .ncard h4 { margin: 22px 0 14px; font: 700 30px/1.2 var(--d-head); }
+.sw .ncard p { margin: 0; font: 400 23px/1.4 var(--d-body); color: var(--d-muted); }
+
+/* rules */
+.sw .rules { display: grid; gap: 34px; }
+.sw .rule { display: grid; grid-template-columns: 170px 1fr; align-items: center; }
+.sw .rule .no { font: 800 150px/.85 var(--d-head); color: transparent; -webkit-text-stroke: 3px var(--d-acc); }
+.sw .rule h4 { margin: 0; font: 700 42px/1.2 var(--d-head); letter-spacing: -.015em; }
+.sw .rule p { margin: 10px 0 0; font: 400 26px/1.4 var(--d-body); color: var(--d-muted); }
+
+/* cards + chips */
+.sw .cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+.sw .rcard { background: var(--d-card); border-radius: 16px; box-shadow: var(--d-lift); padding: 34px 36px; }
+.sw .rcard h4 { margin: 18px 0 12px; font: 700 34px/1.15 var(--d-head); }
+.sw .rcard p { margin: 0; font: 400 24px/1.4 var(--d-body); color: var(--d-muted); }
+.sw .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.sw .chip { padding: 9px 16px; border-radius: 10px; background: #eef1f6; font: 500 19px/1 var(--d-body); color: var(--d-ink); }
+
+/* close */
+.sw.close { justify-content: center; padding-left: 160px; }
+.sw.close h2 { font: 800 112px/1.02 var(--d-head); letter-spacing: -.035em; margin: 0; max-width: 1400px; }
+.sw.close .callout { margin-top: 60px; max-width: 1200px; background: rgba(125, 150, 255, .14); color: #dbe3ff; font-size: 36px; }
+.sw.close .byline { margin-top: 70px; font: 500 28px/1 var(--d-body); color: var(--d-night-2); }
+
+</style>
+<style>
+/* =====================================================================
+   SW-4 additions
+   ===================================================================== */
+:root { --deep: #7a5af8; --deep-soft: #efeafe; --pw-bg: #0a0e16; --pw-panel: #111827; --pw-line: #1f2937; --pw-text: #e2e8f0; --pw-muted: #94a3b8; --pw-faint: #64748b; --pw-acc: #8ea5ff; }
+
+/* deep-dive mark on slides (SW-2 built: deep-dive strip colour + pill) */
+.sw.deep::before { background: var(--deep); }
+.sw .ddpill { position: absolute; right: 120px; top: 34px; z-index: 4; font: 700 17px/1 var(--d-body); letter-spacing: .16em; text-transform: uppercase; color: #fff; background: var(--deep); border-radius: 999px; padding: 10px 18px; }
+.sw.deep .snav { right: 360px; }
+
+.removed { text-decoration: line-through; color: var(--faint); }
+.k { display: inline-block; min-width: 20px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line-2); border-bottom-width: 2px; background: #fff; font: 500 11.5px/16px var(--mono); text-align: center; color: var(--text); }
+
+/* ---------- presenter window ---------- */
+.pw { background: var(--pw-bg); color: var(--pw-text); font: 400 13px/1.4 var(--ui); position: relative; outline: none; }
+.pw:focus-visible { box-shadow: inset 0 0 0 2px var(--pw-acc); }
+.pw-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--pw-line); }
+.pw-top .deck { font-weight: 600; white-space: nowrap; }
+.pw-top .part { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--pw-acc); background: rgb(142 165 255 / .12); padding: 5px 8px; border-radius: 5px; white-space: nowrap; }
+.pw-top .sp { flex: 1; }
+.clockbox { display: flex; align-items: center; gap: 10px; }
+.timer { font: 500 22px/1 var(--mono); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.timer.amber { color: #fbbf24; } .timer.red { color: #f87171; }
+.tsub { font: 400 11.5px/1.3 var(--ui); color: var(--pw-muted); }
+.tsub b { color: var(--pw-text); font-weight: 500; font-family: var(--mono); }
+.ibtn { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: rgb(255 255 255 / .07); color: var(--pw-text); }
+.ibtn:hover { background: rgb(255 255 255 / .14); }
+.ibtn:focus-visible { outline: 2px solid var(--pw-acc); }
+.ibtn svg { width: 14px; height: 14px; }
+.vsep { width: 1px; height: 26px; background: var(--pw-line); }
+.conn { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; background: rgb(255 255 255 / .06); font-size: 12px; color: var(--pw-muted); white-space: nowrap; }
+.conn i { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px rgb(52 211 153 / .18); }
+.conn.off i { background: #64748b; box-shadow: none; }
+.conn b { color: var(--pw-text); font-weight: 500; }
+.pw-main { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; padding: 16px; }
+@media (max-width: 900px) { .pw-main { grid-template-columns: minmax(0, 1fr); } }
+.pw-lab { display: flex; align-items: center; gap: 8px; margin: 0 0 7px; font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--pw-muted); }
+.pw-lab .sp { flex: 1; }
+.pw-lab .val { font: 500 12px/1 var(--mono); letter-spacing: 0; text-transform: none; color: var(--pw-text); }
+.pw .frame { border-radius: 4px; box-shadow: 0 8px 30px rgb(0 0 0 / .5); }
+.pw .now { position: relative; }
+.pw .now .frame { outline: 2px solid rgb(142 165 255 / .55); outline-offset: 3px; }
+.blackbadge { position: absolute; inset: 0; display: none; place-items: center; background: rgb(0 0 0 / .72); border-radius: 4px; font: 600 13px/1.3 var(--ui); color: #fff; text-align: center; }
+.blackbadge.on { display: grid; }
+.pw-ctl { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.pw-ctl .count { font: 500 13px/1 var(--mono); min-width: 64px; text-align: center; }
+.pw-ctl .steps { display: flex; gap: 4px; }
+.pw-ctl .steps i { width: 7px; height: 7px; border-radius: 50%; background: rgb(255 255 255 / .2); }
+.pw-ctl .steps i.on { background: #a5b8ff; }
+.pw-ctl .bar { flex: 1; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .1); overflow: hidden; position: relative; }
+.pw-ctl .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: #6d8bff; transition: width .3s; }
+.pw-side { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.nextwrap .frame { opacity: .92; }
+.nextnote { margin-top: 6px; font-size: 12px; color: var(--pw-muted); }
+.nextnote .skipped { color: #c4b5fd; }
+.notes { background: var(--pw-panel); border: 1px solid var(--pw-line); border-radius: 8px; padding: 12px 14px; min-height: 150px; max-height: 260px; overflow: auto; }
+.notes .body { font-size: var(--nfs, 15px); line-height: 1.5; color: #f1f5f9; }
+.notes .body p { margin: 0 0 8px; }
+.notes .body ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.notes .body b { color: #fff; }
+.notes .empty { color: var(--pw-faint); font-style: italic; }
+.pw-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 16px 14px; border-top: 1px solid var(--pw-line); }
+.tbtn { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; border-radius: 7px; background: rgb(255 255 255 / .06); color: var(--pw-text); font: 500 12.5px/1 var(--ui); white-space: nowrap; }
+.tbtn:hover { background: rgb(255 255 255 / .12); }
+.tbtn:focus-visible { outline: 2px solid var(--pw-acc); }
+.tbtn .kk { font: 500 10.5px/1 var(--mono); color: var(--pw-faint); padding: 2px 5px; border: 1px solid #334155; border-radius: 4px; }
+.tbtn[aria-pressed="true"] { background: rgb(142 165 255 / .2); color: #dbe3ff; box-shadow: inset 0 0 0 1px rgb(142 165 255 / .5); }
+.tbtn.deep[aria-pressed="true"] { background: rgb(122 90 248 / .25); color: #ddd6fe; box-shadow: inset 0 0 0 1px rgb(167 139 250 / .6); }
+.tbtn.black[aria-pressed="true"] { background: #fff; color: #000; }
+.tbtn svg { width: 14px; height: 14px; }
+.pw-tools .sp { flex: 1; }
+.pw-tools .hint { color: var(--pw-faint); font-size: 12px; }
+
+/* overview overlay (shared by the presenter window and section 04) */
+.ov { background: rgb(8 11 18 / .97); padding: 16px; }
+.pw .ov { position: absolute; inset: 49px 0 0 0; z-index: 5; overflow: auto; display: none; }
+.pw .ov.open { display: block; }
+.ov-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; color: var(--pw-muted); font-size: 12.5px; flex-wrap: wrap; }
+.ov-head b { color: var(--pw-text); font-weight: 600; font-size: 14px; }
+.ov-head .sp { flex: 1; }
+.ov-part { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--pw-acc); margin: 14px 0 8px; }
+.ov-part:first-of-type { margin-top: 0; }
+.ov-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: start; }
+@media (max-width: 900px) { .ov-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .ov-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ov-t { all: unset; cursor: pointer; display: block; position: relative; border-radius: 5px; }
+.ov-t .frame { border-radius: 4px; }
+.ov-t:hover .frame { outline: 2px solid rgb(255 255 255 / .35); outline-offset: 2px; }
+.ov-t:focus-visible .frame { outline: 2px solid var(--pw-acc); outline-offset: 2px; }
+.ov-t.cur .frame { outline: 3px solid var(--pw-acc); outline-offset: 2px; }
+.ov-t .cap { display: flex; gap: 6px; align-items: center; margin-top: 5px; font: 500 11.5px/1.2 var(--ui); color: var(--pw-muted); }
+.ov-t .cap .no { font-family: var(--mono); color: var(--pw-text); }
+.ov-t .cap .dd { white-space: nowrap; flex: none; margin-left: auto; font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: #c4b5fd; background: rgb(122 90 248 / .22); padding: 3px 5px; border-radius: 4px; }
+.ov-t.skipped .frame { opacity: .32; }
+.ov-t.skipped .cap { opacity: .6; }
+.ov-t .herepill { position: absolute; left: 6px; top: 6px; z-index: 2; font: 600 10px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; background: var(--pw-acc); color: #0b1020; padding: 3px 6px; border-radius: 4px; }
+
+/* audience window */
+.aud { background: #05070d; padding: 14px; position: relative; }
+.aud .frame { border-radius: 2px; }
+.aud .blk { position: absolute; inset: 14px; background: #000; display: none; }
+.aud .blk.on { display: block; }
+.pair { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 980px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.cap-under { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+
+/* deck page Present menu */
+.menu-pop { position: absolute; right: 0; top: calc(100% + 6px); width: 330px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 18px 40px -12px rgb(16 24 40 / .35); padding: 6px; z-index: 3; }
+.menu-pop .mi { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 9px 10px; border-radius: 7px; }
+.menu-pop .mi:hover, .menu-pop .mi.on { background: var(--surface-2); }
+.menu-pop .mi .ico { width: 30px; height: 30px; border-radius: 7px; background: var(--accent-soft); color: var(--accent-dark); display: grid; place-items: center; }
+.menu-pop .mi .ico svg { width: 16px; height: 16px; }
+.menu-pop .mi b { display: block; font-weight: 600; font-size: 13px; }
+.menu-pop .mi span { display: block; color: var(--muted); font-size: 12px; line-height: 1.35; }
+.menu-pop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 6px; }
+.split { display: inline-flex; }
+.split .btn:first-child { border-radius: 6px 0 0 6px; }
+.split .btn:last-child { border-radius: 0 6px 6px 0; border-left: 1px solid rgb(255 255 255 / .35); padding: 6px 8px; }
+.qr-card { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 18px; align-items: center; padding: 18px; }
+@media (max-width: 560px) { .qr-card { grid-template-columns: minmax(0, 1fr); } }
+.qr { width: 170px; height: 170px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.qr svg { width: 100%; height: 100%; display: block; }
+.steps-list { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+
+/* diagram */
+.dg text { font-family: var(--ui); }
+
+/* ---------- phone speaker mode ---------- */
+.phones { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 22px; align-items: start; }
+.phone-col { display: grid; gap: 10px; justify-items: center; }
+.phone-col .cap-under { text-align: center; max-width: 300px; }
+.phone-col h4 { margin: 0; font: 600 13px/1.3 var(--ui); text-align: center; }
+.phones .phone { width: 272px; }
+.phone.tall .phone-screen { height: 610px; }
+.sp-screen { color: var(--pw-text); font: 400 13px/1.4 var(--ui); background: var(--pw-bg); }
+.sp-status { display: flex; align-items: center; gap: 8px; padding: 34px 14px 8px; }
+.sp-status .live { display: inline-flex; align-items: center; gap: 5px; font: 600 10.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: #6ee7b7; }
+.sp-status .live i { width: 7px; height: 7px; border-radius: 50%; background: #34d399; }
+.sp-status .live.lost { color: #fca5a5; } .sp-status .live.lost i { background: #f87171; }
+.sp-status .sp { flex: 1; }
+.sp-status .t { font: 500 17px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.sp-status .t.amber { color: #fbbf24; } .sp-status .t.red { color: #f87171; }
+.sp-status .rem { font: 400 11px/1 var(--mono); color: var(--pw-muted); }
+.sp-thumbs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 2px 14px 0; }
+.sp-thumbs .lab { font: 600 9.5px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--pw-muted); margin-bottom: 4px; display: flex; gap: 4px; }
+.sp-thumbs .lab b { font-family: var(--mono); letter-spacing: 0; color: var(--pw-text); font-weight: 500; }
+.sp-thumbs .frame { border-radius: 3px; }
+.sp-thumbs .now .frame { outline: 2px solid rgb(142 165 255 / .6); outline-offset: 1px; }
+.sp-thumbs .relative { position: relative; }
+.sp-notes { flex: 1; min-height: 0; overflow: auto; margin: 10px 14px 0; padding: 10px 12px; border-radius: 10px; background: var(--pw-panel); border: 1px solid var(--pw-line); font-size: 14px; line-height: 1.45; }
+.sp-notes p { margin: 0 0 6px; } .sp-notes ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; } .sp-notes b { color: #fff; }
+.sp-notes .meta { font: 500 10.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--pw-faint); margin-bottom: 6px; display: flex; gap: 6px; }
+.sp-nav { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; padding: 10px 14px 6px; }
+.sp-nav button { all: unset; cursor: pointer; display: grid; place-items: center; height: 54px; border-radius: 14px; background: rgb(255 255 255 / .08); color: #e2e8f0; font: 600 14px/1 var(--ui); }
+.sp-nav button.nx { background: #3b5bdb; color: #fff; font-size: 16px; }
+.sp-nav button:active { transform: scale(.98); }
+.sp-nav button:focus-visible { outline: 2px solid var(--pw-acc); }
+.sp-nav button svg { width: 22px; height: 22px; }
+.sp-nav .nx span { display: block; font: 500 11px/1.2 var(--ui); opacity: .8; margin-top: 3px; }
+.sp-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 0 14px 16px; }
+.sp-row button { all: unset; cursor: pointer; display: grid; justify-items: center; gap: 3px; padding: 7px 4px; border-radius: 10px; background: rgb(255 255 255 / .05); color: var(--pw-muted); font: 500 10.5px/1.1 var(--ui); text-align: center; }
+.sp-row button svg { width: 17px; height: 17px; color: var(--pw-text); }
+.sp-row button[aria-pressed="true"] { background: rgb(142 165 255 / .2); color: #dbe3ff; }
+.sp-row button.deep[aria-pressed="true"] { background: rgb(122 90 248 / .28); color: #ddd6fe; }
+.sp-row button.black[aria-pressed="true"] { background: #fff; color: #000; } .sp-row button.black[aria-pressed="true"] svg { color: #000; }
+.sp-big { padding: 2px 14px 0; }
+.sp-big .lab, .sp-nextrow .lab { font: 600 9.5px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--pw-muted); margin-bottom: 5px; display: flex; gap: 5px; align-items: center; }
+.sp-big .lab b { font-family: var(--mono); letter-spacing: 0; color: var(--pw-text); font-weight: 500; }
+.sp-big .lab .sp { flex: 1; }
+.sp-big .frame { border-radius: 4px; outline: 2px solid rgb(142 165 255 / .6); outline-offset: 1px; }
+.sp-nextrow { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: center; margin: 10px 14px 0; }
+.sp-nextrow .frame { border-radius: 3px; opacity: .9; }
+.sp-nextrow b { font: 500 13px/1.2 var(--ui); }
+.sp-nextrow .nn { font-size: 10.5px; color: #c4b5fd; margin-top: 3px; }
+.sp-nextrow .nn .skipped { color: #c4b5fd; }
+.sp-black { margin: 8px 14px 0; padding: 6px 10px; border-radius: 8px; background: #fff; color: #000; font: 600 11.5px/1.2 var(--ui); text-align: center; display: none; }
+.sp-black.on { display: block; }
+
+.sheet { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--pw-bg); }
+.sheet-h { display: flex; align-items: center; padding: 34px 14px 8px; gap: 8px; }
+.sheet-h b { font-size: 15px; }
+.sheet-h .sp { flex: 1; }
+.sheet-h .x { font-size: 12px; color: var(--pw-acc); }
+.sheet-list { flex: 1; min-height: 0; overflow: auto; padding: 0 10px 14px; }
+.sheet-list .pt { font: 600 10px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--pw-acc); margin: 12px 4px 6px; }
+.sheet-row { all: unset; cursor: pointer; display: grid; grid-template-columns: 22px 72px minmax(0, 1fr); gap: 8px; align-items: center; padding: 5px 4px; border-radius: 8px; width: calc(100% - 8px); }
+.sheet-row:hover { background: rgb(255 255 255 / .05); }
+.sheet-row:focus-visible { outline: 2px solid var(--pw-acc); }
+.sheet-row.cur { background: rgb(142 165 255 / .16); }
+.sheet-row .n { font: 500 11.5px/1 var(--mono); color: var(--pw-muted); text-align: right; }
+.sheet-row .frame { border-radius: 2px; }
+.sheet-row .ttl { font-size: 12.5px; line-height: 1.25; color: var(--pw-text); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.sheet-row .ttl small { display: block; font-size: 10px; color: #c4b5fd; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; margin-top: 2px; }
+.sheet-row.skipped { opacity: .5; }
+
+.st-screen { flex: 1; display: flex; flex-direction: column; padding: 40px 18px 18px; gap: 12px; background: var(--pw-bg); color: var(--pw-text); }
+.st-screen h5 { margin: 0; font: 650 17px/1.25 var(--ui); font-weight: 650; }
+.st-screen p { margin: 0; color: var(--pw-muted); font-size: 12.5px; }
+.live-card { border: 1px solid var(--pw-line); background: var(--pw-panel); border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+.live-card .frame { border-radius: 4px; }
+.live-card b { font-size: 14px; }
+.live-card .meta { font-size: 11.5px; color: var(--pw-muted); }
+.live-card .go { all: unset; cursor: default; text-align: center; padding: 11px; border-radius: 10px; background: #3b5bdb; color: #fff; font: 600 14px/1 var(--ui); }
+.muted-card { border: 1px dashed #334155; border-radius: 12px; padding: 12px; color: var(--pw-muted); font-size: 12px; }
+.lost-banner { border-radius: 12px; padding: 12px; background: rgb(248 113 113 / .12); border: 1px solid rgb(248 113 113 / .4); color: #fecaca; font-size: 12.5px; line-height: 1.45; }
+.lost-banner b { color: #fff; }
+.spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #334155; border-top-color: var(--pw-acc); animation: spin 1s linear infinite; display: inline-block; vertical-align: -4px; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+/* deep-dive strip */
+.ddstrip { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; padding: 16px; }
+@media (max-width: 760px) { .ddstrip { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.ddstrip .it { position: relative; }
+.ddstrip .it .frame { border-radius: 4px; border: 1px solid var(--line); }
+.ddstrip .it .n { font: 500 11px/1 var(--mono); color: var(--faint); margin-top: 4px; display: flex; gap: 5px; align-items: center; }
+.ddstrip .it .n .dd { font: 600 9.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--deep); background: var(--deep-soft); padding: 2px 4px; border-radius: 3px; }
+.ddstrip.skip .it.deep .frame { opacity: .28; outline: 2px dashed var(--deep); outline-offset: 2px; }
+.ddstrip .it.cur .frame { outline: 3px solid var(--accent); outline-offset: 2px; }
+.ddtoggle { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.switch { position: relative; width: 38px; height: 22px; border-radius: 999px; background: var(--line-2); border: 0; cursor: pointer; padding: 0; flex: none; }
+.switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s; box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+.switch[aria-checked="true"] { background: var(--deep); }
+.switch[aria-checked="true"]::after { left: 19px; }
+
+table.keys { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-size: 13px; }
+.keys th { text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.keys td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.keys tr:last-child td { border-bottom: 0; }
+.keys td.na { color: var(--faint); }
+.keys td:first-child { font-weight: 550; font-weight: 600; white-space: nowrap; }
+</style>
+</head>
+<body>
+<script type="application/json" data-lavish-revisions>
+[{ "id": "r1", "label": "Round 1", "timestamp": "2026-11-17T09:30:00Z", "summary": "The owner's answers D1–D6: all sync through DeckHub (D4), phone slide-first (D6), PDF export filed as SW-173 (D2), SW-7 closed as merged (D1)" }]
+</script>
+<main>
+
+<header class="page-head">
+  <div class="eyebrow">SlideWorks · SW-4 · design mockups · 2026-11-17</div>
+  <h1>Presenting: the presenter window on the laptop, and speaker mode on the phone</h1>
+  <p>A presenter runs a talk with speaker notes, the next slide, a timer, an overview and a deep-dive skip. They can do it from a second window on the laptop, or from their phone while the laptop drives the projector. Every mock on this page shares one presentation state: move a slide in any of them and the others follow, the way the real windows will.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span class="pill acc" data-lavish-revision="r1">Phone remote folded in, SW-7 closed (D1)</span>
+    <span class="pill bad" data-lavish-revision="r1">PDF export moved to SW-173 (D2)</span>
+    <span class="pill ok" data-lavish-revision="r1">6 questions answered · D1–D6 on SW-4</span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#scope">00 Scope</a><a href="#how">01 How it connects</a><a href="#start">02 Starting</a><a href="#presenter">03 Presenter window</a><a href="#overview">04 Overview</a><a href="#deep">05 Deep dives</a><a href="#phone">06 Phone speaker mode</a><a href="#keys">07 Controls</a><a href="#edges">08 When things go wrong</a><a href="#questions">09 Questions</a>
+</nav>
+
+<!-- ================================================================ SCOPE -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">00</span><h2>What SW-4 covers now</h2></div>
+  <p class="sec-sub">Two changes from the Feature as written: the phone remote from SW-7 comes in, because presenting from the phone is the main way you'll run a talk, and PDF export goes.</p>
+  <div class="scope">
+    <div class="card">
+      <h3><span class="pill ok"><span class="dot"></span>In SW-4</span></h3>
+      <ul>
+        <li>Speaker notes per slide (set over MCP since SW-1), in the presenter window and on the phone</li>
+        <li>Presenter window: current slide, next slide or next reveal, notes, elapsed timer with pause and reset, optional talk length, clock, slide and step count</li>
+        <li data-lavish-revision="r1">Audience window kept in step with the presenter window, both through DeckHub (D4)</li>
+        <li data-lavish-revision="r1"><b>Phone speaker mode:</b> sign in on the phone, pick the deck you're presenting, then the current slide large with the notes underneath (D6), next and previous, next slide, timer, jump to slide, blackout and deep-dive skip</li>
+        <li>Overview grid of thumbnails grouped by part, click to jump</li>
+        <li>Deep dives (marked since SW-2): shown in the presenter view, and a "skip deep dives" toggle steps over them</li>
+        <li>Blackout and fullscreen</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="pill grey">Not in SW-4</span></h3>
+      <ul class="later-list">
+        <li data-lavish-revision="r1"><span class="k">SW-173</span> export to PDF, one page per slide (filed at the back of the backlog, D2)</li>
+        <li><span class="k">SW-5</span> audience joins by QR and follows along on their own phones</li>
+        <li><span class="k">SW-6</span> poll controls on the phone (reveal results, close voting). Phone speaker mode keeps a slot for them.</li>
+        <li>Editing slides or notes from the phone</li>
+        <li>Recording or rehearsal timings per slide</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ HOW -->
+<section class="block" id="how">
+  <div class="sec-head"><span class="n">01</span><h2>How the three screens connect</h2></div>
+  <p class="sec-sub" data-lavish-revision="r1">One presentation state (slide, step, blackout, skip deep dives, timer). Every window and phone shares it through the existing <code>DeckHub</code>, in a new owner-only group (D4). There's one path to build and test. The cost: a Wi-Fi drop freezes the audience window until it reconnects (section 08). SW-4 doesn't wait for SW-5.</p>
+  <div class="card diagram" data-lavish-revision="r1">
+    <svg class="dg" viewBox="0 0 1180 400" role="img" aria-labelledby="dgT">
+      <title id="dgT">The presenter window, the audience window and the phone each share state through the server's DeckHub presentation group.</title>
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5b6474"/></marker>
+        <marker id="arb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2f5bea"/></marker>
+      </defs>
+      <!-- laptop box -->
+      <rect x="20" y="30" width="560" height="340" rx="14" fill="#f8f9fb" stroke="#d3d8e0"/>
+      <text x="40" y="58" font-size="13" font-weight="700" fill="#5b6474" letter-spacing="1.5">LAPTOP</text>
+      <rect x="44" y="80" width="230" height="150" rx="10" fill="#0a0e16"/>
+      <rect x="60" y="100" width="198" height="80" rx="4" fill="#1e293b"/>
+      <rect x="60" y="190" width="120" height="8" rx="3" fill="#334155"/><rect x="60" y="204" width="90" height="8" rx="3" fill="#334155"/>
+      <text x="159" y="252" text-anchor="middle" font-size="14" font-weight="600" fill="#1b2230">Presenter window</text>
+      <text x="159" y="270" text-anchor="middle" font-size="12" fill="#5b6474">notes · next · timer · overview</text>
+      <rect x="330" y="80" width="230" height="150" rx="10" fill="#05070d"/>
+      <rect x="342" y="94" width="206" height="116" rx="2" fill="#f7f8fa"/><rect x="342" y="94" width="206" height="4" fill="#2f5bea"/>
+      <rect x="358" y="120" width="140" height="12" rx="3" fill="#111827"/><rect x="358" y="142" width="170" height="7" rx="3" fill="#cbd5e1"/><rect x="358" y="156" width="150" height="7" rx="3" fill="#cbd5e1"/>
+      <text x="445" y="252" text-anchor="middle" font-size="14" font-weight="600" fill="#1b2230">Audience window</text>
+      <text x="445" y="270" text-anchor="middle" font-size="12" fill="#5b6474">on the projector, fullscreen</text>
+      <rect x="150" y="296" width="300" height="50" rx="8" fill="#fdf0e1" stroke="#f3c999"/>
+      <text x="300" y="317" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b4580b">No direct link between the windows</text>
+      <text x="300" y="334" text-anchor="middle" font-size="11.5" fill="#5b6474">both follow the hub (D4)</text>
+      <!-- server -->
+      <rect x="640" y="120" width="250" height="170" rx="14" fill="#e6ecfd" stroke="#b9c8f8"/>
+      <text x="660" y="148" font-size="13" font-weight="700" fill="#1e3a8a" letter-spacing="1.5">SERVER</text>
+      <text x="660" y="178" font-size="14" font-weight="600" fill="#1b2230">DeckHub  /hubs/deck</text>
+      <text x="660" y="200" font-size="12.5" fill="#1e3a8a" font-family="IBM Plex Mono, monospace">deck:{id}</text>
+      <text x="780" y="200" font-size="11.5" fill="#5b6474">exists (SW-1)</text>
+      <text x="660" y="224" font-size="12.5" fill="#1e3a8a" font-family="IBM Plex Mono, monospace">present:{id}</text>
+      <text x="780" y="224" font-size="11.5" fill="#18794e" font-weight="600">new, owner only</text>
+      <text x="660" y="256" font-size="11.5" fill="#5b6474">holds the last state so a phone</text>
+      <text x="660" y="272" font-size="11.5" fill="#5b6474">that joins late starts in the right place</text>
+      <!-- phone -->
+      <rect x="980" y="70" width="150" height="270" rx="22" fill="#11151d"/>
+      <rect x="990" y="84" width="130" height="242" rx="14" fill="#0a0e16"/>
+      <rect x="1000" y="108" width="54" height="30" rx="2" fill="#f7f8fa"/><rect x="1060" y="108" width="54" height="30" rx="2" fill="#f7f8fa" opacity=".6"/>
+      <rect x="1000" y="148" width="114" height="100" rx="6" fill="#111827"/>
+      <rect x="1010" y="160" width="80" height="6" rx="3" fill="#475569"/><rect x="1010" y="174" width="94" height="6" rx="3" fill="#475569"/><rect x="1010" y="188" width="70" height="6" rx="3" fill="#475569"/>
+      <rect x="1000" y="262" width="30" height="40" rx="8" fill="#1f2937"/><rect x="1036" y="262" width="78" height="40" rx="8" fill="#3b5bdb"/>
+      <text x="1055" y="362" text-anchor="middle" font-size="14" font-weight="600" fill="#1b2230">Phone speaker mode</text>
+      <text x="1055" y="380" text-anchor="middle" font-size="12" fill="#5b6474">signed in as the deck owner</text>
+      <!-- arrows -->
+      <path d="M200 78 V44 H765 V116" fill="none" stroke="#2f5bea" stroke-width="2.5" marker-end="url(#arb)" marker-start="url(#arb)"/>
+      <path d="M564 160 H636" stroke="#2f5bea" stroke-width="2.5" marker-end="url(#arb)" marker-start="url(#arb)"/>
+      <path d="M894 205 H976" stroke="#2f5bea" stroke-width="2.5" marker-end="url(#arb)" marker-start="url(#arb)"/>
+      <text x="480" y="62" text-anchor="middle" font-size="11.5" fill="#2f5bea">WebSocket</text>
+      <text x="935" y="190" text-anchor="middle" font-size="11.5" fill="#2f5bea">WebSocket</text>
+      <text x="600" y="150" text-anchor="middle" font-size="11.5" fill="#2f5bea">WebSocket</text>
+    </svg>
+  </div>
+  <div class="grid3" style="margin-top:14px">
+    <div class="card" style="padding:14px 16px"><b>State, not commands.</b><div class="cap-under" style="margin-top:4px">Each move sends the whole state with a sequence number: <code>{slide, step, black, skipDeep, timer}</code>. A window that missed a message just applies the next one. Last write wins.</div></div>
+    <div class="card" style="padding:14px 16px"><b>Who may join <code>present:{id}</code>.</b><div class="cap-under" style="margin-top:4px">The deck owner's signed-in sessions only (Q3). Link viewers and agents can't join it. People with the share link who open the deck aren't moved: following along is SW-5.</div></div>
+    <div class="card" style="padding:14px 16px"><b>Notes never reach the audience.</b><div class="cap-under" style="margin-top:4px">The public player view model already leaves notes out (SW-1). Notes come only from the owner's deck API, so the audience window never has them.</div></div>
+  </div>
+</section>
+
+<!-- ================================================================ START -->
+<section class="block" id="start">
+  <div class="sec-head"><span class="n">02</span><h2>Starting a presentation</h2><span class="pill grey">deck page · Present menu</span></div>
+  <p class="sec-sub"><b>Present</b> still opens the player as today. The arrow opens three ways to present. The phone needs no pairing code: the QR only opens the remote page, and signing in as the deck owner is what lets it control the deck.</p>
+  <div class="grid2">
+    <div class="browser">
+      <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/decks/7Kq2</div></div>
+      <div class="app" style="min-height:330px">
+        <div class="app-top">
+          <div class="logo"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="3" fill="#2f5bea"/><rect x="6" y="8" width="8" height="2.4" rx="1" fill="#fff"/><rect x="6" y="12" width="12" height="2" rx="1" fill="#a5b8ff"/></svg>SlideWorks</div>
+          <span class="sp"></span><span class="avatar">SR</span>
+        </div>
+        <div class="app-body">
+          <div class="app-h" style="position:relative">
+            <h3>Ship smaller</h3><span class="pill grey">16 slides · 3 deep dives</span><span class="sp"></span>
+            <button class="btn" type="button">Share</button>
+            <div style="position:relative">
+              <div class="split"><button class="btn primary" type="button">▶ Present</button><button class="btn primary" type="button" aria-label="More ways to present">▾</button></div>
+              <div class="menu-pop" role="menu">
+                <div class="mi"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5l11 7-11 7z"/></svg></span><div><b>Present</b><span>The player in this tab, fullscreen.</span></div><span class="k">F</span></div>
+                <div class="mi on"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="13" height="10" rx="1.5"/><rect x="11" y="10" width="11" height="9" rx="1.5"/></svg></span><div><b>Presenter view</b><span>Notes, next slide and timer here. Opens the audience window to drag onto the projector.</span></div><span class="k">P</span></div>
+                <hr>
+                <div class="mi"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span><div><b>Control from your phone</b><span>Shows a QR code. The laptop presents, the phone has the notes.</span></div><span></span></div>
+              </div>
+            </div>
+          </div>
+          <p style="color:var(--muted);margin:150px 0 0;font-size:12.5px">(deck page as built in SW-1/SW-2 behind the menu)</p>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="qr-card">
+        <div class="qr" id="qr" aria-label="Mock QR code"></div>
+        <div>
+          <h3 style="font:650 16px/1.3 var(--ui);font-weight:650;margin-bottom:6px">Control this talk from your phone</h3>
+          <ol class="steps-list">
+            <li>Scan the code, or open <code>slideworks.example/remote</code></li>
+            <li>Sign in with the same Google account (once per phone; it stays signed in)</li>
+            <li>Tap <b>Ship smaller</b>. The phone shows your notes and drives this laptop.</li>
+          </ol>
+          <p style="color:var(--muted);font-size:12.5px;margin:10px 0 0">The QR holds only <code>/remote?deck=7Kq2</code>. Anyone else who scans it gets "This presentation isn't yours."</p>
+        </div>
+      </div>
+      <div style="padding:0 18px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span class="conn" style="background:var(--ok-soft);color:var(--ok)"><i></i><b style="color:var(--ok)">Sam's iPhone connected</b></span>
+        <span style="color:var(--muted);font-size:12.5px">The dialog closes itself when a phone connects. The presenter window shows the same chip.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ PRESENTER -->
+<section class="block" id="presenter">
+  <div class="sec-head"><span class="n">03</span><h2>Presenter window</h2><span class="pill grey">live: click into it and use ← → N O B D T</span></div>
+  <p class="sec-sub">Dark, so it doesn't light up the presenter's face from the lectern. The current slide is largest. Next shows the next reveal when the slide has steps left, otherwise the next slide (with any skipped deep dives named). The audience window below follows; so does the phone in section 06.</p>
+  <div>
+    <div class="browser">
+      <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/decks/7Kq2/present</div></div>
+      <div class="pw" id="pw" tabindex="0" aria-label="Presenter window mock. Arrow keys move; N notes, O overview, B blackout, D deep dives, T reset timer.">
+        <div class="pw-top">
+          <span class="deck">Ship smaller</span><span class="part" data-bind="part">Slice it</span>
+          <span class="sp"></span>
+          <div class="clockbox">
+            <div><div class="timer" data-bind="elapsed">12:40</div></div>
+            <div class="tsub"><span data-bind="remain">17:20 left</span> of <b>30:00</b><br>clock <b data-bind="clock">14:32</b></div>
+            <button class="ibtn" type="button" data-act="pause" aria-label="Pause timer" title="Pause timer"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+            <button class="ibtn" type="button" data-act="reset" aria-label="Reset timer (T)" title="Reset timer (T)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg></button>
+          </div>
+          <span class="vsep"></span>
+          <span class="conn"><i></i>Audience <b>Display 2</b></span>
+          <span class="conn" data-bind="phoneChip"><i></i><b>Sam's iPhone</b></span>
+        </div>
+        <div class="pw-main">
+          <div>
+            <div class="pw-lab">Now<span class="sp"></span><span class="val" data-bind="count">8 / 16</span></div>
+            <div class="now"><div class="frame" data-view="pwNow"></div><div class="blackbadge" data-bind="blackBadge">Audience sees a black screen<br><span style="font-weight:400;opacity:.8">B to bring the slide back</span></div></div>
+            <div class="pw-ctl">
+              <button class="ibtn" type="button" data-act="prev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 6l-6 6 6 6"/></svg></button>
+              <button class="ibtn" type="button" data-act="next" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg></button>
+              <span class="count" data-bind="count">8 / 16</span>
+              <span class="steps" data-bind="stepdots"></span>
+              <span class="bar"><i data-bind="bar"></i></span>
+            </div>
+          </div>
+          <div class="pw-side">
+            <div class="nextwrap">
+              <div class="pw-lab">Next<span class="sp"></span><span class="val" data-bind="nextLab">slide 9</span></div>
+              <div class="frame" data-view="pwNext"></div>
+              <div class="nextnote" data-bind="nextNote"></div>
+            </div>
+            <div data-bind="notesWrap">
+              <div class="pw-lab">Notes<span class="sp"></span>
+                <button class="ibtn" type="button" data-act="fsm" aria-label="Smaller notes" title="Smaller notes" style="width:24px;height:22px;font:600 11px/1 var(--ui)">A−</button>
+                <button class="ibtn" type="button" data-act="fsp" aria-label="Larger notes" title="Larger notes" style="width:24px;height:22px;font:600 13px/1 var(--ui)">A+</button>
+              </div>
+              <div class="notes"><div class="body" data-bind="notes"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="pw-tools">
+          <button class="tbtn" type="button" data-act="overview" aria-pressed="false" data-bind="ovBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview <span class="kk">O</span></button>
+          <button class="tbtn" type="button" data-act="notes" aria-pressed="true" data-bind="notesBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h14v16H5zM8 9h8M8 13h8M8 17h5"/></svg>Notes <span class="kk">N</span></button>
+          <button class="tbtn deep" type="button" data-act="deep" aria-pressed="false" data-bind="deepBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/><path d="M3 5v14"/></svg><span data-bind="deepLabel">Skip deep dives</span> <span class="kk">D</span></button>
+          <button class="tbtn black" type="button" data-act="black" aria-pressed="false" data-bind="blackBtn"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/></svg>Blackout <span class="kk">B</span></button>
+          <button class="tbtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>Audience fullscreen <span class="kk">F</span></button>
+          <span class="sp"></span>
+          <button class="tbtn" type="button" data-act="phone" aria-pressed="true" data-bind="phoneBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg><span data-bind="phoneLabel">Phone connected</span></button>
+        </div>
+        <div class="ov" data-view="pwOverview"></div>
+      </div>
+    </div>
+  </div>
+  <div class="pair" style="margin-top:18px">
+    <div>
+      <div class="browser">
+        <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/d/7Kq2<b data-bind="hash">#8</b></div></div>
+        <div class="aud"><div class="frame" data-view="aud"></div><div class="blk" data-bind="audBlack"></div></div>
+      </div>
+      <div class="cap-under">Audience window on the projector (or the audience tab when there's one screen). While a presenter window or phone drives it, its control bar stays hidden and clicks on the slide do nothing, so a stray tap can't move the talk. Keys still work.</div>
+    </div>
+    <div>
+      <div class="card" style="padding:14px 16px">
+        <h4 style="margin:0 0 8px;font:600 12px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Presenter window rules</h4>
+        <ul class="rules-list">
+          <li>Opening it opens the audience window too. Closing the audience window shows "Audience window closed · Reopen".</li>
+          <li>The timer starts on the first move, not on open, so setup time doesn't count.</li>
+          <li>With a talk length set, the timer turns amber at 5 minutes left and red when over.</li>
+          <li>An agent's edit mid-talk (existing <code>deckEvent</code>) updates the slides in place and keeps the position.</li>
+          <li>Notes size is remembered per browser.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ OVERVIEW -->
+<section class="block" id="overview">
+  <div class="sec-head"><span class="n">04</span><h2>Overview</h2><span class="pill grey">O in the presenter window · click a slide to jump</span></div>
+  <p class="sec-sub">Thumbnails grouped by the deck's parts (the part tracker from SW-1), so "jump to the start of Ship it" is one click. Deep dives carry the pill, and dim when skipping is on. A jump always lands where you click, deep dive or not. The presenter only sees this: the audience keeps the current slide until you pick one.</p>
+  <div class="browser">
+    <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/decks/7Kq2/present · Overview</div></div>
+    <div class="ov" data-view="ovStatic" style="background:var(--pw-bg)"></div>
+  </div>
+</section>
+
+<!-- ================================================================ DEEP DIVES -->
+<section class="block" id="deep">
+  <div class="sec-head"><span class="n">05</span><h2>Running late: skip deep dives</h2></div>
+  <p class="sec-sub">One toggle, on the laptop (<span class="k">D</span>) and on the phone. While it's on, next and previous step over every slide marked deep dive. Nothing is removed from the deck, the audience sees no gaps in the count, and you can still jump into one from the overview if someone asks.</p>
+  <div class="card">
+    <div class="ddstrip" data-view="ddstrip"></div>
+    <div class="ddtoggle">
+      <button class="switch" type="button" role="switch" aria-checked="false" data-act="deep" data-bind="deepSwitch" aria-label="Skip deep dives"></button>
+      <b data-bind="deepSummary">Skip deep dives is off</b>
+      <span style="color:var(--muted)" data-bind="deepDetail"></span>
+    </div>
+  </div>
+  <div class="grid3" style="margin-top:14px">
+    <div class="card" style="padding:14px 16px"><b>Count stays honest.</b><div class="cap-under" style="margin-top:4px">The counter keeps the deck's numbers, so it reads 9 → 11 → 13. Nothing renumbers, and the URL still says #11. The presenter view adds "2 deep dives ahead, skipping".</div></div>
+    <div class="card" style="padding:14px 16px"><b>Steps on a deep dive don't matter.</b><div class="cap-under" style="margin-top:4px">A skipped deep dive is skipped whole, reveals included. Previous also skips it, so going back doesn't land you in one.</div></div>
+    <div class="card" style="padding:14px 16px"><b>Part dividers.</b><div class="cap-under" style="margin-top:4px">SW-2's <code>deepDivesOnDivider</code> option lists a part's deep dives on its divider. When skipping, those names stay; the presenter just doesn't go there.</div></div>
+  </div>
+</section>
+
+<!-- ================================================================ PHONE -->
+<section class="block" id="phone">
+  <div class="sec-head"><span class="n">06</span><h2>Phone speaker mode</h2><span class="pill acc">from SW-7</span><span class="pill grey">the first phone is live and synced</span></div>
+  <p class="sec-sub" data-lavish-revision="r1">Slide first (D6): the current slide fills the width, so you see what the room sees. The next slide sits beside its label, and the notes scroll underneath. Next is the big button under your thumb. The screen stays awake (Wake Lock) while connected. No swipe on the notes, so scrolling them can't move the slide.</p>
+  <div class="phones">
+    <div class="phone-col">
+      <h4>1 · Speaker mode</h4>
+      <div class="phone tall"><div class="phone-screen sp-screen" data-view="phoneLive">
+        <div class="sp-status"><span class="live"><i></i>Live</span><span class="sp"></span><span><span class="t" data-bind="elapsed">12:40</span> <span class="rem" data-bind="remainShort">−17:20</span></span></div>
+        <div class="sp-big" data-lavish-revision="r1"><div class="lab">Now <b data-bind="count">8 / 16</b><span class="sp"></span><span data-bind="part">Slice it</span></div><div class="frame" data-view="phNow"></div></div>
+        <div class="sp-black" data-bind="phBlack">The room sees a black screen</div>
+        <div class="sp-nextrow" data-lavish-revision="r1"><div class="frame" data-view="phNext"></div><div><div class="lab">Next</div><b data-bind="nextBtnSub">slide 9</b><div class="nn" data-bind="nextNote"></div></div></div>
+        <div class="sp-notes" data-lavish-revision="r1"><div class="meta"><span>Notes</span><span data-bind="stepMeta"></span></div><div data-bind="notes"></div></div>
+        <div class="sp-nav">
+          <button type="button" data-act="prev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <button type="button" class="nx" data-act="next"><div>Next</div></button>
+        </div>
+        <div class="sp-row">
+          <button type="button" data-act="sheet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Slides</button>
+          <button type="button" class="deep" data-act="deep" aria-pressed="false" data-bind="phDeep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/><path d="M3 5v14"/></svg>Skip deep dives</button>
+          <button type="button" class="black" data-act="black" aria-pressed="false" data-bind="phBlackBtn"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/></svg>Blackout</button>
+        </div>
+      </div></div>
+      <div class="cap-under" data-lavish-revision="r1">Timer top right counts up, with time left beside it when a talk length is set. Poll controls from SW-6 will sit between the notes and Next on interactive slides.</div>
+    </div>
+
+    <div class="phone-col">
+      <h4>2 · Slides (jump)</h4>
+      <div class="phone tall"><div class="phone-screen sp-screen">
+        <div class="sheet">
+          <div class="sheet-h"><b>Slides</b><span class="sp"></span><span class="x">Done</span></div>
+          <div class="sheet-list" data-view="sheet"></div>
+        </div>
+      </div></div>
+      <div class="cap-under">Tap a row to jump the room there. Grouped by part; deep dives labelled and dimmed while skipping. Live: it follows the shared state.</div>
+    </div>
+
+    <div class="phone-col">
+      <h4>3 · Pick the talk</h4>
+      <div class="phone tall"><div class="phone-screen">
+        <div class="st-screen">
+          <div style="display:flex;align-items:center;gap:8px"><span class="avatar">SR</span><span style="font-size:12px;color:var(--pw-muted)">Signed in as Sam</span></div>
+          <h5>Presenting now</h5>
+          <div class="live-card">
+            <div class="frame" data-view="pickThumb"></div>
+            <b>Ship smaller</b>
+            <div class="meta">Chrome on Windows · presenter view · slide 8 · started 12 min ago</div>
+            <span class="go">Control this talk</span>
+          </div>
+          <div class="muted-card">Not presenting anything else. Open a deck's presenter view on your laptop and it shows up here.</div>
+          <p>Opened from the QR code, this screen is skipped and goes straight to speaker mode.</p>
+        </div>
+      </div></div>
+      <div class="cap-under">Lists only your decks with an open presenter or audience window. Two laptops showing the same deck appear as two rows.</div>
+    </div>
+
+    <div class="phone-col">
+      <h4>4 · Connection lost</h4>
+      <div class="phone tall"><div class="phone-screen">
+        <div class="st-screen">
+          <div class="sp-status" style="padding:0"><span class="live lost"><i></i>Reconnecting</span><span class="sp"></span><span class="t" style="font:500 17px/1 var(--mono)">18:02</span></div>
+          <div class="lost-banner"><span class="spinner"></span><b>Lost the connection to the laptop.</b><br>The laptop stays on slide 11 and its keys still work. Your taps aren't sent until this reconnects; nothing queues up and fires later.</div>
+          <div class="sp-notes" style="margin:0;flex:1"><div class="meta"><span>Notes for slide 11 (last known)</span></div><p>Highlight row is the target. <b>Don't read every cell.</b></p></div>
+          <div class="sp-nav" style="padding:0;opacity:.4"><button type="button" disabled>‹</button><button type="button" class="nx" disabled>Next</button></div>
+        </div>
+      </div></div>
+      <div class="cap-under">Notes stay readable from the last state. Buttons disable rather than queue, so a reconnect can't jump the room three slides.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ KEYS -->
+<section class="block" id="keys">
+  <div class="sec-head"><span class="n">07</span><h2>Controls in each place</h2></div>
+  <p class="sec-sub">The keys match the hand-built decks this replaces (N, P, O, B, F), plus D for deep dives and T for the timer.</p>
+  <div class="table-wrap">
+  <table class="keys">
+    <thead><tr><th>Action</th><th>Laptop key (both windows)</th><th>Presenter window</th><th>Phone</th></tr></thead>
+    <tbody>
+      <tr><td>Next / previous</td><td><span class="k">→</span> <span class="k">Space</span> <span class="k">PgDn</span> · <span class="k">←</span> <span class="k">PgUp</span> (clickers send these)</td><td>Buttons under Now</td><td>Big Next, small Previous</td></tr>
+      <tr><td>Jump to slide</td><td><span class="k">O</span> then click, or type a number then <span class="k">Enter</span></td><td>Overview</td><td>Slides sheet</td></tr>
+      <tr><td>Open presenter view</td><td><span class="k">P</span> from the player</td><td>·</td><td class="na">n/a</td></tr>
+      <tr><td>Notes panel</td><td><span class="k">N</span></td><td>Toggle, A− / A+</td><td>Always shown</td></tr>
+      <tr><td>Skip deep dives</td><td><span class="k">D</span></td><td>Toggle</td><td>Toggle</td></tr>
+      <tr><td>Blackout</td><td><span class="k">B</span> or <span class="k">.</span></td><td>Toggle</td><td>Toggle</td></tr>
+      <tr><td>Fullscreen</td><td><span class="k">F</span></td><td>Audience fullscreen</td><td class="na">n/a (a phone can't make another device's window fullscreen)</td></tr>
+      <tr><td>Timer</td><td><span class="k">T</span> reset</td><td>Pause, reset, talk length</td><td>Shown; tap to pause</td></tr>
+      <tr><td>First / last slide</td><td><span class="k">Home</span> <span class="k">End</span></td><td>·</td><td>Slides sheet</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ================================================================ EDGES -->
+<section class="block" id="edges">
+  <div class="sec-head"><span class="n">08</span><h2>When things go wrong</h2></div>
+  <div class="table-wrap">
+  <table class="keys">
+    <thead><tr><th>What happens</th><th>What the presenter sees</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr data-lavish-revision="r1"><td>Venue Wi-Fi drops</td><td>Presenter window shows "Reconnecting · the audience window won't follow until it's back". The audience window keeps the last slide, and its own keys still move it. The phone shows mock 4. On reconnect, the newest state wins.</td><td>Everything goes through the hub (D4). The audience window takes its own keys locally, so the talk can carry on from the projector laptop.</td></tr>
+      <tr><td>Phone locks or the browser goes to the background</td><td>On return it rejoins and jumps to the current state</td><td>The hub group keeps the last state</td></tr>
+      <tr><td>Two phones, or phone and laptop at once</td><td>Both work; each sees the other's moves. The laptop chip lists every connected phone.</td><td>State with a sequence number, last write wins</td></tr>
+      <tr><td>Audience window closed by mistake</td><td>Presenter window: "Audience window closed · Reopen"</td><td>Reopen restores the slide and step</td></tr>
+      <tr><td>Presenter window closed</td><td>Audience window shows its control bar again; the phone still drives it</td><td>The phone talks to any of the owner's windows on that deck</td></tr>
+      <tr><td>Agent edits the deck mid-talk</td><td>Slides update in place; if the current slide was deleted, stay on the slide now at that number</td><td>Existing <code>deckEvent</code> from SW-1</td></tr>
+      <tr><td>Someone else scans the QR</td><td>"This presentation isn't yours." and a link to view the deck if it's shared with them</td><td>Only the owner's sessions join <code>present:{id}</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ================================================================ QUESTIONS -->
+<section class="block" id="questions" data-lavish-question-group>
+  <div class="sec-head"><span class="n">09</span><h2>Questions for you</h2><span class="pill ok" data-lavish-revision="r1">6 answered · D1–D6 on SW-4</span></div>
+  <p class="sec-sub" data-lavish-revision="r1">Answered 2026-11-17 and recorded on SW-4 as D1–D6. Three went against my recommendation: PDF export is filed as SW-173 (D2), everything syncs through the hub (D4), and the phone shows the slide first (D6). SW-7 is closed as merged into SW-4. The forms still work if you want to change an answer.</p>
+  <div class="qs">
+    <form class="card q" data-lavish-question="sw7-fold">
+      <h3>Q1. What happens to SW-7 (phone remote)?</h3>
+      <p class="why">This page folds it into SW-4. SW-7 was waiting on SW-5's realtime channel, but the <code>DeckHub</code> that SW-5 would use is already built, so nothing blocks it.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Fold SW-7 into SW-4 and close SW-7 as merged" checked><span><b>Fold it in, close SW-7</b><span class="rec">recommended</span><span>One Feature, one plan. The phone shares all of the presenter state, so splitting it would build the sync twice.</span></span></label>
+        <label class="choice"><input type="radio" name="a" value="Keep SW-7 as its own Feature, planned straight after SW-4"><span><b>Keep SW-7, plan it straight after SW-4</b><span>SW-4 builds the shared state; SW-7 adds the phone. Smaller PRs, longer to the phone.</span></span></label>
+        <label class="choice"><input type="radio" name="a" value="Build the phone remote first, presenter window second, both in SW-4"><span><b>In SW-4, phone first</b><span>The phone is what you'd use on stage; the laptop presenter window follows in a second wave.</span></span></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="pdf">
+      <h3>Q2. PDF export: drop it, or file it somewhere else?</h3>
+      <p class="why">It came from the catalogue: the hand-built decks had print CSS for handouts. The share link and the SW-2 share card already cover "send people the deck".</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Drop PDF export entirely, don't file it"><span><b>Drop it, don't file it</b><span class="rec">recommended</span><span>The share link is the handout. File it later if someone asks.</span></span></label>
+        <label class="choice"><input type="radio" name="a" value="Drop from SW-4 and file a separate PDF export Feature at the back of the backlog" checked><span><b>File as its own Feature, back of the backlog</b><span>Kept on record, not planned.</span></span></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="who-drives">
+      <h3>Q3. Who can drive a presentation from a phone?</h3>
+      <p class="why">Decides who may join the <code>present:{id}</code> group. A wider rule makes a co-presented talk possible, and makes a hijack possible too.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Owner only" checked><span><b>The deck owner only</b><span class="rec">recommended</span><span>Simple and safe. A co-presenter uses the laptop's keys.</span></span></label>
+        <label class="choice"><input type="radio" name="a" value="Owner plus people the deck is shared with by name"><span><b>Owner and named people</b><span>Co-presenters can drive. Needs a "who's connected" list with a kick button.</span></span></label>
+        <label class="choice"><input type="radio" name="a" value="Anyone holding a one-time code shown on the laptop"><span><b>Anyone with a code from the laptop</b><span>No sign-in on the phone, like a TV remote. A leaked code means a stranger can move your slides.</span></span></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="offline">
+      <h3>Q4. How do the presenter and audience windows on one laptop stay in step?</h3>
+      <p class="why">The phone has to go through the server. The two laptop windows don't.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="BroadcastChannel locally plus the hub for phones"><span><b>Locally (BroadcastChannel), hub only for phones</b><span class="rec">recommended</span><span>A Wi-Fi drop loses the phone, never the talk. Two paths to test.</span></span></label>
+        <label class="choice"><input type="radio" name="a" value="Everything through the hub" checked><span><b>Everything through the hub</b><span>One path. A Wi-Fi drop freezes the audience window until it reconnects.</span></span></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="talk-length">
+      <h3>Q5. Does the timer know how long the talk is?</h3>
+      <p class="why">The deep-dive skip is for running late, and you can only see you're late against a target. The hand-built decks only count up.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Optional talk length per deck: time left, amber at 5 minutes, red when over" checked><span><b>Optional talk length: time left, amber at 5 min, red when over</b><span class="rec">recommended</span><span>Set once on the deck (or over MCP). Shown in the mocks above.</span></span></label>
+        <label class="choice"><input type="radio" name="a" value="Elapsed and clock only"><span><b>Elapsed and clock only</b><span>Matches the existing decks. You do the arithmetic.</span></span></label>
+        <label class="choice"><input type="radio" name="a" value="Talk length plus a target time per part, ahead or behind"><span><b>Talk length plus time per part, ahead or behind</b><span>Tells you which part ran long. Needs a per-part target field.</span></span></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="phone-layout">
+      <h3>Q6. Phone speaker mode: notes first or slide first?</h3>
+      <p class="why">Mock 1 gives notes the most room and shows the slides as small thumbnails.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Notes first, small now and next thumbnails"><span><b>Notes first</b><span class="rec">recommended</span><span>You glance at notes; the room shows you the slide.</span></span></label>
+        <label class="choice"><input type="radio" name="a" value="Slide first, notes underneath" checked><span><b>Slide first, notes below</b><span>Mentimeter's layout. Long notes need scrolling.</span></span></label>
+        <label class="choice"><input type="radio" name="a" value="Notes first, with a tap on the thumbnail to swap to slide first"><span><b>Notes first, tap to swap</b><span>Both, at the cost of one more state to build and test.</span></span></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <div class="card" style="padding:14px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn" type="button" id="copyAll">Copy all answers</button>
+      <span id="copyState" role="status" aria-live="polite" style="color:var(--muted)"></span>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<template id="deckTpl">
+  <!-- 1 title -->
+  <div class="sw dark title" data-layout="title" data-slots="kicker · title · subtitle · tagline · byline · stamp" data-notes="Say: one sentence on why this matters to this room. Keep it under 30 seconds.">
+    <span class="stamp">Draft</span>
+    <div class="dots"><i></i><i></i><i></i></div>
+    <div class="kicker">Team offsite · 2026</div>
+    <h1>Ship smaller</h1>
+    <p class="t-sub">Why small batches beat big plans, and how to start on Monday</p>
+    <p class="t-tag">One change a day beats one launch a quarter.</p>
+    <div class="byline">Sam Rivera <i></i> Product Engineering</div>
+  </div>
+  <!-- 2 divider -->
+  <div class="sw dark divider" data-layout="divider" data-slots="number · title · sub · journey (from deck parts)" data-notes="Transition. Say: here's what last year cost us.">
+    <div class="num">01</div>
+    <h2>Big batches hide the risk</h2>
+    <p class="sub">Why the quarter-long launch keeps slipping.</p>
+    <div class="journey"><div class="on"><b>The cost</b><span>Slides 3–6</span></div><div><b>Slice it</b><span>Slides 8–11</span></div><div><b>Ship it</b><span>Slides 12–13</span></div><div><b>Make it stick</b><span>Slides 14–16</span></div></div>
+  </div>
+  <!-- 3 bullets -->
+  <div class="sw" data-layout="bullets" data-slots="kicker · headline · items[lead, text] · reveal" data-notes="Reveal one at a time. Pause on the last one and ask who has seen it.">
+    <div class="snav"><span class="on">The cost</span><span>Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">The pattern</div>
+    <h2 class="h">Every slip we had last year <em>started as a big batch</em></h2>
+    <div class="bd">
+      <ul class="bl">
+        <li class="f"><b>Risk shows up late.</b> The first real customer sees it in week ten.</li>
+        <li class="f"><b>Merges get scary.</b> Long branches collide, so people stop merging.</li>
+        <li class="f"><b>Feedback arrives as a verdict,</b> not a nudge. By then it is too late to change course cheaply.</li>
+        <li class="f"><b>Nobody can say how far along we are,</b> because nothing is done until everything is.</li>
+      </ul>
+    </div>
+    <div class="sfoot"><span><b>3</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 4 big number -->
+  <div class="sw" data-layout="big-number" data-slots="kicker · headline · value · unit · statement · context · source" data-notes="Let the number sit. Then: that's a quarter of the year before anyone outside the team sees the work.">
+    <div class="snav"><span class="on">The cost</span><span>Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">Last year, measured</div>
+    <h2 class="h">It took us <em>eleven weeks</em> to get a change in front of a customer</h2>
+    <div class="bign"><div class="n">11<small> wks</small></div><div><p>Median from first commit to the first customer using it.</p><p>Eight of our 12 launches waited on one last piece of work that had nothing to do with the rest.</p></div></div>
+    <div class="src">Source: delivery data Jan–Oct, 12 launches.</div>
+    <div class="sfoot"><span><b>4</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 5 gantt -->
+  <div class="sw" data-layout="gantt" data-slots="kicker · headline · columns · rows[label, from, to, state] · marker" data-notes="Point at sprint 6. Everything is green until it isn't.">
+    <div class="snav"><span class="on">The cost</span><span>Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">What it looked like</div>
+    <h2 class="h">One milestone each looks fair. <em>Nothing reaches customers until sprint 6.</em></h2>
+    <div class="bd">
+      <div class="gantt">
+        <span></span><span class="hd">Sprint 1</span><span class="hd">Sprint 2</span><span class="hd">Sprint 3</span><span class="hd">Sprint 4</span><span class="hd">Sprint 5</span><span class="hd">Sprint 6</span>
+        <span class="lab">Checkout API</span><span class="bar done" style="grid-column:2/4">Done</span><span style="grid-column:4/8"></span>
+        <span class="lab">Web checkout</span><span style="grid-column:2/3"></span><span class="bar done" style="grid-column:3/5">Done</span><span style="grid-column:5/8"></span>
+        <span class="lab">Mobile checkout</span><span style="grid-column:2/4"></span><span class="bar slip" style="grid-column:4/7">Slips</span><span></span>
+        <span class="lab">Payments partner</span><span style="grid-column:2/5"></span><span class="bar stop" style="grid-column:5/7">Stopped</span><span></span>
+        <span class="lab">Customers see it</span><span style="grid-column:2/7"></span><span class="ship">▲ Ship</span>
+      </div>
+    </div>
+    <div class="sfoot"><span><b>5</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 6 quote -->
+  <div class="sw" data-layout="quote" data-slots="kicker · quote · cite" data-notes="Read it slowly. Don't add to it.">
+    <div class="snav"><span class="on">The cost</span><span>Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">From the retro</div>
+    <blockquote class="quote">“We stopped asking ‘is it done?’ and started asking ‘is it out?’ The second question is much harder to fudge.”<cite>Team lead, payments squad</cite></blockquote>
+    <div class="sfoot"><span><b>6</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 7 divider -->
+  <div class="sw dark divider" data-layout="divider" data-slots="number · title · sub · journey (from deck parts)" data-notes="Transition. Say: so how small is small?">
+    <div class="num">02</div>
+    <h2>Slice it thin</h2>
+    <p class="sub">How to cut work so each piece reaches a customer.</p>
+    <div class="journey"><div class="past"><b>The cost</b><span>Slides 3–6</span></div><div class="on"><b>Slice it</b><span>Slides 8–11</span></div><div><b>Ship it</b><span>Slides 12–13</span></div><div><b>Make it stick</b><span>Slides 14–16</span></div></div>
+  </div>
+  <!-- 8 practice -->
+  <div class="sw" data-layout="practice" data-slots="kicker · headline · do[lead, text] · comes_back[] · avoid[] · callout{tone, text}" data-notes="Say: ask the room for last month's biggest story, and slice it live on the whiteboard. Skip the third Do item if you're short of time.">
+    <div class="snav"><span class="past">The cost</span><span class="on">Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">Slice it</div>
+    <h2 class="h">Slice by what a customer can do, not by layer</h2>
+    <div class="bd">
+      <div class="practice">
+        <div>
+          <div class="col-h">Do</div>
+          <div class="it"><b>Start from one user action</b> and build every layer it needs, thinly.</div>
+          <div class="it"><b>Hard-code the second case.</b> Generalise when the third one arrives.</div>
+          <div class="it"><b>Ship behind a flag</b> to one team first, then widen.</div>
+          <div class="it"><b>Write the demo sentence first:</b> "Now a customer can …"</div>
+        </div>
+        <div>
+          <div class="col-h ok">What comes back</div>
+          <div class="it ok">Feedback in days, not quarters.</div>
+          <div class="it ok">A merge that's small enough to review in one sitting.</div>
+          <div class="col-h bad" style="margin-top:26px">Avoid</div>
+          <div class="it bad">"API first, UI later." That's two batches, not two slices.</div>
+          <div class="callout bad" style="margin-top:22px">If a slice can't be demoed to a customer, it isn't a slice yet.</div>
+        </div>
+      </div>
+    </div>
+    <div class="sfoot"><span><b>8</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 9 compare -->
+  <div class="sw" data-layout="compare" data-slots="kicker · headline · left{tag, title, items} · right{tag, title, items}" data-notes="Left is what we did on checkout. Right is what the search team did the same quarter.">
+    <div class="snav"><span class="past">The cost</span><span class="on">Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">Same feature, two ways</div>
+    <h2 class="h">The difference is when the customer gets to answer</h2>
+    <div class="bd"><div class="cmp">
+      <div class="panel"><div class="tag">Failure mode</div><h3>Slice by layer</h3><ul><li>Database, then API, then UI</li><li>Nothing to show for five sprints</li><li>The first customer feedback rewrites the API</li></ul></div>
+      <div class="panel good"><div class="tag">Success mode</div><h3>Slice by customer action</h3><ul><li>"Save a card", then "pay with a saved card"</li><li>Something to demo every week</li><li>Feedback changes week 2, not week 10</li></ul></div>
+    </div></div>
+    <div class="sfoot"><span><b>9</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 10 two-column + image -->
+  <div class="sw" data-layout="two-column" data-slots="kicker · headline · left: bullets · right: image{id, caption}" data-notes="Show the map. One row is one release.">
+    <div class="snav"><span class="past">The cost</span><span class="on">Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">The tool</div>
+    <h2 class="h">A story map shows the thinnest release</h2>
+    <div class="bd"><div class="two">
+      <ul class="bl"><li><b>Across:</b> the steps a customer takes</li><li><b>Down:</b> richer versions of each step</li><li><b>Top row:</b> the first release. It covers every step, done simply.</li></ul>
+      <figure><div class="img"><svg viewBox="0 0 860 470" width="100%" aria-hidden="true"><rect width="860" height="470" fill="#fbfcfe"/>
+        <g font-family="Inter" font-size="20" font-weight="600" fill="#1b2230">
+        <rect x="30" y="30" width="180" height="70" rx="8" fill="#1e3a8a"/><text x="120" y="72" text-anchor="middle" fill="#fff">Browse</text>
+        <rect x="236" y="30" width="180" height="70" rx="8" fill="#1e3a8a"/><text x="326" y="72" text-anchor="middle" fill="#fff">Add to cart</text>
+        <rect x="442" y="30" width="180" height="70" rx="8" fill="#1e3a8a"/><text x="532" y="72" text-anchor="middle" fill="#fff">Pay</text>
+        <rect x="648" y="30" width="180" height="70" rx="8" fill="#1e3a8a"/><text x="738" y="72" text-anchor="middle" fill="#fff">Track</text>
+        <rect x="20" y="124" width="820" height="98" rx="10" fill="#e4eafd"/>
+        <rect x="30" y="138" width="180" height="70" rx="8" fill="#fff2a8"/><text x="120" y="180" text-anchor="middle" font-weight="500">List view</text>
+        <rect x="236" y="138" width="180" height="70" rx="8" fill="#fff2a8"/><text x="326" y="180" text-anchor="middle" font-weight="500">One item</text>
+        <rect x="442" y="138" width="180" height="70" rx="8" fill="#fff2a8"/><text x="532" y="180" text-anchor="middle" font-weight="500">Card only</text>
+        <rect x="648" y="138" width="180" height="70" rx="8" fill="#fff2a8"/><text x="738" y="180" text-anchor="middle" font-weight="500">Email</text>
+        <rect x="30" y="246" width="180" height="70" rx="8" fill="#fff8d6"/><text x="120" y="288" text-anchor="middle" font-weight="500" fill="#5b6474">Filters</text>
+        <rect x="236" y="246" width="180" height="70" rx="8" fill="#fff8d6"/><text x="326" y="288" text-anchor="middle" font-weight="500" fill="#5b6474">Many items</text>
+        <rect x="442" y="246" width="180" height="70" rx="8" fill="#fff8d6"/><text x="532" y="288" text-anchor="middle" font-weight="500" fill="#5b6474">Saved cards</text>
+        <rect x="648" y="246" width="180" height="70" rx="8" fill="#fff8d6"/><text x="738" y="288" text-anchor="middle" font-weight="500" fill="#5b6474">Live map</text>
+        <rect x="30" y="340" width="180" height="70" rx="8" fill="#fff8d6"/><text x="120" y="382" text-anchor="middle" font-weight="500" fill="#5b6474">Search</text>
+        <rect x="442" y="340" width="180" height="70" rx="8" fill="#fff8d6"/><text x="532" y="382" text-anchor="middle" font-weight="500" fill="#5b6474">Wallets</text>
+        <text x="830" y="444" text-anchor="end" font-size="16" font-weight="700" fill="#2f5bea" letter-spacing="2">RELEASE 1 = BLUE BAND</text></g></svg></div>
+        <figcaption>story-map.png, uploaded by the agent with <code>upload_image</code></figcaption></figure>
+    </div></div>
+    <div class="sfoot"><span><b>10</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 11 table -->
+  <div class="sw" data-layout="table" data-slots="kicker · headline · columns · rows · highlight_row · badges in cells" data-notes="Highlight row is the target. Don't read every cell.">
+    <div class="snav"><span class="past">The cost</span><span class="on">Slice it</span><span>Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">Sizing</div>
+    <h2 class="h">Aim for slices a pair can ship <em>inside a week</em></h2>
+    <div class="bd"><table class="st">
+      <thead><tr><th>Slice size</th><th>Review time</th><th>Rollback</th><th>Customer feedback</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>One quarter</td><td class="n">Days</td><td>Painful</td><td>Week 10+</td><td><span class="badge bad">Avoid</span></td></tr>
+        <tr><td>One sprint</td><td class="n">Hours</td><td>Possible</td><td>Week 2–3</td><td><span class="badge warn">OK</span></td></tr>
+        <tr class="hl"><td><b>2–4 days</b></td><td class="n">Under an hour</td><td>Flip a flag</td><td>Same week</td><td><span class="badge ok">Target</span></td></tr>
+        <tr><td>Under a day</td><td class="n">Minutes</td><td>Flip a flag</td><td>Same week</td><td><span class="badge acc">Great</span></td></tr>
+      </tbody></table></div>
+    <div class="sfoot"><span><b>11</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 12 chart -->
+  <div class="sw" data-layout="chart" data-slots="kicker · headline · chart{type: bar|line, series, unit} · takeaway" data-notes="The dip in September is the flag rollout.">
+    <div class="snav"><span class="past">The cost</span><span class="past">Slice it</span><span class="on">Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">Ship it</div>
+    <h2 class="h">Lead time fell as the slices got smaller</h2>
+    <div class="bd"><div class="chart">
+      <svg viewBox="0 0 1100 560" width="100%" height="100%" aria-hidden="true">
+        <g stroke="#e3e6ec" stroke-width="2"><line x1="80" y1="40" x2="1080" y2="40"/><line x1="80" y1="190" x2="1080" y2="190"/><line x1="80" y1="340" x2="1080" y2="340"/><line x1="80" y1="490" x2="1080" y2="490" stroke="#cbd2dc"/></g>
+        <g font-size="22" fill="#5b6474" text-anchor="end"><text x="64" y="48">12 wk</text><text x="64" y="198">8</text><text x="64" y="348">4</text><text x="64" y="498">0</text></g>
+        <g fill="#c3d0ff"><rect x="120" y="77" width="110" height="413" rx="6"/><rect x="280" y="115" width="110" height="375" rx="6"/><rect x="440" y="190" width="110" height="300" rx="6"/></g>
+        <g fill="#2f5bea"><rect x="600" y="302" width="110" height="188" rx="6"/><rect x="760" y="377" width="110" height="113" rx="6"/><rect x="920" y="415" width="110" height="75" rx="6"/></g>
+        <g font-size="22" fill="#5b6474" text-anchor="middle"><text x="175" y="530">May</text><text x="335" y="530">Jun</text><text x="495" y="530">Jul</text><text x="655" y="530">Aug</text><text x="815" y="530">Sep</text><text x="975" y="530">Oct</text></g>
+        <g font-size="24" font-weight="700" fill="#1e3a8a" text-anchor="middle"><text x="175" y="64">11</text><text x="335" y="102">10</text><text x="495" y="177">8</text><text x="655" y="289">5</text><text x="815" y="364">3</text><text x="975" y="402">2</text></g>
+        <line x1="575" y1="30" x2="575" y2="490" stroke="#1e3a8a" stroke-dasharray="6 8" stroke-width="2"/><text x="588" y="62" font-size="20" font-weight="700" fill="#1e3a8a">Flags on</text>
+      </svg>
+      <aside><div class="callout">Weeks from first commit to the first customer. The median fell from 11 to 2.</div></aside>
+    </div></div>
+    <div class="sfoot"><span><b>12</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 13 numbered cards -->
+  <div class="sw" data-layout="numbered-cards" data-slots="kicker · headline · cards[title, text] (2–4)" data-notes="Hand these out as the self-check. Ask pairs to pick one story and run it through.">
+    <div class="snav"><span class="past">The cost</span><span class="past">Slice it</span><span class="on">Ship it</span><span>Make it stick</span></div>
+    <div class="kicker">Before you split a story</div>
+    <h2 class="h">Four questions, in this order</h2>
+    <div class="bd"><div class="ncards">
+      <div class="ncard"><div class="no">1</div><h4>Who notices?</h4><p>Name the person who would see the change on day one.</p></div>
+      <div class="ncard"><div class="no">2</div><h4>What's the thinnest version?</h4><p>Hard-code anything that isn't the point.</p></div>
+      <div class="ncard"><div class="no">3</div><h4>Can it hide behind a flag?</h4><p>If not, what would have to change so it can?</p></div>
+      <div class="ncard"><div class="no">4</div><h4>What would we learn?</h4><p>If the answer is "nothing", pick another slice.</p></div>
+    </div></div>
+    <div class="sfoot"><span><b>13</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 14 rules -->
+  <div class="sw" data-layout="rules" data-slots="kicker · headline · rules[title, text] (2–4)" data-notes="These are the only three. Resist adding a fourth.">
+    <div class="snav"><span class="past">The cost</span><span class="past">Slice it</span><span class="past">Ship it</span><span class="on">Make it stick</span></div>
+    <div class="kicker">Make it stick</div>
+    <h2 class="h">Three rules for the first month</h2>
+    <div class="bd"><div class="rules">
+      <div class="rule"><div class="no">1</div><div><h4>Merge to main every day</h4><p>Unfinished work goes behind a flag, not on a branch.</p></div></div>
+      <div class="rule"><div class="no">2</div><div><h4>Demo something every Friday</h4><p>To a customer if you can, and to the team if you can't.</p></div></div>
+      <div class="rule"><div class="no">3</div><div><h4>Split any story older than a week</h4><p>Ship what's done, and make the rest a new story.</p></div></div>
+    </div></div>
+    <div class="sfoot"><span><b>14</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 15 cards + chips + badges -->
+  <div class="sw" data-layout="cards" data-slots="kicker · headline · cards[badge, title, text, chips[]] (2–4)" data-notes="Each role has one new habit. Ask each role to pick theirs.">
+    <div class="snav"><span class="past">The cost</span><span class="past">Slice it</span><span class="past">Ship it</span><span class="on">Make it stick</span></div>
+    <div class="kicker">Who does what</div>
+    <h2 class="h">Everyone changes one habit</h2>
+    <div class="bd"><div class="cards3">
+      <div class="rcard"><span class="badge acc">Product</span><h4>Write the demo sentence</h4><p>Every story starts with "Now a customer can …".</p><div class="chips"><span class="chip">story map</span><span class="chip">flag plan</span></div></div>
+      <div class="rcard"><span class="badge ok">Engineering</span><h4>Merge daily, behind flags</h4><p>Small pull requests that can be reviewed in one sitting.</p><div class="chips"><span class="chip">trunk</span><span class="chip">flags</span><span class="chip">pairing</span></div></div>
+      <div class="rcard"><span class="badge warn">Design</span><h4>Design the thin version too</h4><p>Release 1 needs a design, not only the final vision.</p><div class="chips"><span class="chip">release 1 mock</span></div></div>
+    </div></div>
+    <div class="sfoot"><span><b>15</b> / 16 · Ship smaller · Sam Rivera</span></div>
+  </div>
+  <!-- 16 close -->
+  <div class="sw dark close" data-layout="close" data-slots="headline · callout · byline" data-notes="End on the ask. Then questions.">
+    <div class="kicker">One thing for Monday</div>
+    <h2>Pick one story.<br>Ship half of it by Friday.</h2>
+    <div class="callout">Then tell us what you learned at the next demo.</div>
+    <div class="byline">Sam Rivera · Product Engineering</div>
+  </div>
+</template>
+
+<script>
+(() => {
+  const tpl = document.getElementById('deckTpl');
+  const slides = [...tpl.content.children].filter(el => el.classList.contains('sw'));
+  const N = slides.length;
+  const DEEP = new Set([4, 9, 11]); // slides 5, 10, 12
+
+  // deep-dive marks + progress strip on each source slide
+  slides.forEach((s, i) => {
+    if (DEEP.has(i)) {
+      s.classList.add('deep');
+      const p = document.createElement('span'); p.className = 'ddpill'; p.textContent = 'Deep dive'; s.appendChild(p);
+    }
+    const pr = document.createElement('div'); pr.className = 'sprog'; pr.style.width = ((i + 1) / N * 100) + '%'; s.appendChild(pr);
+  });
+
+  // parts from the tracker; dividers take the next slide's part
+  const parts = slides.map(s => s.querySelector('.snav .on')?.textContent.trim() || null);
+  for (let i = N - 1; i >= 0; i--) if (!parts[i] && i < N - 1 && slides[i].dataset.layout === 'divider') parts[i] = parts[i + 1];
+  parts[0] = parts[0] || 'Opening';
+  parts[N - 1] = parts[N - 1] || 'Close';
+  for (let i = 0; i < N; i++) if (!parts[i]) parts[i] = parts[i - 1];
+
+  const titleOf = i => {
+    const s = slides[i];
+    const h = s.querySelector('h1, h2, .h, .quote');
+    return (h ? h.textContent : s.dataset.layout).replace(/\s+/g, ' ').trim().slice(0, 80);
+  };
+
+  const NOTES = {
+    0: '**Open:** one sentence on why this matters to this room.\n- Keep it under 30 seconds\n- Don\'t apologise for the title',
+    7: '**Ask the room** for last month\'s biggest story and slice it live on the whiteboard.\n- Get three slices before moving on\n- Skip the third Do item if you\'re short of time\n- Markers are on the left table',
+    9: 'Deep dive. **Only if someone asks how to find the slices.**\n- One row of the map is one release\n- Point at the walking skeleton',
+    11: 'Deep dive. The dip in September is the flag rollout.\n- Skip if under 10 minutes left',
+  };
+  const notesOf = i => NOTES[i] ?? slides[i].dataset.notes ?? '';
+  const md = t => {
+    if (!t) return '<p class="empty">No notes for this slide.</p>';
+    const esc = x => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    const lines = t.split('\n'); let out = '', inList = false;
+    for (const l of lines) {
+      if (l.startsWith('- ')) { if (!inList) { out += '<ul>'; inList = true; } out += '<li>' + esc(l.slice(2)) + '</li>'; }
+      else { if (inList) { out += '</ul>'; inList = false; } out += '<p>' + esc(l) + '</p>'; }
+    }
+    return out + (inList ? '</ul>' : '');
+  };
+
+  // frames
+  const ro = new ResizeObserver(es => { for (const e of es) e.target.style.setProperty('--s', e.contentRect.width / 1920); });
+  const setFrame = (f, i, step) => {
+    f.replaceChildren(slides[i].cloneNode(true));
+    f.classList.add('player-host');
+    f.querySelectorAll('.f').forEach((x, k) => x.classList.toggle('on', step === -1 || k < step));
+    if (!f._obs) { ro.observe(f); f._obs = true; }
+  };
+  const newFrame = i => { const f = document.createElement('div'); f.className = 'frame'; setFrame(f, i, -1); return f; };
+  const stepsOf = i => slides[i].querySelectorAll('.f').length;
+
+  // ---------- shared presentation state ----------
+  const S = { idx: 7, step: 0, black: false, skip: false, notes: true, overview: false, nfs: 15, paused: false, elapsed: 12 * 60 + 40, target: 30 * 60 };
+  const isSkipped = i => S.skip && DEEP.has(i);
+  const nextIdx = i => { let j = i + 1; while (j < N && isSkipped(j)) j++; return j < N ? j : null; };
+  const prevIdx = i => { let j = i - 1; while (j >= 0 && isSkipped(j)) j--; return j >= 0 ? j : null; };
+  function next() { if (S.step < stepsOf(S.idx)) S.step++; else { const j = nextIdx(S.idx); if (j !== null) { S.idx = j; S.step = 0; } } render(); }
+  function prev() { if (S.step > 0) S.step--; else { const j = prevIdx(S.idx); if (j !== null) { S.idx = j; S.step = stepsOf(j); } } render(); }
+  function jump(i) { S.idx = i; S.step = 0; S.overview = false; render(); }
+
+  const fmt = s => { const a = Math.abs(s); return (s < 0 ? '−' : '') + Math.floor(a / 60) + ':' + String(a % 60).padStart(2, '0'); };
+  const binds = name => document.querySelectorAll('[data-bind="' + name + '"]');
+  const set = (name, fn) => binds(name).forEach(fn);
+  const view = name => document.querySelectorAll('[data-view="' + name + '"]');
+
+  function buildOverview(el, withHead) {
+    el.innerHTML = '';
+    if (withHead) {
+      const h = document.createElement('div'); h.className = 'ov-head';
+      h.innerHTML = '<b>Overview</b><span>16 slides · 4 parts · 3 deep dives' + (S.skip ? ' (skipping)' : '') + '</span><span class="sp"></span><span>Esc or O to close</span>';
+      el.appendChild(h);
+    }
+    let lastPart = null, grid = null;
+    slides.forEach((s, i) => {
+      if (parts[i] !== lastPart) {
+        lastPart = parts[i];
+        const p = document.createElement('div'); p.className = 'ov-part'; p.textContent = parts[i]; el.appendChild(p);
+        grid = document.createElement('div'); grid.className = 'ov-grid'; el.appendChild(grid);
+      }
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'ov-t' + (i === S.idx ? ' cur' : '') + (isSkipped(i) ? ' skipped' : '');
+      b.setAttribute('aria-label', 'Jump to slide ' + (i + 1) + ': ' + titleOf(i));
+      if (i === S.idx) { const hp = document.createElement('span'); hp.className = 'herepill'; hp.textContent = 'Now'; b.appendChild(hp); }
+      b.appendChild(newFrame(i));
+      const cap = document.createElement('div'); cap.className = 'cap';
+      cap.innerHTML = '<span class="no">' + (i + 1) + '</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + titleOf(i) + '</span>' + (DEEP.has(i) ? '<span class="dd">Deep dive</span>' : '');
+      b.appendChild(cap);
+      b.addEventListener('click', () => jump(i));
+      grid.appendChild(b);
+    });
+  }
+
+  function buildSheet(el) {
+    el.innerHTML = ''; let lastPart = null;
+    slides.forEach((s, i) => {
+      if (parts[i] !== lastPart) { lastPart = parts[i]; const p = document.createElement('div'); p.className = 'pt'; p.textContent = parts[i]; el.appendChild(p); }
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'sheet-row' + (i === S.idx ? ' cur' : '') + (isSkipped(i) ? ' skipped' : '');
+      b.innerHTML = '<span class="n">' + (i + 1) + '</span>';
+      b.appendChild(newFrame(i));
+      const t = document.createElement('span'); t.className = 'ttl'; t.innerHTML = titleOf(i).replace(/</g, '&lt;') + (DEEP.has(i) ? '<small>Deep dive' + (S.skip ? ' · skipping' : '') + '</small>' : '');
+      b.appendChild(t);
+      b.addEventListener('click', () => jump(i));
+      el.appendChild(b);
+    });
+  }
+
+  function buildStrip(el) {
+    el.innerHTML = '';
+    el.classList.toggle('skip', S.skip);
+    slides.forEach((s, i) => {
+      const d = document.createElement('div'); d.className = 'it' + (DEEP.has(i) ? ' deep' : '') + (i === S.idx ? ' cur' : '');
+      d.appendChild(newFrame(i));
+      const n = document.createElement('div'); n.className = 'n'; n.innerHTML = (i + 1) + (DEEP.has(i) ? ' <span class="dd">Deep dive</span>' : '');
+      d.appendChild(n); el.appendChild(d);
+    });
+  }
+
+  function render() {
+    const i = S.idx, st = S.step, n = stepsOf(i);
+    view('pwNow').forEach(f => setFrame(f, i, st));
+    view('aud').forEach(f => setFrame(f, i, st));
+    view('phNow').forEach(f => setFrame(f, i, st));
+    view('pickThumb').forEach(f => setFrame(f, i, st));
+
+    // next: a reveal, a slide, or the end
+    let nLab, nNote = '', nShort, nBtn;
+    const skippedBetween = [];
+    if (st < n) {
+      view('pwNext').forEach(f => setFrame(f, i, st + 1));
+      view('phNext').forEach(f => setFrame(f, i, st + 1));
+      nLab = 'reveal ' + (st + 1) + ' of ' + n; nShort = (i + 1) + '.' + (st + 1); nBtn = 'reveal ' + (st + 1) + ' of ' + n;
+    } else {
+      const j = nextIdx(i);
+      if (j === null) { nLab = 'end of deck'; nShort = 'end'; nBtn = 'end of deck'; view('pwNext').forEach(f => f.replaceChildren()); view('phNext').forEach(f => f.replaceChildren()); }
+      else {
+        for (let k = i + 1; k < j; k++) skippedBetween.push(k + 1);
+        view('pwNext').forEach(f => setFrame(f, j, 0)); view('phNext').forEach(f => setFrame(f, j, 0));
+        nLab = 'slide ' + (j + 1) + (DEEP.has(j) ? ' · deep dive' : ''); nShort = String(j + 1); nBtn = 'slide ' + (j + 1);
+        if (skippedBetween.length) nNote = '<span class="skipped">Skipping deep dive ' + skippedBetween.join(', ') + '</span>';
+      }
+    }
+    const ahead = [...DEEP].filter(k => k > i).length;
+    if (!nNote && ahead) nNote = ahead + ' deep dive' + (ahead > 1 ? 's' : '') + ' ahead' + (S.skip ? ', skipping' : '');
+    set('nextLab', e => e.textContent = nLab);
+    set('nextShort', e => e.textContent = nShort);
+    set('nextBtnSub', e => e.textContent = nBtn);
+    set('nextNote', e => e.innerHTML = nNote);
+
+    set('count', e => e.textContent = (i + 1) + ' / ' + N);
+    set('part', e => e.textContent = parts[i] + (DEEP.has(i) ? ' · deep dive' : ''));
+    set('stepMeta', e => e.textContent = n ? 'reveal ' + st + ' of ' + n : '');
+    set('stepdots', e => e.innerHTML = Array.from({ length: n }, (_, k) => '<i class="' + (k < st ? 'on' : '') + '"></i>').join(''));
+    set('bar', e => e.style.width = ((i + 1) / N * 100) + '%');
+    set('hash', e => e.textContent = '#' + (i + 1) + (st ? '.' + st : ''));
+    set('notes', e => e.innerHTML = md(notesOf(i)));
+    document.querySelectorAll('.notes .body').forEach(e => e.style.setProperty('--nfs', S.nfs + 'px'));
+    set('notesWrap', e => e.style.display = S.notes ? '' : 'none');
+    set('notesBtn', e => e.setAttribute('aria-pressed', S.notes));
+
+    set('blackBadge', e => e.classList.toggle('on', S.black));
+    set('audBlack', e => e.classList.toggle('on', S.black));
+    set('phBlack', e => e.classList.toggle('on', S.black));
+    set('blackBtn', e => e.setAttribute('aria-pressed', S.black));
+    set('phBlackBtn', e => e.setAttribute('aria-pressed', S.black));
+
+    set('deepBtn', e => e.setAttribute('aria-pressed', S.skip));
+    set('phDeep', e => e.setAttribute('aria-pressed', S.skip));
+    set('deepSwitch', e => e.setAttribute('aria-checked', S.skip));
+    set('deepLabel', e => e.textContent = S.skip ? 'Skipping deep dives' : 'Skip deep dives');
+    set('deepSummary', e => e.textContent = S.skip ? 'Skipping deep dives' : 'Skip deep dives is off');
+    set('deepDetail', e => e.textContent = S.skip ? 'Next from slide 9 goes to 11, from 11 to 13. Slides 5, 10 and 12 stay in the deck and in the overview.' : 'Next walks every slide, deep dives included. Turn it on to see the path change; the presenter mock and the phone follow.');
+
+    set('ovBtn', e => e.setAttribute('aria-pressed', S.overview));
+    view('pwOverview').forEach(el => { el.classList.toggle('open', S.overview); if (S.overview) buildOverview(el, true); });
+    view('ovStatic').forEach(el => buildOverview(el, true));
+    view('sheet').forEach(buildSheet);
+    view('ddstrip').forEach(buildStrip);
+    tick(true);
+  }
+
+  function tick(noAdvance) {
+    if (!noAdvance && !S.paused) S.elapsed++;
+    const left = S.target - S.elapsed;
+    const cls = left < 0 ? 'red' : left <= 300 ? 'amber' : '';
+    set('elapsed', e => { e.textContent = fmt(S.elapsed); e.classList.remove('amber', 'red'); if (cls) e.classList.add(cls); });
+    set('remain', e => e.textContent = left >= 0 ? fmt(left) + ' left' : fmt(-left) + ' over');
+    set('remainShort', e => e.textContent = left >= 0 ? '−' + fmt(left) : '+' + fmt(-left));
+    const d = new Date();
+    set('clock', e => e.textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'));
+  }
+  setInterval(() => tick(false), 1000);
+
+  const acts = {
+    next, prev,
+    black: () => { S.black = !S.black; render(); },
+    deep: () => { S.skip = !S.skip; render(); },
+    notes: () => { S.notes = !S.notes; render(); },
+    overview: () => { S.overview = !S.overview; render(); },
+    pause: () => { S.paused = !S.paused; },
+    reset: () => { S.elapsed = 0; tick(true); },
+    fsm: () => { S.nfs = Math.max(12, S.nfs - 1); render(); },
+    fsp: () => { S.nfs = Math.min(24, S.nfs + 1); render(); },
+    sheet: () => document.querySelector('[data-view="sheet"]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }),
+    phone: () => {},
+  };
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const a = acts[b.dataset.act]; if (a) { e.preventDefault(); a(); }
+  });
+  const pw = document.getElementById('pw');
+  pw.addEventListener('keydown', e => {
+    if (e.target.closest('textarea, input')) return;
+    const k = e.key;
+    if (['ArrowRight', 'PageDown', ' '].includes(k)) { e.preventDefault(); next(); }
+    else if (['ArrowLeft', 'PageUp'].includes(k)) { e.preventDefault(); prev(); }
+    else if (k === 'Home') { e.preventDefault(); jump(0); }
+    else if (k === 'End') { e.preventDefault(); jump(N - 1); }
+    else if (k === 'b' || k === 'B' || k === '.') acts.black();
+    else if (k === 'd' || k === 'D') acts.deep();
+    else if (k === 'n' || k === 'N') acts.notes();
+    else if (k === 'o' || k === 'O') acts.overview();
+    else if (k === 'Escape' && S.overview) acts.overview();
+    else if (k === 't' || k === 'T') acts.reset();
+  });
+
+  // mock QR
+  (() => {
+    const n = 25; let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    let r = '';
+    const finder = (x, y) => '<rect x="' + x + '" y="' + y + '" width="7" height="7" fill="#111827"/><rect x="' + (x + 1) + '" y="' + (y + 1) + '" width="5" height="5" fill="#fff"/><rect x="' + (x + 2) + '" y="' + (y + 2) + '" width="3" height="3" fill="#111827"/>';
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const inF = (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9);
+      if (!inF && rnd() > .52) r += '<rect x="' + x + '" y="' + y + '" width="1" height="1" fill="#111827"/>';
+    }
+    document.getElementById('qr').innerHTML = '<svg viewBox="0 0 25 25" shape-rendering="crispEdges">' + r + finder(0, 0) + finder(n - 7, 0) + finder(0, n - 7) + '</svg>';
+  })();
+
+  render();
+
+  // questions: local until Queue answer
+  const forms = [...document.querySelectorAll('form.q')];
+  forms.forEach(form => {
+    const state = form.querySelector('.state');
+    form.addEventListener('change', () => { if (state.classList.contains('queued')) { state.textContent = 'Changed since queued. Queue again to replace.'; state.classList.remove('queued'); } });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const key = form.dataset.lavishQuestion;
+      const title = form.querySelector('h3').textContent.trim();
+      const fd = new FormData(form);
+      const answer = (fd.get('a') || '').toString();
+      const note = (fd.get('note') || '').toString().trim();
+      const prompt = 'SW-4 mockups, ' + title + ' → ' + answer + (note ? '. Note: ' + note : '') + '. Record this as a decision on SW-4 and update the mockups if it changes them.';
+      if (window.lavish && window.lavish.queuePrompt) {
+        window.lavish.queuePrompt(prompt, { tag: 'choice', text: title + ': ' + answer, element: form, queueKey: key, data: { question: key, answer, note } });
+        state.textContent = 'Queued. Press Send to agent in the Lavish bar.';
+      } else state.textContent = 'Lavish is not running. Use "Copy all answers" below.';
+      state.classList.add('queued');
+    });
+  });
+  document.getElementById('copyAll').addEventListener('click', async () => {
+    const txt = forms.map(f => { const fd = new FormData(f); const note = (fd.get('note') || '').toString().trim(); return f.querySelector('h3').textContent.trim() + ' → ' + fd.get('a') + (note ? ' (note: ' + note + ')' : ''); }).join('\n');
+    try { await navigator.clipboard.writeText(txt); document.getElementById('copyState').textContent = 'Copied ' + forms.length + ' answers.'; }
+    catch { document.getElementById('copyState').textContent = 'Clipboard blocked; select the text from the questions instead.'; }
+  });
+})();
+</script>
+</body>
+</html>

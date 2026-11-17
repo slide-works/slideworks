@@ -6,6 +6,7 @@ Mockups and design decisions, with one folder per Feature.
 |---|---|---|
 | [`sw-1-foundation/`](sw-1-foundation/) | SW-1 Foundation: agent-built web decks over MCP | Mockups reviewed, decisions D3–D9 settled, built on the SW-1 branch |
 | [`sw-2-templates-palettes/`](sw-2-templates-palettes/) | SW-2 Templates and palettes (also covers SW-15 Wada palettes and SW-50 uploaded templates) | Built (SW-2's sections; Wada palettes and uploaded templates are still to come) |
+| [`sw-4-presenter/`](sw-4-presenter/) | SW-4 Presenter view and phone remote (SW-7 merged in) | Mockups reviewed, decisions D1–D6 settled, not built |
 | [`sw-5-audience-join/`](sw-5-audience-join/) | SW-5 Audience join: QR code, join code and guest mode | Mockups reviewed, decisions D1–D8 settled, not built |
 
 ## SW-1 Foundation
@@ -88,6 +89,34 @@ Settled on the other Features:
   - Uploaded templates may include custom layouts as HTML with typed slots, reviewed before publishing (D1).
   - The routes in are an HTML importer plus `create_template` for agents (D2).
   - Templates are shared the same way as decks (D3).
+
+## SW-4 Presenter view and phone remote
+
+Open [`sw-4-presenter/sw-4-mockups.html`](sw-4-presenter/sw-4-mockups.html) in a browser. Every mock on the page shares one presentation state, as the real windows will. Move a slide, black out the screen or turn on deep-dive skipping in the presenter window, and the audience window, the overview, the deep-dive strip and the phone all follow. The presenter window takes the keys ← → N O B D T once you click into it. The PNGs are screenshots of each section at 1300 px wide.
+
+The phone remote was planned as its own Feature, SW-7. It is merged into SW-4 by D1.
+
+| Screen | PNG |
+|---|---|
+| Scope: what SW-4 covers and what it leaves to SW-5, SW-6 and SW-173 | [01-scope](sw-4-presenter/png/sw-4-01-scope.png) |
+| How the presenter window, audience window and phone share state through `DeckHub` | [02-how-it-connects](sw-4-presenter/png/sw-4-02-how-it-connects.png) |
+| Starting: the deck page's Present menu, and the QR code for the phone | [03-starting](sw-4-presenter/png/sw-4-03-starting.png) |
+| Presenter window and the audience window it drives | [04-presenter-window](sw-4-presenter/png/sw-4-04-presenter-window.png) |
+| Overview grid, grouped by part | [05-overview](sw-4-presenter/png/sw-4-05-overview.png) |
+| Skipping deep dives when running late | [06-deep-dives](sw-4-presenter/png/sw-4-06-deep-dives.png) |
+| Phone: speaker mode, the slide list, picking the talk, connection lost | [07-phone-speaker-mode](sw-4-presenter/png/sw-4-07-phone-speaker-mode.png) |
+| Controls on the laptop, in the presenter window and on the phone | [08-controls](sw-4-presenter/png/sw-4-08-controls.png) |
+| When things go wrong | [09-when-things-go-wrong](sw-4-presenter/png/sw-4-09-when-things-go-wrong.png) |
+| Design questions and the answers given | [10-questions-answered](sw-4-presenter/png/sw-4-10-questions-answered.png) |
+
+### Decisions (2026-11-17)
+
+- **D1. Phone remote:** SW-7 is merged into SW-4, so one Feature builds the shared state once. `DeckHub` already exists, so nothing waits for SW-5.
+- **D2. PDF export:** moved out to its own Feature, SW-173, at the back of the backlog and not planned.
+- **D3. Who drives:** only the deck owner's signed-in sessions can join a deck's `present:{deckId}` hub group. A link viewer or an agent can't. The QR code holds no secret: it opens `/remote?deck={id}`, and signing in is what grants control.
+- **D4. Sync:** the presenter window, the audience window and every phone share one state through `DeckHub`. There is no local link between the windows. Each move sends the whole state, `{slide, step, black, skipDeep, timer}`, with a sequence number, and the newest wins. The hub group keeps the last state so a late joiner starts in the right place. The cost is that a Wi-Fi drop freezes the audience window until it reconnects. Its own keys still move it in the meantime.
+- **D5. Timer:** the presenter can set an optional talk length per deck. The timer then shows the time left, turns amber at 5 minutes left and red when over.
+- **D6. Phone layout:** the current slide is shown first and fills the width. The next slide sits beside its label, and the notes scroll underneath. Next is the big button.
 
 ## SW-5 Audience join
 
