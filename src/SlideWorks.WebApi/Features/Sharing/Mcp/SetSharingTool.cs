@@ -1,5 +1,5 @@
 using System.ComponentModel;
-using System.Text.Json;
+using System.ComponentModel.DataAnnotations;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using SlideWorks.WebApi.Infrastructure.Mcp;
@@ -7,8 +7,8 @@ using SlideWorks.WebApi.Infrastructure.Mcp;
 namespace SlideWorks.WebApi.Features.Sharing.Mcp;
 
 // The level comes in as a string and SharingService matches it against the wire names, because the SDK binds tool
-// arguments with its own serializer, not the app's camelCase enum converter. viewers comes in as raw JSON so that
-// SharingService refuses anything but a list of strings with its own message, not the SDK's generic binding error.
+// arguments with its own serializer, not the app's camelCase enum converter. viewers is typed as a list of email
+// addresses, so McpArgumentCheck refuses anything else as "viewers: must be a list of email addresses" before binding.
 [McpServerToolType]
 public sealed class SetSharingTool
 {
@@ -18,6 +18,6 @@ public sealed class SetSharingTool
         SharingService sharing,
         [Description("The deck's id.")] string deck,
         [Description("\"private\", \"link\" or \"named\".")] string level,
-        [Description("The named viewers' email addresses, up to 50. They only get in while the level is \"named\".")] JsonElement? viewers = null)
+        [Description("The named viewers' email addresses, up to 50. They only get in while the level is \"named\".")] [EmailAddress] IReadOnlyList<string?>? viewers = null)
         => McpToolErrors.Run(() => sharing.SetFromAgentAsync(deck, level, viewers));
 }

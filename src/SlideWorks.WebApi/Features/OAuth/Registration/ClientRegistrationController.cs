@@ -16,5 +16,5 @@ public class ClientRegistrationController(ClientRegistrar registrar) : ApiContro
     [ProducesResponseType<OAuthRegistrationErrorView>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<OAuthRegistrationErrorView>(StatusCodes.Status429TooManyRequests)]
     public async Task<CreatedResult> Register([FromBody] ClientRegistrationRequest request)
-        => Created((string?)null, await registrar.RegisterAsync(request, HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"));
+        => Created((string?)null, await registrar.RegisterAsync(request, HttpContext.Connection.RemoteIpAddress));
 }

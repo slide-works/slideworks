@@ -55,7 +55,9 @@ public partial class PlayerSharingTests : AcceptanceTest
     }
 
     // Signs in as Sam, makes a deck with "+ New deck", and shares it through PUT /api/decks/{id}/sharing with the
-    // browser's own session, as the sharing dialog does.
+    // browser's own session, as the sharing dialog does. It ends on about:blank: the deck page re-reads the deck on join
+    // and on the DeckChanged the PUT publishes, and a re-read landing after the test swaps the session gets 401/403 and
+    // sends the page to /signin or /pending, which aborts the test's next navigation.
     private async Task<string> CreateSharedDeckAsync(string level, params string[] viewers)
     {
         var decks = new DecksPage(Page);
@@ -70,6 +72,7 @@ public partial class PlayerSharingTests : AcceptanceTest
             Headers = new Dictionary<string, string> { ["Origin"] = AcceptanceApp.BaseUrl },
         });
         response.Status.ShouldBe(200, await response.TextAsync());
+        await Page.GotoAsync("about:blank");
         return id;
     }
 

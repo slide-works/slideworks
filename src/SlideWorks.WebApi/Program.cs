@@ -58,11 +58,18 @@ var app = builder.Build();
 // Fail at startup, not on the first link, when SLIDEWORKS_PUBLIC_URL is missing outside Development.
 app.Services.GetRequiredService<IPublicUrls>();
 
+// Before the migrations, so a bad SLIDEWORKS_TRUSTED_PROXIES entry stops startup without touching the database. Read from
+// app.Configuration, which holds every override by now.
+var trustedProxies = TrustedProxiesSetup.Parse(app.Configuration[TrustedProxiesSetup.CONFIG_KEY]);
+
 // Single-instance app: apply migrations on startup, no orchestration needed.
 using (var scope = app.Services.CreateScope())
 {
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
 }
+
+// First, so the rate limits see the client's address behind a trusted proxy (SLIDEWORKS_TRUSTED_PROXIES, opt-in).
+app.UseSlideWorksTrustedProxies(trustedProxies);
 
 // SPA assets ship inside wwwroot (built there by src/SlideWorks.Client). Static files
 // come before authentication: a request for a file matches no endpoint, so a fallback

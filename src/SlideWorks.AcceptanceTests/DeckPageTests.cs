@@ -53,6 +53,8 @@ public partial class DeckPageTests : AcceptanceTest
     {
         var id = await CreateDeckAsync(TestUser.Sam, $"Private plan {Guid.NewGuid():N}");
         var player = new PlayerPage(Page);
+        // Leave the deck page first: a re-read it still has out would get 401 after the swap and send the page to /signin.
+        await Page.GotoAsync("about:blank");
         await Page.Context.ClearCookiesAsync();
 
         await player.GotoAsync(id);

@@ -1,0 +1,7 @@
+/* 24 px bold values over single-series bars. */
+.value {
+  fill: var(--sw-accent-dark);
+  font-size: 24px;
+  font-weight: 700;
+  text-anchor: middle;
+}

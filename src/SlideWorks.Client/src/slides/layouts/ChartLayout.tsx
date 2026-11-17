@@ -1,6 +1,7 @@
 import { Callout } from '../blocks/Callout';
 import { SlideHeading } from '../blocks/SlideHeading';
-import { ChartPlot, SERIES_COLORS } from '../charts/ChartPlot';
+import { ChartPlot } from '../charts/ChartPlot';
+import { SERIES_COLORS } from '../charts/geometry';
 import type { LayoutProps } from '../slots';
 import styles from './ChartLayout.module.css';
 

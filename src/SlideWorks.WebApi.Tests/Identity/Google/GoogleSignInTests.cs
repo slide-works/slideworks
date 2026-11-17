@@ -131,6 +131,10 @@ public class GoogleSignInTests : GoogleSignInFixture
             var locations = responses.Select(r => r.Headers.Location?.OriginalString).ToList();
             responses.ShouldAllBe(r => r.StatusCode == HttpStatusCode.Redirect);
             locations.ShouldBe(["/decks", "/signin?error=email_linked&returnTo=%2Fdecks"], ignoreOrder: true);
+            // The winner is signed in as themselves; the refused browser has no session at all.
+            var (winner, winnerName, loser) = locations[0] == "/decks" ? (first, "A", second) : (second, "B", first);
+            (await MeAsync(winner)).GetProperty("name").GetString().ShouldBe(winnerName);
+            await ShouldHaveNoSessionAsync(loser);
             foreach (var response in responses)
             {
                 response.Dispose();

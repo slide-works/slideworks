@@ -1,0 +1,12 @@
+/* 5 px lines with 7 px points, ringed in the card colour. */
+.line {
+  fill: none;
+  stroke-width: 5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.point {
+  stroke: var(--sw-card);
+  stroke-width: 3;
+}

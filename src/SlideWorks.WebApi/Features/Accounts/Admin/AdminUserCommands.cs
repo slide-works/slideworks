@@ -6,8 +6,9 @@ using SlideWorks.WebApi.Infrastructure.Identity;
 namespace SlideWorks.WebApi.Features.Accounts.Admin;
 
 // The admin's changes to who may use the server (S5). Each maps the AccountChange to the API's errors and returns the
-// whole refreshed screen. Revoke ends the person's agent tokens first, so a failure between the two steps can't leave
-// tokens that come back to life when they are approved again.
+// whole refreshed screen. Revoke ends the person's agent tokens before and after the change: before, so a failure between
+// the steps can't leave tokens that come back to life when they are approved again; after, for a redeem that landed in
+// between.
 [RegisterPerRequest]
 public class AdminUserCommands(IUserAccounts accounts, IAgentTokens agentTokens, ICurrentActor actor, AdminUserViews views)
 {
@@ -44,7 +45,11 @@ public class AdminUserCommands(IUserAccounts accounts, IAgentTokens agentTokens,
             throw new ConflictException(LAST_ADMIN);
         }
         await agentTokens.RevokeAllForPresenterAsync(id);
-        return await ChangeAsync(() => accounts.RevokeAsync(id, actor.PresenterId), NOT_ALLOWED);
+        var view = await ChangeAsync(() => accounts.RevokeAsync(id, actor.PresenterId), NOT_ALLOWED);
+        // Again, now that they're Rejected: a code redeemed between the first revoke and the change still saw them
+        // Approved and was issued tokens, which approving them again would revive. Any redeem from here on is refused.
+        await agentTokens.RevokeAllForPresenterAsync(id);
+        return view;
     }
 
     private async Task<AdminUsersView> ChangeAsync(Func<Task<AccountChange>> change, string notAllowed)

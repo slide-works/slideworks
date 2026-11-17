@@ -35,6 +35,10 @@ export function createDeckConnection(): RealtimeConnection {
 }
 
 export interface SubscribeOptions {
+  // Called each time JoinDeck succeeds: the first join, and every re-join after SignalR reconnects. Events from before
+  // a join are never delivered, so a screen re-reads here to catch a change it could have missed.
+  onJoined?: () => void;
+  // For tests: the connection to use, and the back-off of the first connect.
   connect?: () => RealtimeConnection;
   retryDelaysMs?: readonly number[];
 }
@@ -50,13 +54,17 @@ function isDeckEvent(value: unknown): value is DeckEvent {
 
 // Connects to the hub, joins the deck and calls onEvent for each of its events. A connection that cannot be made is
 // retried with back-off; after SignalR reconnects a dropped connection the deck is joined again (the server forgets
-// the groups of a dead connection). Events missed while offline are not replayed, so a screen that must not miss a
-// change re-reads after a reconnect. The returned function stops everything: no more events, no more retries, the
-// connection closed.
+// the groups of a dead connection). Events from before a join (before the first one, or while offline) are not
+// replayed, so onJoined says when each join has succeeded and a screen that must not miss a change re-reads then. The
+// returned function stops everything: no more events or joins, no more retries, the connection closed.
 export function subscribeToDeck(
   deckId: string,
   onEvent: (event: DeckEvent) => void,
-  { connect = createDeckConnection, retryDelaysMs = RETRY_DELAYS_MS }: SubscribeOptions = {},
+  {
+    onJoined,
+    connect = createDeckConnection,
+    retryDelaysMs = RETRY_DELAYS_MS,
+  }: SubscribeOptions = {},
 ): () => void {
   const connection = connect();
   let stopped = false;
@@ -67,7 +75,9 @@ export function subscribeToDeck(
       await connection.invoke('JoinDeck', deckId);
     } catch {
       // A deck the caller can't open: the screen shows its own error from the REST call, nothing to retry here.
+      return;
     }
+    if (!stopped) onJoined?.();
   };
 
   connection.on(EVENT_METHOD, (event: unknown) => {

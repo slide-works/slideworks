@@ -37,7 +37,8 @@ describe('largestFit', () => {
 
 // The hook in jsdom, which has no layout: a fake layout gives the fitted
 // element a height, and a fake ResizeObserver and document.fonts let each test
-// say when the box gets its size and when fonts load.
+// say when the box gets its size and when fonts load. Fonts are loading at
+// mount, as when a page first draws.
 describe('useFitText', () => {
   // The fitted element's box: 0 × 0 until `laidOut`; then one 100 px wide line
   // while the font size is at most `limit`, and two lines above it.
@@ -71,7 +72,14 @@ describe('useFitText', () => {
     }
   }
 
-  let loadFonts: () => void;
+  // A fake document.fonts: `status` is 'loading' from startLoadingFonts until
+  // flushFonts, and `ready` resolves when they load, as in the browser.
+  const fonts = { status: 'loaded' as 'loading' | 'loaded', ready: Promise.resolve() };
+  let loadFonts: () => void = () => {};
+  const startLoadingFonts = () => {
+    fonts.status = 'loading';
+    fonts.ready = new Promise<void>((resolve) => (loadFonts = resolve));
+  };
   let container: HTMLDivElement;
   let root: Root;
 
@@ -82,8 +90,8 @@ describe('useFitText', () => {
     FakeResizeObserver.live.clear();
     FakeResizeObserver.created = 0;
     vi.stubGlobal('ResizeObserver', FakeResizeObserver);
-    const ready = new Promise<void>((resolve) => (loadFonts = resolve));
-    Object.defineProperty(document, 'fonts', { configurable: true, value: { ready } });
+    startLoadingFonts();
+    Object.defineProperty(document, 'fonts', { configurable: true, value: fonts });
     vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (
       this: HTMLElement,
     ) {
@@ -123,6 +131,7 @@ describe('useFitText', () => {
 
   const fitted = () => container.querySelector('p')!;
   const flushFonts = async () => {
+    fonts.status = 'loaded';
     loadFonts();
     await act(async () => {
       await document.fonts.ready;
@@ -140,8 +149,8 @@ describe('useFitText', () => {
     act(() => root.render(<Fitted text="Ship smaller" />));
     await flushFonts();
 
-    // Mount and the fonts each asked for a fit; neither could measure, and the
-    // second joined the first's wait instead of starting its own.
+    // Mount asked for a fit and couldn't measure; the fonts loading meanwhile
+    // started no second wait.
     expect(FakeResizeObserver.created).toBe(1);
     expect(measured).not.toHaveBeenCalled();
     expect(fitted().style.fontSize).toBe('');
@@ -160,6 +169,36 @@ describe('useFitText', () => {
     act(() => FakeResizeObserver.notify());
 
     expect(fitted().style.fontSize).toBe('40px');
+    expect(FakeResizeObserver.live.size).toBe(0);
+  });
+
+  it('fits again once the fonts loading at its fit arrive', async () => {
+    act(() => root.render(<Fitted text="Ship smaller" />));
+    expect(fitted().style.fontSize).toBe('40px');
+
+    // The web font is wider than the fallback the first fit measured.
+    layout.limit = 30;
+    await flushFonts();
+
+    expect(fitted().style.fontSize).toBe('30px');
+  });
+
+  it('a box shown after fonts loaded fits again once the face it now needs arrives', async () => {
+    // Hidden: nothing draws its face, so fonts.ready resolves with it unloaded.
+    layout.laidOut = false;
+    act(() => root.render(<Fitted text="Ship smaller" />));
+    await flushFonts();
+
+    // Shown: the fit's measure starts loading the face, and measures the
+    // fallback meanwhile.
+    layout.laidOut = true;
+    startLoadingFonts();
+    act(() => FakeResizeObserver.notify());
+    expect(fitted().style.fontSize).toBe('40px');
+
+    layout.limit = 30;
+    await flushFonts();
+    expect(fitted().style.fontSize).toBe('30px');
     expect(FakeResizeObserver.live.size).toBe(0);
   });
 

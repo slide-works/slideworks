@@ -1,19 +1,11 @@
 import type { CSSProperties } from 'react';
 import { SlideHeading } from '../blocks/SlideHeading';
-import type { GanttRow, GanttStatus, LayoutProps } from '../slots';
+import type { LayoutProps } from '../slots';
 import styles from './GanttLayout.module.css';
-
-// What a bar says when its row has no note.
-const STATUS_LABEL: Record<GanttStatus, string> = {
-  done: 'Done',
-  slips: 'Slips',
-  stopped: 'Stopped',
-  ship: 'Ship',
-};
+import { GanttRow } from './GanttRow';
 
 // A headline over a timeline: a label column, then one grid column per
-// slot column. Each row's bar runs from its start to its end column (1-based,
-// end inclusive) in its status's tone; a ship row draws a ship marker instead.
+// slot column, with a GanttRow per row and the caption under it.
 export function GanttLayout({ slots }: LayoutProps<'gantt'>) {
   const { kicker, headline, columns, rows, caption } = slots;
   const grid = { '--sw-gantt-columns': columns.length } as CSSProperties;
@@ -34,7 +26,7 @@ export function GanttLayout({ slots }: LayoutProps<'gantt'>) {
               </span>
             ))}
             {rows.map((row, i) => (
-              <Row key={i} row={row} line={i + 2} />
+              <GanttRow key={i} row={row} line={i + 2} />
             ))}
           </div>
           {caption !== undefined ? (
@@ -45,27 +37,5 @@ export function GanttLayout({ slots }: LayoutProps<'gantt'>) {
         </figure>
       </div>
     </div>
-  );
-}
-
-function Row({ row, line }: { row: GanttRow; line: number }) {
-  const { label, start, end, status, note } = row;
-  const text = note ?? STATUS_LABEL[status];
-  const place = { gridRow: line, gridColumn: `${start + 1} / ${end + 2}` };
-  return (
-    <>
-      <span data-testid="gantt-label" className={styles.label} style={{ gridRow: line }}>
-        {label}
-      </span>
-      {status === 'ship' ? (
-        <span data-testid="gantt-bar" data-status={status} className={styles.ship} style={place}>
-          <span className={styles.note}>▲ {text}</span>
-        </span>
-      ) : (
-        <span data-testid="gantt-bar" data-status={status} className={styles.bar} style={place}>
-          <span className={styles.note}>{text}</span>
-        </span>
-      )}
-    </>
   );
 }
