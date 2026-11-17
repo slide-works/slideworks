@@ -314,8 +314,9 @@ public class QaRoutesTests : PollTestFixture
         return deck;
     }
 
+    // A request with a body both settings routes accept, for a PUT.
     private static HttpRequestMessage RequestTo(string method, string path)
-        => new(new HttpMethod(method), path) { Content = method == "PUT" ? JsonBody("""{"questions":"closed"}""") : null };
+        => new(new HttpMethod(method), path) { Content = method == "PUT" ? JsonBody("""{"reactions":false}""") : null };
 
     private static StringContent JsonBody(string json) => new(json, Encoding.UTF8, "application/json");
 
