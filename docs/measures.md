@@ -185,7 +185,7 @@ the parameters itself.
 **Rates over 1 and joined of 0:** guests can leave after answering, so `JoinedAtClose` can be smaller than
 `Final.answered`. The query caps `rate` at 1, as the presenter's panel and strip and `get_poll_results` do, and keeps
 `answered` and `joined` as they were stored, so a capped round can still be told apart. When `JoinedAtClose` is 0 or
-null, `rate` is null, not 0, so a round nobody was in for doesn't pull an average down. The query never divides by zero.
+null, `rate` is null, not 0, so a round nobody was in for doesn't pull an average down. `get_poll_results` returns 0 for the same round; the query returns NULL because an average over rounds should skip an empty room, not count it as a round nobody answered. The query never divides by zero.
 
 **Columns:** `session_id`, `deck_id`, `slide_id`, `round_number`, `closed_at` (UTC), `answered`, `joined`, and `rate`, the
 Measure, from 0 to 1. Rows are newest first.

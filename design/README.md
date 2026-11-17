@@ -178,7 +178,6 @@ Open [`sw-6-polls/sw-6-mockups.html`](sw-6-polls/sw-6-mockups.html) in a browser
 The mockups are not edited. The product differs from them in these places, on purpose:
 
 - **Keys (D19):** the presenter window uses `P` to open or close the poll, `R` to reveal results and `A` to show the answer. The mockup's `O` and `N` clash with SW-4's overview and notes keys, and New round has no key.
-- **The word for not open yet:** the presenter's panel and the phone remote's strip say "Draft". The mockup says "Not open yet". The phone's card still says the presenter hasn't opened the poll yet.
 - **Errors on the phone remote:** the mockup has no error state for the poll strip. A refused call shows its message over the slide preview, above the strip, so the strip keeps its height on a short screen. A dismiss button clears it.
 - **The answer count on a phone (D21):** once a guest has answered, the phone shows "N answers so far" while the poll is open, also when the bars are hidden. The mockup shows it only when the bars show. A guest who hasn't answered yet sees no count.
 - **A changed poll:** the phone's card says "<presenter> changed the poll. Send this pick again?" The mockup names a new round.
