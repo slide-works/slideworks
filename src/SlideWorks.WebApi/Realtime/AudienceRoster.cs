@@ -134,15 +134,19 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
 
     private async Task WriteAsync(Counted counted)
     {
-        if (counted.SessionId == null)
+        if (!Guid.TryParse(counted.SessionId, out var sessionId))
         {
             return;
         }
-        var sessionId = Guid.Parse(counted.SessionId);
         await using var scope = scopes.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         try
         {
+            // A session deleted with its deck while guests were still connected has no row to write under.
+            if (!await db.AudienceSessions.AnyAsync(s => s.Id == sessionId))
+            {
+                return;
+            }
             if (counted.NewGuests.Count > 0)
             {
                 var known = await db.AudienceJoins.Where(j => j.SessionId == sessionId && counted.NewGuests.Contains(j.GuestId)).Select(j => j.GuestId).ToListAsync();
