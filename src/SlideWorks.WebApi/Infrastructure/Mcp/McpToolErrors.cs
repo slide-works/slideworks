@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Protocol;
+using SlideWorks.WebApi.Features.Templates;
 
 namespace SlideWorks.WebApi.Infrastructure.Mcp;
 
@@ -32,6 +33,10 @@ public static class McpToolErrors
         catch (Exception error) when (error is BadRequestException or NotFoundException or ConflictException)
         {
             return Refusal(error.Message);
+        }
+        catch (TemplateRefusedException refused)
+        {
+            return Refusal(refused.Path == null ? refused.Message : $"{refused.Path}: {refused.Message}");
         }
     }
 

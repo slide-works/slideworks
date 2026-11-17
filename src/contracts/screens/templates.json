@@ -1,0 +1,68 @@
+{
+  "mine": [
+    {
+      "id": "tpl_Nw4kT8pQz2Lm",
+      "name": "Northwind kickoff",
+      "shortName": "northwind-kickoff",
+      "purpose": "Northwind project kickoffs: a talk plus exercises the room does.",
+      "type": "Northwind Sans / Northwind Text",
+      "palette": "Northwind",
+      "paletteLocked": true,
+      "version": 2,
+      "status": "published",
+      "deckCount": 3,
+      "updatedLabel": "2 min ago",
+      "sharing": "named",
+      "owner": "Sam Rivera"
+    },
+    {
+      "id": "tpl_Bq7mXr2Vc9Hd",
+      "name": "Quarterly review",
+      "shortName": "quarterly-review",
+      "purpose": "",
+      "type": "Inter / Inter",
+      "palette": "any",
+      "paletteLocked": false,
+      "version": 0,
+      "status": "draft",
+      "deckCount": 0,
+      "updatedLabel": "yesterday",
+      "sharing": "private",
+      "owner": "Sam Rivera"
+    }
+  ],
+  "shared": [
+    {
+      "id": "tpl_Zk3fWy8Jn5Ts",
+      "name": "Harbour talks",
+      "shortName": "harbour-talks",
+      "purpose": "Conference talks for the Harbour meetup.",
+      "type": "Sora / Inter",
+      "palette": "Harbour",
+      "paletteLocked": true,
+      "version": 4,
+      "status": "published",
+      "deckCount": 1,
+      "updatedLabel": "12 Nov 2026",
+      "sharing": "link",
+      "owner": "Mira Okafor"
+    }
+  ],
+  "builtIn": [
+    {
+      "id": "workshop",
+      "name": "Workshop",
+      "shortName": "workshop",
+      "purpose": "A talk plus exercises the room does.",
+      "type": "Plus Jakarta Sans / Inter",
+      "palette": "any",
+      "paletteLocked": false,
+      "version": 1,
+      "status": "published",
+      "deckCount": 5,
+      "updatedLabel": "16 Nov 2026",
+      "sharing": "private",
+      "owner": "SlideWorks"
+    }
+  ]
+}

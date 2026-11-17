@@ -1,0 +1,416 @@
+using Agoda.IoC.Core;
+using SlideWorks.WebApi.Features.Templates.Views;
+using SlideWorks.WebApi.Infrastructure.Identity;
+
+namespace SlideWorks.WebApi.Features.Templates;
+
+// TODO: returns the screen sample until the real service lands.
+[RegisterPerRequest(For = typeof(ITemplateDrafts))]
+public sealed class StubTemplateDrafts : ITemplateDrafts
+{
+    // src/contracts/screens/templates.json
+    private const string TEMPLATES =
+        """
+        {
+          "mine": [
+            {
+              "id": "tpl_Nw4kT8pQz2Lm",
+              "name": "Northwind kickoff",
+              "shortName": "northwind-kickoff",
+              "purpose": "Northwind project kickoffs: a talk plus exercises the room does.",
+              "type": "Northwind Sans / Northwind Text",
+              "palette": "Northwind",
+              "paletteLocked": true,
+              "version": 2,
+              "status": "published",
+              "deckCount": 3,
+              "updatedLabel": "2 min ago",
+              "sharing": "named",
+              "owner": "Sam Rivera"
+            },
+            {
+              "id": "tpl_Bq7mXr2Vc9Hd",
+              "name": "Quarterly review",
+              "shortName": "quarterly-review",
+              "purpose": "",
+              "type": "Inter / Inter",
+              "palette": "any",
+              "paletteLocked": false,
+              "version": 0,
+              "status": "draft",
+              "deckCount": 0,
+              "updatedLabel": "yesterday",
+              "sharing": "private",
+              "owner": "Sam Rivera"
+            }
+          ],
+          "shared": [
+            {
+              "id": "tpl_Zk3fWy8Jn5Ts",
+              "name": "Harbour talks",
+              "shortName": "harbour-talks",
+              "purpose": "Conference talks for the Harbour meetup.",
+              "type": "Sora / Inter",
+              "palette": "Harbour",
+              "paletteLocked": true,
+              "version": 4,
+              "status": "published",
+              "deckCount": 1,
+              "updatedLabel": "12 Nov 2026",
+              "sharing": "link",
+              "owner": "Mira Okafor"
+            }
+          ],
+          "builtIn": [
+            {
+              "id": "workshop",
+              "name": "Workshop",
+              "shortName": "workshop",
+              "purpose": "A talk plus exercises the room does.",
+              "type": "Plus Jakarta Sans / Inter",
+              "palette": "any",
+              "paletteLocked": false,
+              "version": 1,
+              "status": "published",
+              "deckCount": 5,
+              "updatedLabel": "16 Nov 2026",
+              "sharing": "private",
+              "owner": "SlideWorks"
+            }
+          ]
+        }
+        """;
+
+    // src/contracts/screens/template-editor.json
+    private const string EDITOR =
+        """
+        {
+          "id": "tpl_Nw4kT8pQz2Lm",
+          "name": "Northwind kickoff",
+          "revision": 7,
+          "status": "published",
+          "version": 2,
+          "manifest": {
+            "name": "northwind-kickoff",
+            "label": "Northwind kickoff",
+            "purpose": "Northwind project kickoffs: a talk plus exercises the room does.",
+            "basedOn": "workshop",
+            "layouts": [
+              "title",
+              "divider",
+              "bullets",
+              "two-column",
+              "practice",
+              "compare",
+              "quote",
+              "image",
+              "table",
+              "numbered-cards",
+              "rules",
+              "cards",
+              "close"
+            ],
+            "chrome": {
+              "tracker": true,
+              "footer": "author",
+              "progress": true,
+              "deepDivesOnDivider": true,
+              "draft": true,
+              "topBar": "accent"
+            },
+            "outline": [
+              "Title",
+              "Per part, a divider then one practice slide per idea",
+              "Exercises as deep dives at the end of their part",
+              "Rules or takeaways",
+              "Close with the first step for Monday"
+            ],
+            "houseStyle": [
+              "One headline per slide, written as a sentence that makes the point.",
+              "A kicker naming the topic in two to four words.",
+              "One idea per slide, with at most one callout.",
+              "Speaker notes on every slide.",
+              "Colour means something: positive, negative, accent. Never decoration.",
+              "Optional material is marked as a deep dive rather than cut."
+            ],
+            "type": {
+              "head": "Northwind Sans",
+              "body": "Northwind Text",
+              "headWeight": 800,
+              "headTracking": "-0.02em"
+            },
+            "shape": {
+              "radius": {
+                "sm": 6,
+                "md": 8,
+                "lg": 12,
+                "xl": 14
+              },
+              "shadow": "0 1px 2px rgb(15 23 42 / 0.06), 0 10px 28px rgb(15 23 42 / 0.08)"
+            },
+            "fonts": [
+              {
+                "role": "head",
+                "family": "Northwind Sans",
+                "file": "cf3f73c9bd0762db7f159baca0c9f006",
+                "weight": 700,
+                "style": "normal"
+              },
+              {
+                "role": "head",
+                "family": "Northwind Sans",
+                "file": "3946544408c1d0bb1d978225e27d36ea",
+                "weight": 800,
+                "style": "normal"
+              },
+              {
+                "role": "body",
+                "family": "Northwind Text",
+                "file": "a1e3341a33c2729af930f6aecd21ab10",
+                "weight": 400,
+                "style": "normal"
+              },
+              {
+                "role": "mono",
+                "family": "Northwind Mono",
+                "file": "8ff223d8922a55e32af314efafccf350",
+                "weight": 400,
+                "style": "normal"
+              }
+            ],
+            "logos": {
+              "light": "d00cf13ae19e49cf841ea758a9b84460",
+              "dark": "ee2e8795ed476090d166cdac72ca2ae9",
+              "showOnDark": true
+            },
+            "titleArt": {
+              "kind": "image",
+              "file": "7fcef0f7c16a0ee4ecd9098d9b4ecc8c"
+            },
+            "ornament": {
+              "dots": [
+                "accent",
+                "accent-2",
+                "accent-glow",
+                "extra-2"
+              ]
+            },
+            "palette": {
+              "paper": "#f7f8fa",
+              "card": "#ffffff",
+              "chip": "#eef1f6",
+              "grid": "#e3e6ec",
+              "ink": "#111827",
+              "muted": "#5b6474",
+              "accent": "#2f5bea",
+              "accent-2": "#0e7490",
+              "accent-dark": "#1e3a8a",
+              "accent-light": "#e4eafd",
+              "accent-glow": "#a5b8ff",
+              "accent-past": "#b9c8f8",
+              "on-accent": "#ffffff",
+              "good": "#16a34a",
+              "good-soft": "#dcfce7",
+              "good-ink": "#166534",
+              "bad": "#dc2626",
+              "bad-soft": "#fdecec",
+              "bad-ink": "#991b1b",
+              "warn": "#ea580c",
+              "warn-soft": "#ffedd5",
+              "warn-ink": "#9a3412",
+              "dd": "#c2410c",
+              "on-dd": "#ffffff",
+              "dd-on-night": "#fdba74",
+              "night": "#0b1020",
+              "night-ink": "#ffffff",
+              "night-2": "#cbd5e1",
+              "night-muted": "#8c97ad",
+              "night-line": "#334155",
+              "night-glow": "#2f5bea",
+              "number-from": "#c3d0ff",
+              "number-to": "#5b7cff",
+              "stamp": "#fcd34d",
+              "panel-accent": "#2f5bea",
+              "panel-accent-ink": "#ffffff",
+              "panel-positive": "#15803d",
+              "panel-positive-ink": "#ffffff",
+              "panel-negative": "#b91c1c",
+              "panel-negative-ink": "#ffffff",
+              "panel-inverse": "#0b1020",
+              "panel-inverse-ink": "#ffffff",
+              "extras": [
+                {
+                  "name": "extra-1",
+                  "colour": "#050814",
+                  "ink": "#ffffff"
+                },
+                {
+                  "name": "extra-2",
+                  "colour": "#fde68a",
+                  "ink": "#111827"
+                }
+              ]
+            },
+            "lockPalette": true,
+            "customLayouts": []
+          },
+          "assets": [
+            {
+              "assetId": "cf3f73c9bd0762db7f159baca0c9f006",
+              "kind": "font",
+              "fileName": "northwind-sans-700.woff2",
+              "contentType": "font/woff2",
+              "bytes": 48212,
+              "meta": {
+                "family": "Northwind Sans",
+                "weight": 700,
+                "style": "normal",
+                "width": 0.56
+              },
+              "rightsConfirmed": true,
+              "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/cf3f73c9bd0762db7f159baca0c9f006"
+            },
+            {
+              "assetId": "3946544408c1d0bb1d978225e27d36ea",
+              "kind": "font",
+              "fileName": "northwind-sans-800.woff2",
+              "contentType": "font/woff2",
+              "bytes": 48212,
+              "meta": {
+                "family": "Northwind Sans",
+                "weight": 800,
+                "style": "normal",
+                "width": 0.56
+              },
+              "rightsConfirmed": true,
+              "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/3946544408c1d0bb1d978225e27d36ea"
+            },
+            {
+              "assetId": "a1e3341a33c2729af930f6aecd21ab10",
+              "kind": "font",
+              "fileName": "northwind-text-400.woff2",
+              "contentType": "font/woff2",
+              "bytes": 48212,
+              "meta": {
+                "family": "Northwind Text",
+                "weight": 400,
+                "style": "normal",
+                "width": 0.56
+              },
+              "rightsConfirmed": true,
+              "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/a1e3341a33c2729af930f6aecd21ab10"
+            },
+            {
+              "assetId": "8ff223d8922a55e32af314efafccf350",
+              "kind": "font",
+              "fileName": "northwind-mono-400.woff2",
+              "contentType": "font/woff2",
+              "bytes": 48212,
+              "meta": {
+                "family": "Northwind Mono",
+                "weight": 400,
+                "style": "normal",
+                "width": 0.56
+              },
+              "rightsConfirmed": true,
+              "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/8ff223d8922a55e32af314efafccf350"
+            },
+            {
+              "assetId": "d00cf13ae19e49cf841ea758a9b84460",
+              "kind": "logo",
+              "fileName": "logo-light.svg",
+              "contentType": "image/svg+xml",
+              "bytes": 2318,
+              "meta": {
+                "width": 240,
+                "height": 64
+              },
+              "rightsConfirmed": false,
+              "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/d00cf13ae19e49cf841ea758a9b84460"
+            },
+            {
+              "assetId": "ee2e8795ed476090d166cdac72ca2ae9",
+              "kind": "logo",
+              "fileName": "logo-dark.svg",
+              "contentType": "image/svg+xml",
+              "bytes": 2296,
+              "meta": {
+                "width": 240,
+                "height": 64
+              },
+              "rightsConfirmed": false,
+              "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/ee2e8795ed476090d166cdac72ca2ae9"
+            },
+            {
+              "assetId": "7fcef0f7c16a0ee4ecd9098d9b4ecc8c",
+              "kind": "art",
+              "fileName": "art.svg",
+              "contentType": "image/svg+xml",
+              "bytes": 18844,
+              "meta": {
+                "width": 1600,
+                "height": 900
+              },
+              "rightsConfirmed": false,
+              "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/7fcef0f7c16a0ee4ecd9098d9b4ecc8c"
+            }
+          ],
+          "checklist": [
+            {
+              "key": "palette",
+              "label": "Palette passes contrast",
+              "state": "pass",
+              "detail": "Every pair meets its bar.",
+              "tab": "palette"
+            },
+            {
+              "key": "fonts",
+              "label": "Fonts fit slide text",
+              "state": "pass",
+              "detail": "4 font files, all within 0.45 to 0.70 em.",
+              "tab": "fonts"
+            },
+            {
+              "key": "fontRights",
+              "label": "Font rights confirmed",
+              "state": "todo",
+              "detail": "Confirm you can serve these fonts.",
+              "tab": "fonts"
+            },
+            {
+              "key": "logoArt",
+              "label": "Logo and art are safe to serve",
+              "state": "pass",
+              "detail": "",
+              "tab": "logo-art"
+            },
+            {
+              "key": "limits",
+              "label": "Within the limits",
+              "state": "fail",
+              "detail": "The purpose is longer than 200 characters.",
+              "tab": "basics"
+            }
+          ],
+          "versions": [
+            {
+              "version": 2,
+              "publishedLabel": "12 Nov 2026"
+            },
+            {
+              "version": 1,
+              "publishedLabel": "3 Nov 2026"
+            }
+          ],
+          "canPublish": false
+        }
+        """;
+
+    public Task<TemplatesView> ListAsync(ICurrentActor actor) => Task.FromResult(TemplateViewJson.Read<TemplatesView>(TEMPLATES));
+
+    public Task<TemplateCreated> CreateAsync(ICurrentActor actor, string basedOn, string name) => Task.FromResult(new TemplateCreated("tpl_Nw4kT8pQz2Lm"));
+
+    public Task<TemplateEditorView> GetAsync(ICurrentActor actor, string id) => Task.FromResult(TemplateViewJson.Read<TemplateEditorView>(EDITOR));
+
+    public Task<TemplateEditorView> UpdateAsync(ICurrentActor actor, string id, string manifestJson, int revision) => GetAsync(actor, id);
+}

@@ -1,0 +1,43 @@
+{
+  "name": "stage-ladder",
+  "asset": "a5c2b551af63022db28da61ae35baf09",
+  "approved": false,
+  "surface": "light",
+  "steps": 1,
+  "layout": {
+    "name": "stage-ladder",
+    "surface": "light",
+    "tree": {
+      "tag": "div",
+      "class": "root",
+      "children": []
+    },
+    "css": "",
+    "slots": [
+      {
+        "name": "headline",
+        "type": "text",
+        "required": true,
+        "max": 80
+      }
+    ]
+  },
+  "sample": {
+    "headline": "Four stages, one ladder"
+  },
+  "maximum": {
+    "headline": "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM"
+  },
+  "safeArea": {
+    "ok": false,
+    "overflow": [
+      "headline"
+    ]
+  },
+  "contrast": {
+    "ok": false,
+    "failures": [
+      "muted on chip"
+    ]
+  }
+}
