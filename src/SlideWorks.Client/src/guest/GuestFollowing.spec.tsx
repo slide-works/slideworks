@@ -4,6 +4,7 @@ import { audienceState, guestView } from '../test-support/fixtures/guestStates';
 import { stubApi } from '../test-support/stubApi';
 import { stubDeckHub } from '../test-support/stubDeckHub';
 import { GuestFollowing } from './GuestFollowing';
+import { GuestScreens } from './GuestScreens';
 import { GUEST_TEST_IDS } from './testIds';
 
 const view = guestView('live');
@@ -166,17 +167,31 @@ test('the following screen shows the night surface with no flat colour of its ow
   );
 });
 
+// The screens a guest sees, through the shell that paints the night surface, in a live state on the current slide. The
+// look has no logo: guest images need a real image behind them, and the baseline must not show a broken one.
+async function mountFollowingScreen(
+  mount: Parameters<Parameters<typeof test>[2]>[0]['mount'],
+  page: Parameters<Parameters<typeof test>[2]>[0]['page'],
+) {
+  await page.clock.install();
+  const withoutLogo = { ...view, look: { ...view.look, logo: null } };
+  await mount(
+    <GuestScreens view={withoutLogo} state={withoutLogo.state} status="live" onRetry={() => {}} />,
+  );
+  await page.clock.runFor(2100);
+  await expect(page.getByTestId(GUEST_TEST_IDS.following)).toBeVisible();
+  await expect(page.getByTestId(GUEST_TEST_IDS.slide).getByTestId('slide-3')).toHaveCount(1);
+}
+
 test('GuestFollowing screenshot at 390 wide', async ({ mount, page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await mount(<GuestFollowing view={view} state={view.state} status="live" />);
-  await expect(page.getByTestId(GUEST_TEST_IDS.slide).getByTestId('slide-3')).toHaveCount(1);
+  await mountFollowingScreen(mount, page);
   await expect(page).toHaveScreenshot('guest-following-390.png');
 });
 
 test('GuestFollowing screenshot in landscape', async ({ mount, page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
-  await mount(<GuestFollowing view={view} state={view.state} status="live" />);
-  await expect(page.getByTestId(GUEST_TEST_IDS.slide).getByTestId('slide-3')).toHaveCount(1);
+  await mountFollowingScreen(mount, page);
   await expect(page).toHaveScreenshot('guest-following-landscape.png');
 });
 
