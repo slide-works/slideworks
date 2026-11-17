@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using SlideWorks.Core.Look;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Tests.Support;
@@ -78,16 +77,18 @@ public class FakeTemplatesContractTests : TemplatesContractTests
         found.FindLayout("no-such-layout").ShouldBeNull();
     }
 
+    // The container answers the last registration of a service, so the fake must come after the real one.
     [Test]
-    public void Register_WhenTheBuiltInsWereRegistered_ShouldAnswerTheFake()
+    public void Register_WhenTheBuiltInsWereRegistered_ShouldRegisterTheFakeLast()
     {
-        var services = new ServiceCollection().AddSingleton<ITemplateCatalogue>(BuiltIns).AddScoped<ITemplates, BuiltInTemplates>();
+        var services = new ServiceCollection().AddScoped<ITemplates, BuiltInTemplates>();
 
         FakeTemplates.Register(services);
 
-        using var provider = services.BuildServiceProvider();
-        using var scope = provider.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ITemplates>().ShouldBeSameAs(provider.GetRequiredService<FakeTemplates>());
+        var last = services.Last(d => d.ServiceType == typeof(ITemplates));
+        last.ImplementationFactory.ShouldNotBeNull();
+        last.Lifetime.ShouldBe(ServiceLifetime.Singleton);
+        services.Count(d => d.ServiceType == typeof(FakeTemplates) && d.Lifetime == ServiceLifetime.Singleton).ShouldBe(1);
     }
 
     private static ResolvedTemplate Uploaded(string templateRef, int version)
