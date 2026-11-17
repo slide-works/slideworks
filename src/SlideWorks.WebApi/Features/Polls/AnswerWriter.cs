@@ -50,12 +50,12 @@ public sealed class AnswerWriter : IRoundAnswerWriter, IDisposable
         _ = Task.Run(() => RunAsync(_stopping.Token), CancellationToken.None);
     }
 
-    // Queues the guest's answer to the round and completes once its group has committed: Written with the answer as written
-    // (its picks and new revision), Closed when the round was not open at commit time, or Stale when the guest's revision
+    // Queues the guest's answer to the round, its picks sorted ascending, and completes once its group has committed: Written
+    // with the answer as written (its picks and new revision), Closed when the round was not open at commit time, or Stale when the guest's revision
     // was no longer expectedRevision. Throws what the group's commit threw when it failed.
     public Task<RoundWrite> ReplaceAsync(PollRoundRef round, string guestId, IReadOnlyList<int> picks, int expectedRevision)
     {
-        var queued = new Queued(round, Guid.Parse(round.RoundId), guestId, expectedRevision, picks);
+        var queued = new Queued(round, Guid.Parse(round.RoundId), guestId, expectedRevision, [.. picks.Order()]);
         if (!_queue.Writer.TryWrite(queued))
         {
             throw new ObjectDisposedException(nameof(AnswerWriter), "The answer writer has stopped.");
@@ -64,6 +64,7 @@ public sealed class AnswerWriter : IRoundAnswerWriter, IDisposable
     }
 
     // SW-6's form of ReplaceAsync, which its writer tests call: the answer as written, or null when it was Stale or Closed.
+    // TODO: only SW-6's writer tests call this; it goes when they move to ReplaceAsync.
     public async Task<MyAnswer?> WriteAsync(PollRoundRef round, string guestId, int expectedRevision, IReadOnlyList<int> picks)
         => await ReplaceAsync(round, guestId, picks, expectedRevision) is RoundWrite.Written written
             ? new MyAnswer(written.Picks, written.Revision)

@@ -29,12 +29,17 @@ public class RoundAnswerWriterTests : PollTestFixture
 
     private readonly TransactionWatch _starts = new();
 
+    private int _seamRegistrations;
+
     private IRoundAnswerWriter Writer => Factory.Services.GetRequiredService<IRoundAnswerWriter>();
 
     private IPollTallies Tallies => Factory.Services.GetRequiredService<IPollTallies>();
 
     protected override void ConfigurePollServices(IServiceCollection services)
-        => services.ConfigureDbContext<AppDbContext>(options => options.AddInterceptors(_starts));
+    {
+        _seamRegistrations = services.Count(d => d.ServiceType == typeof(IRoundAnswerWriter));
+        services.ConfigureDbContext<AppDbContext>(options => options.AddInterceptors(_starts));
+    }
 
     [Test]
     public async Task ReplaceAsync_WhenRoundIsQa_ShouldStoreThePicksAndRaiseTheRevision()
@@ -46,6 +51,9 @@ public class RoundAnswerWriterTests : PollTestFixture
         var second = await BoundedAsync(Writer.ReplaceAsync(target, guest, [1, 2], 1));
         var stored = await AnswerRowAsync(round.Id, guest);
         var tally = await Tallies.ReadAsync(target.RoundId, 3);
+        var unsortedGuest = GuestCookie.NewId();
+        var unsorted = await BoundedAsync(Writer.ReplaceAsync(target, unsortedGuest, [2, 0], 0));
+        var unsortedStored = await AnswerRowAsync(round.Id, unsortedGuest);
 
         var firstWritten = first.ShouldBeOfType<RoundWrite.Written>();
         firstWritten.Picks.ShouldBe([0, 2]);
@@ -58,6 +66,25 @@ public class RoundAnswerWriterTests : PollTestFixture
         stored.Revision.ShouldBe(2);
         tally.Answered.ShouldBe(1);
         tally.Counts.ShouldBe([0, 1, 1]);
+        unsorted.ShouldBeOfType<RoundWrite.Written>().Picks.ShouldBe([0, 2]);
+        unsortedStored.ShouldNotBeNull();
+        unsortedStored.Picks.ShouldBe([0, 2]);
+    }
+
+    // One AnswerWriter is the seam, from the root and from a request's scope, and the seam has one registration: two
+    // registrations would be two writers, each with a queue and a loop of its own.
+    [Test]
+    public async Task Seam_WhenResolved_ShouldBeTheAppsOneAnswerWriter()
+    {
+        var writer = Factory.Services.GetRequiredService<AnswerWriter>();
+        await using var scope = Factory.Services.CreateAsyncScope();
+
+        var fromRoot = Factory.Services.GetRequiredService<IRoundAnswerWriter>();
+        var fromScope = scope.ServiceProvider.GetRequiredService<IRoundAnswerWriter>();
+
+        fromRoot.ShouldBeSameAs(writer);
+        fromScope.ShouldBeSameAs(writer);
+        _seamRegistrations.ShouldBe(1);
     }
 
     [Test]

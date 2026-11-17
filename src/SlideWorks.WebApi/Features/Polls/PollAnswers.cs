@@ -11,9 +11,9 @@ namespace SlideWorks.WebApi.Features.Polls;
 // A guest's answers (V5). Every check runs before anything is queued, in this order: no session for the code, or a guest
 // not on the live session's roster, is NoSession before anything else, so a guessed code or guest id learns nothing; then
 // the guest's 30 a minute (D18); then stale (no open round, another round, another revision); then the picks' rules
-// (AnswerRules). An answer that passes goes to the batching writer (IRoundAnswerWriter), which checks the round and the revision again
-// inside its commit, so an answer to a round that closed meanwhile comes back stale too, never as a 400. A known code that
-// isn't live has no poll: its view is empty and an answer to it is stale.
+// (AnswerRules). An answer that passes goes to the batching writer (IRoundAnswerWriter), which checks the round and the
+// revision again inside its commit, so an answer to a round that closed meanwhile comes back stale too, never as a 400. A
+// known code that isn't live has no poll: its view is empty and an answer to it is stale.
 [RegisterPerRequest(For = typeof(IPollAnswers))]
 public class PollAnswers(AppDbContext db, GuestPollViews views, PollRows rows, AnswerLimiter limiter, IRoundAnswerWriter writer) : IPollAnswers
 {
