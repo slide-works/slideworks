@@ -1,0 +1,50 @@
+{
+  "practice": {
+    "layout": "practice",
+    "estimate": 619.6,
+    "grow": [
+      "/do/4/text",
+      "/avoid/1",
+      "/callout/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Weekly Metrics Show Where Work Waits See",
+      "headline": "Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working",
+      "do": [
+        {
+          "lead": "Learn Faster When Working",
+          "text": "Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Real"
+        },
+        {
+          "lead": "Small And Reviewable Real",
+          "text": "Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams"
+        },
+        {
+          "lead": "Learn Faster When Working",
+          "text": "Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Real"
+        },
+        {
+          "lead": "Small And Reviewable",
+          "text": "Momentum Matters More Than Maximum"
+        },
+        {
+          "lead": "Throughput Ship Real",
+          "text": "Working Software Every Week Teams See"
+        }
+      ],
+      "comes_back": [
+        "Learn Faster When Customers See Real Progress See",
+        "Weekly Metrics Show Where Work Waits Make Every"
+      ],
+      "avoid": [
+        "Merge Small And Reviewable Momentum Matters More",
+        "Than Maximum Throughput Ship Working Software See"
+      ],
+      "callout": {
+        "tone": "bad",
+        "text": "Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics"
+      }
+    }
+  }
+}

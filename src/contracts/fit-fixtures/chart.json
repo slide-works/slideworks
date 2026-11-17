@@ -1,0 +1,176 @@
+{
+  "chartTitle": {
+    "layout": "chart",
+    "grow": [
+      "/caption",
+      "/series/2/name",
+      "/xLabels/11"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Really Is The Team Ships A Small Sliceee",
+      "headline": "Of Work To Customers Every Week And The Feedback Arrives In Days Rather Thaneeee",
+      "kind": "bar",
+      "xLabels": [
+        "Quarters Soe",
+        "The Riskeeee",
+        "Shows Upeeee",
+        "Early Whilee",
+        "It Is Stille",
+        "Cheap Toeeee",
+        "Changeeeeeee",
+        "Course Andee",
+        "Nobody Hasee",
+        "To Guess How",
+        "Far Alongeee",
+        "The Workeeee"
+      ],
+      "series": [
+        {
+          "name": "Really Is The Team Ships Aeeee",
+          "values": [
+            500,
+            37500,
+            74500,
+            21500,
+            58500,
+            5500,
+            42500,
+            79500,
+            26500,
+            63500,
+            10500,
+            47500
+          ]
+        },
+        {
+          "name": "Small Slice Of Work Toeeeeeeee",
+          "values": [
+            11500,
+            48500,
+            85500,
+            32500,
+            69500,
+            16500,
+            53500,
+            500,
+            37500,
+            74500,
+            21500,
+            58500
+          ]
+        },
+        {
+          "name": "Customers Every Week And Theee",
+          "values": [
+            22500,
+            59500,
+            6500,
+            43500,
+            80500,
+            27500,
+            64500,
+            11500,
+            48500,
+            85500,
+            32500,
+            69500
+          ]
+        }
+      ],
+      "yUnit": "Feedback",
+      "caption": "Arrives In Days Rather Than Quarters So The Risk Shows Up Early While It Is Still Cheap To Change Course And Nobody Has To Guess How Far Along The Work Reallyee",
+      "marker": {
+        "x": 6.5,
+        "label": "Is The Team Ships Ae"
+      }
+    }
+  },
+  "chartProse": {
+    "layout": "chart",
+    "grow": [
+      "/caption",
+      "/series/2/name",
+      "/xLabels/11"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Really is the team ships a small sliceee",
+      "headline": "Of work to customers every week and the feedback arrives in days rather thaneeee",
+      "kind": "bar",
+      "xLabels": [
+        "Quarters soe",
+        "The riskeeee",
+        "Shows upeeee",
+        "Early whilee",
+        "It is stille",
+        "Cheap toeeee",
+        "Changeeeeeee",
+        "Course andee",
+        "Nobody hasee",
+        "To guess how",
+        "Far alongeee",
+        "The workeeee"
+      ],
+      "series": [
+        {
+          "name": "Really is the team ships aeeee",
+          "values": [
+            500,
+            37500,
+            74500,
+            21500,
+            58500,
+            5500,
+            42500,
+            79500,
+            26500,
+            63500,
+            10500,
+            47500
+          ]
+        },
+        {
+          "name": "Small slice of work toeeeeeeee",
+          "values": [
+            11500,
+            48500,
+            85500,
+            32500,
+            69500,
+            16500,
+            53500,
+            500,
+            37500,
+            74500,
+            21500,
+            58500
+          ]
+        },
+        {
+          "name": "Customers every week and theee",
+          "values": [
+            22500,
+            59500,
+            6500,
+            43500,
+            80500,
+            27500,
+            64500,
+            11500,
+            48500,
+            85500,
+            32500,
+            69500
+          ]
+        }
+      ],
+      "yUnit": "Feedback",
+      "caption": "Arrives in days rather than quarters so the risk shows up early while it is still cheap to change course and nobody has to guess how far along the work reallyee",
+      "marker": {
+        "x": 6.5,
+        "label": "Is the team ships ae"
+      }
+    }
+  }
+}

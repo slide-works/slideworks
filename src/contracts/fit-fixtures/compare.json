@@ -1,0 +1,35 @@
+{
+  "compare": {
+    "layout": "compare",
+    "estimate": 607.2,
+    "grow": [
+      "/failure/sub",
+      "/success/sub"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Weekly Metrics Show Where Work Waits See",
+      "headline": "Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working",
+      "failure": {
+        "label": "Show Where Work Waits",
+        "title": "Make Every Merge Small And Reviewable Momentum See",
+        "sub": "Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster",
+        "points": [
+          "When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Real",
+          "Merge Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Working See",
+          "Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics"
+        ]
+      },
+      "success": {
+        "label": "Show Where Work Waits",
+        "title": "Make Every Merge Small And Reviewable Momentum See",
+        "sub": "Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster",
+        "points": [
+          "When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Real",
+          "Merge Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Working See",
+          "Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics"
+        ]
+      }
+    }
+  }
+}
