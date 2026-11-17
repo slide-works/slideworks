@@ -6,11 +6,9 @@ namespace SlideWorks.WebApi.Realtime;
 [RegisterSingleton(For = typeof(IAudienceRoster))]
 public sealed class StubAudienceRoster : IAudienceRoster
 {
-    public int Join(string sessionId, string guestId, string connectionId) => 1;
+    public Task<int> JoinAsync(string deckId, string sessionId, string guestId, string connectionId) => Task.FromResult(1);
 
-    public void Leave(string connectionId)
-    {
-    }
+    public Task<RosterLeave?> LeaveAsync(string connectionId) => Task.FromResult<RosterLeave?>(null);
 
-    public int Count(string sessionId) => 1;
+    public Task<int> CountAsync(string sessionId) => Task.FromResult(1);
 }
