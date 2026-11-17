@@ -42,7 +42,13 @@ describe('guest.json', () => {
 
 describe('audience-events.json', () => {
   it('has one sample per event type, keyed by its type', () => {
-    expect(keys(audienceEventsJson)).toEqual(['audienceEnded', 'audienceState', 'joinedCount']);
+    expect(keys(audienceEventsJson)).toEqual([
+      'audienceEnded',
+      'audienceState',
+      'joinedCount',
+      'pollControl',
+      'pollTally',
+    ]);
     for (const [name, sample] of Object.entries(audienceEventsJson)) expect(sample.type).toBe(name);
   });
 

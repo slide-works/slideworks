@@ -1,0 +1,82 @@
+{
+  "request": {
+    "round": "0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10",
+    "picks": [
+      1
+    ],
+    "revision": 0
+  },
+  "accepted": {
+    "picks": [
+      1
+    ],
+    "revision": 1
+  },
+  "stale": {
+    "error": "stale",
+    "current": {
+      "activity": {
+        "type": "poll",
+        "round": "0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10",
+        "number": 1,
+        "phase": "closed",
+        "question": "How big was your last merge request?",
+        "options": [
+          "Under 50 lines",
+          "50 to 200 lines",
+          "200 to 1,000 lines",
+          "Over 1,000 lines"
+        ],
+        "pick": "upTo",
+        "max": 2,
+        "results": "afterAnswer",
+        "roomSeesCounts": true,
+        "correct": 2
+      },
+      "mine": {
+        "picks": [
+          1,
+          2
+        ],
+        "revision": 2
+      },
+      "tally": {
+        "type": "pollTally",
+        "round": "0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10",
+        "answered": 38,
+        "counts": [
+          12,
+          25,
+          14,
+          6
+        ]
+      }
+    }
+  },
+  "invalid": [
+    {
+      "error": "picks: pick one"
+    },
+    {
+      "error": "picks: at most 2"
+    },
+    {
+      "error": "picks: unknown option 7"
+    },
+    {
+      "error": "picks: duplicate"
+    },
+    {
+      "error": "picks: required"
+    }
+  ],
+  "noGuest": {
+    "error": "no_guest"
+  },
+  "noSession": {
+    "error": "no_session"
+  },
+  "tooManyAnswers": {
+    "error": "too_many_answers"
+  }
+}

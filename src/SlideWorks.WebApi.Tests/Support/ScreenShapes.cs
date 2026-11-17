@@ -83,7 +83,7 @@ public static class ScreenShapes
     // sample is a live one, so a lobby or ended state is checked with current and activity nullable.
     public static readonly JsonShapeOptions AudienceEvents = new()
     {
-        NullablePaths = ["audienceState.activity"],
+        NullablePaths = ["audienceState.activity", "pollTally.counts", "pollControl.control.round", "pollControl.control.settings.max", "pollControl.control.settings.correct"],
         OpaquePaths = ["audienceState.current.slots"],
     };
 
@@ -94,12 +94,70 @@ public static class ScreenShapes
         OpaquePaths = ["current.slots"],
     };
 
+    // SW-6's poll shapes (V4, V5, V9). Each file holds named samples; the one with no nulls is the one to check a real value
+    // against: poll-activity.json "answerShown", guest-poll.json "answered", poll-control.json "closed". A sample that is
+    // null at a path can't tell JsonShape the kind, so a real value with a non-null there fails against it.
+
+    // A PollActivity (poll-activity.json, V5), and audienceState.activity for a poll. Round is null in draft, Max unless
+    // pick is upTo, Correct until the answer is shown.
+    public static readonly JsonShapeOptions PollActivity = new() { NullablePaths = ["round", "max", "correct"] };
+
+    // GET /api/join/{code}/poll and the 409's "current" (guest-poll.json, V5).
+    public static readonly JsonShapeOptions GuestPoll = new()
+    {
+        NullablePaths = ["activity", "mine", "tally", "activity.round", "activity.max", "activity.correct", "tally.counts"],
+    };
+
+    // A pollTally event on its own (audience-events.json "pollTally"): counts are null while hidden from the receiver.
+    public static readonly JsonShapeOptions PollTally = new() { NullablePaths = ["counts"] };
+
+    // A PollControlView (poll-control.json, V4): every poll route's response and the pollControl event's "control".
+    public static readonly JsonShapeOptions PollControl = new() { NullablePaths = ["round", "settings.max", "settings.correct"] };
+
+    // The answer route's bodies (poll-answer.json, V5): the request, the 200, the 409 and the error bodies.
+    public static readonly JsonShapeOptions PollAnswer = new()
+    {
+        NullablePaths =
+        [
+            "stale.current.activity", "stale.current.mine", "stale.current.tally", "stale.current.activity.round",
+            "stale.current.activity.max", "stale.current.activity.correct", "stale.current.tally.counts",
+        ],
+    };
+
+    // get_poll_results (poll-results.json, V9).
+    public static readonly JsonShapeOptions PollResults = new();
+
+    private static readonly JsonShapeOptions _pollActivityFile = new()
+    {
+        NullablePaths = ["draft.round", "draft.max", "draft.correct", "open.correct", "closed.max", "closed.correct"],
+    };
+
+    private static readonly JsonShapeOptions _guestPollFile = new()
+    {
+        NullablePaths =
+        [
+            "hidden.activity.max", "hidden.activity.correct", "hidden.tally.counts",
+            "notAnswered.activity.correct", "notAnswered.mine", "notAnswered.tally.counts",
+            "noPoll.activity", "noPoll.mine", "noPoll.tally",
+        ],
+    };
+
+    private static readonly JsonShapeOptions _pollControlFile = new()
+    {
+        NullablePaths = ["draft.round", "draft.settings.max", "draft.settings.correct", "open.settings.max", "open.settings.correct"],
+    };
+
     // The nullable and opaque paths for each screen file when JsonShapeTests checks a sample against itself. A file with
     // no entry is checked with slides[].slots opaque, which is every play-shaped screen.
     public static JsonShapeOptions SelfCheckOf(string file) => file switch
     {
         "guest.json" => GuestFile,
         "audience-events.json" => AudienceEvents,
+        "poll-activity.json" => _pollActivityFile,
+        "guest-poll.json" => _guestPollFile,
+        "poll-control.json" => _pollControlFile,
+        "poll-answer.json" => PollAnswer,
+        "poll-results.json" => PollResults,
         _ => new JsonShapeOptions { OpaquePaths = ["slides[].slots"] },
     };
 }
