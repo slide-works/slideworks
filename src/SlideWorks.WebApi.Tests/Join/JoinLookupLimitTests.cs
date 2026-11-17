@@ -68,7 +68,7 @@ public class JoinLookupLimitTests : ApiTestFixture
     }
 
     [Test]
-    public async Task JoinLookup_WhenHit_ShouldNeverBeLimited()
+    public async Task JoinLookup_WhenHit_ShouldNotCountTowardTheLimit()
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deckId = await DeckSeed.CreateDeckAsync(agent);
@@ -83,6 +83,41 @@ public class JoinLookupLimitTests : ApiTestFixture
         using var miss = await anonymous.GetAsync("/api/join/999999");
 
         miss.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task JoinLookup_WhenThirtyParallelMisses_ShouldAnswerNoMoreThanTenWith404()
+    {
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, 30).Select(_ => anonymous.GetAsync("/api/join/999999")));
+
+        responses.Count(r => r.StatusCode == HttpStatusCode.NotFound).ShouldBe(10);
+        responses.Count(r => r.StatusCode == HttpStatusCode.TooManyRequests).ShouldBe(20);
+    }
+
+    [Test]
+    public async Task JoinLookup_WhenParallelHitsBelowTheLimit_ShouldNeverRefuseAndLeaveNothingCounted()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deckId = await DeckSeed.CreateDeckAsync(agent);
+        Sessions.Set(CODE, deckId, SESSION, AudiencePhase.Live);
+        Relay.Set(new AudienceState(deckId, 1, AudiencePhase.Live, new AudienceSlide(1, 1, "title", JsonDocument.Parse("""{"title":"Ship smaller"}""").RootElement, 0, 0, false), 0, null));
+        using var anonymous = ClientFor(TestUser.Anonymous);
+        var statuses = new List<HttpStatusCode>();
+        for (var round = 0; round < 5; round++)
+        {
+            statuses.AddRange((await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => anonymous.GetAsync($"/api/join/{CODE}")))).Select(r => r.StatusCode));
+        }
+        var misses = new List<HttpStatusCode>();
+        for (var i = 0; i < 11; i++)
+        {
+            misses.Add((await anonymous.GetAsync("/api/join/999999")).StatusCode);
+        }
+
+        statuses.ShouldAllBe(s => s == HttpStatusCode.OK);
+        misses.Count(s => s == HttpStatusCode.NotFound).ShouldBe(10);
+        misses[^1].ShouldBe(HttpStatusCode.TooManyRequests);
     }
 
     [Test]

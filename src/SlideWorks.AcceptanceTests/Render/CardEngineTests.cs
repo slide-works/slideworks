@@ -60,13 +60,14 @@ public class CardEngineTests
 
     // Production: the engine's page lives on the loopback address (or SLIDEWORKS_RENDER_URL), while PublicOriginMiddleware
     // rewrites every request to SLIDEWORKS_PUBLIC_URL, so the page's origin is never the public one. Here the engine
-    // dials localhost while the app's public URL stays 127.0.0.1, and a link deck with a logo still renders.
+    // dials render.localhost, which is neither the public host (127.0.0.1) nor the join host (localhost, which redirects
+    // /card/{id} to the public URL), and a link deck with a logo still renders.
     [Test]
     public async Task Engine_CardRendersWhenTheRenderUrlIsNotThePublicUrl()
     {
         var deck = await CreateLinkDeckWithALogoAsync();
         await using var browser = new RenderBrowser();
-        using var engine = EngineWith(browser, RenderOptions.DEFAULT_TIMEOUT, AcceptanceApp.BaseUrl.Replace("127.0.0.1", "localhost", StringComparison.Ordinal));
+        using var engine = EngineWith(browser, RenderOptions.DEFAULT_TIMEOUT, AcceptanceApp.BaseUrl.Replace("127.0.0.1", "render.localhost", StringComparison.Ordinal));
 
         var png = await engine.RenderCardAsync(deck, CancellationToken.None);
 

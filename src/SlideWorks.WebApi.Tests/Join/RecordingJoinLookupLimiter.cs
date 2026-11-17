@@ -15,4 +15,8 @@ public sealed class RecordingJoinLookupLimiter : IJoinLookupLimiter
     public bool Allow(string callerKey) => !Refuse;
 
     public void Miss(string callerKey) => Interlocked.Increment(ref _misses);
+
+    public void Hit(string callerKey)
+    {
+    }
 }

@@ -46,6 +46,7 @@ public class GuestViews(
             limiter.Miss(key);
             throw new NotFoundException(NO_SESSION);
         }
+        limiter.Hit(key);
 
         var deck = await db.Decks.AsNoTracking().SingleAsync(d => d.Id == found.DeckId);
         var presenter = await db.Users.AsNoTracking().Where(u => u.Id == deck.OwnerId).Select(u => u.Name).SingleAsync();

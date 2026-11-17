@@ -454,5 +454,9 @@ public class AudienceHubContractTests : ApiTestFixture
         public bool Allow(string callerKey) => Open;
 
         public void Miss(string callerKey) => Interlocked.Increment(ref _misses);
+
+        public void Hit(string callerKey)
+        {
+        }
     }
 }
