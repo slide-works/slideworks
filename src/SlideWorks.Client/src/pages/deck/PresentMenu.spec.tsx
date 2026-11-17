@@ -74,6 +74,10 @@ test('Control from your phone opens the dialog with the remote url and no phone 
     `${new URL(page.url()).origin}/remote?deck=${owned.id}`,
   );
   await expect(page.getByTestId('phone-connect-chip')).toHaveCount(0);
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('phone-connect')).toHaveCount(0);
+  await expect(page.getByTestId('present-menu')).toBeFocused();
 });
 
 test('menu screenshot', async ({ mount, page }) => {

@@ -1,22 +1,10 @@
 import { test, expect } from '@playwright/experimental-ct-react';
-import QRCode from 'qrcode';
 import { presenterView } from '../test-support/fixtures/presenting';
 import { PhoneConnectDialog } from './PhoneConnectDialog';
+import { qrPath } from './QrCode';
 import type { PresentationConnection } from './types';
 
 const phone: PresentationConnection = { clientId: 'p1', role: 'phone', label: "Sam's iPhone" };
-
-// What the encoder makes for a url, drawn the way QrCode draws it, so a spec can tell which url a code holds.
-function pathFor(url: string): string {
-  const { modules } = QRCode.create(url, { errorCorrectionLevel: 'M' });
-  let path = '';
-  for (let row = 0; row < modules.size; row++) {
-    for (let col = 0; col < modules.size; col++) {
-      if (modules.get(row, col)) path += `M${col + 2} ${row + 2}h1v1h-1z`;
-    }
-  }
-  return path;
-}
 
 test('open, it shows the remote url', async ({ mount, page }) => {
   const { remoteUrl } = presenterView();
@@ -35,8 +23,8 @@ test('the QR code encodes the remote url', async ({ mount, page }) => {
   const { remoteUrl } = presenterView();
   await mount(<PhoneConnectDialog remoteUrl={remoteUrl} open onClose={() => {}} />);
   const drawn = await page.getByTestId('phone-connect-qr').locator('path').getAttribute('d');
-  expect(drawn).toBe(pathFor(remoteUrl));
-  expect(drawn).not.toBe(pathFor(`${remoteUrl}x`));
+  expect(drawn).toBe(qrPath(remoteUrl).path);
+  expect(drawn).not.toBe(qrPath(`${remoteUrl}x`).path);
 });
 
 test('Copy puts the remote url on the clipboard', async ({ mount, page, context }) => {

@@ -15,6 +15,14 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
   const arrowRef = useRef<HTMLButtonElement>(null);
   const firstItemRef = useRef<HTMLAnchorElement>(null);
 
+  // The menu closes as the dialog opens, so the dialog's own focus restore finds nothing to return to: when the
+  // dialog closes, focus goes back to the arrow.
+  const phoneWasOpen = useRef(false);
+  useEffect(() => {
+    if (phoneWasOpen.current && !phoneOpen) arrowRef.current?.focus();
+    phoneWasOpen.current = phoneOpen;
+  }, [phoneOpen]);
+
   useEffect(() => {
     if (!open) return;
     firstItemRef.current?.focus();

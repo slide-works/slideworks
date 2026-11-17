@@ -2,9 +2,9 @@ import QRCode from 'qrcode';
 
 const QUIET_ZONE = 2;
 
-// A QR code for `text` as an SVG made of React nodes (no HTML strings). Only the modules matrix comes from the
-// encoder; the drawing is one path, so the code scales to any size.
-export function QrCode({ text, label }: { text: string; label: string }) {
+// The SVG path of the QR code for `text` and its size in modules, quiet zone included. Specs call this to learn
+// what the encoder makes for a url, so QrCode.tsx stays the one file that imports the encoder.
+export function qrPath(text: string): { path: string; total: number } {
   const { modules } = QRCode.create(text, { errorCorrectionLevel: 'M' });
   const size = modules.size;
   let path = '';
@@ -13,7 +13,12 @@ export function QrCode({ text, label }: { text: string; label: string }) {
       if (modules.get(row, col)) path += `M${col + QUIET_ZONE} ${row + QUIET_ZONE}h1v1h-1z`;
     }
   }
-  const total = size + QUIET_ZONE * 2;
+  return { path, total: size + QUIET_ZONE * 2 };
+}
+
+// A QR code for `text` as an SVG made of React nodes (no HTML strings), drawn as one path so it scales to any size.
+export function QrCode({ text, label }: { text: string; label: string }) {
+  const { path, total } = qrPath(text);
   return (
     <svg
       data-testid="phone-connect-qr"
