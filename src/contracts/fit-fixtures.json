@@ -2,7 +2,9 @@
   "bulletsEight": {
     "layout": "bullets",
     "estimate": 598.8,
-    "grow": ["/items/7"],
+    "grow": [
+      "/items/7"
+    ],
     "refusedBy": "fit",
     "slots": {
       "kicker": "Weekly Metrics Show Where Work Waits See",
@@ -23,7 +25,10 @@
   "bulletsCallout": {
     "layout": "bullets",
     "estimate": 591.8,
-    "grow": ["/items/0/text", "/items/3"],
+    "grow": [
+      "/items/0/text",
+      "/items/3"
+    ],
     "refusedBy": "fit",
     "slots": {
       "kicker": "Weekly Metrics Show Where Work Waits See",
@@ -52,7 +57,9 @@
   "twoColumnItems": {
     "layout": "two-column",
     "estimate": 612.1,
-    "grow": ["/left/items/5"],
+    "grow": [
+      "/left/items/5"
+    ],
     "refusedBy": "fit",
     "slots": {
       "kicker": "Weekly Metrics Show Where Work Waits See",
@@ -86,7 +93,10 @@
   "twoColumnText": {
     "layout": "two-column",
     "estimate": 450.4,
-    "grow": ["/left/text", "/right/text"],
+    "grow": [
+      "/left/text",
+      "/right/text"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "Weekly Metrics Show Where Work Waits See",
@@ -104,7 +114,11 @@
   "practice": {
     "layout": "practice",
     "estimate": 619.6,
-    "grow": ["/do/4/text", "/avoid/1", "/callout/text"],
+    "grow": [
+      "/do/4/text",
+      "/avoid/1",
+      "/callout/text"
+    ],
     "refusedBy": "fit",
     "slots": {
       "kicker": "Weekly Metrics Show Where Work Waits See",
@@ -148,7 +162,10 @@
   "compare": {
     "layout": "compare",
     "estimate": 607.2,
-    "grow": ["/failure/sub", "/success/sub"],
+    "grow": [
+      "/failure/sub",
+      "/success/sub"
+    ],
     "refusedBy": "fit",
     "slots": {
       "kicker": "Weekly Metrics Show Where Work Waits See",
@@ -177,7 +194,10 @@
   },
   "numberedCardsProse": {
     "layout": "numbered-cards",
-    "grow": ["/cards/3/title", "/cards/3/text"],
+    "grow": [
+      "/cards/3/title",
+      "/cards/3/text"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "The team ships a small slice of work toe",
@@ -206,7 +226,11 @@
   "rulesProse": {
     "layout": "rules",
     "estimate": 617.7,
-    "grow": ["/rules/0/text", "/rules/1/text", "/rules/2/text"],
+    "grow": [
+      "/rules/0/text",
+      "/rules/1/text",
+      "/rules/2/text"
+    ],
     "refusedBy": "fit",
     "slots": {
       "kicker": "The team ships a small slice of work toe",
@@ -234,7 +258,11 @@
   },
   "cardsProse": {
     "layout": "cards",
-    "grow": ["/cards/2/title", "/cards/2/text", "/cards/2/chips/3"],
+    "grow": [
+      "/cards/2/title",
+      "/cards/2/text",
+      "/cards/2/chips/3"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "The team ships a small slice of work toe",
@@ -279,7 +307,10 @@
   },
   "numberedCardsTitleCase": {
     "layout": "numbered-cards",
-    "grow": ["/cards/3/title", "/cards/3/text"],
+    "grow": [
+      "/cards/3/title",
+      "/cards/3/text"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "The Team Ships A Small Slice Of Work Toe",
@@ -308,7 +339,11 @@
   "rulesTitleCase": {
     "layout": "rules",
     "estimate": 617.7,
-    "grow": ["/rules/0/text", "/rules/1/text", "/rules/2/text"],
+    "grow": [
+      "/rules/0/text",
+      "/rules/1/text",
+      "/rules/2/text"
+    ],
     "refusedBy": "fit",
     "slots": {
       "kicker": "The Team Ships A Small Slice Of Work Toe",
@@ -336,7 +371,11 @@
   },
   "cardsTitleCase": {
     "layout": "cards",
-    "grow": ["/cards/2/title", "/cards/2/text", "/cards/2/chips/3"],
+    "grow": [
+      "/cards/2/title",
+      "/cards/2/text",
+      "/cards/2/chips/3"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "The Team Ships A Small Slice Of Work Toe",
@@ -381,7 +420,10 @@
   },
   "numberedCardsWide": {
     "layout": "numbered-cards",
-    "grow": ["/cards/3/title", "/cards/3/text"],
+    "grow": [
+      "/cards/3/title",
+      "/cards/3/text"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "Many Women Who Wander Wide Meadows Mow M",
@@ -439,7 +481,11 @@
   },
   "cardsWide": {
     "layout": "cards",
-    "grow": ["/cards/2/title", "/cards/2/text", "/cards/2/chips/3"],
+    "grow": [
+      "/cards/2/title",
+      "/cards/2/text",
+      "/cards/2/chips/3"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "Many Women Who Wander Wide Meadows Mow M",
@@ -485,7 +531,10 @@
   "tableTitle": {
     "layout": "table",
     "estimate": 611.8,
-    "grow": ["/columns/0", "/rows/5/0"],
+    "grow": [
+      "/columns/0",
+      "/rows/5/0"
+    ],
     "refusedBy": "fit",
     "slots": {
       "kicker": "So The Risk Shows Up Early While It Isee",
@@ -571,7 +620,11 @@
   },
   "chartTitle": {
     "layout": "chart",
-    "grow": ["/caption", "/series/2/name", "/xLabels/11"],
+    "grow": [
+      "/caption",
+      "/series/2/name",
+      "/xLabels/11"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "Really Is The Team Ships A Small Sliceee",
@@ -595,22 +648,52 @@
         {
           "name": "Really Is The Team Ships Aeeee",
           "values": [
-            500, 37500, 74500, 21500, 58500, 5500, 42500, 79500, 26500, 63500,
-            10500, 47500
+            500,
+            37500,
+            74500,
+            21500,
+            58500,
+            5500,
+            42500,
+            79500,
+            26500,
+            63500,
+            10500,
+            47500
           ]
         },
         {
           "name": "Small Slice Of Work Toeeeeeeee",
           "values": [
-            11500, 48500, 85500, 32500, 69500, 16500, 53500, 500, 37500, 74500,
-            21500, 58500
+            11500,
+            48500,
+            85500,
+            32500,
+            69500,
+            16500,
+            53500,
+            500,
+            37500,
+            74500,
+            21500,
+            58500
           ]
         },
         {
           "name": "Customers Every Week And Theee",
           "values": [
-            22500, 59500, 6500, 43500, 80500, 27500, 64500, 11500, 48500, 85500,
-            32500, 69500
+            22500,
+            59500,
+            6500,
+            43500,
+            80500,
+            27500,
+            64500,
+            11500,
+            48500,
+            85500,
+            32500,
+            69500
           ]
         }
       ],
@@ -624,7 +707,10 @@
   },
   "ganttTitle": {
     "layout": "gantt",
-    "grow": ["/rows/4/label", "/caption"],
+    "grow": [
+      "/rows/4/label",
+      "/caption"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "Small Slice Of Work To Customers Everyee",
@@ -681,7 +767,10 @@
   },
   "imageTitle": {
     "layout": "image",
-    "grow": ["/points/3", "/caption"],
+    "grow": [
+      "/points/3",
+      "/caption"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "Team Ships A Small Slice Of Work Toeeeee",
@@ -702,7 +791,10 @@
   "tableProse": {
     "layout": "table",
     "estimate": 611.8,
-    "grow": ["/columns/0", "/rows/5/0"],
+    "grow": [
+      "/columns/0",
+      "/rows/5/0"
+    ],
     "refusedBy": "fit",
     "slots": {
       "kicker": "So the risk shows up early while it isee",
@@ -788,7 +880,11 @@
   },
   "chartProse": {
     "layout": "chart",
-    "grow": ["/caption", "/series/2/name", "/xLabels/11"],
+    "grow": [
+      "/caption",
+      "/series/2/name",
+      "/xLabels/11"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "Really is the team ships a small sliceee",
@@ -812,22 +908,52 @@
         {
           "name": "Really is the team ships aeeee",
           "values": [
-            500, 37500, 74500, 21500, 58500, 5500, 42500, 79500, 26500, 63500,
-            10500, 47500
+            500,
+            37500,
+            74500,
+            21500,
+            58500,
+            5500,
+            42500,
+            79500,
+            26500,
+            63500,
+            10500,
+            47500
           ]
         },
         {
           "name": "Small slice of work toeeeeeeee",
           "values": [
-            11500, 48500, 85500, 32500, 69500, 16500, 53500, 500, 37500, 74500,
-            21500, 58500
+            11500,
+            48500,
+            85500,
+            32500,
+            69500,
+            16500,
+            53500,
+            500,
+            37500,
+            74500,
+            21500,
+            58500
           ]
         },
         {
           "name": "Customers every week and theee",
           "values": [
-            22500, 59500, 6500, 43500, 80500, 27500, 64500, 11500, 48500, 85500,
-            32500, 69500
+            22500,
+            59500,
+            6500,
+            43500,
+            80500,
+            27500,
+            64500,
+            11500,
+            48500,
+            85500,
+            32500,
+            69500
           ]
         }
       ],
@@ -841,7 +967,10 @@
   },
   "ganttProse": {
     "layout": "gantt",
-    "grow": ["/rows/4/label", "/caption"],
+    "grow": [
+      "/rows/4/label",
+      "/caption"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "Small slice of work to customers everyee",
@@ -898,7 +1027,10 @@
   },
   "imageProse": {
     "layout": "image",
-    "grow": ["/points/3", "/caption"],
+    "grow": [
+      "/points/3",
+      "/caption"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "Team ships a small slice of work toeeeee",
@@ -918,7 +1050,9 @@
   },
   "joinKicker": {
     "layout": "join",
-    "grow": ["/kicker"],
+    "grow": [
+      "/kicker"
+    ],
     "refusedBy": "length",
     "slots": {
       "kicker": "Join on your phone and follow the talk x",
