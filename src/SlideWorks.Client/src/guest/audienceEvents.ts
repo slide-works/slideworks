@@ -1,4 +1,5 @@
 import type { PollActivity, PollControl, PollTally } from '../polls/types';
+import type { QaRoom, QuestionControl, QuestionTally, ReactionsBurst } from '../qa/types';
 import type { LayoutName, Slots } from '../slides/slots';
 
 // Mirrors src/contracts/screens/audience-events.json and AudienceEvent.cs (SW-5 J4). Every event goes on the hub method
@@ -22,7 +23,8 @@ export type AudienceCurrent = {
 }[LayoutName];
 
 // The guest's view of the talk: a position, not content. seq only increases; current is null unless phase is "live";
-// activity is the poll on screen (SW-6 V5), and null on a slide with no poll and in every phase but "live".
+// activity is the poll on screen (SW-6 V5), and null on a slide with no poll and in every phase but "live". room is
+// what the room may do with questions and reactions on the slide on screen (SW-9 Q1), null in every phase but "live".
 export type AudienceState = {
   type: 'audienceState';
   seq: number;
@@ -30,6 +32,7 @@ export type AudienceState = {
   current: AudienceCurrent | null;
   revision: number;
   activity: PollActivity | null;
+  room: QaRoom | null;
 };
 
 // The session ended: the page shows the thank-you state.
@@ -40,7 +43,17 @@ export type JoinedCount = { type: 'joinedCount'; count: number };
 
 // SW-6 (V5): a round's tally, to guests and the big screen (counts null while hidden from the receiver), and the
 // presenter's poll view, to the presenter's screens only. Their shapes are in polls/types.ts.
-export type AudienceEvent = AudienceState | AudienceEnded | JoinedCount | PollTally | PollControl;
+// SW-9 (Q5): the questions' votes, to guests and the big screen; the presenter's Q&A view and the reaction taps, to the
+// presenter's screens only. Their shapes are in qa/types.ts.
+export type AudienceEvent =
+  | AudienceState
+  | AudienceEnded
+  | JoinedCount
+  | PollTally
+  | PollControl
+  | QuestionTally
+  | QuestionControl
+  | ReactionsBurst;
 
 export function isAudienceEvent(value: unknown): value is AudienceEvent {
   if (typeof value !== 'object' || value === null) return false;
@@ -50,6 +63,9 @@ export function isAudienceEvent(value: unknown): value is AudienceEvent {
     type === 'audienceEnded' ||
     type === 'joinedCount' ||
     type === 'pollTally' ||
-    type === 'pollControl'
+    type === 'pollControl' ||
+    type === 'questionTally' ||
+    type === 'questionControl' ||
+    type === 'reactions'
   );
 }
