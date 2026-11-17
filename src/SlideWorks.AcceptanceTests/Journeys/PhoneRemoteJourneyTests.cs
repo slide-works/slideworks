@@ -37,21 +37,28 @@ public partial class PhoneRemoteJourneyTests : AcceptanceTest
         await Expect(speaker.Count).ToHaveTextAsync($"1 / {SLIDES}");
         await Expect(speaker.TimeLeft).ToHaveCountAsync(0);
 
-        await speaker.Next.ClickAsync();
-
-        await Expect(presenter.Count).ToHaveTextAsync($"2 / {SLIDES}");
-        await Expect(speaker.Count).ToHaveTextAsync($"2 / {SLIDES}");
-        await Expect(speaker.Now).ToHaveAttributeAsync("data-slide", "2");
-
+        // The talk length goes in before the first Next, so the timer has not started and time left is exactly the 30 minutes.
         var response = await Page.APIRequest.PutAsync($"/api/decks/{id}/talk-length", new APIRequestContextOptions
         {
             DataObject = new { minutes = 30 },
             Headers = new Dictionary<string, string> { ["Origin"] = AcceptanceApp.BaseUrl },
         });
         response.Status.ShouldBe(204, await response.TextAsync());
+        await Expect(speaker.Timer).ToHaveAttributeAsync("data-state", "notStarted");
+        await Expect(speaker.TimeLeft).ToHaveTextAsync("30:00 left");
+        await Expect(presenter.TimeLeft).ToHaveTextAsync("30:00 left of 30:00");
 
-        // Next started the timer, so a few seconds have gone from the 30 minutes by the time the state arrives.
-        await Expect(speaker.TimeLeft).ToHaveTextAsync(TimeLeftOfThirtyMinutes());
+        await speaker.Next.ClickAsync();
+
+        await Expect(presenter.Count).ToHaveTextAsync($"2 / {SLIDES}");
+        await Expect(speaker.Count).ToHaveTextAsync($"2 / {SLIDES}");
+        await Expect(speaker.Now).ToHaveAttributeAsync("data-slide", "2");
+
+        // Next started the timer: it runs on the phone and the presenter window, and the 30 minutes have begun to go.
+        await Expect(speaker.Timer).ToHaveAttributeAsync("data-state", "running");
+        await Expect(presenter.Timer).ToHaveAttributeAsync("data-state", "running");
+        await Expect(speaker.TimeLeft).ToHaveTextAsync(TimeLeftOnceRunning());
+        await Expect(presenter.TimeLeft).ToHaveTextAsync(PresenterTimeLeftOnceRunning());
 
         await speaker.JumpToAsync(11);
 
@@ -127,8 +134,11 @@ public partial class PhoneRemoteJourneyTests : AcceptanceTest
 
     private static Regex SpeakerUrl(string deckId) => new($"/remote/{Regex.Escape(deckId)}$");
 
-    [GeneratedRegex(@"^(30:00|29:[0-5]\d) left$")]
-    private static partial Regex TimeLeftOfThirtyMinutes();
+    [GeneratedRegex(@"^29:[0-5]\d left$")]
+    private static partial Regex TimeLeftOnceRunning();
+
+    [GeneratedRegex(@"^29:[0-5]\d left of 30:00$")]
+    private static partial Regex PresenterTimeLeftOnceRunning();
 
     private sealed class Phone(IBrowserContext context, IPage page) : IAsyncDisposable
     {
