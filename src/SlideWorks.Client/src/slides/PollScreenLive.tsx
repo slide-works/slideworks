@@ -89,10 +89,12 @@ export function PollScreenLive({ deckId, owner, children }: PollScreenLiveProps)
     });
   }, []);
 
-  // A new deck starts from nothing.
-  const [shownDeck, setShownDeck] = useState(deckId);
-  if (shownDeck !== deckId) {
-    setShownDeck(deckId);
+  // A new deck, or a new live session, starts from nothing: no view of an earlier session, and no read before the
+  // next watch.
+  const scope = `${deckId}:${active}`;
+  const [shownScope, setShownScope] = useState(scope);
+  if (shownScope !== scope) {
+    setShownScope(scope);
     setPresenterSlide(null);
     setViews(new Map());
     setWatched(0);
