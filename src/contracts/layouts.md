@@ -27,6 +27,7 @@ Error paths name the failing field with 0-based indexes, such as `practice.do[2]
 | [`cards`](#cards) | no | one per `cards` item when `reveal` is `one-by-one` | 1–3 cards, each with an optional badge, a title, text and chips. Can reveal one card per step. |
 | [`close`](#close) | yes | none | Closing slide (dark): a short headline of up to three written lines, with an optional sub and author. |
 | [`join`](#join) | yes | none | Join slide (dark): a QR code, the join code and the address, so the room can follow the talk on their phones. The code and the QR come from the live session, never from the slots. |
+| [`poll`](#poll) | no | none | Poll slide: a question and 2 to 8 options that the room answers on their phones while the deck is live. The poll's settings (how many picks, when results show, the correct answer, when it opens) are set with update_poll, never in the slots. |
 
 ## title
 
@@ -284,6 +285,15 @@ Join slide (dark): a QR code, the join code and the address, so the room can fol
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars | Defaults to 'Join on your phone' |
 | `count` | `shown` or `hidden` | no | default `shown` | 'shown' (the default) shows how many have joined; 'hidden' leaves the count off |
+
+## poll
+
+Poll slide: a question and 2 to 8 options that the room answers on their phones while the deck is live. The poll's settings (how many picks, when results show, the correct answer, when it opens) are set with update_poll, never in the slots.
+
+| Slot | Kind | Required | Limits | Notes |
+|---|---|---|---|---|
+| `question` | text | yes | up to 120 chars |  |
+| `options` | list of text | yes | 2–8 items; each up to 60 chars | Known by position: while a round is open they can be reworded or added to, not removed or reordered |
 
 ## Inline blocks
 
