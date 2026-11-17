@@ -1,0 +1,112 @@
+{
+  "templates": [
+    {
+      "name": "example-locked",
+      "label": "Example (locked palette)",
+      "purpose": "A made-up uploaded template that brings and locks its own palette.",
+      "isDefault": false,
+      "layouts": [
+        "title",
+        "divider",
+        "bullets",
+        "two-column",
+        "compare",
+        "big-number",
+        "quote",
+        "image",
+        "chart",
+        "close"
+      ],
+      "chrome": {
+        "tracker": true,
+        "footer": "author",
+        "progress": true,
+        "deepDivesOnDivider": false,
+        "draft": false
+      },
+      "outline": [
+        "Title with the one-line promise",
+        "3–5 parts, each opening with a divider",
+        "2–4 slides per part",
+        "Close on the single ask"
+      ],
+      "type": {
+        "head": "Plus Jakarta Sans",
+        "body": "Inter",
+        "headWeight": 800,
+        "headTracking": "-0.025em"
+      },
+      "shape": {
+        "radius": {
+          "sm": 10,
+          "md": 12,
+          "lg": 16,
+          "xl": 18
+        },
+        "shadow": "0 1px 2px rgb(15 23 42 / 0.06), 0 14px 36px rgb(15 23 42 / 0.09)"
+      },
+      "ornament": "dots",
+      "titleArt": "waves",
+      "lockedPalette": "cobalt"
+    }
+  ],
+  "palettes": [
+    {
+      "name": "cobalt",
+      "label": "Cobalt",
+      "isDefault": true,
+      "swatch": ["#f7f8fa", "#2f5bea", "#c2410c", "#0b1020"],
+      "tokens": {
+        "paper": "#f7f8fa",
+        "card": "#ffffff",
+        "chip": "#eef1f6",
+        "grid": "#e3e6ec",
+        "ink": "#111827",
+        "muted": "#5b6474",
+        "accent": "#2f5bea",
+        "accent-dark": "#1e3a8a",
+        "accent-light": "#e4eafd",
+        "accent-glow": "#a5b8ff",
+        "accent-past": "#b9c8f8",
+        "on-accent": "#ffffff",
+        "good": "#16a34a",
+        "good-soft": "#dcfce7",
+        "good-ink": "#166534",
+        "bad": "#dc2626",
+        "bad-soft": "#fdecec",
+        "bad-ink": "#991b1b",
+        "warn": "#ea580c",
+        "warn-soft": "#ffedd5",
+        "warn-ink": "#9a3412",
+        "dd": "#c2410c",
+        "on-dd": "#ffffff",
+        "dd-on-night": "#fdba74",
+        "night": "#0b1020",
+        "night-ink": "#ffffff",
+        "night-2": "#cbd5e1",
+        "night-muted": "#8c97ad",
+        "night-line": "#334155",
+        "night-glow": "rgb(47 91 234)",
+        "number-from": "#c3d0ff",
+        "number-to": "#5b7cff",
+        "stamp": "#fcd34d",
+        "panel-accent": "#2f5bea",
+        "panel-accent-ink": "#ffffff",
+        "panel-positive": "#15803d",
+        "panel-positive-ink": "#ffffff",
+        "panel-negative": "#b91c1c",
+        "panel-negative-ink": "#ffffff",
+        "panel-inverse": "#0b1020",
+        "panel-inverse-ink": "#ffffff"
+      },
+      "contrast": {
+        "pass": true,
+        "lowest": {
+          "pair": "panel-positive",
+          "ratio": 5.0,
+          "bar": 4.5
+        }
+      }
+    }
+  ]
+}

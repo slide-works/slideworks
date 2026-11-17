@@ -432,7 +432,7 @@ public class SlideValidatorTests
 
         var result = Validate("bullets", $$"""{ "headline": "h", "items": ["i"], "callout": { "text": "t", "tone": "{{value}}" } }""");
 
-        result.Error.ShouldBe("bullets.callout.tone: expected one of 'good', 'bad', 'info' (got '\\u0000" + new string('v', 39) + "…')");
+        result.Error.ShouldBe("bullets.callout.tone: expected one of 'accent', 'positive', 'negative', 'inverse' (got '\\u0000" + new string('v', 39) + "…')");
     }
 
     [Test]
@@ -441,6 +441,94 @@ public class SlideValidatorTests
         var result = SlideValidator.Validate(new string('x', 1_000_000), default);
 
         result.Error.ShouldStartWith("layout: unknown layout '" + new string('x', 40) + "…' (known: title,");
+    }
+
+    [TestCase("accent", null)]
+    [TestCase("positive", "soft")]
+    [TestCase("negative", "solid")]
+    [TestCase("inverse", "solid")]
+    [TestCase("good", null)]
+    [TestCase("bad", "soft")]
+    [TestCase("info", "solid")]
+    public void Validate_WhenCalloutToneAliasesAndFill_ShouldPass(string tone, string? fill)
+    {
+        var fillField = fill is null ? "" : $$""", "fill": "{{fill}}" """;
+
+        var result = Validate("bullets", $$"""{ "headline": "h", "items": ["i"], "callout": { "text": "t", "tone": "{{tone}}"{{fillField}} } }""");
+
+        result.Errors.ShouldBeEmpty();
+    }
+
+    [TestCase("good", "positive")]
+    [TestCase("bad", "negative")]
+    [TestCase("info", "accent")]
+    [TestCase("accent", "accent")]
+    [TestCase("inverse", "inverse")]
+    public void CalloutToneAliasesAndFill_WhenAlias_ShouldResolveToTheNewTone(string stored, string resolved)
+    {
+        var tone = (EnumSlot)((ObjectSlot)LayoutCatalogue.Callout.Type!).Fields.Single(f => f.Name == "tone").Type;
+
+        tone.Resolve(stored).ShouldBe(resolved);
+    }
+
+    [Test]
+    public void CalloutToneAliasesAndFill_WhenFillUnknown_ShouldNameTheChoices()
+    {
+        var result = Validate("practice", """
+            { "headline": "h", "do": [{ "lead": "a", "text": "b" }], "comes_back": [], "avoid": [],
+              "callout": { "text": "t", "tone": "good", "fill": "outline" } }
+            """);
+
+        result.Error.ShouldBe("practice.callout.fill: expected one of 'soft', 'solid' (got 'outline')");
+    }
+
+    [Test]
+    public void CalloutToneAliasesAndFill_WhenToneMissing_ShouldStillBeRequired()
+    {
+        var result = Validate("bullets", """{ "headline": "h", "items": ["i"], "callout": { "text": "t", "fill": "solid" } }""");
+
+        result.Error.ShouldBe("bullets.callout.tone: required");
+    }
+
+    [Test]
+    public void Validate_WhenCardsAndCompareToneAndFill_ShouldPass()
+    {
+        var cards = Validate("cards", """
+            { "headline": "h", "cards": [
+              { "title": "a", "text": "b", "chips": [] },
+              { "title": "c", "text": "d", "chips": [], "tone": "negative", "fill": "solid" },
+              { "title": "e", "text": "f", "chips": [], "tone": "good" } ] }
+            """);
+        var compare = Validate("compare", """
+            { "headline": "h",
+              "failure": { "label": "l", "title": "t", "points": ["p"], "tone": "inverse", "fill": "solid" },
+              "success": { "label": "l", "title": "t", "points": ["p"] } }
+            """);
+
+        cards.Errors.ShouldBeEmpty();
+        compare.Errors.ShouldBeEmpty();
+    }
+
+    [TestCase("cards", """{ "headline": "h", "cards": [{ "title": "a", "text": "b", "chips": [], "tone": "warn" }] }""", "cards.cards[0].tone")]
+    [TestCase("compare", """{ "headline": "h", "failure": { "label": "l", "title": "t", "points": ["p"] }, "success": { "label": "l", "title": "t", "points": ["p"], "tone": "warn" } }""", "compare.success.tone")]
+    public void CardsAndCompareToneAndFill_WhenToneUnknown_ShouldGiveTheUsualEnumError(string layout, string slots, string path)
+    {
+        var result = Validate(layout, slots);
+
+        result.Error.ShouldBe($"{path}: expected one of 'accent', 'positive', 'negative', 'inverse' (got 'warn')");
+    }
+
+    [Test]
+    public void CardsAndCompareToneAndFill_WhenComparePanelToneLeftOut_ShouldDefaultToNegativeAndPositiveSoft()
+    {
+        var compare = LayoutCatalogue.Find("compare")!;
+        EnumSlot Slot(string panel, string field) =>
+            (EnumSlot)((ObjectSlot)compare.Slots.Fields.Single(s => s.Name == panel).Type).Fields.Single(f => f.Name == field).Type;
+
+        Slot("failure", "tone").Default.ShouldBe("negative");
+        Slot("success", "tone").Default.ShouldBe("positive");
+        Slot("failure", "fill").Default.ShouldBe("soft");
+        Slot("success", "fill").Default.ShouldBe("soft");
     }
 
     private static SlideValidationResult Validate(string layout, string slots)

@@ -1,4 +1,5 @@
 using Agoda.IoC.Core;
+using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Infrastructure;
@@ -8,9 +9,17 @@ using SlideWorks.WebApi.Realtime;
 namespace SlideWorks.WebApi.Features.Decks;
 
 // Creates decks (K5), for POST /api/decks and the create_deck tool. A new deck is private to the person creating it, or
-// for an agent, to the presenter it acts for.
+// for an agent, to the presenter it acts for. Its look comes from LookRules (L3): the named or default template and
+// palette, and Draft from the template's chrome.
 [RegisterPerRequest]
-public class DeckCommands(AppDbContext db, ICurrentActor actor, IActivityLog activity, IDeckEvents events, TimeProvider clock)
+public class DeckCommands(
+    AppDbContext db,
+    ICurrentActor actor,
+    IActivityLog activity,
+    IDeckEvents events,
+    TimeProvider clock,
+    ITemplateCatalogue templates,
+    IPaletteCatalogue palettes)
 {
     private const int TITLE_MAX_LENGTH = 120;
     private const int SUBTITLE_MAX_LENGTH = 200;
@@ -21,6 +30,13 @@ public class DeckCommands(AppDbContext db, ICurrentActor actor, IActivityLog act
     {
         var title = Required("title", request.Title, TITLE_MAX_LENGTH);
         var parts = Parts(request.Parts);
+        var look = new LookRules(templates, palettes).Resolve(request.Template, request.Palette);
+        if (look.Error is not null)
+        {
+            throw new BadRequestException(look.Error);
+        }
+        var template = look.Template!;
+        var palette = look.Palette!;
         var now = clock.GetUtcNow();
         var deck = new Deck
         {
@@ -33,6 +49,9 @@ public class DeckCommands(AppDbContext db, ICurrentActor actor, IActivityLog act
             OwnerId = actor.PresenterId ?? throw new InvalidOperationException("Creating a deck needs a signed-in caller."),
             Sharing = DeckSharing.Private,
             Revision = 0,
+            Template = template.Name,
+            Palette = palette.Name,
+            Draft = template.Chrome.Draft,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -41,7 +60,7 @@ public class DeckCommands(AppDbContext db, ICurrentActor actor, IActivityLog act
         {
             db.Decks.Add(deck);
             await db.SaveChangesAsync();
-            await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, "created the deck"));
+            await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, $"created the deck from the {template.Name} template with the {palette.Label} palette"));
             await transaction.CommitAsync();
         }
 

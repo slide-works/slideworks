@@ -34,6 +34,15 @@ RUN apt-get update \
 WORKDIR /app
 COPY --from=build /app .
 
+# Headless Chromium for the share card (L9), installed as root with its system libraries by the Playwright driver that
+# Microsoft.Playwright publishes into .playwright/ (its own node; this image has no pwsh). It goes in a shared folder
+# the non-root app user can read, and the app finds it through PLAYWRIGHT_BROWSERS_PATH. The driver in .playwright/
+# is opened up too: the app (non-root) starts its node at runtime, and the publish leaves it 0744 and root's.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN .playwright/node/linux-x64/node .playwright/package/cli.js install --with-deps chromium \
+    && chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH" .playwright \
+    && rm -rf /var/lib/apt/lists/*
+
 # SQLite lives here (SLIDEWORKS_DB_PATH defaults to /data/slide-works.db). The compose
 # file mounts a named volume on a local disk; never bind-mount this onto a
 # 9p/SMB/NAS path. Created owned by the non-root app user so a fresh named volume

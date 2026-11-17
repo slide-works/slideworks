@@ -36,3 +36,9 @@
   color: var(--sw-muted);
   font: 400 23px/1.4 var(--sw-font-body);
 }
+
+/* On a deep dive the numerals are in the deep-dive colour (mockup section 05),
+   keyed off the frame. */
+:global(.sw-frame[data-deep-dive='true']) .number {
+  color: var(--sw-dd);
+}

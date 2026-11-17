@@ -112,7 +112,7 @@ public class DeckReadToolsTests : ApiTestFixture
         blocks.Select(b => b.GetProperty("setByAgent").GetBoolean()).ShouldBe([true, true, true, true, false]);
         var callout = blocks[0].GetProperty("schema");
         callout.GetProperty("type").GetString().ShouldBe("object");
-        callout.GetProperty("properties").GetProperty("tone").GetProperty("enum").EnumerateArray().Select(t => t.GetString()).ShouldBe(["good", "bad", "info"]);
+        callout.GetProperty("properties").GetProperty("tone").GetProperty("enum").EnumerateArray().Select(t => t.GetString()).ShouldBe(["accent", "positive", "negative", "inverse", "good", "bad", "info"]);
         blocks[1].GetProperty("schema").GetProperty("type").GetString().ShouldBe("string");
     }
 

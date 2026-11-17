@@ -1,10 +1,14 @@
-/* The default theme's slide chrome (D4, D5), in canvas px on the 1920×1080
+/* The template's slide chrome (D4, D5), in canvas px on the 1920×1080
    slide. Geometry the layouts rely on:
    - content box: 150 px top, 120 px sides and bottom (the tokens' padding);
      a layout's body may run 36 px into the bottom padding, to y = 996;
    - footer text: 17 px, line height 1, 40 px from the bottom, so y = 1023–1040;
+     the draft chip and logo are centred on that line and overflow it, and a
+     line too long for the space left of them ends in an ellipsis;
    - part tracker: 40 px from the top, 120 px in from each side;
-   - progress bar: the bottom 5 px, from x = 0.
+   - progress bar: the bottom 5 px, from x = 0;
+   - deep-dive pill: 98 px from the top, 120 px in, between the tracker
+     (y 40–70) and the content box (y 150).
    The layout seam: every layout's root element takes .sw-layout, so it fills
    the content box (x 120–1800, y 150–960) as the frame's flex item; a content
    layout's body under its kicker and headline takes .sw-body, which fills the
@@ -105,7 +109,9 @@
   bottom: 40px;
   left: var(--sw-slide-pad-x);
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  height: 17px;
   margin: 0;
   color: var(--sw-muted);
   font: 500 17px/1 var(--sw-font-body);
@@ -115,10 +121,84 @@
   color: var(--sw-accent-dark);
 }
 
+.sw-footer-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sw-footer-end {
+  display: flex;
+  flex: none;
+  gap: 18px;
+  align-items: center;
+}
+
+.sw-draft-chip {
+  padding: 7px 11px;
+  border-radius: var(--sw-radius-pill);
+  background: var(--sw-warn-soft);
+  color: var(--sw-warn-ink);
+  font: 700 13px/1 var(--sw-font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.sw-logo {
+  display: block;
+  flex: none;
+  width: auto;
+  height: 34px;
+}
+
+/* A deep dive: the top strip is thicker and in the deep-dive colour, and so
+   is the current part's mark in the tracker. */
+.sw-frame[data-deep-dive='true']::before {
+  height: 12px;
+  background: var(--sw-dd);
+}
+
+.sw-frame[data-deep-dive='true'] .sw-tracker li[data-state='on'] {
+  border-top-color: var(--sw-dd);
+}
+
+.sw-dd-pill {
+  position: absolute;
+  top: 98px;
+  left: var(--sw-slide-pad-x);
+  z-index: 2;
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 15px;
+  border-radius: var(--sw-radius-pill);
+  background: var(--sw-dd);
+  color: var(--sw-on-dd);
+  font: 800 15px/1 var(--sw-font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.sw-dd-pill::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 .sw-progress {
   position: absolute;
   bottom: 0;
   left: 0;
   height: var(--sw-progress-bar);
   background: var(--sw-accent);
+}
+
+/* On a dark slide the bar is the accent's glow, softened, as the night
+   surface needs. */
+.sw-frame[data-dark='true'] .sw-progress {
+  background: var(--sw-accent-glow);
+  opacity: 0.7;
 }

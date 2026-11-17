@@ -31,11 +31,12 @@ public class DatabaseTests : ApiTestFixture
 
         var applied = (await db.Database.GetAppliedMigrationsAsync()).ToList();
 
-        // SW-54 adds a third migration after these two (S1).
-        applied.Count.ShouldBe(3);
+        // SW-54 adds a third migration after these two (S1), and SW-2 a fourth (L5).
+        applied.Count.ShouldBe(4);
         applied[0].ShouldEndWith("_Initial");
         applied[1].ShouldEndWith("_Sw1Foundation");
         applied[2].ShouldEndWith("_Sw54SignUpApproval");
+        applied[3].ShouldEndWith("_Sw2Look");
     }
 
     [Test]

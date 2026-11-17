@@ -15,5 +15,5 @@ public sealed class UploadImageTool
         [Description("The deck's id.")] string deck,
         [Description("The image's file name, such as story-map.png, up to 200 characters. Shown in the deck's change log only.")] string name,
         [Description("image/png, image/jpeg, image/webp or image/gif.")] string contentType)
-        => McpToolErrors.Run(() => images.CreateAsync(deck, name, contentType));
+        => McpToolErrors.Run(() => images.CreateAsync(deck, name, contentType, ImageUploads.TOOL));
 }

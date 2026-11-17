@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using SlideWorks.WebApi.Infrastructure.Identity;
+using SlideWorks.WebApi.Infrastructure.Rendering;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests;
@@ -50,6 +51,7 @@ public static class TestAppFactory
             });
             builder.ConfigureServices(services => services.AddSingleton<TimeProvider>(clock));
             builder.ConfigureTestServices(TestAuthScheme.AddTo);
+            builder.ConfigureTestServices(services => services.AddSingleton<FakeRenderEngine>().AddSingleton<IRenderEngine>(provider => provider.GetRequiredService<FakeRenderEngine>()));
             foreach (var (name, handler) in namedHandlers ?? [])
             {
                 builder.ConfigureServices(services => services

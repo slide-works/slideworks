@@ -17,7 +17,7 @@
   stroke-width: 2;
 }
 
-/* The mockup's #cbd2dc, from the nearest theme token (#cbd5e1). */
+/* The zero line, darker than the grid. */
 .axis {
   stroke: var(--sw-night-2);
   stroke-width: 2;

@@ -1,5 +1,6 @@
 import { useRef, type MouseEvent, type TouchEvent } from 'react';
 import type { DeckPlayView } from '../api/types';
+import type { SlideDeck } from '../slides/slots';
 import type { PlayerPosition } from './parseHash';
 import { PlayerSlide } from './PlayerSlide';
 import { CANVAS_HEIGHT, CANVAS_WIDTH, useCanvasScale } from './useCanvasScale';
@@ -9,6 +10,7 @@ const SWIPE_PX = 50;
 
 type PlayerStageProps = {
   deck: DeckPlayView;
+  slideDeck: SlideDeck;
   position: PlayerPosition;
   onNext(): void;
   onPrevious(): void;
@@ -17,7 +19,7 @@ type PlayerStageProps = {
 // The black stage with the 1920×1080 canvas scaled to fit and centred, every
 // slide stacked on it. A click on its left third goes back and on its right
 // third goes forward; a one-finger swipe goes the way the finger moved.
-export function PlayerStage({ deck, position, onNext, onPrevious }: PlayerStageProps) {
+export function PlayerStage({ deck, slideDeck, position, onNext, onPrevious }: PlayerStageProps) {
   const stage = useRef<HTMLDivElement>(null);
   const canvasFit = useCanvasScale(stage);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -78,7 +80,8 @@ export function PlayerStage({ deck, position, onNext, onPrevious }: PlayerStageP
           <PlayerSlide
             key={slide.number}
             slide={slide}
-            deck={deck}
+            deck={slideDeck}
+            total={deck.slides.length}
             active={slide.number === position.slide}
             // Only the slide showing gets its step. Reveal sets an inline
             // visibility:visible on every item it shows, which beats the hidden

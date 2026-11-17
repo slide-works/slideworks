@@ -1,15 +1,35 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
-import type { DeckPageView, SharingRequest } from '../api/types';
+import type { DeckPageView, LooksView, SharingRequest } from '../api/types';
 import { AppRoutes } from '../AppRoutes';
 import { GoTo } from '../test-support/GoTo';
 import { LocationProbe } from '../test-support/LocationProbe';
+import {
+  PALETTES,
+  TEMPLATES,
+  looksPaletteOf,
+  looksTemplateOf,
+} from '../test-support/fixtures/lookViewOf';
 import { deckPage, me, sharing } from '../test-support/fixtures/screens';
 import { stubApi } from '../test-support/stubApi';
 import { stubDeckHub } from '../test-support/stubDeckHub';
 
 const route = { hooksConfig: { route: `/decks/${deckPage.id}` } };
 const deckPath = `/api/decks/${deckPage.id}`;
+
+// The owner's deck page shows the Look panel, which reads the catalogue from GET /api/looks
+// and shows the deck's logo.
+const looks: LooksView = {
+  templates: TEMPLATES.map(looksTemplateOf),
+  palettes: PALETTES.map(looksPaletteOf),
+};
+
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/looks', (route) => route.fulfill({ json: looks }));
+  await page.route(`**${deckPage.look.logo!.url}`, (route) =>
+    route.fulfill({ path: 'src/test-support/fixtures/sample-image.png', contentType: 'image/png' }),
+  );
+});
 
 // A response held until release(), to land answers out of order.
 function gate() {
@@ -47,9 +67,10 @@ test('deck page grid shows thumbnails and notes of clicked slide', async ({ moun
     );
   }
 
-  // Thumbnail footers carry the deck's author, as the player's do.
-  await expect(thumbs.nth(1).getByTestId('slide-footer')).toHaveText(
-    '2 / 3 · Ship smaller · Sam Rivera',
+  // Thumbnail footers carry the deck's chrome, as the player's do: this
+  // deck's template shows the server's date label in place of the author.
+  await expect(thumbs.nth(1).getByTestId('slide-footer-text')).toHaveText(
+    '2 / 3 · Ship smaller · 16 Nov 2026',
   );
 
   // The first slide is selected to begin with.
@@ -406,8 +427,8 @@ test('present opens the player, later features are disabled', async ({ mount, pa
   );
 
   const later = page.getByTestId('deck-later');
-  await expect(later).toHaveCount(6);
-  for (const [index, feature] of ['SW-2', 'SW-3', 'SW-4', 'SW-14', 'SW-14', 'SW-13'].entries()) {
+  await expect(later).toHaveCount(5);
+  for (const [index, feature] of ['SW-3', 'SW-4', 'SW-14', 'SW-14', 'SW-13'].entries()) {
     await expect(later.nth(index)).toBeDisabled();
     await expect(later.nth(index)).toHaveAttribute('title', `Coming later (${feature})`);
   }

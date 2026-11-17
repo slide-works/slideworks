@@ -1,7 +1,14 @@
 /* The mockup's .rcard: 34/36 px padding round an optional badge, a 34 px/1.15
    title (18 px above, 12 px below), 24 px/1.4 muted text and its chips, 10 px
-   apart and 22 px under the text. */
+   apart and 22 px under the text. The list item holds the card, which fills
+   it so the cards of a row stay one height. */
+.item {
+  display: flex;
+}
+
 .card {
+  flex: 1;
+  min-width: 0;
   padding: 34px 36px;
   border-radius: var(--sw-radius-lg);
   background: var(--sw-card);
@@ -24,6 +31,17 @@
   overflow-wrap: anywhere;
   color: var(--sw-muted);
   font: 400 24px/1.4 var(--sw-font-body);
+}
+
+/* A toned card (SW-2 L4): its tone's surface and ink from tone.ts, with the
+   text a little quieter than the ink, as the mockup's .tp. */
+.card[data-panel] {
+  background: var(--panel-surface);
+  color: var(--panel-ink);
+}
+
+.card[data-panel] .text {
+  color: color-mix(in srgb, var(--panel-ink) 86%, var(--panel-surface));
 }
 
 .chips {

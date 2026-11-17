@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Locator, Page } from 'playwright/test';
+import { lookViewOf } from '../../test-support/fixtures/lookViewOf';
 import { sampleDeck } from '../../test-support/fixtures/screens';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { SlideDeck } from '../slots';
@@ -13,6 +14,8 @@ const deck: SlideDeck = {
   title: sampleDeck.title,
   author: sampleDeck.author,
   parts: sampleDeck.parts,
+  look: lookViewOf('talk', 'cobalt'),
+  deepDives: [],
 };
 
 function sample(number: number): RenderableSlide {
@@ -150,7 +153,15 @@ test('title renders kicker title subtitle author stamp', async ({ mount, page })
 });
 
 test('title leaves out the slots it is not given', async ({ mount, page }) => {
-  await mount(render({ number: 1, layout: 'title', part: null, slots: { title: 'Ship smaller' } }));
+  await mount(
+    render({
+      number: 1,
+      layout: 'title',
+      part: null,
+      deepDive: false,
+      slots: { title: 'Ship smaller' },
+    }),
+  );
 
   const layout = page.getByTestId('layout-title');
   await expect(layout.getByRole('heading', { level: 1 })).toHaveText('Ship smaller');
@@ -412,6 +423,7 @@ test.describe('max-length text stays inside 1920x1080', () => {
           number: 1,
           layout: 'title',
           part: null,
+          deepDive: false,
           slots: {
             kicker: text(40),
             title: text(34),
@@ -449,6 +461,7 @@ test.describe('max-length text stays inside 1920x1080', () => {
             number: 1,
             layout: 'title',
             part: null,
+            deepDive: false,
             slots: {
               kicker: w(40),
               title: w(34),
@@ -480,6 +493,7 @@ test.describe('max-length text stays inside 1920x1080', () => {
             number: 1,
             layout: 'title',
             part: null,
+            deepDive: false,
             slots: {
               kicker: caps(40),
               title: fill(34),
@@ -516,6 +530,7 @@ test.describe('max-length text stays inside 1920x1080', () => {
             number: 1,
             layout: 'title',
             part: null,
+            deepDive: false,
             slots: {
               kicker: fill(40),
               title: fill(34),
@@ -541,7 +556,13 @@ test.describe('max-length text stays inside 1920x1080', () => {
       const parts = Array.from({ length: 8 }, () => text(40));
       await mount(
         render(
-          { number: 2, layout: 'divider', part: 8, slots: { title: text(44), sub: text(80) } },
+          {
+            number: 2,
+            layout: 'divider',
+            part: 8,
+            deepDive: false,
+            slots: { title: text(44), sub: text(80) },
+          },
           { ...deck, parts },
         ),
       );
@@ -579,6 +600,7 @@ test.describe('max-length text stays inside 1920x1080', () => {
           number: 16,
           layout: 'close',
           part: 4,
+          deepDive: false,
           slots: { headline, sub: text(110), author: text(60) },
         }),
       );
@@ -597,6 +619,7 @@ test.describe('max-length text stays inside 1920x1080', () => {
           number: 6,
           layout: 'quote',
           part: 1,
+          deepDive: false,
           slots: { kicker: text(40), quote: text(280), attribution: text(80) },
         }),
       );
@@ -610,6 +633,7 @@ test.describe('max-length text stays inside 1920x1080', () => {
           number: 4,
           layout: 'big-number',
           part: 1,
+          deepDive: false,
           slots: {
             kicker: text(40),
             headline: text(80),

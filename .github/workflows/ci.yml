@@ -78,10 +78,56 @@ jobs:
         with:
           package_json_file: src/SlideWorks.Client/package.json
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run test-ct
+      # A screenshot spec with no committed baseline writes one here instead of failing; a baseline that exists but
+      # differs still fails. Baselines are only ever made in this container, never on a laptop. Playwright writes a
+      # missing baseline but still fails that test, so the first run may fail, and the second reruns only its failed
+      # tests, now with the written baselines: what fails there fails the job.
+      - run: pnpm run test-ct --update-snapshots=missing
+        continue-on-error: true
+      - run: pnpm run test-ct --last-failed --pass-with-no-tests
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
           path: src/SlideWorks.Client/playwright-report/
           retention-days: 14
+      # The baselines this run wrote (untracked files in a -snapshots folder), at their repo paths, to be reviewed and
+      # committed from the artifact.
+      - name: Collect new screenshot baselines
+        if: ${{ !cancelled() }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git ls-files --others --exclude-standard -- '*-snapshots/*' > new-baselines.txt
+          cat new-baselines.txt
+          mkdir -p ct-new-baselines
+          if [ -s new-baselines.txt ]; then
+            tar -cf - -T new-baselines.txt | tar -xf - -C ct-new-baselines
+          fi
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: ct-new-baselines
+          path: src/SlideWorks.Client/ct-new-baselines/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # The production image builds, Chromium included (the share card renderer, L9).
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t slide-works src
+      - run: docker image ls slide-works
+      # Smoke the built image as it ships (non-root app user): it starts, and its Chromium renders a share card. An
+      # unknown deck gets the generic card, so this needs no seeded data.
+      - name: container smoke
+        run: |
+          docker run -d --name smoke -p 8080:8080 \
+            -e RenderTokens__Key="$(head -c 48 /dev/urandom | base64 | tr -d '/+=' | head -c 48)" \
+            -e SLIDEWORKS_PUBLIC_URL=http://127.0.0.1:8080 slide-works
+          for i in $(seq 1 60); do curl -sf -m 2 http://127.0.0.1:8080/health >/dev/null && break; sleep 1; done
+          code=$(curl -s -m 60 -o card.png -w '%{http_code} %{content_type}' http://127.0.0.1:8080/api/cards/smoke.png)
+          echo "card: $code"
+          docker logs smoke | tail -20
+          test "$code" = "200 image/png"
+          python3 -c "import struct;d=open('card.png','rb').read(24);assert d[:8]==b'\x89PNG\r\n\x1a\n';assert struct.unpack('>II',d[16:24])==(1200,630),d[16:24]"

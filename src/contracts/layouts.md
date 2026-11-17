@@ -63,7 +63,8 @@ A headline over 1–8 points, each plain text or a bold lead plus text. Can reve
 | `items[].text` | text | yes | up to 160 chars |  |
 | `reveal` | `all` or `one-by-one` | no |  | 'one-by-one' shows one item per step; 'all' (the default) shows them all at once |
 | `callout` | block `callout` | no |  |  |
-| `callout.tone` | `good` or `bad` or `info` | yes |  |  |
+| `callout.tone` | `accent` or `positive` or `negative` or `inverse` | yes | aliases `good` = `positive`, `bad` = `negative`, `info` = `accent` | Colours from the deck's palette |
+| `callout.fill` | `soft` or `solid` | no | default `soft` | 'soft' (the default) tints it; 'solid' fills it with the tone's colour |
 | `callout.text` | text | yes | up to 160 chars |  |
 
 ## two-column
@@ -107,7 +108,8 @@ A practice: what to do, what comes back and what to avoid, with an optional call
 | `comes_back` | list of text | yes | 0–4 items; each up to 100 chars | What the team gets back; may be empty |
 | `avoid` | list of text | yes | 0–4 items; each up to 100 chars | What to avoid; may be empty |
 | `callout` | block `callout` | no |  |  |
-| `callout.tone` | `good` or `bad` or `info` | yes |  |  |
+| `callout.tone` | `accent` or `positive` or `negative` or `inverse` | yes | aliases `good` = `positive`, `bad` = `negative`, `info` = `accent` | Colours from the deck's palette |
+| `callout.fill` | `soft` or `solid` | no | default `soft` | 'soft' (the default) tints it; 'solid' fills it with the tone's colour |
 | `callout.text` | text | yes | up to 160 chars |  |
 
 ## compare
@@ -123,11 +125,15 @@ Two panels side by side: the failure mode and the success mode.
 | `failure.title` | text | yes | up to 50 chars |  |
 | `failure.sub` | text | no | up to 100 chars |  |
 | `failure.points` | list of text | yes | 1–4 items; each up to 90 chars |  |
+| `failure.tone` | `accent` or `positive` or `negative` or `inverse` | no | default `negative`; aliases `good` = `positive`, `bad` = `negative`, `info` = `accent` | Colours from the deck's palette; defaults to 'negative' |
+| `failure.fill` | `soft` or `solid` | no | default `soft` | 'soft' (the default) tints it; 'solid' fills it with the tone's colour |
 | `success` | object | yes |  |  |
 | `success.label` | text | yes | up to 24 chars | The panel's tag, such as 'Failure mode' |
 | `success.title` | text | yes | up to 50 chars |  |
 | `success.sub` | text | no | up to 100 chars |  |
 | `success.points` | list of text | yes | 1–4 items; each up to 90 chars |  |
+| `success.tone` | `accent` or `positive` or `negative` or `inverse` | no | default `positive`; aliases `good` = `positive`, `bad` = `negative`, `info` = `accent` | Colours from the deck's palette; defaults to 'positive' |
+| `success.fill` | `soft` or `solid` | no | default `soft` | 'soft' (the default) tints it; 'solid' fills it with the tone's colour |
 
 ## big-number
 
@@ -255,6 +261,8 @@ A timeline of 1–5 rows across 2–8 columns. Each bar has a status: done, slip
 | `cards[].title` | text | yes | up to 50 chars |  |
 | `cards[].text` | text | yes | up to 140 chars |  |
 | `cards[].chips` | list of block `chip` | yes | 0–4 items; each up to 24 chars | May be empty |
+| `cards[].tone` | `accent` or `positive` or `negative` or `inverse` | no | aliases `good` = `positive`, `bad` = `negative`, `info` = `accent` | Colours from the deck's palette; left out, the card is plain |
+| `cards[].fill` | `soft` or `solid` | no | default `soft` | 'soft' (the default) tints it; 'solid' fills it with the tone's colour |
 | `reveal` | `all` or `one-by-one` | no |  | 'one-by-one' shows one item per step; 'all' (the default) shows them all at once |
 
 ## close
@@ -271,8 +279,9 @@ Closing slide (dark): a short headline of up to three written lines, with an opt
 
 | Block | Kind | Required | Limits | Description |
 |---|---|---|---|---|
-| `callout` | object | — |  | A highlighted sentence with a tone: good, bad or info. |
-| `callout.tone` | `good` or `bad` or `info` | yes |  |  |
+| `callout` | object | — |  | A highlighted sentence with a tone (accent, positive, negative or inverse) and a soft or solid fill. |
+| `callout.tone` | `accent` or `positive` or `negative` or `inverse` | yes | aliases `good` = `positive`, `bad` = `negative`, `info` = `accent` | Colours from the deck's palette |
+| `callout.fill` | `soft` or `solid` | no | default `soft` | 'soft' (the default) tints it; 'solid' fills it with the tone's colour |
 | `callout.text` | text | yes | up to 160 chars |  |
 | `chip` | text | — | up to 24 chars | A small rounded tag, such as a tool or a practice. |
 | `badge` | text | — | up to 20 chars | A short label at the top of a card, such as a role. |

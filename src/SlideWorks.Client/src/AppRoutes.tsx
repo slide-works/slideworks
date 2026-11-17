@@ -1,20 +1,26 @@
 import { Navigate, useRoutes, type RouteObject } from 'react-router-dom';
 import { App } from './App';
 import { AdminUsersPage } from './pages/AdminUsersPage';
+import { CardPage } from './pages/CardPage';
 import { ConsentPage } from './pages/ConsentPage';
 import { DeckPage } from './pages/DeckPage';
 import { DecksPage } from './pages/DecksPage';
 import { PendingPage } from './pages/PendingPage';
 import { PlayerPage } from './pages/PlayerPage';
+import { RenderPage } from './pages/RenderPage';
 import { SignInPage } from './pages/SignInPage';
 
 // K12. The player, sign-in and pending pages sit outside the auth gate (App); everything else
-// is for a signed-in person.
+// is for a signed-in person. So do the render and share-card pages (SW-2 L9), which a
+// headless browser opens with a render token instead of a sign-in.
 const routes: RouteObject[] = [
   { path: '/signin', element: <SignInPage /> },
   { path: '/pending', element: <PendingPage /> },
   { path: '/d/:id/:slug', element: <PlayerPage /> },
   { path: '/d/:id', element: <PlayerPage /> },
+  { path: '/render/:id/:n', element: <RenderPage /> },
+  { path: '/card/generic', element: <CardPage /> },
+  { path: '/card/:id', element: <CardPage /> },
   {
     element: <App />,
     children: [

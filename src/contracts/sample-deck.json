@@ -9,11 +9,107 @@
     "Ship it",
     "Make it stick"
   ],
+  "look": {
+    "template": {
+      "name": "workshop",
+      "label": "Workshop",
+      "layouts": [
+        "title",
+        "divider",
+        "bullets",
+        "two-column",
+        "practice",
+        "compare",
+        "quote",
+        "image",
+        "table",
+        "numbered-cards",
+        "rules",
+        "cards",
+        "close"
+      ],
+      "chrome": {
+        "tracker": true,
+        "footer": "author",
+        "progress": true,
+        "deepDivesOnDivider": true,
+        "draft": true
+      },
+      "type": {
+        "head": "Plus Jakarta Sans",
+        "body": "Inter",
+        "headWeight": 800,
+        "headTracking": "-0.025em"
+      },
+      "shape": {
+        "radius": {
+          "sm": 10,
+          "md": 12,
+          "lg": 16,
+          "xl": 18
+        },
+        "shadow": "0 1px 2px rgb(15 23 42 / 0.06), 0 14px 36px rgb(15 23 42 / 0.09)"
+      },
+      "ornament": "dots",
+      "titleArt": null
+    },
+    "palette": {
+      "name": "cobalt",
+      "label": "Cobalt",
+      "tokens": {
+        "paper": "#f7f8fa",
+        "card": "#ffffff",
+        "chip": "#eef1f6",
+        "grid": "#e3e6ec",
+        "ink": "#111827",
+        "muted": "#5b6474",
+        "accent": "#2f5bea",
+        "accent-dark": "#1e3a8a",
+        "accent-light": "#e4eafd",
+        "accent-glow": "#a5b8ff",
+        "accent-past": "#b9c8f8",
+        "on-accent": "#ffffff",
+        "good": "#16a34a",
+        "good-soft": "#dcfce7",
+        "good-ink": "#166534",
+        "bad": "#dc2626",
+        "bad-soft": "#fdecec",
+        "bad-ink": "#991b1b",
+        "warn": "#ea580c",
+        "warn-soft": "#ffedd5",
+        "warn-ink": "#9a3412",
+        "dd": "#c2410c",
+        "on-dd": "#ffffff",
+        "dd-on-night": "#fdba74",
+        "night": "#0b1020",
+        "night-ink": "#ffffff",
+        "night-2": "#cbd5e1",
+        "night-muted": "#8c97ad",
+        "night-line": "#334155",
+        "night-glow": "rgb(47 91 234)",
+        "number-from": "#c3d0ff",
+        "number-to": "#5b7cff",
+        "stamp": "#fcd34d",
+        "panel-accent": "#2f5bea",
+        "panel-accent-ink": "#ffffff",
+        "panel-positive": "#15803d",
+        "panel-positive-ink": "#ffffff",
+        "panel-negative": "#b91c1c",
+        "panel-negative-ink": "#ffffff",
+        "panel-inverse": "#0b1020",
+        "panel-inverse-ink": "#ffffff"
+      }
+    },
+    "logo": null,
+    "draft": true,
+    "footerDateLabel": "16 Nov 2026"
+  },
   "slides": [
     {
       "number": 1,
       "layout": "title",
       "part": null,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "kicker": "Team offsite · 2026",
@@ -29,6 +125,7 @@
       "number": 2,
       "layout": "divider",
       "part": 1,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "title": "Big batches hide the risk",
@@ -39,6 +136,7 @@
       "number": 3,
       "layout": "bullets",
       "part": 1,
+      "deepDive": false,
       "steps": 4,
       "slots": {
         "kicker": "The pattern",
@@ -68,6 +166,7 @@
       "number": 4,
       "layout": "big-number",
       "part": 1,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "kicker": "Last year, measured",
@@ -82,6 +181,7 @@
       "number": 5,
       "layout": "gantt",
       "part": 1,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "kicker": "What it looked like",
@@ -137,6 +237,7 @@
       "number": 6,
       "layout": "quote",
       "part": 1,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "kicker": "From the retro",
@@ -148,6 +249,7 @@
       "number": 7,
       "layout": "divider",
       "part": 2,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "title": "Slice it thin",
@@ -158,6 +260,7 @@
       "number": 8,
       "layout": "practice",
       "part": 2,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "kicker": "Slice it",
@@ -197,6 +300,7 @@
       "number": 9,
       "layout": "compare",
       "part": 2,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "kicker": "Same feature, two ways",
@@ -225,6 +329,7 @@
       "number": 10,
       "layout": "two-column",
       "part": 2,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "kicker": "The tool",
@@ -257,6 +362,7 @@
       "number": 11,
       "layout": "table",
       "part": 2,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "kicker": "Sizing",
@@ -317,6 +423,7 @@
       "number": 12,
       "layout": "chart",
       "part": 3,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "kicker": "Ship it",
@@ -355,6 +462,7 @@
       "number": 13,
       "layout": "numbered-cards",
       "part": 3,
+      "deepDive": true,
       "steps": 0,
       "slots": {
         "kicker": "Before you split a story",
@@ -383,6 +491,7 @@
       "number": 14,
       "layout": "rules",
       "part": 4,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "kicker": "Make it stick",
@@ -407,6 +516,7 @@
       "number": 15,
       "layout": "cards",
       "part": 4,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "kicker": "Who does what",
@@ -446,6 +556,7 @@
       "number": 16,
       "layout": "close",
       "part": 4,
+      "deepDive": false,
       "steps": 0,
       "slots": {
         "headline": "Pick one story.\nShip half of it by Friday.",

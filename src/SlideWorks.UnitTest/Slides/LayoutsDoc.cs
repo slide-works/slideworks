@@ -99,7 +99,7 @@ public static class LayoutsDoc
     {
         TextSlot text => ("text", $"up to {text.MaxLength} chars" + (text.LineBreaks ? ", line breaks allowed" : "")),
         NumberSlot number => (number.Kind, $"{Number(number.Minimum)} to {Number(number.Maximum)}"),
-        EnumSlot choice => (string.Join(" or ", choice.Values.Select(v => $"`{v}`")), ""),
+        EnumSlot choice => (string.Join(" or ", choice.Values.Select(v => $"`{v}`")), EnumLimits(choice)),
         ObjectSlot obj => ("object", obj.ExactlyOneOf.Count > 0 ? "exactly one of " + string.Join(", ", obj.ExactlyOneOf.Select(f => $"`{f}`")) : ""),
         ImageSlot => ("image `{image, alt}`", ""),
         TextOrObjectSlot either => ("text or object", $"text up to {either.Text.MaxLength} chars"),
@@ -107,6 +107,22 @@ public static class LayoutsDoc
         ListSlot list => ($"list of {Describe(list.Item).Kind}", Join($"{list.MinItems}–{list.MaxItems} items", Describe(list.Item).Limits)),
         _ => (type.Kind, ""),
     };
+
+    private static string EnumLimits(EnumSlot choice)
+    {
+        var parts = new List<string>();
+        if (choice.Default is not null)
+        {
+            parts.Add($"default `{choice.Default}`");
+        }
+
+        if (choice.Aliases.Count > 0)
+        {
+            parts.Add("aliases " + string.Join(", ", choice.Aliases.Select(a => $"`{a.Key}` = `{a.Value}`")));
+        }
+
+        return string.Join("; ", parts);
+    }
 
     private static string Join(string count, string itemLimits) => itemLimits.Length == 0 ? count : $"{count}; each {itemLimits}";
 

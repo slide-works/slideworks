@@ -15,6 +15,10 @@ public static class DisplayDate
     public static string Format(DateTimeOffset value) =>
         value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm 'UTC'", CultureInfo.InvariantCulture);
 
+    // A day for a slide footer, in UTC: "16 Nov 2026".
+    public static string Day(DateTimeOffset value) =>
+        value.ToUniversalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+
     // How long ago value was, as of now, for lists and change logs: "just now", "2 min ago", "1 h ago", "Yesterday",
     // "3 days ago", then the UTC date ("2026-01-02"). It counts elapsed time, not calendar days, because the server
     // doesn't know the viewer's time zone. A value after now (clock skew) reads "just now".

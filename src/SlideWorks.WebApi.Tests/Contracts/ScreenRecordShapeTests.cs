@@ -4,11 +4,14 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Features.Accounts.Admin;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Decks.Views;
+using SlideWorks.WebApi.Features.Look;
+using SlideWorks.WebApi.Features.Look.Views;
 using SlideWorks.WebApi.Features.Sharing.Views;
 using SlideWorks.WebApi.Features.Slides;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -68,7 +71,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
     public void DeckPage_ShouldMatchContract()
     {
         var example = Example("deck-page.json");
-        var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]" };
+        var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]", Template = "workshop", Palette = "cobalt" };
         var slides = example.GetProperty("slides").EnumerateArray()
             .Select((slide, position) => DeckPageSlide.From(deck, new Slide
             {
@@ -77,8 +80,9 @@ public class ScreenRecordShapeTests : ApiTestFixture
                 Layout = slide.GetProperty("layout").GetString()!,
                 Part = slide.GetProperty("part").GetInt32(),
                 SlotsJson = slide.GetProperty("slots").GetRawText(),
-                Notes = slide.GetProperty("notes").GetString(),
+                Notes = StoredNotes(slide),
                 Steps = slide.GetProperty("steps").GetInt32(),
+                DeepDive = slide.GetProperty("deepDive").GetBoolean(),
             }))
             .ToList();
         var view = new DeckPageView(
@@ -86,10 +90,12 @@ public class ScreenRecordShapeTests : ApiTestFixture
             deck.Slug,
             deck.Title,
             "Sam Rivera",
+            example.GetProperty("revision").GetInt64(),
             IsOwner: true,
             PlayUrl: "/d/7Kq2xYp9LmQa/ship-smaller",
             SharingSummary.From(DeckSharing.Link, 0),
             ["The cost", "Slice it", "Ship it", "Make it stick"],
+            example.GetProperty("look").Deserialize<DeckLookView>(AppJsonOptions())!,
             slides,
             [
                 ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "add_slide", "added slide 3 close"), "2 min ago"),
@@ -106,10 +112,10 @@ public class ScreenRecordShapeTests : ApiTestFixture
     [Test]
     public void DeckPage_WhenOptionalFieldsAreNull_ShouldMatchContract()
     {
-        var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]" };
+        var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]", Template = "workshop", Palette = "cobalt" };
         var slide = DeckPageSlide.From(deck, new Slide { DeckId = deck.Id, Layout = "bullets", SlotsJson = """{ "items": ["One"] }""" });
-        var view = new DeckPageView(deck.Id, deck.Slug, deck.Title, null, false, "/d/7Kq2xYp9LmQa/ship-smaller",
-            SharingSummary.From(DeckSharing.Private, 0), [], [slide],
+        var view = new DeckPageView(deck.Id, deck.Slug, deck.Title, null, 0, false, "/d/7Kq2xYp9LmQa/ship-smaller",
+            SharingSummary.From(DeckSharing.Private, 0), [], LookViews.ForPage(deck, Templates, Palettes), [slide],
             [ActivityRow.From(Entry("Sam Rivera", ActorKind.Person, ActorVia.Web, null, "created the deck"), "just now")]);
 
         var json = Serialise(view);
@@ -119,6 +125,8 @@ public class ScreenRecordShapeTests : ApiTestFixture
         json.GetProperty("slides")[0].GetProperty("headline").ValueKind.ShouldBe(JsonValueKind.Null);
         json.GetProperty("activity")[0].GetProperty("actorKind").GetString().ShouldBe("person");
         json.GetProperty("activity")[0].GetProperty("via").GetString().ShouldBe("web");
+        json.GetProperty("look").GetProperty("logo").ValueKind.ShouldBe(JsonValueKind.Null);
+        json.GetProperty("look").GetProperty("chromeOverrides").GetProperty("tracker").ValueKind.ShouldBe(JsonValueKind.Null);
     }
 
     // The K4 headline rule: the headline slot, else title.title, divider.title, or the first 80 characters of quote.quote.
@@ -233,7 +241,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
     }
 
     private static DeckPageSlide Slide(string layout, string slots, int position = 0) => DeckPageSlide.From(
-        new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]" },
+        new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]", Template = "workshop", Palette = "cobalt" },
         new Slide { DeckId = "7Kq2xYp9LmQa", Position = position, Layout = layout, SlotsJson = slots });
 
     private static ActivityEntryRow Entry(string actor, ActorKind kind, ActorVia via, string? tool, string summary) => new()
@@ -246,10 +254,25 @@ public class ScreenRecordShapeTests : ApiTestFixture
         Summary = summary,
     };
 
+    private ITemplateCatalogue Templates => Factory.Services.GetRequiredService<ITemplateCatalogue>();
+
+    private IPaletteCatalogue Palettes => Factory.Services.GetRequiredService<IPaletteCatalogue>();
+
     private JsonSerializerOptions AppJsonOptions() =>
         Factory.Services.GetRequiredService<IOptions<JsonOptions>>().Value.JsonSerializerOptions;
 
     private JsonElement Serialise<T>(T record) => JsonSerializer.SerializeToElement(record, AppJsonOptions());
+
+    // The example shows notes as the owner reads them (D16): a deep dive's notes carry the skip prefix on read, and the
+    // stored notes never do. Strip the prefix to get what the database holds, so the record test pins the prefix.
+    private static string? StoredNotes(JsonElement slide)
+    {
+        var notes = slide.GetProperty("notes").GetString();
+        const string PREFIX = "Deep dive. Skip if short of time. ";
+        return slide.GetProperty("deepDive").GetBoolean() && notes!.StartsWith(PREFIX, StringComparison.Ordinal)
+            ? notes[PREFIX.Length..]
+            : notes;
+    }
 
     private static JsonElement Example(string file) =>
         JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(Path.Combine(JsonShape.ScreensDirectory(), file)));

@@ -1,10 +1,12 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
+using SlideWorks.Core.Look;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
+using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -25,6 +27,7 @@ public class SlideEdits(
     IActivityLog activity,
     IDeckEvents events,
     IPublicUrls urls,
+    ITemplateCatalogue templates,
     TimeProvider clock)
 {
     public const string UPDATE_TOOL = "update_slide";
@@ -51,10 +54,13 @@ public class SlideEdits(
             slide.SlotsJson = SlideJson.ForStorage(slots);
             slide.Steps = SlideSteps.Count(layout, slots);
             slide.Part = request.Part ?? slide.Part;
+            var deepDive = DeepDiveChange(slide.DeepDive, request.DeepDive);
+            slide.DeepDive = request.DeepDive ?? slide.DeepDive;
             slide.Revision = deck.Revision;
             await db.SaveChangesAsync();
-            var result = new UpdateSlideResult(request.Slide, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, request.Slide));
-            return (result, $"updated slide {request.Slide} ({layout})");
+            var warnings = LayoutWarnings.For(LookViews.TemplateOf(deck, templates), request.Slide, layout);
+            var result = new UpdateSlideResult(request.Slide, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, request.Slide), warnings);
+            return (result, $"updated slide {request.Slide} ({layout}){deepDive}");
         });
 
     // The slides between the old and the new place shift by one toward the gap, and they and the moved slide get the new
@@ -142,6 +148,16 @@ public class SlideEdits(
 
         await events.PublishAsync(new DeckChanged(deckId));
         return result;
+    }
+
+    // The activity summary's tail when update_slide sets or clears the deep-dive mark, else nothing.
+    private static string DeepDiveChange(bool was, bool? given)
+    {
+        if (given is null || given == was)
+        {
+            return "";
+        }
+        return given.Value ? " and marked it a deep dive" : " and cleared its deep-dive mark";
     }
 
     private IQueryable<Slide> Live(string deckId) => db.Slides.Where(s => s.DeckId == deckId && s.DeletedAt == null);

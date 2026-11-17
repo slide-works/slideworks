@@ -27,7 +27,7 @@ public class AddSlideTests : ApiTestFixture
         first.GetProperty("steps").GetInt32().ShouldBe(3);
         first.GetProperty("revision").GetInt64().ShouldBe(1);
         first.GetProperty("url").GetString().ShouldBe($"{TestAppFactory.PUBLIC_URL}/d/{deck}/ship-smaller#1");
-        first.EnumerateObject().Select(p => p.Name).ShouldBe(["slide", "steps", "revision", "url"], ignoreOrder: true);
+        first.EnumerateObject().Select(p => p.Name).ShouldBe(["slide", "steps", "revision", "url", "warnings"], ignoreOrder: true);
         second.GetProperty("slide").GetInt32().ShouldBe(2);
         second.GetProperty("steps").GetInt32().ShouldBe(0);
         second.GetProperty("revision").GetInt64().ShouldBe(2);
@@ -219,7 +219,7 @@ public class AddSlideTests : ApiTestFixture
             """, position: 1);
 
         var activity = await DeckSeed.ActivityAsync(Client, deck);
-        activity.Select(e => e.GetProperty("summary").GetString()).ShouldBe(["added slide 1 (practice)", "added slide 1 (quote)", "created the deck"]);
+        activity.Select(e => e.GetProperty("summary").GetString()).ShouldBe(["added slide 1 (practice)", "added slide 1 (quote)", "created the deck from the talk template with the Cobalt palette"]);
         activity[0].GetProperty("tool").GetString().ShouldBe("add_slide");
         activity[0].GetProperty("actor").GetString().ShouldBe("Claude");
         activity[0].GetProperty("actorKind").GetString().ShouldBe("agent");

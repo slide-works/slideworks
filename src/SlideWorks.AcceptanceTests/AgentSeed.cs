@@ -1,6 +1,8 @@
+using System.Buffers.Binary;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
 using SlideWorks.WebApi.Features.OAuth.Stores;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Tests.Support;
@@ -29,7 +31,7 @@ public static class AgentSeed
         }
     }
 
-    private static async Task<McpClient> ConnectAsync(TestUser presenter)
+    public static async Task<McpClient> ConnectAsync(TestUser presenter)
     {
         using var scope = AcceptanceApp.Services.CreateScope();
         var services = scope.ServiceProvider;
@@ -44,4 +46,43 @@ public static class AgentSeed
         });
         return await McpClient.CreateAsync(transport);
     }
+
+    // Calls a tool and returns its JSON result, failing the test with the tool's text when it is a tool error.
+    public static async Task<JsonElement> CallAsync(McpClient agent, string tool, Dictionary<string, object?> args)
+    {
+        var result = await agent.CallToolAsync(tool, args);
+        var text = result.Content.OfType<TextContentBlock>().Single().Text;
+        (result.IsError ?? false).ShouldBeFalse($"{tool} failed: {text}");
+        return JsonSerializer.Deserialize<JsonElement>(text);
+    }
+
+    // Follows a preview_deck result the way its instructions tell an agent to, as the equivalent Playwright calls: a
+    // fresh anonymous context at the result's viewport, each render URL until wait_for matches, then a viewport
+    // screenshot. Fails on a page that shows data-error. Returns each slide's PNG by its number.
+    public static async Task<Dictionary<int, byte[]>> ScreenshotPreviewAsync(IBrowser browser, JsonElement preview)
+    {
+        var viewport = preview.GetProperty("viewport");
+        var waitFor = preview.GetProperty("wait_for").GetString()!;
+        var instructions = preview.GetProperty("instructions").GetString()!;
+        await using var context = await browser.NewContextAsync(new()
+        {
+            ViewportSize = new() { Width = viewport.GetProperty("width").GetInt32(), Height = viewport.GetProperty("height").GetInt32() },
+        });
+        var pngs = new Dictionary<int, byte[]>();
+        foreach (var slide in preview.GetProperty("slides").EnumerateArray())
+        {
+            var url = slide.GetProperty("render_url").GetString()!;
+            instructions.ShouldContain($"\"{url}\"");
+            var page = await context.NewPageAsync();
+            await page.GotoAsync(url);
+            await page.WaitForSelectorAsync(waitFor);
+            (await page.GetByTestId("render-slide").GetAttributeAsync("data-error")).ShouldBeNull();
+            pngs[slide.GetProperty("number").GetInt32()] = await page.ScreenshotAsync();
+        }
+        return pngs;
+    }
+
+    // A PNG's width and height, from its IHDR chunk.
+    public static (int Width, int Height) PngSize(byte[] png)
+        => (BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(16, 4)), BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(20, 4)));
 }

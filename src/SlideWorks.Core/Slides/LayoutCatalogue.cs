@@ -11,10 +11,13 @@ public static class LayoutCatalogue
 
     private const string REVEAL = "'one-by-one' shows one item per step; 'all' (the default) shows them all at once";
 
+    private const string TONE = "Colours from the deck's palette";
+    private const string FILL = "'soft' (the default) tints it; 'solid' fills it with the tone's colour";
+
     public static readonly InlineBlock Callout = new(
         "callout",
-        "A highlighted sentence with a tone: good, bad or info.",
-        Obj(Req("tone", new EnumSlot("good", "bad", "info")), Req("text", new TextSlot(160))));
+        "A highlighted sentence with a tone (accent, positive, negative or inverse) and a soft or solid fill.",
+        Obj(Req("tone", Tone(null), TONE), Opt("fill", Fill(), FILL), Req("text", new TextSlot(160))));
 
     public static readonly InlineBlock Chip = new("chip", "A small rounded tag, such as a tool or a practice.", new TextSlot(24));
 
@@ -74,8 +77,8 @@ public static class LayoutCatalogue
         [
             Opt("kicker", new TextSlot(KICKER)),
             Req("headline", new TextSlot(HEADLINE)),
-            Req("failure", ComparePanel()),
-            Req("success", ComparePanel()),
+            Req("failure", ComparePanel("negative")),
+            Req("success", ComparePanel("positive")),
         ], rules: LayoutRules.Compare),
         new("big-number", "One number that carries the slide, with a caption, a detail and a source.", false,
         [
@@ -158,7 +161,9 @@ public static class LayoutCatalogue
                 Opt("badge", new BlockSlot(Badge)),
                 Req("title", new TextSlot(50)),
                 Req("text", new TextSlot(140)),
-                Req("chips", new ListSlot(new BlockSlot(Chip), 0, 4), "May be empty")), 1, 3)),
+                Req("chips", new ListSlot(new BlockSlot(Chip), 0, 4), "May be empty"),
+                Opt("tone", Tone(null), TONE + "; left out, the card is plain"),
+                Opt("fill", Fill(), FILL)), 1, 3)),
             Opt("reveal", Reveal(), REVEAL),
         ], stepsFrom: "cards"),
         new("close", "Closing slide (dark): a short headline of up to three written lines, with an optional sub and author.", true,
@@ -194,11 +199,27 @@ public static class LayoutCatalogue
         ],
         exactlyOneOf: ["items", "text", "image"]);
 
-    private static ObjectSlot ComparePanel() => Obj(
+    private static ObjectSlot ComparePanel(string defaultTone) => Obj(
         Req("label", new TextSlot(24), "The panel's tag, such as 'Failure mode'"),
         Req("title", new TextSlot(50)),
         Opt("sub", new TextSlot(100)),
-        Req("points", new ListSlot(new TextSlot(90), 1, 4)));
+        Req("points", new ListSlot(new TextSlot(90), 1, 4)),
+        Opt("tone", Tone(defaultTone), $"{TONE}; defaults to '{defaultTone}'"),
+        Opt("fill", Fill(), FILL));
+
+    // Callout, card and compare-panel tones (L4). Table cell tones are a separate, unchanged set.
+    private static EnumSlot Tone(string? defaultTone) => new("accent", "positive", "negative", "inverse")
+    {
+        Aliases = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["good"] = "positive",
+            ["bad"] = "negative",
+            ["info"] = "accent",
+        },
+        Default = defaultTone,
+    };
+
+    private static EnumSlot Fill() => new("soft", "solid") { Default = "soft" };
 
     private static TextOrObjectSlot TableCell() => new(
         new TextSlot(40),

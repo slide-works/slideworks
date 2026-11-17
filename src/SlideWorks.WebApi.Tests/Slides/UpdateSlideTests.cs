@@ -27,7 +27,7 @@ public class UpdateSlideTests : ApiTestFixture
             { "kicker": null, "headline": "New", "items": ["x", "y", "z"], "reveal": "one-by-one" }
             """);
 
-        updated.EnumerateObject().Select(p => p.Name).ShouldBe(["slide", "steps", "revision", "url"], ignoreOrder: true);
+        updated.EnumerateObject().Select(p => p.Name).ShouldBe(["slide", "steps", "revision", "url", "warnings"], ignoreOrder: true);
         updated.GetProperty("slide").GetInt32().ShouldBe(2);
         updated.GetProperty("steps").GetInt32().ShouldBe(3);
         updated.GetProperty("revision").GetInt64().ShouldBe(3);

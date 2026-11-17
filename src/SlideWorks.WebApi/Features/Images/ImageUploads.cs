@@ -5,6 +5,7 @@ using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
+using SlideWorks.WebApi.Features.Render;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -28,6 +29,7 @@ public class ImageUploads(
     IDeckEvents events,
     IPublicUrls urls,
     ImageStore store,
+    RenderSessions renderSessions,
     TimeProvider clock)
 {
     public const string TOOL = "upload_image";
@@ -42,14 +44,16 @@ public class ImageUploads(
 
     // Owner only: anyone else, like an unknown deck, gets "Deck not found". name is a label for people (the change log
     // says "started uploading story-map.png", because the upload may never complete); it never reaches a file path.
-    public async Task<UploadImageResult> CreateAsync(string deckId, string name, string contentType)
+    // The one upload path for upload_image and POST /api/decks/{id}/images (L6): tool is the MCP tool's name for the
+    // change log when an agent calls, and null from the web.
+    public async Task<UploadImageResult> CreateAsync(string deckId, string? name, string? contentType, string? tool)
     {
         if (!await access.CanEditAsync(deckId, actor))
         {
             throw new NotFoundException(DeckReader.NOT_FOUND);
         }
-        var label = CheckName(name);
-        var type = ImageTypes.Normalise(contentType) ?? throw new BadRequestException($"contentType: must be {ImageTypes.ACCEPTED_LIST}");
+        var label = CheckName(name ?? "");
+        var type = ImageTypes.Normalise(contentType ?? "") ?? throw new BadRequestException($"contentType: must be {ImageTypes.ACCEPTED_LIST}");
 
         var token = SecretTokens.New();
         var image = new DeckImage
@@ -65,7 +69,7 @@ public class ImageUploads(
         {
             db.DeckImages.Add(image);
             await db.SaveChangesAsync();
-            await activity.RecordAsync(deckId, ActivityEntry.By(actor, TOOL, $"started uploading {label}"));
+            await activity.RecordAsync(deckId, ActivityEntry.By(actor, tool, $"started uploading {label}"));
             await transaction.CommitAsync();
         }
         await events.PublishAsync(new DeckChanged(deckId));
@@ -109,7 +113,8 @@ public class ImageUploads(
     public async Task<StoredImage> OpenAsync(string imageId)
     {
         var image = await db.DeckImages.AsNoTracking().SingleOrDefaultAsync(i => i.Id == imageId && i.UploadedAt != null);
-        if (image == null || !await access.CanViewAsync(image.DeckId, actor))
+        // A headless render page reads its own deck's images with its render token (L9), whoever the deck is shared with.
+        if (image == null || (!renderSessions.AllowsImagesOf(image.DeckId) && !await access.CanViewAsync(image.DeckId, actor)))
         {
             throw new NotFoundException(IMAGE_NOT_FOUND);
         }

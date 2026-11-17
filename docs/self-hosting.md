@@ -10,7 +10,7 @@ This guide takes a fresh server from `docker compose up` to an agent building a 
 
 ## Configuration
 
-Every setting is an environment variable with the `SLIDEWORKS_` prefix.
+Every setting is an environment variable with the `SLIDEWORKS_` prefix, except `RenderTokens__Key`.
 
 | Variable | Required | What it does |
 |---|---|---|
@@ -23,6 +23,9 @@ Every setting is an environment variable with the `SLIDEWORKS_` prefix.
 | `SLIDEWORKS_SEQ_URL` | No | Also send logs to this Seq server. Without it, logs go to the console only (`docker logs`). |
 | `SLIDEWORKS_SEQ_API_KEY` | No | The Seq API key, when your Seq server needs one. |
 | `SLIDEWORKS_TRUSTED_PROXIES` | Behind a proxy | The proxy addresses whose `X-Forwarded-For` header SlideWorks trusts for the client IP, as a comma-separated list of CIDRs such as `172.18.0.0/16, fd00::/8`. A single address, such as `10.0.0.5`, means just that address. Unset by default, which trusts no proxy. The server refuses to start if an entry isn't a CIDR or an address. See [Behind a TLS proxy](#behind-a-tls-proxy). |
+| `RenderTokens__Key` | Yes, outside Development | Signs the short-lived tokens the share-card browser and agents' slide previews use. A random secret of at least 32 characters, such as `openssl rand -base64 32`. The server refuses to start without it outside Development. It's the one setting without the `SLIDEWORKS_` prefix; `docker-compose.yml` fills it from `SLIDEWORKS_RENDER_TOKEN_KEY`. Changing it only expires preview links already handed out. |
+| `SLIDEWORKS_RENDER_URL` | No | The origin the share-card browser inside the container opens. Unset means the app's own loopback address. Set it only when the app can't reach itself that way. |
+| `SLIDEWORKS_RENDER_TIMEOUT` | No | How long one share-card render may take, as a TimeSpan. Default `00:00:20`. |
 
 The image listens on port 8080 over plain HTTP and runs as a non-root user. `GET /health` is anonymous and reports the commit the image was built from.
 
@@ -50,6 +53,7 @@ SLIDEWORKS_PUBLIC_URL=https://slides.example.com
 SLIDEWORKS_GOOGLE_CLIENT_ID=<client id>
 SLIDEWORKS_GOOGLE_CLIENT_SECRET=<client secret>
 SLIDEWORKS_ADMIN_EMAIL=you@example.com
+SLIDEWORKS_RENDER_TOKEN_KEY=<random secret, openssl rand -base64 32>
 EOF
 docker compose up -d --build
 curl -fsS http://localhost:8080/health
@@ -57,7 +61,7 @@ curl -fsS http://localhost:8080/health
 
 `docker-compose.yml` builds the image from `src/Dockerfile`. To run a published image instead, replace `build: .` with `image: ghcr.io/<owner>/<repo>:latest`. CI pushes `:latest` and `:<commit sha>` on every push to `main`.
 
-Keep `.env` out of version control, because it holds the client secret.
+Keep `.env` out of version control, because it holds the client secret and the render token key.
 
 Migrations run on startup, so a new image upgrades the database itself.
 

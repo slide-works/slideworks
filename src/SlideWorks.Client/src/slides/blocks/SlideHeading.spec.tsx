@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/experimental-ct-react';
+import { lookViewOf } from '../../test-support/fixtures/lookViewOf';
 import { SlideFrame } from '../SlideFrame';
 import { cardFitFixture } from '../layouts/CardLayouts.fixtures';
 import { SlideHeading } from './SlideHeading';
@@ -20,6 +21,9 @@ function slide(kicker: string | undefined, headline: string) {
       total={9}
       deckTitle="Deck"
       author="Sam Rivera"
+      look={lookViewOf('talk', 'cobalt')}
+      deepDive={false}
+      titleStamp={null}
     >
       <div data-testid="layout-rules" className="sw-layout">
         <SlideHeading layout="rules" kicker={kicker} headline={headline} />

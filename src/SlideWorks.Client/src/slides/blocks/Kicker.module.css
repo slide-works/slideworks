@@ -8,3 +8,10 @@
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
+
+/* A deep dive's kicker is in the deep-dive colour, keyed off the frame
+   (mockup section 05). Only the kicker: the footer and progress keep the
+   accent. */
+:global(.sw-frame[data-deep-dive='true']) .kicker {
+  color: var(--sw-dd);
+}

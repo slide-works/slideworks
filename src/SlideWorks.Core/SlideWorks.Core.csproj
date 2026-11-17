@@ -1,3 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- The look catalogues (SW-2 L1): src/contracts is their only source. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\contracts\templates.json" LogicalName="SlideWorks.Core.Look.templates.json" />
+    <EmbeddedResource Include="..\contracts\palettes.json" LogicalName="SlideWorks.Core.Look.palettes.json" />
+  </ItemGroup>
+
 </Project>

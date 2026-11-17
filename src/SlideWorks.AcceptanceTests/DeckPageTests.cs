@@ -18,7 +18,7 @@ public partial class DeckPageTests : AcceptanceTest
         await Expect(deck.Title).ToHaveTextAsync(title);
         await Expect(deck.SlideCount).ToHaveTextAsync("0 slides");
         await Expect(deck.SharingLevel).ToHaveTextAsync("Private");
-        await Expect(deck.ActivityRows.First).ToContainTextAsync("You created the deck");
+        await Expect(deck.ActivityRows.First).ToContainTextAsync("You created the deck from the talk template with the Cobalt palette");
         await Expect(deck.Present).ToHaveAttributeAsync("href", new Regex($"^/d/{id}/roadmap-[0-9a-f]{{32}}$"));
     }
 
@@ -53,8 +53,7 @@ public partial class DeckPageTests : AcceptanceTest
     {
         var id = await CreateDeckAsync(TestUser.Sam, $"Private plan {Guid.NewGuid():N}");
         var player = new PlayerPage(Page);
-        // Leave the deck page first: a re-read it still has out would get 401 after the swap and send the page to /signin.
-        await Page.GotoAsync("about:blank");
+        await LeavePageAsync();
         await Page.Context.ClearCookiesAsync();
 
         await player.GotoAsync(id);

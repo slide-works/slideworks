@@ -71,6 +71,7 @@ type WithSlots<Common> = {
 export type DeckPageSlide = WithSlots<{
   number: number;
   part: number | null;
+  deepDive: boolean;
   headline: string | null;
   steps: number;
   notes: string | null;
@@ -95,13 +96,20 @@ export type DeckPageView = {
   isOwner: boolean;
   playUrl: string;
   sharing: { level: SharingLevel; viewerCount: number };
+  revision: number;
+  look: DeckPageLook;
   parts: string[];
   slides: DeckPageSlide[];
   activity: ActivityRow[];
 };
 
 // Never carries speaker notes.
-export type DeckPlaySlide = WithSlots<{ number: number; part: number | null; steps: number }>;
+export type DeckPlaySlide = WithSlots<{
+  number: number;
+  part: number | null;
+  deepDive: boolean;
+  steps: number;
+}>;
 
 // GET /api/play/{id}, and the shape of src/contracts/sample-deck.json.
 export type DeckPlayView = {
@@ -110,6 +118,7 @@ export type DeckPlayView = {
   title: string;
   author: string | null;
   parts: string[];
+  look: LookView;
   slides: DeckPlaySlide[];
 };
 
@@ -127,7 +136,7 @@ export type SharingView = {
 export type SharingRequest = { level: SharingLevel; viewers: string[] };
 
 // POST /api/decks body, and its 201 result.
-export type CreateDeckRequest = { title: string };
+export type CreateDeckRequest = { title: string; template?: string; palette?: string };
 export type CreateDeckResult = { id: string; slug: string; playUrl: string };
 
 // GET /api/oauth/consent/{id}: the consent screen for an agent's authorize request.
@@ -138,6 +147,199 @@ export type ConsentView = { clientName: string; scope: string; returnsTo: string
 // POST /api/oauth/consent/{id} body, and its result: where the browser goes next.
 export type ConsentDecisionRequest = { approve: boolean };
 export type ConsentDecisionView = { redirect: string };
+
+// The look (SW-2 L6): a deck's template and palette, resolved by the server.
+// Palette token keys are the --sw-<key> CSS custom properties without the
+// prefix (D10); the server always sends every token resolved, so the client
+// never looks a palette up by name.
+export type PaletteTokenKey =
+  | 'paper'
+  | 'card'
+  | 'chip'
+  | 'grid'
+  | 'ink'
+  | 'muted'
+  | 'accent'
+  | 'accent-dark'
+  | 'accent-light'
+  | 'accent-glow'
+  | 'accent-past'
+  | 'on-accent'
+  | 'good'
+  | 'good-soft'
+  | 'good-ink'
+  | 'bad'
+  | 'bad-soft'
+  | 'bad-ink'
+  | 'warn'
+  | 'warn-soft'
+  | 'warn-ink'
+  | 'dd'
+  | 'on-dd'
+  | 'dd-on-night'
+  | 'night'
+  | 'night-ink'
+  | 'night-2'
+  | 'night-muted'
+  | 'night-line'
+  | 'night-glow'
+  | 'number-from'
+  | 'number-to'
+  | 'stamp'
+  | 'panel-accent'
+  | 'panel-accent-ink'
+  | 'panel-positive'
+  | 'panel-positive-ink'
+  | 'panel-negative'
+  | 'panel-negative-ink'
+  | 'panel-inverse'
+  | 'panel-inverse-ink';
+
+export type PaletteTokens = Record<PaletteTokenKey, string>;
+
+export type FooterMode = 'author' | 'date' | 'off';
+
+export type TemplateChrome = {
+  tracker: boolean;
+  footer: FooterMode;
+  progress: boolean;
+  deepDivesOnDivider: boolean;
+  draft: boolean;
+};
+
+// head and body are font family names; headTracking is a CSS length.
+export type TemplateType = { head: string; body: string; headWeight: number; headTracking: string };
+
+// Radii in px; shadow is a CSS box-shadow.
+export type TemplateShape = {
+  radius: { sm: number; md: number; lg: number; xl: number };
+  shadow: string;
+};
+
+export type Ornament = 'dots' | 'none';
+
+// A deck's template in a LookView. chrome is the effective chrome, after the
+// deck's overrides.
+export type LookTemplate = {
+  name: string;
+  label: string;
+  layouts: LayoutName[];
+  chrome: TemplateChrome;
+  type: TemplateType;
+  shape: TemplateShape;
+  ornament: Ornament;
+  titleArt: string | null;
+};
+
+export type LookPalette = { name: string; label: string; tokens: PaletteTokens };
+
+// Image URLs are root-relative (/api/images/{id}).
+export type LookView = {
+  template: LookTemplate;
+  palette: LookPalette;
+  logo: { url: string } | null;
+  draft: boolean;
+  footerDateLabel: string;
+};
+
+// A deck's own chrome settings over its template's; a missing or null key
+// means the template's default.
+export type ChromeOverrides = {
+  tracker?: boolean | null;
+  footer?: FooterMode | null;
+  progress?: boolean | null;
+};
+
+export type ContrastPair =
+  | 'body'
+  | 'secondary'
+  | 'card-bold'
+  | 'headline-accent'
+  | 'on-accent'
+  | 'deep-dive-pill'
+  | 'panel-accent'
+  | 'panel-positive'
+  | 'panel-negative'
+  | 'panel-inverse'
+  | 'badge-positive'
+  | 'badge-negative'
+  | 'dark-subtitle'
+  | 'soft-accent'
+  | 'soft-inverse'
+  | 'deep-dive-list';
+
+// A palette's contrast check: whether every pair meets its bar, and the pair
+// closest to (or furthest below) its bar.
+export type ContrastSummary = {
+  pass: boolean;
+  lowest: { pair: ContrastPair; ratio: number; bar: number };
+};
+
+// The deck page's look: the LookView plus the deck's overrides and its palette's contrast.
+export type DeckPageLook = LookView & {
+  chromeOverrides: ChromeOverrides;
+  contrast: ContrastSummary;
+};
+
+// GET /api/looks: the built-in templates and palettes, the same for everyone (D20).
+export type LooksTemplate = {
+  name: string;
+  label: string;
+  purpose: string;
+  isDefault: boolean;
+  layouts: LayoutName[];
+  chrome: TemplateChrome;
+  outline: string[];
+  type: TemplateType;
+  shape: TemplateShape;
+  ornament: Ornament;
+  titleArt: string | null;
+  // The palette a locking template forces, or null.
+  lockedPalette: string | null;
+};
+
+export type LooksPalette = {
+  name: string;
+  label: string;
+  isDefault: boolean;
+  swatch: string[];
+  tokens: PaletteTokens;
+  contrast: ContrastSummary;
+};
+
+export type LooksView = { templates: LooksTemplate[]; palettes: LooksPalette[] };
+
+// The PUT /api/decks/{id}/look body. Each key left out stays as it is; a null
+// logo removes it, and a null chrome key resets it to the template's default.
+export type LookChangeRequest = {
+  template?: string;
+  palette?: string;
+  logo?: string | null;
+  draft?: boolean;
+  chrome?: ChromeOverrides;
+};
+
+// Its 200 result. warnings name slides whose layout the template doesn't list.
+export type LookChangeResult = { look: DeckPageLook; warnings: string[] };
+
+// GET /api/render/{id}/card. A generic card has a null title, subtitle and author.
+export type CardView = {
+  generic: boolean;
+  title: string | null;
+  subtitle: string | null;
+  author: string | null;
+  slideCount: number;
+  look: LookView;
+};
+
+// POST /api/decks/{id}/images body, and its 201 result (the same as upload_image's).
+export type ImageUploadRequest = { name: string; contentType: string };
+export type ImageUploadResult = {
+  image: string;
+  uploadUrl: string;
+  method: 'PUT';
+  expiresInSeconds: number;
+};
 
 // Every error body.
 export type ApiErrorBody = { error: string };

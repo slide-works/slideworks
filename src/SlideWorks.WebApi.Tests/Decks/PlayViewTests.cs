@@ -14,11 +14,7 @@ namespace SlideWorks.WebApi.Tests.Decks;
 [TestFixture]
 public class PlayViewTests : ApiTestFixture
 {
-    private static readonly JsonShapeOptions PLAY_SHAPE = new()
-    {
-        NullablePaths = ["author", "slides[].part"],
-        OpaquePaths = ["slides[].slots"],
-    };
+    private static readonly JsonShapeOptions PLAY_SHAPE = ScreenShapes.DeckPlay;
 
     [Test]
     public async Task Get_WhenOwner_ShouldMatchShapeAndOmitNotes()

@@ -241,7 +241,7 @@ public class SharingTests : ApiTestFixture
         [
             "changed sharing: Anyone with the link → Named people (+mira@team.example)",
             "changed sharing: Private → Anyone with the link",
-            "created the deck",
+            "created the deck from the talk template with the Cobalt palette",
         ]);
         activity[1].GetProperty("tool").ValueKind.ShouldBe(JsonValueKind.Null);
         activity[1].GetProperty("via").GetString().ShouldBe("web");

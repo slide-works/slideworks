@@ -39,6 +39,7 @@
   --sw-accent-light: #e4eafd;
   --sw-accent-glow: #a5b8ff;
   --sw-accent-past: #b9c8f8;
+  --sw-on-accent: #ffffff;
 
   /* Tones: good, bad and info (callouts, table cells), plus the gantt's warning */
   --sw-good: #16a34a;
@@ -55,15 +56,43 @@
   --sw-warn-ink: #9a3412;
   --sw-stamp: #fcd34d;
 
+  /* Deep dives: the bar and pill, and the divider's list on a dark slide */
+  --sw-dd: #c2410c;
+  --sw-on-dd: #ffffff;
+  --sw-dd-on-night: #fdba74;
+
+  /* Tone panels (accent, positive, negative, inverse) and their text */
+  --sw-panel-accent: #2f5bea;
+  --sw-panel-accent-ink: #ffffff;
+  --sw-panel-positive: #15803d;
+  --sw-panel-positive-ink: #ffffff;
+  --sw-panel-negative: #b91c1c;
+  --sw-panel-negative-ink: #ffffff;
+  --sw-panel-inverse: #0b1020;
+  --sw-panel-inverse-ink: #ffffff;
+
   /* Dark slides (title, divider, close) */
   --sw-night: #0b1020;
   --sw-night-ink: #ffffff;
   --sw-night-2: #cbd5e1;
   --sw-night-muted: #8c97ad;
   --sw-night-line: #334155;
+  --sw-night-glow: rgb(47 91 234);
+  --sw-number-from: #c3d0ff;
+  --sw-number-to: #5b7cff;
+  /* Built from the glow, so a palette's night-glow re-skins it. Being a var()
+     token, it resolves here at :root: lookStyle sets it again on the slide. */
   --sw-night-surface:
-    radial-gradient(1100px 700px at 88% 112%, rgb(47 91 234 / 0.45), transparent 62%),
-    radial-gradient(900px 600px at -5% -10%, rgb(125 150 255 / 0.12), transparent 60%),
+    radial-gradient(
+      1100px 700px at 88% 112%,
+      color-mix(in srgb, var(--sw-night-glow) 45%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      900px 600px at -5% -10%,
+      color-mix(in srgb, var(--sw-night-glow) 12%, transparent),
+      transparent 60%
+    ),
     var(--sw-night);
 
   /* Radii */
