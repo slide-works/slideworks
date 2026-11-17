@@ -75,6 +75,38 @@ public class WriteRouteTableTests : ApiTestFixture
         ]);
     }
 
+    // Q4, Q6, Q7: every Q&A and reaction write (the presenter's seven actions and two settings routes, a guest's question,
+    // votes and taps) is under /api, so the guard covers it.
+    [Test]
+    public void Endpoints_WhenTheyAreQaWrites_ShouldAllBeUnderApi()
+    {
+        var qaWrites = Factory.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(AcceptsWrites)
+            .Select(endpoint => "/" + (endpoint.RoutePattern.RawText ?? "").TrimStart('/'))
+            .Where(pattern => pattern.Contains("/qa", StringComparison.OrdinalIgnoreCase)
+                || pattern.Contains("/questions", StringComparison.OrdinalIgnoreCase)
+                || pattern.Contains("/reactions", StringComparison.OrdinalIgnoreCase))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        qaWrites.ShouldBe(
+        [
+            "/api/decks/{id}/qa/questions/{number:int:min(1)}/answer",
+            "/api/decks/{id}/qa/questions/{number:int:min(1)}/approve",
+            "/api/decks/{id}/qa/questions/{number:int:min(1)}/hide",
+            "/api/decks/{id}/qa/questions/{number:int:min(1)}/reopen",
+            "/api/decks/{id}/qa/questions/{number:int:min(1)}/restore",
+            "/api/decks/{id}/qa/questions/{number:int:min(1)}/show",
+            "/api/decks/{id}/qa/questions/{number:int:min(1)}/unshow",
+            "/api/decks/{id}/qa/settings",
+            "/api/decks/{id}/qa/slides/{slide:int:min(1)}",
+            "/api/join/{code}/questions",
+            "/api/join/{code}/questions/votes",
+            "/api/join/{code}/reactions",
+        ]);
+    }
+
     // No method metadata means the endpoint takes any method, writes included.
     private static bool AcceptsWrites(Endpoint endpoint)
     {
