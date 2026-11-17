@@ -11,45 +11,14 @@
 import sampleDeckJson from '@contracts/sample-deck.json' with { type: 'json' };
 import { describe, expect, it } from 'vitest';
 import type { DeckPlayView } from '../api/types';
-import { LAYOUT_NAMES, SLOT_KEYS, type LayoutName, type Slots } from '../slides/slots';
+import { LAYOUT_NAMES, SLOT_KEYS, type LayoutName } from '../slides/slots';
+import {
+  REQUIRED_SLOT_KEYS,
+  type RequiredKeysComplete,
+} from '../test-support/fixtures/layoutSlots';
 import type { JsonView } from '../test-support/fixtures/widen';
 
 const sampleDeck = sampleDeckJson satisfies JsonView<DeckPlayView>;
-
-// The slot keys a layout can't do without, derived from the optional markers in
-// Slots: the `satisfies` clause rejects a key that is optional or unknown, and
-// RequiredKeysComplete rejects a table that leaves a required key out.
-type RequiredKeys<T> = {
-  [K in keyof T]-?: Record<never, never> extends Pick<T, K> ? never : K;
-}[keyof T];
-
-const REQUIRED_SLOT_KEYS = {
-  title: ['title'],
-  divider: ['title'],
-  bullets: ['headline', 'items'],
-  'two-column': ['headline', 'left', 'right'],
-  practice: ['headline', 'do', 'comes_back', 'avoid'],
-  compare: ['headline', 'failure', 'success'],
-  'big-number': ['headline', 'value', 'caption'],
-  quote: ['quote', 'attribution'],
-  image: ['headline', 'image'],
-  table: ['headline', 'columns', 'rows'],
-  chart: ['headline', 'kind', 'xLabels', 'series'],
-  gantt: ['headline', 'columns', 'rows'],
-  'numbered-cards': ['headline', 'cards'],
-  rules: ['headline', 'rules'],
-  cards: ['headline', 'cards'],
-  close: ['headline'],
-  join: [],
-  poll: ['question', 'options'],
-  qa: [],
-} as const satisfies { [L in LayoutName]: readonly RequiredKeys<Slots[L]>[] };
-
-type UnlistedRequiredKey = {
-  [L in LayoutName]: Exclude<RequiredKeys<Slots[L]>, (typeof REQUIRED_SLOT_KEYS)[L][number]>;
-}[LayoutName];
-type AssertTrue<T extends true> = T;
-type RequiredKeysComplete = AssertTrue<[UnlistedRequiredKey] extends [never] ? true : false>;
 
 const isLayout = (layout: string): layout is LayoutName =>
   (LAYOUT_NAMES as readonly string[]).includes(layout);
