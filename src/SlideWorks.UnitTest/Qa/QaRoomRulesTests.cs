@@ -49,7 +49,7 @@ public class QaRoomRulesTests
     [Test]
     public void For_WhenNoRoundIsOpen_ShouldGiveListRevisionZero()
     {
-        var room = QaRoomRules.For(QaSettings.Default, QaSlideSwitch.On, new QaRoundState(null, 0));
+        var room = QaRoomRules.For(QaSettings.Default, QaSlideSwitch.On, new QaRoundState(null, 12));
 
         room.Round.ShouldBeNull();
         room.ListRevision.ShouldBe(0);

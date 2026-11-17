@@ -16,7 +16,7 @@ public class QaRecordShapeTests
     private const string DECK = "7Kq2xYp9LmQa";
 
     // Words that would tie a question or a vote to a guest (Q4, Q10).
-    private static readonly string[] _guestWords = ["guest", "yours", "pick", "mine", "voter", "asker"];
+    private static readonly string[] _guestWords = ["guest", "yours", "pick", "mine", "voter", "asker", "participant", "cookie"];
 
     [TestCase("open")]
     [TestCase("closed")]
