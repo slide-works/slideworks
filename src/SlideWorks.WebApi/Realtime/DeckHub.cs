@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SlideWorks.WebApi.Features.Join;
@@ -29,7 +30,6 @@ namespace SlideWorks.WebApi.Realtime;
 [AllowAnonymous]
 public sealed class DeckHub(
     IDeckAccess access,
-    ICurrentActor actor,
     IPresentations presentations,
     IAudienceSessions sessions,
     IAudienceRelay relay,
@@ -37,6 +37,10 @@ public sealed class DeckHub(
     IJoinLookupLimiter limiter,
     IAudienceEvents audienceEvents) : Hub
 {
+    // The caller is the hub connection's own principal, not the request's: under long polling a hub call runs after the
+    // request that opened it has finished, so IHttpContextAccessor is empty by then.
+    private ICurrentActor Actor => new PrincipalActor(Context.User ?? new ClaimsPrincipal());
+
     public const string PATH = "/hubs/deck";
 
     public const string EVENT_METHOD = "deckEvent";
@@ -69,7 +73,7 @@ public sealed class DeckHub(
     // deck changed, and its re-read through the API is refused (K9).
     public async Task JoinDeck(string deckId)
     {
-        if (!await access.CanViewAsync(deckId, actor))
+        if (!await access.CanViewAsync(deckId, Actor))
         {
             throw new HubException(DECK_NOT_FOUND);
         }
@@ -88,7 +92,7 @@ public sealed class DeckHub(
         string timeZone,
         PresentationResume? resume)
     {
-        if (!await access.CanPresentAsync(deckId, actor))
+        if (!await access.CanPresentAsync(deckId, Actor))
         {
             throw new HubException(DECK_NOT_FOUND);
         }
@@ -128,13 +132,15 @@ public sealed class DeckHub(
             limiter.Miss(caller);
             throw new HubException(NO_SESSION);
         }
+        // Everything that can refuse comes before anything changes: a refused call leaves no group, roster or count behind.
+        var state = await relay.CurrentAsync(found.DeckId) ?? throw new HubException(NO_SESSION);
         await Groups.AddToGroupAsync(Context.ConnectionId, AudienceGroupName(found.DeckId));
         if (found is { Phase: AudiencePhase.Live, SessionId: { } sessionId })
         {
             var count = await roster.JoinAsync(found.DeckId, sessionId, guestId, Context.ConnectionId);
             await audienceEvents.PublishAsync(new JoinedCount(found.DeckId, count));
         }
-        return await relay.CurrentAsync(found.DeckId) ?? throw new HubException(NO_SESSION);
+        return state;
     }
 
     // Stops the code's events and takes the connection off the roster. An unknown code changes nothing.
@@ -153,7 +159,7 @@ public sealed class DeckHub(
     // refusal, before anything changes.
     public async Task WatchAudience(string deckId)
     {
-        if (!await access.CanPresentAsync(deckId, actor))
+        if (!await access.CanPresentAsync(deckId, Actor))
         {
             throw new HubException(DECK_NOT_FOUND);
         }

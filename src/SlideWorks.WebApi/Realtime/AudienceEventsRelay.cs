@@ -59,6 +59,7 @@ public sealed class AudienceEventsRelay(IAudienceEvents events, IHubContext<Deck
             var window = _windows.GetValueOrDefault(count.DeckId);
             if (window == null || time.GetUtcNow() - window.SentAt >= _countInterval)
             {
+                window?.Timer?.Dispose();
                 _windows[count.DeckId] = new CountWindow(time.GetUtcNow(), null, null);
                 return SendAsync(DeckHub.AudienceWatchGroupName(count.DeckId), count);
             }

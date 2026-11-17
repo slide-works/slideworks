@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,10 +11,14 @@ namespace SlideWorks.WebApi.Tests.Realtime;
 
 // /hubs/deck end to end: an event published on IDeckEvents reaches, over a real WebSocket, the connections that joined
 // its deck and no others. JoinDeck checks IDeckAccess, so the decks joined here are real ones their joiner owns
-// (DeckHubAccessTests covers who else may join).
-[TestFixture]
+// (DeckHubAccessTests covers who else may join). Every case runs over each transport the hub offers (WebSockets,
+// ServerSentEvents, LongPolling): under long polling a hub call runs after the request that opened it has finished, so
+// the hub must resolve its caller from its own principal.
+[TestFixture(HttpTransportType.WebSockets)]
+[TestFixture(HttpTransportType.ServerSentEvents)]
+[TestFixture(HttpTransportType.LongPolling)]
 [CancelAfter(30000)]
-public class DeckHubTests : ApiTestFixture
+public class DeckHubTests(HttpTransportType transport) : ApiTestFixture
 {
     private readonly List<HubReceiver> _receivers = [];
 
@@ -79,7 +84,7 @@ public class DeckHubTests : ApiTestFixture
     [Test]
     public async Task DeckHub_WhenAnonymousJoins_ShouldThrowDeckNotFound()
     {
-        var anonymous = await HubReceiver.StartAsync(Factory, TestUser.Anonymous);
+        var anonymous = await HubReceiver.StartAsync(Factory, TestUser.Anonymous, transport);
         _receivers.Add(anonymous);
 
         var refused = await Should.ThrowAsync<HubException>(() => anonymous.Connection.InvokeAsync("JoinDeck", TestDeckIds.New()));
@@ -93,7 +98,7 @@ public class DeckHubTests : ApiTestFixture
     {
         using var alexClient = ClientFor(TestUser.Alex);
         var deck = await OwnDeckAsync(alexClient);
-        var alex = await HubReceiver.StartAsync(Factory, TestUser.Alex);
+        var alex = await HubReceiver.StartAsync(Factory, TestUser.Alex, transport);
         _receivers.Add(alex);
         await alex.Connection.InvokeAsync("JoinDeck", deck);
 
@@ -102,11 +107,33 @@ public class DeckHubTests : ApiTestFixture
         DeckIdOf(await alex.NextAsync()).ShouldBe(deck);
     }
 
+    // The owner's calls that check ownership, not just view access: refused for the owner over long polling when the hub
+    // read its caller from the request that had already finished.
+    [Test]
+    public async Task JoinPresentation_WhenOwner_ShouldJoin()
+    {
+        var deck = await OwnDeckAsync(Client);
+        var owner = await ConnectAsync();
+
+        var joined = await owner.Connection.InvokeAsync<JsonElement>("JoinPresentation", deck, "k-1", "presenter", "Chrome on Linux", "UTC", null);
+
+        joined.GetProperty("state").GetProperty("slide").GetInt32().ShouldBeGreaterThan(0);
+    }
+
+    [Test]
+    public async Task WatchAudience_WhenOwner_ShouldWatch()
+    {
+        var deck = await OwnDeckAsync(Client);
+        var owner = await ConnectAsync();
+
+        await Should.NotThrowAsync(() => owner.Connection.InvokeAsync("WatchAudience", deck));
+    }
+
     private static Task<string> OwnDeckAsync(HttpClient owner) => SharingApi.CreateDeckAsync(owner, "Live deck");
 
     private async Task<HubReceiver> ConnectAsync()
     {
-        var receiver = await HubReceiver.StartAsync(Factory, SignedInAs);
+        var receiver = await HubReceiver.StartAsync(Factory, SignedInAs, transport);
         _receivers.Add(receiver);
         return receiver;
     }

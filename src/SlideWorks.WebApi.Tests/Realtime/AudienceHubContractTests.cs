@@ -140,6 +140,75 @@ public class AudienceHubContractTests : ApiTestFixture
         pushed.GetProperty("seq").GetInt64().ShouldBe(42);
     }
 
+    // A refused call leaves nothing behind (J2's rule, applied to the hub): the refused connection is in no group, so an
+    // event for the deck never reaches it. The bus delivers in order, so once the probe deck's event arrives, the refused
+    // deck's earlier event would already have.
+    [Test]
+    public async Task JoinAudience_WhenRelayHasNoState_ShouldThrowNoSessionAndChangeNothing()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client, "No state yet");
+        var code = Interlocked.Increment(ref _codes).ToString();
+        Factory.Services.GetRequiredService<FakeAudienceSessions>().Set(code, deck, "live-session", AudiencePhase.Live);
+        var (probeDeck, probeCode) = await LiveDeckAsync();
+        var owner = await WatcherAsync(deck);
+        var guest = await JoinedGuestAsync(probeCode);
+
+        var refused = await Should.ThrowAsync<HubException>(() => guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code));
+        await Bus.PublishAsync(State(deck, 9, AudiencePhase.Live));
+        await Bus.PublishAsync(State(probeDeck, 10, AudiencePhase.Live));
+
+        refused.Message.ShouldContain("no_session", Case.Sensitive);
+        (await guest.NextAudienceAsync()).GetProperty("seq").GetInt64().ShouldBe(10);
+        Roster.Joins.ShouldNotContain(join => join.Deck == deck);
+        // The owner watches the deck: a joinedCount it got would be the refused join's.
+        await Bus.PublishAsync(new JoinedCount(deck, 77));
+        (await owner.NextAudienceAsync()).GetProperty("count").GetInt32().ShouldBe(77);
+    }
+
+    [Test]
+    public async Task JoinAudience_WhenOutOfMisses_ShouldAddNoGroupMembership()
+    {
+        var (deck, code) = await LiveDeckAsync();
+        var (probeDeck, probeCode) = await LiveDeckAsync();
+        var guest = await JoinedGuestAsync(probeCode);
+        Factory.Services.GetRequiredService<SwitchableLimiter>().Open = false;
+
+        await Should.ThrowAsync<HubException>(() => guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code));
+        await Bus.PublishAsync(State(deck, 9, AudiencePhase.Live));
+        await Bus.PublishAsync(State(probeDeck, 10, AudiencePhase.Live));
+
+        (await guest.NextAudienceAsync()).GetProperty("seq").GetInt64().ShouldBe(10);
+        Roster.Joins.ShouldNotContain(join => join.Deck == deck);
+    }
+
+    [Test]
+    public async Task JoinAudience_WhenUnknownCode_ShouldAddNoGroupMembership()
+    {
+        var (probeDeck, probeCode) = await LiveDeckAsync();
+        var guest = await JoinedGuestAsync(probeCode);
+
+        await Should.ThrowAsync<HubException>(() => guest.Connection.InvokeAsync<JsonElement>("JoinAudience", "999997"));
+        await Bus.PublishAsync(State(probeDeck, 10, AudiencePhase.Live));
+
+        (await guest.NextAudienceAsync()).GetProperty("seq").GetInt64().ShouldBe(10);
+    }
+
+    [Test]
+    public async Task WatchAudience_WhenNotOwner_ShouldAddNoGroupMembership()
+    {
+        var (deck, _) = await LiveDeckAsync();
+        using var alexClient = ClientFor(TestUser.Alex);
+        var alexsDeck = await SharingApi.CreateDeckAsync(alexClient, "Alex's deck");
+        var alex = await Track(HubReceiver.StartAsync(Factory, TestUser.Alex));
+        await alex.Connection.InvokeAsync("WatchAudience", alexsDeck);
+
+        await Should.ThrowAsync<HubException>(() => alex.Connection.InvokeAsync("WatchAudience", deck));
+        await Bus.PublishAsync(new JoinedCount(deck, 5));
+        await Bus.PublishAsync(new JoinedCount(alexsDeck, 6));
+
+        (await alex.NextAudienceAsync()).GetProperty("count").GetInt32().ShouldBe(6);
+    }
+
     [Test]
     public async Task JoinAudience_WhenLobby_ShouldFollowButNotCountOnTheRoster()
     {
