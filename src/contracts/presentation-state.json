@@ -1,0 +1,16 @@
+{
+  "deckId": "7Kq2abcdEFGH",
+  "epoch": "p-3f9c2a",
+  "seq": 42,
+  "slide": 8,
+  "step": 0,
+  "black": false,
+  "skipDeepDives": false,
+  "timer": { "state": "running", "elapsedMs": 760000 },
+  "talkMinutes": 30,
+  "connected": [
+    { "clientId": "k-1", "role": "presenter", "label": "Chrome on Windows" },
+    { "clientId": "k-2", "role": "audience", "label": "Chrome on Windows" },
+    { "clientId": "k-3", "role": "phone", "label": "Safari on iPhone" }
+  ]
+}
