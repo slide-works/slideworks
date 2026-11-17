@@ -3,18 +3,24 @@ import type { DeckEvent } from './deckEvents';
 import { subscribeToDeck, type SubscribeOptions } from './deckSubscription';
 
 // Follows one deck's events for as long as the calling screen is mounted, and starts over when the deck changes.
-// onEvent may change on every render without reconnecting. The options are for tests.
+// onJoined runs each time the deck is joined: first, and again after a reconnect. Nothing from before a join is
+// delivered, so a screen re-reads there. onEvent and onJoined may change on every render without reconnecting. The
+// options are for tests.
 export function useDeckRealtime(
   deckId: string,
   onEvent: (event: DeckEvent) => void,
-  options?: SubscribeOptions,
+  onJoined?: () => void,
+  options?: Omit<SubscribeOptions, 'onJoined'>,
 ): void {
-  const handler = useRef(onEvent);
+  const handlers = useRef({ onEvent, onJoined });
   useEffect(() => {
-    handler.current = onEvent;
-  }, [onEvent]);
+    handlers.current = { onEvent, onJoined };
+  }, [onEvent, onJoined]);
   useEffect(() => {
     if (deckId === '') return;
-    return subscribeToDeck(deckId, (event) => handler.current(event), options);
+    return subscribeToDeck(deckId, (event) => handlers.current.onEvent(event), {
+      ...options,
+      onJoined: () => handlers.current.onJoined?.(),
+    });
   }, [deckId, options]);
 }

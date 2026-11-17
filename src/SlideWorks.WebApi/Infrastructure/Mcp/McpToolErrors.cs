@@ -18,6 +18,8 @@ public static class McpToolErrors
 
     public static async Task<CallToolResult> Run<T>(Func<Task<T>> work)
     {
+        // The SDK has bound the arguments by now; from here on a JsonException is a bug, not an argument error.
+        McpArgumentCheck.ArgumentsBound();
         try
         {
             var json = JsonSerializer.SerializeToElement(await work(), JSON);
@@ -29,11 +31,15 @@ public static class McpToolErrors
         }
         catch (Exception error) when (error is BadRequestException or NotFoundException or ConflictException)
         {
-            return new CallToolResult
-            {
-                IsError = true,
-                Content = [new TextContentBlock { Text = error.Message }],
-            };
+            return Refusal(error.Message);
         }
     }
+
+    // A tool result with isError: true and the message as its only text, the shape every refusal takes.
+    public static CallToolResult Refusal(string message)
+        => new()
+        {
+            IsError = true,
+            Content = [new TextContentBlock { Text = message }],
+        };
 }

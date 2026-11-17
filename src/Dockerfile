@@ -44,7 +44,7 @@ RUN .playwright/node/linux-x64/node .playwright/package/cli.js install --with-de
     && rm -rf /var/lib/apt/lists/*
 
 # SQLite lives here (SLIDEWORKS_DB_PATH defaults to /data/slide-works.db). The compose
-# file mounts a named volume on the WSL2 ext4 disk; never bind-mount this onto a
+# file mounts a named volume on a local disk; never bind-mount this onto a
 # 9p/SMB/NAS path. Created owned by the non-root app user so a fresh named volume
 # inherits that ownership.
 RUN mkdir -p /data && chown "$APP_UID" /data

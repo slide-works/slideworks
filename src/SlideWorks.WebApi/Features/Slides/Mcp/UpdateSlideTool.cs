@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using SlideWorks.WebApi.Infrastructure.Mcp;
@@ -16,9 +17,9 @@ public sealed class UpdateSlideTool
         [Description("The deck's id.")] string deck,
         [Description("The slide's 1-based number, as get_deck gave it.")] int slide,
         [Description("The slide's revision, as get_deck gave it.")] long revision,
-        [Description("The slide's complete new slots as a JSON object; they replace the old ones. Required.")] JsonElement? slots = null,
+        [Description("The slide's complete new slots as a JSON object; they replace the old ones.")] JsonObject slots,
         [Description("A new layout's name, or leave it out to keep the slide's layout.")] string? layout = null,
         [Description("A new 1-based part, or leave it out to keep the slide's part.")] int? part = null,
         [Description("true marks the slide as a deep dive, false clears the mark; leave it out to keep it. A deep dive shows the deep-dive mark and its notes read with a skip-if-short-of-time prefix; the stored notes never change.")] bool? deep_dive = null)
-        => McpToolErrors.Run(() => edits.UpdateAsync(new UpdateSlideRequest(deck, slide, revision, slots, layout, part, deep_dive)));
+        => McpToolErrors.Run(() => edits.UpdateAsync(new UpdateSlideRequest(deck, slide, revision, JsonSerializer.SerializeToElement(slots), layout, part, deep_dive)));
 }

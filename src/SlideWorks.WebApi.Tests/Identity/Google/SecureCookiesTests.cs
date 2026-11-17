@@ -14,11 +14,13 @@ public class SecureCookiesTests : GoogleSignInFixture
 
     protected override Dictionary<string, string?> ExtraConfig => new(base.ExtraConfig) { ["SLIDEWORKS_PUBLIC_URL"] = PUBLIC_URL };
 
+    // Every request goes over plain http, as the proxy forwards it, so only the public URL can make the app act as https.
     [Test]
     public async Task SignIn_WhenPublicUrlIsHttps_ShouldUseHttpsCallbackAndSecureCookies()
     {
-        // The cookie jar only sends Secure cookies back over https, as a real browser would.
-        using var browser = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, BaseAddress = new Uri("https://localhost") });
+        // No cookie jar: a jar wouldn't send Secure cookies over http, but the proxy does, so the test carries the
+        // correlation and nonce cookies to the callback by hand.
+        using var browser = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false, BaseAddress = new Uri("http://localhost") });
 
         using var start = await browser.GetAsync("/signin/google?returnTo=%2Fdecks");
 
@@ -29,7 +31,9 @@ public class SecureCookiesTests : GoogleSignInFixture
         AttributesOf(start, ".AspNetCore.OpenIdConnect.Nonce.").ShouldContain("secure");
 
         Provider.NextIdToken = Provider.Mint(CLIENT_ID, Clock.GetUtcNow(), "sub-secure", "secure@example.test", "S", true, query["nonce"].ToString());
-        using var callback = await browser.GetAsync($"{GoogleSignInSetup.CALLBACK_PATH}?code=test-code&state={Uri.EscapeDataString(query["state"].ToString())}");
+        using var callbackRequest = new HttpRequestMessage(HttpMethod.Get, $"{GoogleSignInSetup.CALLBACK_PATH}?code=test-code&state={Uri.EscapeDataString(query["state"].ToString())}");
+        callbackRequest.Headers.Add("Cookie", string.Join("; ", start.Headers.GetValues("Set-Cookie").Select(header => header.Split(';')[0])));
+        using var callback = await browser.SendAsync(callbackRequest);
 
         callback.Headers.Location!.OriginalString.ShouldBe("/decks");
         Provider.LastTokenRequest!["redirect_uri"].ShouldBe($"{PUBLIC_URL}{GoogleSignInSetup.CALLBACK_PATH}");

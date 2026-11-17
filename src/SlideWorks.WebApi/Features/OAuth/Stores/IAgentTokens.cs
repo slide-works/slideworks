@@ -7,8 +7,10 @@ public interface IAgentTokens
     Task<AgentTokenPair> IssueAsync(CodeGrant grant);
 
     // IssueAsync for the code that was just redeemed into this grant: the family is tied to the code, so presenting the
-    // code again can end it (RevokeIssuedForCodeAsync).
-    Task<AgentTokenPair> IssueForCodeAsync(string code, CodeGrant grant);
+    // code again can end it (RevokeIssuedForCodeAsync). Null, with nothing issued, when the grant's presenter is not
+    // Approved, as RefreshAsync and ValidateAsync refuse them: a code issued just before an admin revoked its presenter
+    // yields no tokens that re-approval could bring back.
+    Task<AgentTokenPair?> IssueForCodeAsync(string code, CodeGrant grant);
 
     // RFC 6749 section 4.1.2: a code presented again after it was redeemed revokes the family issued from it. A code that
     // never got tokens (unknown, unredeemed or refused) changes nothing.

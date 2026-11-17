@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi;
+using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -13,8 +14,9 @@ namespace SlideWorks.AcceptanceTests;
 
 // Starts the real BFF once for the whole run, on a real Kestrel port a browser can reach: the production Program.cs,
 // the production DI and the SPA bundle that `pnpm run build` emitted into SlideWorks.WebApi/wwwroot. Only the database
-// file is the test's own, the test sign-in scheme is added so SignIn.AsAsync can sign a browser in as a TestUser, and
-// SLIDEWORKS_ADMIN_EMAIL is Ada's, so she is the admin from her first sign-in.
+// file and the data folder (where uploaded images go) are the run's own, both deleted when the run ends. The test
+// sign-in scheme is added so SignIn.AsAsync can sign a browser in as a TestUser, and SLIDEWORKS_ADMIN_EMAIL is Ada's, so
+// she is the admin from her first sign-in.
 // Browsers and the SPA never see a fake.
 //
 // The port is reserved before the host starts, so SLIDEWORKS_PUBLIC_URL can name it: links, OAuth metadata, the MCP
@@ -22,8 +24,10 @@ namespace SlideWorks.AcceptanceTests;
 [SetUpFixture]
 public class AcceptanceApp
 {
-    private string _dbPath = null!;
-    private WebApplicationFactory<ApiMarker> _factory = null!;
+    // Null until StartApp gets that far: a start that fails part way still has StopApp clean up what it made.
+    private string? _dbPath;
+    private string? _dataPath;
+    private WebApplicationFactory<ApiMarker>? _factory;
 
     public static string BaseUrl { get; private set; } = null!;
 
@@ -34,6 +38,7 @@ public class AcceptanceApp
     public void StartApp()
     {
         _dbPath = Path.Combine(Path.GetTempPath(), $"slide-works-acceptance-{Guid.NewGuid():N}.db");
+        _dataPath = Directory.CreateTempSubdirectory("slide-works-acceptance-data-").FullName;
         var port = FreePort();
         BaseUrl = $"http://127.0.0.1:{port}";
         _factory = new WebApplicationFactory<ApiMarker>().WithWebHostBuilder(builder =>
@@ -42,6 +47,7 @@ public class AcceptanceApp
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["SLIDEWORKS_DB_PATH"] = _dbPath,
+                    [ImageStore.DATA_PATH_SETTING] = _dataPath,
                     ["SLIDEWORKS_PUBLIC_URL"] = BaseUrl,
                     [IUserDirectory.ADMIN_EMAIL_SETTING] = TestUser.Ada.Email,
                 }));
@@ -51,16 +57,31 @@ public class AcceptanceApp
         _factory.StartServer();
         Services = _factory.Services;
 
-        AssertBundleIsBuilt();
+        AssertBundleIsBuilt(_factory);
     }
 
+    // NUnit runs this even when StartApp threw, so each step allows for what was never made, and the files go even if
+    // the host fails to stop.
     [OneTimeTearDown]
     public void StopApp()
     {
-        _factory.Dispose();
-        foreach (var suffix in new[] { "", "-shm", "-wal" })
+        try
         {
-            File.Delete(_dbPath + suffix);
+            _factory?.Dispose();
+        }
+        finally
+        {
+            if (_dbPath != null)
+            {
+                foreach (var suffix in new[] { "", "-shm", "-wal" })
+                {
+                    File.Delete(_dbPath + suffix);
+                }
+            }
+            if (_dataPath != null && Directory.Exists(_dataPath))
+            {
+                Directory.Delete(_dataPath, recursive: true);
+            }
         }
     }
 
@@ -73,9 +94,9 @@ public class AcceptanceApp
     }
 
     // The tests drive the shipped bundle, not a dev server, so it has to exist first.
-    private void AssertBundleIsBuilt()
+    private static void AssertBundleIsBuilt(WebApplicationFactory<ApiMarker> factory)
     {
-        var webRoot = _factory.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
+        var webRoot = factory.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
         File.Exists(Path.Combine(webRoot ?? string.Empty, "index.html")).ShouldBeTrue(
             "The SPA bundle is missing. Build the client first: cd src/SlideWorks.Client && pnpm install && pnpm run build "
             + "(it emits into src/SlideWorks.WebApi/wwwroot).");

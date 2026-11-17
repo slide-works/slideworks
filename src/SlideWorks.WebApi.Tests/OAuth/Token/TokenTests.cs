@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Features.OAuth.Stores;
 using SlideWorks.WebApi.Tests.OAuth.Authorize;
@@ -30,6 +32,10 @@ public class TokenTests : ApiTestFixture
 
     [OneTimeTearDown]
     public void DisposeAnonymous() => _anonymous.Dispose();
+
+    // Each test starts in a fresh rate-limit window: every request here comes from the same address.
+    [SetUp]
+    public void NextWindow() => Clock.Advance(TimeSpan.FromMinutes(1));
 
     [Test]
     public async Task Token_WhenValidCodeAndVerifier_ShouldReturnAccessAndRefresh()
@@ -184,11 +190,15 @@ public class TokenTests : ApiTestFixture
             TaskCreationOptions.LongRunning,
             TaskScheduler.Default).Unwrap()));
 
-        responses.Count(r => r.StatusCode == HttpStatusCode.OK).ShouldBe(1);
+        var winner = responses.Where(r => r.StatusCode == HttpStatusCode.OK).ShouldHaveSingleItem();
         foreach (var refused in responses.Where(r => r.StatusCode != HttpStatusCode.OK))
         {
             (await TokenEndpoint.ErrorAsync(refused)).ShouldBe("invalid_grant");
         }
+        // Every loser found the code spent after the winner's spend and issue committed together, so each revoked what it
+        // was spent for (RFC 6749 section 4.1.2), the winner's tokens included.
+        var access = (await TokenEndpoint.OkBodyAsync(winner)).GetProperty("access_token").GetString()!;
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.Unauthorized);
     }
 
     [Test]
@@ -302,6 +312,193 @@ public class TokenTests : ApiTestFixture
         }
         ok.StatusCode.ShouldBe(HttpStatusCode.OK);
         refused.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    // An agent's real traffic (a redeem, refreshes about hourly, a revoke) is far below the budget: a whole minute's worth
+    // of requests from one address all go through, token and revoke alike.
+    [Test]
+    public async Task Token_WhenUpToSixtyRequestsAMinuteFromOneAddress_ShouldServeThemAll()
+    {
+        var (access, refresh) = await _endpoint.TokensAsync(_clientId);
+        var rotated = await TokenEndpoint.OkBodyAsync(await _endpoint.RefreshAsync(_clientId, refresh));
+        for (var i = 2; i < 59; i++)
+        {
+            (await _endpoint.RevokeAsync("not-a-token")).StatusCode.ShouldBe(HttpStatusCode.OK, $"request {i + 1}");
+        }
+
+        (await _endpoint.RevokeAsync(rotated.GetProperty("refresh_token").GetString()!)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    // POST /oauth/token and /oauth/revoke share one budget per address; past it, both get 429 with Retry-After and an
+    // RFC 6749 error body (still no-store) until the window passes.
+    [Test]
+    public async Task Token_WhenOverSixtyAMinuteFromOneAddress_ShouldReturn429UntilTheWindowPasses()
+    {
+        for (var i = 0; i < 60; i++)
+        {
+            (await _endpoint.RevokeAsync("not-a-token")).StatusCode.ShouldBe(HttpStatusCode.OK, $"request {i + 1}");
+        }
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var refusedToken = await _endpoint.RedeemAsync(_clientId, code);
+        var refusedRevoke = await _endpoint.RevokeAsync("not-a-token");
+
+        foreach (var refused in new[] { refusedToken, refusedRevoke })
+        {
+            (await TokenEndpoint.ErrorAsync(refused, HttpStatusCode.TooManyRequests)).ShouldBe("too_many_requests");
+            refused.Headers.RetryAfter.ShouldNotBeNull().Delta.ShouldBe(TimeSpan.FromMinutes(1));
+            refused.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
+        }
+        Clock.Advance(TimeSpan.FromMinutes(1));
+        await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code));
+    }
+
+    // RFC 6749 section 3.2: no parameter appears twice, so a second value can't be smuggled past a check that read the first.
+    [TestCase("code")]
+    [TestCase("client_id")]
+    [TestCase("code_verifier")]
+    [TestCase("grant_type")]
+    public async Task Token_WhenParameterRepeated_ShouldReturnInvalidRequest(string parameter)
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+        var fields = RedeemFields(code);
+        fields.Add(KeyValuePair.Create(parameter, fields.First(f => f.Key == parameter).Value));
+
+        var response = await _anonymous.PostAsync("/oauth/token", new FormUrlEncodedContent(fields));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        response.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
+        await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code));
+    }
+
+    [Test]
+    public async Task Revoke_WhenTokenRepeated_ShouldReturnInvalidRequest()
+    {
+        var (access, _) = await _endpoint.TokensAsync(_clientId);
+
+        var response = await _anonymous.PostAsync("/oauth/revoke", new FormUrlEncodedContent([KeyValuePair.Create("token", "not-a-token"), KeyValuePair.Create("token", access)]));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.OK);
+    }
+
+    // Only application/x-www-form-urlencoded (RFC 6749 section 4.1.3); the code isn't spent by a refused body.
+    [Test]
+    public async Task Token_WhenMultipartFormData_ShouldReturnInvalidRequest()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+        using var multipart = new MultipartFormDataContent();
+        foreach (var (name, value) in RedeemFields(code))
+        {
+            multipart.Add(new StringContent(value), name);
+        }
+
+        var response = await _anonymous.PostAsync("/oauth/token", multipart);
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        response.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
+        await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code));
+    }
+
+    [Test]
+    public async Task Token_WhenJson_ShouldReturnInvalidRequest()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+
+        var response = await _anonymous.PostAsJsonAsync("/oauth/token", RedeemFields(code).ToDictionary(f => f.Key, f => f.Value));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        response.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
+        await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code));
+    }
+
+    [Test]
+    public async Task Revoke_WhenMultipartFormData_ShouldReturnInvalidRequest()
+    {
+        var (access, _) = await _endpoint.TokensAsync(_clientId);
+        using var multipart = new MultipartFormDataContent { { new StringContent(access), "token" } };
+
+        var response = await _anonymous.PostAsync("/oauth/revoke", multipart);
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        response.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
+        (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.OK);
+    }
+
+    // A form over the framework's limits (here 1,025 values, one more than it reads) is the client's mistake: 400
+    // invalid_request, still no-store, not a 500. The code isn't spent.
+    [Test]
+    public async Task Token_WhenFormOverTheFrameworkLimits_ShouldReturnInvalidRequest()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+        var fields = RedeemFields(code);
+        fields.AddRange(Enumerable.Range(0, 1_025 - fields.Count).Select(i => KeyValuePair.Create($"extra{i}", "x")));
+
+        var response = await _anonymous.PostAsync("/oauth/token", new FormUrlEncodedContent(fields));
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_request");
+        response.Headers.CacheControl.ShouldNotBeNull().NoStore.ShouldBeTrue();
+        await TokenEndpoint.OkBodyAsync(await _endpoint.RedeemAsync(_clientId, code));
+    }
+
+    // A charset parameter on the right media type is fine.
+    [Test]
+    public async Task Token_WhenFormUrlEncodedWithCharset_ShouldReturnTokens()
+    {
+        var code = await _endpoint.CodeAsync(_clientId);
+        using var form = new FormUrlEncodedContent(RedeemFields(code));
+        form.Headers.ContentType!.CharSet = "utf-8";
+
+        var body = await TokenEndpoint.OkBodyAsync(await _anonymous.PostAsync("/oauth/token", form));
+
+        body.GetProperty("token_type").GetString().ShouldBe("Bearer");
+    }
+
+    private List<KeyValuePair<string, string>> RedeemFields(string code) =>
+    [
+        KeyValuePair.Create("grant_type", "authorization_code"),
+        KeyValuePair.Create("code", code),
+        KeyValuePair.Create("client_id", _clientId),
+        KeyValuePair.Create("redirect_uri", OAuthFlow.REDIRECT),
+        KeyValuePair.Create("code_verifier", OAuthFlow.VERIFIER),
+        KeyValuePair.Create("resource", OAuthFlow.Resource),
+    ];
+
+    // A code issued just before an admin revokes its presenter is spent for nothing: no tokens, so approving the person
+    // again can't bring any back.
+    [Test]
+    public async Task Token_WhenPresenterRevokedAfterCodeIssued_ShouldIssueNoTokens()
+    {
+        var presenter = TestUser.NewPending();
+        using (var signedIn = ClientFor(presenter))
+        {
+            (await signedIn.GetAsync("/api/me")).StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+        using var ada = ClientFor(TestUser.Ada);
+        var id = await AdminUserIdAsync(ada, presenter.Email);
+        (await ada.PostAsync($"/api/admin/users/{id}/approve", content: null)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        var code = await _endpoint.CodeAsync(_clientId, presenter);
+        (await ada.PostAsync($"/api/admin/users/{id}/revoke", content: null)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var response = await _endpoint.RedeemAsync(_clientId, code);
+
+        (await TokenEndpoint.ErrorAsync(response)).ShouldBe("invalid_grant");
+        (await ada.PostAsync($"/api/admin/users/{id}/approve", content: null)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        // The library still offers to connect an agent, which it does only while the person has no live agent tokens:
+        // none were stored for the refused redeem, so approving them again revived nothing. Checked before the replay
+        // below, which would revoke anything issued for the code.
+        using var approvedAgain = ClientFor(presenter);
+        var library = await TokenEndpoint.OkBodyAsync(await approvedAgain.GetAsync("/api/decks"));
+        library.GetProperty("connect").GetProperty("show").GetBoolean().ShouldBeTrue();
+        (await TokenEndpoint.ErrorAsync(await _endpoint.RedeemAsync(_clientId, code))).ShouldBe("invalid_grant");
+    }
+
+    private static async Task<Guid> AdminUserIdAsync(HttpClient admin, string email)
+    {
+        var view = await admin.GetFromJsonAsync<JsonElement>("/api/admin/users");
+        return view.GetProperty("users").EnumerateArray().Single(u => u.GetProperty("email").GetString() == email).GetProperty("id").GetGuid();
     }
 
     private async Task<AgentPrincipal?> ValidateAsync(string accessToken)

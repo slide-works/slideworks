@@ -21,7 +21,6 @@ public partial class DecksLibraryTests : AcceptanceTest
         await Expect(Page).ToHaveURLAsync(DeckPageUrl());
     }
 
-    // red until SW-28: GET /api/decks is A1's, and the library shows an error until it lands.
     [Test]
     public async Task Library_WhenPresenterCreatedDeck_ShouldListItWithYouAsLastChange()
     {

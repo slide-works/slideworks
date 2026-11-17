@@ -1,0 +1,70 @@
+/* One gantt row, placed in GanttLayout's grid.
+
+   The label: 28 px semibold on a 1.2 line, at most two lines (67 px, inside
+   the 72 px row) with an ellipsis, so wide-letter labels at the 30-character
+   limit keep the row's height. */
+.label {
+  display: -webkit-box;
+  grid-column: 1;
+  padding-right: 24px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font: 600 28px/1.2 var(--sw-font-body);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* A bar: 72 px tall, its note in the on-accent colour, 17 px bold uppercase. A
+   long note on a narrow bar (or a ship marker) stops at three lines with an
+   ellipsis, so the row keeps its height. */
+.bar {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 72px;
+  padding: 0 18px;
+  border-radius: var(--sw-radius-md);
+  color: var(--sw-on-accent);
+  font: 800 17px/1.1 var(--sw-font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.note {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.bar[data-status='done'] {
+  background: var(--sw-accent);
+}
+
+/* Slips: warning stripes, the light ones the warning mixed with the card colour. */
+.bar[data-status='slips'] {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--sw-warn) 0 18px,
+    color-mix(in srgb, var(--sw-warn) 75%, var(--sw-card)) 18px 36px
+  );
+}
+
+.bar[data-status='stopped'] {
+  background: var(--sw-card);
+  box-shadow: inset 0 0 0 3px var(--sw-bad);
+  color: var(--sw-bad);
+}
+
+/* The ship marker, centred in its columns in the good tone. */
+.ship {
+  justify-self: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--sw-good);
+  font: 800 17px/1.1 var(--sw-font-body);
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+}

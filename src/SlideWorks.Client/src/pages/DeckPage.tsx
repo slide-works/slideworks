@@ -53,15 +53,33 @@ export function DeckPage() {
     );
   }, [id]);
 
+  // The first read of the current deck. A join waits for it before re-reading,
+  // so the first load is never thrown away for a re-read.
+  const firstRead = useRef<Promise<void>>(Promise.resolve());
+
   useEffect(() => {
-    void read();
-    // Leaving this deck (or the page) makes every read still in flight stale.
+    firstRead.current = read();
+    // Leaving this deck (or the page) makes every read still in flight stale,
+    // and drops a join still waiting on this first read, so an unmounted page
+    // sends no re-read.
     return () => {
       latest.current += 1;
+      firstRead.current = Promise.resolve();
     };
   }, [read]);
 
-  useDeckRealtime(id, () => void read());
+  // Re-read once the deck is joined, and again after a reconnect re-joins it:
+  // events are only delivered from the join on, so a change that landed
+  // between the first read and the join (or while offline) shows up here.
+  const reReadOnJoin = useCallback(() => {
+    const first = firstRead.current;
+    void first.then(() => {
+      // Still the same deck: a join from before a move to another is dropped.
+      if (firstRead.current === first) void read();
+    });
+  }, [read]);
+
+  useDeckRealtime(id, () => void read(), reReadOnJoin);
 
   // A saved look shows at once; the DeckChanged re-read brings the new revision.
   const showLook = useCallback(

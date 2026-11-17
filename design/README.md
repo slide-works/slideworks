@@ -4,7 +4,7 @@ Mockups and design decisions, with one folder per Feature.
 
 | Folder | Feature | Status |
 |---|---|---|
-| [`sw-1-foundation/`](sw-1-foundation/) | SW-1 Foundation: agent-built web decks over MCP | Mockups reviewed, decisions D3–D8 settled |
+| [`sw-1-foundation/`](sw-1-foundation/) | SW-1 Foundation: agent-built web decks over MCP | Mockups reviewed, decisions D3–D9 settled, built on the SW-1 branch |
 | [`sw-2-templates-palettes/`](sw-2-templates-palettes/) | SW-2 Templates and palettes (also covers SW-15 Wada palettes and SW-50 uploaded templates) | Built (SW-2's sections; Wada palettes and uploaded templates are still to come) |
 
 ## SW-1 Foundation
@@ -31,7 +31,9 @@ Open [`sw-1-foundation/sw-1-mockups.html`](sw-1-foundation/sw-1-mockups.html) in
 - **D7. Activity log:** the deck page shows who changed what, when, and through which tool. Restoring old versions comes later.
 - **D8. Blocks:** all 17 ship in SW-1: title, divider with journey, bullets, two-column, practice, compare, big-number, quote, image, table, chart, gantt, numbered-cards, rules, cards with chips and badges, callout, and close.
 
-Still open: whether to port the existing thin HTML deck engine or wrap an open-source slide library such as reveal.js or Slidev. A spike will decide.
+- **D9. Engine:** the deck engine is ported as React: a `Player` component (scale, steps, `#slide.step` links, keys, click and swipe) and one React component per layout, rendered from the slot JSON. No slide library is wrapped.
+
+The built screens' screenshot baselines live next to their component tests (`src/SlideWorks.Client/src/**/*.spec.tsx-snapshots/`) and come only from CI's Playwright container. Compare them with these mockups when a baseline changes.
 
 ## SW-2 Templates and palettes
 

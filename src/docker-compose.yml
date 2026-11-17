@@ -1,29 +1,44 @@
 services:
   slide-works:
     build: .
+    restart: unless-stopped
     ports:
-      - "8080:8080"
+      # Localhost only: the TLS proxy is the public entry point. Published on
+      # every interface, a request sent straight to 8080 can arrive from inside
+      # a trusted Docker network (rootless Docker, Docker Desktop) and pick its
+      # own rate-limit key through X-Forwarded-For.
+      - "127.0.0.1:8080:8080"
+    # Set the values in an untracked .env next to this file. docs/self-hosting.md
+    # describes every setting.
     environment:
-      # Set in an untracked .env next to this file. Empty/unset token means the
-      # app fails closed (everything except /health rejected).
-      - SLIDEWORKS_API_TOKEN=${SLIDEWORKS_API_TOKEN:-}
-      - SLIDEWORKS_API_EXTRA_TOKENS=${SLIDEWORKS_API_EXTRA_TOKENS:-}
-      - SLIDEWORKS_DB_PATH=/data/slide-works.db
       # Required: the URL people and agents reach SlideWorks at (links, MCP and
-      # OAuth metadata are built from it). The app refuses to start without it.
+      # OAuth metadata and the sign-in callback are built from it). The app
+      # refuses to start without it.
       - SLIDEWORKS_PUBLIC_URL=${SLIDEWORKS_PUBLIC_URL:-}
       # Required: signs the short-lived render tokens headless pages use (at least
       # 32 random characters, e.g. `openssl rand -base64 32`). The app refuses to
       # start without it.
       - RenderTokens__Key=${SLIDEWORKS_RENDER_TOKEN_KEY:-}
-      # Console only until these are set; on the home stack Seq is
-      # http://seq:5341 on arrnet.
+      # Sign in with Google: on only when both are set. Register
+      # <SLIDEWORKS_PUBLIC_URL>/signin-google as the client's redirect URI.
+      - SLIDEWORKS_GOOGLE_CLIENT_ID=${SLIDEWORKS_GOOGLE_CLIENT_ID:-}
+      - SLIDEWORKS_GOOGLE_CLIENT_SECRET=${SLIDEWORKS_GOOGLE_CLIENT_SECRET:-}
+      # The first admin's Google email, honoured only while no admin exists.
+      - SLIDEWORKS_ADMIN_EMAIL=${SLIDEWORKS_ADMIN_EMAIL:-}
+      - SLIDEWORKS_DB_PATH=/data/slide-works.db
+      # Uploaded images go under images/<deck id>/ here.
+      - SLIDEWORKS_DATA_PATH=/data
+      # Console only until SLIDEWORKS_SEQ_URL is set.
       - SLIDEWORKS_SEQ_URL=${SLIDEWORKS_SEQ_URL:-}
       - SLIDEWORKS_SEQ_API_KEY=${SLIDEWORKS_SEQ_API_KEY:-}
+      # Behind a TLS proxy: the proxy's CIDR, such as 172.18.0.0/16, so the OAuth
+      # rate limits count each client, not the proxy. Unset trusts no proxy.
+      - SLIDEWORKS_TRUSTED_PROXIES=${SLIDEWORKS_TRUSTED_PROXIES:-}
     volumes:
-      # Named volume: stays on the WSL2 ext4 disk. Never switch this to a bind
-      # mount on a NAS/Windows path — SQLite corrupts over 9p/SMB under lock
-      # contention. Back it up with `sqlite3 .backup` instead.
+      # Named volume on a local disk. Never switch this to a bind mount on a
+      # network share (NFS, SMB, 9p): SQLite corrupts there under lock
+      # contention. Compose names it src_slide-works-data when run from src/;
+      # docs/self-hosting.md (Storage) has the backup command.
       - slide-works-data:/data
 
 volumes:

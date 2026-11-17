@@ -83,6 +83,64 @@ describe('subscribeToDeck', () => {
     expect(hub.spies.invoke).toHaveBeenLastCalledWith('JoinDeck', deck);
   });
 
+  it('says when the deck is joined, and again when a reconnect joins it again', async () => {
+    const hub = fakeConnection();
+    const onJoined = vi.fn();
+    subscribeToDeck(deck, () => undefined, { connect: () => hub.connection, onJoined });
+
+    expect(onJoined).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onJoined).toHaveBeenCalledTimes(1);
+
+    hub.reconnect();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onJoined).toHaveBeenCalledTimes(2);
+  });
+
+  it('says nothing until JoinDeck has completed', async () => {
+    const hub = fakeConnection();
+    let complete!: () => void;
+    hub.spies.invoke.mockImplementationOnce(
+      () =>
+        new Promise<undefined>((resolve) => {
+          complete = () => resolve(undefined);
+        }),
+    );
+    const onJoined = vi.fn();
+    subscribeToDeck(deck, () => undefined, { connect: () => hub.connection, onJoined });
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(hub.spies.invoke).toHaveBeenCalledOnce();
+    expect(onJoined).not.toHaveBeenCalled();
+    complete();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onJoined).toHaveBeenCalledOnce();
+  });
+
+  it('says nothing when joining fails, or when unsubscribed while joining', async () => {
+    const refused = fakeConnection();
+    refused.spies.invoke.mockRejectedValueOnce(new Error('HubException: not_found'));
+    const onRefused = vi.fn();
+    subscribeToDeck(deck, () => undefined, {
+      connect: () => refused.connection,
+      onJoined: onRefused,
+    });
+
+    const left = fakeConnection();
+    const onLeft = vi.fn();
+    const stop = subscribeToDeck(deck, () => undefined, {
+      connect: () => left.connection,
+      onJoined: onLeft,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    left.reconnect();
+    stop();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(onRefused).not.toHaveBeenCalled();
+    expect(onLeft).toHaveBeenCalledOnce();
+  });
+
   it('retries a first connection that fails, with back-off, and joins when it succeeds', async () => {
     const hub = fakeConnection(['fail', 'fail', 'ok']);
 

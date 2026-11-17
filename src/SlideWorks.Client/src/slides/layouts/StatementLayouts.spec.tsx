@@ -321,7 +321,7 @@ test('the value fits once a thumbnail hidden for 2 s is shown', async ({ mount, 
   // against, so the fit waits for one however long that takes; it used to
   // give up after about a second.
   const slide = { ...sample(4), slots: { ...(sample(4).slots as object), value: '888888' } };
-  await mount(
+  const component = await mount(
     <div data-testid="thumb" style={{ display: 'none' }}>
       {render(slide as RenderableSlide)}
     </div>,
@@ -334,11 +334,66 @@ test('the value fits once a thumbnail hidden for 2 s is shown', async ({ mount, 
     thumb.style.display = 'block';
   });
 
+  // Nothing drew the value's face while it was hidden, so the fit after the
+  // reveal starts loading it and measures a fallback font meanwhile; it fits
+  // again when the face arrives. Wait for that, then compare with a value
+  // mounted once the face is loaded: the sizes match on any host, whichever
+  // fallback it has.
   await expect.poll(() => fontSize(page, 'big-number-value')).toBeLessThan(300);
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
+  );
+  const shown = await fontSize(page, 'big-number-value');
   const column = (await page.getByTestId('big-number-column').boundingBox())!;
   const box = (await page.getByTestId('big-number-value').boundingBox())!;
   expect(box.x + box.width).toBeLessThanOrEqual(column.x + column.width);
+
+  await component.unmount();
+  await mount(render(slide as RenderableSlide));
+  expect(shown).toBe(await fontSize(page, 'big-number-value'));
 });
+
+// The other layouts fit a hidden-then-shown box as they fit a fresh one, like
+// the big-number value above: the title for its room-fit order (title, then
+// subtitle, then tagline), the close for its wide face.
+const hiddenThenShown = [
+  { layout: 'title', number: 1, fitted: ['title-title', 'title-subtitle', 'title-tagline'] },
+  { layout: 'close', number: 16, fitted: ['close-headline'] },
+];
+for (const { layout, number, fitted } of hiddenThenShown) {
+  test(`the ${layout} layout fits once a thumbnail hidden for 2 s is shown`, async ({
+    mount,
+    page,
+  }) => {
+    const sizes = () => Promise.all(fitted.map((testId) => fontSize(page, testId)));
+    const frames = () =>
+      page.evaluate(
+        () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
+      );
+    const component = await mount(
+      <div data-testid="thumb" style={{ display: 'none' }}>
+        {render(sample(number))}
+      </div>,
+    );
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(2000);
+
+    await page.getByTestId('thumb').evaluate((thumb: HTMLElement) => {
+      thumb.style.display = 'block';
+    });
+    // The fit after the reveal starts loading the faces nothing drew while it
+    // was hidden, and fits again once they arrive.
+    await frames();
+    await page.evaluate(() => document.fonts.ready);
+    await frames();
+    const shown = await sizes();
+
+    await component.unmount();
+    await mount(render(sample(number)));
+    expect(shown).toEqual(await sizes());
+  });
+}
 
 test('each layout root carries the sw-layout seam, and big-number its sw-body', async ({
   mount,

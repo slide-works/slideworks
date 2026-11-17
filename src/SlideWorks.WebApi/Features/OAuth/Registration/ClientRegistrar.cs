@@ -1,3 +1,4 @@
+using System.Net;
 using Agoda.IoC.Core;
 using SlideWorks.WebApi.Features.OAuth.Stores;
 
@@ -10,11 +11,11 @@ public class ClientRegistrar(IOAuthClients clients, RegistrationLimiter limiter)
 {
     public const int MAX_NAME_LENGTH = 60;
 
-    public async Task<ClientRegistrationView> RegisterAsync(ClientRegistrationRequest request, string callerKey)
+    public async Task<ClientRegistrationView> RegisterAsync(ClientRegistrationRequest request, IPAddress? caller)
     {
-        if (!limiter.TryAcquire(callerKey, out var retryAfter))
+        if (!limiter.TryAcquire(caller, out var retryAfter))
         {
-            throw new OAuthRegistrationException(StatusCodes.Status429TooManyRequests, "too_many_requests", $"At most {RegistrationLimiter.PER_MINUTE} registrations a minute from one address. Try again shortly.", retryAfter);
+            throw new OAuthRegistrationException(StatusCodes.Status429TooManyRequests, "too_many_requests", $"At most {RegistrationLimiter.PER_MINUTE} registrations a minute from one address or IPv6 /64. Try again shortly.", retryAfter);
         }
         var name = request.ClientName?.Trim() ?? "";
         if (name.Length == 0 || name.Any(char.IsControl))

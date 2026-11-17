@@ -6,7 +6,7 @@ import { sampleDeck } from '../../test-support/fixtures/screens';
 import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { ChartSlots, ImageSlots, SlideDeck } from '../slots';
-import { DATA_FIT_FIXTURES, wideTwin } from './DataLayouts.fixtures';
+import { DATA_FIT_FIXTURES, wideTwin, type DataFitFixture } from './DataLayouts.fixtures';
 
 // The image, table, chart and gantt layouts, rendered through SlideRenderer
 // inside the real frame.
@@ -405,6 +405,115 @@ test('chart bar with three series', async ({ mount, page }) => {
   expect(rects[8].right).toBeLessThan(rects[1].left);
 });
 
+// The chart's own canvas-px box for a test id, from the slide's top left.
+async function boxes(page: Page, testId: string) {
+  return page.getByTestId(testId).evaluateAll((els: Element[]) =>
+    els.map((el) => {
+      const slide = el.closest('[data-layout]')!.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      return { left: r.left - slide.left, right: r.right - slide.left };
+    }),
+  );
+}
+
+// Short tick labels leave the axis narrow; the unit must still fit left of
+// the plot without running past the content box's x 120.
+for (const kind of ['line', 'bar'] as const) {
+  for (const yUnit of ['Feedback', 'WWWWWWWW', 'MMMMMMMM']) {
+    test(`chart y unit stays inside the content box: ${kind}, ${yUnit}`, async ({
+      mount,
+      page,
+    }) => {
+      await mount(
+        render(
+          chartSlide({
+            kicker: 'Really Is The Team Ships A Small Sliceee',
+            headline:
+              'Of Work To Customers Every Week And The Feedback Arrives In Days Rather Thaneeee',
+            kind,
+            xLabels: ['A', 'B'],
+            series: [{ name: 'Score', values: [1, 2] }],
+            yUnit,
+          }),
+        ),
+      );
+      await page.evaluate(() => document.fonts.ready);
+      const [unit] = await boxes(page, 'chart-unit');
+      const ticks = await boxes(page, 'chart-tick');
+      const marks = await boxes(page, kind === 'bar' ? 'chart-bar' : 'chart-point');
+      expect(unit.left).toBeGreaterThanOrEqual(120);
+      for (const tick of ticks) expect(tick.left).toBeGreaterThanOrEqual(120);
+      // The unit still sits left of the plot.
+      expect(unit.right).toBeLessThanOrEqual(Math.min(...marks.map((m) => m.left)));
+    });
+  }
+}
+
+test('chart tick labels stay unique in a narrow band at large magnitude', async ({
+  mount,
+  page,
+}) => {
+  await mount(
+    render(
+      chartSlide({
+        headline: 'Weekly users held steady',
+        kind: 'line',
+        xLabels: ['W1', 'W2', 'W3'],
+        series: [{ name: 'Users', values: [101_400, 101_900, 102_300] }],
+      }),
+    ),
+  );
+  const labels = await page.getByTestId('chart-tick').allTextContents();
+  expect(labels).toEqual(['101.4K', '101.6K', '101.8K', '102K', '102.2K', '102.4K']);
+  expect(new Set(labels).size).toBe(labels.length);
+});
+
+test('chart svg names its kind and series and describes its data', async ({ mount, page }) => {
+  await mount(
+    render(
+      chartSlide({
+        headline: 'Every team got faster',
+        kind: 'bar',
+        xLabels: ['Q1', 'Q2'],
+        series: [
+          { name: 'Payments', values: [10, 8] },
+          { name: 'Search', values: [12, 37500] },
+        ],
+        yUnit: 'days',
+        marker: { x: 1.5, label: 'Flags on' },
+      }),
+    ),
+  );
+  const plot = page.getByTestId('chart-plot');
+  await expect(plot).toHaveAttribute('role', 'img');
+  await expect(plot).toHaveAccessibleName('Bar chart: Payments, Search');
+  await expect(plot).toHaveAccessibleDescription(
+    'Payments (days): Q1 10, Q2 8. Search (days): Q1 12, Q2 37,500. Marker "Flags on" between Q1 and Q2.',
+  );
+  await expect(plot.locator('title')).toHaveText('Bar chart: Payments, Search');
+});
+
+test('chart marker label turns left at the plot right edge', async ({ mount, page }) => {
+  // The last slot's centre plus a 10-character label passes the plot's right
+  // edge (24 px in from the svg's) but not the svg's own.
+  await mount(
+    render(
+      chartSlide({
+        headline: 'Deploys per week rose',
+        kind: 'line',
+        xLabels: ['W1', 'W2', 'W3', 'W4', 'W5'],
+        series: [{ name: 'Deploys', values: [2, 3, 3, 8, 12] }],
+        marker: { x: 5, label: 'Launch day' },
+      }),
+    ),
+  );
+  await page.evaluate(() => document.fonts.ready);
+  const [marker] = await boxes(page, 'chart-marker');
+  const [label] = await boxes(page, 'chart-marker-label');
+  await expect(page.getByTestId('chart-marker-label')).toHaveAttribute('text-anchor', 'end');
+  expect(label.right).toBeLessThanOrEqual(marker.left);
+});
+
 test('gantt statuses', async ({ mount, page }) => {
   await mount(render(sample(5)));
 
@@ -471,6 +580,35 @@ test('gantt bar shows its status when there is no note', async ({ mount, page })
   );
   await expect(page.getByTestId('gantt-bar')).toHaveText(['Stopped', '▲ Ship']);
   await expect(page.getByTestId('gantt-caption')).toHaveText('Under the timeline');
+});
+
+// Gantt labels of nothing but W and M, the widest letters, wrap to three
+// lines at the 30-character limit. They stop at two with an ellipsis and keep
+// their full text in a tooltip, so every row keeps its 72 px. The rest of the
+// slide is the gantt's wide-letter max case.
+test('gantt labels of W and M only stop at two lines', async ({ mount, page }) => {
+  const { slots } = wideTwin(DATA_FIT_FIXTURES.ganttTitle) as Extract<
+    DataFitFixture,
+    { layout: 'gantt' }
+  >;
+  const solid = (length: number) =>
+    'WMWMW MWMWM '.repeat(3).slice(0, length).trimEnd().padEnd(length, 'M');
+  const rows = slots.rows.map((row) => ({ ...row, label: solid(row.label.length) }));
+  expect(rows[0].label).toHaveLength(30);
+  await mount(
+    render({ ...sample(5), layout: 'gantt', slots: { ...slots, rows } } as RenderableSlide),
+  );
+  const { drawn } = await measure(page, 'layout-gantt');
+  console.log(`ganttLabelsWM: drawn bottom ${drawn.bottom.toFixed(1)}`);
+  const labels = page.getByTestId('gantt-label');
+  await expect(labels.first()).toHaveAttribute('title', rows[0].label);
+  const heights = await labels.evaluateAll((els) =>
+    els.map((el) => el.getBoundingClientRect().height),
+  );
+  for (const height of heights) expect(height).toBeLessThanOrEqual(2 * 28 * 1.2 + 1);
+  expect(drawn.left).toBeGreaterThanOrEqual(120);
+  expect(drawn.right).toBeLessThanOrEqual(1800);
+  expect(drawn.bottom).toBeLessThanOrEqual(996);
 });
 
 // The shared max-content fixtures (src/contracts/fit-fixtures.json), each in

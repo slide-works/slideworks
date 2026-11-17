@@ -35,7 +35,7 @@ public class SlideCommands(
         {
             throw new NotFoundException(DeckReader.NOT_FOUND);
         }
-        var slots = SlideChecks.RequireSlots(request.Slots);
+        var slots = request.Slots;
         await SlideChecks.ValidateAsync(images, request.Deck, request.Layout, slots);
         if (request.Notes is { Length: > SlideChecks.NOTES_MAX_LENGTH })
         {

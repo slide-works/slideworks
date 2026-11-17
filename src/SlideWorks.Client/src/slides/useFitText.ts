@@ -52,8 +52,7 @@ function fitsParentWidth(element: HTMLElement, parent: HTMLElement): boolean {
 }
 
 // Fits the text in `ref` to its budget by setting its font size. It fits on
-// mount, again after document.fonts.ready, and again when `text` or the budget
-// changes; never on any other render.
+// mount and again when `text` or the budget changes; never on any other render.
 //
 // Every measure is in layout px (offsetHeight, used widths), so the player's
 // scaling and the deck page's thumbnail, which draws the slide at scale(0)
@@ -61,6 +60,18 @@ function fitsParentWidth(element: HTMLElement, parent: HTMLElement): boolean {
 // a display: none or zero-width container) can't be measured: the fit then
 // waits for it with a ResizeObserver, however long that takes, and fits once
 // the box has a size.
+//
+// A fit's measures lay the text out, and that starts loading any font face it
+// needs that hasn't loaded yet (document.fonts.status turns 'loading' within
+// the measure). Until the face arrives the text is measured in a fallback
+// font, so a fit that leaves fonts loading fits again once they're ready. This
+// matters for a box that was hidden: nothing drew its face, so fonts.ready had
+// long resolved by the time it was shown.
+//
+// The check after each fit relies on the CSS Font Loading spec: a face that
+// starts loading switches its FontFaceSet's status to 'loading' at once, so a
+// measure that starts a load is seen here. Don't drop the check for a single
+// wait at mount: a box shown later would keep its fallback-font fit.
 export function useFitText(ref: RefObject<HTMLElement | null>, budget: FitBudget, text: string) {
   const { start, floor, lines, lineHeight = 1, maxHeight, width = false } = budget;
 
@@ -69,8 +80,10 @@ export function useFitText(ref: RefObject<HTMLElement | null>, budget: FitBudget
     if (element === null) return;
     let active = true;
     // Set only while the box has no size; one observer however often the fit
-    // is asked for meanwhile (on mount, and again when fonts load).
+    // is asked for meanwhile.
     let waiting: ResizeObserver | null = null;
+    // Set while a fit waits for fonts to load; one wait at a time.
+    let waitingForFonts = false;
 
     const fits = (size: number) => {
       element.style.fontSize = `${size}px`;
@@ -96,10 +109,16 @@ export function useFitText(ref: RefObject<HTMLElement | null>, budget: FitBudget
       waiting?.disconnect();
       waiting = null;
       element.style.fontSize = `${largestFit(start, floor, fits)}px`;
+      if (document.fonts.status === 'loading' && !waitingForFonts) {
+        waitingForFonts = true;
+        void document.fonts.ready.then(() => {
+          waitingForFonts = false;
+          fit();
+        });
+      }
     };
 
     fit();
-    void document.fonts.ready.then(fit);
     return () => {
       active = false;
       waiting?.disconnect();
