@@ -36,11 +36,20 @@ public static class LayoutsDoc
         var doc = new StringBuilder();
         doc.Append("# Layouts and inline blocks\n\n");
         doc.Append("These files are generated from `LayoutCatalogue`: do not edit them by hand, rerun `UPDATE_LAYOUTS_DOC=1 dotnet test src/SlideWorks.UnitTest --filter \"FullyQualifiedName~LayoutsDoc\"`.\n\n");
+        doc.Append("""
+            A slide is a layout plus slots (K2). Slot text is plain text: Markdown and HTML are not interpreted,
+            and line breaks are allowed only where a slot says so. Every slide also has `part` (1-based, or null)
+            and `notes`, which are set next to the slots, not inside them. A JSON null counts as an absent slot.
+            Error paths name the failing field with 0-based indexes, such as `practice.do[2].lead: required`.
+
+
+            """);
         foreach (var layout in LayoutCatalogue.Layouts)
         {
             doc.Append(CultureInfo.InvariantCulture, $"- [`{layout.Name}`]({FileOf(layout.Name)})\n");
         }
 
+        doc.Append(CultureInfo.InvariantCulture, $"\nInline blocks: [`_blocks`]({BlocksFile})\n");
         return doc.ToString();
     }
 

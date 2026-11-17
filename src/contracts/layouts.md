@@ -2,6 +2,11 @@
 
 These files are generated from `LayoutCatalogue`: do not edit them by hand, rerun `UPDATE_LAYOUTS_DOC=1 dotnet test src/SlideWorks.UnitTest --filter "FullyQualifiedName~LayoutsDoc"`.
 
+A slide is a layout plus slots (K2). Slot text is plain text: Markdown and HTML are not interpreted,
+and line breaks are allowed only where a slot says so. Every slide also has `part` (1-based, or null)
+and `notes`, which are set next to the slots, not inside them. A JSON null counts as an absent slot.
+Error paths name the failing field with 0-based indexes, such as `practice.do[2].lead: required`.
+
 - [`title`](layouts/title.md)
 - [`divider`](layouts/divider.md)
 - [`bullets`](layouts/bullets.md)
@@ -21,3 +26,5 @@ These files are generated from `LayoutCatalogue`: do not edit them by hand, reru
 - [`join`](layouts/join.md)
 - [`poll`](layouts/poll.md)
 - [`qa`](layouts/qa.md)
+
+Inline blocks: [`_blocks`](layouts/_blocks.md)
