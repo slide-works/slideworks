@@ -73,4 +73,29 @@ describe('lint guard', { timeout: TIMEOUT_MS }, () => {
     ]);
     expect(messages).toEqual([]);
   });
+
+  // No Date in the SPA (.claude/skills/no-browser-datetime/): any use of the
+  // Date identifier fails the lint.
+  it.each([
+    ['new Date()', ['export const a = new Date();']],
+    ['Date() called as a function', ['export const a = Date();']],
+    ['Date.now()', ['export const a = Date.now();']],
+    ['Date.parse()', ["export const a = Date.parse('2026-01-01');"]],
+    ['globalThis.Date', ['export const a = new globalThis.Date();']],
+    ['window.Date', ['export const a = new window.Date();']],
+    ['an alias of Date', ['const D = Date;', 'export const a = new D();']],
+    ['a Date type', ['export function a(d: Date) {', '  return d;', '}']],
+  ])('rejects %s', async (_form, lines) => {
+    const messages = await lint(lines);
+    expect(messages.map((message) => message.ruleId)).toContain('no-restricted-syntax');
+  });
+
+  it('accepts performance.now() and Intl.DateTimeFormat', async () => {
+    const messages = await lint([
+      'export const t = performance.now();',
+      'export const f = new Intl.DateTimeFormat();',
+      'export type F = Intl.DateTimeFormat;',
+    ]);
+    expect(messages).toEqual([]);
+  });
 });
