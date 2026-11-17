@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
-import fitFixturesJson from '@contracts/fit-fixtures.json' with { type: 'json' };
+import fitFixturesJson from '@contracts/fit-fixtures/poll.json' with { type: 'json' };
 import type { PollControlView } from '../../polls/types';
 import {
   POLL_SLIDE_TEST_IDS as IDS,
