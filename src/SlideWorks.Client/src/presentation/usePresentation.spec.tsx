@@ -186,6 +186,32 @@ test('usePresentation elapsed advances while the timer runs and not while it is 
   await expect(page.getByTestId('elapsed')).toHaveText('12:40');
 });
 
+test('usePresentation clockMinutes advances a minute after a minute has passed', async ({
+  mount,
+  page,
+}) => {
+  await page.clock.install();
+  const hub = await stubDeckHub(page, { presentation: { state: presentationState() } });
+  await mount(<PresentationHarness deckId={deckId} />);
+  await expect(status(page)).toHaveText('live');
+  await expect(page.getByTestId('clock')).toHaveText('14:32');
+
+  // The stub sends no pings, so a state goes out before each 30 s of clock, or SignalR's server timeout drops it.
+  await page.clock.runFor(25_000);
+  hub.pushState(presentationState({ seq: 43 }));
+  await expect(page.getByTestId('version')).toHaveText('p-3f9c2a/43');
+  await page.clock.runFor(25_000);
+  hub.pushState(presentationState({ seq: 44 }));
+  await expect(page.getByTestId('version')).toHaveText('p-3f9c2a/44');
+  // The clock carries whole minutes (D6), so 50 s on it still reads 14:32.
+  await expect(page.getByTestId('clock')).toHaveText('14:32');
+
+  await page.clock.runFor(10_000);
+  await expect(page.getByTestId('clock')).toHaveText('14:33');
+  await expect(status(page)).toHaveText('live');
+  expect(hub.presentationJoins).toHaveLength(1);
+});
+
 test('usePresentation shows reconnecting after a drop, then rejoins resuming from the last state', async ({
   mount,
   page,
