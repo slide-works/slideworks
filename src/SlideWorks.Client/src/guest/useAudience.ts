@@ -1,6 +1,7 @@
-import { HubConnectionState } from '@microsoft/signalr';
-import { useEffect, useRef, useState } from 'react';
+import { HubConnectionState, type HubConnection } from '@microsoft/signalr';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, api } from '../api/client';
+import type { PollTally } from '../polls/types';
 import { createAudienceConnection } from '../realtime/audienceConnection';
 import { AUDIENCE_EVENT_METHOD, isAudienceEvent, type AudienceState } from './audienceEvents';
 import { NO_SESSION, TOO_MANY_ATTEMPTS, type GuestView } from './guestView';
@@ -19,7 +20,25 @@ export const SLOW_JITTER_MS = 5000;
 // The random source, injected so tests are deterministic. It returns a number in [0, 1).
 export type Random = () => number;
 
-export type Audience = { view: GuestView; state: AudienceState; status: AudienceStatus };
+// The poll's side of the audience connection (SW-6 V5), for the guest's poll card. Its identity never changes.
+// - onTally: calls listener with every pollTally the connection receives, in order, one call each (the results group
+//   gets two per change in one tick). It returns the unsubscribe. Only tallies that arrive after subscribing are
+//   delivered, so subscribe before reading GET /api/join/{code}/poll.
+// - watchPoll: invokes WatchPoll(code) on the connection that receives the tallies. It resolves once the hub has added
+//   the connection to the poll's results group, and rejects with the hub's refusal (an Error whose message ends
+//   "HubException: not_answered") or the connection's own failure. The hub forgets the group when the connection drops,
+//   so call it again each time status comes back to 'live' after 'reconnecting'.
+export type AudiencePolls = {
+  onTally(listener: (tally: PollTally) => void): () => void;
+  watchPoll(): Promise<void>;
+};
+
+export type Audience = {
+  view: GuestView;
+  state: AudienceState;
+  status: AudienceStatus;
+  polls: AudiencePolls;
+};
 
 // The text the real hub's error completion ends with when JoinAudience throws HubException(message) (J4).
 const NO_GUEST = 'no_guest';
@@ -43,7 +62,8 @@ const hubRefusal = (error: unknown, message: string) =>
 // failed view re-read doesn't take the phone offline for a blip or a rate limit, and stops for good once the talk has ended
 // or the deck has gone (no_session: offline). A state with the same seq as the held one is applied only when its phase
 // differs (lobby to live), and audienceEnded is applied whatever the seq. Re-reads and rejoins wait a random extra
-// so a room of phones doesn't hit the server together.
+// so a room of phones doesn't hit the server together. polls hands each pollTally to its subscribers and invokes
+// WatchPoll on the same connection (SW-6).
 export function useAudience(
   code: string,
   initial: GuestView,
@@ -57,6 +77,22 @@ export function useAudience(
     randomRef.current = random;
   });
   const [failure, setFailure] = useState<unknown>(null);
+  // The poll channel reads the connection and code of the running effect; listeners outlive a reconnect.
+  const tallyListeners = useRef(new Set<(tally: PollTally) => void>());
+  const live = useRef<{ connection: HubConnection; code: string } | null>(null);
+  const polls = useMemo<AudiencePolls>(
+    () => ({
+      onTally: (listener) => {
+        tallyListeners.current.add(listener);
+        return () => void tallyListeners.current.delete(listener);
+      },
+      watchPoll: () =>
+        live.current
+          ? live.current.connection.invoke<void>('WatchPoll', live.current.code)
+          : Promise.reject(new Error('The audience connection is closed.')),
+    }),
+    [],
+  );
 
   // A new code or a new GET (the page's retry) starts again from the view it was given.
   const [seenInitial, setSeenInitial] = useState(initial);
@@ -85,6 +121,8 @@ export function useAudience(
     // Set when a pushed state is applied while a JoinAudience call is in flight: the answer is then the older one.
     let pushedSinceJoin = false;
     const connection = createAudienceConnection();
+    const mine = { connection, code };
+    live.current = mine;
 
     const offline = () => {
       if (active) setStatus('offline');
@@ -185,7 +223,11 @@ export function useAudience(
         // Whatever the seq: the ended answers can carry a lower one than the last live state.
         lastPhase = 'ended';
         setState((current) => ({ ...current, phase: 'ended', current: null }));
+      } else if (event.type === 'pollTally' && active) {
+        // A copy, so a listener that unsubscribes while being called doesn't skip the next one.
+        for (const listener of [...tallyListeners.current]) listener(event);
       }
+      // pollControl goes only to the presenter's screens: a guest never receives it, so nothing reads it here.
     });
     connection.onreconnecting(() => {
       // A rejoin still waiting belongs to the connection that just dropped; onreconnected schedules the next.
@@ -206,6 +248,7 @@ export function useAudience(
 
     return () => {
       active = false;
+      if (live.current === mine) live.current = null;
       clearTimeout(retryTimer);
       clearTimeout(joinTimer);
       void connection.stop();
@@ -213,5 +256,5 @@ export function useAudience(
   }, [code, initial]);
 
   if (failure) throw failure;
-  return { view, state, status };
+  return { view, state, status, polls };
 }

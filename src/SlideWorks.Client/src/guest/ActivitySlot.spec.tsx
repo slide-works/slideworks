@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import { AppRoutes } from '../AppRoutes';
 import { POLL_CARD_TEST_IDS } from '../polls/testIds';
+import { AudienceHarness } from '../test-support/AudienceHarness';
 import { guestView } from '../test-support/fixtures/guestStates';
 import { guestPoll, pollActivity } from '../test-support/fixtures/pollStates';
 import { stubApi } from '../test-support/stubApi';
@@ -20,7 +21,12 @@ test('with no activity the slot is SW-5’s waiting card', async ({ mount, page 
 
 test('with a poll activity the slot is the poll card', async ({ mount, page }) => {
   const activity = pollActivity('open');
-  await mount(<ActivitySlot code="482913" activity={activity} status="live" presenter="Sam" />);
+  await stubDeckHub(page, { audience: { state: guestView('live').state } });
+  await mount(
+    <AudienceHarness code="482913" view={guestView('live')}>
+      <ActivitySlot code="482913" activity={activity} status="live" presenter="Sam" />
+    </AudienceHarness>,
+  );
 
   await expect(page.getByTestId(GUEST_TEST_IDS.activity)).toBeVisible();
   await expect(page.getByTestId(POLL_CARD_TEST_IDS.card)).toBeVisible();

@@ -1,6 +1,7 @@
 import { PollAnswerLive } from '../polls/guest/PollAnswerLive';
 import { PollCard } from '../polls/guest/PollCard';
 import type { PollActivity } from '../polls/types';
+import { useAudiencePolls } from './AudiencePollsContext';
 import { GUEST_TEST_IDS } from './testIds';
 import type { AudienceStatus } from './useAudience';
 
@@ -18,20 +19,25 @@ export type ActivitySlotProps = {
 };
 
 // The card below the mirrored slide: it fills the space under the progress. A poll on screen takes it over with its
-// card (SW-6 V6); any other slide shows SW-5's waiting card.
+// card (SW-6 V6), which gets the audience connection's poll channel from GuestLive; any other slide shows SW-5's
+// waiting card.
 export function ActivitySlot({ code, activity, status, presenter }: ActivitySlotProps) {
-  if (activity?.type === 'poll')
+  const polls = useAudiencePolls();
+  if (activity?.type === 'poll') {
+    if (polls === null)
+      throw new Error('A poll card needs the audience connection: render it inside GuestLive.');
     return (
       <section
         data-testid={GUEST_TEST_IDS.activity}
         aria-label="Poll"
         className="flex min-h-0 flex-1 flex-col"
       >
-        <PollAnswerLive code={code} activity={activity} status={status}>
+        <PollAnswerLive code={code} activity={activity} status={status} polls={polls}>
           <PollCard activity={activity} presenter={presenter} />
         </PollAnswerLive>
       </section>
     );
+  }
   return (
     <section
       data-testid={GUEST_TEST_IDS.activity}

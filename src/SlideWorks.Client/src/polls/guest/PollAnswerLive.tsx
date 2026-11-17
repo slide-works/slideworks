@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { AudienceStatus } from '../../guest/useAudience';
+import type { AudiencePolls, AudienceStatus } from '../../guest/useAudience';
 import type { PollActivity } from '../types';
 import { PollAnswerContext, type PollAnswer } from './usePollAnswer';
 
@@ -10,6 +10,10 @@ export type PollAnswerLiveProps = {
   activity: PollActivity;
   // The audience connection's status: reconnecting or offline with an unsent pick is 'queued'.
   status: AudienceStatus;
+  // The audience connection's poll side: every pollTally it receives (polls.onTally), and WatchPoll on that same
+  // connection (polls.watchPoll), to call once the guest has answered an afterAnswer poll and again each time status
+  // comes back to 'live' after a reconnect. A tally with null counts never clears counts already held for the round.
+  polls: AudiencePolls;
   children: ReactNode;
 };
 
