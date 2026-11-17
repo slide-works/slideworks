@@ -2,7 +2,7 @@
 
 Web slide decks that agents build over MCP and anyone presents from a URL.
 
-An agent builds a deck from ready-made building blocks (title, divider, bullets, compare, table, chart, timeline and more) without writing any HTML. A person opens the deck by link, shares it, and presents it in the browser on a laptop or a phone. An audience joins a live talk from their phones with a QR code or a six-digit code and follows the slide on screen. Later work adds live polls, word clouds, Q&A and a phone remote.
+An agent builds a deck from ready-made building blocks (title, divider, bullets, compare, table, chart, timeline and more) without writing any HTML. A person opens the deck by link, shares it, and presents it in the browser on a laptop or a phone. A presenter can give the talk from a laptop with a presenter window (notes, timer, overview) while the audience window follows, and drives the talk from a phone remote. An audience joins a live talk from their phones with a QR code or a six-digit code and follows the slide on screen. Later work adds live polls, word clouds and Q&A.
 
 Designs are in [`design/`](design/). The plan lives in the ShipLean project **SW**: SW-1 is the foundation, SW-2 to SW-15 the increments after it.
 
@@ -53,6 +53,10 @@ dotnet test src/SlideWorks.AcceptanceTests
 ```
 
 Static analysis (SonarAnalyzer.CSharp and Agoda.Analyzers) applies to every project through `src/Directory.Build.props`, with warnings as errors.
+
+## Presenting
+
+The owner of a deck presents it from the Present menu: a presenter window (notes, timer and overview) opens beside an audience window that follows the talk, and a phone signed in as the owner works as a remote. Everything goes through `DeckHub`, one shared state per talk. See [`docs/presenting.md`](docs/presenting.md) for the keys, deep dives and what happens when the Wi-Fi drops. A deck can also have a talk length, set through the API or the `set_talk_length` MCP tool (there is no web UI for it); the timer shows the time left.
 
 ## Realtime
 

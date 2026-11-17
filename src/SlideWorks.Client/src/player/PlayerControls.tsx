@@ -13,6 +13,8 @@ type PlayerControlsProps = {
   onFullscreen(): void;
   // The deck's look.joinBar, so the live chip's toggle follows a change made anywhere.
   joinBar: boolean;
+  // False in the audience window, which follows the talk and never goes live itself. Defaults to true.
+  liveChip?: boolean;
 };
 
 const BUTTON =
@@ -32,6 +34,7 @@ export function PlayerControls({
   onNext,
   onFullscreen,
   joinBar,
+  liveChip = true,
 }: PlayerControlsProps) {
   const progress = total > 0 ? (position.slide / total) * 100 : 0;
   return (
@@ -103,7 +106,7 @@ export function PlayerControls({
           style={{ width: `${progress}%` }}
         />
       </span>
-      <LiveChip deckTitle={deckTitle} joinBar={joinBar} />
+      {liveChip && <LiveChip deckTitle={deckTitle} joinBar={joinBar} />}
       {canFullscreen && (
         <button
           type="button"

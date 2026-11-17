@@ -30,6 +30,20 @@ public sealed class DeckPage(IPage page)
 
     public ILocator Present => page.GetByTestId("deck-present");
 
+    // The Present menu's arrow and its three items; the menu shows only to the deck's owner.
+    public ILocator PresentMenu => page.GetByTestId("present-menu");
+
+    public ILocator PresentMenuPlayer => page.GetByTestId("present-menu-player");
+
+    public ILocator PresentMenuPresenterView => page.GetByTestId("present-menu-presenter-view");
+
+    public ILocator PresentMenuPhone => page.GetByTestId("present-menu-phone");
+
+    // The phone connect dialog from "Control from your phone": its QR code and the remote link as text.
+    public ILocator PhoneConnect => page.GetByTestId("phone-connect");
+
+    public ILocator PhoneConnectUrl => page.GetByTestId("phone-connect-url");
+
     public ILocator SharingDialog => page.GetByTestId("sharing-dialog");
 
     public ILocator NotFound => page.GetByTestId("deck-not-found");

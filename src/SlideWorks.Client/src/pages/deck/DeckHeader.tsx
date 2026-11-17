@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
 import type { DeckPageView } from '../../api/types';
 import { LaterButton } from './LaterButton';
+import { PresentMenu } from './PresentMenu';
 import { sharingLabel } from './sharingLabel';
 
 type DeckHeaderProps = { view: DeckPageView; onShare(): void };
@@ -28,15 +28,12 @@ export function DeckHeader({ view, onShare }: DeckHeaderProps) {
       </span>
       <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
         <LaterButton label="Check slides" feature="SW-3" />
-        <LaterButton label="Presenter view" feature="SW-4" />
         {view.isOwner && (
           <button type="button" data-testid="deck-share" className="btn-ghost" onClick={onShare}>
             Share
           </button>
         )}
-        <Link to={view.playUrl} data-testid="deck-present" className="btn-primary no-underline">
-          ▶ Present
-        </Link>
+        <PresentMenu view={view} />
       </div>
     </div>
   );

@@ -28,8 +28,8 @@ export type PresentationStatus = 'connecting' | 'live' | 'reconnecting' | 'refus
 export interface Presentation {
   status: PresentationStatus;
   state: PresentationState | null;
-  // The timer's elapsed time now: the server's elapsedMs, plus the performance.now() time since it arrived while the
-  // timer is running. 0 before the first state.
+  // The timer's elapsed time now, in whole milliseconds: the server's elapsedMs, plus the performance.now() time since
+  // it arrived while the timer is running. 0 before the first state.
   elapsedMs: number;
   // Minutes since local midnight in the browser's time zone (0-1439), from the last join, advanced with
   // performance.now(). null before the first join.
@@ -65,11 +65,13 @@ function newer(next: PresentationState, last: PresentationState | undefined): bo
   return last === undefined || next.epoch !== last.epoch || next.seq > last.seq;
 }
 
+// Whole milliseconds, as the server's elapsedMs is (P1): performance.now() has a fraction, and resume sends this value
+// to the hub, which can't bind a fraction to its long.
 function elapsedAt(applied: Applied | null, now: number): number {
   if (!applied) return 0;
   const { timer } = applied.state;
   return timer.state === 'running'
-    ? timer.elapsedMs + Math.max(0, now - applied.at)
+    ? timer.elapsedMs + Math.floor(Math.max(0, now - applied.at))
     : timer.elapsedMs;
 }
 

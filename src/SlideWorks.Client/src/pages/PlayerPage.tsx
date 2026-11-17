@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useParams } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
 import type { DeckPlayView, MeView } from '../api/types';
+import { AudienceFollower } from '../player/AudienceFollower';
 import { Player } from '../player/Player';
 import { JoinProvider } from '../slides/JoinContext';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
@@ -16,10 +17,12 @@ type Load =
 
 // /d/:id/:slug (and /d/:id): the player, open to anonymous viewers, from one
 // GET /api/play/{id} (DeckPlayView). A missing or old slug is replaced by the
-// deck's own, keeping the hash. It re-reads when the deck changes.
+// deck's own, keeping the query (?present) and the hash. It re-reads when the deck changes.
 export function PlayerPage() {
   const { id = '', slug } = useParams();
   const location = useLocation();
+  // ?present is the audience window (P8): it follows the presentation when the viewer owns the deck.
+  const audience = new URLSearchParams(location.search).has('present');
   // Each read is stamped with its deck, so another deck's result never shows.
   const [result, setResult] = useState<{ id: string; load: Load } | null>(null);
   const load: Load = result?.id === id ? result.load : { kind: 'loading' };
@@ -116,13 +119,16 @@ export function PlayerPage() {
     case 'loaded':
       if (slug !== load.view.slug) {
         return (
-          <Navigate to={`/d/${load.view.id}/${load.view.slug}${window.location.hash}`} replace />
+          <Navigate
+            to={`/d/${load.view.id}/${load.view.slug}${location.search}${window.location.hash}`}
+            replace
+          />
         );
       }
       return (
         <div data-testid="player-page" data-deck-id={id} className="contents">
           <JoinProvider deckId={load.view.id} join={load.view.join} owner={load.view.isOwner}>
-            <Player deck={load.view} />
+            {audience ? <AudienceFollower deck={load.view} /> : <Player deck={load.view} />}
           </JoinProvider>
         </div>
       );

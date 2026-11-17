@@ -1,0 +1,1335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-6 mockups: live multiple-choice polls</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+
+/* =====================================================================
+   Review-page chrome: same light ledger as the SW-1 / SW-2 mockups
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", system-ui, sans-serif;
+  --head: "Plus Jakarta Sans", "Inter", sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+
+  /* SlideWorks app tokens (src/SlideWorks.Client/src/theme/tokens.css) used by the phone page */
+  --sw-night: #0b1020; --sw-night-2: #cbd5e1; --sw-night-muted: #8c97ad; --sw-night-line: #334155;
+  --sw-accent: #2f5bea; --sw-accent-light: #e4eafd; --sw-accent-glow: #a5b8ff; --sw-accent-dark: #1e3a8a;
+  --sw-paper: #f7f8fa; --sw-card: #fff; --sw-ink: #111827; --sw-muted: #5b6474; --sw-grid: #e3e6ec;
+  --sw-good: #16a34a; --sw-warn: #ea580c; --sw-bad: #dc2626; --sw-stamp: #fcd34d;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 16px 80px; }
+h1, h2, h3 { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 22px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { margin: 0; color: var(--muted); max-width: 860px; font-size: 15px; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 10px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 900px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.grid2 > * { min-width: 0; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); font: 500 13px/1.2 var(--ui); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* scope */
+.scope { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .scope { grid-template-columns: minmax(0, 1fr); } }
+.scope .card { padding: 16px 18px; }
+.scope h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.scope ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.scope li { position: relative; padding-left: 22px; }
+.scope li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.scope .later-list li::before { background: var(--later); opacity: .55; }
+.scope .k { font: 500 12px/1.5 var(--mono); color: var(--later); }
+
+/* journey strip */
+.journey { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .journey { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .journey { grid-template-columns: minmax(0, 1fr); } }
+.step-cap { margin-top: 12px; display: grid; gap: 3px; text-align: center; }
+.step-cap .t { font: 500 12px/1 var(--mono); color: var(--accent-dark); }
+.step-cap b { font-weight: 600; }
+.step-cap span { color: var(--muted); font-size: 12.5px; }
+.budget { margin-top: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 12px 16px; }
+.budget .bar { flex: 1 1 260px; display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.budget .bar i { display: block; height: 100%; }
+
+/* =====================================================================
+   Phone frame + the guest page (mobile web, SlideWorks tokens)
+   ===================================================================== */
+.phone { width: 292px; max-width: 100%; margin: 0 auto; border-radius: 40px; padding: 10px; background: #11151d; box-shadow: var(--raise), inset 0 0 0 2px #2a303b; }
+.ps { position: relative; border-radius: 31px; overflow: hidden; height: 600px; display: flex; flex-direction: column; color: #fff; font-family: var(--ui);
+  background: radial-gradient(420px 320px at 100% 105%, rgb(47 91 234 / .38), transparent 62%), radial-gradient(300px 260px at -10% -8%, rgb(47 91 234 / .12), transparent 60%), var(--sw-night); }
+.ps.light { background: var(--sw-paper); color: var(--sw-ink); }
+.sbar { flex: none; height: 38px; padding: 12px 22px 0; display: flex; justify-content: space-between; font: 600 12.5px/1 var(--ui); }
+.sbar .ic { display: flex; gap: 5px; align-items: center; }
+.sbar .ic i { display: block; width: 15px; height: 9px; border-radius: 2px; border: 1.5px solid currentColor; opacity: .9; }
+.sbar .ic b { display: block; width: 4px; height: 9px; background: currentColor; border-radius: 1px; opacity: .9; }
+.island { position: absolute; top: 10px; left: 50%; translate: -50% 0; width: 84px; height: 22px; border-radius: 12px; background: #000; z-index: 5; }
+.pbody { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 16px 10px; gap: 12px; position: relative; }
+.urlbar { flex: none; margin: 0 14px 12px; padding: 8px 12px; border-radius: 13px; background: rgb(255 255 255 / .1); display: flex; gap: 6px; align-items: center; justify-content: center; font: 500 12px/1 var(--ui); color: rgb(255 255 255 / .82); }
+.ps.light .urlbar { background: #e7e9ee; color: #3b4352; }
+.urlbar svg { width: 10px; height: 10px; }
+
+.g-top { display: flex; align-items: center; gap: 8px; }
+.g-mark { width: 22px; height: 22px; border-radius: 6px; background: var(--sw-accent); display: grid; place-items: center; font: 800 11px/1 var(--head); color: #fff; flex: none; }
+.g-deck { min-width: 0; flex: 1; }
+.g-deck b { display: block; font: 700 13px/1.2 var(--head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-deck span { display: block; font-size: 11px; color: var(--sw-night-muted); }
+.live { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font: 600 10.5px/1 var(--ui); background: rgb(22 163 74 / .18); color: #86efac; white-space: nowrap; }
+.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 0 rgb(74 222 128 / .7); animation: pulse 1.8s infinite; }
+.live.amber { background: rgb(234 88 12 / .2); color: #fdba74; }
+.live.amber::before { background: #fb923c; animation: none; }
+.live.grey { background: rgb(255 255 255 / .1); color: var(--sw-night-2); }
+.live.grey::before { background: var(--sw-night-muted); animation: none; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgb(74 222 128 / .6); } 70% { box-shadow: 0 0 0 6px rgb(74 222 128 / 0); } 100% { box-shadow: 0 0 0 0 rgb(74 222 128 / 0); } }
+
+.mirror { border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgb(0 0 0 / .35); outline: 1px solid rgb(255 255 255 / .08); }
+.slidemeta { display: flex; justify-content: space-between; align-items: center; font: 500 11px/1 var(--ui); color: var(--sw-night-muted); margin-top: -4px; }
+.slidemeta .prog { flex: 1; height: 3px; margin: 0 10px; border-radius: 3px; background: rgb(255 255 255 / .12); overflow: hidden; }
+.slidemeta .prog i { display: block; height: 100%; background: var(--sw-accent-glow); }
+
+.wait { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 10px; padding: 0 8px; border-radius: 14px; border: 1px dashed rgb(255 255 255 / .16); }
+.wait .dots { display: flex; gap: 6px; }
+.wait .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--sw-accent-glow); opacity: .3; animation: blink 1.4s infinite; }
+.wait .dots i:nth-child(2) { animation-delay: .2s; } .wait .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 40% { opacity: 1; } }
+.wait b { font: 700 15px/1.3 var(--head); }
+.wait p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--sw-night-2); }
+
+.g-foot { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--sw-night-muted); }
+.g-foot a { color: var(--sw-accent-glow); text-decoration: none; font-weight: 500; }
+
+.big-h { font: 800 24px/1.15 var(--head); letter-spacing: -.01em; }
+.lede { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--sw-night-2); }
+.pbtn { display: flex; align-items: center; justify-content: center; min-height: 50px; border-radius: 14px; background: var(--sw-accent); color: #fff; font: 700 16px/1 var(--ui); border: 0; width: 100%; }
+.pbtn.ghost { background: rgb(255 255 255 / .1); }
+.tick { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: rgb(22 163 74 / .2); color: #4ade80; }
+.tick svg { width: 32px; height: 32px; }
+
+.codebox { display: grid; grid-template-columns: repeat(3, 1fr) 10px repeat(3, 1fr); gap: 6px; }
+.codebox span { height: 48px; border-radius: 10px; display: grid; place-items: center; background: rgb(255 255 255 / .08); border: 1.5px solid rgb(255 255 255 / .14); font: 700 22px/1 var(--head); }
+.codebox span.cur { border-color: var(--sw-accent-glow); box-shadow: 0 0 0 3px rgb(165 184 255 / .25); }
+.codebox span.bad { border-color: #f87171; }
+.codebox em { display: block; }
+.err { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgb(220 38 38 / .16); color: #fecaca; font-size: 12.5px; line-height: 1.4; }
+.keypad { margin: auto -16px -10px; padding: 8px 6px 10px; background: #1d2230; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.keypad span { height: 40px; border-radius: 7px; background: #3a4152; display: grid; place-items: center; font: 500 19px/1 var(--ui); }
+.keypad span.blank { background: transparent; }
+
+.banner { position: absolute; left: 12px; right: 12px; top: 4px; z-index: 4; padding: 9px 12px; border-radius: 12px; font-size: 12px; line-height: 1.35; display: flex; gap: 8px; align-items: center; }
+.banner.amber { background: #7c2d12; color: #ffedd5; }
+.banner .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgb(255 237 213 / .35); border-top-color: #ffedd5; animation: spin 0.9s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sheet-dim { position: absolute; inset: 0; background: rgb(0 0 0 / .55); z-index: 6; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 7; background: #161c2c; border-radius: 20px 20px 0 0; padding: 10px 18px 22px; display: grid; gap: 10px; }
+.sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .25); margin: 0 auto 4px; }
+.sheet h4 { margin: 0; font: 700 16px/1.25 var(--head); }
+.sheet ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+.sheet li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; font-size: 12.5px; line-height: 1.4; color: var(--sw-night-2); }
+.sheet li svg { width: 16px; height: 16px; color: var(--sw-accent-glow); margin-top: 1px; }
+
+.activity { flex: 1; border-radius: 14px; background: #fff; color: var(--sw-ink); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.activity .tag { align-self: flex-start; font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--later); background: var(--later-soft); padding: 4px 7px; border-radius: 5px; }
+.activity b { font: 700 16px/1.3 var(--head); }
+.activity .opt { padding: 12px; border-radius: 10px; border: 1.5px solid var(--sw-grid); font-size: 13.5px; font-weight: 500; }
+.activity .note { margin-top: auto; font-size: 11px; color: var(--sw-muted); }
+
+/* camera */
+.cam { position: absolute; inset: 0; background: linear-gradient(160deg, #2b2f38, #14161b 60%, #0c0d10); }
+.cam .screen { position: absolute; left: 34px; right: 22px; top: 150px; height: 170px; transform: perspective(500px) rotateY(-12deg) rotateX(4deg); border-radius: 4px; background: var(--sw-night); box-shadow: 0 0 60px rgb(165 184 255 / .25); display: flex; gap: 10px; align-items: center; padding: 14px; filter: blur(.3px); }
+.cam .screen .q { width: 104px; height: 104px; background: #fff; border-radius: 4px; padding: 5px; flex: none; }
+.cam .screen .txt { display: grid; gap: 6px; }
+.cam .screen .txt i { display: block; height: 7px; border-radius: 4px; background: rgb(255 255 255 / .7); }
+.cam .reticle { position: absolute; left: 44px; top: 158px; width: 128px; height: 128px; border: 2.5px solid #facc15; border-radius: 14px; transform: perspective(500px) rotateY(-12deg); }
+.cam .chip { position: absolute; left: 50%; top: 340px; translate: -50% 0; display: flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 999px; background: #facc15; color: #1a1a1a; font: 600 12.5px/1 var(--ui); white-space: nowrap; box-shadow: 0 6px 20px rgb(0 0 0 / .4); }
+.cam .shutter { position: absolute; left: 50%; bottom: 38px; translate: -50% 0; width: 62px; height: 62px; border-radius: 50%; border: 4px solid #fff; }
+.cam .shutter::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: #fff; }
+.cam .mode { position: absolute; left: 0; right: 0; bottom: 112px; text-align: center; font: 600 11px/1 var(--ui); letter-spacing: .1em; color: #facc15; }
+
+/* landscape phone */
+.phone.land { width: 600px; border-radius: 34px; }
+.phone.land .ps { height: 268px; border-radius: 26px; flex-direction: row; align-items: center; justify-content: center; background: #000; }
+.phone.land .ps .mirror { width: 470px; border-radius: 6px; box-shadow: none; outline: none; }
+.phone.land .lside { position: absolute; right: 14px; top: 50%; translate: 0 -50%; display: grid; gap: 10px; justify-items: center; }
+
+/* gallery of phone states */
+.states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 18px; }
+@media (max-width: 1100px) { .states { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .states { grid-template-columns: minmax(0, 1fr); } }
+.states .wide { grid-column: span 2; }
+@media (max-width: 1100px) { .states .wide { grid-column: 1 / -1; } }
+@media (max-width: 680px) { .phone.land { width: 100%; } .phone.land .ps .mirror { width: 78%; } }
+.st-cap { margin-top: 10px; display: grid; gap: 3px; }
+.st-cap b { font-weight: 600; }
+.st-cap span { color: var(--muted); font-size: 12.5px; }
+.st-cap code { color: var(--accent-dark); }
+
+/* =====================================================================
+   Slides (drawn at 960x540, half the 1920x1080 canvas, scaled to fit)
+   ===================================================================== */
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sw-paper); }
+.frame > .sl { position: absolute; left: 0; top: 0; transform: scale(var(--s, .3)); transform-origin: 0 0; }
+.sl { width: 960px; height: 540px; padding: 75px 60px 60px; display: flex; flex-direction: column; background: var(--sw-paper); color: var(--sw-ink); font-family: var(--ui); position: relative; overflow: hidden; }
+.sl::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--sw-accent); }
+.sl.dark { color: #fff; background: radial-gradient(550px 350px at 88% 112%, rgb(47 91 234 / .45), transparent 62%), radial-gradient(450px 300px at -5% -10%, rgb(125 150 255 / .12), transparent 60%), var(--sw-night); }
+.sl .kick { font: 600 13px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--sw-accent); margin-bottom: 14px; }
+.sl.dark .kick { color: var(--sw-accent-glow); }
+.sl h2 { font: 800 46px/1.08 var(--head); letter-spacing: -.02em; margin: 0; }
+.sl h3 { font: 700 30px/1.15 var(--head); margin: 0 0 22px; letter-spacing: -.01em; }
+.sl .sub { margin-top: 18px; font-size: 19px; color: var(--sw-night-2); }
+.sl .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; }
+.sl .cards div { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 2px rgb(15 23 42 / .06), 0 14px 36px rgb(15 23 42 / .09); }
+.sl .cards b { display: block; font: 700 19px/1.2 var(--head); margin-bottom: 8px; }
+.sl .cards span { font-size: 14px; color: var(--sw-muted); line-height: 1.45; }
+.sl .cards .num { font: 800 36px/1 var(--head); color: var(--sw-accent); margin-bottom: 10px; }
+.sl .statement { flex: 1; display: flex; align-items: center; font: 800 54px/1.1 var(--head); letter-spacing: -.02em; max-width: 760px; }
+.sl .statement em { font-style: normal; color: var(--sw-accent); }
+.sl .sprog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--sw-accent); }
+.sl .foot { position: absolute; left: 60px; right: 60px; bottom: 16px; display: flex; justify-content: space-between; font-size: 11px; color: var(--sw-muted); }
+.sl.dark .foot { color: var(--sw-night-muted); }
+/* QR join slide */
+.sl.join { flex-direction: row; align-items: center; gap: 54px; padding: 60px 70px; }
+.sl.join .qrcard { width: 390px; height: 390px; flex: none; background: #fff; border-radius: 18px; padding: 14px; box-shadow: 0 20px 60px rgb(0 0 0 / .45); }
+.sl.join .qrcard svg { width: 100%; height: 100%; display: block; }
+.sl.join .jtext { display: grid; gap: 14px; }
+.sl.join .jurl { font: 600 26px/1.2 var(--mono); color: var(--sw-night-2); }
+.sl.join .jcode { font: 800 88px/1 var(--head); letter-spacing: .04em; }
+.sl.join .jcount { display: inline-flex; align-items: center; gap: 10px; font: 600 22px/1 var(--ui); color: #86efac; }
+.sl.join .jcount i { width: 10px; height: 10px; border-radius: 50%; background: #4ade80; }
+/* poll placeholder slide (SW-6) */
+.sl .pollopts { display: grid; gap: 12px; max-width: 640px; }
+.sl .pollopts div { display: flex; justify-content: space-between; padding: 14px 18px; border-radius: 10px; background: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .06); font-size: 17px; font-weight: 500; }
+.sl .pollopts div span { color: var(--sw-muted); font-size: 14px; }
+/* join bar on every slide */
+.sl .joinbar { position: absolute; right: 18px; bottom: 14px; display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 7px; border-radius: 10px; background: var(--sw-night); color: #fff; font: 600 12px/1.2 var(--ui); z-index: 3; box-shadow: 0 6px 16px rgb(15 23 42 / .25); }
+.sl.dark .joinbar { background: rgb(255 255 255 / .1); }
+.sl .joinbar .mq { width: 44px; height: 44px; background: #fff; border-radius: 5px; padding: 3px; }
+.sl .joinbar .mq svg { width: 100%; height: 100%; display: block; }
+.sl .joinbar small { display: block; font: 500 10px/1.2 var(--mono); color: var(--sw-night-2); }
+.sl .joinbar b { font: 800 17px/1 var(--head); letter-spacing: .03em; }
+
+/* =====================================================================
+   Live demo: presenter laptop + guest phone
+   ===================================================================== */
+.demo { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; }
+@media (max-width: 980px) { .demo { grid-template-columns: minmax(0, 1fr); } }
+.laptop { background: #1a1f2b; border-radius: 14px 14px 4px 4px; padding: 10px 10px 0; box-shadow: var(--raise); }
+.laptop .scr { border-radius: 6px; overflow: hidden; background: #000; }
+@media (max-width: 680px) { .laptop .base { margin: 0 -10px !important; } }
+.laptop .base { height: 14px; margin: 0 -26px; background: linear-gradient(#c9ced8, #a9b0bd); border-radius: 0 0 14px 14px; }
+.ptool { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #0f1420; color: #cbd5e1; font: 500 12px/1 var(--ui); }
+.ptool .tb { border: 0; background: rgb(255 255 255 / .08); color: #fff; padding: 6px 9px; border-radius: 6px; font: 600 12px/1 var(--ui); cursor: pointer; }
+.ptool .tb:disabled { opacity: .35; cursor: default; }
+.ptool .count { font-family: var(--mono); color: #94a3b8; }
+.ptool .sp { flex: 1; }
+.ptool .golive { background: var(--sw-accent); }
+.ptool .livechip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 6px; background: rgb(22 163 74 / .18); color: #86efac; font: 600 12px/1 var(--ui); }
+.ptool .livechip b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.ptool .livechip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.ptool .endb { background: rgb(220 38 38 / .25); color: #fecaca; }
+.dctl { margin-top: 14px; padding: 12px 14px; display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center; }
+.dctl label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
+.dctl .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+.demo-notes { margin: 12px 0 0; padding: 0 0 0 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+.fade { animation: fadein .35s ease; }
+@keyframes fadein { from { opacity: .2; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* big-screen section */
+.screens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 860px) { .screens { grid-template-columns: minmax(0, 1fr); } }
+.screens .card { padding: 10px; }
+.screens .frame { border-radius: 6px; border: 1px solid var(--line); }
+.screens .cap { padding: 10px 4px 4px; display: grid; gap: 4px; }
+.screens .cap b { font-weight: 600; }
+.screens .cap span { color: var(--muted); font-size: 12.5px; }
+.rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; }
+.rules li { position: relative; padding-left: 22px; font-size: 13px; }
+.rules li::before { content: "✓"; position: absolute; left: 2px; top: 0; color: var(--ok); font-weight: 700; }
+
+/* url anatomy */
+.anat { padding: 18px; overflow: hidden; }
+.anat-row { display: flex; flex-wrap: wrap; gap: 0; padding: 14px 18px 4px; background: #f6f8ff; border: 1px solid #c7d3fb; border-radius: 12px; }
+.anat-row .seg { display: grid; gap: 8px; min-width: 0; }
+.anat-row .u { font: 400 clamp(17px, 3.2vw, 30px)/1.2 var(--mono); color: var(--text); padding-bottom: 8px; border-bottom: 2px solid var(--line-2); overflow-wrap: anywhere; }
+.anat-row .seg.acc .u { color: var(--accent); border-color: var(--accent); }
+.anat-row .seg.dk .u { color: var(--accent-dark); border-color: var(--accent-dark); }
+.anat-row .seg.dk b { font-weight: 600; }
+.anat-row .l { font-size: 12.5px; color: var(--muted); padding: 0 8px 10px 0; min-height: 28px; }
+.anat-row .seg.acc .l { color: var(--accent); } .anat-row .seg.dk .l { color: var(--accent-dark); }
+.anat-foot { display: flex; gap: 8px 28px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: var(--muted); }
+.anat-foot b { color: var(--text); font-weight: 600; }
+.diagram { padding: 18px; overflow: hidden; }
+.diagram svg { width: 100%; height: auto; display: block; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 10px; border-bottom: 1px solid var(--line); }
+.tbl td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl td:first-child { font-family: var(--mono); font-size: 12.5px; color: var(--accent-dark); white-space: nowrap; }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl-wrap { overflow-x: auto; }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px 18px; }
+.q h3 { font: 600 15px/1.35 var(--ui); margin-bottom: 4px; }
+.q .why { color: var(--muted); margin: 0 0 10px; }
+.q .choices { display: grid; gap: 6px; }
+.q label.choice { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.q label.choice:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.q label.choice input { margin: 3px 0 0; accent-color: var(--accent); }
+.q label.choice b { font-weight: 600; }
+.q label.choice span:not(.rec) { display: block; color: var(--muted); font-size: 12.5px; }
+.q .rec { display: inline-block; font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.q textarea { width: 100%; margin-top: 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.4 var(--ui); resize: vertical; }
+.q .qfoot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.q .state { font-size: 12.5px; color: var(--faint); }
+.q .state.queued { color: var(--ok); font-weight: 600; }
+.copyall { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.copyall textarea { width: 100%; }
+
+/* =====================================================================
+   SW-6 additions: poll slide, phone poll card, presenter poll panel
+   ===================================================================== */
+:root { --pw-bg: #0a0e16; --pw-panel: #111827; --pw-line: #1f2937; --pw-text: #e2e8f0; --pw-muted: #94a3b8; --pw-faint: #64748b; --pw-acc: #8ea5ff; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 980px) { .grid3 { grid-template-columns: minmax(0, 1fr); } }
+.grid3 > * { min-width: 0; }
+
+/* ---------- big-screen poll slide ---------- */
+.sl.pollsl { padding: 62px 60px 70px; }
+.pollsl .pjoin { position: absolute; right: 40px; top: 24px; padding: 8px 14px; border-radius: 999px; background: var(--sw-night); color: #fff; font: 500 14px/1 var(--ui); }
+.pollsl .pjoin b { font-weight: 700; }
+.pollsl h3 { margin-bottom: 24px; max-width: 700px; }
+.prows { flex: 1; min-height: 0; display: grid; gap: var(--pg, 16px); align-content: center; }
+.prows.n5 { --pg: 12px; --ph: 38px; --pf: 18px; } .prows.n7 { --pg: 8px; --ph: 28px; --pf: 16px; }
+.prow { display: grid; grid-template-columns: 260px minmax(0, 1fr) 76px; align-items: center; gap: 18px; transition: opacity .4s; }
+.plab { font: 600 var(--pf, 20px)/1.2 var(--ui); display: flex; align-items: center; gap: 10px; }
+.ptrack { height: var(--ph, 46px); border-radius: 8px; background: #e7eaf0; overflow: hidden; position: relative; }
+.ptrack i { display: block; height: 100%; background: var(--sw-accent); border-radius: 8px; transition: width .6s cubic-bezier(.2, .8, .2, 1), background .4s; }
+.ptrack.hid { background: repeating-linear-gradient(-45deg, #eef0f4 0 10px, #e4e7ed 10px 20px); }
+.ppct { font: 800 24px/1 var(--head); text-align: right; font-variant-numeric: tabular-nums; }
+.prow.ok .ptrack i { background: var(--sw-good); }
+.prow.dim { opacity: .42; }
+.okmark { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--sw-good); color: #fff; display: grid; place-items: center; font: 700 14px/1 var(--ui); font-style: normal; }
+.pfoot { position: absolute; left: 60px; right: 60px; bottom: 26px; display: flex; align-items: center; gap: 18px; font-size: 15px; color: var(--sw-muted); }
+.pst { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.pst::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.pst.open { color: var(--sw-good); } .pst.closed { color: var(--sw-ink); } .pst.grey { color: var(--sw-muted); }
+.pn b { font: 800 22px/1 var(--head); color: var(--sw-ink); }
+.pfoot .right { margin-left: auto; font-size: 13.5px; }
+.pfoot .lockc { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--sw-night); color: #fff; font: 600 13px/1 var(--ui); }
+
+/* ---------- phone: poll card ---------- */
+.pc { gap: 9px; overflow: hidden; }
+.pc .tag.acc { color: var(--sw-accent-dark); background: var(--sw-accent-light); }
+.pc > b { font-size: 15.5px; }
+.popts { display: grid; gap: 6px; min-height: 0; overflow-y: auto; flex: 0 1 auto; }
+.popt .tg { display: flex; gap: 4px; margin-top: 4px; }
+.popt { all: unset; box-sizing: border-box; position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--sw-grid); background: #fff; font: 500 13.5px/1.25 var(--ui); color: var(--sw-ink); cursor: pointer; }
+.popt:focus-visible { outline: 2px solid var(--sw-accent); outline-offset: 2px; }
+.popt .mk { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid #c3c9d4; position: relative; z-index: 1; box-sizing: border-box; }
+.popt[role="checkbox"] .mk { border-radius: 5px; }
+.popt.on { border-color: var(--sw-accent); background: #f3f6ff; }
+.popt.on .mk { border-color: var(--sw-accent); background: var(--sw-accent); box-shadow: inset 0 0 0 3px #fff; }
+.popt[role="checkbox"].on .mk { box-shadow: none; background: var(--sw-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat; }
+.popt:disabled { opacity: .42; cursor: default; }
+.popt.ro { cursor: default; }
+.popt .t { flex: 1; min-width: 0; position: relative; z-index: 1; }
+.popt .pf { position: absolute; left: 0; top: 0; bottom: 0; background: rgb(47 91 234 / .09); transition: width .6s cubic-bezier(.2, .8, .2, 1); z-index: 0; }
+.popt.on .pf { background: rgb(47 91 234 / .17); }
+.popt .pp { position: relative; z-index: 1; font: 700 12.5px/1 var(--ui); color: var(--sw-muted); font-variant-numeric: tabular-nums; }
+.popt em { flex: none; font-style: normal; position: relative; z-index: 1; font: 700 9.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; padding: 3px 5px; border-radius: 4px; }
+.popt em.you { background: var(--sw-accent-light); color: var(--sw-accent-dark); }
+.popt em.cor { background: #dcfce7; color: #166534; }
+.popt.good { border-color: var(--sw-good); }
+.popt.good .pf { background: rgb(22 163 74 / .16); }
+.pc-foot { margin-top: auto; display: grid; gap: 8px; flex: none; }
+.pc-hint { font-size: 12px; white-space: nowrap; color: var(--sw-muted); display: flex; justify-content: space-between; gap: 8px; }
+.sbtn { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; padding: 0 12px; border-radius: 12px; background: var(--sw-accent); color: #fff; font: 700 15px/1 var(--ui); cursor: pointer; text-align: center; }
+.sbtn:focus-visible { outline: 2px solid var(--sw-accent-dark); outline-offset: 2px; }
+.sbtn:disabled { background: #c9d1e4; cursor: default; }
+.sbtn.ghost { background: var(--sw-paper); color: var(--sw-ink); border: 1.5px solid var(--sw-grid); min-height: 40px; font-size: 13.5px; }
+.sbtn.sm { min-height: 34px; font-size: 12.5px; border-radius: 9px; }
+.btnrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pc .sent { display: flex; gap: 7px; align-items: center; font: 600 13px/1.3 var(--ui); color: var(--sw-good); }
+.pc .sent.wait { color: var(--sw-warn); }
+.pc .priv { font-size: 11px; color: var(--sw-muted); display: flex; gap: 6px; align-items: flex-start; line-height: 1.35; }
+.pc .priv svg { flex: none; width: 12px; height: 12px; margin-top: 1px; }
+.pc .res-note { font-size: 12px; line-height: 1.4; color: var(--sw-muted); padding: 8px 10px; background: var(--sw-paper); border-radius: 8px; }
+.pc .verdict { padding: 9px 11px; border-radius: 10px; font: 600 13px/1.35 var(--ui); }
+.verdict.good { background: #dcfce7; color: #166534; }
+.verdict.miss { background: #fef3c7; color: #92400e; }
+.pc .conf { display: grid; gap: 8px; padding: 10px; border-radius: 10px; background: #fef3c7; color: #78350f; font-size: 12px; line-height: 1.4; }
+.pc .conf b { font: 700 12.5px/1.3 var(--ui); }
+.pc .roundtag { margin-left: auto; font: 600 10px/1 var(--ui); color: var(--sw-muted); }
+.pc .taghead { display: flex; align-items: center; gap: 8px; }
+.sheet input.nick { all: unset; box-sizing: border-box; width: 100%; min-height: 46px; padding: 0 14px; border-radius: 12px; background: rgb(255 255 255 / .08); border: 1.5px solid var(--sw-accent-glow); color: #fff; font: 600 15px/1 var(--ui); }
+.sheet .warnline { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgb(165 184 255 / .12); color: #dbe3ff; font-size: 12px; line-height: 1.4; }
+
+/* ---------- presenter window (SW-4 look) ---------- */
+.browser { border-radius: 10px; overflow: hidden; border: 1px solid var(--line-2); box-shadow: var(--raise); background: var(--pw-bg); }
+.browser-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #e9ecf1; border-bottom: 1px solid var(--line); }
+.browser-bar .dots { display: flex; gap: 5px; } .browser-bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: #c9ced8; }
+.browser-bar .url { flex: 1; min-width: 0; text-align: center; font: 500 12px/1 var(--ui); color: var(--muted); background: #fff; border-radius: 6px; padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browser-bar .url b { color: var(--text); font-weight: 600; }
+.pw { background: var(--pw-bg); color: var(--pw-text); font: 400 13px/1.4 var(--ui); position: relative; outline: none; }
+.pw:focus-visible { box-shadow: inset 0 0 0 2px var(--pw-acc); }
+.pw-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--pw-line); }
+.pw-top .deck { font-weight: 600; white-space: nowrap; }
+.pw-top .sp { flex: 1; }
+.pw-top .timer { font: 500 20px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.lchip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border-radius: 6px; background: rgb(22 163 74 / .16); color: #86efac; font: 600 12px/1 var(--ui); white-space: nowrap; }
+.lchip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.lchip b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.pw-main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; padding: 16px; }
+@media (max-width: 900px) { .pw-main { grid-template-columns: minmax(0, 1fr); } }
+.pw-main > * { min-width: 0; }
+.pw-lab { display: flex; align-items: center; gap: 8px; margin: 0 0 7px; font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--pw-muted); }
+.pw-lab .sp { flex: 1; }
+.pw-lab .val { font: 500 12px/1 var(--mono); letter-spacing: 0; text-transform: none; color: var(--pw-text); }
+.pw .frame { border-radius: 4px; box-shadow: 0 8px 30px rgb(0 0 0 / .5); outline: 2px solid rgb(142 165 255 / .5); outline-offset: 3px; }
+.pw .frame.next { outline: none; opacity: .9; }
+.pw-ctl { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.pw-ctl .count { font: 500 13px/1 var(--mono); min-width: 54px; text-align: center; }
+.pw-ctl .bar { flex: 1; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .1); overflow: hidden; position: relative; }
+.pw-ctl .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: #6d8bff; transition: width .3s; }
+.ibtn { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 7px; background: rgb(255 255 255 / .07); color: var(--pw-text); }
+.ibtn:hover { background: rgb(255 255 255 / .14); }
+.ibtn:focus-visible { outline: 2px solid var(--pw-acc); }
+.ibtn:disabled { opacity: .35; cursor: default; }
+.ibtn svg { width: 14px; height: 14px; }
+.notes { background: var(--pw-panel); border: 1px solid var(--pw-line); border-radius: 8px; padding: 12px 14px; font-size: 14px; line-height: 1.5; color: #f1f5f9; }
+.pw-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 16px 14px; border-top: 1px solid var(--pw-line); color: var(--pw-faint); font-size: 12px; }
+.kk { font: 500 10.5px/1 var(--mono); color: var(--pw-faint); padding: 2px 5px; border: 1px solid #334155; border-radius: 4px; }
+
+/* poll panel in the presenter window */
+.ppanel { background: var(--pw-panel); border: 1px solid var(--pw-line); border-radius: 10px; padding: 14px; display: grid; gap: 12px; }
+.pp-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pp-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; font: 700 11px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; }
+.pp-state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pp-state.draft { background: rgb(255 255 255 / .08); color: var(--pw-muted); }
+.pp-state.open { background: rgb(22 163 74 / .18); color: #86efac; }
+.pp-state.closed { background: rgb(142 165 255 / .16); color: #c7d2fe; }
+.pp-round { font: 500 12px/1 var(--mono); color: var(--pw-muted); }
+.pp-cfg { margin-left: auto; font-size: 11.5px; color: var(--pw-muted); text-align: right; }
+.pp-n { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pp-n b { font: 700 26px/1 var(--mono); color: #fff; font-variant-numeric: tabular-nums; }
+.pp-n .rate { margin-left: auto; font: 600 12px/1 var(--ui); padding: 4px 8px; border-radius: 6px; background: rgb(142 165 255 / .14); color: #c7d2fe; }
+.pp-bars { display: grid; gap: 6px; }
+.pp-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 30px; gap: 8px; align-items: center; font-size: 12px; }
+.pp-row span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #cbd5e1; }
+.pp-row .tr { height: 8px; border-radius: 4px; background: rgb(255 255 255 / .08); overflow: hidden; }
+.pp-row .tr i { display: block; height: 100%; background: #6d8bff; transition: width .5s; }
+.pp-row.ok .tr i { background: #4ade80; }
+.pp-row .c { font: 500 12px/1 var(--mono); text-align: right; color: #fff; }
+.pp-room { font-size: 11.5px; color: var(--pw-muted); display: flex; gap: 6px; align-items: center; }
+.pp-room b { color: #fff; font-weight: 600; }
+.pp-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.tbtn { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px; border-radius: 7px; background: rgb(255 255 255 / .07); color: var(--pw-text); font: 600 12.5px/1 var(--ui); white-space: nowrap; }
+.tbtn:hover { background: rgb(255 255 255 / .13); }
+.tbtn:focus-visible { outline: 2px solid var(--pw-acc); }
+.tbtn:disabled { opacity: .35; cursor: default; }
+.tbtn.go { background: #2f5bea; color: #fff; }
+.tbtn.stop { background: rgb(220 38 38 / .22); color: #fecaca; }
+.pp-hist { font-size: 11.5px; color: var(--pw-faint); }
+
+/* audience window + demo layout */
+.demo6 { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; margin-top: 18px; }
+@media (max-width: 980px) { .demo6 { grid-template-columns: minmax(0, 1fr); } }
+.demo6 > * { min-width: 0; }
+.cap-under { margin-top: 8px; color: var(--muted); font-size: 12.5px; }
+.cap-under b { color: var(--text); font-weight: 600; }
+
+/* phone remote (presenter's phone) */
+.rem { padding: 6px 14px 10px; display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
+.rem .rlab { font: 600 10.5px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--pw-muted); display: flex; justify-content: space-between; }
+.rem .strip { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 10px; display: grid; gap: 9px; }
+.rem .strip .row { display: flex; align-items: center; gap: 8px; }
+.rem .strip .row b { font: 700 18px/1 var(--mono); }
+.rem .strip .btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.rem .strip .btns span { display: grid; place-items: center; min-height: 40px; border-radius: 9px; background: rgb(255 255 255 / .08); font: 600 12px/1.15 var(--ui); text-align: center; padding: 0 4px; }
+.rem .strip .btns span.stop { background: rgb(220 38 38 / .25); color: #fecaca; }
+.rem .bignext { margin-top: auto; display: grid; place-items: center; min-height: 64px; border-radius: 16px; background: #2f5bea; font: 700 18px/1 var(--ui); }
+
+/* model section */
+.method { padding: 16px 18px; display: grid; gap: 10px; align-content: start; }
+.method h3 { font: 600 14px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; }
+.method code.k { color: var(--accent-dark); }
+.method p { margin: 0; color: var(--muted); font-size: 13px; }
+.mini { display: grid; gap: 5px; }
+.mini span { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 12.5px; background: #fff; }
+.mini span i { width: 13px; height: 13px; border: 2px solid #c3c9d4; border-radius: 50%; flex: none; box-sizing: border-box; }
+.mini.box span i { border-radius: 4px; }
+.mini span.on { border-color: var(--accent); background: #f6f8ff; }
+.mini span.on i { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 2px #fff; }
+.mini.box span.on i { box-shadow: none; }
+.mini span.off { opacity: .45; }
+
+.mcp { background: #0f1420; color: #cbd5e1; border-radius: 10px; padding: 16px 18px; font: 400 12.5px/1.6 var(--mono); overflow-x: auto; white-space: pre; }
+.mcp .u { color: #fbbf24; } .mcp .c { color: #8ea5ff; } .mcp .r { color: #86efac; } .mcp .m { color: #64748b; }
+.vis-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 860px) { .vis-grid { grid-template-columns: minmax(0, 1fr); } }
+.vis-grid .card { padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.vis-grid .card b { font-weight: 600; }
+.vis-grid .card .who { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 4px 8px; font-size: 12.5px; margin-top: 4px; }
+.vis-grid .card .who span:nth-child(odd) { color: var(--faint); }
+
+/* page-only helpers */
+.lc { padding: 18px; overflow: hidden; }
+.lc svg { width: 100%; height: auto; display: block; }
+.ctl-grid { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; margin-top: 16px; }
+@media (max-width: 980px) { .ctl-grid { grid-template-columns: minmax(0, 1fr); } }
+.ctl-grid > * { min-width: 0; }
+.dctl select { font: 500 13px/1.2 var(--ui); padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); max-width: 100%; }
+.dctl select:disabled { opacity: .5; }
+.dctl .frozen { flex-basis: 100%; font-size: 12.5px; color: var(--muted); }
+.loadbars { display: grid; gap: 8px; margin-top: 10px; }
+.loadbars div { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 13px; }
+.loadbars i { display: block; height: 10px; border-radius: 999px; background: var(--accent); }
+.loadbars i.l2 { background: #8ea5f6; } .loadbars i.l3 { background: #c7d3fb; }
+.loadbars b { font: 500 12.5px/1 var(--mono); color: var(--accent-dark); }
+.pp-empty { color: var(--pw-muted); font-size: 12.5px; line-height: 1.5; }
+.pp-empty b { color: #fff; font-weight: 600; }
+.pfoot .lockc svg { width: 10px; height: 12px; }
+.tbl.wrapk td:first-child { white-space: normal; width: 32%; }
+h4.sub { margin: 22px 0 10px; font: 600 14px/1.3 var(--ui); }
+</style>
+</head>
+<body>
+<main>
+
+<header class="page-head">
+  <div class="eyebrow">SW-6 · SlideWorks · mockups 17 Nov 2026</div>
+  <h1>Live polls: ask the room, watch the bars move</h1>
+  <p>A poll is a slide. The presenter reaches it, the phones that joined in SW-5 swap the slide mirror for the question, and the bars on the big screen grow as answers arrive. This page mocks all three screens: the guest phone, the big screen and the presenter window from SW-4. The live demo runs a whole poll, and you can answer on the phone yourself. The eight questions at the end were answered on 17 Nov (D1–D8).</p>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#scope">Scope</a>
+  <a href="#demo">Live demo</a>
+  <a href="#phone">Every phone state</a>
+  <a href="#screen">On the big screen</a>
+  <a href="#controls">Presenter controls</a>
+  <a href="#model">Poll model</a>
+  <a href="#mcp">Agents (MCP)</a>
+  <a href="#realtime">Realtime and load</a>
+  <a href="#questions">Questions</a>
+</nav>
+
+<!-- ============================== SCOPE ============================== -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">01</span><h2>What SW-6 ships</h2></div>
+  <div class="scope">
+    <div class="card">
+      <h3><span class="pill acc"><span class="dot"></span>In SW-6</span></h3>
+      <ul>
+        <li>A <b>poll</b> slide layout: a question, 2 to 8 options and result bars</li>
+        <li>Two ways to answer: <b>pick one</b>, or <b>pick up to N</b>. Either can mark a <b>correct answer</b></li>
+        <li>The <b>poll card</b> on the guest phone, which fills the activity slot SW-5 left empty: pick, send, see your answer, change it</li>
+        <li><b>Live bars</b> on the big screen, pushed over the SW-5 audience channel, with an answer count</li>
+        <li>A <b>results setting</b> per poll: live, after you've answered, or after the poll closes</li>
+        <li><b>Presenter controls</b> in the SW-4 presenter window and phone remote: open, close, reveal, new round. Every later question type reuses them</li>
+        <li><b>MCP tools</b> so an agent can write a poll, change it and read what the room said</li>
+        <li>A <b>load run</b> at 1,000 voters (Q8)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="pill later"><span class="dot"></span>Later Features</span></h3>
+      <ul class="later-list">
+        <li><span class="k">SW-10</span> scales, ranking and 100 points, on the same poll model</li>
+        <li><span class="k">SW-8/9</span> word clouds, Q&amp;A, and options the audience suggests</li>
+        <li><span class="k">later</span> donut and pie results; SW-6 draws bars only</li>
+        <li><span class="k">SW-11</span> quiz scores, nicknames and leaderboards; SW-6 only says whether you got it</li>
+        <li><span class="k">later</span> exporting answers to a file</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== DEMO ============================== -->
+<section class="block" id="demo">
+  <div class="sec-head"><span class="n">02</span><h2>Live demo: run a poll</h2><span class="pill ok">answer on the phone yourself</span></div>
+  <p class="sec-sub">This is the SW-4 presenter window with one new panel. Press <b>▶</b> to reach the poll slide. The poll opens, the room starts answering, and the phone on the right swaps its slide for the question. Tap an option on the phone to answer, and tap another to change it. Then close the poll, start a new round, or change the settings underneath and run it again.</p>
+  <div class="demo6">
+    <div>
+      <div class="browser">
+        <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">slideworks.example/d/7Kq2/<b>present</b></span></div>
+        <div class="pw">
+          <div class="pw-top"><span class="deck">Shipping smaller changes</span><span class="lchip">Live <b>482 913</b> · 41 joined</span><span class="sp"></span><span class="timer">12:40</span></div>
+          <div class="pw-main">
+            <div>
+              <div class="pw-lab">On the big screen now<span class="sp"></span><span class="val" id="dPos">3 / 6</span></div>
+              <div class="frame" id="dSlide"></div>
+              <div class="pw-ctl">
+                <button class="ibtn" id="dPrev" aria-label="Previous slide">◀</button>
+                <span class="count" id="dCount">3 / 6</span>
+                <div class="bar"><i id="dBar"></i></div>
+                <button class="ibtn" id="dNext" aria-label="Next slide">▶</button>
+              </div>
+            </div>
+            <div style="display:grid;gap:14px;align-content:start">
+              <div><div class="pw-lab">Poll</div><div class="ppanel" id="dPanel"></div></div>
+              <div><div class="pw-lab">Notes</div><div class="notes" id="dNotes"></div></div>
+            </div>
+          </div>
+          <div class="pw-tools"><span class="kk">O</span> open or close the poll <span class="kk">R</span> reveal results <span class="kk">→</span> next slide</div>
+        </div>
+      </div>
+      <div class="card dctl">
+        <span class="lbl">Poll settings</span>
+        <label>Type <select id="dType"><option value="one">Pick one</option><option value="multi">Pick up to 2</option><option value="quiz">Pick one, with a correct answer</option></select></label>
+        <label>Results <select id="dVis"><option value="live">Live</option><option value="voted">After you've answered</option><option value="close">After the poll closes</option></select></label>
+        <label><input type="checkbox" id="dAuto" checked> Opens when I reach the slide</label>
+        <button class="btn ghost" id="dReset">Reset demo</button>
+        <span class="frozen" id="dFrozen"></span>
+      </div>
+      <ul class="demo-notes">
+        <li>The presenter always sees the counts. The results setting decides what the room sees.</li>
+        <li>Moving on from the slide closes the poll (Q2). Going back shows the closed result, and <b>New round</b> asks again.</li>
+        <li>Opening a poll freezes its type and results setting, so nobody answers one question and gets counted under another.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="phone"><div class="ps" id="dPhone"></div></div>
+      <div class="cap-under" style="text-align:center"><b>A guest's phone.</b> Tap an option to answer.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== PHONE STATES ============================== -->
+<section class="block" id="phone">
+  <div class="sec-head"><span class="n">03</span><h2>Every phone state</h2></div>
+  <p class="sec-sub">The poll takes over the white activity card from SW-5, on the same page and URL. Options are at least 44 px tall and nothing scrolls sideways. The phone never shows results before you've answered, whatever the results setting, so choosing stays clean.</p>
+  <div class="states">
+    <div><div class="phone"><div class="ps" data-pstate="choose"></div></div>
+      <div class="st-cap"><b>Choose</b><span>The question and its options. For pick-one a tap sends the answer, with no Send button (D3). The footer says the answer is private.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="picked"></div></div>
+      <div class="st-cap"><b>Pick several: tap, then Send</b><span>Where several picks are needed, tapping only selects. Nothing leaves the phone until Send (D3).</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="multi"></div></div>
+      <div class="st-cap"><b>Pick up to 2</b><span>Checkboxes, not radios. At the limit the other options grey out, and the hint counts the picks. Past five options the list scrolls and Send stays put.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="sent-live"></div></div>
+      <div class="st-cap"><b>Sent, results live</b><span>The phone shows your answer and the same bars as the big screen. They keep moving. Tapping another option moves your answer.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="sent-hidden"></div></div>
+      <div class="st-cap"><b>Sent, results hidden</b><span>With "after the poll closes", the phone confirms the answer and says when results will show.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="closed"></div></div>
+      <div class="st-cap"><b>Closed</b><span>The final result with your answer marked. It stays until the presenter moves on.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="correct"></div></div>
+      <div class="st-cap"><b>Correct answer shown</b><span>When the presenter shows the answer, the phone says whether you got it. There are no scores (Q6).</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="miss"></div></div>
+      <div class="st-cap"><b>Not this time</b><span>The same state for a wrong pick. Amber, not red, because it isn't an error.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="conflict"></div></div>
+      <div class="st-cap"><b>The poll changed under you</b><span>The server refuses an answer sent against an old round or revision. The phone keeps the pick and asks again.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="offline"></div></div>
+      <div class="st-cap"><b>Connection dropped mid-answer</b><span>The pick stays on the phone and goes by itself when the connection is back, if the poll is still open.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="wait"></div></div>
+      <div class="st-cap"><b>Not open yet</b><span>Only for a poll set to open by hand. The options show, greyed out, so people can read ahead.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="named"></div></div>
+      <div class="st-cap"><b>Named poll</b><span>A named poll tells the voter first and asks for a name. I recommend leaving this out of SW-6 (Q5).</span></div></div>
+  </div>
+</section>
+
+<!-- ============================== BIG SCREEN ============================== -->
+<section class="block" id="screen">
+  <div class="sec-head"><span class="n">04</span><h2>On the big screen</h2></div>
+  <p class="sec-sub">The <code>poll</code> layout draws the question, one bar per option and a footer with the state and the answer count. The join pill, top right, is always on a poll slide while the deck is live, so a latecomer can still get in. Bars use the palette's accent, so a poll looks like the rest of the deck.</p>
+  <div class="screens">
+    <div class="card"><div class="frame" data-pslide="live"></div>
+      <div class="cap"><b>Open, results live</b><span>Bars and percentages move as answers arrive, at most twice a second. The count shows how many people have answered.</span></div></div>
+    <div class="card"><div class="frame" data-pslide="hidden"></div>
+      <div class="cap"><b>Open, results hidden</b><span>The tracks are hatched and only the count rises. The dark chip says when results will show, so the room isn't left guessing.</span></div></div>
+    <div class="card"><div class="frame" data-pslide="closed"></div>
+      <div class="cap"><b>Closed</b><span>The final result. The footer says Closed and shows the last count.</span></div></div>
+    <div class="card"><div class="frame" data-pslide="correct"></div>
+      <div class="cap"><b>Correct answer shown</b><span>The correct bar turns green with a tick and the others fade. The presenter triggers it after the result has sunk in.</span></div></div>
+    <div class="card"><div class="frame" data-pslide="multi"></div>
+      <div class="cap"><b>Pick up to 2</b><span>Percentages are the share of people who picked each option, so they can add up to more than 100. The footer says so.</span></div></div>
+    <div class="card"><div class="frame" data-pslide="draft"></div>
+      <div class="cap"><b>Before it opens, and in thumbnails</b><span>Empty tracks. This is also how the slide looks on the deck page, in <code>preview_deck</code> and in a PDF export.</span></div></div>
+  </div>
+</section>
+
+<!-- ============================== CONTROLS ============================== -->
+<section class="block" id="controls">
+  <div class="sec-head"><span class="n">05</span><h2>Presenter controls</h2></div>
+  <p class="sec-sub">A poll has three states and four controls. The same controls will drive scales, ranking and word clouds later, so they sit in one panel in the presenter window and one strip on the phone remote, not inside the slide.</p>
+  <div class="card lc">
+    <svg viewBox="0 0 1180 250" role="img" aria-label="Poll lifecycle. Draft becomes Open when the presenter opens it or reaches the slide. Open becomes Closed when the presenter closes it or moves on. New round goes from Closed back to Open with a fresh round, keeping the earlier round's answers.">
+      <defs>
+        <marker id="l1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#2f5bea"/></marker>
+        <marker id="l2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#5b6474"/></marker>
+      </defs>
+      <rect x="30" y="40" width="250" height="110" rx="12" fill="#fff" stroke="#d3d8e0"/>
+      <text x="155" y="76" text-anchor="middle" font-family="Inter" font-size="17" font-weight="600" fill="#1b2230">Draft</text>
+      <text x="155" y="102" text-anchor="middle" font-family="Inter" font-size="13" fill="#5b6474">question, options and</text>
+      <text x="155" y="121" text-anchor="middle" font-family="Inter" font-size="13" fill="#5b6474">settings can change</text>
+
+      <rect x="465" y="40" width="250" height="110" rx="12" fill="#e3f4ea" stroke="#b7e1c6"/>
+      <text x="590" y="76" text-anchor="middle" font-family="Inter" font-size="17" font-weight="600" fill="#18794e">Open</text>
+      <text x="590" y="102" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">type and results setting frozen</text>
+      <text x="590" y="121" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">answers come in and can change</text>
+
+      <rect x="900" y="40" width="250" height="110" rx="12" fill="#f6f8ff" stroke="#c7d3fb"/>
+      <text x="1025" y="76" text-anchor="middle" font-family="Inter" font-size="17" font-weight="600" fill="#1e3a8a">Closed</text>
+      <text x="1025" y="102" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">final result kept for this round</text>
+      <text x="1025" y="121" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">Show answer, if there is one</text>
+
+      <path d="M282 95 H459" stroke="#2f5bea" stroke-width="2" marker-end="url(#l1)"/>
+      <text x="371" y="80" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#2f5bea">Open</text>
+      <text x="371" y="116" text-anchor="middle" font-family="Inter" font-size="12" fill="#5b6474">or reach the slide</text>
+      <path d="M717 95 H894" stroke="#2f5bea" stroke-width="2" marker-end="url(#l1)"/>
+      <text x="806" y="80" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#2f5bea">Close</text>
+      <text x="806" y="116" text-anchor="middle" font-family="Inter" font-size="12" fill="#5b6474">or move on</text>
+      <path d="M1025 152 C 1025 215, 590 215, 590 156" stroke="#5b6474" stroke-width="2" fill="none" stroke-dasharray="5 4" marker-end="url(#l2)"/>
+      <text x="808" y="228" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#5b6474">New round: round 2 opens empty, round 1 is kept</text>
+      <text x="590" y="24" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#18794e">Reveal: show hidden results without closing</text>
+    </svg>
+  </div>
+  <div class="ctl-grid">
+    <div class="card tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Control</th><th>What it does</th><th>Key</th></tr></thead>
+        <tbody>
+          <tr><td>Open</td><td>Phones swap the slide for the poll card and answers start. Skipped when the poll opens on arrival.</td><td><span class="pill grey">O</span></td></tr>
+          <tr><td>Close</td><td>Stops answers. The big screen and phones show the final result. Moving to another slide does the same.</td><td><span class="pill grey">O</span></td></tr>
+          <tr><td>Reveal</td><td>Only when results are hidden: shows the bars to the room while the poll stays open.</td><td><span class="pill grey">R</span></td></tr>
+          <tr><td>Show answer</td><td>Only when the poll has a correct answer, after closing: marks it on the screen and tells each phone.</td><td><span class="pill grey">A</span></td></tr>
+          <tr><td>New round</td><td>Asks the same question again from zero. The earlier round's result is kept and listed under the panel.</td><td><span class="pill grey">N</span></td></tr>
+          <tr><td>Who can press them</td><td>The deck's owner only, in the presenter window, the plain player while live, or the phone remote (SW-4 D3).</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="phone"><div class="ps" id="remote"></div></div>
+      <div class="cap-under" style="text-align:center"><b>The presenter's phone remote (SW-4).</b> A poll strip sits between the slide and Next.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== MODEL ============================== -->
+<section class="block" id="model">
+  <div class="sec-head"><span class="n">06</span><h2>The poll model</h2></div>
+  <p class="sec-sub">The shape follows the voting service in the earlier prototype (SW-1 reuse review, section 2): a poll has a method, a method config, options and a lifecycle. SW-6 builds two methods. SW-10 adds rating, ranking and budgets as new methods on the same tables, screens and controls.</p>
+  <div class="grid3">
+    <div class="card method">
+      <h3>Pick one <code class="k">single</code></h3>
+      <div class="mini"><span><i></i>Under 50 lines</span><span class="on"><i></i>50 to 200 lines</span><span><i></i>200 to 1,000 lines</span></div>
+      <p>One option per person. Bars are a share of the people who answered and add up to 100%.</p>
+    </div>
+    <div class="card method">
+      <h3>Pick up to N <code class="k">multi · max</code></h3>
+      <div class="mini box"><span class="on"><i></i>Changes are too big</span><span class="on"><i></i>Flaky CI</span><span class="off"><i></i>Time zones</span></div>
+      <p><code>max</code> runs from 2 to the number of options. With <code>max</code> equal to the option count it is "pick any". This covers both approval and multi-choice from the prototype.</p>
+    </div>
+    <div class="card method">
+      <h3>Correct answer <code class="k">correct</code></h3>
+      <div class="mini"><span class="on" style="border-color:var(--ok);background:var(--ok-soft)"><i style="border-color:var(--ok);background:var(--ok)"></i>Under 200 lines</span><span><i></i>200 to 500 lines</span><span><i></i>Size makes no difference</span></div>
+      <p>Optional on either method. The server keeps it away from phones and the big screen until the presenter shows it.</p>
+    </div>
+  </div>
+
+  <h4 class="sub">Results setting: who sees the bars, and when</h4>
+  <div class="vis-grid">
+    <div class="card"><b>Live <span class="pill ok">recommended default</span></b><span style="color:var(--muted);font-size:13px">The room watches the bars grow. The most fun, and people can be swayed by the leader.</span>
+      <div class="who"><span>Big screen</span><span>bars from the first answer</span><span>Phone</span><span>bars once you've answered</span><span>Presenter</span><span>counts, always</span></div></div>
+    <div class="card"><b>After you've answered</b><span style="color:var(--muted);font-size:13px">Each person sees results only once they've committed.</span>
+      <div class="who"><span>Big screen</span><span>count only, until close or Reveal</span><span>Phone</span><span>bars once you've answered</span><span>Presenter</span><span>counts, always</span></div></div>
+    <div class="card"><b>After the poll closes</b><span style="color:var(--muted);font-size:13px">Nobody in the room is swayed. This is "hide results until revealed".</span>
+      <div class="who"><span>Big screen</span><span>count only, until close or Reveal</span><span>Phone</span><span>"sent", until close or Reveal</span><span>Presenter</span><span>counts, always</span></div></div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="card" style="padding:16px 18px">
+      <b style="font-weight:600">Rules</b>
+      <ul class="rules" style="margin-top:10px">
+        <li><b>One answer per guest per round.</b> Sending again replaces the whole answer. Each answer has a revision number, and a send against an old one is refused.</li>
+        <li><b>Opening freezes</b> the method, the max, the privacy and the results setting. The question and option text can still be fixed for a typo.</li>
+        <li><b>Hidden means hidden.</b> While results are hidden, the counts never reach a guest's browser, so nobody can read them in dev tools.</li>
+        <li><b>Each Go live is a clean slate.</b> Answers belong to the session (SW-5 D4), then to a round within it.</li>
+        <li><b>2 to 8 options,</b> each up to 60 characters, and a question up to 120. Past that the bars stop fitting the canvas.</li>
+        <li><b>Late joiners</b> get the open poll straight away. If it has closed, they see the result.</li>
+      </ul>
+    </div>
+    <div class="card" style="padding:16px 18px">
+      <b style="font-weight:600">Privacy</b>
+      <ul class="rules" style="margin-top:10px">
+        <li><b>Private (the default):</b> an answer is stored against the random guest ID from SW-5, which has no name. The presenter and agents see totals only. No screen or tool lists who picked what.</li>
+        <li><b>Named:</b> the voter is told before answering and gives a name. SW-5 has no names (D2), so this needs the nickname step that a quiz would also need. I'd leave it to the quiz Feature, SW-11 (Q5).</li>
+        <li><b>Deleted together:</b> ending a session keeps its answers. Deleting the session or the deck deletes them.</li>
+      </ul>
+      <b style="font-weight:600;display:block;margin-top:14px">Measure</b>
+      <ul class="rules" style="margin-top:8px">
+        <li>Response rate per poll: people who answered ÷ guests joined when the poll closed. The presenter panel shows it live (93% of 41).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== MCP ============================== -->
+<section class="block" id="mcp">
+  <div class="sec-head"><span class="n">07</span><h2>Agents write and read polls over MCP</h2></div>
+  <p class="sec-sub">Because a poll is a slide layout (Q1), an agent adds one with the tools it already has. The question and options are slots. Five new tools cover settings, running a poll and reading the result.</p>
+  <div class="grid2">
+    <div class="mcp"><span class="u">you    </span>After slide 3, ask how big their last merge
+       request was. Four size bands.
+<span class="c">agent  add_slide</span>(after: 3, layout: "poll", slots: {
+         question: "How big was your last merge request?",
+         options: ["Under 50 lines", "50 to 200 lines",
+                   "200 to 1,000 lines", "Over 1,000 lines"] })
+<span class="r">       → slide 4 · poll · Draft · pick one · results live</span>
+
+<span class="u">you    </span>Hide the results until I close it.
+<span class="c">agent  update_poll</span>(slide: 4, { results: "after_close" })
+<span class="r">       → ok</span>
+
+<span class="m">       … after the talk …</span>
+
+<span class="u">you    </span>What did the room say?
+<span class="c">agent  get_poll_results</span>(slide: 4)
+<span class="r">       → 17 Nov session · round 1 · 38 of 41 answered
+         50 to 200 lines 45% · 200 to 1,000 lines 26%
+         Under 50 lines 18% · Over 1,000 lines 11%</span></div>
+    <div class="card tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Tool</th><th>Does</th></tr></thead>
+        <tbody>
+          <tr><td>add_slide · update_slide</td><td>Existing tools. Layout <code>poll</code> with slots <code>question</code> and <code>options</code>. <code>list_layouts</code> describes it.</td></tr>
+          <tr><td>update_poll</td><td>Settings: <code>pick</code> (one, up_to), <code>max</code>, <code>results</code>, <code>correct</code>, <code>opens</code> (on_arrival, manual). Refused while the poll is open.</td></tr>
+          <tr><td>add_poll_option</td><td>Adds one option without resending the list. Allowed while open: it appears on phones at once, and nobody's answer changes.</td></tr>
+          <tr><td>open_poll · close_poll</td><td>The presenter's buttons, for an agent acting as co-pilot. They work only while the deck is live.</td></tr>
+          <tr><td>get_poll_results</td><td>Totals per session and round, with the response rate. Never who picked what.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== REALTIME ============================== -->
+<section class="block" id="realtime">
+  <div class="sec-head"><span class="n">08</span><h2>Realtime and load</h2></div>
+  <p class="sec-sub">SW-5 already sends every guest an <code>audienceState</code> with an <code>activity</code> field that is always null. SW-6 fills it. Answers go up over plain HTTP, so they work on every transport fallback and a refusal is an ordinary 409. Results come down as a tally pushed at most twice a second, however many answers arrive. The prototype polled every 15 seconds; this pushes.</p>
+  <div class="card diagram">
+    <svg viewBox="0 0 1180 310" role="img" aria-label="A guest phone sends its answer with a revision number to the server over HTTP. The server keeps one answer row per guest per round and a tally. The tally is pushed over the deck hub to the big screen, the presenter window and the phones. A stale answer gets a 409 back.">
+      <defs>
+        <marker id="r1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#2f5bea"/></marker>
+        <marker id="r2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#5b6474"/></marker>
+      </defs>
+      <rect x="30" y="100" width="210" height="110" rx="12" fill="#0b1020"/>
+      <text x="135" y="140" text-anchor="middle" font-family="Inter" font-size="16" font-weight="600" fill="#fff">Guest phone</text>
+      <text x="135" y="164" text-anchor="middle" font-family="Inter" font-size="13" fill="#cbd5e1">sw_guest cookie (SW-5)</text>
+      <text x="135" y="186" text-anchor="middle" font-family="Inter" font-size="13" fill="#cbd5e1">keeps the pick locally</text>
+
+      <rect x="440" y="40" width="300" height="230" rx="14" fill="#f6f8ff" stroke="#c7d3fb"/>
+      <text x="590" y="74" text-anchor="middle" font-family="Inter" font-size="16" font-weight="600" fill="#1b2230">SlideWorks server</text>
+      <rect x="465" y="92" width="250" height="46" rx="8" fill="#fff" stroke="#c7d3fb"/>
+      <text x="590" y="112" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">Answers</text>
+      <text x="590" y="129" text-anchor="middle" font-family="IBM Plex Mono" font-size="11.5" fill="#1e3a8a">one row per guest per round</text>
+      <rect x="465" y="150" width="250" height="46" rx="8" fill="#fff" stroke="#c7d3fb"/>
+      <text x="590" y="170" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">Tally</text>
+      <text x="590" y="187" text-anchor="middle" font-family="IBM Plex Mono" font-size="11.5" fill="#1e3a8a">in memory, rebuilt from rows</text>
+      <rect x="465" y="208" width="250" height="46" rx="8" fill="#fff" stroke="#c7d3fb"/>
+      <text x="590" y="228" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">Deck hub (SW-1, SW-5)</text>
+      <text x="590" y="245" text-anchor="middle" font-family="IBM Plex Mono" font-size="11.5" fill="#1e3a8a">audience · audience-watch</text>
+
+      <rect x="940" y="40" width="210" height="62" rx="12" fill="#fff" stroke="#d3d8e0"/>
+      <text x="1045" y="77" text-anchor="middle" font-family="Inter" font-size="15" font-weight="600" fill="#1b2230">Big screen</text>
+      <rect x="940" y="124" width="210" height="62" rx="12" fill="#111827"/>
+      <text x="1045" y="161" text-anchor="middle" font-family="Inter" font-size="15" font-weight="600" fill="#fff">Presenter window</text>
+      <rect x="940" y="208" width="210" height="62" rx="12" fill="#0b1020"/>
+      <text x="1045" y="245" text-anchor="middle" font-family="Inter" font-size="15" font-weight="600" fill="#fff">Every phone</text>
+
+      <path d="M242 128 H459" stroke="#2f5bea" stroke-width="2" marker-end="url(#r1)"/>
+      <text x="350" y="116" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#2f5bea">PUT answer {picks, revision}</text>
+      <path d="M463 176 H246" stroke="#5b6474" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#r2)"/>
+      <text x="350" y="198" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#5b6474">200 {revision} · 409 {current}</text>
+
+      <path d="M717 231 C 820 231, 830 71, 934 71" stroke="#2f5bea" stroke-width="2" fill="none" marker-end="url(#r1)"/>
+      <path d="M717 231 C 820 231, 840 155, 934 155" stroke="#2f5bea" stroke-width="2" fill="none" marker-end="url(#r1)"/>
+      <path d="M717 239 H934" stroke="#2f5bea" stroke-width="2" marker-end="url(#r1)"/>
+      <text x="830" y="262" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#2f5bea">pollTally, ≤ 2 a second</text>
+    </svg>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="card tbl-wrap">
+      <table class="tbl wrapk">
+        <thead><tr><th>Message</th><th>Carries</th></tr></thead>
+        <tbody>
+          <tr><td>audienceState.activity</td><td>Hub → guests. <code>{ type: "poll", slide, phase, round, pick, max, options, results }</code>. Null on a slide with no poll, as in SW-5. A reconnect lands on the current one.</td></tr>
+          <tr><td>PUT …/answer</td><td>Guest → server, over HTTP. <code>{ round, picks, revision }</code>. Returns the new revision, or 409 with the current poll state when the round or revision is stale or the poll has closed.</td></tr>
+          <tr><td>pollTally</td><td>Hub → big screen and phones. <code>{ round, answered, counts }</code>. <code>counts</code> is null while results are hidden from the room.</td></tr>
+          <tr><td>pollTally (watch)</td><td>Hub → the owner's presenter window and remote. Always with counts, plus the response rate.</td></tr>
+          <tr><td>open · close · reveal · show answer · new round</td><td>Owner → server, over HTTP. The same owner check as Go live.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card" style="padding:16px 18px">
+      <b style="font-weight:600">Load targets (from the prototype's harness)</b>
+      <div class="loadbars">
+        <div><span>1,000 voters</span><i style="width:10%"></i><b>must pass in SW-6</b></div>
+        <div><span>3,000 voters</span><i class="l2" style="width:30%"></i><b>measured, recorded</b></div>
+        <div><span>10,000 voters</span><i class="l3" style="width:100%"></i><b>measured, recorded</b></div>
+      </div>
+      <ul class="rules" style="margin-top:12px">
+        <li>Everyone answers within 30 seconds of the poll opening</li>
+        <li>Sending an answer: p95 under 1 s. Results on screen: p95 under 2 s after the answer</li>
+        <li>Errors under 1%</li>
+      </ul>
+      <p style="margin:12px 0 0;color:var(--muted);font-size:13px"><b style="color:var(--text);font-weight:600">The risk to plan for:</b> SlideWorks runs on SQLite, which has one writer. A thousand answers in a few seconds have to be queued and written in batches, not one transaction each. The 1,000-voter run is there to prove that works.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== QUESTIONS ============================== -->
+<section class="block" id="questions" data-lavish-question-group>
+  <div class="sec-head"><span class="n">09</span><h2>Questions before planning</h2></div>
+  <div class="card" style="padding:12px 16px;margin:0 0 14px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">Answered 17 Nov.</b> Q1, Q2 and Q4 to Q8 went as recommended. Q3 changed: <b>a tap sends for pick-one</b>, and Send stays only where several picks are needed. The phone mockups and the demo above now work that way. All eight are recorded as decisions D1–D8 on SW-6.</div>
+  <div class="qs">
+
+    <form class="card q" data-lavish-question="poll-home">
+      <h3>Q1 · Where does a poll live in a deck?</h3>
+      <p class="why">This decides how an agent creates one and what later question types plug into.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="A poll slide layout: one poll per slide, question and options are slots, settings and answers in poll tables keyed by the slide" checked><div><b>A <code>poll</code> slide layout, one poll per slide</b><span class="rec">recommended</span><span>As mocked. Agents use <code>add_slide</code>. The slide is the poll, so "open when I reach it" has an obvious meaning.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="A poll block that can sit inside other layouts"><div><b>A poll block inside other layouts</b><span>Bars could share a slide with text or an image. It makes several polls per slide possible, which the phone and the controls would then have to handle.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Deck-level polls the presenter launches over any slide"><div><b>Deck-level polls launched over any slide</b><span>Good for an unplanned show of hands, but there's nothing in the deck for an agent to lay out or a PDF to print.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="open-close">
+      <h3>Q2 · When does a poll open and close?</h3>
+      <p class="why">Every button the presenter has to remember mid-talk is a chance to stand in front of a room with a poll nobody can answer.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Opens when the presenter reaches the slide; closes on Close or when they move on; a per-poll setting makes it manual" checked><div><b>Opens on arrival. Closes on Close or when the presenter moves on</b><span class="rec">recommended</span><span>As in the demo. A per-poll setting, <code>opens: manual</code>, is there for a presenter who wants to read the question out first.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Always manual: the presenter presses Open and Close"><div><b>Always manual</b><span>Full control and one more thing to forget.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Opens on arrival and stays open until the session ends, unless closed by hand"><div><b>Opens on arrival and stays open until the session ends</b><span>Latecomers can still answer, but the result on the slide keeps shifting after the presenter has talked about it.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="send">
+      <h3>Q3 · Does a tap send the answer?</h3>
+      <p class="why">SW-5 got joining down to zero taps. Here it's a choice between the fewest taps and one pattern for every question type.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Pick, then Send: the same for every question type"><div><b>Pick, then Send, for every type</b><span>My recommendation. Pick-several, scales and ranking all need a Send, so pick-one works the same way. No stray thumb counts as a vote.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Tap sends for pick-one; Send button only where several picks are needed" checked><div><b>A tap sends for pick-one. Send only where several picks are needed</b><span class="rec">answered</span><span>As mocked now. One tap fewer on the most common poll. A mis-tap is fixed by tapping another option.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="results-default">
+      <h3>Q4 · Which results setting is the default?</h3>
+      <p class="why">All three ship. Most polls will never have the setting touched, so the default is what people get.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Live" checked><div><b>Live</b><span class="rec">recommended</span><span>Moving bars are the reason to run a poll in a room. A presenter who worries about people following the leader picks "after the poll closes".</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="After the poll closes"><div><b>After the poll closes</b><span>The honest read of the room, with a quiet screen while people answer.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="After you've answered"><div><b>After you've answered</b><span>Phones show results once you've sent yours. The big screen has to stay hidden until close anyway.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="named">
+      <h3>Q5 · Do named polls ship in SW-6?</h3>
+      <p class="why">The Feature lists private and named. Named needs guests to have names, and SW-5 decided they don't (D2), leaving nicknames to the first activity that needs them.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Private only in SW-6; the privacy field exists with one value; named arrives with nicknames in the quiz Feature (SW-11)" checked><div><b>Private only. Named comes with nicknames, in the quiz Feature (SW-11)</b><span class="rec">recommended</span><span>The model keeps a privacy field so nothing has to change later. SW-6 saves the name sheet, the per-person results view and their tests.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Ship named polls now, with the name sheet as mocked and a per-person results view for the presenter"><div><b>Ship named now, with the name sheet as mocked</b><span>Useful for a classroom. It adds a results-by-person screen for the presenter that isn't mocked here.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="correct-answer">
+      <h3>Q6 · How is a correct answer shown?</h3>
+      <p class="why">The Feature has "optional correct answer". This is the edge of quiz territory.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Show answer is a separate button after close; phones say whether you got it; no scores" checked><div><b>A separate Show answer button after closing. No scores</b><span class="rec">recommended</span><span>As mocked. The room sees how it voted, then the reveal. Phones say "You got it" or "Not this time".</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Closing the poll shows the correct answer automatically"><div><b>Closing shows the answer automatically</b><span>One press fewer, and no pause between the result and the answer.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Leave correct answers out of SW-6; they come with the quiz Feature (SW-11)"><div><b>Leave correct answers to the quiz Feature (SW-11)</b><span>SW-6 gets smaller: no answer state on the slide, the phone or the controls.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="reset">
+      <h3>Q7 · What does resetting a poll do?</h3>
+      <p class="why">Asking the same question at the start and the end of a talk is a common move. The Feature calls reset "a new round".</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="New round: answers start from zero, earlier rounds are kept and readable in the presenter panel and get_poll_results" checked><div><b>A new round. Earlier rounds are kept</b><span class="rec">recommended</span><span>As mocked. The big screen shows only the current round. The panel and <code>get_poll_results</code> list them all.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Reset wipes the answers; nothing is kept"><div><b>Reset wipes the answers</b><span>Simplest. A test run before the talk leaves no trace, and neither does a before-and-after.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="New round, and the big screen can show two rounds side by side"><div><b>Rounds kept, and the screen can compare two side by side</b><span>The best before-and-after slide. It needs a second bar style and a control to pick the rounds.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="load-and-measure">
+      <h3>Q8 · Load target and measure</h3>
+      <p class="why">The Feature says "load target to agree" and "measure to confirm". SlideWorks is self-hosted on SQLite, so the first target should be one a single instance can honestly meet.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="1,000 voters must pass in SW-6 (run on demand, not on every PR); 3,000 and 10,000 are measured and recorded, not gates; measure = answers ÷ joined at close" checked><div><b>1,000 voters must pass. 3,000 and 10,000 are measured and written down</b><span class="rec">recommended</span><span>The run is a script started by hand or nightly, not on every PR. Measure: people who answered ÷ guests joined when the poll closed.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="3,000 voters must pass in SW-6; same measure"><div><b>3,000 voters must pass</b><span>A large conference hall. More likely to force a change to how answers are stored before SW-6 can ship.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="All three tiers (1k, 3k, 10k) must pass in SW-6; same measure"><div><b>All three tiers must pass</b><span>Matches the prototype, which ran on a server database. Probably means moving off SQLite first.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+  </div>
+
+  <div class="copyall">
+    <button type="button" class="btn" id="copyAll">Copy all answers</button>
+    <span id="copyStatus" role="status" aria-live="polite" style="color:var(--muted);font-size:13px"></span>
+  </div>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const CODE = '482 913';
+  const DECK = { title: 'Shipping smaller changes', who: 'Sam Rivera', when: 'Team offsite · 17 Nov' };
+  const WHO = DECK.who.split(' ')[0];
+  const N = 6;
+
+  const POLLS = {
+    one: { q: 'How big was your last merge request?', opts: ['Under 50 lines', '50 to 200 lines', '200 to 1,000 lines', 'Over 1,000 lines'], w: [.18, .45, .27, .10] },
+    quiz: { q: 'Which change gets its first review fastest?', opts: ['Under 200 lines', '200 to 500 lines', '500 to 1,000 lines', 'Size makes no difference'], correct: 0, w: [.55, .22, .13, .10] },
+    multi: { q: 'What slows your reviews down most?', opts: ['Changes are too big', 'Reviewers are busy', 'Unclear description', 'Flaky CI', 'Time zones'], max: 2, w: [.66, .42, .25, .36, .11] }
+  };
+  const lock = '<svg viewBox="0 0 10 12" fill="currentColor"><path d="M2 5V3.5a3 3 0 0 1 6 0V5h.5A1.5 1.5 0 0 1 10 6.5v4A1.5 1.5 0 0 1 8.5 12h-7A1.5 1.5 0 0 1 0 10.5v-4A1.5 1.5 0 0 1 1.5 5zm1.3 0h3.4V3.5a1.7 1.7 0 0 0-3.4 0z"/></svg>';
+  const pct = (c, n) => n ? Math.round(c / n * 100) : 0;
+  const kind = (p) => p.max ? 'pick up to ' + p.max : 'pick one';
+
+  // ---------- slides ----------
+  function pollSlide(p, o = {}) {
+    const phase = o.phase || 'open', n = o.n || 0, counts = o.counts || p.opts.map(() => 0), show = !!o.show;
+    const rows = p.opts.map((t, i) => {
+      const ok = o.answer && p.correct === i;
+      return '<div class="prow' + (ok ? ' ok' : '') + (o.answer && !ok ? ' dim' : '') + '"><div class="plab">' + (ok ? '<i class="okmark">✓</i>' : '') + t + '</div>' +
+        '<div class="ptrack' + (!show && phase !== 'draft' ? ' hid' : '') + '"><i style="width:' + (show ? pct(counts[i], n) : 0) + '%"></i></div><div class="ppct">' + (show ? pct(counts[i], n) + '%' : '') + '</div></div>';
+    }).join('');
+    let st;
+    if (phase === 'draft') st = '<span class="pst grey">Not open yet</span>';
+    else st = '<span class="pst ' + phase + '">' + (phase === 'open' ? 'Open' : 'Closed') + '</span><span class="pn"><b>' + n + '</b> answers</span>';
+    let right = '';
+    if (!show && phase === 'open') right = '<span class="right"><span class="lockc">' + lock + ' Results show when the poll closes</span></span>';
+    else if (p.max && phase !== 'draft') right = '<span class="right">Share of people who picked each. Adds up to more than 100%.</span>';
+    else if (o.round > 1) right = '<span class="right">Round ' + o.round + '</span>';
+    return '<div class="sl pollsl"><div class="pjoin">slideworks.live · <b>' + CODE + '</b></div><div class="kick">Poll · ' + kind(p) + '</div><h3>' + p.q + '</h3><div class="prows' + (p.opts.length > 6 ? ' n7' : p.opts.length > 4 ? ' n5' : '') + '">' + rows + '</div><div class="pfoot">' + st + right + '</div></div>';
+  }
+  function slideHTML(i) {
+    const prog = '<div class="sprog" style="width:' + ((i + 1) / N * 100) + '%"></div>';
+    const foot = '<div class="foot"><span>' + DECK.title + '</span><span>' + (i + 1) + ' / ' + N + '</span></div>';
+    switch (i) {
+      case 2: return '<div class="sl"><div class="kick">Why small batches</div><h3>Smaller changes ship faster and break less</h3><div class="cards"><div><div class="num">4×</div><b>Faster review</b><span>Under 200 lines gets a first review within the hour.</span></div><div><div class="num">−60%</div><b>Fewer rollbacks</b><span>When something breaks, there is less to look through.</span></div><div><div class="num">1</div><b>One idea per change</b><span>Easy to name, easy to revert, easy to explain.</span></div></div>' + foot + prog + '</div>';
+      case 4: return '<div class="sl"><div class="kick">The one rule</div><div class="statement"><span>Merge something to main <em>every day</em>.</span></div>' + foot + prog + '</div>';
+    }
+    return '';
+  }
+  const ro = new ResizeObserver(entries => { for (const e of entries) e.target.style.setProperty('--s', e.contentRect.width / 960); });
+  function setFrame(frame, html) { frame.innerHTML = html; if (!frame._obs) { ro.observe(frame); frame._obs = true; } }
+  function hydrate(root) { root.querySelectorAll('[data-mount]').forEach(f => { setFrame(f, f.dataset.mount === 'poll' ? pollSlide(POLLS.one, { phase: 'open', n: 38, counts: [7, 17, 10, 4], show: true }) : slideHTML(+f.dataset.mount)); f.removeAttribute('data-mount'); }); }
+
+  const SLIDES = {
+    live: () => pollSlide(POLLS.one, { phase: 'open', n: 38, counts: [7, 17, 10, 4], show: true }),
+    hidden: () => pollSlide(POLLS.one, { phase: 'open', n: 23, counts: [4, 10, 6, 3], show: false }),
+    closed: () => pollSlide(POLLS.one, { phase: 'closed', n: 41, counts: [8, 18, 11, 4], show: true }),
+    correct: () => pollSlide(POLLS.quiz, { phase: 'closed', n: 40, counts: [22, 9, 5, 4], show: true, answer: true }),
+    multi: () => pollSlide(POLLS.multi, { phase: 'open', n: 36, counts: [24, 15, 9, 13, 4], show: true }),
+    draft: () => pollSlide(POLLS.one, { phase: 'draft' })
+  };
+  document.querySelectorAll('[data-pslide]').forEach(f => setFrame(f, SLIDES[f.dataset.pslide]()));
+
+  // ---------- guest phone ----------
+  const sbar = '<div class="island"></div><div class="sbar"><span>9:41</span><span class="ic"><b></b><i></i></span></div>';
+  const urlbar = '<div class="urlbar">' + lock + '<span>slideworks.live/482913</span></div>';
+  const top = (chip) => '<div class="g-top"><div class="g-mark">S</div><div class="g-deck"><b>' + DECK.title + '</b><span>' + DECK.who + '</span></div>' + chip + '</div>';
+  const gfoot = '<div class="g-foot"><span>Guest · no account</span><a href="#model">Privacy</a></div>';
+  const pfootP = '<div class="g-foot"><span style="display:inline-flex;gap:5px;align-items:center"><span style="width:9px;display:inline-flex">' + lock + '</span>Private: ' + WHO + ' sees totals only</span><a href="#model">Privacy</a></div>';
+  const liveChip = '<span class="live">Live</span>';
+  const waitCard = '<div class="wait"><div class="dots"><i></i><i></i><i></i></div><b>Nothing to answer yet</b><p>Polls and questions appear here when the presenter gets to them. Keep this page open.</p></div>';
+  const meta = (i) => '<div class="slidemeta"><span>Slide ' + (i + 1) + '</span><span class="prog"><i style="width:' + ((i + 1) / N * 100) + '%"></i></span><span>' + N + '</span></div>';
+  const tick = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+  // o: phase, picks, sent, showRes, counts, n, answer, round, foot ('conflict' | 'offline' | 'late' | undefined)
+  function pollCard(p, o = {}) {
+    const phase = o.phase || 'open', picks = o.picks || [], multi = !!p.max, n = o.n || 0, counts = o.counts || [];
+    const choosing = phase === 'open' && (!multi || !o.sent);   // pick-one stays tappable: a tap sends, another tap changes (D3)
+    const mine = (o.sent && !o.foot) || phase === 'closed';
+    const full = multi && picks.length >= p.max;
+    const head = '<div class="taghead"><span class="tag acc">Poll · ' + kind(p) + '</span>' + (o.round > 1 ? '<span class="roundtag">Round ' + o.round + '</span>' : '') + '</div>';
+    const opts = p.opts.map((t, i) => {
+      const on = picks.includes(i), ok = o.answer && p.correct === i;
+      const dis = phase === 'draft' || (choosing && full && !on);
+      const ro_ = !choosing && phase !== 'draft';
+      return '<button type="button" class="popt' + (on ? ' on' : '') + (ok ? ' good' : '') + (ro_ ? ' ro' : '') + '" role="' + (multi ? 'checkbox' : 'radio') + '" aria-checked="' + on + '"' + (dis ? ' disabled' : '') + (ro_ ? ' aria-disabled="true" tabindex="-1"' : '') + ' data-opt="' + i + '">' +
+        (o.showRes ? '<span class="pf" style="width:' + pct(counts[i], n) + '%"></span>' : '') + '<span class="mk"></span><span class="t">' + t + (ok || (on && mine) ? '<span class="tg">' + (on && mine ? '<em class="you">You</em>' : '') + (ok ? '<em class="cor">Correct</em>' : '') + '</span>' : '') + '</span>' +
+        (o.showRes ? '<span class="pp">' + pct(counts[i], n) + '%</span>' : '') + '</button>';
+    }).join('');
+    let foot;
+    if (o.foot === 'conflict') {
+      foot = '<div class="conf"><b>' + WHO + ' started round ' + (o.round || 2) + '. Send this pick again?</b><div class="btnrow"><button type="button" class="sbtn sm" data-act="send">Send it</button><button type="button" class="sbtn ghost sm" data-act="clear">Clear</button></div></div>';
+    } else if (o.foot === 'offline') {
+      foot = '<div class="sent wait">Not sent yet</div><div class="res-note">Your pick is kept on this phone. It sends by itself when the connection is back.</div>';
+    } else if (phase === 'draft') {
+      foot = '<div class="res-note">' + WHO + ' hasn\'t opened this poll yet. It opens by itself, so keep this page open.</div>';
+    } else if (phase === 'open' && !o.sent) {
+      foot = multi
+        ? '<div class="pc-hint"><span>' + picks.length + ' of ' + p.max + ' picked</span><span>You can change it later</span></div><button type="button" class="sbtn" data-act="send"' + (picks.length ? '' : ' disabled') + '>Send answer</button>'
+        : '<div class="res-note" style="text-align:center"><b style="font:600 13px/1.3 var(--ui);color:var(--sw-ink)">Tap an answer to send it.</b><br>You can change it while the poll is open.</div>';
+    } else if (phase === 'open') {
+      foot = '<div class="sent">' + tick + 'Answer sent</div>' +
+        (o.showRes ? '<div class="pc-hint"><span><span data-n>' + n + '</span> answers so far</span><span>Still open</span></div>' : '<div class="res-note">Results show here and on the big screen when ' + WHO + ' closes the poll.</div>') +
+        (multi ? '<button type="button" class="sbtn ghost" data-act="change">Change my answer</button>' : '<div class="pc-hint" style="justify-content:center"><span>Tap another option to change it</span></div>');
+    } else {
+      foot = '<div class="pc-hint"><span>Poll closed</span><span>' + n + ' answers</span></div>';
+      if (o.answer && picks.length) foot += picks.includes(p.correct) ? '<div class="verdict good">You got it.</div>' : '<div class="verdict miss">Not this time. The answer was “' + p.opts[p.correct] + '”.</div>';
+      else if (!picks.length) foot += '<div class="res-note">' + (o.foot === 'late' ? 'You joined after this poll closed.' : 'You didn\'t send an answer for this one.') + '</div>';
+    }
+    return '<div class="activity pc">' + head + '<b>' + p.q + '</b><div class="popts" role="' + (multi ? 'group' : 'radiogroup') + '" aria-label="Options">' + opts + '</div><div class="pc-foot">' + foot + '</div></div>';
+  }
+  const shell = (inner, chip, pre, ft) => sbar + '<div class="pbody">' + (pre || '') + top(chip || liveChip) + inner + (ft || pfootP) + '</div>' + urlbar;
+
+  const P = POLLS;
+  const PHONE = {
+    choose: () => shell(pollCard(P.one, {})),
+    picked: () => shell(pollCard(P.multi, { picks: [0] })),
+    multi: () => shell(pollCard(P.multi, { picks: [0, 3] })),
+    'sent-live': () => shell(pollCard(P.one, { picks: [1], sent: true, showRes: true, n: 38, counts: [7, 17, 10, 4] })),
+    'sent-hidden': () => shell(pollCard(P.one, { picks: [1], sent: true })),
+    closed: () => shell(pollCard(P.one, { phase: 'closed', picks: [1], sent: true, showRes: true, n: 41, counts: [8, 18, 11, 4] })),
+    correct: () => shell(pollCard(P.quiz, { phase: 'closed', picks: [0], sent: true, showRes: true, n: 40, counts: [22, 9, 5, 4], answer: true })),
+    miss: () => shell(pollCard(P.quiz, { phase: 'closed', picks: [1], sent: true, showRes: true, n: 40, counts: [22, 9, 5, 4], answer: true })),
+    conflict: () => shell(pollCard(P.one, { picks: [2], round: 2, foot: 'conflict' })),
+    offline: () => shell(pollCard(P.one, { picks: [1], foot: 'offline' }), '<span class="live amber">Offline</span>', '<div class="banner amber"><span class="spin"></span>Reconnecting… your pick is safe.</div>'),
+    wait: () => shell(pollCard(P.one, { phase: 'draft' })),
+    named: () => sbar + '<div class="pbody">' + top(liveChip) + pollCard(P.one, {}) + '</div><div class="sheet-dim"></div><div class="sheet"><div class="grab"></div><h4>This poll shows names</h4>' +
+      '<div class="warnline"><span>⚑</span><span>' + WHO + ' will see which option each person picked. Other polls in this talk stay private.</span></div>' +
+      '<input class="nick" value="Priya" aria-label="Your name"><button class="pbtn" type="button">Answer as Priya</button><button class="pbtn ghost" type="button" style="min-height:44px;font-size:14px">Skip this poll</button></div>'
+  };
+  document.querySelectorAll('[data-pstate]').forEach(el => { el.innerHTML = PHONE[el.dataset.pstate](); });
+
+  // ---------- presenter's phone remote (SW-4) ----------
+  document.getElementById('remote').innerHTML = sbar + '<div class="rem">' +
+    '<div class="rlab"><span>Slide 4 of 6</span><span>12:40</span></div>' +
+    '<div class="mirror"><div class="frame" data-mount="poll"></div></div>' +
+    '<div class="strip"><div class="row"><span class="pp-state open">Open</span><b>38</b><span style="color:var(--pw-muted);font-size:12px">answers · 93% of 41</span></div>' +
+    '<div class="btns"><span class="stop">Close</span><span>Reveal</span><span>New round</span></div></div>' +
+    '<div class="rlab"><span>Notes</span></div><div style="font-size:13px;line-height:1.45;color:#e2e8f0">Give it twenty seconds. Read the two biggest bars out loud, then ask who picked "over 1,000".</div>' +
+    '<div class="bignext">Next ▶</div></div>';
+  hydrate(document.getElementById('remote'));
+
+  // ---------- live demo ----------
+  const SL = [2, 3, 4];
+  const $ = (id) => document.getElementById(id);
+  const dSlide = $('dSlide'), dPanel = $('dPanel'), dPhone = $('dPhone'), dType = $('dType'), dVis = $('dVis'), dAuto = $('dAuto');
+  const fresh = () => ({ i: 0, type: dType.value, vis: dVis.value, auto: dAuto.checked, phase: 'draft', round: 1, counts: [], n: 0, room: 0, joined: 41, revealed: false, answer: false, picks: [], sent: false, sentPicks: [], conflict: false, hist: [] });
+  let D = fresh(); let timer = null; let lastPhone = '';
+  const poll = () => POLLS[D.type];
+  const onPoll = () => SL[D.i] === 3;
+  const screenShows = () => D.phase === 'closed' || D.revealed || D.vis === 'live';
+  const phoneShows = () => D.phase === 'closed' || (D.sent && (D.vis !== 'close' || D.revealed));
+  const visLabel = { live: 'results live', voted: 'results after answering', close: 'results after close' };
+
+  function zero() { D.counts = poll().opts.map(() => 0); D.n = 0; D.room = 0; }
+  function roomVote() {
+    const p = poll();
+    const pickW = (skip) => { const w = p.w.map((x, i) => i === skip ? 0 : x); let r = Math.random() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; } return 0; };
+    const a = pickW(-1); D.counts[a]++;
+    if (p.max && Math.random() < .7) D.counts[pickW(a)]++;
+    D.n++; D.room++;
+  }
+  function run() {
+    clearTimeout(timer);
+    if (D.phase !== 'open') return;
+    if (D.room < 37) { roomVote(); if (D.room < 37 && Math.random() < .4) roomVote(); paintCounts(); }
+    timer = setTimeout(run, 320 + Math.random() * 620);
+  }
+  function open() { if (!D.counts.length) zero(); D.phase = 'open'; paint(); run(); }
+  function close() { D.phase = 'closed'; clearTimeout(timer); if (!D.sent) D.picks = [...D.sentPicks]; D.conflict = false; paint(); }
+  function newRound() {
+    D.hist.push({ round: D.round, n: D.n }); D.round++; zero(); D.revealed = false; D.answer = false;
+    D.conflict = !D.sent && D.picks.length > 0;
+    if (!D.conflict) D.picks = [];
+    D.sent = false; D.sentPicks = [];
+    if (D.auto) { D.phase = 'open'; paint(); run(); } else { D.phase = 'draft'; paint(); }
+  }
+  function send() {
+    if (D.phase !== 'open' || !D.picks.length) return;
+    D.sentPicks.forEach(i => D.counts[i]--); if (!D.sentPicks.length) D.n++;
+    D.picks.forEach(i => D.counts[i]++);
+    D.sentPicks = [...D.picks]; D.sent = true; D.conflict = false; paint();
+  }
+
+  function panelHTML() {
+    const p = poll();
+    if (!onPoll()) {
+      if (D.phase === 'closed') return '<div class="pp-empty">No poll on this slide.<br><b>Slide 4:</b> closed with ' + D.n + ' answers.</div>';
+      return '<div class="pp-empty">No poll on this slide.<br><b>Next poll: slide 4.</b> ' + (D.auto ? 'It opens when you get there.' : 'You open it by hand.') + '</div>';
+    }
+    const st = { draft: 'Draft', open: 'Open', closed: 'Closed' }[D.phase];
+    const bars = p.opts.map((t, i) => '<div class="pp-row' + (D.answer && p.correct === i ? ' ok' : '') + '"><span>' + t + '</span><span class="tr"><i style="width:' + pct(D.counts[i] || 0, D.n) + '%"></i></span><span class="c">' + (D.counts[i] || 0) + '</span></div>').join('');
+    let btns = '';
+    if (D.phase === 'draft') btns = '<button class="tbtn go" data-do="open">Open poll</button>';
+    else if (D.phase === 'open') btns = '<button class="tbtn stop" data-do="close">Close poll</button>' + (!screenShows() ? '<button class="tbtn" data-do="reveal">Reveal results</button>' : '');
+    else btns = (p.correct != null && !D.answer ? '<button class="tbtn go" data-do="answer">Show answer</button>' : '') + '<button class="tbtn" data-do="round">New round</button>';
+    const room = D.phase === 'draft' ? 'The room sees the question with empty bars.' : screenShows() ? 'The room sees these results.' : 'The room sees only the answer count.';
+    const hist = D.hist.length ? '<div class="pp-hist">' + D.hist.map(h => 'Round ' + h.round + ': ' + h.n + ' answers, kept').join(' · ') + '</div>' : '';
+    return '<div class="pp-h"><span class="pp-state ' + D.phase + '">' + st + '</span><span class="pp-round">round ' + D.round + '</span><span class="pp-cfg">' + kind(p) + ' · ' + visLabel[D.vis] + '</span></div>' +
+      '<div class="pp-n"><b data-n>' + D.n + '</b><span>answers</span><span class="rate" data-rate>' + pct(D.n, D.joined) + '% of ' + D.joined + ' joined</span></div>' +
+      '<div class="pp-bars">' + bars + '</div><div class="pp-room">' + room + '</div><div class="pp-btns">' + btns + '</div>' + hist;
+  }
+  function phoneHTML() {
+    if (!onPoll()) return shell('<div class="mirror"><div class="frame" data-mount="' + SL[D.i] + '"></div></div>' + meta(SL[D.i]) + waitCard, null, null, gfoot);
+    return shell(pollCard(poll(), { phase: D.phase, picks: D.picks, sent: D.sent, showRes: phoneShows(), counts: D.counts, n: D.n, answer: D.answer, round: D.round, foot: D.conflict ? 'conflict' : undefined }));
+  }
+  const NOTES = ['Three numbers, one sentence each. Then say: "let\'s see where this room is."', 'Give it twenty seconds. Read the two biggest bars out loud, then ask who picked the last option.', 'Pause after "every day". Let it land.'];
+
+  function paint() {
+    const idx = SL[D.i];
+    setFrame(dSlide, onPoll() ? pollSlide(poll(), { phase: D.phase, n: D.n, counts: D.counts, show: screenShows(), answer: D.answer, round: D.round }) : slideHTML(idx));
+    $('dPos').textContent = $('dCount').textContent = (idx + 1) + ' / ' + N;
+    $('dBar').style.width = ((idx + 1) / N * 100) + '%';
+    $('dPrev').disabled = D.i === 0; $('dNext').disabled = D.i === SL.length - 1;
+    $('dNotes').textContent = NOTES[D.i];
+    dPanel.innerHTML = panelHTML();
+    const frozen = D.phase === 'open';
+    dType.disabled = dVis.disabled = frozen;
+    $('dFrozen').textContent = frozen ? 'The type and results setting are frozen while the poll is open.' : D.phase === 'closed' ? 'Changing a setting now starts the demo poll over as a draft.' : '';
+    dPhone.innerHTML = phoneHTML(); hydrate(dPhone);
+    const key = onPoll() ? 'poll' : 'slide' + D.i;
+    if (key !== lastPhone) { dPhone.classList.remove('fade'); void dPhone.offsetWidth; dPhone.classList.add('fade'); lastPhone = key; }
+  }
+  // in-place update, so bars animate and the phone keeps focus
+  function paintCounts() {
+    if (!onPoll()) return;
+    const show = screenShows();
+    dSlide.querySelectorAll('.prow').forEach((r, i) => { if (show) { r.querySelector('.ptrack i').style.width = pct(D.counts[i], D.n) + '%'; r.querySelector('.ppct').textContent = pct(D.counts[i], D.n) + '%'; } });
+    const nb = dSlide.querySelector('.pn b'); if (nb) nb.textContent = D.n;
+    dPanel.querySelectorAll('.pp-row').forEach((r, i) => { r.querySelector('.tr i').style.width = pct(D.counts[i], D.n) + '%'; r.querySelector('.c').textContent = D.counts[i]; });
+    const pn = dPanel.querySelector('[data-n]'); if (pn) pn.textContent = D.n;
+    const rate = dPanel.querySelector('[data-rate]'); if (rate) rate.textContent = pct(D.n, D.joined) + '% of ' + D.joined + ' joined';
+    if (phoneShows()) {
+      dPhone.querySelectorAll('.popt').forEach((b, i) => { const f = b.querySelector('.pf'), t = b.querySelector('.pp'); if (f) f.style.width = pct(D.counts[i], D.n) + '%'; if (t) t.textContent = pct(D.counts[i], D.n) + '%'; });
+      const n = dPhone.querySelector('[data-n]'); if (n) n.textContent = D.n;
+    }
+  }
+  function go(to) {
+    if (to < 0 || to >= SL.length || to === D.i) return;
+    if (onPoll() && D.phase === 'open') { D.phase = 'closed'; clearTimeout(timer); if (!D.sent) D.picks = [...D.sentPicks]; D.conflict = false; }
+    D.i = to;
+    if (onPoll() && D.phase === 'draft' && D.auto) { open(); return; }
+    paint();
+  }
+  $('dPrev').onclick = () => go(D.i - 1);
+  $('dNext').onclick = () => go(D.i + 1);
+  dPanel.addEventListener('click', e => {
+    const b = e.target.closest('[data-do]'); if (!b) return;
+    ({ open, close, round: newRound, reveal: () => { D.revealed = true; paint(); }, answer: () => { D.answer = true; paint(); } })[b.dataset.do]();
+  });
+  dPhone.addEventListener('click', e => {
+    const opt = e.target.closest('[data-opt]'), act = e.target.closest('[data-act]');
+    if (opt && D.phase === 'open' && (!poll().max || !D.sent) && !opt.disabled) {
+      const i = +opt.dataset.opt, p = poll();
+      if (p.max) { D.picks = D.picks.includes(i) ? D.picks.filter(x => x !== i) : D.picks.length < p.max ? [...D.picks, i] : D.picks; }
+      else { D.picks = [i]; send(); return; }
+      paint();
+    } else if (act) {
+      if (act.dataset.act === 'send') send();
+      if (act.dataset.act === 'change') { D.sent = false; paint(); }
+      if (act.dataset.act === 'clear') { D.picks = []; D.conflict = false; paint(); }
+    }
+  });
+  function restart(keepSlide) { clearTimeout(timer); const i = keepSlide ? D.i : 0; D = fresh(); D.i = i; lastPhone = ''; if (onPoll() && D.auto) open(); else paint(); }
+  dType.onchange = dVis.onchange = () => restart(true);
+  dAuto.onchange = () => { D.auto = dAuto.checked; if (onPoll() && D.phase === 'draft' && D.auto) open(); else paint(); };
+  $('dReset').onclick = () => { dType.value = 'one'; dVis.value = 'live'; dAuto.checked = true; restart(false); };
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input, textarea, select, button')) return;
+    const r = $('demo').getBoundingClientRect();
+    if (r.top > innerHeight || r.bottom < 0) return;
+    if (e.key === 'ArrowRight') go(D.i + 1);
+    if (e.key === 'ArrowLeft') go(D.i - 1);
+    if (!onPoll()) return;
+    if (e.key === 'o' || e.key === 'O') { if (D.phase === 'draft') open(); else if (D.phase === 'open') close(); }
+    if ((e.key === 'r' || e.key === 'R') && D.phase === 'open' && !screenShows()) { D.revealed = true; paint(); }
+  });
+  paint();
+
+  // ---------- questions: local state until "Queue answer" ----------
+  document.querySelectorAll('form.q').forEach(form => {
+    const state = form.querySelector('.state');
+    form.addEventListener('change', () => { if (state.classList.contains('queued')) { state.textContent = 'Changed since queued. Queue again to replace.'; state.classList.remove('queued'); } });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const key = form.dataset.lavishQuestion;
+      const title = form.querySelector('h3').textContent.trim();
+      const fd = new FormData(form);
+      const note = (fd.get('note') || '').toString().trim();
+      const answer = (fd.get('a') || '').toString();
+      const data = { question: key, answer }; if (note) data.note = note;
+      const prompt = 'SW-6 mockups, ' + title + ' → ' + answer + (note ? '. Note: ' + note : '') + '. Record this as a decision on SW-6 and update the mockups if it changes them.';
+      if (window.lavish && window.lavish.queuePrompt) {
+        window.lavish.queuePrompt(prompt, { tag: 'choice', text: title + ': ' + answer, element: form, queueKey: key, data });
+        state.textContent = 'Queued. Press Send to agent in the Lavish bar.';
+      } else {
+        state.textContent = 'Lavish is not running. Use "Copy all answers" below.';
+      }
+      state.classList.add('queued');
+    });
+  });
+  document.getElementById('copyAll').addEventListener('click', async () => {
+    const out = [...document.querySelectorAll('form.q')].map(f => {
+      const fd = new FormData(f); const note = (fd.get('note') || '').toString().trim();
+      return f.querySelector('h3').textContent.trim() + ': ' + fd.get('a') + (note ? ' (note: ' + note + ')' : '');
+    }).join('\n');
+    const st = document.getElementById('copyStatus');
+    try { await navigator.clipboard.writeText(out); st.textContent = 'Answers copied.'; }
+    catch { const t = document.createElement('textarea'); t.value = out; t.rows = 9; t.readOnly = true; document.querySelector('.copyall').appendChild(t); t.select(); st.textContent = 'Clipboard blocked. Copy the answers below.'; }
+  });
+})();
+</script>
+</body>
+</html>

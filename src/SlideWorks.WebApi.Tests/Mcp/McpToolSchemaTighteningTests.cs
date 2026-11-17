@@ -17,7 +17,7 @@ namespace SlideWorks.WebApi.Tests.Mcp;
 [CancelAfter(60000)]
 public class McpToolSchemaTighteningTests : ApiTestFixture
 {
-    private const int TOOLS = 17;
+    private const int TOOLS = 18;
 
     private readonly TighteningLog _log = new();
 
