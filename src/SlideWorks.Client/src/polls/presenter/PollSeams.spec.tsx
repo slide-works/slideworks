@@ -82,7 +82,7 @@ test('the panel stub shows the phase from the control fixture, and says when the
       <PollPanel deckId="deck-1" />
     </PollControlFixture>,
   );
-  await expect(page.getByTestId(POLL_PANEL_TEST_IDS.state)).toHaveText('closed');
+  await expect(page.getByTestId(POLL_PANEL_TEST_IDS.state)).toHaveText('Closed');
   await panel.update(
     <PollControlFixture deckId="deck-1" control={null}>
       <PollPanel deckId="deck-1" />
