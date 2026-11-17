@@ -22,6 +22,9 @@ const strip = (
   </PollControlFixture>
 );
 
+// Room above the strip for an error laid over it.
+const room = (node: React.JSX.Element) => <div style={{ marginTop: 200 }}>{node}</div>;
+
 // Exactly these controls are on the page, in no other phase's company.
 async function expectControls(page: Page, shown: string[]) {
   for (const id of ALL) await expect(page.getByTestId(id)).toHaveCount(shown.includes(id) ? 1 : 0);
@@ -324,13 +327,13 @@ test('a dismissed error shows again when the same one arrives after the error cl
   page,
 }) => {
   const message = "Couldn't load this slide's poll. Check your connection.";
-  const component = await mount(strip(pollControlView('open'), { error: message }));
+  const component = await mount(room(strip(pollControlView('open'), { error: message })));
   await page.getByRole('button', { name: 'Dismiss this message' }).click();
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
 
-  await component.update(strip(pollControlView('open'), { error: null }));
+  await component.update(room(strip(pollControlView('open'), { error: null })));
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
-  await component.update(strip(pollControlView('open'), { error: message }));
+  await component.update(room(strip(pollControlView('open'), { error: message })));
   await expect(page.getByTestId(IDS.error)).toHaveText(message);
 });
 
