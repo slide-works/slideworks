@@ -41,7 +41,7 @@ export function NavButtons({ previous, next, disabled, onPrevious, onNext, nextR
         aria-label={next ? `Next: ${next}` : 'Next: at the end of the deck'}
         disabled={disabled || next === null}
         onClick={onNext}
-        className="grid h-14 place-items-center rounded-2xl bg-indigo-600 text-base font-semibold text-white focus-visible:outline-2 focus-visible:outline-indigo-300 active:scale-[.98] disabled:opacity-40 motion-reduce:active:scale-100"
+        className="grid h-14 place-items-center rounded-2xl bg-[#3b5bdb] text-base font-semibold text-white focus-visible:outline-2 focus-visible:outline-indigo-300 active:scale-[.98] disabled:opacity-40 motion-reduce:active:scale-100"
       >
         Next
       </button>
