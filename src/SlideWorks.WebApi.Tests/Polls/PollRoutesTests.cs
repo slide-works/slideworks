@@ -135,6 +135,24 @@ public class PollRoutesTests : ApiTestFixture
         Polls.CallsFor(deck).ShouldBeEmpty();
     }
 
+    // The presenter's routes are not anonymous: a caller with no sign-in meets the sign-in gate, never the seam.
+    [TestCase("GET", "")]
+    [TestCase("POST", "/open")]
+    [TestCase("POST", "/close")]
+    [TestCase("POST", "/reveal")]
+    [TestCase("POST", "/answer")]
+    [TestCase("POST", "/round")]
+    public async Task PollRoute_WhenNotSignedIn_ShouldReturn401AndCallNothing(string method, string route)
+    {
+        var deck = await PollDeckAsync();
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        var response = await anonymous.SendAsync(new HttpRequestMessage(new HttpMethod(method), $"/api/decks/{deck}/polls/{SLIDE}{route}"));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        Polls.CallsFor(deck).ShouldBeEmpty();
+    }
+
     // One test per refusal code (V4): each reaches the wire as 409 { "error": code }.
     [TestCase(PollRefusals.NOT_LIVE)]
     [TestCase(PollRefusals.WRONG_PHASE)]

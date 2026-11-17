@@ -7,6 +7,7 @@ using SlideWorks.Core.Polls;
 using SlideWorks.WebApi.Features.Join;
 using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Polls.Contracts;
+using SlideWorks.WebApi.Infrastructure.RateLimits;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Polls;
@@ -30,8 +31,14 @@ public class JoinPollRoutesTests : ApiTestFixture
 
     private FakePollAnswers Answers => Factory.Services.GetRequiredService<FakePollAnswers>();
 
+    // A code of the test's own, and a new window of the join-code limit: every request here comes from the same address, so the
+    // misses earlier tests made would otherwise count against this one.
     [SetUp]
-    public void NewCode() => _code = Random.Shared.Next(100000, 1000000).ToString(System.Globalization.CultureInfo.InvariantCulture);
+    public void NewCodeAndWindow()
+    {
+        _code = NewCode();
+        Clock.Advance(TimeSpan.FromMinutes(2));
+    }
 
     [TearDown]
     public void AcceptAgain() => Answers.Reset();
@@ -186,6 +193,10 @@ public class JoinPollRoutesTests : ApiTestFixture
     [TestCase("""{"round":7,"picks":[1],"revision":0}""", AnswerBody.BODY_INVALID)]
     [TestCase("""{"round":"r","picks":[1],"revision":1.5}""", AnswerBody.BODY_INVALID)]
     [TestCase("""[1]""", AnswerBody.BODY_INVALID)]
+    [TestCase("""{"round":null,"picks":[1],"revision":0}""", AnswerBody.ROUND_REQUIRED)]
+    [TestCase("""{"round":"r","picks":[1],"revision":null}""", AnswerBody.REVISION_REQUIRED)]
+    [TestCase("""{"round":"r","picks":[0,1,2,3,4,5,6,7,8],"revision":0}""", AnswerBody.TOO_MANY_PICKS)]
+    [TestCase("""{"round":"r","picks":[0,1,2,3,4,5,6,7,"x"],"revision":0}""", AnswerBody.TOO_MANY_PICKS)]
     public async Task Answer_WhenBodyBreaksItsShape_ShouldReturn400NamingTheRuleAndSubmitNothing(string json, string error)
     {
         await using var guest = await GuestClient.ConnectAsync(Factory);
@@ -197,6 +208,129 @@ public class JoinPollRoutesTests : ApiTestFixture
         JsonShape.AssertMatches(body, Example("poll-answer.json").GetProperty("noGuest"), "an error body");
         body.GetProperty("error").GetString().ShouldBe(error);
         Answers.SubmittedFor(_code).ShouldBeEmpty();
+    }
+
+    // AnswerBody ignores a member it doesn't know: the answer goes through as if it weren't there.
+    [Test]
+    public async Task Answer_WhenBodyHasAnUnknownMember_ShouldIgnoreIt()
+    {
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+
+        var response = await guest.AnswerAsync(_code, JsonSerializer.Deserialize<JsonElement>("""{"round":"r","picks":[2],"revision":3,"extra":"x"}"""));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var submitted = Answers.SubmittedFor(_code).ShouldHaveSingleItem();
+        submitted.Request.Round.ShouldBe("r");
+        submitted.Request.Picks.ShouldBe([2]);
+        submitted.Request.Revision.ShouldBe(3);
+    }
+
+    // Text that isn't JSON gets V5's { error } like every other body failure, and nothing is submitted.
+    [Test]
+    public async Task Answer_WhenBodyIsNotJson_ShouldReturn400BodyInvalidAndSubmitNothing()
+    {
+        using var client = RawClient();
+        using var request = AnswerRequestTo(TestAppFactory.PUBLIC_URL, TestAppFactory.PUBLIC_URL);
+        request.Content = new StringContent("round=r&picks=1", System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.SendAsync(request);
+        var body = await BodyAsync(response);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        body.GetProperty("error").GetString().ShouldBe(AnswerBody.BODY_INVALID);
+        Answers.SubmittedFor(_code).ShouldBeEmpty();
+    }
+
+    // A real answer is under 100 bytes; a body over AnswerBody.MAX_BYTES is refused before it is read.
+    [Test]
+    public async Task Answer_WhenBodyIsOverTheSizeLimit_ShouldReturn413AndSubmitNothing()
+    {
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+
+        var response = await guest.AnswerAsync(_code, new AnswerRequest(new string('r', AnswerBody.MAX_BYTES), [1], 0));
+
+        var body = await BodyAsync(response);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.RequestEntityTooLarge);
+        body.GetProperty("error").GetString().ShouldBe(AnswerBody.TOO_LARGE);
+        Answers.SubmittedFor(_code).ShouldBeEmpty();
+    }
+
+    // J3, D20 on the guest poll routes: a code with no session is a miss, and once a caller's misses are used up every poll
+    // request is 429 too_many_attempts, a real code included, so the poll is never read.
+    [Test]
+    public async Task GetPoll_WhenCallerGuessesUnknownCodes_ShouldRefuseWith429AfterTheLimitEvenForARealCode()
+    {
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        Answers.SetView(_code, Answered());
+        for (var i = 0; i < JoinLookupLimiter.MAX_MISSES; i++)
+        {
+            (await guest.GetPollAsync(NewCode())).StatusCode.ShouldBe(HttpStatusCode.NotFound, $"miss {i + 1}");
+        }
+
+        var refused = await guest.GetPollAsync(_code);
+
+        refused.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        (await refused.Content.ReadAsStringAsync()).ShouldBe("""{"error":"too_many_attempts"}""");
+    }
+
+    [Test]
+    public async Task Answer_WhenCallerGuessesUnknownCodes_ShouldRefuseWith429AfterTheLimitAndSubmitNothing()
+    {
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        Answers.Answer(_ => new AnswerResult.NoSession());
+        for (var i = 0; i < JoinLookupLimiter.MAX_MISSES; i++)
+        {
+            (await guest.AnswerAsync(_code, new AnswerRequest(ROUND, [1], 0))).StatusCode.ShouldBe(HttpStatusCode.NotFound, $"miss {i + 1}");
+        }
+
+        var refused = await guest.AnswerAsync(_code, new AnswerRequest(ROUND, [1], 0));
+
+        refused.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        (await refused.Content.ReadAsStringAsync()).ShouldBe("""{"error":"too_many_attempts"}""");
+        Answers.SubmittedFor(_code).Count.ShouldBe(JoinLookupLimiter.MAX_MISSES);
+    }
+
+    // A known code never counts: a room behind one address reads and answers as often as it likes, and still has its whole
+    // miss budget afterwards.
+    [Test]
+    public async Task PollRoutes_WhenCodeIsKnown_ShouldNeverCountAMiss()
+    {
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        Answers.SetView(_code, Answered());
+        for (var i = 0; i < 3 * JoinLookupLimiter.MAX_MISSES; i++)
+        {
+            (await guest.GetPollAsync(_code)).StatusCode.ShouldBe(HttpStatusCode.OK, $"read {i + 1}");
+            (await guest.AnswerAsync(_code, new AnswerRequest(ROUND, [1], i))).StatusCode.ShouldBe(HttpStatusCode.OK, $"answer {i + 1}");
+        }
+
+        for (var i = 0; i < JoinLookupLimiter.MAX_MISSES; i++)
+        {
+            (await guest.GetPollAsync(NewCode())).StatusCode.ShouldBe(HttpStatusCode.NotFound, $"miss {i + 1}");
+        }
+        (await guest.GetPollAsync(_code)).StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+    }
+
+    // One budget per caller: misses on the guest poll routes and on GET /api/join/{code} add up, and once they are used up
+    // both refuse.
+    [Test]
+    public async Task PollRoutesAndJoinLookup_WhenCallerMissesOnBoth_ShouldShareOneBudget()
+    {
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        using var anonymous = ClientFor(TestUser.Anonymous);
+        Answers.SetView(_code, Answered());
+        for (var i = 0; i < JoinLookupLimiter.MAX_MISSES / 2; i++)
+        {
+            (await anonymous.GetAsync($"/api/join/{NewCode()}")).StatusCode.ShouldBe(HttpStatusCode.NotFound, $"join miss {i + 1}");
+            (await guest.GetPollAsync(NewCode())).StatusCode.ShouldBe(HttpStatusCode.NotFound, $"poll miss {i + 1}");
+        }
+
+        var joinRefused = await anonymous.GetAsync($"/api/join/{NewCode()}");
+        var pollRefused = await guest.GetPollAsync(_code);
+
+        joinRefused.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        pollRefused.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        (await pollRefused.Content.ReadAsStringAsync()).ShouldBe(await joinRefused.Content.ReadAsStringAsync());
     }
 
     [Test]
@@ -239,6 +373,8 @@ public class JoinPollRoutesTests : ApiTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         Answers.SubmittedFor(_code).ShouldBeEmpty();
     }
+
+    private static string NewCode() => Random.Shared.Next(100000, 1000000).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     // A browser with a guest cookie but no Origin header of the fixture's own, so each test sets the Origin it means.
     private HttpClient RawClient() => Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });

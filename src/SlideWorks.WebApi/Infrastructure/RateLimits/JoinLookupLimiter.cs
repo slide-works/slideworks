@@ -73,6 +73,46 @@ public sealed class JoinLookupLimiter(TimeProvider clock) : IJoinLookupLimiter
     // The lookup found a session: it is settled and counts for nothing.
     public void Hit(string callerKey) => Settle(callerKey, misses: 0);
 
+    // True once the caller's misses in the current window are used up, as Allow decides it; registers nothing in flight.
+    public bool OverMissLimit(string callerKey)
+    {
+        var now = clock.GetUtcNow();
+        SweepEndedWindows(now);
+        return _windows.TryGetValue(callerKey, out var current) && now - current.Start < WINDOW && current.Misses >= MAX_MISSES;
+    }
+
+    // Counts a miss with no lookup in flight to settle. A window that has ended starts a new one, carrying lookups still in
+    // flight as Allow does, but adding none.
+    public void RecordMiss(string callerKey)
+    {
+        var now = clock.GetUtcNow();
+        while (true)
+        {
+            if (!_windows.TryGetValue(callerKey, out var current))
+            {
+                if (_windows.TryAdd(callerKey, new Window(now, 1, 0, 0)))
+                {
+                    return;
+                }
+                continue;
+            }
+            var next = now - current.Start >= WINDOW
+                ? CarriedInto(now, current) with { Misses = 1 }
+                : current with { Misses = current.Misses + 1 };
+            if (_windows.TryUpdate(callerKey, next, current))
+            {
+                return;
+            }
+        }
+    }
+
+    // A new window from one that has ended, with its lookups still in flight carried over, except those already carried once.
+    private static Window CarriedInto(DateTimeOffset now, Window ended)
+    {
+        var carried = Math.Min(Math.Max(0, ended.InFlight - ended.Carried), MAX_IN_FLIGHT);
+        return new Window(now, 0, carried, carried);
+    }
+
     private void Settle(string callerKey, int misses)
     {
         while (_windows.TryGetValue(callerKey, out var current))
