@@ -44,6 +44,11 @@ export interface DeckConnectionLease {
   onUp(listener: () => void): () => void;
   // Called each time an up connection goes down (SignalR is reconnecting, or it closed).
   onDown(listener: () => void): () => void;
+  // Counts this lease as a member of a hub group (such as "deck:{id}") on the shared connection, so two parts of a page
+  // in the same group don't leave it under each other. Returns the function that takes the membership back, which says
+  // whether the caller should now send the group's Leave call: true when this was the group's last member and another
+  // lease keeps the connection open. When the connection closes instead, the server drops its groups by itself.
+  member(group: string): () => boolean;
   // Gives the lease back. The connection closes when the last lease is given back.
   release(): void;
 }
@@ -64,6 +69,7 @@ type Shared = {
   upListeners: Set<() => void>;
   downListeners: Set<() => void>;
   handlers: Map<string, Set<(...args: unknown[]) => void>>;
+  members: Map<string, number>;
 };
 
 const shared = new Map<() => RealtimeConnection, Shared>();
@@ -78,6 +84,7 @@ function open(connect: () => RealtimeConnection, retryDelaysMs: readonly number[
     upListeners: new Set(),
     downListeners: new Set(),
     handlers: new Map(),
+    members: new Map(),
   };
   const goUp = () => {
     if (hub.stopped) return;
@@ -171,6 +178,24 @@ export function acquireDeckConnection({
       current.downListeners.add(wrapped);
       return track(() => current.downListeners.delete(wrapped));
     },
+    member(group) {
+      current.members.set(group, (current.members.get(group) ?? 0) + 1);
+      let counted = true;
+      const leave = () => {
+        if (!counted) return false;
+        counted = false;
+        const left = (current.members.get(group) ?? 1) - 1;
+        if (left > 0) current.members.set(group, left);
+        else current.members.delete(group);
+        return left === 0 && !released && current.leases > 1;
+      };
+      const tracked = track(() => void leave());
+      return () => {
+        const last = leave();
+        tracked();
+        return last;
+      };
+    },
     release() {
       if (released) return;
       released = true;
@@ -186,7 +211,7 @@ export function acquireDeckConnection({
 }
 
 // A lease taken on first use, so a component can hold one from its first render without a side effect there. Listening
-// (on, onUp, onDown) takes the lease; invoke before that rejects, and release gives it back, after which the next use
+// (on, onUp, onDown, member) takes the lease; invoke before that rejects, and release gives it back, after which the next use
 // takes a new one.
 function lazyLease(): DeckConnectionLease {
   let lease: DeckConnectionLease | undefined;
@@ -200,6 +225,7 @@ function lazyLease(): DeckConnectionLease {
     on: (method, handler) => take().on(method, handler),
     onUp: (listener) => take().onUp(listener),
     onDown: (listener) => take().onDown(listener),
+    member: (group) => take().member(group),
     release() {
       lease?.release();
       lease = undefined;

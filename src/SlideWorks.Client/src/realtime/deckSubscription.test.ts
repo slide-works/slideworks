@@ -202,4 +202,40 @@ describe('subscribeToDeck', () => {
 
     expect(received).toEqual([changed]);
   });
+  it('leaves the deck when its last subscription stops while the connection stays open', async () => {
+    const hub = fakeConnection();
+    const connect = () => hub.connection;
+    const other = 'otherDeck0099';
+    const keepOpen = subscribeToDeck(other, () => undefined, { connect });
+    const first = subscribeToDeck(deck, () => undefined, { connect });
+    const second = subscribeToDeck(deck, () => undefined, { connect });
+    await vi.advanceTimersByTimeAsync(0);
+
+    first();
+    expect(hub.spies.invoke).not.toHaveBeenCalledWith('LeaveDeck', deck);
+    second();
+    expect(hub.spies.invoke).toHaveBeenLastCalledWith('LeaveDeck', deck);
+    expect(hub.spies.stop).not.toHaveBeenCalled();
+
+    // The last subscription on the page closes the connection instead: the server drops its groups.
+    keepOpen();
+    expect(hub.spies.invoke).not.toHaveBeenCalledWith('LeaveDeck', other);
+    expect(hub.spies.stop).toHaveBeenCalledOnce();
+  });
+
+  it('keeps going when leaving the deck fails', async () => {
+    const hub = fakeConnection();
+    const connect = () => hub.connection;
+    const received: DeckEvent[] = [];
+    subscribeToDeck(deck, (event) => received.push(event), { connect });
+    const stop = subscribeToDeck('otherDeck0099', () => undefined, { connect });
+    await vi.advanceTimersByTimeAsync(0);
+    hub.spies.invoke.mockRejectedValueOnce(new Error('offline'));
+
+    stop();
+    await vi.advanceTimersByTimeAsync(0);
+    hub.deliver(changed);
+
+    expect(received).toEqual([changed]);
+  });
 });

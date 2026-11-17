@@ -27,13 +27,16 @@ function isDeckEvent(value: unknown): value is DeckEvent {
 // joined again (the server forgets the groups of a dead connection). Events from before a join (before the first one,
 // or while offline) are not replayed, so onJoined says when each join has succeeded and a screen that must not miss a
 // change re-reads then. The returned function stops everything: no more events or joins, and the lease on the
-// connection given back, which closes it (and cancels its retries) when nothing else on the page holds it.
+// connection given back, which closes it (and cancels its retries) when nothing else on the page holds it. When
+// something else keeps the connection open, the page's last subscription to this deck sends LeaveDeck first, so the
+// server stops sending the deck's events to the page.
 export function subscribeToDeck(
   deckId: string,
   onEvent: (event: DeckEvent) => void,
   { onJoined, ...connection }: SubscribeOptions = {},
 ): () => void {
   const lease = acquireDeckConnection(connection);
+  const leaveGroup = lease.member(`deck:${deckId}`);
   let stopped = false;
 
   const join = async () => {
@@ -54,7 +57,10 @@ export function subscribeToDeck(
   });
 
   return () => {
+    if (stopped) return;
     stopped = true;
+    // A failed leave changes nothing the page sees: events are filtered by deckId anyway.
+    if (leaveGroup()) void lease.invoke('LeaveDeck', deckId).catch(() => undefined);
     lease.release();
   };
 }
