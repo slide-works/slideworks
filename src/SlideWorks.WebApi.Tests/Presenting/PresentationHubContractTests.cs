@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Realtime;
+using SlideWorks.WebApi.Realtime.Presenting;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Sharing;
 using SlideWorks.WebApi.Tests.Support;
@@ -16,6 +17,10 @@ namespace SlideWorks.WebApi.Tests.Presenting;
 public class PresentationHubContractTests : ApiTestFixture
 {
     private readonly List<PresentationStates> _connections = [];
+    private readonly DisconnectWatch _disconnects = new();
+
+    protected override Action<IServiceCollection>? ConfigureTestServices
+        => services => services.Configure<HubOptions>(options => options.AddFilter(_disconnects));
 
     [TearDown]
     public async Task DisconnectAsync()
@@ -113,10 +118,10 @@ public class PresentationHubContractTests : ApiTestFixture
         PresentationStates.ClientIds(next).ShouldBe(["k-1"]);
     }
 
-    // Not skipped: DeckHub's CanPresentAsync check refuses a non-owner before the registry is called, so this holds
-    // against the stub and against the real registry. Neither the refused caller nor the owner already joined receives a
-    // state. Both follow the deck's events, and a deck event published after the refusal is the barrier: once each has
-    // received it, any state sent before it has arrived too.
+    // DeckHub's CanPresentAsync check refuses a non-owner before the registry is called. The owner already joined
+    // receives nothing: its next state is its own update's, one seq after its join (order-proof). The refused caller is
+    // in no presentation group, so its check uses a deck-event barrier instead. Deck events come through a background
+    // relay, so that barrier can be an earlier queued event and the check can pass falsely, though it never fails falsely.
     [TestCaseSource(nameof(NonOwners))]
     public async Task JoinPresentation_WhenNotTheOwner_ShouldBeRefusedBeforeAnythingIsSent(TestUser caller, string level, string[] viewers)
     {
@@ -126,17 +131,38 @@ public class PresentationHubContractTests : ApiTestFixture
         var other = await ConnectAsync(caller);
         await owner.Connection.InvokeAsync("JoinDeck", deck);
         await other.Connection.InvokeAsync("JoinDeck", deck);
-        await owner.JoinAsync(deck, "k-1");
+        var joinSeq = (await owner.JoinAsync(deck, "k-1")).GetProperty("state").GetProperty("seq").GetInt64();
         await owner.NextAsync();
 
         var refused = await Should.ThrowAsync<HubException>(() => other.JoinAsync(deck, "k-2"));
         await Factory.Services.GetRequiredService<IDeckEvents>().PublishAsync(new DeckChanged(deck));
-        await owner.NextEventAsync();
         await other.NextEventAsync();
+        await owner.UpdateAsync(deck, 2, 0);
 
         refused.Message.ShouldContain(DeckHub.DECK_NOT_FOUND);
         other.Received().ShouldBeEmpty();
-        owner.Received().ShouldBeEmpty();
+        var next = await owner.NextAsync();
+        next.GetProperty("seq").GetInt64().ShouldBe(joinSeq + 1);
+        PresentationStates.ClientIds(next).ShouldBe(["k-1"]);
+    }
+
+    // A refused join creates nothing: P10's GetAsync still has no state, and the owner's later join starts a new epoch
+    // at its first seq with only the owner listed.
+    [Test]
+    public async Task JoinPresentation_WhenNotTheOwnerAndNoState_ShouldCreateNoState()
+    {
+        var deck = await OwnDeckAsync();
+        var alex = await ConnectAsync(TestUser.Alex);
+        var owner = await ConnectAsync(TestUser.Sam);
+
+        var refused = await Should.ThrowAsync<HubException>(() => alex.JoinAsync(deck, "k-2"));
+        var afterRefusal = await Factory.Services.GetRequiredService<IPresentations>().GetAsync(deck);
+        var state = (await owner.JoinAsync(deck, "k-1")).GetProperty("state");
+
+        refused.Message.ShouldContain(DeckHub.DECK_NOT_FOUND);
+        afterRefusal.ShouldBeNull();
+        state.GetProperty("seq").GetInt64().ShouldBe(1);
+        PresentationStates.ClientIds(state).ShouldBe(["k-1"]);
     }
 
     // D4 puts the per-deck rule for Update and SetTimer in the registry: having joined some presentation is not enough.
@@ -301,29 +327,28 @@ public class PresentationHubContractTests : ApiTestFixture
     }
 
     // Only the connection holding an entry removes it. C2 took over k-1, so C1's leave and C1's disconnect remove
-    // nothing. C1 also joined a second deck, so its disconnect is seen there before C2 checks the first deck.
+    // nothing and send nothing: each later update is one seq after the last. The test waits until the server has
+    // finished C1's disconnect (DisconnectWatch) before C2's last update, so the order can't hide a late removal.
     [Test]
     public async Task Disconnect_WhenReplacedConnectionCloses_ShouldKeepTheNewEntry()
     {
-        var (deck, other) = (await OwnDeckAsync(), await OwnDeckAsync());
+        var deck = await OwnDeckAsync();
         var c1 = await PresentationStates.ConnectAsync(Factory, TestUser.Sam);
         var c2 = await ConnectAsync(TestUser.Sam);
-        var watcher = await ConnectAsync(TestUser.Sam);
         await c1.JoinAsync(deck, "k-1");
-        await c1.JoinAsync(other, "k-1b");
-        await watcher.JoinAsync(other, "k-w");
-        await c2.JoinAsync(deck, "k-1");
+        var joinSeq = (await c2.JoinAsync(deck, "k-1")).GetProperty("state").GetProperty("seq").GetInt64();
+        var c1Id = c1.Connection.ConnectionId!;
 
         await c1.LeaveAsync(deck);
         var afterLeave = await c2.UpdateAsync(deck, 2, 0);
-        await DrainAsync(watcher, 1);
         await c1.DisposeAsync();
-        var otherAfterDrop = await watcher.NextAsync();
+        await _disconnects.DisconnectedAsync(c1Id);
         var afterDrop = await c2.UpdateAsync(deck, 3, 0);
 
         PresentationStates.ClientIds(afterLeave).ShouldBe(["k-1"]);
-        PresentationStates.ClientIds(otherAfterDrop).ShouldBe(["k-w"]);
+        afterLeave.GetProperty("seq").GetInt64().ShouldBe(joinSeq + 1);
         PresentationStates.ClientIds(afterDrop).ShouldBe(["k-1"]);
+        afterDrop.GetProperty("seq").GetInt64().ShouldBe(joinSeq + 2);
     }
 
     [Test]
