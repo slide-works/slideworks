@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/experimental-ct-react';
+import fitFixturesJson from '@contracts/fit-fixtures.json' with { type: 'json' };
 import { LAYOUT_SLOTS } from '../../test-support/fixtures/layoutSlots';
 import { lookViewOf } from '../../test-support/fixtures/lookViewOf';
 import { deckPlay } from '../../test-support/fixtures/screens';
@@ -78,7 +79,7 @@ test('JoinLayout with the longest kicker stays inside x 120-1800, y 150-996', as
   await mount(
     <JoinProvider deckId={deckPlay.id} join={{ ...join, live: true }} owner={false}>
       <SlideRenderer
-        slide={slide({ kicker: 'Join on your phone and follow the talk', count: 'shown' })}
+        slide={slide({ kicker: fitFixturesJson.joinKicker.slots.kicker, count: 'shown' })}
         deck={deck}
         total={1}
         step={0}
@@ -98,3 +99,42 @@ test('JoinLayout with the longest kicker stays inside x 120-1800, y 150-996', as
     (await page.getByTestId('join-code').evaluate((el) => el.clientWidth));
   expect(code).toBe(true);
 });
+
+test('JoinLayout names the QR code by where it goes', async ({ mount, page }) => {
+  await mount(
+    <JoinProvider deckId={deckPlay.id} join={join} owner={false}>
+      <SlideRenderer slide={slide({})} deck={deck} total={1} step={0} />
+    </JoinProvider>,
+  );
+  await expect(page.getByTestId('join-qr').getByRole('img')).toHaveAccessibleName(
+    `QR code to join at ${join.hostLabel} with code ${join.codeLabel}`,
+  );
+});
+
+test('JoinLayout draws no join bar even when the deck setting is on', async ({ mount, page }) => {
+  await mount(
+    <JoinProvider deckId={deckPlay.id} join={join} owner={false}>
+      <SlideRenderer
+        slide={slide({})}
+        deck={{ ...deck, look: { ...deck.look, joinBar: true } }}
+        total={1}
+        step={0}
+      />
+    </JoinProvider>,
+  );
+  await expect(page.getByTestId('join-qr')).toBeVisible();
+  await expect(page.getByTestId('join-bar')).toHaveCount(0);
+});
+
+for (const live of [true, false]) {
+  test(`screenshot: join slide ${live ? 'live' : 'not live'}`, async ({ mount, page }) => {
+    await mount(
+      <JoinProvider deckId={deckPlay.id} join={{ ...join, live }} owner={false}>
+        <SlideRenderer slide={slide({})} deck={deck} total={1} step={0} />
+      </JoinProvider>,
+    );
+    await expect(page.getByTestId('slide-frame')).toHaveScreenshot(
+      `join-slide-${live ? 'live' : 'not-live'}.png`,
+    );
+  });
+}

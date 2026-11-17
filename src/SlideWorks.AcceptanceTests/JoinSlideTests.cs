@@ -41,6 +41,7 @@ public class JoinSlideTests : AcceptanceTest
         await Expect(player.JoinQr(1)).ToBeVisibleAsync();
         await Expect(player.JoinCode(1)).ToHaveTextAsync(new Regex(@"^\d{3} \d{3}$"));
         await Expect(player.JoinCount(1)).ToHaveTextAsync("0 joined");
+        await Expect(player.JoinBar(1)).ToHaveCountAsync(0);
         await Page.Keyboard.PressAsync("ArrowRight");
         await Expect(player.Count).ToHaveTextAsync("2 / 2");
         await Expect(player.JoinBar(2)).ToBeVisibleAsync();

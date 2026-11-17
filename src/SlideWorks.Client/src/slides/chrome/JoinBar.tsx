@@ -9,7 +9,10 @@ export function JoinBar() {
   return (
     <div className="sw-join-bar" data-testid="join-bar">
       <div className="sw-join-bar-qr" data-testid="join-bar-qr">
-        <QrCode text={joined.join.joinUrl} label="Join on your phone" />
+        <QrCode
+          text={joined.join.joinUrl}
+          label={`QR code to join at ${joined.join.hostLabel} with code ${joined.join.codeLabel}`}
+        />
       </div>
       <div className="sw-join-bar-text">
         <small>{joined.join.hostLabel}</small>

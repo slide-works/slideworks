@@ -87,7 +87,7 @@ export function SlideFrame({
           draft={look.draft}
         />
       )}
-      {look.joinBar ? <JoinBar /> : null}
+      {look.joinBar && layout !== 'join' ? <JoinBar /> : null}
       {chrome.progress ? <ProgressBar number={number} total={total} /> : null}
     </div>
   );

@@ -15,7 +15,10 @@ export function JoinLayout({ slots }: LayoutProps<'join'>) {
       <div className={styles.join}>
         <div data-testid="join-qr" className={styles.qr}>
           {joined === null ? null : (
-            <QrCode text={joined.join.joinUrl} label="Join on your phone" />
+            <QrCode
+              text={joined.join.joinUrl}
+              label={`QR code to join at ${joined.join.hostLabel} with code ${joined.join.codeLabel}`}
+            />
           )}
         </div>
         <div className={styles.text}>
@@ -31,11 +34,13 @@ export function JoinLayout({ slots }: LayoutProps<'join'>) {
           {joined?.live ? (
             slots.count === 'hidden' ? null : (
               <p data-testid="join-count" className={styles.count}>
+                <i aria-hidden="true" />
                 {joined.joinedCount} joined
               </p>
             )
           ) : (
             <p data-testid="join-not-live" className={styles.notLive}>
+              <i aria-hidden="true" />
               Not live yet: early joiners wait in the lobby
             </p>
           )}
