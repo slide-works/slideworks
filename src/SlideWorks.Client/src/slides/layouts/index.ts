@@ -20,6 +20,7 @@ import { CardsLayout } from './CardsLayout';
 import { CloseLayout } from './CloseLayout';
 import { JoinLayout } from './JoinLayout';
 import { PollLayout } from './PollLayout';
+import { QaLayout } from './QaLayout';
 
 export const LAYOUTS: { [L in LayoutName]: ComponentType<LayoutProps<L>> } = {
   title: TitleLayout,
@@ -40,4 +41,5 @@ export const LAYOUTS: { [L in LayoutName]: ComponentType<LayoutProps<L>> } = {
   close: CloseLayout,
   join: JoinLayout,
   poll: PollLayout,
+  qa: QaLayout,
 };

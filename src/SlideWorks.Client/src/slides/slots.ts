@@ -23,6 +23,7 @@ export const LAYOUT_NAMES = [
   'close',
   'join',
   'poll',
+  'qa',
 ] as const;
 
 export type LayoutName = (typeof LAYOUT_NAMES)[number];
@@ -205,6 +206,10 @@ export type JoinSlots = { kicker?: string; count?: 'shown' | 'hidden' };
 // results, correct, opens) are never slots: they live in the poll's own row, so the correct answer never reaches a viewer.
 export type PollSlots = { question: string; options: string[] };
 
+// The Q&A slide's one slot (SW-9 Q1): a title of up to 80 characters; left out, the slide draws "Questions from the room".
+// The questions come from the live session, never from the slots.
+export type QaSlots = { title?: string };
+
 export type Slots = {
   title: TitleSlots;
   divider: DividerSlots;
@@ -224,6 +229,7 @@ export type Slots = {
   close: CloseSlots;
   join: JoinSlots;
   poll: PollSlots;
+  qa: QaSlots;
 };
 
 // Every top-level slot key of each layout, at runtime. The `satisfies` clause
@@ -248,6 +254,7 @@ export const SLOT_KEYS = {
   close: ['headline', 'sub', 'author'],
   join: ['kicker', 'count'],
   poll: ['question', 'options'],
+  qa: ['title'],
 } as const satisfies { [L in LayoutName]: readonly (keyof Slots[L])[] };
 
 type UnlistedSlotKey = {
