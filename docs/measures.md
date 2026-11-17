@@ -117,8 +117,9 @@ ORDER BY s.StartedAt, s.Id;
 A guest who joined in the lobby is recorded as joining when Go live ran, and a guest can join before the join slide is
 first shown, so some joins come before the slide. The query counts those as 0 seconds (clamped, not excluded).
 
-**Columns:** `session_id`, `joins` (guests counted, including the clamped ones), and `median_seconds`, the Measure. A
-session whose join slide was never shown has no row.
+**Columns:** `session_id`, `deck_id`, `started_at` (UTC), `joins` (guests counted, including the clamped ones),
+`before_slide` (how many of those joined before the join slide was first shown, and so count as 0), and `median_seconds`,
+the Measure. A session whose join slide was never shown has no row. Rows are newest session first.
 
 ```sql
 WITH bounds AS (
@@ -127,7 +128,10 @@ WITH bounds AS (
 ),
 gaps AS (
   SELECT j.SessionId AS session_id,
-         MAX(0, ((j.JoinedAt >> 11) - (s.JoinSlideFirstShownAt >> 11)) / 10000.0) AS seconds
+         s.DeckId AS deck_id,
+         s.StartedAt AS started,
+         MAX(0, ((j.JoinedAt >> 11) - (s.JoinSlideFirstShownAt >> 11)) / 10000.0) AS seconds,
+         CASE WHEN j.JoinedAt <= s.JoinSlideFirstShownAt THEN 1 ELSE 0 END AS before
   FROM AudienceJoins j
   JOIN AudienceSessions s ON s.Id = j.SessionId, bounds b
   WHERE s.JoinSlideFirstShownAt IS NOT NULL
@@ -135,16 +139,25 @@ gaps AS (
 ),
 ranked AS (
   SELECT session_id,
+         deck_id,
+         started,
          seconds,
          ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY seconds) AS rn,
-         COUNT(*) OVER (PARTITION BY session_id) AS n
+         COUNT(*) OVER (PARTITION BY session_id) AS n,
+         SUM(before) OVER (PARTITION BY session_id) AS before_slide
   FROM gaps
 )
 SELECT session_id,
+       deck_id,
+       datetime((started >> 11) / 10000 - 62135596800, 'unixepoch') AS started_at,
        n AS joins,
+       before_slide,
        ROUND(AVG(seconds), 1) AS median_seconds
 FROM ranked
 WHERE rn IN ((n + 1) / 2, (n + 2) / 2)
-GROUP BY session_id, n
-ORDER BY session_id;
+GROUP BY session_id, deck_id, started, n, before_slide
+ORDER BY started DESC, session_id;
 ```
+
+Joins before the slide count as 0 s and pull the median toward 0, so for a room that mostly joined before the join slide
+was shown, `median_seconds` says little about the join slide. Read it together with `before_slide`.

@@ -90,7 +90,7 @@ Run SlideWorks behind a proxy that ends TLS and forwards plain HTTP to port 8080
 
 `SLIDEWORKS_PUBLIC_URL` is the source of truth for the app's scheme and host. SlideWorks never reads `X-Forwarded-Proto` or `X-Forwarded-Host` to decide its own address, and it reads the `Host` header only to choose between the two configured origins (the public URL and, when set, the join URL), so a forged header can't produce a link, OAuth metadata or sign-in callback for any other address. If the proxy serves `https://slides.example.com`, set exactly that, and the session cookie is `Secure` even though the container sees plain HTTP.
 
-`SLIDEWORKS_TRUSTED_PROXIES` is the one exception, and it covers the client IP only. The IP is used only for the per-caller rate limits: 10 a minute on `/oauth/register`, and 60 a minute shared by `/oauth/token` and `/oauth/revoke`. Behind a proxy, set it to the proxy's address, such as `172.18.0.0/16` for a proxy on the same Docker network. Otherwise every request arrives from the proxy, and every client shares one rate-limit budget.
+`SLIDEWORKS_TRUSTED_PROXIES` is the one exception, and it covers the client IP only. The IP is used only for the per-caller rate limits: 10 a minute on `/oauth/register`, 60 a minute shared by `/oauth/token` and `/oauth/revoke`, and the join-code guessing limit (see [Live audience join](#live-audience-join)). Behind a proxy, set it to the proxy's address, such as `172.18.0.0/16` for a proxy on the same Docker network. Otherwise every request arrives from the proxy, and every client shares one rate-limit budget.
 
 When it's set:
 
@@ -131,7 +131,8 @@ and scan. This section covers that domain and what the proxy must allow for gues
    two domains apart by `Host`, and `X-Forwarded-Host` is never trusted. A proxy that rewrites `Host` to the container's
    name (nginx's `proxy_set_header Host $proxy_host;`, or a load balancer that replaces it) makes every request look like the
    public domain.
-4. Set `SLIDEWORKS_JOIN_URL=https://slideworks.live` and restart. Join links, the QR code and the address a join slide prints
+4. Set `SLIDEWORKS_JOIN_URL=https://slideworks.live` (in `.env` with Docker Compose) and run `docker compose up -d`, which
+   re-reads `.env` where `docker compose restart` does not. Join links, the QR code and the address a join slide prints
    now use it.
 
 ```
@@ -151,8 +152,8 @@ API and the agent endpoints are never reachable under the join domain. The publi
 
 ### Guests need cookies
 
-A guest is identified by the `sw_guest` cookie: 128 random bits, `HttpOnly`, `SameSite=Lax`, set for 12 hours and scoped to
-the host that set it. SlideWorks sets it on the first lookup and uses it to count each guest once, so a guest who has
+A guest is identified by the `sw_guest` cookie: 128 random bits, `HttpOnly`, `SameSite=Lax`, set for 12 hours (and `Secure` on https) and
+scoped to the host that set it. SlideWorks sets it on the first lookup and uses it to count each guest once, so a guest who has
 cookies blocked can't join. A guest who opens the public URL and the join domain is two guests.
 
 ### Code guessing limit
@@ -162,7 +163,9 @@ that address gets a 429 `too_many_attempts` until the minute ends, including a c
 towards the 10. A caller can also have at most 100 lookups in flight at once. The caller address is the client IP, grouped
 by /64 for IPv6, and it comes from `X-Forwarded-For` only when `SLIDEWORKS_TRUSTED_PROXIES` covers your proxy (see above). A
 venue whose guests all share one address, such as one office or conference network behind NAT, shares one budget, so a room
-of guests who mistype codes can lock the whole venue out for up to a minute. Guests who type the right code are not affected.
+of guests who mistype codes can lock the whole venue out for up to a minute. A correct code never uses up the budget, but while
+the address is locked out, guests with the right code are refused too. They get in once the minute ends. Phones already
+following keep their screen and retry by themselves.
 
 ### Realtime through the proxy
 

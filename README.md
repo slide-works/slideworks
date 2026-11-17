@@ -56,13 +56,13 @@ Static analysis (SonarAnalyzer.CSharp and Agoda.Analyzers) applies to every proj
 
 ## Realtime
 
-Live updates go over one SignalR hub on WebSockets:
+Live updates go over one SignalR hub (WebSockets, with Server-Sent Events and long polling as fallbacks):
 
 ```
 publisher → IDeckEvents (in-process bus) → DeckEventsRelay → DeckHub group "deck:<id>" → subscribeToDeck → screen
 ```
 
-- Server: `src/SlideWorks.WebApi/Realtime/`. `DeckHub` at `/hubs/deck` (WebSockets, with Server-Sent Events and long polling as fallbacks) has `JoinDeck(deckId)` and `LeaveDeck(deckId)` and sends `deckEvent` messages. For the audience it has `JoinAudience(code)` and `LeaveAudience(code)` for guests (group `audience:{deckId}`) and `WatchAudience(deckId)` for the owner (group `audience-watch:{deckId}`), and sends `audienceEvent` messages. Events are records deriving from `DeckEvent`, serialised with a `type` discriminator. Publish with `IDeckEvents.PublishAsync`; delivery is off the request and in order.
+- Server: `src/SlideWorks.WebApi/Realtime/`. `DeckHub` at `/hubs/deck` (WebSockets, with Server-Sent Events and long polling as fallbacks) has `JoinDeck(deckId)` and `LeaveDeck(deckId)` and sends `deckEvent` messages. For the audience it has `JoinAudience(code)` and `LeaveAudience(code)` for guests (group `audience:{deckId}`) and `WatchAudience(deckId)` for the owner (group `audience-watch:{deckId}`), and sends `audienceEvent` messages. Deck events are records deriving from `DeckEvent`, serialised with a `type` discriminator. Publish with `IDeckEvents.PublishAsync`; delivery is off the request and in order. Audience events derive from `AudienceEvent` and go through `IAudienceEvents` and `AudienceEventsRelay`.
 - Client: `src/SlideWorks.Client/src/realtime/`. `subscribeToDeck` connects, joins, rejoins after a reconnect and retries the first connect with back-off; `useDeckRealtime(deckId, onEvent)` wraps it for a screen. `deckEvents.ts` mirrors the event types.
 - Auth: anyone may connect, so a viewer of a deck shared by link can follow it without signing in. The session cookie identifies a signed-in person, and `JoinDeck` refuses a deck the caller can't view. The cross-site write guard refuses a negotiate or connect that carries another site's `Origin`.
 - One process: the bus is in memory and SignalR keeps groups per process. A second instance needs a cross-process bridge and a SignalR backplane first.

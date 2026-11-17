@@ -59,6 +59,24 @@ public partial class MeasuresSqlTests : ApiTestFixture
         row["peak_joined"].ShouldBe(2L);
     }
 
+    // Three guests join in all, but the first has left before the third comes, so never more than two were there at once.
+    [Test]
+    public async Task MeasuresSql_WhenAGuestLeavesBeforeAnotherJoins_ShouldReportPeakTwoOfThreeJoins()
+    {
+        var from = Clock.GetUtcNow().AddMinutes(-1);
+        var (_, code, session) = await GoLiveOnAJoinSlideAsync();
+        var first = await JoinAsync(code);
+        await JoinAsync(code);
+        await first.DisposeAsync();
+        await JoinAsync(code);
+
+        var peak = (await RunAsync(PEAK_HEADING, from, Clock.GetUtcNow().AddMinutes(1))).Single(r => IsSession(r, session));
+        var speed = (await RunAsync(SPEED_HEADING, from, Clock.GetUtcNow().AddMinutes(1))).Single(r => IsSession(r, session));
+
+        peak["peak_joined"].ShouldBe(2L);
+        speed["joins"].ShouldBe(3L);
+    }
+
     [Test]
     public async Task MeasuresSql_WhenGuestsJoinAfterTheJoinSlide_ShouldReportTheMedianSeconds()
     {
@@ -75,7 +93,26 @@ public partial class MeasuresSqlTests : ApiTestFixture
 
         var row = rows.Single(r => IsSession(r, session));
         row["joins"].ShouldBe(3L);
+        row["before_slide"].ShouldBe(0L);
         row["median_seconds"].ShouldBe(30.0);
+    }
+
+    // With an even count the median is the mean of the two middle gaps: 10 s and 30 s give 20 s.
+    [Test]
+    public async Task MeasuresSql_WhenAnEvenNumberOfGuestsJoin_ShouldReportTheMeanOfTheMiddleTwo()
+    {
+        var from = Clock.GetUtcNow().AddMinutes(-1);
+        var (_, code, session) = await GoLiveOnAJoinSlideAsync();
+        Clock.Advance(TimeSpan.FromSeconds(10));
+        await JoinAsync(code);
+        Clock.Advance(TimeSpan.FromSeconds(20));
+        await JoinAsync(code);
+
+        var rows = await RunAsync(SPEED_HEADING, from, Clock.GetUtcNow().AddMinutes(1));
+
+        var row = rows.Single(r => IsSession(r, session));
+        row["joins"].ShouldBe(2L);
+        row["median_seconds"].ShouldBe(20.0);
     }
 
     // The guest was counted when Go live ran, which is before the join slide was first shown, so JoinedAt is earlier than the
@@ -94,6 +131,7 @@ public partial class MeasuresSqlTests : ApiTestFixture
 
         var row = rows.Single(r => IsSession(r, session));
         row["joins"].ShouldBe(1L);
+        row["before_slide"].ShouldBe(1L);
         row["median_seconds"].ShouldBe(0.0);
     }
 
@@ -140,11 +178,12 @@ public partial class MeasuresSqlTests : ApiTestFixture
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sessionId").GetString()!;
     }
 
-    private async Task JoinAsync(string code)
+    private async Task<GuestClient> JoinAsync(string code)
     {
         var guest = await GuestClient.ConnectAsync(Factory);
         _guests.Add(guest);
         await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
+        return guest;
     }
 
     // What SW-4's registry does on an accepted change: record the state, then tell every observer.
@@ -208,6 +247,6 @@ public partial class MeasuresSqlTests : ApiTestFixture
         throw new FileNotFoundException($"No {MEASURES} above {TestContext.CurrentContext.TestDirectory}");
     }
 
-    [GeneratedRegex(@"```sql\n(?<sql>.*?)```", RegexOptions.Singleline)]
+    [GeneratedRegex(@"```sql\r?\n(?<sql>.*?)```", RegexOptions.Singleline)]
     private static partial Regex SqlBlock();
 }
