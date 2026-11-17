@@ -19,7 +19,9 @@ namespace SlideWorks.WebApi.Realtime;
 //
 // Following is derived, not remembered: any change for a deck whose session is open is published, so a restart with a
 // session still open in the database leaves guests fed from the first change after it. Started is safe to call again.
-// Seq is seeded from the clock the first time a deck publishes after a start, so it also keeps rising across a restart.
+// Nothing reached by a guest starts a presentation: a live session with none running is live with no current slide until
+// the presenter's rejoin brings it back. Seq is floored to the clock, so it also keeps rising across a restart. A deck has
+// an entry (its gate and seq) only while its session is open; the entry goes when the session ends.
 [RegisterSingleton]
 public sealed class AudienceFeed : IDisposable
 {
@@ -44,33 +46,60 @@ public sealed class AudienceFeed : IDisposable
     public async Task<AudienceState?> CurrentAsync(string deckId)
     {
         await using var scope = _scopes.CreateAsyncScope();
-        var found = await scope.ServiceProvider.GetRequiredService<IAudienceSessions>().ForDeckAsync(deckId);
-        if (found is null)
+        var (feed, found) = await EnterAsync(scope.ServiceProvider, deckId);
+        if (feed is null)
         {
-            return null;
+            // A lobby or an ended deck has no position and no ordering to keep: the clock is its seq, and no entry is made.
+            return found is null ? null : await ComposeAsync(scope.ServiceProvider, found, _clock.GetUtcNow().ToUnixTimeMilliseconds());
         }
-        // What a guest is handed on joining carries the last seq published, so a push that follows is always higher.
-        return await ComposeAsync(scope.ServiceProvider, found, Feed(deckId).Latest, restoreIfLost: true);
+        try
+        {
+            // Taken from the same source as pushed events, under the same gate, so every push that follows is higher.
+            // Reached by anonymous callers: it reads SW-4's state and never starts a presentation. A live session with no
+            // presentation (a restart dropped it) is live with no current slide until the presenter's rejoin notifies us.
+            return await ComposeAsync(scope.ServiceProvider, found!, feed.Next(_clock));
+        }
+        finally
+        {
+            feed.Gate.Release();
+        }
     }
 
     public async Task StartedAsync(string deckId)
     {
         await using var scope = _scopes.CreateAsyncScope();
-        // Idempotent: brings back a presentation a restart dropped, and publishes the state that turns lobby guests live.
+        // Idempotent. Only the owner's Go live gets here, so it may start a presentation when none is running; this is
+        // also what brings one back for a restart followed by a new Go live. It publishes the state that turns lobby guests live.
         await scope.ServiceProvider.GetRequiredService<IPresentations>().StartAsync(deckId);
         await PublishAsync(scope.ServiceProvider, deckId);
     }
 
-    public Task EndedAsync(string deckId)
+    public async Task EndedAsync(string deckId)
     {
-        _feeds.TryRemove(deckId, out _);
-        return _audienceEvents.PublishAsync(new AudienceEnded(deckId));
+        if (!_feeds.TryGetValue(deckId, out var feed))
+        {
+            await _audienceEvents.PublishAsync(new AudienceEnded(deckId));
+            return;
+        }
+        // Behind any publish in flight, which may still have read the phase as live: audienceEnded is the last event.
+        await feed.Gate.WaitAsync();
+        try
+        {
+            await _audienceEvents.PublishAsync(new AudienceEnded(deckId));
+            Close(deckId, feed);
+        }
+        finally
+        {
+            feed.Gate.Release();
+        }
     }
 
+    // The passed state is only a signal for the deck: SW-4 notifies outside its per-deck lock, so two changes can arrive
+    // here out of order. The position published is whatever the registry holds when this one's turn at the gate comes.
     public async Task OnChangedAsync(PresentationState state)
     {
         await using var scope = _scopes.CreateAsyncScope();
-        await PublishAsync(scope.ServiceProvider, state.DeckId, state);
+        await PublishAsync(scope.ServiceProvider, state.DeckId);
     }
 
     private async Task OnDeckEventAsync(DeckEvent deckEvent)
@@ -84,19 +113,17 @@ public sealed class AudienceFeed : IDisposable
     }
 
     // Publishes the deck's state when its session is open, and nothing otherwise (a lobby or an ended deck has no position).
-    private async Task PublishAsync(IServiceProvider services, string deckId, PresentationState? presentation = null)
+    private async Task PublishAsync(IServiceProvider services, string deckId)
     {
-        var feed = Feed(deckId);
-        await feed.Gate.WaitAsync();
+        var (feed, found) = await EnterAsync(services, deckId);
+        if (feed is null)
+        {
+            return;
+        }
         try
         {
-            var found = await services.GetRequiredService<IAudienceSessions>().ForDeckAsync(deckId);
-            if (found is not { Phase: AudiencePhase.Live, SessionId: { } sessionId })
-            {
-                return;
-            }
-            var state = await ComposeAsync(services, found, feed.Next(_clock), restoreIfLost: false, presentation);
-            await StampJoinSlideAsync(services, sessionId, state);
+            var state = await ComposeAsync(services, found!, feed.Next(_clock));
+            await StampJoinSlideAsync(services, found!.SessionId!, state);
             await _audienceEvents.PublishAsync(state);
         }
         finally
@@ -105,24 +132,52 @@ public sealed class AudienceFeed : IDisposable
         }
     }
 
-    private static async Task<AudienceState> ComposeAsync(
-        IServiceProvider services,
-        AudienceSessionRef found,
-        long seq,
-        bool restoreIfLost,
-        PresentationState? presentation = null)
+    // Takes the gate of a deck whose session is open, with the session read again inside it, and returns the feed holding
+    // the gate. For any other deck it returns no feed and holds nothing: an entry is only ever made for a live deck, and one
+    // that finds its deck no longer live is removed again.
+    private async Task<(DeckFeed? Feed, AudienceSessionRef? Found)> EnterAsync(IServiceProvider services, string deckId)
+    {
+        var sessions = services.GetRequiredService<IAudienceSessions>();
+        var found = await sessions.ForDeckAsync(deckId);
+        if (found is not { Phase: AudiencePhase.Live })
+        {
+            return (null, found);
+        }
+        while (true)
+        {
+            var feed = _feeds.GetOrAdd(deckId, _ => new DeckFeed());
+            await feed.Gate.WaitAsync();
+            if (feed.Closed)
+            {
+                // Ended while this waited: the entry is gone, so ask again.
+                feed.Gate.Release();
+                continue;
+            }
+            found = await sessions.ForDeckAsync(deckId);
+            if (found is { Phase: AudiencePhase.Live })
+            {
+                return (feed, found);
+            }
+            Close(deckId, feed);
+            feed.Gate.Release();
+            return (null, found);
+        }
+    }
+
+    // Under the feed's gate.
+    private void Close(string deckId, DeckFeed feed)
+    {
+        feed.Closed = true;
+        _feeds.TryRemove(new KeyValuePair<string, DeckFeed>(deckId, feed));
+    }
+
+    private static async Task<AudienceState> ComposeAsync(IServiceProvider services, AudienceSessionRef found, long seq)
     {
         if (found.Phase != AudiencePhase.Live)
         {
             return new AudienceState(found.DeckId, seq, found.Phase, null, 0, null);
         }
-        var presentations = services.GetRequiredService<IPresentations>();
-        presentation ??= await presentations.GetAsync(found.DeckId);
-        if (presentation is null && restoreIfLost)
-        {
-            // The registry is in memory, so a restart drops it while the session stays open: start it again, as Go live does.
-            presentation = await presentations.StartAsync(found.DeckId);
-        }
+        var presentation = await services.GetRequiredService<IPresentations>().GetAsync(found.DeckId);
         var db = services.GetRequiredService<AppDbContext>();
         var revision = await db.Decks.AsNoTracking().Where(d => d.Id == found.DeckId).Select(d => d.Revision).SingleAsync();
         var slides = await db.Slides.AsNoTracking()
@@ -160,8 +215,6 @@ public sealed class AudienceFeed : IDisposable
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.JoinSlideFirstShownAt, now));
     }
 
-    private DeckFeed Feed(string deckId) => _feeds.GetOrAdd(deckId, _ => new DeckFeed());
-
     // One deck's ordering: publishes go one at a time, so seq never goes backwards on the wire.
     private sealed class DeckFeed
     {
@@ -169,7 +222,7 @@ public sealed class AudienceFeed : IDisposable
 
         public SemaphoreSlim Gate { get; } = new(1, 1);
 
-        public long Latest => Interlocked.Read(ref _seq);
+        public bool Closed { get; set; }
 
         public long Next(TimeProvider clock)
         {

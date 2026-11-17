@@ -9,13 +9,13 @@ namespace SlideWorks.WebApi.Tests.Realtime;
 
 // What a guest and the owner's audience view receive over the hub is exactly what audience-events.json says (J3, J4): the
 // key set of each frame as it reached the client, never the deck id the server routes by, and nothing from the deck
-// beyond the slide on screen. Frames are read as received (JsonElement), not through a record.
+// beyond the slide on screen. Frames are read as received (JsonElement), not through a record. This runs through the fake
+// relay, so it proves shape only; the value tests (notes, timer, deep dives, emails) are in AudienceRelayTests, through
+// the real relay.
 [TestFixture]
 [CancelAfter(30000)]
 public class AudienceFramePrivacyTests : ApiTestFixture
 {
-    private const string SECRET_NOTE = "secret speaker note 7f3a";
-
     protected override Action<IServiceCollection>? ConfigureTestServices => services =>
     {
         FakeAudienceSessions.AddTo(services);
@@ -25,7 +25,7 @@ public class AudienceFramePrivacyTests : ApiTestFixture
     [Test]
     public async Task Frames_WhenGuestFollowsALiveDeck_ShouldHaveExactlyTheContractKeys()
     {
-        var deck = await SharingApi.CreateDeckAsync(Client, "Private title " + SECRET_NOTE);
+        var deck = await SharingApi.CreateDeckAsync(Client, "Private title");
         var state = new AudienceState(deck, 43, AudiencePhase.Live, SlideOf(), 7, null);
         Factory.Services.GetRequiredService<FakeAudienceSessions>().Set("123456", deck, "s1", AudiencePhase.Live);
         Factory.Services.GetRequiredService<FakeAudienceRelay>().Set(state);
@@ -48,7 +48,6 @@ public class AudienceFramePrivacyTests : ApiTestFixture
         foreach (var frame in new[] { joined, pushedState, ended, count })
         {
             frame.GetRawText().ShouldNotContain(deck, Case.Sensitive);
-            frame.GetRawText().ShouldNotContain(SECRET_NOTE, Case.Sensitive);
         }
     }
 

@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Realtime;
@@ -67,31 +68,56 @@ public class AudienceRelayTests : ApiTestFixture
         var (deck, code) = await GoLiveAsync(await SeedAsync(share: true));
         await using var guest = await GuestClient.ConnectAsync(Factory, transport);
         using var anonymous = ClientFor(TestUser.Anonymous);
+        // Every method the server can call on a client, not only the two the receiver keeps: a leak on any of them shows here.
+        var received = new List<string>();
+        foreach (var method in new[] { DeckHub.EVENT_METHOD, DeckHub.AUDIENCE_EVENT_METHOD, DeckHub.PRESENTATION_STATE_METHOD })
+        {
+            guest.Connection.On<JsonElement>(method, e =>
+            {
+                lock (received)
+                {
+                    received.Add(e.GetRawText());
+                }
+            });
+        }
 
-        var frames = new List<JsonElement> { await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code) };
+        var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
+        // Slide 2 is black; slide 3 is the deep dive that has notes, and it is on screen; then back to the title slide, which has notes too.
         await MoveAsync(deck, slide: 2, step: 1, black: true);
-        frames.Add(await guest.NextAudienceAsync());
+        await guest.NextAudienceAsync();
+        await MoveAsync(deck, slide: 3);
+        var deepDive = await guest.NextAudienceAsync();
         await MoveAsync(deck, slide: 1);
-        frames.Add(await guest.NextAudienceAsync());
+        await guest.NextAudienceAsync();
         var body = await anonymous.GetStringAsync($"/api/join/{code}");
 
-        body.ShouldNotContain(DEEP_DIVE_TEXT);
-        body.ShouldNotContain(VIEWER);
-        body.ShouldNotContain(TestUser.Sam.Email);
-        body.ToLowerInvariant().ShouldNotContain("notes");
-        foreach (var raw in frames.Select(f => f.GetRawText()))
+        deepDive.GetProperty("current").GetProperty("layout").GetString().ShouldBe("quote");
+        string[] frames;
+        lock (received)
         {
-            raw.ToLowerInvariant().ShouldNotContain("deepdive");
-            raw.ShouldNotContain(PresentingSeed.TITLE_NOTES.Split('\n')[0].Replace("**", string.Empty));
-            raw.ShouldNotContain("one batch");
-            raw.ShouldNotContain(PresentingSeed.QUOTE_NOTES);
-            raw.ShouldNotContain(DEEP_DIVE_TEXT);
-            raw.ShouldNotContain(VIEWER);
-            raw.ShouldNotContain(TestUser.Sam.Email);
-            raw.ShouldNotContain("1234567");
-            raw.ToLowerInvariant().ShouldNotContain("notes");
-            raw.ToLowerInvariant().ShouldNotContain("timer");
+            frames = [.. received, joined.GetRawText()];
+        }
+        frames.Length.ShouldBeGreaterThanOrEqualTo(4);
+        foreach (var text in frames.Append(body))
+        {
+            var lower = text.ToLowerInvariant();
+            lower.ShouldNotContain("notes");
+            lower.ShouldNotContain("timer");
+            text.ShouldNotContain("1234567");
+            text.ShouldNotContain("with the story");
+            text.ShouldNotContain("one batch");
+            text.ShouldNotContain("one customer");
+            text.ShouldNotContain(PresentingSeed.QUOTE_NOTES);
+            text.ShouldNotContain(DEEP_DIVE_TEXT);
+            text.ShouldNotContain(VIEWER);
+            text.ShouldNotContain(TestUser.Sam.Email);
+        }
+        // The look in the GET body has a legitimate deepDivesOnDivider setting, so the deep-dive keywords are checked on frames only.
+        foreach (var raw in frames)
+        {
             raw.ShouldNotContain(deck);
+            raw.ToLowerInvariant().ShouldNotContain("deepdive");
+            raw.ToLowerInvariant().ShouldNotContain("skip");
         }
     }
 
@@ -171,19 +197,104 @@ public class AudienceRelayTests : ApiTestFixture
     }
 
     [Test]
-    public async Task Join_WhenRegistryLostItsStateWhileSessionStaysOpen_ShouldRestoreAndKeepFeedingGuests()
+    public async Task Join_WhenServerRestartedWithSessionOpenAndNoPresentation_ShouldBeLiveWithNoSlideStartNothingAndKeepFeedingGuests()
     {
         var (deck, code) = await GoLiveAsync(await SeedAsync());
-        Presentations.Drop(deck);
-        await using var guest = await GuestClient.ConnectAsync(Factory);
+        // A restart: a new host over the same database, so the session is open there, with a fresh feed and an empty registry.
+        var dbPath = Factory.Services.GetRequiredService<IConfiguration>()["SLIDEWORKS_DB_PATH"]!;
+        var registry = new SettablePresentations();
+        using var restarted = TestAppFactory.Create(dbPath, Clock, null, null, services =>
+            services.AddSingleton(registry).AddSingleton<IPresentations>(registry));
+        using var anonymous = restarted.CreateClient();
+        await using var guest = await GuestClient.ConnectAsync(restarted);
 
+        var looked = await anonymous.GetFromJsonAsync<JsonElement>($"/api/join/{code}");
         var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
-        await MoveAsync(deck, slide: 3);
+        await NotifyAsync(restarted.Services, registry, deck, slide: 3);
         var next = await guest.NextAudienceAsync();
 
+        looked.GetProperty("state").GetProperty("phase").GetString().ShouldBe("live");
+        looked.GetProperty("state").GetProperty("current").ValueKind.ShouldBe(JsonValueKind.Null);
         joined.GetProperty("phase").GetString().ShouldBe("live");
-        joined.GetProperty("current").GetProperty("index").GetInt32().ShouldBe(1);
+        joined.GetProperty("current").ValueKind.ShouldBe(JsonValueKind.Null);
+        registry.StartCalls.ShouldBe(0);
+        joined.GetProperty("seq").GetInt64().ShouldBeGreaterThanOrEqualTo(Clock.GetUtcNow().ToUnixTimeMilliseconds());
+        next.GetProperty("phase").GetString().ShouldBe("live");
         next.GetProperty("current").GetProperty("index").GetInt32().ShouldBe(3);
+        next.GetProperty("seq").GetInt64().ShouldBeGreaterThan(joined.GetProperty("seq").GetInt64());
+        registry.StartCalls.ShouldBe(0);
+    }
+
+    [Test]
+    public async Task AudienceState_WhenChangesArriveOutOfOrder_ShouldEndOnTheRegistrysNewestPosition()
+    {
+        var (deck, code) = await GoLiveAsync(await SeedAsync());
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
+        var newer = SettablePresentations.At(deck, slide: 3, seq: 2);
+        var older = SettablePresentations.At(deck, slide: 2, seq: 1);
+        Presentations.Set(newer);
+        var observers = Factory.Services.GetServices<IPresentationObserver>().ToList();
+
+        // SW-4 notifies outside its lock, so the older change's notification lands after the newer one's.
+        foreach (var observer in observers)
+        {
+            await observer.OnChangedAsync(newer);
+            await observer.OnChangedAsync(older);
+        }
+        var first = await guest.NextAudienceAsync();
+        var second = await guest.NextAudienceAsync();
+
+        first.GetProperty("current").GetProperty("index").GetInt32().ShouldBe(3);
+        second.GetProperty("current").GetProperty("index").GetInt32().ShouldBe(3);
+        second.GetProperty("seq").GetInt64().ShouldBeGreaterThan(first.GetProperty("seq").GetInt64());
+    }
+
+    [Test]
+    public async Task AudienceState_WhenManyChangesRaceOnOneDeck_ShouldReachGuestWithStrictlyIncreasingSeq()
+    {
+        const int CHANGES = 30;
+        var (deck, code) = await GoLiveAsync(await SeedAsync());
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
+
+        await Task.WhenAll(Enumerable.Range(0, CHANGES).Select(i => Task.Run(() => MoveAsync(deck, slide: 1 + i % 3, step: i % 2))));
+        var seqs = new List<long>();
+        for (var i = 0; i < CHANGES; i++)
+        {
+            seqs.Add((await guest.NextAudienceAsync()).GetProperty("seq").GetInt64());
+        }
+
+        for (var i = 1; i < seqs.Count; i++)
+        {
+            seqs[i].ShouldBeGreaterThan(seqs[i - 1]);
+        }
+    }
+
+    [Test]
+    public async Task End_WhenItRacesChanges_ShouldMakeAudienceEndedTheLastEvent()
+    {
+        var (deck, code) = await GoLiveAsync(await SeedAsync());
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
+        var moves = Enumerable.Range(0, 30).Select(i => Task.Run(() => MoveAsync(deck, slide: 1 + i % 3, step: i % 2))).ToList();
+
+        var ended = Client.DeleteAsync($"/api/decks/{deck}/live");
+        await Task.WhenAll([.. moves, ended]);
+        (await ended).EnsureSuccessStatusCode();
+        // A second audienceEnded after everything has settled marks the end of what could have been in flight.
+        await Factory.Services.GetRequiredService<IAudienceEvents>().PublishAsync(new AudienceEnded(deck));
+        var types = new List<string>();
+        string type;
+        do
+        {
+            type = (await guest.NextAudienceAsync()).GetProperty("type").GetString()!;
+            types.Add(type);
+        }
+        while (types.Count(t => t == "audienceEnded") < 2);
+
+        var firstEnded = types.IndexOf("audienceEnded");
+        types.Skip(firstEnded).ShouldAllBe(t => t == "audienceEnded");
     }
 
     [Test]
@@ -245,11 +356,14 @@ public class AudienceRelayTests : ApiTestFixture
         => await Client.GetFromJsonAsync<JsonElement>($"/api/decks/{deck}/live");
 
     // What SW-4's registry does on an accepted change: record the state, then tell every observer.
-    private async Task MoveAsync(string deck, int slide, int step = 0, bool black = false)
+    private Task MoveAsync(string deck, int slide, int step = 0, bool black = false)
+        => NotifyAsync(Factory.Services, Presentations, deck, slide, step, black);
+
+    private static async Task NotifyAsync(IServiceProvider services, SettablePresentations registry, string deck, int slide, int step = 0, bool black = false)
     {
         var state = SettablePresentations.At(deck, slide, step, black);
-        Presentations.Set(state);
-        foreach (var observer in Factory.Services.GetServices<IPresentationObserver>())
+        registry.Set(state);
+        foreach (var observer in services.GetServices<IPresentationObserver>())
         {
             await observer.OnChangedAsync(state);
         }

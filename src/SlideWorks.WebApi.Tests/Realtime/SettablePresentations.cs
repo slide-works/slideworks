@@ -10,6 +10,10 @@ public sealed class SettablePresentations : IPresentations
 {
     private readonly Lock _gate = new();
     private readonly Dictionary<string, PresentationState> _states = new(StringComparer.Ordinal);
+    private int _startCalls;
+
+    // How many times anything asked this registry to start a presentation.
+    public int StartCalls => Volatile.Read(ref _startCalls);
 
     public static PresentationState At(string deckId, int slide, int step = 0, bool black = false, long seq = 1)
         => new(deckId, "p-test", seq, slide, step, black, false, new PresentationTimer(TimerState.Running, 1_234_567), 45, []);
@@ -40,6 +44,7 @@ public sealed class SettablePresentations : IPresentations
 
     public Task<PresentationState> StartAsync(string deckId)
     {
+        Interlocked.Increment(ref _startCalls);
         lock (_gate)
         {
             if (!_states.TryGetValue(deckId, out var state))
