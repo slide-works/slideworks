@@ -4,6 +4,7 @@ import { audienceState, guestView } from '../test-support/fixtures/guestStates';
 import { me } from '../test-support/fixtures/screens';
 import { LocationProbe } from '../test-support/LocationProbe';
 import { stubApi } from '../test-support/stubApi';
+import { stubDeckHub } from '../test-support/stubDeckHub';
 import { GuestScreens } from './GuestScreens';
 import { GUEST_TEST_IDS, JOIN_CODE_TEST_IDS } from './testIds';
 
@@ -13,6 +14,7 @@ test('live → "you\'re in", then the slide mirror with the waiting card', async
   mount,
   page,
 }) => {
+  await stubDeckHub(page, { audience: { state: guestView('live').state } });
   await stubApi(page, { [joinPath]: { json: guestView('live') } });
   await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
   await expect(page.getByTestId(GUEST_TEST_IDS.page)).toBeVisible();
