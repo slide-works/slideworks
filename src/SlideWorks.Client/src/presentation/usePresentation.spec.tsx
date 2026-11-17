@@ -270,6 +270,24 @@ test('usePresentation leaves the presentation when it unmounts while the page ke
   expect(hub.leftDecks).toEqual([]);
 });
 
+test('usePresentation does not leave a presentation whose join was refused', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page, {
+    presentation: { state: presentationState(), refuse: true },
+  });
+  const component = await mount(<PresentationHarness deckId={deckId} followDeck />);
+  await expect(status(page)).toHaveText('refused');
+  await expect.poll(() => hub.joined).toEqual([deckId]);
+
+  await component.update(<PresentationHarness deckId={deckId} followDeck present={false} />);
+
+  await settle(page);
+  expect(hub.leaves).toEqual([]);
+  expect(hub.sockets).toBe(1);
+});
+
 test('usePresentation keeps the presentation when the deck events stop, and the page leaves the deck', async ({
   mount,
   page,
@@ -305,18 +323,50 @@ test('usePresentation joins again when the page becomes visible after a failed j
   mount,
   page,
 }) => {
+  // The clock is paused, so the 2-second retry cannot fire before the visibility event.
+  await page.clock.install({ time: 0 });
   const hub = await stubDeckHub(page, { presentation: { state: presentationState() } });
+  await page.clock.pauseAt(1000);
   hub.fail('JoinPresentation', 'Something broke', { sticky: true });
   await mount(<PresentationHarness deckId={deckId} />);
-  // The first join and the immediate retry fail; the next retry waits 2 seconds.
-  await expect.poll(() => hub.presentationJoins.length, { intervals: [50] }).toBe(2);
+  // The first join fails and the immediate retry (0 ms) fails; the next retry waits 2 seconds, which never comes.
+  await expect.poll(() => hub.presentationJoins.length).toBe(1);
+  await page.clock.runFor(1);
+  await expect.poll(() => hub.presentationJoins.length).toBe(2);
   await expect(status(page)).toHaveText('connecting');
   hub.stopFailing('JoinPresentation');
 
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
 
-  await expect(status(page)).toHaveText('live', { timeout: 1000 });
+  await expect(status(page)).toHaveText('live');
   expect(hub.presentationJoins).toHaveLength(3);
+});
+
+test('usePresentation does not join again after a retry was pending when a join succeeded', async ({
+  mount,
+  page,
+}) => {
+  await page.clock.install({ time: 0 });
+  const hub = await stubDeckHub(page, {
+    presentation: { state: presentationState(), holdJoin: true },
+  });
+  await page.clock.pauseAt(1000);
+  await mount(<PresentationHarness deckId={deckId} />);
+  await expect.poll(() => hub.presentationJoins.length).toBe(1);
+  // A second join starts while the first is still unanswered, and fails: it schedules a retry (0 ms, paused).
+  hub.fail('JoinPresentation', 'Something broke');
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect.poll(() => hub.presentationJoins.length).toBe(2);
+  await page.waitForTimeout(300); // real time: the page's clock is paused
+
+  // The first join is answered: live, and the pending retry must not fire. (Under 30 s, or SignalR's keep-alive drops the silent stub.)
+  hub.releasePresentationJoins();
+  await expect(status(page)).toHaveText('live');
+  await page.clock.runFor(5000);
+  await page.waitForTimeout(300); // real time: the page's clock is paused
+
+  expect(hub.presentationJoins).toHaveLength(2);
+  await expect(status(page)).toHaveText('live');
 });
 
 test('usePresentation update rejects with the hub error when the hub fails the call', async ({

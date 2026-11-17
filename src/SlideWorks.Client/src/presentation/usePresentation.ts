@@ -114,6 +114,8 @@ export function usePresentation(
     let joinedOnce = false;
     let up = false;
     let failures = 0;
+    // Each join takes the next number; only the newest join's failure may schedule a retry.
+    let latestJoin = 0;
     let retry: ReturnType<typeof setTimeout> | undefined;
     last.current = null;
     live.current = false;
@@ -143,6 +145,7 @@ export function usePresentation(
       if (gone || refused) return;
       clearTimeout(retry);
       retry = undefined;
+      const thisJoin = ++latestJoin;
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       let joined: PresentationJoined;
       try {
@@ -156,7 +159,8 @@ export function usePresentation(
           resume(),
         );
       } catch (error) {
-        if (gone) return;
+        // A join that a later one has replaced says nothing about the connection now.
+        if (gone || thisJoin !== latestJoin) return;
         if (isRefusal(error)) {
           refused = true;
           live.current = false;
@@ -174,6 +178,9 @@ export function usePresentation(
         return;
       }
       if (gone) return;
+      // Live again: a retry an earlier failure scheduled would only join a second time.
+      clearTimeout(retry);
+      retry = undefined;
       failures = 0;
       apply(joined.state);
       const at = performance.now();
