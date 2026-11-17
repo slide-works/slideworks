@@ -27,6 +27,10 @@ public static class LookSummary
             AddChrome(changed, "the tracker", chrome.Tracker, OnOff);
             AddChrome(changed, "the footer", chrome.Footer, footer => footer!);
             AddChrome(changed, "the progress bar", chrome.Progress, OnOff);
+            if (chrome.JoinBar is { } joinBar)
+            {
+                changed.Add($"the join bar to {OnOff(joinBar)}");
+            }
         }
 
         var clauses = new List<string>();

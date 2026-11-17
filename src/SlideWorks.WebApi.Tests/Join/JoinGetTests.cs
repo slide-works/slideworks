@@ -1,0 +1,132 @@
+using System.Net;
+using System.Text.Json;
+using SlideWorks.WebApi.Tests.Decks;
+using SlideWorks.WebApi.Tests.Mcp;
+using SlideWorks.WebApi.Tests.Sharing;
+using SlideWorks.WebApi.Tests.Support;
+
+namespace SlideWorks.WebApi.Tests.Join;
+
+// GET /api/join/{code} (J3): anonymous, a code with no session is the same 404 whatever the reason, the first successful
+// read gives the phone its sw_guest cookie, and a lookup that finds nothing counts as a miss for the rate limit.
+[TestFixture]
+[CancelAfter(30000)]
+public class JoinGetTests : JoinFixture
+{
+    [Test]
+    public async Task Get_WhenUnknownCode_ShouldReturnNoSessionWithSameBody()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        Sessions.Set("222222", await DeckSeed.CreateDeckAsync(agent), null, SlideWorks.WebApi.Realtime.AudiencePhase.Live);
+        Sessions.Clear("222222");
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        using var neverSet = await anonymous.GetAsync("/api/join/111111");
+        using var cleared = await anonymous.GetAsync("/api/join/222222");
+        using var malformed = await anonymous.GetAsync("/api/join/not-a-code");
+
+        neverSet.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await neverSet.Content.ReadAsStringAsync()).ShouldBe("""{"error":"no_session"}""");
+        (await cleared.Content.ReadAsStringAsync()).ShouldBe("""{"error":"no_session"}""");
+        (await malformed.Content.ReadAsStringAsync()).ShouldBe("""{"error":"no_session"}""");
+        neverSet.Headers.Contains("Set-Cookie").ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task Get_WhenNoCookie_ShouldSetGuestCookieOnce()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        using var first = await anonymous.GetAsync($"/api/join/{CODE}");
+        var cookie = first.Headers.GetValues("Set-Cookie").Single();
+        using var second = new HttpRequestMessage(HttpMethod.Get, $"/api/join/{CODE}");
+        second.Headers.Add("Cookie", cookie.Split(';')[0]);
+        using var again = await anonymous.SendAsync(second);
+
+        first.StatusCode.ShouldBe(HttpStatusCode.OK);
+        cookie.ShouldMatch("^sw_guest=[0-9a-f]{32}; ");
+        cookie.ToLowerInvariant().ShouldContain("max-age=43200");
+        cookie.ToLowerInvariant().ShouldContain("httponly");
+        cookie.ToLowerInvariant().ShouldContain("samesite=lax");
+        cookie.ToLowerInvariant().ShouldContain("path=/");
+        again.StatusCode.ShouldBe(HttpStatusCode.OK);
+        again.Headers.Contains("Set-Cookie").ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task Get_WhenLive_ShouldMatchTheGuestContract()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        using var response = await anonymous.GetAsync($"/api/join/{CODE}");
+
+        var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+        using var sample = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "guest.json")));
+        JsonShape.AssertMatches(body, sample.RootElement.GetProperty("live"), "guest.json", GuestShape);
+        body.GetProperty("presenterName").GetString().ShouldBe("Sam Rivera");
+        body.GetProperty("state").GetProperty("type").GetString().ShouldBe("audienceState");
+        body.GetProperty("state").GetProperty("phase").GetString().ShouldBe("live");
+        body.GetProperty("look").GetProperty("joinBar").GetBoolean().ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task Get_WhenNoSession_ShouldCountAMissButAHitNever()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
+        using var anonymous = ClientFor(TestUser.Anonymous);
+        var before = Limiter.Misses;
+
+        using var hit = await anonymous.GetAsync($"/api/join/{CODE}");
+        var afterHit = Limiter.Misses;
+        using var miss = await anonymous.GetAsync("/api/join/999999");
+
+        hit.StatusCode.ShouldBe(HttpStatusCode.OK);
+        afterHit.ShouldBe(before);
+        Limiter.Misses.ShouldBe(before + 1);
+    }
+
+    [Test]
+    public async Task Get_WhenCallerHasUsedUpItsMisses_ShouldReturn429AndStillServeAHit()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
+        using var anonymous = ClientFor(TestUser.Anonymous);
+        Limiter.Refuse = true;
+        try
+        {
+            using var refused = await anonymous.GetAsync("/api/join/999999");
+            using var hit = await anonymous.GetAsync($"/api/join/{CODE}");
+
+            refused.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+            (await refused.Content.ReadAsStringAsync()).ShouldBe("""{"error":"too_many_attempts"}""");
+            hit.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+        finally
+        {
+            Limiter.Refuse = false;
+        }
+    }
+
+    [Test]
+    public async Task GuestView_WhenNotLinkShared_ShouldHaveNullDeckUrl()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var privateDeck = await DeckSeed.CreateDeckAsync(agent);
+        var linkDeck = await DeckSeed.CreateDeckAsync(agent, "Shared by link");
+        await SharingApi.PutOkAsync(Client, linkDeck, "link");
+        Open("333333", privateDeck);
+        Open("444444", linkDeck);
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        var closed = JsonDocument.Parse(await anonymous.GetStringAsync("/api/join/333333")).RootElement;
+        var shared = JsonDocument.Parse(await anonymous.GetStringAsync("/api/join/444444")).RootElement;
+
+        closed.GetProperty("deckUrl").ValueKind.ShouldBe(JsonValueKind.Null);
+        shared.GetProperty("deckUrl").GetString().ShouldBe($"/d/{linkDeck}/shared-by-link");
+    }
+}
