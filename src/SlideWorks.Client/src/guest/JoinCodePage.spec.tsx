@@ -137,13 +137,30 @@ test('Cut empties a box', async ({ mount, page }) => {
   await expect.poll(() => values(page)).toBe('|8|2|||');
 });
 
-test('Backspace in an empty box goes back one box', async ({ mount, page }) => {
+test('Backspace in an empty box goes back one box and empties it', async ({ mount, page }) => {
   await mountKeypad(mount, page);
   await page.keyboard.type('48');
   await page.keyboard.press('Backspace');
-  await page.keyboard.press('Backspace');
   await expect(page.getByTestId(joinCodeBoxTestId(2))).toBeFocused();
   await expect.poll(() => values(page)).toBe('4|||||');
+  await page.keyboard.press('Backspace');
+  await expect(page.getByTestId(joinCodeBoxTestId(1))).toBeFocused();
+  await expect.poll(() => values(page)).toBe('|||||');
+});
+
+test('clearing five digits takes five Backspace presses', async ({ mount, page }) => {
+  await mountKeypad(mount, page);
+  await page.keyboard.type('48291');
+  for (let i = 0; i < 5; i++) await page.keyboard.press('Backspace');
+  await expect.poll(() => values(page)).toBe('|||||');
+  await expect(page.getByTestId(joinCodeBoxTestId(1))).toBeFocused();
+});
+
+test('Backspace in the empty first box does nothing', async ({ mount, page }) => {
+  await mountKeypad(mount, page);
+  await page.keyboard.press('Backspace');
+  await expect(page.getByTestId(joinCodeBoxTestId(1))).toBeFocused();
+  await expect.poll(() => values(page)).toBe('|||||');
 });
 
 test('a one-time code appended to a digit keeps the last six digits', async ({ mount, page }) => {
@@ -153,7 +170,6 @@ test('a one-time code appended to a digit keeps the last six digits', async ({ m
     set.call(box, '4482913');
     box.dispatchEvent(new Event('input', { bubbles: true }));
   });
-  await expect(page).toHaveURL(/./);
   await expect(page.getByTestId(GUEST_TEST_IDS.lobby)).toBeVisible();
 });
 

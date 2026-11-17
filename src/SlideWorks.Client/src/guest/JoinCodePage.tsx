@@ -102,11 +102,16 @@ export function JoinCodePage({ code, error }: { code?: string; error?: JoinCodeE
     if (next.every(Boolean)) go(next);
   };
 
-  // Backspace in an empty box goes back one box; a box with a digit is emptied by its input event (see fill).
+  // Backspace in an empty box goes back one box and empties it, so one press removes one digit; a box with a digit is
+  // emptied by its input event (see fill).
   const onKeyDown = (position: number) => (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Backspace' && !current.current[position]) {
       event.preventDefault();
-      boxes.current[Math.max(position - 1, 0)]?.focus();
+      if (position === 0) return;
+      const next = [...current.current];
+      next[position - 1] = '';
+      update(next);
+      boxes.current[position - 1]?.focus();
     } else if (event.key === 'ArrowLeft') boxes.current[Math.max(position - 1, 0)]?.focus();
     else if (event.key === 'ArrowRight')
       boxes.current[Math.min(position + 1, JOIN_CODE_LENGTH - 1)]?.focus();
