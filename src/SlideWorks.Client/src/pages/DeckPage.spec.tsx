@@ -427,8 +427,8 @@ test('present opens the player, later features are disabled', async ({ mount, pa
   );
 
   const later = page.getByTestId('deck-later');
-  await expect(later).toHaveCount(5);
-  for (const [index, feature] of ['SW-3', 'SW-4', 'SW-14', 'SW-14', 'SW-13'].entries()) {
+  await expect(later).toHaveCount(4);
+  for (const [index, feature] of ['SW-3', 'SW-14', 'SW-14', 'SW-13'].entries()) {
     await expect(later.nth(index)).toBeDisabled();
     await expect(later.nth(index)).toHaveAttribute('title', `Coming later (${feature})`);
   }

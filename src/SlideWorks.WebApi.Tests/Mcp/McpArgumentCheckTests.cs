@@ -239,7 +239,7 @@ public class McpArgumentCheckTests : ApiTestFixture
         Property(schemas["update_slide"], "slots").GetProperty("type").GetRawText().ShouldBe("\"object\"");
         Property(schemas["add_slide"], "slots").TryGetProperty("additionalProperties", out _).ShouldBeFalse();
         notes.GetProperty("items").GetProperty("additionalProperties").ValueKind.ShouldBe(JsonValueKind.False);
-        schemas.Count.ShouldBe(17);
+        schemas.Count.ShouldBe(18);
         foreach (var (tool, schema) in schemas)
         {
             schema.GetProperty("additionalProperties").ValueKind.ShouldBe(JsonValueKind.False, tool);

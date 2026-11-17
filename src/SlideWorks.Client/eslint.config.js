@@ -48,14 +48,10 @@ export default tseslint.config(
         },
         {
           // No Date in the SPA (D7): times come from the server, advanced with performance.now() deltas.
-          selector: "NewExpression[callee.name='Date']",
+          // Any Date identifier: new Date(), Date(), Date.now(), globalThis.Date, an alias and a type.
+          selector: "Identifier[name='Date']",
           message:
-            'new Date() is banned in the SPA: use server times, performance.now() deltas and presentation/format.ts. See .claude/skills/no-browser-datetime/.',
-        },
-        {
-          selector: "MemberExpression[object.name='Date']",
-          message:
-            'Date.now(), Date.parse() and the rest of Date are banned in the SPA: use server times, performance.now() deltas and presentation/format.ts. See .claude/skills/no-browser-datetime/.',
+            'Date is banned in the SPA: use server times, performance.now() deltas and presentation/format.ts. See .claude/skills/no-browser-datetime/.',
         },
       ],
     },

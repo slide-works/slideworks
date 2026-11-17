@@ -1,7 +1,12 @@
+import type { ReactNode } from 'react';
 import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { DeckPlayView } from '../api/types';
 import { deepDivesOf } from '../look/deepDivesOf';
+import { nextPosition, previousPosition } from '../presentation/navigate';
+import type { PresentationUpdate } from '../presentation/types';
 import type { SlideDeck } from '../slides/slots';
+import { Blackout } from './Blackout';
+import type { PlayerPosition } from './parseHash';
 import { PlayerControls } from './PlayerControls';
 import { PlayerStage } from './PlayerStage';
 import { usePlayerKeys } from './usePlayerKeys';
@@ -16,9 +21,32 @@ function isFullscreen(): boolean {
   return document.fullscreenElement !== null;
 }
 
+// What audience mode gives the player (P8): the presentation it follows. position is the last state's slide and step
+// (null before the first), live says whether it is being followed now, and driven that a presenter or phone is
+// connected, so the player's own controls, clicks and swipes do nothing. send moves the presentation (D4).
+export type AudienceControl = {
+  position: PlayerPosition | null;
+  live: boolean;
+  driven: boolean;
+  black: boolean;
+  skipDeepDives: boolean;
+  send(update: PresentationUpdate): void;
+};
+
+function noop() {}
+
 // The deck player (K12): the scaled 1920×1080 stage over its control bar,
 // driven by keys, clicks, swipes and the `#slide.step` hash.
-export function Player({ deck }: { deck: DeckPlayView }) {
+export function Player({
+  deck,
+  audience,
+  notice,
+}: {
+  deck: DeckPlayView;
+  audience?: AudienceControl;
+  // A message over the stage, inside the element that goes fullscreen.
+  notice?: ReactNode;
+}) {
   const root = useRef<HTMLElement>(null);
   const stepCounts = useMemo(() => deck.slides.map((slide) => slide.steps), [deck.slides]);
   // What every slide knows about the deck, with the look from the play view.
@@ -32,8 +60,33 @@ export function Player({ deck }: { deck: DeckPlayView }) {
     }),
     [deck.title, deck.author, deck.parts, deck.look, deck.slides],
   );
-  const navigation = usePlayerNavigation(stepCounts);
-  const { position, next, previous, first, last } = navigation;
+  const navigation = usePlayerNavigation(
+    stepCounts,
+    audience?.position ? { position: audience.position, live: audience.live } : null,
+  );
+  const { position } = navigation;
+  const deepDives = useMemo(
+    () => new Set(slideDeck.deepDives.map((dive) => dive.number)),
+    [slideDeck.deepDives],
+  );
+  // While live, every move is the presentation's: the keys and the control bar ask for it and render the answer.
+  const moves = useMemo(() => {
+    if (!audience?.live) return navigation;
+    const { black, skipDeepDives, send } = audience;
+    const go = (to: PlayerPosition) => {
+      // At the end of the deck, or with only skipped deep dives ahead, there is nothing to send.
+      if (to.slide === position.slide && to.step === position.step) return;
+      send({ ...to, black, skipDeepDives });
+    };
+    return {
+      next: () => go(nextPosition(position, stepCounts, deepDives, skipDeepDives)),
+      previous: () => go(previousPosition(position, stepCounts, deepDives, skipDeepDives)),
+      first: () => go({ slide: 1, step: 0 }),
+      last: () => go({ slide: Math.max(stepCounts.length, 1), step: 0 }),
+    };
+  }, [audience, navigation, position, stepCounts, deepDives]);
+  const { next, previous, first, last } = moves;
+  const driven = audience?.driven ?? false;
 
   const fullscreen = useSyncExternalStore(subscribeFullscreen, isFullscreen);
   const toggleFullscreen = useCallback(() => {
@@ -58,23 +111,39 @@ export function Player({ deck }: { deck: DeckPlayView }) {
       aria-label={deck.title}
       className="flex h-dvh w-full flex-col overflow-hidden bg-[#05070d]"
     >
-      <PlayerStage
-        deck={deck}
-        slideDeck={slideDeck}
-        position={position}
-        onNext={next}
-        onPrevious={previous}
-      />
-      <PlayerControls
-        position={position}
-        total={deck.slides.length}
-        steps={stepCounts[position.slide - 1] ?? 0}
-        canFullscreen={document.fullscreenEnabled}
-        fullscreen={fullscreen}
-        onPrevious={previous}
-        onNext={next}
-        onFullscreen={toggleFullscreen}
-      />
+      {audience ? (
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <PlayerStage
+            deck={deck}
+            slideDeck={slideDeck}
+            position={position}
+            onNext={driven ? noop : next}
+            onPrevious={driven ? noop : previous}
+          />
+          {audience.black && <Blackout />}
+        </div>
+      ) : (
+        <PlayerStage
+          deck={deck}
+          slideDeck={slideDeck}
+          position={position}
+          onNext={next}
+          onPrevious={previous}
+        />
+      )}
+      {!driven && (
+        <PlayerControls
+          position={position}
+          total={deck.slides.length}
+          steps={stepCounts[position.slide - 1] ?? 0}
+          canFullscreen={document.fullscreenEnabled}
+          fullscreen={fullscreen}
+          onPrevious={previous}
+          onNext={next}
+          onFullscreen={toggleFullscreen}
+        />
+      )}
+      {notice}
     </section>
   );
 }

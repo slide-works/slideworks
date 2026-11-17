@@ -110,6 +110,16 @@ jobs:
           path: src/SlideWorks.Client/ct-new-baselines/
           if-no-files-found: ignore
           retention-days: 14
+      # A baseline that was missing passes the rerun above, so without this step a screenshot spec could merge with
+      # no committed baseline and compare against nothing. The artifact is uploaded first, then the job fails.
+      - name: Fail when a screenshot baseline was missing
+        if: ${{ !cancelled() }}
+        run: |
+          if [ -s new-baselines.txt ]; then
+            echo "::error::Screenshot baselines are not committed. Review the ct-new-baselines artifact and commit them:"
+            cat new-baselines.txt
+            exit 1
+          fi
 
   # The production image builds, Chromium included (the share card renderer, L9).
   docker:

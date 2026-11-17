@@ -84,6 +84,15 @@ public sealed class PlayerPage(IPage page)
 
     public ILocator Player => page.GetByTestId("player");
 
+    // The wrapper around the player while it follows a presentation (/d/{id}/{slug}?present); absent on the plain player.
+    public ILocator AudienceMode => page.GetByTestId("audience-mode");
+
+    // The black cover over the stage while the presentation is blacked out.
+    public ILocator Blackout => page.GetByTestId("blackout");
+
+    // The bar under the stage; absent while a presenter or phone drives the audience window.
+    public ILocator Controls => page.GetByTestId("player-controls");
+
     public ILocator NotFound => page.GetByTestId("player-not-found");
 
     public ILocator SignIn => page.GetByTestId("player-sign-in");
