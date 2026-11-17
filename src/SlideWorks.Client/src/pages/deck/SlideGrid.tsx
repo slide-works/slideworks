@@ -18,6 +18,7 @@ export function SlideGrid({ view, selected, onSelect }: SlideGridProps) {
     parts: view.parts,
     look: view.look,
     deepDives: deepDivesOf(view.slides),
+    interactive: false,
   };
   if (view.slides.length === 0) {
     return (

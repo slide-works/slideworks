@@ -24,6 +24,12 @@ import {
 } from './layoutSlots/numbered-cards';
 import { REQUIRED as RULES_REQUIRED, SLOTS as RULES_SLOTS } from './layoutSlots/rules';
 import { REQUIRED as CARDS_REQUIRED, SLOTS as CARDS_SLOTS } from './layoutSlots/cards';
+import { REQUIRED as STATEMENT_REQUIRED, SLOTS as STATEMENT_SLOTS } from './layoutSlots/statement';
+import { REQUIRED as LINKS_REQUIRED, SLOTS as LINKS_SLOTS } from './layoutSlots/links';
+import { REQUIRED as STACK_REQUIRED, SLOTS as STACK_SLOTS } from './layoutSlots/stack';
+import { REQUIRED as BARS_REQUIRED, SLOTS as BARS_SLOTS } from './layoutSlots/bars';
+import { REQUIRED as FLOW_REQUIRED, SLOTS as FLOW_SLOTS } from './layoutSlots/flow';
+import { REQUIRED as LEVELS_REQUIRED, SLOTS as LEVELS_SLOTS } from './layoutSlots/levels';
 import { REQUIRED as CLOSE_REQUIRED, SLOTS as CLOSE_SLOTS } from './layoutSlots/close';
 import { REQUIRED as JOIN_REQUIRED, SLOTS as JOIN_SLOTS } from './layoutSlots/join';
 import { REQUIRED as POLL_REQUIRED, SLOTS as POLL_SLOTS } from './layoutSlots/poll';
@@ -49,6 +55,12 @@ export const LAYOUT_SLOTS: { [L in keyof Slots]: Slots[L] } = {
   'numbered-cards': NUMBERED_CARDS_SLOTS,
   rules: RULES_SLOTS,
   cards: CARDS_SLOTS,
+  statement: STATEMENT_SLOTS,
+  links: LINKS_SLOTS,
+  stack: STACK_SLOTS,
+  bars: BARS_SLOTS,
+  flow: FLOW_SLOTS,
+  levels: LEVELS_SLOTS,
   close: CLOSE_SLOTS,
   join: JOIN_SLOTS,
   poll: POLL_SLOTS,
@@ -74,6 +86,12 @@ export const REQUIRED_SLOT_KEYS = {
   'numbered-cards': NUMBERED_CARDS_REQUIRED,
   rules: RULES_REQUIRED,
   cards: CARDS_REQUIRED,
+  statement: STATEMENT_REQUIRED,
+  links: LINKS_REQUIRED,
+  stack: STACK_REQUIRED,
+  bars: BARS_REQUIRED,
+  flow: FLOW_REQUIRED,
+  levels: LEVELS_REQUIRED,
   close: CLOSE_REQUIRED,
   join: JOIN_REQUIRED,
   poll: POLL_REQUIRED,

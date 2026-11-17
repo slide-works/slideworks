@@ -20,6 +20,7 @@ export function PresenterThumb({ view, slide, step = 0 }: Props) {
       parts: view.parts,
       look: view.look,
       deepDives: deepDivesOf(view.slides),
+      interactive: false,
     }),
     [view.title, view.author, view.parts, view.look, view.slides],
   );

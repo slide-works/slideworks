@@ -1,5 +1,6 @@
 // The types every layout shares (K5): tones, fills, reveals, and what a layout
 // component is given.
+import type { PartWire } from '../../api/parts';
 import type { LookView } from '../../api/types';
 import type { LayoutName, Slots } from '../slots';
 
@@ -20,9 +21,12 @@ export type DeepDive = { part: number | null; number: number; headline: string }
 export type SlideDeck = {
   title: string;
   author: string | null;
-  parts: string[];
+  parts: PartWire[];
   look: LookView;
   deepDives: DeepDive[];
+  // False where the slide sits under a click target (a thumbnail), so nothing
+  // in it should take a click; absent means true (K20).
+  interactive?: boolean;
 };
 
 // The props every layout component takes (K12). `step` is 0 before any reveal.
