@@ -3,7 +3,12 @@
   "slug": "ship-smaller",
   "title": "Ship smaller",
   "author": "Sam Rivera",
-  "parts": ["The cost", "Slice it", "Ship it", "Make it stick"],
+  "parts": [
+    "The cost",
+    "Slice it",
+    "Ship it",
+    "Make it stick"
+  ],
   "look": {
     "template": {
       "name": "workshop",
@@ -99,7 +104,8 @@
       "url": "/api/images/img_logo0001"
     },
     "draft": true,
-    "footerDateLabel": "16 Nov 2026"
+    "footerDateLabel": "16 Nov 2026",
+    "joinBar": false
   },
   "slides": [
     {
@@ -448,11 +454,25 @@
         "kicker": "Ship it",
         "headline": "Lead time fell as the slices got smaller",
         "kind": "bar",
-        "xLabels": ["May", "Jun", "Jul", "Aug", "Sep", "Oct"],
+        "xLabels": [
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct"
+        ],
         "series": [
           {
             "name": "Lead time",
-            "values": [11, 10, 8, 5, 3, 2]
+            "values": [
+              11,
+              10,
+              8,
+              5,
+              3,
+              2
+            ]
           }
         ],
         "yUnit": "wk",
@@ -537,19 +557,28 @@
             "badge": "Product",
             "title": "Write the demo sentence",
             "text": "Every story starts with \"Now a customer can …\".",
-            "chips": ["story map", "flag plan"]
+            "chips": [
+              "story map",
+              "flag plan"
+            ]
           },
           {
             "badge": "Engineering",
             "title": "Merge daily, behind flags",
             "text": "Small pull requests that can be reviewed in one sitting.",
-            "chips": ["trunk", "flags", "pairing"]
+            "chips": [
+              "trunk",
+              "flags",
+              "pairing"
+            ]
           },
           {
             "badge": "Design",
             "title": "Design the thin version too",
             "text": "Release 1 needs a design, not only the final vision.",
-            "chips": ["release 1 mock"]
+            "chips": [
+              "release 1 mock"
+            ]
           }
         ]
       },
