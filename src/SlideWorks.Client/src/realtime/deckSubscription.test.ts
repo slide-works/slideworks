@@ -21,6 +21,8 @@ function fakeConnection(startResults: ('ok' | 'fail')[] = ['ok']) {
     onreconnected: vi.fn((handler: () => void) => {
       onReconnected = handler;
     }),
+    onreconnecting: vi.fn(),
+    onclose: vi.fn(),
   };
   return {
     connection: connection as unknown as RealtimeConnection,
