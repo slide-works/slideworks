@@ -1,0 +1,134 @@
+[
+  {
+    "value": "https://example.org/a",
+    "ok": true
+  },
+  {
+    "value": "http://example.org",
+    "ok": true
+  },
+  {
+    "value": "HTTPS://EXAMPLE.ORG/A",
+    "ok": true
+  },
+  {
+    "value": "http://example.org/",
+    "ok": true
+  },
+  {
+    "value": "https://example.org:8443/a",
+    "ok": true
+  },
+  {
+    "value": "https://example.org/a/b?x=1&y=2",
+    "ok": true
+  },
+  {
+    "value": "https://example.org/a#part",
+    "ok": true
+  },
+  {
+    "value": "https://example.org:8443/a/b?x=1#part",
+    "ok": true
+  },
+  {
+    "value": "http://example.org:8080/a?x=1",
+    "ok": true
+  },
+  {
+    "value": "javascript:alert(1)",
+    "ok": false
+  },
+  {
+    "value": "JaVaScRiPt:alert(1)",
+    "ok": false
+  },
+  {
+    "value": " javascript:alert(1)",
+    "ok": false
+  },
+  {
+    "value": "java\tscript:alert(1)",
+    "ok": false
+  },
+  {
+    "value": "java\nscript:alert(1)",
+    "ok": false
+  },
+  {
+    "value": "javascript://example.org/%0Aalert(1)",
+    "ok": false
+  },
+  {
+    "value": "vbscript:x",
+    "ok": false
+  },
+  {
+    "value": "data:text/html,x",
+    "ok": false
+  },
+  {
+    "value": "file:///etc/hosts",
+    "ok": false
+  },
+  {
+    "value": "mailto:a@example.org",
+    "ok": false
+  },
+  {
+    "value": "tel:+10000000000",
+    "ok": false
+  },
+  {
+    "value": "ftp://example.org",
+    "ok": false
+  },
+  {
+    "value": "blob:https://example.org/a",
+    "ok": false
+  },
+  {
+    "value": "//example.org",
+    "ok": false
+  },
+  {
+    "value": "http://user:pw@example.org",
+    "ok": false
+  },
+  {
+    "value": "https://user:pw@example.org/",
+    "ok": false
+  },
+  {
+    "value": "https://user@example.org/",
+    "ok": false
+  },
+  {
+    "value": "https://exa mple.org",
+    "ok": false
+  },
+  {
+    "value": "https://example.org/\ta",
+    "ok": false
+  },
+  {
+    "value": "https://",
+    "ok": false
+  },
+  {
+    "value": "",
+    "ok": false
+  },
+  {
+    "value": "/decks/a",
+    "ok": false
+  },
+  {
+    "value": "a/b.html",
+    "ok": false
+  },
+  {
+    "value": "example.org/a",
+    "ok": false
+  }
+]
