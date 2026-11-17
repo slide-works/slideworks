@@ -100,6 +100,13 @@ public sealed class AudienceFeed : IDisposable
         }
     }
 
+    // Recomposes and publishes the deck's state, behind its gate like every other publish (V3).
+    public async Task RefreshAsync(string deckId)
+    {
+        await using var scope = _scopes.CreateAsyncScope();
+        await PublishAsync(scope.ServiceProvider, deckId);
+    }
+
     // The passed state is only a signal for the deck: SW-4 notifies outside its per-deck lock, so two changes can arrive
     // here out of order. The position published is whatever the registry holds when this one's turn at the gate comes.
     public async Task OnChangedAsync(PresentationState state)
