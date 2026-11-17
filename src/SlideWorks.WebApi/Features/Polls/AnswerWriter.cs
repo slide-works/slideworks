@@ -1,0 +1,206 @@
+using System.Threading.Channels;
+using Agoda.IoC.Core;
+using Microsoft.EntityFrameworkCore;
+using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Features.Polls.Contracts;
+using SlideWorks.WebApi.Features.Polls.Data;
+
+namespace SlideWorks.WebApi.Features.Polls;
+
+// Writes answers in groups (D16): every answer goes on one in-memory queue, and a single loop commits whatever is queued, up
+// to MAX_GROUP answers, in one transaction. It starts the next group as soon as one commits, so an answer waits at most for
+// the commit in flight, and under a burst the queue fills while a commit runs and the groups grow with the load.
+//
+// Inside each transaction (SQLite's BEGIN IMMEDIATE, so no other write runs beside it) the round is read again: an answer to
+// a round that is closed, or not opened, by then is stale and nothing of it is written. Closing a round is one write
+// transaction too, so an answer is either in the round's Final or refused. The revision is checked again there as well, in
+// queue order, so two answers from one guest in one group can't both replace the same revision. An answer is replaced,
+// revision + 1, never deleted.
+//
+// Only after the commit does the tally change: IPollTallies.ApplyAsync once per written answer, in order, then each waiter
+// gets its result. A group that fails to commit fails every waiter in it, and nothing of it is applied. Disposing the writer
+// (the host shutting down) stops the loop and fails whatever is still queued, so no waiter hangs.
+[RegisterSingleton]
+public sealed class AnswerWriter : IDisposable
+{
+    public const int MAX_GROUP = 200;
+
+    private readonly IServiceScopeFactory _scopes;
+    private readonly IPollTallies _tallies;
+    private readonly TimeProvider _clock;
+    private readonly ILogger<AnswerWriter> _log;
+    private readonly Channel<Queued> _queue = Channel.CreateUnbounded<Queued>(new UnboundedChannelOptions { SingleReader = true });
+    private readonly CancellationTokenSource _stopping = new();
+
+    public AnswerWriter(IServiceScopeFactory scopes, IPollTallies tallies, TimeProvider clock, ILogger<AnswerWriter> log)
+    {
+        _scopes = scopes;
+        _tallies = tallies;
+        _clock = clock;
+        _log = log;
+        // The loop runs for the writer's life and ends itself once stopped, failing its waiters; nothing awaits it.
+        _ = Task.Run(() => RunAsync(_stopping.Token), CancellationToken.None);
+    }
+
+    // Queues the guest's answer to the round and completes once its group has committed: with the answer as written (its
+    // sorted picks and new revision), or null when it was stale at commit time (the round closed or isn't open, or the
+    // guest's revision is no longer expectedRevision). Throws what the group's commit threw when it failed.
+    public Task<MyAnswer?> WriteAsync(PollRoundRef round, string guestId, int expectedRevision, IReadOnlyList<int> picks)
+    {
+        var queued = new Queued(round, Guid.Parse(round.RoundId), guestId, expectedRevision, picks);
+        if (!_queue.Writer.TryWrite(queued))
+        {
+            throw new ObjectDisposedException(nameof(AnswerWriter), "The answer writer has stopped.");
+        }
+        return queued.Done.Task;
+    }
+
+    // Stops taking answers and cancels the loop, which fails the group it holds and everything still queued, then ends. It
+    // doesn't wait for the loop: a commit in flight is cancelled, and its waiters fail too.
+    public void Dispose()
+    {
+        if (!_queue.Writer.TryComplete())
+        {
+            return;
+        }
+        _stopping.Cancel();
+        _stopping.Dispose();
+    }
+
+    private async Task RunAsync(CancellationToken stopping)
+    {
+        var group = new List<Queued>(MAX_GROUP);
+        try
+        {
+            while (await _queue.Reader.WaitToReadAsync(stopping))
+            {
+                while (group.Count < MAX_GROUP && _queue.Reader.TryRead(out var next))
+                {
+                    group.Add(next);
+                }
+                await CommitAsync(group, stopping);
+                group.Clear();
+            }
+        }
+        catch (OperationCanceledException) when (stopping.IsCancellationRequested)
+        {
+            // Stopping: the waiters still held are failed below.
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "The answer writer's loop stopped");
+        }
+        var stopped = new ObjectDisposedException(nameof(AnswerWriter), "The answer writer has stopped.");
+        foreach (var queued in group)
+        {
+            queued.Done.TrySetException(stopped);
+        }
+        _queue.Writer.TryComplete();
+        FailQueued(stopped);
+    }
+
+    private void FailQueued(Exception reason)
+    {
+        while (_queue.Reader.TryRead(out var queued))
+        {
+            queued.Done.TrySetException(reason);
+        }
+    }
+
+    // Commits one group. Never throws: a failed commit fails the group's waiters.
+    private async Task CommitAsync(List<Queued> group, CancellationToken stopping)
+    {
+        List<Written> written;
+        try
+        {
+            written = await WriteGroupAsync(group, stopping);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "An answer group of {Count} failed to commit", group.Count);
+            foreach (var queued in group)
+            {
+                queued.Done.TrySetException(ex);
+            }
+            return;
+        }
+        foreach (var write in written)
+        {
+            try
+            {
+                await _tallies.ApplyAsync(write.Queued.Round, write.OldPicks, write.Answer.Picks);
+            }
+            catch (Exception ex)
+            {
+                // The answer is committed, so it is the guest's answer whatever the tally does; the tally rebuilds from the
+                // rows after a restart.
+                _log.LogError(ex, "The tally of round {RoundId} did not take an answer that committed", write.Queued.Round.RoundId);
+            }
+        }
+        foreach (var write in written)
+        {
+            write.Queued.Done.TrySetResult(write.Answer);
+        }
+        foreach (var queued in group)
+        {
+            // Every answer not written was stale at commit time.
+            queued.Done.TrySetResult(null);
+        }
+    }
+
+    private async Task<List<Written>> WriteGroupAsync(List<Queued> group, CancellationToken stopping)
+    {
+        await using var scope = _scopes.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await using var transaction = await db.Database.BeginTransactionAsync(stopping);
+
+        var roundIds = group.Select(q => q.RoundId).Distinct().ToList();
+        var open = await db.PollRounds.AsNoTracking()
+            .Where(r => roundIds.Contains(r.Id) && r.OpenedAt != null && r.ClosedAt == null)
+            .Select(r => r.Id)
+            .ToListAsync(stopping);
+        var guestIds = group.Where(q => open.Contains(q.RoundId)).Select(q => q.GuestId).Distinct().ToList();
+        var current = await db.PollAnswers
+            .Where(a => open.Contains(a.RoundId) && guestIds.Contains(a.GuestId))
+            .ToDictionaryAsync(a => (a.RoundId, a.GuestId), stopping);
+
+        var now = _clock.GetUtcNow();
+        var written = new List<Written>();
+        foreach (var queued in group.Where(q => open.Contains(q.RoundId)))
+        {
+            var key = (queued.RoundId, queued.GuestId);
+            var answer = current.GetValueOrDefault(key);
+            if ((answer?.Revision ?? 0) != queued.ExpectedRevision)
+            {
+                continue;
+            }
+            IReadOnlyList<int> oldPicks = answer is null ? [] : [.. answer.Picks];
+            if (answer is null)
+            {
+                answer = new PollAnswer { RoundId = queued.RoundId, GuestId = queued.GuestId, Picks = [.. queued.Picks], Revision = 1, UpdatedAt = now };
+                db.PollAnswers.Add(answer);
+                current[key] = answer;
+            }
+            else
+            {
+                answer.Picks = [.. queued.Picks];
+                answer.Revision++;
+                answer.UpdatedAt = now;
+            }
+            written.Add(new Written(queued, oldPicks, new MyAnswer(queued.Picks, answer.Revision)));
+        }
+        if (written.Count > 0)
+        {
+            await db.SaveChangesAsync(stopping);
+        }
+        await transaction.CommitAsync(stopping);
+        return written;
+    }
+
+    private sealed record Queued(PollRoundRef Round, Guid RoundId, string GuestId, int ExpectedRevision, IReadOnlyList<int> Picks)
+    {
+        public TaskCompletionSource<MyAnswer?> Done { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    private sealed record Written(Queued Queued, IReadOnlyList<int> OldPicks, MyAnswer Answer);
+}
