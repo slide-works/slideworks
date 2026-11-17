@@ -8,7 +8,9 @@ namespace SlideWorks.WebApi.Tests.Support;
 // IPolls for tests that need a poll without the real lifecycle: each test sets the view a deck's slide answers with, and
 // every action returns that view, or throws ConflictException with the code set by RefuseWith. It records each action as
 // "Open 3" (the method without Async, then the slide), per deck, in order. Add it with FakePolls.AddTo. A slide with no
-// view set answers null from ControlAsync, as the real one does for a slide that is not a poll.
+// view set answers null from ControlAsync, as the real one does for a slide that is not a poll. The app, and so this fake,
+// is shared by every test in a fixture: each test uses deck ids of its own, and a test that calls RefuseWith calls Reset
+// when it is done (RefuseWith is for every deck).
 public sealed class FakePolls : IPolls
 {
     private readonly Lock _gate = new();
@@ -35,6 +37,9 @@ public sealed class FakePolls : IPolls
             _refusal = code;
         }
     }
+
+    // Accepts every action again, as RefuseWith(null) does.
+    public void Reset() => RefuseWith(null);
 
     public IReadOnlyList<string> CallsFor(string deckId)
     {

@@ -2,17 +2,22 @@ using SlideWorks.WebApi.Features.Polls.Contracts;
 
 namespace SlideWorks.WebApi.Features.Polls;
 
-// Each round's running tally, in memory (V5, D16). The answer writer applies a change only after its commit. A round read
-// for the first time after a restart is loaded from its answer rows, and its counts are padded to the option count the
-// caller passes when an option was added. A singleton: a call that needs the database opens its own scope.
+// Each round's running tally, in memory (V5, D16). The answer writer calls ApplyAsync only after its commit. A round first
+// touched after a restart is loaded from its answer rows, whichever call touches it first. A singleton: a call that needs
+// the database opens its own scope.
 public interface IPollTallies
 {
-    // One guest's answer changed from oldPicks to newPicks. oldPicks is empty for the guest's first answer in the round.
-    void Apply(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks);
+    // One guest's answer changed from oldPicks to newPicks, and the commit that wrote it is done. oldPicks is empty for the
+    // guest's first answer in the round, which is what raises Answered. When the round is not loaded yet, it is loaded from
+    // the answer rows first, and those rows already hold this answer, so the delta is not applied on top of them: nothing
+    // is counted twice. Then every Changed handler is awaited in order, so a handler must only note the change (the pump
+    // marks the deck dirty) and return, never publish inline.
+    Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks);
 
-    // The round's tally, with one count per option for optionCount options.
+    // The round's tally, with one count per option for optionCount options (padded after an option was added). Read only
+    // while the round is open: a closed round's result is its Final snapshot, which IPolls.ControlAsync returns.
     Task<PollCounts> ReadAsync(string roundId, int optionCount);
 
-    // Calls handler with the round after each change Apply makes, until the subscription is disposed.
+    // Calls handler with the round after each change ApplyAsync makes, until the subscription is disposed.
     IDisposable Changed(Func<PollRoundRef, Task> handler);
 }

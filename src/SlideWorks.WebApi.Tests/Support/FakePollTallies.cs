@@ -6,15 +6,18 @@ using SlideWorks.WebApi.Features.Polls.Contracts;
 namespace SlideWorks.WebApi.Tests.Support;
 
 // IPollTallies for tests that need a tally without answers: each test sets the counts a round reads as, and a round with
-// none set reads as no answers and a zero per option. Apply records the change and starts calling every Changed handler
-// with the round, in order, without waiting for them; it does not change the counts. A test that needs the handlers done
-// calls RaiseChangedAsync instead, which awaits each. Add it with FakePollTallies.AddTo.
+// none set reads as no answers and a zero per option. ApplyAsync records the change, then awaits every Changed handler with
+// the round, in order, as the real one does; it does not change the counts. BlockNextRead holds the next ReadAsync until
+// ReleaseRead, for a test of two overlapping reads. Add it with FakePollTallies.AddTo. The app, and so this fake, is shared
+// by every test in a fixture: each test uses round ids of its own.
 public sealed class FakePollTallies : IPollTallies
 {
     private readonly Lock _gate = new();
     private readonly Dictionary<string, PollCounts> _counts = new(StringComparer.Ordinal);
     private readonly List<(PollRoundRef Round, IReadOnlyList<int> OldPicks, IReadOnlyList<int> NewPicks)> _applied = [];
     private ImmutableList<Func<PollRoundRef, Task>> _handlers = [];
+    private TaskCompletionSource? _entered;
+    private TaskCompletionSource? _release;
 
     public IReadOnlyList<(PollRoundRef Round, IReadOnlyList<int> OldPicks, IReadOnlyList<int> NewPicks)> Applied
     {
@@ -38,28 +41,57 @@ public sealed class FakePollTallies : IPollTallies
         }
     }
 
-    public void Apply(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks)
+    // The next ReadAsync waits until ReleaseRead; the returned task completes once that read has started waiting.
+    public Task BlockNextRead()
+    {
+        lock (_gate)
+        {
+            _entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            return _entered.Task;
+        }
+    }
+
+    public void ReleaseRead()
+    {
+        lock (_gate)
+        {
+            _release?.TrySetResult();
+            _release = null;
+        }
+    }
+
+    public async Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks)
     {
         lock (_gate)
         {
             _applied.Add((round, oldPicks, newPicks));
         }
-        _ = RaiseChangedAsync(round);
-    }
-
-    public async Task RaiseChangedAsync(PollRoundRef round)
-    {
         foreach (var handler in _handlers)
         {
             await handler(round);
         }
     }
 
-    public Task<PollCounts> ReadAsync(string roundId, int optionCount)
+    public async Task<PollCounts> ReadAsync(string roundId, int optionCount)
     {
+        Task? hold = null;
         lock (_gate)
         {
-            return Task.FromResult(_counts.GetValueOrDefault(roundId) ?? new PollCounts(0, new int[optionCount]));
+            if (_entered != null && _release != null)
+            {
+                _entered.TrySetResult();
+                hold = _release.Task;
+                _entered = null;
+            }
+        }
+        if (hold != null)
+        {
+            await hold;
+        }
+        lock (_gate)
+        {
+            return _counts.GetValueOrDefault(roundId) ?? new PollCounts(0, new int[optionCount]);
         }
     }
 

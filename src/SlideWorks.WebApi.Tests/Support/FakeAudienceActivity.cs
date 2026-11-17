@@ -6,7 +6,8 @@ namespace SlideWorks.WebApi.Tests.Support;
 
 // IAudienceActivity for tests that need an activity on screen without a poll: each test sets the activity a deck and its
 // join code answer with. Add it with FakeAudienceActivity.AddTo. A deck or code with none set answers null, as the real
-// one does on a slide with no poll.
+// one does on a slide with no poll. The app, and so this fake, is shared by every test in a fixture: each test uses deck
+// ids and codes of its own.
 public sealed class FakeAudienceActivity : IAudienceActivity
 {
     private readonly Lock _gate = new();

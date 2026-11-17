@@ -55,12 +55,28 @@ public class PollGuardTests
         var files = ProductionSource.Matching(["**/*.cs"]).Where(f => !_mayPublishPollEvents.Contains(Path.GetFileName(f), StringComparer.Ordinal)).ToList();
 
         files.ShouldNotBeEmpty();
-        files.Where(file =>
-        {
-            var source = File.ReadAllText(file);
-            return _publishesPollEvent.IsMatch(source) || (source.Contains("IAudienceEvents", StringComparison.Ordinal) && _pollEvent.IsMatch(source));
-        }).ShouldBeEmpty();
+        files.Where(file => PublishesPollEvent(File.ReadAllText(file))).ShouldBeEmpty();
     }
+
+    // The publish rule bites: each of these is a file that publishes a poll event itself.
+    [TestCase("await events.PublishAsync(new PollTally(deckId, PollTallyTarget.Audience, round, 3, null));")]
+    [TestCase("await bus.PublishAsync( new PollControl(deckId, view));")]
+    [TestCase("public sealed class Pump(IAudienceEvents events) { PollTally Make() => null!; }")]
+    public void PublishGuard_WhenSourcePublishesAPollEvent_ShouldFlagIt(string source)
+    {
+        PublishesPollEvent(source).ShouldBeTrue();
+    }
+
+    // And it leaves alone what the poll tasks must write: a GET body that holds a tally, and a call to the publisher.
+    [TestCase("return new GuestPollView(activity, mine, new PollTally(string.Empty, PollTallyTarget.Audience, round, 3, null));")]
+    [TestCase("public sealed class Polls(IPollPublisher publisher) { Task Go() => publisher.PublishAsync(deckId, slide); PollControlView? View; }")]
+    public void PublishGuard_WhenSourceOnlyBuildsATallyOrCallsThePublisher_ShouldNotFlagIt(string source)
+    {
+        PublishesPollEvent(source).ShouldBeFalse();
+    }
+
+    private static bool PublishesPollEvent(string source)
+        => _publishesPollEvent.IsMatch(source) || (source.Contains("IAudienceEvents", StringComparison.Ordinal) && _pollEvent.IsMatch(source));
 
     [Test]
     public void PollActivityKeys_ShouldBeThePollActivityContractsKeys()

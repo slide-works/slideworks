@@ -84,13 +84,15 @@ public class PollPublisherTests : ApiTestFixture
     [Test]
     public async Task Publish_WhenClosed_ShouldPublishAnAudienceTallyWithCounts()
     {
-        Polls.Set(_deck, SLIDE, View(PollPhase.Closed, PollResults.AfterAnswer));
-        Tallies.Set(_round, new PollCounts(38, _counts));
+        Polls.Set(_deck, SLIDE, View(PollPhase.Closed, PollResults.AfterAnswer) with { Answered = 38, Counts = _counts });
+        Tallies.Set(_round, new PollCounts(20, [1, 2, 3, 4]));
 
         var published = await PublishAsync();
 
         published.Count.ShouldBe(2);
-        published[0].ShouldBeOfType<PollControl>().Control.Answered.ShouldBe(38);
+        var control = published[0].ShouldBeOfType<PollControl>();
+        control.Control.Answered.ShouldBe(38);
+        control.Control.Counts.ShouldBe(_counts);
         var tally = published[1].ShouldBeOfType<PollTally>();
         tally.Target.ShouldBe(PollTallyTarget.Audience);
         tally.Answered.ShouldBe(38);
@@ -123,6 +125,50 @@ public class PollPublisherTests : ApiTestFixture
     }
 
     [Test]
+    public async Task Publish_WhenDraftHasARoundId_ShouldPublishOnlyTheControl()
+    {
+        Polls.Set(_deck, SLIDE, View(PollPhase.Draft, PollResults.Live) with { Answered = 0, Counts = [0, 0, 0, 0] });
+
+        var published = await PublishAsync();
+
+        published.Count.ShouldBe(1);
+        published[0].ShouldBeOfType<PollControl>().Control.Phase.ShouldBe(PollPhase.Draft);
+    }
+
+    [Test]
+    public async Task Publish_WhenTwoOverlapForOneDeck_ShouldSendEachWholeAndEndOnTheLaterRead()
+    {
+        int[] final = [12, 25, 14, 6];
+        Polls.Set(_deck, SLIDE, View(PollPhase.Open, PollResults.Live));
+        Tallies.Set(_round, new PollCounts(20, _counts));
+        var bus = Factory.Services.GetRequiredService<IAudienceEvents>();
+        var publisher = Factory.Services.GetRequiredService<IPollPublisher>();
+        var received = Channel.CreateUnbounded<AudienceEvent>();
+        using var subscription = bus.Subscribe(_deck, e => received.Writer.WriteAsync(e).AsTask());
+        var readStarted = Tallies.BlockNextRead();
+
+        var pump = publisher.PublishAsync(_deck, SLIDE);
+        await readStarted;
+        Polls.Set(_deck, SLIDE, View(PollPhase.Closed, PollResults.Live) with { Answered = 38, Counts = final });
+        var close = publisher.PublishAsync(_deck, SLIDE);
+        await Task.WhenAny(close, Task.Delay(TimeSpan.FromMilliseconds(200)));
+        Tallies.ReleaseRead();
+        await Task.WhenAll(pump, close);
+        var published = await DrainAsync(bus, received);
+
+        published.Count.ShouldBe(4);
+        var firstControl = published[0].ShouldBeOfType<PollControl>();
+        firstControl.Control.Phase.ShouldBe(PollPhase.Open);
+        published[1].ShouldBeOfType<PollTally>().Answered.ShouldBe(20);
+        var secondControl = published[2].ShouldBeOfType<PollControl>();
+        secondControl.Control.Phase.ShouldBe(PollPhase.Closed);
+        secondControl.Control.Seq.ShouldBeGreaterThan(firstControl.Control.Seq);
+        var last = published[3].ShouldBeOfType<PollTally>();
+        last.Answered.ShouldBe(38);
+        last.Counts.ShouldBe(final);
+    }
+
+    [Test]
     public async Task Publish_WhenTheSlideIsNotAPoll_ShouldPublishNothing()
     {
         var published = await PublishAsync();
@@ -142,13 +188,19 @@ public class PollPublisherTests : ApiTestFixture
         second[0].ShouldBeOfType<PollControl>().Control.Seq.ShouldBeGreaterThan(firstSeq);
     }
 
-    // Publishes the poll on SLIDE of _deck and returns every audience event the publisher sent for the deck, in order.
+    // Publishes the poll on SLIDE of the test's deck and returns every audience event the publisher sent for the deck, in order.
     private async Task<IReadOnlyList<AudienceEvent>> PublishAsync()
     {
         var bus = Factory.Services.GetRequiredService<IAudienceEvents>();
         var received = Channel.CreateUnbounded<AudienceEvent>();
         using var subscription = bus.Subscribe(_deck, e => received.Writer.WriteAsync(e).AsTask());
         await Factory.Services.GetRequiredService<IPollPublisher>().PublishAsync(_deck, SLIDE);
+        return await DrainAsync(bus, received);
+    }
+
+    // Publishes a marker and returns every event received before it.
+    private async Task<IReadOnlyList<AudienceEvent>> DrainAsync(IAudienceEvents bus, Channel<AudienceEvent> received)
+    {
         var marker = new AudienceEnded(_deck);
         await bus.PublishAsync(marker);
         var events = new List<AudienceEvent>();
