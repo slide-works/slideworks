@@ -157,13 +157,14 @@ public sealed class DeckHub(
     // Stops the code's events and takes the connection off the roster. An unknown code changes nothing.
     public async Task LeaveAudience(string code)
     {
+        // Off the roster first: a code that no longer resolves (its deck was deleted) must not leave the connection counted.
+        await LeaveRosterAsync();
         var found = await sessions.FindAsync(code);
         if (found == null)
         {
             return;
         }
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, AudienceGroupName(found.DeckId));
-        await LeaveRosterAsync();
     }
 
     // Only the deck's owner, signed in as a person, may watch the joined count: anyone else gets the deck-not-found
@@ -188,8 +189,14 @@ public sealed class DeckHub(
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        await presentations.LeaveAllAsync(Context.ConnectionId);
-        await LeaveRosterAsync();
+        try
+        {
+            await presentations.LeaveAllAsync(Context.ConnectionId);
+        }
+        finally
+        {
+            await LeaveRosterAsync();
+        }
         await base.OnDisconnectedAsync(exception);
     }
 }

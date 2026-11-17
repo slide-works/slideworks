@@ -65,7 +65,10 @@ public sealed class SettablePresentations : IPresentations
 
     public Task LeaveAsync(string connectionId, string deckId) => throw new NotSupportedException();
 
-    public Task LeaveAllAsync(string connectionId) => Task.CompletedTask;
+    // A test sets it to make LeaveAllAsync fail, as a registry that throws on a disconnect would.
+    public bool ThrowOnLeaveAll { get; set; }
+
+    public Task LeaveAllAsync(string connectionId) => ThrowOnLeaveAll ? throw new InvalidOperationException("the registry failed") : Task.CompletedTask;
 
     public Task<LivePresentationsView> ListLiveAsync(Guid ownerId) => throw new NotSupportedException();
 

@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Realtime;
+using SlideWorks.WebApi.Realtime.Presenting;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Sharing;
@@ -21,6 +23,9 @@ namespace SlideWorks.WebApi.Tests.Realtime;
 public class AudienceRosterTests : ApiTestFixture
 {
     private readonly List<IAsyncDisposable> _connections = [];
+
+    protected override Action<IServiceCollection>? ConfigureTestServices => services
+        => services.AddSingleton<SettablePresentations>().AddSingleton<IPresentations>(provider => provider.GetRequiredService<SettablePresentations>());
 
     [TearDown]
     public async Task DisconnectAsync()
@@ -150,6 +155,127 @@ public class AudienceRosterTests : ApiTestFixture
         (await PeakAsync(session)).ShouldBe(2);
     }
 
+    // The roster decides the deck's session from OpenedAsync and ClosedAsync only; a join carries what the hub read before it
+    // ran, which can be out of date by the time it lands.
+    [Test]
+    public async Task JoinAsync_WhenLobbyJoinLandsAfterOpened_ShouldStillCountTheGuestInTheSession()
+    {
+        var (deck, _, session) = await GoLiveAsync();
+        var guest = Guid.NewGuid().ToString("N");
+
+        var count = await Roster.JoinAsync(deck, null, guest, "late-lobby-connection");
+
+        count.ShouldBe(1);
+        (await Roster.CountAsync(session)).ShouldBe(1);
+        (await JoinRowsAsync(session)).ShouldBe([guest]);
+        (await PeakAsync(session)).ShouldBe(1);
+        (await Roster.LeaveAsync("late-lobby-connection"))!.SessionId.ShouldBe(session);
+    }
+
+    [Test]
+    public async Task JoinAsync_WhenLiveJoinWithTheOldIdLandsAfterClosed_ShouldNotBringTheSessionBack()
+    {
+        var (deck, _, session) = await GoLiveAsync();
+        (await Client.DeleteAsync($"/api/decks/{deck}/live")).EnsureSuccessStatusCode();
+
+        await Roster.JoinAsync(deck, session, Guid.NewGuid().ToString("N"), "late-live-connection");
+
+        (await Roster.CountAsync(session)).ShouldBe(0);
+        (await JoinRowsAsync(session)).ShouldBeEmpty();
+        (await Roster.LeaveAsync("late-live-connection")).ShouldBeNull();
+    }
+
+    // D22 across End then Go live: the guests still connected are counted in the new session, each with a new join row.
+    [Test]
+    public async Task OpenedAsync_WhenEndedThenWentLiveAgainWithGuestsConnected_ShouldCountThemInTheNewSession()
+    {
+        var (deck, code, first) = await GoLiveAsync();
+        var guest = Guid.NewGuid().ToString("N");
+        await JoinAsync(code, guest);
+        (await Client.DeleteAsync($"/api/decks/{deck}/live")).EnsureSuccessStatusCode();
+
+        var second = (await PostLiveAsync(deck)).GetProperty("sessionId").GetString()!;
+
+        second.ShouldNotBe(first);
+        (await Roster.CountAsync(second)).ShouldBe(1);
+        (await Roster.CountAsync(first)).ShouldBe(0);
+        (await JoinRowsAsync(second)).ShouldBe([guest]);
+        (await JoinRowsAsync(first)).ShouldBe([guest]);
+        (await PeakAsync(second)).ShouldBe(1);
+    }
+
+    // A fresh roster is what a restart leaves: it knows no session until a join seeds it.
+    [Test]
+    public async Task JoinAsync_WhenFirstJoinAfterARestart_ShouldSetTheSession()
+    {
+        var (deck, _, session) = await GoLiveAsync();
+        var restarted = new AudienceRoster(Factory.Services.GetRequiredService<IServiceScopeFactory>(), Bus, Clock, NullLogger<AudienceRoster>.Instance);
+        var guest = Guid.NewGuid().ToString("N");
+
+        await restarted.JoinAsync(deck, session, guest, "first-after-restart");
+        await restarted.JoinAsync(deck, null, Guid.NewGuid().ToString("N"), "lobby-after-restart");
+
+        (await restarted.CountAsync(session)).ShouldBe(2);
+        (await JoinRowsAsync(session)).ShouldContain(guest);
+    }
+
+    [Test]
+    public async Task JoinAsync_WhenSecondTabOfAGuestAlreadyCounted_ShouldWriteNothing()
+    {
+        var (deck, _, session) = await GoLiveAsync();
+        var scopes = new CountingScopes(Factory.Services.GetRequiredService<IServiceScopeFactory>());
+        var roster = new AudienceRoster(scopes, Bus, Clock, NullLogger<AudienceRoster>.Instance);
+        var guest = Guid.NewGuid().ToString("N");
+        await roster.JoinAsync(deck, session, guest, "tab-1");
+        var afterFirst = scopes.Created;
+
+        await roster.JoinAsync(deck, session, guest, "tab-2");
+
+        afterFirst.ShouldBe(1);
+        scopes.Created.ShouldBe(afterFirst);
+        (await roster.CountAsync(session)).ShouldBe(1);
+    }
+
+    // SW-247: the roster leave runs even when the presentation registry throws on a disconnect.
+    [Test]
+    public async Task Disconnect_WhenThePresentationRegistryThrows_ShouldStillLeaveTheRoster()
+    {
+        var (deck, code, session) = await GoLiveAsync();
+        using var counts = new CountFeed(Bus, deck);
+        var guest = await JoinAsync(code);
+        (await counts.NextAsync()).ShouldBe(1);
+        Factory.Services.GetRequiredService<SettablePresentations>().ThrowOnLeaveAll = true;
+        try
+        {
+            await guest.DisposeAsync();
+            (await counts.NextAsync()).ShouldBe(0);
+        }
+        finally
+        {
+            Factory.Services.GetRequiredService<SettablePresentations>().ThrowOnLeaveAll = false;
+        }
+
+        (await Roster.CountAsync(session)).ShouldBe(0);
+    }
+
+    // SW-248: a code that no longer resolves (its deck was deleted) still takes the caller off the roster.
+    [Test]
+    public async Task LeaveAudience_WhenTheCodeNoLongerResolves_ShouldStillRemoveTheConnectionFromTheRoster()
+    {
+        var (deck, code, session) = await GoLiveAsync();
+        var guest = await JoinAsync(code);
+        using (var scope = Factory.Services.CreateScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<AppDbContext>().Decks.Where(d => d.Id == deck).ExecuteDeleteAsync();
+        }
+
+        await guest.Connection.InvokeAsync("LeaveAudience", code);
+
+        // Already off the roster, so there is nothing left for the leave to find.
+        (await Roster.LeaveAsync(guest.Connection.ConnectionId!)).ShouldBeNull();
+        (await Roster.CountAsync(session)).ShouldBe(0);
+    }
+
     private IAudienceRoster Roster => Factory.Services.GetRequiredService<IAudienceRoster>();
 
     private IAudienceEvents Bus => Factory.Services.GetRequiredService<IAudienceEvents>();
@@ -213,6 +339,20 @@ public class AudienceRosterTests : ApiTestFixture
         var watcher = await WatcherAsync(marker);
         await Bus.PublishAsync(new JoinedCount(marker, 0));
         (await watcher.NextAudienceAsync()).GetProperty("count").GetInt32().ShouldBe(0);
+    }
+
+    // Counts the scopes the roster opens, one for each time it goes to the database.
+    private sealed class CountingScopes(IServiceScopeFactory inner) : IServiceScopeFactory
+    {
+        private int _created;
+
+        public int Created => _created;
+
+        public IServiceScope CreateScope()
+        {
+            Interlocked.Increment(ref _created);
+            return inner.CreateScope();
+        }
     }
 
     // The joinedCount events published on the bus for a deck, in order: a barrier for "the hub has handled that join or leave".

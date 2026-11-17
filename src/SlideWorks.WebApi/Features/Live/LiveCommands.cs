@@ -53,8 +53,8 @@ public class LiveCommands(
         var (sessionId, opened) = open == null ? await OpenAsync(deckId) : (open.Value, false);
         if (opened)
         {
-            await roster.OpenedAsync(deckId, sessionId.ToString());
             await relay.StartedAsync(deckId);
+            await roster.OpenedAsync(deckId, sessionId.ToString());
             await activity.RecordAsync(deckId, ActivityEntry.By(actor, tool: null, "went live"));
             await events.PublishAsync(new LiveChanged(deckId));
         }
