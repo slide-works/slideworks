@@ -9,6 +9,34 @@ import { usePollControl, type PollAction, type PollControlValue } from './usePol
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
+// The real provider (PollControlLive) holds the page's hub connection, which SignalR can't build outside a browser. A
+// connection that starts and whose calls never answer: the audience watch never comes in, so nothing is read.
+vi.mock('@microsoft/signalr', () => {
+  class HubConnectionBuilder {
+    withUrl() {
+      return this;
+    }
+    withAutomaticReconnect() {
+      return this;
+    }
+    configureLogging() {
+      return this;
+    }
+    build() {
+      return {
+        start: async () => undefined,
+        stop: async () => undefined,
+        invoke: () => new Promise(() => undefined),
+        on: () => undefined,
+        onreconnecting: () => undefined,
+        onreconnected: () => undefined,
+        onclose: () => undefined,
+      };
+    }
+  }
+  return { HubConnectionBuilder, HttpTransportType: { WebSockets: 1 }, LogLevel: { None: 6 } };
+});
+
 const deckId = 'deck-1';
 let root: Root;
 let seen: PollControlValue | null;
@@ -123,7 +151,7 @@ describe('usePollControl', () => {
     expect(String(thrown)).toContain('deck-2');
   });
 
-  it('gives no control under the live provider stub', async () => {
+  it('gives no control and no error under the live provider before its audience watch is in', async () => {
     const live = (children: ReactNode) =>
       createElement(PollControlLive, { deckId, slide: 4, children });
     const value = await read(live);

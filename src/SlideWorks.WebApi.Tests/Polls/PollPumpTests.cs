@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.Core.Polls;
 using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Polls.Contracts;
 using SlideWorks.WebApi.Tests.Support;
@@ -8,21 +9,22 @@ namespace SlideWorks.WebApi.Tests.Polls;
 // The pump between tally changes and the publisher (V5): FakePollTallies raises Changed as the real tally does after an
 // answer, and FakePollPublisher records each publish. The fixture's fake clock drives the half second, so nothing here
 // sleeps: a publish that the clock allows runs on the thread pool, and the tests wait for it with a bounded wait. The app
-// is shared by the fixture, so every test uses a deck of its own.
+// is shared by the fixture, so every test uses a deck of its own. The start-up tests run a second pump from the app's
+// services over a recording tally of their own, so the app's pump and its subscription are left alone.
 [TestFixture]
 [CancelAfter(60000)]
-public class PollPumpTests : ApiTestFixture
+public class PollPumpTests : PollTestFixture
 {
     private const int SLIDE = 3;
 
     private static readonly TimeSpan _justBefore = PollTallyPump.Interval - TimeSpan.FromMilliseconds(1);
 
-    protected override Action<IServiceCollection>? ConfigureTestServices => services =>
+    protected override void ConfigurePollServices(IServiceCollection services)
     {
         FakePollTallies.AddTo(services);
         FakePollPublisher.AddTo(services);
         services.AddSingleton<WatchedPublisher>().AddSingleton<IPollPublisher>(provider => provider.GetRequiredService<WatchedPublisher>());
-    };
+    }
 
     private string _deck = null!;
 
@@ -84,7 +86,7 @@ public class PollPumpTests : ApiTestFixture
     [Test]
     public async Task Pump_WhenAPublishThrows_ShouldKeepPumping()
     {
-        Watched.FailNextFor(_deck);
+        Watched.FailNextFor(_deck, new InvalidOperationException("publish failed"));
 
         await ChangeAsync();
         await WithinAsync(Watched.PublishedAsync(_deck, 1));
@@ -96,6 +98,72 @@ public class PollPumpTests : ApiTestFixture
 
         failed.ShouldBe(0);
         after.ShouldBe([SLIDE]);
+    }
+
+    // A cancellation from the publisher while the app is running is a failed publish like any other: the deck's window
+    // must not be left behind with no timer, which would stop the deck being published again.
+    [Test]
+    public async Task Pump_WhenAPublishIsCancelled_ShouldKeepPumping()
+    {
+        Watched.FailNextFor(_deck, new OperationCanceledException("publish cancelled"));
+
+        await ChangeAsync();
+        await WithinAsync(Watched.PublishedAsync(_deck, 1));
+        var failed = Published.PublishedFor(_deck).Count;
+        await ChangeAsync();
+        Clock.Advance(PollTallyPump.Interval);
+        await WithinAsync(Watched.PublishedAsync(_deck, 2));
+        Clock.Advance(PollTallyPump.Interval);
+        Clock.Advance(PollTallyPump.Interval);
+        await ChangeAsync();
+        await WithinAsync(Watched.PublishedAsync(_deck, 3));
+        var after = Published.PublishedFor(_deck);
+
+        failed.ShouldBe(0);
+        after.ShouldBe([SLIDE, SLIDE]);
+    }
+
+    // On start the pump loads the open rounds of sessions that have not ended, and leaves a round left open in an ended
+    // session alone; then it subscribes.
+    [Test]
+    public async Task Start_WhenSessionsAreLiveOrEnded_ShouldLoadOnlyTheOpenRoundsOfLiveSessions()
+    {
+        var live = await SeedPollAsync();
+        var liveRound = await Rows.RoundAsync(live.SlideId, live.SessionId);
+        var ended = await SeedPollAsync();
+        (await Client.DeleteAsync($"/api/decks/{ended.DeckId}/live")).EnsureSuccessStatusCode();
+        var endedRound = await Rows.RoundAsync(ended.SlideId, ended.SessionId);
+        var draft = await SeedPollAsync();
+        var draftRound = await Rows.RoundAsync(draft.SlideId, draft.SessionId, PollPhase.Draft);
+        var recording = new RecordingTallies(fail: false);
+
+        await StartAndStopAsync(recording);
+
+        recording.Read.ShouldContain(liveRound.Id.ToString());
+        recording.Read.ShouldNotContain(endedRound.Id.ToString());
+        recording.Read.ShouldNotContain(draftRound.Id.ToString());
+        recording.Subscribed.ShouldBeTrue();
+    }
+
+    [Test]
+    public async Task Start_WhenLoadingFails_ShouldStillStartAndSubscribe()
+    {
+        var live = await SeedPollAsync();
+        await Rows.RoundAsync(live.SlideId, live.SessionId);
+        var recording = new RecordingTallies(fail: true);
+
+        await StartAndStopAsync(recording);
+
+        recording.Read.ShouldNotBeEmpty();
+        recording.Subscribed.ShouldBeTrue();
+    }
+
+    // Starts and stops a pump made from the app's services but over the given tally, each within 10 seconds.
+    private async Task StartAndStopAsync(IPollTallies recording)
+    {
+        using var pump = ActivatorUtilities.CreateInstance<PollTallyPump>(Factory.Services, recording);
+        await WithinAsync(pump.StartAsync(CancellationToken.None));
+        await WithinAsync(pump.StopAsync(CancellationToken.None));
     }
 
     // Raises Changed for the test's deck, as the tally does after each answer.
@@ -130,15 +198,15 @@ public class PollPumpTests : ApiTestFixture
     private sealed class WatchedPublisher(FakePollPublisher published) : IPollPublisher
     {
         private readonly Lock _gate = new();
-        private readonly HashSet<string> _failNext = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, Exception> _failNext = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _calls = new(StringComparer.Ordinal);
         private readonly List<(string DeckId, int Count, TaskCompletionSource Done)> _waiters = [];
 
-        public void FailNextFor(string deckId)
+        public void FailNextFor(string deckId, Exception failure)
         {
             lock (_gate)
             {
-                _failNext.Add(deckId);
+                _failNext[deckId] = failure;
             }
         }
 
@@ -158,16 +226,16 @@ public class PollPumpTests : ApiTestFixture
 
         public async Task PublishAsync(string deckId, int slide)
         {
-            bool fail;
+            Exception? failure;
             lock (_gate)
             {
-                fail = _failNext.Remove(deckId);
+                _failNext.Remove(deckId, out failure);
             }
             try
             {
-                if (fail)
+                if (failure != null)
                 {
-                    throw new InvalidOperationException("publish failed");
+                    throw failure;
                 }
                 await published.PublishAsync(deckId, slide);
             }
@@ -182,6 +250,52 @@ public class PollPumpTests : ApiTestFixture
                         _waiters.Remove(waiter);
                     }
                 }
+            }
+        }
+    }
+
+    // An IPollTallies for a start-up test: records each round read (and fails each read when asked) and whether Changed
+    // was subscribed. Nothing else calls it.
+    private sealed class RecordingTallies(bool fail) : IPollTallies
+    {
+        private readonly Lock _gate = new();
+        private readonly List<string> _read = [];
+
+        public IReadOnlyList<string> Read
+        {
+            get
+            {
+                lock (_gate)
+                {
+                    return [.. _read];
+                }
+            }
+        }
+
+        public bool Subscribed { get; private set; }
+
+        public Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks) => Task.CompletedTask;
+
+        public Task<PollCounts> ReadAsync(string roundId, int optionCount)
+        {
+            lock (_gate)
+            {
+                _read.Add(roundId);
+            }
+            return fail ? throw new InvalidOperationException("load failed") : Task.FromResult(new PollCounts(0, new int[optionCount]));
+        }
+
+        public IDisposable Changed(Func<PollRoundRef, Task> handler)
+        {
+            Subscribed = true;
+            return new Unsubscribe();
+        }
+
+        private sealed class Unsubscribe : IDisposable
+        {
+            public void Dispose()
+            {
+                // Nothing to remove: the recording tally never calls its handler.
             }
         }
     }

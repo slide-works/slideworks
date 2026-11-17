@@ -8,10 +8,12 @@ namespace SlideWorks.WebApi.Features.Polls;
 public interface IPollTallies
 {
     // One guest's answer changed from oldPicks to newPicks, and the commit that wrote it is done. oldPicks is empty for the
-    // guest's first answer in the round, which is what raises Answered. When the round is not loaded yet, it is loaded from
-    // the answer rows first, and those rows already hold this answer, so the delta is not applied on top of them: nothing
-    // is counted twice. Then every Changed handler is awaited in order, so a handler must only note the change (the pump
-    // marks the deck dirty) and return, never publish inline.
+    // guest's first answer in the round, which is what raises Answered. The answer writer reads a round (ReadAsync) before it
+    // commits to it, so the round is loaded before its rows exist and each later call adds its delta exactly once. On a
+    // round that is not loaded yet, this call loads it from the answer rows and does not add its own delta, since the rows
+    // already hold that answer; a delta from another commit already in those rows would still be added on top, which is why
+    // the writer loads first. Then every Changed handler is awaited in order, so a handler must only note the change (the
+    // pump marks the deck dirty) and return, never publish inline.
     Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks);
 
     // The round's tally, with one count per option for optionCount options (padded after an option was added). Read only

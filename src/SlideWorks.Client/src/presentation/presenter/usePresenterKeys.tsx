@@ -17,6 +17,15 @@ export type PresenterKeyActions = {
   resetTimer(): void;
 };
 
+// The poll's keys in the presenter window (SW-6 D19): P opens or closes the poll, R reveals the results, A shows the
+// answer. Each is optional: it is given only while that action is available in the poll's phase, and a key whose action
+// is missing does nothing. New round has no key; O and N stay SW-4's overview and notes.
+export type PresenterPollKeyActions = {
+  togglePoll?(): void;
+  reveal?(): void;
+  showAnswer?(): void;
+};
+
 // The longest slide number the window listens for.
 const MAX_DIGITS = 4;
 
@@ -78,6 +87,47 @@ export function usePresenterKeys(actions: PresenterKeyActions | null, overlayOpe
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
+}
+
+// The poll's keys (SW-6 D19), for the poll panel, which sits under the poll control provider inside the presenter
+// window. Same rules as the window's own keys: ignored in inputs, while composing, with a modifier held, when something
+// is open on top (overlayOpen) and when an earlier listener has handled the key. A key whose action is missing (not
+// available in the poll's phase, or no poll on the slide) does nothing and is left alone. actions may change on every
+// render without re-subscribing; null ignores every key.
+export function usePresenterPollKeys(
+  actions: PresenterPollKeyActions | null,
+  overlayOpen: boolean,
+) {
+  const latest = useRef({ actions, overlayOpen });
+  useLayoutEffect(() => {
+    latest.current = { actions, overlayOpen };
+  }, [actions, overlayOpen]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const { actions: act, overlayOpen: covered } = latest.current;
+      if (!act || covered || event.defaultPrevented || event.isComposing) return;
+      if (event.ctrlKey || event.metaKey || event.altKey || isTyping(event.target)) return;
+      const handler = pollHandlerFor(event.key, act);
+      if (!handler) return;
+      event.preventDefault();
+      handler();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+}
+
+function pollHandlerFor(key: string, act: PresenterPollKeyActions): (() => void) | undefined {
+  switch (key.toLowerCase()) {
+    case 'p':
+      return act.togglePoll;
+    case 'r':
+      return act.reveal;
+    case 'a':
+      return act.showAnswer;
+  }
+  return undefined;
 }
 
 function handlerFor(
