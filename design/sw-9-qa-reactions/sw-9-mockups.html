@@ -1,0 +1,1527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-9 mockups: audience Q&amp;A and reactions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+
+/* =====================================================================
+   Review-page chrome: same light ledger as the SW-1 / SW-2 mockups
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", system-ui, sans-serif;
+  --head: "Plus Jakarta Sans", "Inter", sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+
+  /* SlideWorks app tokens (src/SlideWorks.Client/src/theme/tokens.css) used by the phone page */
+  --sw-night: #0b1020; --sw-night-2: #cbd5e1; --sw-night-muted: #8c97ad; --sw-night-line: #334155;
+  --sw-accent: #2f5bea; --sw-accent-light: #e4eafd; --sw-accent-glow: #a5b8ff; --sw-accent-dark: #1e3a8a;
+  --sw-paper: #f7f8fa; --sw-card: #fff; --sw-ink: #111827; --sw-muted: #5b6474; --sw-grid: #e3e6ec;
+  --sw-good: #16a34a; --sw-warn: #ea580c; --sw-bad: #dc2626; --sw-stamp: #fcd34d;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 16px 80px; }
+h1, h2, h3 { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 22px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { margin: 0; color: var(--muted); max-width: 860px; font-size: 15px; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 10px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 900px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.grid2 > * { min-width: 0; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); font: 500 13px/1.2 var(--ui); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* scope */
+.scope { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .scope { grid-template-columns: minmax(0, 1fr); } }
+.scope .card { padding: 16px 18px; }
+.scope h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.scope ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.scope li { position: relative; padding-left: 22px; }
+.scope li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.scope .later-list li::before { background: var(--later); opacity: .55; }
+.scope .k { font: 500 12px/1.5 var(--mono); color: var(--later); }
+
+/* journey strip */
+.journey { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .journey { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .journey { grid-template-columns: minmax(0, 1fr); } }
+.step-cap { margin-top: 12px; display: grid; gap: 3px; text-align: center; }
+.step-cap .t { font: 500 12px/1 var(--mono); color: var(--accent-dark); }
+.step-cap b { font-weight: 600; }
+.step-cap span { color: var(--muted); font-size: 12.5px; }
+.budget { margin-top: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 12px 16px; }
+.budget .bar { flex: 1 1 260px; display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.budget .bar i { display: block; height: 100%; }
+
+/* =====================================================================
+   Phone frame + the guest page (mobile web, SlideWorks tokens)
+   ===================================================================== */
+.phone { width: 292px; max-width: 100%; margin: 0 auto; border-radius: 40px; padding: 10px; background: #11151d; box-shadow: var(--raise), inset 0 0 0 2px #2a303b; }
+.ps { position: relative; border-radius: 31px; overflow: hidden; height: 600px; display: flex; flex-direction: column; color: #fff; font-family: var(--ui);
+  background: radial-gradient(420px 320px at 100% 105%, rgb(47 91 234 / .38), transparent 62%), radial-gradient(300px 260px at -10% -8%, rgb(47 91 234 / .12), transparent 60%), var(--sw-night); }
+.ps.light { background: var(--sw-paper); color: var(--sw-ink); }
+.sbar { flex: none; height: 38px; padding: 12px 22px 0; display: flex; justify-content: space-between; font: 600 12.5px/1 var(--ui); }
+.sbar .ic { display: flex; gap: 5px; align-items: center; }
+.sbar .ic i { display: block; width: 15px; height: 9px; border-radius: 2px; border: 1.5px solid currentColor; opacity: .9; }
+.sbar .ic b { display: block; width: 4px; height: 9px; background: currentColor; border-radius: 1px; opacity: .9; }
+.island { position: absolute; top: 10px; left: 50%; translate: -50% 0; width: 84px; height: 22px; border-radius: 12px; background: #000; z-index: 5; }
+.pbody { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 16px 10px; gap: 12px; position: relative; }
+.urlbar { flex: none; margin: 0 14px 12px; padding: 8px 12px; border-radius: 13px; background: rgb(255 255 255 / .1); display: flex; gap: 6px; align-items: center; justify-content: center; font: 500 12px/1 var(--ui); color: rgb(255 255 255 / .82); }
+.ps.light .urlbar { background: #e7e9ee; color: #3b4352; }
+.urlbar svg { width: 10px; height: 10px; }
+
+.g-top { display: flex; align-items: center; gap: 8px; }
+.g-mark { width: 22px; height: 22px; border-radius: 6px; background: var(--sw-accent); display: grid; place-items: center; font: 800 11px/1 var(--head); color: #fff; flex: none; }
+.g-deck { min-width: 0; flex: 1; }
+.g-deck b { display: block; font: 700 13px/1.2 var(--head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-deck span { display: block; font-size: 11px; color: var(--sw-night-muted); }
+.live { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font: 600 10.5px/1 var(--ui); background: rgb(22 163 74 / .18); color: #86efac; white-space: nowrap; }
+.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 0 rgb(74 222 128 / .7); animation: pulse 1.8s infinite; }
+.live.amber { background: rgb(234 88 12 / .2); color: #fdba74; }
+.live.amber::before { background: #fb923c; animation: none; }
+.live.grey { background: rgb(255 255 255 / .1); color: var(--sw-night-2); }
+.live.grey::before { background: var(--sw-night-muted); animation: none; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgb(74 222 128 / .6); } 70% { box-shadow: 0 0 0 6px rgb(74 222 128 / 0); } 100% { box-shadow: 0 0 0 0 rgb(74 222 128 / 0); } }
+
+.mirror { border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgb(0 0 0 / .35); outline: 1px solid rgb(255 255 255 / .08); }
+.slidemeta { display: flex; justify-content: space-between; align-items: center; font: 500 11px/1 var(--ui); color: var(--sw-night-muted); margin-top: -4px; }
+.slidemeta .prog { flex: 1; height: 3px; margin: 0 10px; border-radius: 3px; background: rgb(255 255 255 / .12); overflow: hidden; }
+.slidemeta .prog i { display: block; height: 100%; background: var(--sw-accent-glow); }
+
+.wait { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 10px; padding: 0 8px; border-radius: 14px; border: 1px dashed rgb(255 255 255 / .16); }
+.wait .dots { display: flex; gap: 6px; }
+.wait .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--sw-accent-glow); opacity: .3; animation: blink 1.4s infinite; }
+.wait .dots i:nth-child(2) { animation-delay: .2s; } .wait .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 40% { opacity: 1; } }
+.wait b { font: 700 15px/1.3 var(--head); }
+.wait p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--sw-night-2); }
+
+.g-foot { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--sw-night-muted); }
+.g-foot a { color: var(--sw-accent-glow); text-decoration: none; font-weight: 500; }
+
+.big-h { font: 800 24px/1.15 var(--head); letter-spacing: -.01em; }
+.lede { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--sw-night-2); }
+.pbtn { display: flex; align-items: center; justify-content: center; min-height: 50px; border-radius: 14px; background: var(--sw-accent); color: #fff; font: 700 16px/1 var(--ui); border: 0; width: 100%; }
+.pbtn.ghost { background: rgb(255 255 255 / .1); }
+.tick { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: rgb(22 163 74 / .2); color: #4ade80; }
+.tick svg { width: 32px; height: 32px; }
+
+.codebox { display: grid; grid-template-columns: repeat(3, 1fr) 10px repeat(3, 1fr); gap: 6px; }
+.codebox span { height: 48px; border-radius: 10px; display: grid; place-items: center; background: rgb(255 255 255 / .08); border: 1.5px solid rgb(255 255 255 / .14); font: 700 22px/1 var(--head); }
+.codebox span.cur { border-color: var(--sw-accent-glow); box-shadow: 0 0 0 3px rgb(165 184 255 / .25); }
+.codebox span.bad { border-color: #f87171; }
+.codebox em { display: block; }
+.err { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgb(220 38 38 / .16); color: #fecaca; font-size: 12.5px; line-height: 1.4; }
+.keypad { margin: auto -16px -10px; padding: 8px 6px 10px; background: #1d2230; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.keypad span { height: 40px; border-radius: 7px; background: #3a4152; display: grid; place-items: center; font: 500 19px/1 var(--ui); }
+.keypad span.blank { background: transparent; }
+
+.banner { position: absolute; left: 12px; right: 12px; top: 4px; z-index: 4; padding: 9px 12px; border-radius: 12px; font-size: 12px; line-height: 1.35; display: flex; gap: 8px; align-items: center; }
+.banner.amber { background: #7c2d12; color: #ffedd5; }
+.banner .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgb(255 237 213 / .35); border-top-color: #ffedd5; animation: spin 0.9s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sheet-dim { position: absolute; inset: 0; background: rgb(0 0 0 / .55); z-index: 6; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 7; background: #161c2c; border-radius: 20px 20px 0 0; padding: 10px 18px 22px; display: grid; gap: 10px; }
+.sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .25); margin: 0 auto 4px; }
+.sheet h4 { margin: 0; font: 700 16px/1.25 var(--head); }
+.sheet ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+.sheet li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; font-size: 12.5px; line-height: 1.4; color: var(--sw-night-2); }
+.sheet li svg { width: 16px; height: 16px; color: var(--sw-accent-glow); margin-top: 1px; }
+
+.activity { flex: 1; border-radius: 14px; background: #fff; color: var(--sw-ink); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.activity .tag { align-self: flex-start; font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--later); background: var(--later-soft); padding: 4px 7px; border-radius: 5px; }
+.activity b { font: 700 16px/1.3 var(--head); }
+.activity .opt { padding: 12px; border-radius: 10px; border: 1.5px solid var(--sw-grid); font-size: 13.5px; font-weight: 500; }
+.activity .note { margin-top: auto; font-size: 11px; color: var(--sw-muted); }
+
+/* camera */
+.cam { position: absolute; inset: 0; background: linear-gradient(160deg, #2b2f38, #14161b 60%, #0c0d10); }
+.cam .screen { position: absolute; left: 34px; right: 22px; top: 150px; height: 170px; transform: perspective(500px) rotateY(-12deg) rotateX(4deg); border-radius: 4px; background: var(--sw-night); box-shadow: 0 0 60px rgb(165 184 255 / .25); display: flex; gap: 10px; align-items: center; padding: 14px; filter: blur(.3px); }
+.cam .screen .q { width: 104px; height: 104px; background: #fff; border-radius: 4px; padding: 5px; flex: none; }
+.cam .screen .txt { display: grid; gap: 6px; }
+.cam .screen .txt i { display: block; height: 7px; border-radius: 4px; background: rgb(255 255 255 / .7); }
+.cam .reticle { position: absolute; left: 44px; top: 158px; width: 128px; height: 128px; border: 2.5px solid #facc15; border-radius: 14px; transform: perspective(500px) rotateY(-12deg); }
+.cam .chip { position: absolute; left: 50%; top: 340px; translate: -50% 0; display: flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 999px; background: #facc15; color: #1a1a1a; font: 600 12.5px/1 var(--ui); white-space: nowrap; box-shadow: 0 6px 20px rgb(0 0 0 / .4); }
+.cam .shutter { position: absolute; left: 50%; bottom: 38px; translate: -50% 0; width: 62px; height: 62px; border-radius: 50%; border: 4px solid #fff; }
+.cam .shutter::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: #fff; }
+.cam .mode { position: absolute; left: 0; right: 0; bottom: 112px; text-align: center; font: 600 11px/1 var(--ui); letter-spacing: .1em; color: #facc15; }
+
+/* landscape phone */
+.phone.land { width: 600px; border-radius: 34px; }
+.phone.land .ps { height: 268px; border-radius: 26px; flex-direction: row; align-items: center; justify-content: center; background: #000; }
+.phone.land .ps .mirror { width: 470px; border-radius: 6px; box-shadow: none; outline: none; }
+.phone.land .lside { position: absolute; right: 14px; top: 50%; translate: 0 -50%; display: grid; gap: 10px; justify-items: center; }
+
+/* gallery of phone states */
+.states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 18px; }
+@media (max-width: 1100px) { .states { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .states { grid-template-columns: minmax(0, 1fr); } }
+.states .wide { grid-column: span 2; }
+@media (max-width: 1100px) { .states .wide { grid-column: 1 / -1; } }
+@media (max-width: 680px) { .phone.land { width: 100%; } .phone.land .ps .mirror { width: 78%; } }
+.st-cap { margin-top: 10px; display: grid; gap: 3px; }
+.st-cap b { font-weight: 600; }
+.st-cap span { color: var(--muted); font-size: 12.5px; }
+.st-cap code { color: var(--accent-dark); }
+
+/* =====================================================================
+   Slides (drawn at 960x540, half the 1920x1080 canvas, scaled to fit)
+   ===================================================================== */
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sw-paper); }
+.frame > .sl { position: absolute; left: 0; top: 0; transform: scale(var(--s, .3)); transform-origin: 0 0; }
+.sl { width: 960px; height: 540px; padding: 75px 60px 60px; display: flex; flex-direction: column; background: var(--sw-paper); color: var(--sw-ink); font-family: var(--ui); position: relative; overflow: hidden; }
+.sl::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--sw-accent); }
+.sl.dark { color: #fff; background: radial-gradient(550px 350px at 88% 112%, rgb(47 91 234 / .45), transparent 62%), radial-gradient(450px 300px at -5% -10%, rgb(125 150 255 / .12), transparent 60%), var(--sw-night); }
+.sl .kick { font: 600 13px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--sw-accent); margin-bottom: 14px; }
+.sl.dark .kick { color: var(--sw-accent-glow); }
+.sl h2 { font: 800 46px/1.08 var(--head); letter-spacing: -.02em; margin: 0; }
+.sl h3 { font: 700 30px/1.15 var(--head); margin: 0 0 22px; letter-spacing: -.01em; }
+.sl .sub { margin-top: 18px; font-size: 19px; color: var(--sw-night-2); }
+.sl .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; }
+.sl .cards div { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 2px rgb(15 23 42 / .06), 0 14px 36px rgb(15 23 42 / .09); }
+.sl .cards b { display: block; font: 700 19px/1.2 var(--head); margin-bottom: 8px; }
+.sl .cards span { font-size: 14px; color: var(--sw-muted); line-height: 1.45; }
+.sl .cards .num { font: 800 36px/1 var(--head); color: var(--sw-accent); margin-bottom: 10px; }
+.sl .statement { flex: 1; display: flex; align-items: center; font: 800 54px/1.1 var(--head); letter-spacing: -.02em; max-width: 760px; }
+.sl .statement em { font-style: normal; color: var(--sw-accent); }
+.sl .sprog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--sw-accent); }
+.sl .foot { position: absolute; left: 60px; right: 60px; bottom: 16px; display: flex; justify-content: space-between; font-size: 11px; color: var(--sw-muted); }
+.sl.dark .foot { color: var(--sw-night-muted); }
+/* QR join slide */
+.sl.join { flex-direction: row; align-items: center; gap: 54px; padding: 60px 70px; }
+.sl.join .qrcard { width: 390px; height: 390px; flex: none; background: #fff; border-radius: 18px; padding: 14px; box-shadow: 0 20px 60px rgb(0 0 0 / .45); }
+.sl.join .qrcard svg { width: 100%; height: 100%; display: block; }
+.sl.join .jtext { display: grid; gap: 14px; }
+.sl.join .jurl { font: 600 26px/1.2 var(--mono); color: var(--sw-night-2); }
+.sl.join .jcode { font: 800 88px/1 var(--head); letter-spacing: .04em; }
+.sl.join .jcount { display: inline-flex; align-items: center; gap: 10px; font: 600 22px/1 var(--ui); color: #86efac; }
+.sl.join .jcount i { width: 10px; height: 10px; border-radius: 50%; background: #4ade80; }
+/* poll placeholder slide (SW-6) */
+.sl .pollopts { display: grid; gap: 12px; max-width: 640px; }
+.sl .pollopts div { display: flex; justify-content: space-between; padding: 14px 18px; border-radius: 10px; background: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .06); font-size: 17px; font-weight: 500; }
+.sl .pollopts div span { color: var(--sw-muted); font-size: 14px; }
+/* join bar on every slide */
+.sl .joinbar { position: absolute; right: 18px; bottom: 14px; display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 7px; border-radius: 10px; background: var(--sw-night); color: #fff; font: 600 12px/1.2 var(--ui); z-index: 3; box-shadow: 0 6px 16px rgb(15 23 42 / .25); }
+.sl.dark .joinbar { background: rgb(255 255 255 / .1); }
+.sl .joinbar .mq { width: 44px; height: 44px; background: #fff; border-radius: 5px; padding: 3px; }
+.sl .joinbar .mq svg { width: 100%; height: 100%; display: block; }
+.sl .joinbar small { display: block; font: 500 10px/1.2 var(--mono); color: var(--sw-night-2); }
+.sl .joinbar b { font: 800 17px/1 var(--head); letter-spacing: .03em; }
+
+/* =====================================================================
+   Live demo: presenter laptop + guest phone
+   ===================================================================== */
+.demo { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; }
+@media (max-width: 980px) { .demo { grid-template-columns: minmax(0, 1fr); } }
+.laptop { background: #1a1f2b; border-radius: 14px 14px 4px 4px; padding: 10px 10px 0; box-shadow: var(--raise); }
+.laptop .scr { border-radius: 6px; overflow: hidden; background: #000; }
+@media (max-width: 680px) { .laptop .base { margin: 0 -10px !important; } }
+.laptop .base { height: 14px; margin: 0 -26px; background: linear-gradient(#c9ced8, #a9b0bd); border-radius: 0 0 14px 14px; }
+.ptool { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #0f1420; color: #cbd5e1; font: 500 12px/1 var(--ui); }
+.ptool .tb { border: 0; background: rgb(255 255 255 / .08); color: #fff; padding: 6px 9px; border-radius: 6px; font: 600 12px/1 var(--ui); cursor: pointer; }
+.ptool .tb:disabled { opacity: .35; cursor: default; }
+.ptool .count { font-family: var(--mono); color: #94a3b8; }
+.ptool .sp { flex: 1; }
+.ptool .golive { background: var(--sw-accent); }
+.ptool .livechip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 6px; background: rgb(22 163 74 / .18); color: #86efac; font: 600 12px/1 var(--ui); }
+.ptool .livechip b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.ptool .livechip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.ptool .endb { background: rgb(220 38 38 / .25); color: #fecaca; }
+.dctl { margin-top: 14px; padding: 12px 14px; display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center; }
+.dctl label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
+.dctl .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+.demo-notes { margin: 12px 0 0; padding: 0 0 0 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+.fade { animation: fadein .35s ease; }
+@keyframes fadein { from { opacity: .2; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* big-screen section */
+.screens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 860px) { .screens { grid-template-columns: minmax(0, 1fr); } }
+.screens .card { padding: 10px; }
+.screens .frame { border-radius: 6px; border: 1px solid var(--line); }
+.screens .cap { padding: 10px 4px 4px; display: grid; gap: 4px; }
+.screens .cap b { font-weight: 600; }
+.screens .cap span { color: var(--muted); font-size: 12.5px; }
+.rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; }
+.rules li { position: relative; padding-left: 22px; font-size: 13px; }
+.rules li::before { content: "✓"; position: absolute; left: 2px; top: 0; color: var(--ok); font-weight: 700; }
+
+/* url anatomy */
+.anat { padding: 18px; overflow: hidden; }
+.anat-row { display: flex; flex-wrap: wrap; gap: 0; padding: 14px 18px 4px; background: #f6f8ff; border: 1px solid #c7d3fb; border-radius: 12px; }
+.anat-row .seg { display: grid; gap: 8px; min-width: 0; }
+.anat-row .u { font: 400 clamp(17px, 3.2vw, 30px)/1.2 var(--mono); color: var(--text); padding-bottom: 8px; border-bottom: 2px solid var(--line-2); overflow-wrap: anywhere; }
+.anat-row .seg.acc .u { color: var(--accent); border-color: var(--accent); }
+.anat-row .seg.dk .u { color: var(--accent-dark); border-color: var(--accent-dark); }
+.anat-row .seg.dk b { font-weight: 600; }
+.anat-row .l { font-size: 12.5px; color: var(--muted); padding: 0 8px 10px 0; min-height: 28px; }
+.anat-row .seg.acc .l { color: var(--accent); } .anat-row .seg.dk .l { color: var(--accent-dark); }
+.anat-foot { display: flex; gap: 8px 28px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: var(--muted); }
+.anat-foot b { color: var(--text); font-weight: 600; }
+.diagram { padding: 18px; overflow: hidden; }
+.diagram svg { width: 100%; height: auto; display: block; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 10px; border-bottom: 1px solid var(--line); }
+.tbl td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl td:first-child { font-family: var(--mono); font-size: 12.5px; color: var(--accent-dark); white-space: nowrap; }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl-wrap { overflow-x: auto; }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px 18px; }
+.q h3 { font: 600 15px/1.35 var(--ui); margin-bottom: 4px; }
+.q .why { color: var(--muted); margin: 0 0 10px; }
+.q .choices { display: grid; gap: 6px; }
+.q label.choice { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.q label.choice:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.q label.choice input { margin: 3px 0 0; accent-color: var(--accent); }
+.q label.choice b { font-weight: 600; }
+.q label.choice span:not(.rec) { display: block; color: var(--muted); font-size: 12.5px; }
+.q .rec { display: inline-block; font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.q textarea { width: 100%; margin-top: 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.4 var(--ui); resize: vertical; }
+.q .qfoot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.q .state { font-size: 12.5px; color: var(--faint); }
+.q .state.queued { color: var(--ok); font-weight: 600; }
+.copyall { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.copyall textarea { width: 100%; }
+
+/* =====================================================================
+   SW-6 additions: poll slide, phone poll card, presenter poll panel
+   ===================================================================== */
+:root { --pw-bg: #0a0e16; --pw-panel: #111827; --pw-line: #1f2937; --pw-text: #e2e8f0; --pw-muted: #94a3b8; --pw-faint: #64748b; --pw-acc: #8ea5ff; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 980px) { .grid3 { grid-template-columns: minmax(0, 1fr); } }
+.grid3 > * { min-width: 0; }
+
+/* ---------- big-screen poll slide ---------- */
+.sl.pollsl { padding: 62px 60px 70px; }
+.pollsl .pjoin { position: absolute; right: 40px; top: 24px; padding: 8px 14px; border-radius: 999px; background: var(--sw-night); color: #fff; font: 500 14px/1 var(--ui); }
+.pollsl .pjoin b { font-weight: 700; }
+.pollsl h3 { margin-bottom: 24px; max-width: 700px; }
+.prows { flex: 1; min-height: 0; display: grid; gap: var(--pg, 16px); align-content: center; }
+.prows.n5 { --pg: 12px; --ph: 38px; --pf: 18px; } .prows.n7 { --pg: 8px; --ph: 28px; --pf: 16px; }
+.prow { display: grid; grid-template-columns: 260px minmax(0, 1fr) 76px; align-items: center; gap: 18px; transition: opacity .4s; }
+.plab { font: 600 var(--pf, 20px)/1.2 var(--ui); display: flex; align-items: center; gap: 10px; }
+.ptrack { height: var(--ph, 46px); border-radius: 8px; background: #e7eaf0; overflow: hidden; position: relative; }
+.ptrack i { display: block; height: 100%; background: var(--sw-accent); border-radius: 8px; transition: width .6s cubic-bezier(.2, .8, .2, 1), background .4s; }
+.ptrack.hid { background: repeating-linear-gradient(-45deg, #eef0f4 0 10px, #e4e7ed 10px 20px); }
+.ppct { font: 800 24px/1 var(--head); text-align: right; font-variant-numeric: tabular-nums; }
+.prow.ok .ptrack i { background: var(--sw-good); }
+.prow.dim { opacity: .42; }
+.okmark { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--sw-good); color: #fff; display: grid; place-items: center; font: 700 14px/1 var(--ui); font-style: normal; }
+.pfoot { position: absolute; left: 60px; right: 60px; bottom: 26px; display: flex; align-items: center; gap: 18px; font-size: 15px; color: var(--sw-muted); }
+.pst { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.pst::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.pst.open { color: var(--sw-good); } .pst.closed { color: var(--sw-ink); } .pst.grey { color: var(--sw-muted); }
+.pn b { font: 800 22px/1 var(--head); color: var(--sw-ink); }
+.pfoot .right { margin-left: auto; font-size: 13.5px; }
+.pfoot .lockc { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--sw-night); color: #fff; font: 600 13px/1 var(--ui); }
+
+/* ---------- phone: poll card ---------- */
+.pc { gap: 9px; overflow: hidden; }
+.pc .tag.acc { color: var(--sw-accent-dark); background: var(--sw-accent-light); }
+.pc > b { font-size: 15.5px; }
+.popts { display: grid; gap: 6px; min-height: 0; overflow-y: auto; flex: 0 1 auto; }
+.popt .tg { display: flex; gap: 4px; margin-top: 4px; }
+.popt { all: unset; box-sizing: border-box; position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--sw-grid); background: #fff; font: 500 13.5px/1.25 var(--ui); color: var(--sw-ink); cursor: pointer; }
+.popt:focus-visible { outline: 2px solid var(--sw-accent); outline-offset: 2px; }
+.popt .mk { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid #c3c9d4; position: relative; z-index: 1; box-sizing: border-box; }
+.popt[role="checkbox"] .mk { border-radius: 5px; }
+.popt.on { border-color: var(--sw-accent); background: #f3f6ff; }
+.popt.on .mk { border-color: var(--sw-accent); background: var(--sw-accent); box-shadow: inset 0 0 0 3px #fff; }
+.popt[role="checkbox"].on .mk { box-shadow: none; background: var(--sw-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat; }
+.popt:disabled { opacity: .42; cursor: default; }
+.popt.ro { cursor: default; }
+.popt .t { flex: 1; min-width: 0; position: relative; z-index: 1; }
+.popt .pf { position: absolute; left: 0; top: 0; bottom: 0; background: rgb(47 91 234 / .09); transition: width .6s cubic-bezier(.2, .8, .2, 1); z-index: 0; }
+.popt.on .pf { background: rgb(47 91 234 / .17); }
+.popt .pp { position: relative; z-index: 1; font: 700 12.5px/1 var(--ui); color: var(--sw-muted); font-variant-numeric: tabular-nums; }
+.popt em { flex: none; font-style: normal; position: relative; z-index: 1; font: 700 9.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; padding: 3px 5px; border-radius: 4px; }
+.popt em.you { background: var(--sw-accent-light); color: var(--sw-accent-dark); }
+.popt em.cor { background: #dcfce7; color: #166534; }
+.popt.good { border-color: var(--sw-good); }
+.popt.good .pf { background: rgb(22 163 74 / .16); }
+.pc-foot { margin-top: auto; display: grid; gap: 8px; flex: none; }
+.pc-hint { font-size: 12px; white-space: nowrap; color: var(--sw-muted); display: flex; justify-content: space-between; gap: 8px; }
+.sbtn { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; padding: 0 12px; border-radius: 12px; background: var(--sw-accent); color: #fff; font: 700 15px/1 var(--ui); cursor: pointer; text-align: center; }
+.sbtn:focus-visible { outline: 2px solid var(--sw-accent-dark); outline-offset: 2px; }
+.sbtn:disabled { background: #c9d1e4; cursor: default; }
+.sbtn.ghost { background: var(--sw-paper); color: var(--sw-ink); border: 1.5px solid var(--sw-grid); min-height: 40px; font-size: 13.5px; }
+.sbtn.sm { min-height: 34px; font-size: 12.5px; border-radius: 9px; }
+.btnrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pc .sent { display: flex; gap: 7px; align-items: center; font: 600 13px/1.3 var(--ui); color: var(--sw-good); }
+.pc .sent.wait { color: var(--sw-warn); }
+.pc .priv { font-size: 11px; color: var(--sw-muted); display: flex; gap: 6px; align-items: flex-start; line-height: 1.35; }
+.pc .priv svg { flex: none; width: 12px; height: 12px; margin-top: 1px; }
+.pc .res-note { font-size: 12px; line-height: 1.4; color: var(--sw-muted); padding: 8px 10px; background: var(--sw-paper); border-radius: 8px; }
+.pc .verdict { padding: 9px 11px; border-radius: 10px; font: 600 13px/1.35 var(--ui); }
+.verdict.good { background: #dcfce7; color: #166534; }
+.verdict.miss { background: #fef3c7; color: #92400e; }
+.pc .conf { display: grid; gap: 8px; padding: 10px; border-radius: 10px; background: #fef3c7; color: #78350f; font-size: 12px; line-height: 1.4; }
+.pc .conf b { font: 700 12.5px/1.3 var(--ui); }
+.pc .roundtag { margin-left: auto; font: 600 10px/1 var(--ui); color: var(--sw-muted); }
+.pc .taghead { display: flex; align-items: center; gap: 8px; }
+.sheet input.nick { all: unset; box-sizing: border-box; width: 100%; min-height: 46px; padding: 0 14px; border-radius: 12px; background: rgb(255 255 255 / .08); border: 1.5px solid var(--sw-accent-glow); color: #fff; font: 600 15px/1 var(--ui); }
+.sheet .warnline { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgb(165 184 255 / .12); color: #dbe3ff; font-size: 12px; line-height: 1.4; }
+
+/* ---------- presenter window (SW-4 look) ---------- */
+.browser { border-radius: 10px; overflow: hidden; border: 1px solid var(--line-2); box-shadow: var(--raise); background: var(--pw-bg); }
+.browser-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #e9ecf1; border-bottom: 1px solid var(--line); }
+.browser-bar .dots { display: flex; gap: 5px; } .browser-bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: #c9ced8; }
+.browser-bar .url { flex: 1; min-width: 0; text-align: center; font: 500 12px/1 var(--ui); color: var(--muted); background: #fff; border-radius: 6px; padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browser-bar .url b { color: var(--text); font-weight: 600; }
+.pw { background: var(--pw-bg); color: var(--pw-text); font: 400 13px/1.4 var(--ui); position: relative; outline: none; }
+.pw:focus-visible { box-shadow: inset 0 0 0 2px var(--pw-acc); }
+.pw-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--pw-line); }
+.pw-top .deck { font-weight: 600; white-space: nowrap; }
+.pw-top .sp { flex: 1; }
+.pw-top .timer { font: 500 20px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.lchip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border-radius: 6px; background: rgb(22 163 74 / .16); color: #86efac; font: 600 12px/1 var(--ui); white-space: nowrap; }
+.lchip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.lchip b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.pw-main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; padding: 16px; }
+@media (max-width: 900px) { .pw-main { grid-template-columns: minmax(0, 1fr); } }
+.pw-main > * { min-width: 0; }
+.pw-lab { display: flex; align-items: center; gap: 8px; margin: 0 0 7px; font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--pw-muted); }
+.pw-lab .sp { flex: 1; }
+.pw-lab .val { font: 500 12px/1 var(--mono); letter-spacing: 0; text-transform: none; color: var(--pw-text); }
+.pw .frame { border-radius: 4px; box-shadow: 0 8px 30px rgb(0 0 0 / .5); outline: 2px solid rgb(142 165 255 / .5); outline-offset: 3px; }
+.pw .frame.next { outline: none; opacity: .9; }
+.pw-ctl { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.pw-ctl .count { font: 500 13px/1 var(--mono); min-width: 54px; text-align: center; }
+.pw-ctl .bar { flex: 1; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .1); overflow: hidden; position: relative; }
+.pw-ctl .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: #6d8bff; transition: width .3s; }
+.ibtn { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 7px; background: rgb(255 255 255 / .07); color: var(--pw-text); }
+.ibtn:hover { background: rgb(255 255 255 / .14); }
+.ibtn:focus-visible { outline: 2px solid var(--pw-acc); }
+.ibtn:disabled { opacity: .35; cursor: default; }
+.ibtn svg { width: 14px; height: 14px; }
+.notes { background: var(--pw-panel); border: 1px solid var(--pw-line); border-radius: 8px; padding: 12px 14px; font-size: 14px; line-height: 1.5; color: #f1f5f9; }
+.pw-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 16px 14px; border-top: 1px solid var(--pw-line); color: var(--pw-faint); font-size: 12px; }
+.kk { font: 500 10.5px/1 var(--mono); color: var(--pw-faint); padding: 2px 5px; border: 1px solid #334155; border-radius: 4px; }
+
+/* poll panel in the presenter window */
+.ppanel { background: var(--pw-panel); border: 1px solid var(--pw-line); border-radius: 10px; padding: 14px; display: grid; gap: 12px; }
+.pp-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pp-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; font: 700 11px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; }
+.pp-state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pp-state.draft { background: rgb(255 255 255 / .08); color: var(--pw-muted); }
+.pp-state.open { background: rgb(22 163 74 / .18); color: #86efac; }
+.pp-state.closed { background: rgb(142 165 255 / .16); color: #c7d2fe; }
+.pp-round { font: 500 12px/1 var(--mono); color: var(--pw-muted); }
+.pp-cfg { margin-left: auto; font-size: 11.5px; color: var(--pw-muted); text-align: right; }
+.pp-n { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pp-n b { font: 700 26px/1 var(--mono); color: #fff; font-variant-numeric: tabular-nums; }
+.pp-n .rate { margin-left: auto; font: 600 12px/1 var(--ui); padding: 4px 8px; border-radius: 6px; background: rgb(142 165 255 / .14); color: #c7d2fe; }
+.pp-bars { display: grid; gap: 6px; }
+.pp-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 30px; gap: 8px; align-items: center; font-size: 12px; }
+.pp-row span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #cbd5e1; }
+.pp-row .tr { height: 8px; border-radius: 4px; background: rgb(255 255 255 / .08); overflow: hidden; }
+.pp-row .tr i { display: block; height: 100%; background: #6d8bff; transition: width .5s; }
+.pp-row.ok .tr i { background: #4ade80; }
+.pp-row .c { font: 500 12px/1 var(--mono); text-align: right; color: #fff; }
+.pp-room { font-size: 11.5px; color: var(--pw-muted); display: flex; gap: 6px; align-items: center; }
+.pp-room b { color: #fff; font-weight: 600; }
+.pp-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.tbtn { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px; border-radius: 7px; background: rgb(255 255 255 / .07); color: var(--pw-text); font: 600 12.5px/1 var(--ui); white-space: nowrap; }
+.tbtn:hover { background: rgb(255 255 255 / .13); }
+.tbtn:focus-visible { outline: 2px solid var(--pw-acc); }
+.tbtn:disabled { opacity: .35; cursor: default; }
+.tbtn.go { background: #2f5bea; color: #fff; }
+.tbtn.stop { background: rgb(220 38 38 / .22); color: #fecaca; }
+.pp-hist { font-size: 11.5px; color: var(--pw-faint); }
+
+/* audience window + demo layout */
+.demo6 { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; margin-top: 18px; }
+@media (max-width: 980px) { .demo6 { grid-template-columns: minmax(0, 1fr); } }
+.demo6 > * { min-width: 0; }
+.cap-under { margin-top: 8px; color: var(--muted); font-size: 12.5px; }
+.cap-under b { color: var(--text); font-weight: 600; }
+
+/* phone remote (presenter's phone) */
+.rem { padding: 6px 14px 10px; display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
+.rem .rlab { font: 600 10.5px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--pw-muted); display: flex; justify-content: space-between; }
+.rem .strip { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 10px; display: grid; gap: 9px; }
+.rem .strip .row { display: flex; align-items: center; gap: 8px; }
+.rem .strip .row b { font: 700 18px/1 var(--mono); }
+.rem .strip .btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.rem .strip .btns span { display: grid; place-items: center; min-height: 40px; border-radius: 9px; background: rgb(255 255 255 / .08); font: 600 12px/1.15 var(--ui); text-align: center; padding: 0 4px; }
+.rem .strip .btns span.stop { background: rgb(220 38 38 / .25); color: #fecaca; }
+.rem .bignext { margin-top: auto; display: grid; place-items: center; min-height: 64px; border-radius: 16px; background: #2f5bea; font: 700 18px/1 var(--ui); }
+
+/* model section */
+.method { padding: 16px 18px; display: grid; gap: 10px; align-content: start; }
+.method h3 { font: 600 14px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; }
+.method code.k { color: var(--accent-dark); }
+.method p { margin: 0; color: var(--muted); font-size: 13px; }
+.mini { display: grid; gap: 5px; }
+.mini span { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 12.5px; background: #fff; }
+.mini span i { width: 13px; height: 13px; border: 2px solid #c3c9d4; border-radius: 50%; flex: none; box-sizing: border-box; }
+.mini.box span i { border-radius: 4px; }
+.mini span.on { border-color: var(--accent); background: #f6f8ff; }
+.mini span.on i { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 2px #fff; }
+.mini.box span.on i { box-shadow: none; }
+.mini span.off { opacity: .45; }
+
+.mcp { background: #0f1420; color: #cbd5e1; border-radius: 10px; padding: 16px 18px; font: 400 12.5px/1.6 var(--mono); overflow-x: auto; white-space: pre; }
+.mcp .u { color: #fbbf24; } .mcp .c { color: #8ea5ff; } .mcp .r { color: #86efac; } .mcp .m { color: #64748b; }
+.vis-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 860px) { .vis-grid { grid-template-columns: minmax(0, 1fr); } }
+.vis-grid .card { padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.vis-grid .card b { font-weight: 600; }
+.vis-grid .card .who { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 4px 8px; font-size: 12.5px; margin-top: 4px; }
+.vis-grid .card .who span:nth-child(odd) { color: var(--faint); }
+
+/* =====================================================================
+   SW-9 additions: Questions tab, ask sheet, reactions, Q&A slide,
+   spotlight, presenter Questions panel
+   ===================================================================== */
+
+/* ---------- phone: tab bar + reactions ---------- */
+.ps .pbody { gap: 10px; }
+.tabs { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: rgb(255 255 255 / .09); }
+.tabs button { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border-radius: 10px; font: 600 13px/1 var(--ui); color: var(--sw-night-2); cursor: pointer; }
+.tabs button:focus-visible { outline: 2px solid var(--sw-accent-glow); outline-offset: 1px; }
+.tabs button.on { background: #fff; color: var(--sw-ink); }
+.tabs .bdg { font: 700 10.5px/1 var(--ui); padding: 3px 6px; border-radius: 999px; background: var(--sw-accent); color: #fff; font-variant-numeric: tabular-nums; }
+.tabs .bdg.dot { padding: 0; width: 8px; height: 8px; background: #4ade80; }
+.rx { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.rx button { all: unset; box-sizing: border-box; display: grid; place-items: center; min-height: 44px; border-radius: 12px; background: rgb(255 255 255 / .09); font-size: 20px; line-height: 1; cursor: pointer; position: relative; transition: transform .12s, background .2s; }
+.rx button:focus-visible { outline: 2px solid var(--sw-accent-glow); outline-offset: 1px; }
+.rx button:active { transform: scale(.9); }
+.rx button.hit { background: rgb(165 184 255 / .3); }
+.rx button.hit::after { content: attr(data-e); position: absolute; left: 50%; bottom: 60%; translate: -50% 0; font-size: 18px; animation: rxpop .7s ease-out forwards; pointer-events: none; }
+.rx button:disabled { opacity: .4; cursor: default; }
+@keyframes rxpop { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-34px) scale(1.5); } }
+.rx-note { flex: none; text-align: center; font-size: 11px; color: var(--sw-night-muted); margin-top: -4px; }
+.wait.sm { gap: 7px; }
+.wait.sm b { font-size: 14px; }
+.wait.sm p { font-size: 12px; }
+
+/* ---------- phone: question list ---------- */
+.activity.qa { padding: 12px 12px 10px; gap: 8px; min-height: 0; overflow: hidden; }
+.qh { flex: none; display: flex; align-items: center; gap: 8px; }
+.qh strong { font: 700 15px/1.2 var(--head); }
+.qh .cnt { font: 600 12px/1 var(--ui); color: var(--sw-muted); white-space: nowrap; }
+.seg { margin-left: auto; display: inline-flex; padding: 2px; border-radius: 8px; background: var(--sw-paper); border: 1px solid var(--sw-grid); }
+.seg button { all: unset; box-sizing: border-box; padding: 6px 9px; border-radius: 6px; font: 600 11.5px/1 var(--ui); color: var(--sw-muted); cursor: pointer; }
+.seg button.on { background: #fff; color: var(--sw-ink); box-shadow: 0 1px 2px rgb(15 23 42 / .12); }
+.qlist { flex: 1; min-height: 0; overflow-y: auto; display: grid; align-content: start; margin: 0 -4px; padding: 0 4px; }
+.qi { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 0; border-top: 1px solid var(--sw-grid); }
+.qi:first-child { border-top: 0; }
+.up { all: unset; box-sizing: border-box; width: 44px; min-height: 44px; display: grid; place-items: center; align-content: center; gap: 2px; border-radius: 10px; border: 1.5px solid var(--sw-grid); background: #fff; color: var(--sw-muted); cursor: pointer; }
+.up:focus-visible { outline: 2px solid var(--sw-accent); outline-offset: 2px; }
+.up i { font: 400 9px/1 var(--ui); font-style: normal; }
+.up span { font: 700 13.5px/1 var(--ui); color: var(--sw-ink); font-variant-numeric: tabular-nums; }
+.up.on { border-color: var(--sw-accent); background: var(--sw-accent-light); color: var(--sw-accent); }
+.up.on span { color: var(--sw-accent-dark); }
+.up.ro { cursor: default; border-style: dashed; }
+.up.done { border-color: transparent; background: #dcfce7; color: #166534; }
+.up.done span { color: #166534; font-size: 15px; }
+.up.held { border-style: dashed; color: var(--sw-warn); }
+.qtx { font: 500 13px/1.32 var(--ui); color: var(--sw-ink); overflow-wrap: anywhere; }
+.qm { margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; font-size: 11px; color: var(--sw-muted); }
+.qm em { font-style: normal; font: 700 9.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; padding: 3px 5px; border-radius: 4px; }
+.qm em.you { background: var(--sw-accent-light); color: var(--sw-accent-dark); }
+.qm em.live { background: #dcfce7; color: #166534; }
+.qm em.hold { background: #fef3c7; color: #92400e; }
+.qm em.off { background: #f1f2f5; color: var(--sw-muted); }
+.qi.dim .qtx { color: var(--sw-muted); }
+.qsec { padding: 10px 0 2px; font: 600 10.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--sw-muted); border-top: 1px solid var(--sw-grid); }
+.qnone { flex: 1; display: grid; place-items: center; align-content: center; gap: 6px; text-align: center; padding: 0 10px; }
+.qnone strong { font: 700 15px/1.3 var(--head); }
+.qnone span { font-size: 12.5px; line-height: 1.45; color: var(--sw-muted); }
+.qa .sbtn { flex: none; }
+.qa .res-note { flex: none; font-size: 12px; line-height: 1.4; color: var(--sw-muted); padding: 8px 10px; background: var(--sw-paper); border-radius: 8px; }
+.qa .res-note.amber { background: #fef3c7; color: #78350f; }
+.pollban { flex: none; display: flex; align-items: center; gap: 8px; padding: 9px 10px 9px 12px; border-radius: 12px; background: var(--sw-accent); color: #fff; font: 600 12.5px/1.3 var(--ui); }
+.pollban span { flex: 1; min-width: 0; }
+.pollban u { text-decoration: none; flex: none; padding: 7px 10px; border-radius: 8px; background: #fff; color: var(--sw-accent-dark); font: 700 12px/1 var(--ui); }
+
+/* ---------- phone: ask sheet ---------- */
+.sheet .qta { all: unset; box-sizing: border-box; display: block; width: 100%; min-height: 96px; padding: 12px 14px; border-radius: 12px; background: rgb(255 255 255 / .08); border: 1.5px solid var(--sw-accent-glow); color: #fff; font: 500 14.5px/1.4 var(--ui); white-space: pre-wrap; overflow-wrap: anywhere; }
+.sheet .qta::placeholder { color: var(--sw-night-muted); }
+.sheet .cnt-row { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--sw-night-muted); margin-top: -4px; }
+.sheet .who-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgb(255 255 255 / .06); font-size: 13px; color: #fff; cursor: pointer; }
+.sheet .who-row small { display: block; font-size: 11.5px; color: var(--sw-night-muted); margin-top: 2px; }
+.sheet .who-row > span:first-child { flex: 1; min-width: 0; }
+.sw { flex: none; width: 38px; height: 22px; border-radius: 999px; background: rgb(255 255 255 / .2); position: relative; transition: background .2s; }
+.sw::after { content: ""; position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.sw.on { background: var(--sw-accent); }
+.sw.on::after { transform: translateX(16px); }
+.sheet .pbtn { cursor: pointer; font-family: var(--ui); }
+.sheet .pbtn:disabled { opacity: .45; cursor: default; }
+.sheet .fine { font-size: 11.5px; line-height: 1.4; color: var(--sw-night-muted); text-align: center; }
+.sheet .x { all: unset; position: absolute; right: 14px; top: 14px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: rgb(255 255 255 / .1); color: #fff; font-size: 14px; cursor: pointer; }
+
+/* ---------- big screen: Q&A slide ---------- */
+.sl.qasl { padding: 62px 60px 70px; }
+.qasl h3 { margin-bottom: 18px; }
+.qrows { flex: 1; min-height: 0; display: grid; gap: 9px; align-content: center; }
+.qrow { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; align-items: center; background: #fff; border-radius: 12px; padding: 8px 18px 8px 8px; box-shadow: 0 1px 2px rgb(15 23 42 / .06), 0 8px 24px rgb(15 23 42 / .06); transition: opacity .3s; }
+.qv { display: grid; place-items: center; height: 38px; border-radius: 9px; background: var(--sw-accent-light); color: var(--sw-accent-dark); font: 800 20px/1 var(--head); font-variant-numeric: tabular-nums; }
+.qt { font: 600 18px/1.25 var(--ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qrow.first .qv { background: var(--sw-accent); color: #fff; }
+.qempty { flex: 1; display: grid; place-items: center; align-content: center; gap: 10px; text-align: center; border: 2px dashed var(--sw-grid); border-radius: 16px; }
+.qempty b { font: 800 30px/1.2 var(--head); }
+.qempty span { font-size: 17px; color: var(--sw-muted); max-width: 520px; }
+.qbig { flex: 1; display: grid; align-content: center; gap: 16px; padding: 0 20px; }
+.qbl { display: flex; gap: 12px; align-items: center; font: 600 15px/1 var(--ui); color: var(--sw-muted); }
+.qbl em { font-style: normal; padding: 7px 11px; border-radius: 999px; background: var(--sw-accent); color: #fff; font: 800 15px/1 var(--head); }
+.qbt { font: 800 40px/1.15 var(--head); letter-spacing: -.015em; max-width: 800px; }
+.qasl .pfoot .right { display: inline-flex; gap: 8px; align-items: center; }
+
+/* ---------- big screen: spotlight over any slide ---------- */
+.spot-dim { position: absolute; inset: 0; background: linear-gradient(to top, rgb(11 16 32 / .5), rgb(11 16 32 / .12) 55%, transparent); z-index: 3; }
+.spot { position: absolute; left: 60px; right: 60px; bottom: 38px; z-index: 4; padding: 20px 26px 22px; border-radius: 16px; background: var(--sw-night); color: #fff; box-shadow: 0 24px 60px rgb(11 16 32 / .45); display: grid; gap: 10px; animation: spotin .35s ease; }
+@keyframes spotin { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.spl { display: flex; align-items: center; gap: 12px; font: 600 12px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--sw-accent-glow); }
+.spl em { font-style: normal; letter-spacing: 0; text-transform: none; padding: 5px 9px; border-radius: 999px; background: rgb(165 184 255 / .2); color: #fff; font: 700 13px/1 var(--ui); }
+.spl span.by { margin-left: auto; letter-spacing: 0; text-transform: none; font: 500 13px/1 var(--ui); color: var(--sw-night-2); }
+.spt { font: 800 28px/1.2 var(--head); letter-spacing: -.01em; }
+
+/* ---------- big screen: floating reactions ---------- */
+.rxf { position: absolute; right: 22px; bottom: 44px; width: 150px; height: 400px; pointer-events: none; z-index: 5; }
+.rxf span { position: absolute; bottom: 0; font-size: 38px; line-height: 1; filter: drop-shadow(0 4px 8px rgb(15 23 42 / .2)); }
+.rxf.still span { opacity: var(--o, 1); }
+.rxf .more { position: absolute; right: 58px; bottom: 4px; left: auto; font: 700 14px/1 var(--ui); padding: 6px 10px; border-radius: 999px; background: var(--sw-night); color: #fff; filter: none; }
+.rxwrap { position: relative; }
+.rxlive { position: absolute; right: 2.5%; bottom: 8%; width: 16%; height: 74%; pointer-events: none; z-index: 5; overflow: visible; }
+.rxlive span { position: absolute; bottom: 0; font-size: clamp(16px, 2.6vw, 30px); line-height: 1; animation: floatup 2.6s ease-out forwards; filter: drop-shadow(0 3px 6px rgb(0 0 0 / .25)); }
+@keyframes floatup { 0% { opacity: 0; transform: translateY(0) scale(.6); } 12% { opacity: 1; transform: translateY(-12%) scale(1.1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-900%) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .rxlive span { animation-duration: .01s; } .spot { animation: none; } }
+
+/* ---------- presenter: Questions panel ---------- */
+.qp { gap: 10px; }
+.qp-tabs { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.qp-tabs button { all: unset; cursor: pointer; padding: 6px 9px; border-radius: 999px; font: 600 11.5px/1 var(--ui); color: var(--pw-muted); background: rgb(255 255 255 / .05); white-space: nowrap; }
+.qp-tabs button.on { background: rgb(142 165 255 / .2); color: #fff; }
+.qp-tabs button.alert { color: #fde68a; }
+.qp-tabs button:focus-visible { outline: 2px solid var(--pw-acc); }
+.qp-tabs .sortb { margin-left: auto; background: none; color: var(--pw-faint); }
+.qp-list { display: grid; gap: 6px; align-content: start; max-height: 322px; overflow-y: auto; }
+.qp-i { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; padding: 9px 10px; border-radius: 9px; background: rgb(255 255 255 / .04); border: 1px solid transparent; }
+.qp-i.on { border-color: #4ade80; background: rgb(22 163 74 / .1); }
+.qp-v { display: grid; place-items: center; align-content: center; gap: 2px; height: 36px; border-radius: 7px; background: rgb(142 165 255 / .14); color: #c7d2fe; font: 500 13px/1 var(--mono); }
+.qp-v i { font-style: normal; font-size: 8px; line-height: 1; color: var(--pw-faint); }
+.qp-t { font-size: 12.5px; line-height: 1.35; color: #f1f5f9; overflow-wrap: anywhere; }
+.qp-m { margin-top: 3px; font-size: 11px; color: var(--pw-faint); }
+.qp-m b { font-weight: 600; color: #86efac; }
+.qp-a { margin-top: 7px; display: flex; gap: 5px; flex-wrap: wrap; }
+.qp-a .tbtn { padding: 6px 9px; font-size: 11.5px; border-radius: 6px; }
+.qp-none { color: var(--pw-muted); font-size: 12.5px; line-height: 1.5; padding: 6px 2px; }
+.qp-set { display: flex; gap: 6px 14px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--pw-line); font-size: 11.5px; color: var(--pw-muted); align-items: center; }
+.qp-set b { font-weight: 600; color: var(--pw-text); }
+.qp-set .rxc { margin-left: auto; font: 500 12px/1 var(--mono); color: var(--pw-text); white-space: nowrap; }
+
+/* phone remote: questions strip */
+.rem .strip .qtop { font-size: 12.5px; line-height: 1.35; color: #e2e8f0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rem .strip .btns span.go { background: #2f5bea; }
+
+/* model section */
+.maprow { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr); gap: 6px 10px; align-items: center; font-size: 13px; }
+.maprow > span:nth-child(3n+2) { color: var(--faint); text-align: center; }
+.maprow code { color: var(--accent-dark); }
+.setgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 980px) { .setgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .setgrid { grid-template-columns: minmax(0, 1fr); } }
+.setgrid .card { padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.setgrid b { font-weight: 600; }
+.setgrid code.k { color: var(--accent-dark); }
+.setgrid span { color: var(--muted); font-size: 13px; }
+.setgrid .def { font: 500 12px/1.4 var(--mono); color: var(--ok); }
+
+.sheet .pollban { font-size: 12px; }
+
+/* page-only helpers */
+.lc { padding: 18px; overflow: hidden; }
+.lc svg { width: 100%; height: auto; display: block; }
+.ctl-grid { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; margin-top: 16px; }
+@media (max-width: 980px) { .ctl-grid { grid-template-columns: minmax(0, 1fr); } }
+.ctl-grid > * { min-width: 0; }
+.dctl select { font: 500 13px/1.2 var(--ui); padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); max-width: 100%; }
+.dctl .frozen { flex-basis: 100%; font-size: 12.5px; color: var(--muted); }
+.tbl.wrapk td:first-child { white-space: normal; width: 32%; }
+h4.sub { margin: 22px 0 10px; font: 600 14px/1.3 var(--ui); }
+.pw-main.q9 { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .pw-main.q9 { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+
+<header class="page-head">
+  <div class="eyebrow">SW-9 · SlideWorks · mockups 17 Nov 2026</div>
+  <h1>Q&amp;A and reactions: the quiet majority gets a say</h1>
+  <p>The guest page from SW-5 gets a second tab, <b>Questions</b>, where anyone can ask and upvote for the whole session, and a row of five reactions under the slide. The presenter gets a Questions panel next to the notes: approve, hide, mark answered, and put one question on the big screen. This page mocks the guest phone, the big screen and the presenter window. The live demo runs a session, and you can ask, upvote and react on the phone yourself. The nine questions at the end were answered on 17 Nov (D1–D9).</p>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#scope">Scope</a>
+  <a href="#demo">Live demo</a>
+  <a href="#phone">Every phone state</a>
+  <a href="#screen">On the big screen</a>
+  <a href="#controls">Presenter controls</a>
+  <a href="#model">Q&amp;A model</a>
+  <a href="#mcp">Agents (MCP)</a>
+  <a href="#realtime">Realtime and limits</a>
+  <a href="#questions">Questions</a>
+</nav>
+
+<!-- ============================== SCOPE ============================== -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">01</span><h2>What SW-9 ships</h2></div>
+  <div class="scope">
+    <div class="card">
+      <h3><span class="pill acc"><span class="dot"></span>In SW-9</span></h3>
+      <ul>
+        <li>A <b>Questions tab</b> on the guest phone, open for the whole session: ask, upvote, see what's been answered</li>
+        <li><b>Asking</b> in a sheet: up to 200 characters, anonymous unless the guest adds a name (D3)</li>
+        <li><b>Upvotes</b>, one per guest per question, no downvotes. The list sorts by votes or by newest</li>
+        <li>A <b>Questions panel</b> in the SW-4 presenter window and a strip on the phone remote: approve, hide, mark answered, show on screen</li>
+        <li><b>Show on screen:</b> one question as a card over whatever slide is up, and a <b><code>qa</code> slide layout</b> that lists the top questions (D5)</li>
+        <li><b>Reactions:</b> five emoji under the slide on the phone, floating up the edge of the big screen for a couple of seconds</li>
+        <li><b>Deck settings</b> for questions, review-first, names, reactions and where a shown question appears, with the same controls in the presenter panel. Questions and reactions are on by default and can be turned off for the deck or for one slide (D2)</li>
+        <li><b>MCP tools</b> so an agent can turn Q&amp;A on, add the Q&amp;A slide and read the questions afterwards</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="pill later"><span class="dot"></span>Not in SW-9</span></h3>
+      <ul class="later-list">
+        <li><span class="k">SW-8</span> word clouds and open text, including the profanity filter. SW-9 moderation is the presenter's own eyes</li>
+        <li><span class="k">SW-11</span> nicknames that persist across activities, scores and leaderboards</li>
+        <li><span class="k">SW-12</span> exporting questions to a file, comparing sessions</li>
+        <li><span class="k">later</span> downvotes, replies to a question, merging duplicates, a second moderator who isn't presenting</li>
+        <li><span class="k">later</span> custom emoji sets and reaction totals per slide in the results view</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== DEMO ============================== -->
+<section class="block" id="demo">
+  <div class="sec-head"><span class="n">02</span><h2>Live demo: run a Q&amp;A</h2><span class="pill ok">ask, upvote and react on the phone yourself</span></div>
+  <p class="sec-sub">This is the SW-4 presenter window with a Questions panel. The room keeps asking, upvoting and reacting on its own. On the phone, switch to <b>Questions</b>, upvote, or ask something: it shows up in the presenter's panel. In the panel, press <b>Show on screen</b> to put a question over the slide, then <b>Answered</b>. Press <b>▶</b> twice to reach the Q&amp;A slide. The settings underneath change how it behaves.</p>
+  <div class="demo6">
+    <div>
+      <div class="browser">
+        <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">slideworks.example/d/7Kq2/<b>present</b></span></div>
+        <div class="pw">
+          <div class="pw-top"><span class="deck">Shipping smaller changes</span><span class="lchip">Live <b>482 913</b> · 41 joined</span><span class="sp"></span><span class="timer">31:05</span></div>
+          <div class="pw-main q9">
+            <div>
+              <div class="pw-lab">On the big screen now<span class="sp"></span><span class="val" id="dPos">3 / 6</span></div>
+              <div class="rxwrap"><div class="frame" id="dSlide"></div><div class="rxlive" id="dRx"></div></div>
+              <div class="pw-ctl">
+                <button class="ibtn" id="dPrev" aria-label="Previous slide">◀</button>
+                <span class="count" id="dCount">3 / 6</span>
+                <div class="bar"><i id="dBar"></i></div>
+                <button class="ibtn" id="dNext" aria-label="Next slide">▶</button>
+              </div>
+              <div style="margin-top:14px"><div class="pw-lab">Notes</div><div class="notes" id="dNotes"></div></div>
+            </div>
+            <div><div class="pw-lab">Questions</div><div class="ppanel qp" id="dPanel"></div></div>
+          </div>
+          <div class="pw-tools"><span class="kk">Q</span> jump to the Questions panel <span class="kk">→</span> next slide</div>
+        </div>
+      </div>
+      <div class="card dctl">
+        <span class="lbl">Deck settings</span>
+        <label><input type="checkbox" id="dOn" checked> Questions open</label>
+        <label><input type="checkbox" id="dReview"> Review questions first</label>
+        <label><input type="checkbox" id="dNames" checked> Names allowed</label>
+        <label><input type="checkbox" id="dRxOn" checked> Reactions</label>
+        <label>Shown questions appear <select id="dShow"><option value="any">over any slide</option><option value="qa">only on the Q&amp;A slide</option></select></label>
+        <label><input type="checkbox" id="dSlideOff"> Slide 5: questions and reactions off</label>
+        <button class="btn ghost" id="dReset">Reset demo</button>
+      </div>
+      <ul class="demo-notes">
+        <li>A question on screen stays there across slides until the presenter takes it off, marks it answered or shows another one.</li>
+        <li>With <b>Review questions first</b> on, a new question reaches only the presenter's "To review" tab. The asker sees it marked as waiting.</li>
+        <li>Reactions go to the big screen and the presenter's counter. Other phones don't receive them.</li>
+        <li>Questions and reactions are on unless the deck or one slide turns them off (D2). Tick <b>Slide 5</b> and press <b>▶</b> to see a slide with both off.</li>
+        <li>With shown questions set to the Q&amp;A slide only (D5), a question you show appears when that slide is up.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="phone"><div class="ps" id="dPhone"></div></div>
+      <div class="cap-under" style="text-align:center"><b>A guest's phone.</b> Tap a reaction, or open Questions.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== PHONE STATES ============================== -->
+<section class="block" id="phone">
+  <div class="sec-head"><span class="n">03</span><h2>Every phone state</h2></div>
+  <p class="sec-sub">The guest page keeps its one URL. A two-tab bar replaces the old footer: <b>Slide</b> is the SW-5 page with SW-6's poll card, and <b>Questions</b> is new. Every tap target is at least 44 px. The list never shows who upvoted, and it never shows a question the presenter has hidden to anyone but its asker.</p>
+  <div class="states">
+    <div><div class="phone"><div class="ps" data-pstate="slide"></div></div>
+      <div class="st-cap"><b>Slide tab, with reactions</b><span>Five reactions sit under the activity card. A tap sends one and the emoji pops. The Questions tab shows how many questions are open.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="list"></div></div>
+      <div class="st-cap"><b>Questions</b><span>Most upvoted first. The square on the left is the upvote button and the count. Blue means you've upvoted it. Tap again to take it back.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="empty"></div></div>
+      <div class="st-cap"><b>No questions yet</b><span>The first-run state. The Ask button is the only thing to do, so it's the only thing there.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="ask"></div></div>
+      <div class="st-cap"><b>Ask</b><span>A sheet over the list. 200 characters with a counter. Anonymous unless you turn on "Show my name". A draft survives closing the sheet.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="askname"></div></div>
+      <div class="st-cap"><b>Ask, with a name</b><span>The name is typed per phone and remembered for the session. It is shown with this question only (D3).</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="sent"></div></div>
+      <div class="st-cap"><b>Sent</b><span>Your question joins the list with a "You" tag and your own upvote. Sorted by newest here, so it's at the top.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="review"></div></div>
+      <div class="st-cap"><b>Waiting for approval</b><span>Only with "review first" on. The question is pinned to the top of your list and nobody else sees it yet.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="onscreen"></div></div>
+      <div class="st-cap"><b>On screen now, and answered</b><span>The question on the big screen is tagged. Answered questions move to their own section with a tick, and can't be upvoted.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="poll"></div></div>
+      <div class="st-cap"><b>A poll opens while you're asking</b><span>A poll opening switches the phone to the Slide tab by itself (D7). The one exception is an open ask sheet: a banner waits in it and the Slide tab gets a green dot, so a half-typed question isn't lost.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="hidden"></div></div>
+      <div class="st-cap"><b>Hidden by the presenter</b><span>The asker is told plainly. Everyone else just stops seeing it. No reason is given and there is no appeal.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="offline"></div></div>
+      <div class="st-cap"><b>Connection dropped</b><span>A question that hasn't gone stays on the phone and sends by itself when the connection is back. Upvotes wait too.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="paused"></div></div>
+      <div class="st-cap"><b>Questions closed</b><span>By the presenter, or on a slide that has questions off (D2). The list stays and upvotes still count. Asking is replaced by a line saying why.</span></div></div>
+  </div>
+</section>
+
+<!-- ============================== BIG SCREEN ============================== -->
+<section class="block" id="screen">
+  <div class="sec-head"><span class="n">04</span><h2>On the big screen</h2></div>
+  <p class="sec-sub">Nothing from the audience reaches the big screen unless the presenter put it there, with one exception: reactions, which are five fixed emoji and carry no text. A question appears either as a card over the current slide or on a <code>qa</code> slide the deck's author placed, usually last.</p>
+  <div class="screens">
+    <div class="card"><div class="frame" data-mount="c2spot"></div>
+      <div class="cap"><b>One question, over any slide</b><span>Show on screen lays a dark card over the bottom of the slide, with the vote count and the name if one was given. The slide dims slightly behind it. A deck setting can keep shown questions to the Q&amp;A slide only (D5).</span></div></div>
+    <div class="card"><div class="frame" data-mount="qa"></div>
+      <div class="cap"><b>The Q&amp;A slide</b><span>The top five open questions, re-sorted as votes arrive, at most twice a second. The join pill stays up so latecomers can still ask.</span></div></div>
+    <div class="card"><div class="frame" data-mount="qaspot"></div>
+      <div class="cap"><b>The Q&amp;A slide, one question up</b><span>On this slide, Show on screen swaps the list for the one question at full size. Marking it answered brings the list back, one shorter.</span></div></div>
+    <div class="card"><div class="frame" data-mount="qaempty"></div>
+      <div class="cap"><b>No questions yet</b><span>Says what to do, not just that nothing is there. The same slide tells the room when questions are closed.</span></div></div>
+    <div class="card"><div class="frame" data-mount="c4rx"></div>
+      <div class="cap"><b>Reactions</b><span>Each tap floats one emoji up the right edge for about 2.5 seconds. Past 30 on screen at once, the rest fold into a "+N" chip, so a big room can't cover the slide.</span></div></div>
+    <div class="card"><div class="frame" data-mount="qadraft"></div>
+      <div class="cap"><b>Not live, and in thumbnails</b><span>How the slide looks on the deck page, in <code>preview_deck</code>, in a PDF and to a viewer who can't present the deck.</span></div></div>
+  </div>
+</section>
+
+<!-- ============================== CONTROLS ============================== -->
+<section class="block" id="controls">
+  <div class="sec-head"><span class="n">05</span><h2>Presenter controls</h2></div>
+  <p class="sec-sub">A question has four states the room can be in, and the presenter moves it between them. The controls sit in the Questions panel of the presenter window and in a strip on the phone remote. They work on any slide, because questions arrive on any slide.</p>
+  <div class="card lc">
+    <svg viewBox="0 0 1180 270" role="img" aria-label="Question lifecycle. With review on, a new question waits for approval. Approving it makes it open, where the room can see and upvote it. Show on screen puts an open question on the big screen. Answered moves it to the answered section. Hide removes a waiting, open or on-screen question from the room; Restore brings it back.">
+      <defs>
+        <marker id="l1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#2f5bea"/></marker>
+        <marker id="l2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#5b6474"/></marker>
+      </defs>
+      <rect x="20" y="40" width="220" height="100" rx="12" fill="#fdf0e1" stroke="#f3d3ac"/>
+      <text x="130" y="74" text-anchor="middle" font-family="Inter" font-size="17" font-weight="600" fill="#b4580b">Waiting</text>
+      <text x="130" y="99" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">only with review first</text>
+      <text x="130" y="118" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">asker and presenter see it</text>
+
+      <rect x="330" y="40" width="220" height="100" rx="12" fill="#e3f4ea" stroke="#b7e1c6"/>
+      <text x="440" y="74" text-anchor="middle" font-family="Inter" font-size="17" font-weight="600" fill="#18794e">Open</text>
+      <text x="440" y="99" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">on every phone</text>
+      <text x="440" y="118" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">can be upvoted</text>
+
+      <rect x="640" y="40" width="220" height="100" rx="12" fill="#0b1020"/>
+      <text x="750" y="74" text-anchor="middle" font-family="Inter" font-size="17" font-weight="600" fill="#fff">On screen</text>
+      <text x="750" y="99" text-anchor="middle" font-family="Inter" font-size="13" fill="#cbd5e1">one at a time</text>
+      <text x="750" y="118" text-anchor="middle" font-family="Inter" font-size="13" fill="#cbd5e1">still open, still upvotable</text>
+
+      <rect x="950" y="40" width="210" height="100" rx="12" fill="#f6f8ff" stroke="#c7d3fb"/>
+      <text x="1055" y="74" text-anchor="middle" font-family="Inter" font-size="17" font-weight="600" fill="#1e3a8a">Answered</text>
+      <text x="1055" y="99" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">kept in its own section</text>
+      <text x="1055" y="118" text-anchor="middle" font-family="Inter" font-size="13" fill="#1b2230">votes frozen</text>
+
+      <path d="M242 90 H324" stroke="#2f5bea" stroke-width="2" marker-end="url(#l1)"/>
+      <text x="283" y="76" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#2f5bea">Approve</text>
+      <path d="M552 78 H634" stroke="#2f5bea" stroke-width="2" marker-end="url(#l1)"/>
+      <text x="593" y="64" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#2f5bea">Show</text>
+      <path d="M638 104 H556" stroke="#5b6474" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#l2)"/>
+      <text x="597" y="124" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#5b6474">Take off</text>
+      <path d="M862 90 H944" stroke="#2f5bea" stroke-width="2" marker-end="url(#l1)"/>
+      <text x="903" y="76" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#2f5bea">Answered</text>
+      <path d="M440 38 C 440 14, 1055 14, 1055 34" stroke="#2f5bea" stroke-width="2" fill="none" marker-end="url(#l1)"/>
+      <text x="748" y="13" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#2f5bea">Answered, without showing it</text>
+
+      <rect x="330" y="196" width="530" height="58" rx="12" fill="#fff" stroke="#d3d8e0" stroke-dasharray="6 5"/>
+      <text x="595" y="221" text-anchor="middle" font-family="Inter" font-size="16" font-weight="600" fill="#5b6474">Hidden</text>
+      <text x="595" y="241" text-anchor="middle" font-family="Inter" font-size="13" fill="#5b6474">gone from the room; the asker is told; kept for the presenter</text>
+      <path d="M130 142 C 130 225, 240 225, 324 225" stroke="#5b6474" stroke-width="2" fill="none" stroke-dasharray="5 4" marker-end="url(#l2)"/>
+      <path d="M420 142 V190" stroke="#5b6474" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#l2)"/>
+      <path d="M460 194 V146" stroke="#5b6474" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#l2)"/>
+      <path d="M750 142 V190" stroke="#5b6474" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#l2)"/>
+      <text x="408" y="172" text-anchor="end" font-family="IBM Plex Mono" font-size="12" fill="#5b6474">Hide</text>
+      <text x="472" y="172" font-family="IBM Plex Mono" font-size="12" fill="#5b6474">Restore</text>
+      <text x="762" y="172" font-family="IBM Plex Mono" font-size="12" fill="#5b6474">Hide</text>
+      <text x="118" y="190" text-anchor="end" font-family="IBM Plex Mono" font-size="12" fill="#5b6474">Hide</text>
+    </svg>
+  </div>
+  <div class="ctl-grid">
+    <div class="card tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Control</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td>Show on screen</td><td>Puts one open question on the big screen, over the current slide or in place of the list on a Q&amp;A slide. Showing another replaces it. With the deck set to the Q&amp;A slide only, it appears when that slide is up.</td></tr>
+          <tr><td>Take off screen</td><td>Removes the card. The question stays open.</td></tr>
+          <tr><td>Answered</td><td>Moves the question to Answered on every phone and takes it off the screen. Reopen undoes it.</td></tr>
+          <tr><td>Hide · Restore</td><td>Hide removes a question from the room, whatever state it was in. Nothing is deleted, so Restore puts it back with its votes.</td></tr>
+          <tr><td>Approve</td><td>Only with review first: lets a waiting question into the room.</td></tr>
+          <tr><td>Sort</td><td>Top (votes) or Newest. The presenter's sort is their own and doesn't change the phones.</td></tr>
+          <tr><td>Settings</td><td>Questions open or closed, review first, names, reactions, and where shown questions appear. The same five as the deck settings, changeable mid-talk.</td></tr>
+          <tr><td>Who can press them</td><td>Anyone who can present the deck, as for polls (SW-6 D20). Guests can't moderate.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="phone"><div class="ps" id="remote"></div></div>
+      <div class="cap-under" style="text-align:center"><b>The presenter's phone remote (SW-4).</b> A Questions strip with the top question. "All 6" opens the full list.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== MODEL ============================== -->
+<section class="block" id="model">
+  <div class="sec-head"><span class="n">06</span><h2>The Q&amp;A model</h2></div>
+  <p class="sec-sub">The Feature says to build on SW-6's poll model: a question is an option the audience submitted, and an upvote is an answer with downvotes off. That mapping is below, with the three places where SW-6's contracts don't fit yet. Moderation state belongs to SlideWorks and sits beside the poll, not in it. D8 settles it: Q&amp;A is a real poll, and SW-6's contracts change before it is built.</p>
+  <div class="grid2">
+    <div class="card" style="padding:16px 18px">
+      <b style="font-weight:600">How Q&amp;A maps onto the poll model</b>
+      <div class="maprow" style="margin-top:12px">
+        <span>The Q&amp;A of one live session</span><span>=</span><span>one poll round, open from Go live to End</span>
+        <span>A question</span><span>=</span><span>an option the audience appended (<code>add_poll_option</code> already appends while open)</span>
+        <span>A guest's upvotes</span><span>=</span><span>one answer row: <code>picks</code> is the questions upvoted, replaced whole with a <code>revision</code></span>
+        <span>Vote counts</span><span>=</span><span>the tally, pushed at most twice a second</span>
+        <span>Downvotes</span><span>=</span><span>off: the method is "pick any"</span>
+        <span>Approve, hide, answered, on screen</span><span>≠</span><span>SlideWorks' own <code>Question</code> row per option. The poll never knows</span>
+      </div>
+    </div>
+    <div class="card" style="padding:16px 18px">
+      <b style="font-weight:600">Where SW-6 has to give</b>
+      <ul class="rules" style="margin-top:10px">
+        <li><b>A poll belongs to a slide.</b> Q&amp;A belongs to the deck and runs on every slide, so it needs a poll that isn't keyed by one.</li>
+        <li><b>One open round per session.</b> A Q&amp;A round is open all session, next to whichever slide poll is running. The rule becomes one open round per session per kind.</li>
+        <li><b>Options are slide slots, 2 to 8 of them, 60 characters.</b> Questions are rows, up to 200 characters, with no upper count, an author and a time.</li>
+      </ul>
+      <p style="margin:12px 0 0;color:var(--muted);font-size:13px">SW-6 isn't built yet (plan captured, wave 0 not started). D8: these three go into its contracts now, as an amendment to its plan, not a retrofit later. SW-8's word cloud needs the same audience-written options.</p>
+    </div>
+  </div>
+
+  <h4 class="sub">Five settings per deck, changeable while live, and an off switch per slide</h4>
+  <div class="setgrid">
+    <div class="card"><b>Questions <code class="k">questions</code></b><span>Off, open or closed. Closed keeps the list and the upvotes and stops new questions.</span><span class="def">default: open (D2)</span></div>
+    <div class="card"><b>Review first <code class="k">review</code></b><span>New questions wait for the presenter before the room sees them.</span><span class="def">default: off (D4)</span></div>
+    <div class="card"><b>Names <code class="k">names</code></b><span>Whether the ask sheet offers "Show my name". Off means every question is anonymous.</span><span class="def">default: allowed (D3)</span></div>
+    <div class="card"><b>Reactions <code class="k">reactions</code></b><span>Whether phones show the reaction row and the big screen floats them.</span><span class="def">default: on (D2)</span></div>
+    <div class="card"><b>Shown questions <code class="k">show_on</code></b><span>Where Show on screen puts a question: over whatever slide is up, or only on the Q&amp;A slide.</span><span class="def">default: any slide (D5)</span></div>
+    <div class="card"><b>Per slide <code class="k">slide</code></b><span>One slide can turn questions, reactions or both off while it is on screen. The list stays readable and upvotes still count.</span><span class="def">default: follows the deck (D2)</span></div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="card" style="padding:16px 18px">
+      <b style="font-weight:600">Rules</b>
+      <ul class="rules" style="margin-top:10px">
+        <li><b>One upvote per guest per question.</b> Tapping again takes it back. Asking a question upvotes it for you, so it starts at 1.</li>
+        <li><b>A question can't be edited</b> once sent. The asker can't delete it either; the presenter can hide it.</li>
+        <li><b>Hidden means hidden.</b> A hidden or waiting question never reaches another guest's browser, counts included.</li>
+        <li><b>Answered freezes the votes.</b> It stays readable on phones for the rest of the session.</li>
+        <li><b>Each Go live is a clean slate.</b> Questions belong to the session (SW-5 D4). Earlier sessions stay readable by the presenter and by agents.</li>
+        <li><b>Nothing is deleted</b> by the app. Hide and Answered are states.</li>
+        <li><b>Late joiners</b> get the current list at once, in its current order.</li>
+      </ul>
+    </div>
+    <div class="card" style="padding:16px 18px">
+      <b style="font-weight:600">Privacy</b>
+      <ul class="rules" style="margin-top:10px">
+        <li><b>Anonymous means anonymous to everyone.</b> A question is stored against the random guest ID from SW-5, which has no name. No screen or tool shows which guest asked or upvoted, to the presenter or anyone else.</li>
+        <li><b>A name is whatever the guest typed.</b> It isn't checked, so the presenter panel shows it as given, and Hide is the answer to a rude one.</li>
+        <li><b>Reactions are counted, not kept per person.</b> The server stores totals per slide and whether a guest reacted at all in the session, which the measure needs.</li>
+      </ul>
+      <b style="font-weight:600;display:block;margin-top:14px">Measure (D9)</b>
+      <ul class="rules" style="margin-top:8px">
+        <li>Questions asked per session, and the share of joined guests who asked, upvoted or reacted at least once.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== MCP ============================== -->
+<section class="block" id="mcp">
+  <div class="sec-head"><span class="n">07</span><h2>Agents set up Q&amp;A and read it back over MCP</h2></div>
+  <p class="sec-sub">The Q&amp;A slide is a layout, so an agent adds it with the tools it has. Two new tools cover the settings and reading the questions. An agent can't approve, hide or put a question on screen: moderation is the presenter's, in the room.</p>
+  <div class="grid2">
+    <div class="mcp"><span class="u">you    </span>End the deck with a Q&amp;A slide. I want to see
+       questions before the room does.
+<span class="c">agent  add_slide</span>(after: 5, layout: "qa", slots: {
+         title: "Questions from the room" })
+<span class="r">       → slide 6 · qa</span>
+<span class="c">agent  update_qa</span>(review: true)
+<span class="r">       → questions open · review first · names allowed
+         · reactions on · shown over any slide</span>
+
+<span class="u">you    </span>No emoji over the customer quote on slide 4.
+<span class="c">agent  update_qa</span>(slide: 4, reactions: false)
+<span class="r">       → slide 4 · reactions off · questions as the deck</span>
+
+<span class="m">       … after the talk …</span>
+
+<span class="u">you    </span>Which questions didn't I get to?
+<span class="c">agent  get_questions</span>(state: "open")
+<span class="r">       → 17 Nov session · 12 asked · 5 answered · 1 hidden
+         ▲14 How do you split a database migration
+              into small changes?
+         ▲ 7 Does trunk-based development work with
+              a release train?
+         … 4 more</span></div>
+    <div class="card tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Tool</th><th>Does</th></tr></thead>
+        <tbody>
+          <tr><td>add_slide · update_slide</td><td>Existing tools. Layout <code>qa</code> with one optional slot, <code>title</code>. <code>list_layouts</code> describes it.</td></tr>
+          <tr><td>update_qa</td><td>Deck settings: <code>questions</code> (off, open, closed), <code>review</code>, <code>names</code>, <code>reactions</code>, <code>show_on</code> (any_slide, qa_slide). With <code>slide</code>, it turns questions or reactions off for that one slide. Allowed while live, with edit access.</td></tr>
+          <tr><td>get_questions</td><td>Questions per session with votes, state, the name if one was given, and when. Filter by <code>state</code>. Never which guest asked or upvoted.</td></tr>
+          <tr><td>get_deck</td><td>Existing tool. Gains the four settings and, per session, reaction totals per slide.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== REALTIME ============================== -->
+<section class="block" id="realtime">
+  <div class="sec-head"><span class="n">08</span><h2>Realtime and limits</h2></div>
+  <p class="sec-sub">Everything rides on what SW-5 and SW-6 put in place: guests write over plain HTTP with the <code>sw_guest</code> cookie, and changes come down the audience channel at most twice a second. The new part is reactions, which are high-volume and worthless a few seconds later, so they are counted in memory, batched and never fanned out to phones.</p>
+  <div class="grid2">
+    <div class="card tbl-wrap">
+      <table class="tbl wrapk">
+        <thead><tr><th>Message</th><th>Carries</th></tr></thead>
+        <tbody>
+          <tr><td>audienceState.room</td><td>Hub → guests. <code>{ questions, names, reactions, onScreen }</code>. Tells a phone which tabs and rows to draw, already worked out for the slide on screen. Separate from <code>activity</code>, so a poll and Q&amp;A run side by side.</td></tr>
+          <tr><td>GET …/questions</td><td>Guest → server. The questions this guest may see (open, answered, and their own in any state), their own upvotes and a revision. Read on load, on reconnect and when told the list changed.</td></tr>
+          <tr><td>POST …/questions</td><td>Guest → server. <code>{ text, name? }</code>. 201 with the question, 400 naming the rule, 409 when questions are closed, 429 past the limit.</td></tr>
+          <tr><td>PUT …/questions/votes</td><td>Guest → server. <code>{ picks, revision }</code>, SW-6's answer shape: the whole set of upvoted questions, replaced.</td></tr>
+          <tr><td>questionTally</td><td>Hub → guests and presenter. <code>{ counts, listRevision }</code>, at most twice a second. A changed <code>listRevision</code> means re-read the list.</td></tr>
+          <tr><td>POST …/reactions</td><td>Guest → server. <code>{ emoji }</code>, one of five keys. 204, or 429 past the limit.</td></tr>
+          <tr><td>reactions</td><td>Hub → big screen and presenter only. <code>{ counts }</code> since the last batch, up to four batches a second.</td></tr>
+          <tr><td>approve · hide · answered · show · settings</td><td>Presenter → server, over HTTP, with SW-4's can-present check.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card" style="padding:16px 18px">
+      <b style="font-weight:600">Limits</b>
+      <ul class="rules" style="margin-top:10px">
+        <li><b>A question:</b> 1 to 200 characters after trimming, plain text, one line</li>
+        <li><b>A name:</b> up to 30 characters</li>
+        <li><b>Asking:</b> 3 questions a minute per guest, then a wait with a countdown</li>
+        <li><b>Upvoting:</b> SW-6's 30 answers a minute per guest (D18)</li>
+        <li><b>Reacting:</b> 10 taps in 5 seconds per guest; the button greys out briefly past that</li>
+        <li><b>On the big screen:</b> at most 30 emoji at once, the rest folded into "+N"</li>
+        <li><b>The Q&amp;A slide:</b> five rows, one line each. Longer questions are cut with an ellipsis and shown whole when put on screen</li>
+      </ul>
+      <p style="margin:12px 0 0;color:var(--muted);font-size:13px"><b style="color:var(--text);font-weight:600">Load:</b> SW-6's harness gets one more script: 1,000 guests who each upvote three questions and tap ten reactions inside 30 seconds, held to SW-6's gates (write p95 under 1 s, on screen p95 under 2 s, errors under 1%).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== QUESTIONS ============================== -->
+<section class="block" id="questions" data-lavish-question-group>
+  <div class="sec-head"><span class="n">09</span><h2>Questions before planning</h2></div>
+  <div class="card" style="padding:12px 16px;margin:0 0 14px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">Answered 17 Nov.</b> Q1, Q3, Q4, Q6, Q8 and Q9 went as recommended. Q2 changed: <b>both on by default</b>, and either can be turned off for the deck or for one slide. Q5 went as recommended with one addition: <b>a deck setting for where a shown question appears</b>. Q7 changed: <b>the phone switches to the poll by itself</b>, unless the ask sheet is open. The mockups above now work that way. All nine are recorded as decisions D1–D9 on SW-9.</div>
+  <div class="qs">
+
+    <form class="card q" data-lavish-question="phone-home">
+      <h3>Q1 · Where does Q&amp;A live on the phone?</h3>
+      <p class="why">Q&amp;A runs all session, but SW-5's page has one activity slot and SW-6's polls take it over.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Two tabs at the bottom of the guest page: Slide (the SW-5 page with the poll card) and Questions, with a count on the tab" checked><div><b>Two tabs: Slide and Questions</b><span class="rec">recommended</span><span>As mocked. Questions get a full screen for the list, and the tab's count tells people something is there. The footer line moves into the privacy sheet.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="An Ask button on the slide page that opens the questions as a sheet over it"><div><b>An Ask button that opens a sheet over the slide</b><span>The slide page stays as it is. The list is cramped in a sheet and easy to never find.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="One scrolling page: slide, activity card, then the questions underneath"><div><b>One scrolling page, questions under the activity card</b><span>No new navigation. But SW-5 promised nothing scrolls, and a poll opening would push the list around.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="on-by-default">
+      <h3>Q2 · Are Q&amp;A and reactions on for every live session?</h3>
+      <p class="why">Agents build most decks. A presenter who didn't ask for Q&amp;A shouldn't find 20 unread questions afterwards, or emoji drifting over a board update.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Both off until turned on per deck (deck settings, the presenter panel, or update_qa); two separate switches"><div><b>Both off until turned on, as two separate switches</b><span>My recommendation. The same call as the join bar (SW-5 D5). One line to an agent, or one click in the panel, turns either on. The presenter panel shows "Questions are off" with the switch.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Questions on by default for every live session; reactions off until turned on"><div><b>Questions on by default, reactions off</b><span>Closest to "available throughout the session". Every presenter gets a Questions panel to watch, wanted or not.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Both on by default; each can be turned off per deck or per slide" checked><div><b>Both on by default, with an off switch per deck and per slide</b><span class="rec">answered</span><span>As mocked now. The most lively out of the box. A deck, or one slide in it, can turn either off.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Questions open only while a Q&A slide is on screen; reactions off until turned on"><div><b>Questions only while a Q&amp;A slide is up</b><span>Works like a poll. Loses the question someone thinks of on slide 4.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="names">
+      <h3>Q3 · Can an asker give a name?</h3>
+      <p class="why">The Feature says "optionally anonymous". SW-5 gave guests no names (D2) and SW-6 left named answers to the quiz Feature (D5).</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Anonymous by default; the ask sheet has a 'Show my name' switch and a free-text name, shown with that question only; a deck setting can turn names off" checked><div><b>Anonymous by default, with an optional typed name per question</b><span class="rec">recommended</span><span>As mocked. No sign-up step: the name is free text, remembered on the phone, and unverified. The presenter can turn names off for the deck.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Always anonymous in SW-9; names arrive with nicknames in SW-11"><div><b>Always anonymous in SW-9</b><span>Consistent with SW-6 D5 and smaller: no name field, no setting. "Optionally anonymous" waits for nicknames in SW-11.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="A nickname asked once, the first time a guest asks, then used for all their questions unless they switch to anonymous"><div><b>A nickname asked once, then reused</b><span>The start of SW-11's nickname step, built here. More to build, and a name on by default makes people ask less.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="review">
+      <h3>Q4 · Does the room see a question before the presenter has?</h3>
+      <p class="why">The Feature lists "approve / hide". Approving every question is safe and slow; a presenter mid-talk can't read a queue.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Shown on phones at once by default, presenter can hide; a per-deck 'review first' setting makes questions wait for approval; nothing reaches the big screen unless the presenter shows it" checked><div><b>Shown at once, hide after. "Review first" is a per-deck setting</b><span class="rec">recommended</span><span>As mocked. The big screen is safe either way, because only a question the presenter picked goes up. Review first is there for a conference or a school.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Review first by default; a per-deck setting lets questions through at once"><div><b>Review first by default</b><span>Nothing unseen reaches any phone. An unattended queue means the room sees no questions at all and stops asking.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="No review setting in SW-9: questions always show at once and the presenter can hide"><div><b>No review setting: hide only</b><span>One less state on the phone and in the panel. Leaves nothing for a room the presenter doesn't trust.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="big-screen">
+      <h3>Q5 · How do questions get onto the big screen?</h3>
+      <p class="why">SW-6 made a poll a slide. Questions arrive on every slide, so a slide alone doesn't cover "show the top question on screen".</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Both: Show on screen puts one question over any slide, and a qa slide layout lists the top five" checked><div><b>Both: a card over any slide, and a <code>qa</code> slide that lists the top five</b><span class="rec">recommended</span><span>As mocked. The card answers a question mid-talk. The slide gives the Q&amp;A segment something to stand in front of, and gives an agent something to place. Answered with one addition: a deck setting for whether a shown question appears over any slide or only on the Q&amp;A slide.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Only the card over any slide; no qa slide layout in SW-9"><div><b>Only the card over any slide</b><span>Smaller: no new layout, no list re-sorting on screen. The room never sees the ranking except on phones.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Only a qa slide layout; questions show on screen only while that slide is up"><div><b>Only the <code>qa</code> slide</b><span>Matches the poll pattern exactly. The presenter has to jump to the slide to show a question.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="reactions">
+      <h3>Q6 · Which reactions, and who sees them?</h3>
+      <p class="why">The Feature says "emoji taps on any slide, shown briefly on the big screen".</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Five fixed emoji (thumbs up, heart, laugh, wow, clap); they float up the edge of the big screen and add to a counter in the presenter panel; other phones don't receive them" checked><div><b>Five fixed emoji, on the big screen and the presenter's counter</b><span class="rec">recommended</span><span>As mocked: 👍 ❤️ 😂 😮 👏. Phones don't get other people's reactions, which keeps a thousand phones from receiving every tap.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Five fixed emoji, shown on the big screen and on every phone's slide mirror too"><div><b>Also on every phone's slide mirror</b><span>Remote attendees who can't see the big screen get the feeling of the room. Every tap fans out to every phone.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Five fixed emoji, counted for the presenter only; nothing floats on the big screen"><div><b>Presenter only: a counter, nothing on the big screen</b><span>A private read of the room. Not what the Feature describes.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="poll-while-asking">
+      <h3>Q7 · What happens when a poll opens while a guest is on Questions?</h3>
+      <p class="why">A poll is open for maybe thirty seconds. A guest on the other tab could miss it, or be halfway through typing a question.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="A banner on the Questions tab with an Answer button, and a dot on the Slide tab; the phone never switches tabs by itself"><div><b>A banner with an Answer button. The phone never switches by itself</b><span>My recommendation. One tap to the poll, and no question is lost mid-sentence.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Switch to the Slide tab automatically, unless the ask sheet is open" checked><div><b>Switch to the poll automatically, unless the ask sheet is open</b><span class="rec">answered</span><span>As mocked now. Higher poll response. The screen changes under people who were reading the list.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Only the dot on the Slide tab; no banner"><div><b>Only a dot on the Slide tab</b><span>Quietest, and the easiest to miss.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="poll-model">
+      <h3>Q8 · How literally is Q&amp;A built on SW-6's poll tables?</h3>
+      <p class="why">Section 06 shows the mapping and the three places SW-6's contracts don't fit. SW-6 is planned but not started, so its contracts can still change. SW-8's word cloud has the same need.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Follow the Feature: Q&A is a deck-level poll round (pick any, audience-appended options, SW-6's answer writer, tally and publisher); SW-6's contracts change before it is built to allow a poll not keyed by a slide, one open round per kind, and option rows; moderation is a separate Question row" checked><div><b>A real poll: change SW-6's contracts now so a poll can be deck-level with audience-written options</b><span class="rec">recommended</span><span>One answer writer, one tally, one load path for polls, Q&amp;A and later word clouds. It costs an amendment to SW-6's plan (V1, V2) before its wave 0 starts.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Own tables (Question, QuestionVote) shaped like SW-6's rounds and answers, reusing its batched writer, tally and publisher code but not its tables; SW-6 stays as planned"><div><b>Its own tables, shaped like SW-6's, reusing the writer and publisher code</b><span>SW-6 ships untouched. Two sets of tables that do nearly the same thing, and SW-8 has to choose again.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Build SW-6 as planned, then generalise the poll tables in SW-9 with a migration"><div><b>Build SW-6 as planned, generalise in SW-9</b><span>No change to SW-6 now. SW-9 starts with a migration and a refactor of code that just shipped.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="measure">
+      <h3>Q9 · Measure and load</h3>
+      <p class="why">The Feature says "measure to confirm" and suggests questions per session and the share who upvote or react.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Measure: questions asked per session, and the share of joined guests who asked, upvoted or reacted at least once. Load: one more script on SW-6's harness (1,000 guests, three upvotes and ten reactions each in 30 seconds) held to SW-6's gates, run by hand" checked><div><b>Questions per session, and the share of guests who asked, upvoted or reacted. One load run at 1,000</b><span class="rec">recommended</span><span>One number for volume and one for reach, which is the "quiet majority" claim. The load run reuses SW-6's harness and gates, started by hand.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Measure: questions asked per session only. No load run in SW-9"><div><b>Questions per session only, no load run</b><span>Smallest. Says nothing about whether the people who never ask took part, and reactions go out untested at size.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Measure as recommended, split three ways (asked, upvoted, reacted). Load at 1,000, 3,000 and 10,000 recorded"><div><b>The share split three ways, and load recorded at 1,000, 3,000 and 10,000</b><span>Shows which of the three does the work. Three stored flags per guest instead of one, and a longer load session.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+  </div>
+
+  <div class="copyall">
+    <button type="button" class="btn" id="copyAll">Copy all answers</button>
+    <span id="copyStatus" role="status" aria-live="polite" style="color:var(--muted);font-size:13px"></span>
+  </div>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const CODE = '482 913';
+  const DECK = { title: 'Shipping smaller changes', who: 'Sam Rivera' };
+  const WHO = DECK.who.split(' ')[0];
+  const N = 6;
+  const EM = ['👍', '❤️', '😂', '😮', '👏'];
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const lock = '<svg viewBox="0 0 10 12" fill="currentColor"><path d="M2 5V3.5a3 3 0 0 1 6 0V5h.5A1.5 1.5 0 0 1 10 6.5v4A1.5 1.5 0 0 1 8.5 12h-7A1.5 1.5 0 0 1 0 10.5v-4A1.5 1.5 0 0 1 1.5 5zm1.3 0h3.4V3.5a1.7 1.7 0 0 0-3.4 0z"/></svg>';
+
+  // ---------- sample questions ----------
+  const q = (id, t, v, by, age, more) => Object.assign({ id, t, v, by, age, st: 'open' }, more || {});
+  const BASE = () => [
+    q(1, 'How do you split a database migration into small changes?', 14, '', '6 min'),
+    q(2, 'What do you do when a small change still needs a big review?', 9, 'Priya', '5 min'),
+    q(3, 'Does trunk-based development work with a release train?', 7, '', '4 min'),
+    q(4, 'How small is too small?', 5, '', '3 min'),
+    q(5, 'Do feature flags count as shipping?', 3, 'Dana', '2 min'),
+    q(6, 'Who reviews the reviewers?', 2, '', '1 min')
+  ];
+  const MINE = 'How do you get a team to start doing this?';
+  const POOL = [['Is one change a day realistic with a two-hour test run?', ''], ['What goes wrong first when a team tries this?', 'Lee'], ['How do you handle a change that touches twenty services?', ''], ['Can we get the slides afterwards?', ''], ['Does this work for mobile releases?', 'Aiko']];
+  const byTop = (a, b) => b.v - a.v || a.id - b.id;
+  const byNew = (a, b) => b.id - a.id;
+  const who = (x) => x.by ? esc(x.by) : 'Anonymous';
+
+  // ---------- slides (960 x 540) ----------
+  const pjoin = '<div class="pjoin">slideworks.live · <b>' + CODE + '</b></div>';
+  function spot(x) {
+    return '<div class="spot-dim"></div><div class="spot"><div class="spl"><span>Question from the room</span><em>▲ ' + x.v + '</em><span class="by">' + who(x) + '</span></div><div class="spt">' + esc(x.t) + '</div></div>';
+  }
+  const rxStill = '<div class="rxf still"><span style="right:14px;bottom:8px;--o:.55;font-size:30px">👏</span><span style="right:70px;bottom:52px">👍</span><span style="right:8px;bottom:112px">👏</span><span style="right:84px;bottom:150px;--o:.95">❤️</span><span style="right:30px;bottom:196px">😂</span><span style="right:92px;bottom:246px;--o:.8">👏</span><span style="right:16px;bottom:286px;--o:.6">😮</span><span style="right:66px;bottom:330px;--o:.38">👍</span><span style="right:22px;bottom:368px;--o:.18">❤️</span></div>';
+  function contentSlide(i, extra) {
+    const prog = '<div class="sprog" style="width:' + ((i + 1) / N * 100) + '%"></div>';
+    const foot = '<div class="foot"><span>' + DECK.title + '</span><span>' + (i + 1) + ' / ' + N + '</span></div>';
+    const x = extra || '';
+    if (i === 2) return '<div class="sl"><div class="kick">Why small batches</div><h3>Smaller changes ship faster and break less</h3><div class="cards"><div><div class="num">4×</div><b>Faster review</b><span>Under 200 lines gets a first review within the hour.</span></div><div><div class="num">−60%</div><b>Fewer rollbacks</b><span>When something breaks, there is less to look through.</span></div><div><div class="num">1</div><b>One idea per change</b><span>Easy to name, easy to revert, easy to explain.</span></div></div>' + foot + prog + x + '</div>';
+    return '<div class="sl"><div class="kick">The one rule</div><div class="statement"><span>Merge something to main <em>every day</em>.</span></div>' + foot + prog + x + '</div>';
+  }
+  // o: qs (open, sorted), n (open count), spot, phase ('open' | 'closed' | 'draft'), extra
+  function qaSlide(o) {
+    o = o || {};
+    const phase = o.phase || 'open', list = (o.qs || []).slice(0, 5), n = o.n != null ? o.n : list.length;
+    let body;
+    if (phase === 'draft') body = '<div class="qempty"><b>Questions from the room appear here</b><span>While the deck is live, the audience asks and upvotes on their phones.</span></div>';
+    else if (o.spot) body = '<div class="qbig"><div class="qbl"><em>▲ ' + o.spot.v + '</em><span>' + who(o.spot) + '</span></div><div class="qbt">' + esc(o.spot.t) + '</div></div>';
+    else if (!list.length) body = '<div class="qempty"><b>' + (phase === 'closed' ? 'Questions are closed' : 'No questions yet') + '</b><span>' + (phase === 'closed' ? 'Thanks for asking.' : 'Ask on your phone. The most upvoted questions show here.') + '</span></div>';
+    else body = '<div class="qrows">' + list.map((x, i) => '<div class="qrow' + (i === 0 ? ' first' : '') + '"><div class="qv">' + x.v + '</div><div class="qt">' + esc(x.t) + '</div></div>').join('') + '</div>';
+    let st;
+    if (phase === 'draft') st = '<span class="pst grey">Not live</span>';
+    else st = '<span class="pst ' + (phase === 'open' ? 'open' : 'closed') + '">' + (phase === 'open' ? 'Open' : 'Closed') + '</span><span class="pn"><b>' + n + '</b> question' + (n === 1 ? '' : 's') + '</span>';
+    const right = phase === 'draft' ? '' : o.spot ? '<span class="right">On screen now · ' + (n - 1) + ' more waiting</span>' : n > 5 ? '<span class="right">Top 5 of ' + n + ', by upvotes</span>' : phase === 'open' ? '<span class="right">Ask and upvote on your phone</span>' : '';
+    return '<div class="sl pollsl qasl">' + (phase === 'draft' ? '' : pjoin) + '<div class="kick">Q&amp;A</div><h3>' + esc(o.title || 'Questions from the room') + '</h3>' + body + '<div class="pfoot">' + st + right + '</div>' + (o.extra || '') + '</div>';
+  }
+  const ro = new ResizeObserver(entries => { for (const e of entries) e.target.style.setProperty('--s', e.contentRect.width / 960); });
+  function setFrame(frame, html) { frame.innerHTML = html; if (!frame._obs) { ro.observe(frame); frame._obs = true; } }
+  const B = BASE();
+  const MOUNT = {
+    c2: () => contentSlide(2),
+    c2spot: () => contentSlide(2, spot(B[0])),
+    c4rx: () => contentSlide(4, rxStill + '<div class="rxf"><span class="more">+14 👏</span></div>'),
+    qa: () => qaSlide({ qs: B, n: 12 }),
+    qaspot: () => qaSlide({ qs: B, n: 12, spot: B[0] }),
+    qaempty: () => qaSlide({ qs: [], n: 0 }),
+    qadraft: () => qaSlide({ phase: 'draft' })
+  };
+  function hydrate(root) { root.querySelectorAll('[data-mount]').forEach(f => { setFrame(f, MOUNT[f.dataset.mount]()); f.removeAttribute('data-mount'); }); }
+
+  // ---------- guest phone ----------
+  const sbar = '<div class="island"></div><div class="sbar"><span>9:41</span><span class="ic"><b></b><i></i></span></div>';
+  const urlbar = '<div class="urlbar">' + lock + '<span>slideworks.live/482913</span></div>';
+  const top = (chip) => '<div class="g-top"><div class="g-mark">S</div><div class="g-deck"><b>' + DECK.title + '</b><span>' + DECK.who + '</span></div>' + chip + '</div>';
+  const liveChip = '<span class="live">Live</span>';
+  const tabs = (tab, n, dot) => '<div class="tabs" role="tablist"><button type="button" role="tab" aria-selected="' + (tab === 'slide') + '" data-tab="slide" class="' + (tab === 'slide' ? 'on' : '') + '">Slide' + (dot ? '<span class="bdg dot" title="A poll is open"></span>' : '') + '</button><button type="button" role="tab" aria-selected="' + (tab === 'q') + '" data-tab="q" class="' + (tab === 'q' ? 'on' : '') + '">Questions' + (n ? '<span class="bdg">' + n + '</span>' : '') + '</button></div>';
+  // o: tab, n, dot, chip, pre, sheet, noTabs
+  function shell(inner, o) {
+    o = o || {};
+    return sbar + '<div class="pbody">' + (o.pre || '') + top(o.chip || liveChip) + inner + (o.noTabs ? '' : tabs(o.tab || 'slide', o.n, o.dot)) + '</div>' + (o.sheet || urlbar);
+  }
+  const waitCard = '<div class="wait sm"><div class="dots"><i></i><i></i><i></i></div><b>Nothing to answer yet</b><p>Polls appear here when ' + WHO + ' gets to them.</p></div>';
+  const meta = (i) => '<div class="slidemeta"><span>Slide ' + (i + 1) + '</span><span class="prog"><i style="width:' + ((i + 1) / N * 100) + '%"></i></span><span>' + N + '</span></div>';
+  const rxRow = (hit, off) => '<div class="rx" role="group" aria-label="Reactions">' + EM.map((e, i) => '<button type="button" data-rx="' + i + '" data-e="' + e + '" class="' + (i === hit ? 'hit' : '') + '"' + (off ? ' disabled' : '') + ' aria-label="React ' + e + '">' + e + '</button>').join('') + '</div>';
+  // o: mount, i, rx (false hides), hit
+  function slideTab(o) {
+    o = o || {};
+    return '<div class="mirror"><div class="frame" data-mount="' + (o.mount || 'c2') + '"></div></div>' + meta(o.i != null ? o.i : 2) + waitCard + (o.rx === false ? '' : rxRow(o.hit));
+  }
+  function qRow(x, o) {
+    let up;
+    if (x.st === 'review') up = '<span class="up ro held" aria-hidden="true"><span>…</span></span>';
+    else if (x.st === 'hidden') up = '<span class="up ro" aria-hidden="true"><span>–</span></span>';
+    else if (x.st === 'answered') up = '<span class="up ro done" aria-hidden="true"><span>✓</span></span>';
+    else up = '<button type="button" class="up' + (x.voted ? ' on' : '') + '" data-up="' + x.id + '" aria-pressed="' + !!x.voted + '" aria-label="Upvote. ' + x.v + ' votes">' + '<i>▲</i><span>' + x.v + '</span></button>';
+    let m = (x.mine ? '<em class="you">You</em>' : '') + '<span>' + who(x) + ' · ' + x.age + (x.st === 'answered' ? ' · ' + x.v + ' votes' : '') + '</span>';
+    if (x.st === 'review') m += '<em class="hold">Waiting for ' + WHO + '</em>';
+    if (x.st === 'hidden') m += '<em class="off">Not shown to the room</em>';
+    if (o.spot === x.id && x.st === 'open') m += '<em class="live">On screen now</em>';
+    return '<div class="qi' + (x.st === 'answered' || x.st === 'hidden' ? ' dim' : '') + '">' + up + '<div><div class="qtx">' + esc(x.t) + '</div><div class="qm">' + m + '</div></div></div>';
+  }
+  // o: qs (what this guest may see), sort, state ('open' | 'closed'), spot, note
+  function qCard(o) {
+    o = o || {};
+    const qs = o.qs || [], sort = o.sort || 'top';
+    const mineHeld = qs.filter(x => x.mine && (x.st === 'review' || x.st === 'hidden'));
+    const open = qs.filter(x => x.st === 'open').sort(sort === 'top' ? byTop : byNew);
+    const done = qs.filter(x => x.st === 'answered').sort(byTop);
+    const head = '<div class="qh"><strong>Questions</strong><span class="cnt">' + open.length + ' open</span><span class="seg" role="group" aria-label="Sort"><button type="button" data-sort="top" class="' + (sort === 'top' ? 'on' : '') + '">Top</button><button type="button" data-sort="new" class="' + (sort === 'new' ? 'on' : '') + '">New</button></span></div>';
+    let body;
+    if (!qs.length) body = '<div class="qnone"><strong>No questions yet</strong><span>Ask the first one. Other people can upvote it, and ' + WHO + ' sees which questions the room wants answered.</span></div>';
+    else body = '<div class="qlist">' + mineHeld.map(x => qRow(x, o)).join('') + open.map(x => qRow(x, o)).join('') + (done.length ? '<div class="qsec">Answered · ' + done.length + '</div>' + done.map(x => qRow(x, o)).join('') : '') + '</div>';
+    const foot = (o.note || '') + (o.state === 'closed' ? '<div class="res-note">' + (o.why === 'slide' ? 'Questions are off on this slide. You can still upvote.' : WHO + ' has closed questions. You can still upvote.') + '</div>' : '<button type="button" class="sbtn" data-act="ask">Ask a question</button>');
+    return '<div class="activity qa">' + (qs.length ? head : '') + body + foot + '</div>';
+  }
+  // o: text, named, name, names (false hides the name row)
+  function askSheet(o) {
+    o = o || {};
+    const text = o.text || '', len = text.length;
+    return '<div class="sheet-dim"></div><div class="sheet"><div class="grab"></div>' + (o.ban ? '<div class="pollban"><span>A poll just opened. It is on the Slide tab.</span><u>Go to poll</u></div>' : '') + '<h4>Ask a question</h4><button type="button" class="x" data-act="cancel" aria-label="Close">✕</button>' +
+      '<textarea class="qta" data-f="text" maxlength="200" rows="3" placeholder="What would you like ' + WHO + ' to answer?" aria-label="Your question">' + esc(text) + '</textarea>' +
+      '<div class="cnt-row"><span>One question at a time works best</span><span data-len>' + len + ' / 200</span></div>' +
+      (o.names === false ? '' : '<div class="who-row" role="switch" tabindex="0" aria-checked="' + !!o.named + '" data-act="named"><span>Show my name<small>' + (o.named ? 'The room and ' + WHO + ' see this name with your question.' : 'Off: nobody sees who asked, not even ' + WHO + '.') + '</small></span><i class="sw' + (o.named ? ' on' : '') + '"></i></div>') +
+      (o.named && o.names !== false ? '<input class="nick" data-f="name" maxlength="30" placeholder="Your name" aria-label="Your name" value="' + esc(o.name || '') + '">' : '') +
+      '<button type="button" class="pbtn" data-act="send"' + (text.trim() ? '' : ' disabled') + '>' + (o.named && o.name ? 'Send as ' + esc(o.name) : 'Send anonymously') + '</button>' +
+      '<div class="fine">You can\'t edit a question after sending it.</div></div>';
+  }
+
+  const mine = (more) => q(20, MINE, 1, '', 'now', Object.assign({ mine: true, voted: true }, more || {}));
+  const voted = (ids) => BASE().map(x => ids.includes(x.id) ? Object.assign(x, { voted: true }) : x);
+  const PHONE = {
+    slide: () => shell(slideTab({ hit: 4 }), { tab: 'slide', n: 6 }),
+    list: () => shell(qCard({ qs: voted([1, 3]) }), { tab: 'q', n: 6 }),
+    empty: () => shell(qCard({ qs: [] }), { tab: 'q' }),
+    ask: () => shell(qCard({ qs: BASE() }), { tab: 'q', n: 6, sheet: askSheet({ text: MINE }) }),
+    askname: () => shell(qCard({ qs: BASE() }), { tab: 'q', n: 6, sheet: askSheet({ text: MINE, named: true, name: 'Noor' }) }),
+    sent: () => shell(qCard({ qs: [mine()].concat(voted([1])), sort: 'new' }), { tab: 'q', n: 7 }),
+    review: () => shell(qCard({ qs: [mine({ st: 'review' })].concat(voted([1])) }), { tab: 'q', n: 6 }),
+    onscreen: () => shell(qCard({ qs: voted([3]).map(x => x.id === 2 || x.id === 4 ? Object.assign(x, { st: 'answered' }) : x), spot: 1 }), { tab: 'q', n: 4 }),
+    poll: () => shell(qCard({ qs: voted([1]) }), { tab: 'q', n: 6, dot: true, sheet: askSheet({ text: 'How do you get a team to', ban: true }) }),
+    hidden: () => shell(qCard({ qs: [mine({ st: 'hidden', v: 1 })].concat(BASE()) }), { tab: 'q', n: 6 }),
+    offline: () => shell(qCard({ qs: voted([1]), note: '<div class="res-note amber"><b style="font:700 12px/1.3 var(--ui)">Not sent yet.</b> Your question is kept on this phone and sends by itself when the connection is back.</div>' }), { tab: 'q', n: 6, chip: '<span class="live amber">Offline</span>', pre: '<div class="banner amber"><span class="spin"></span>Reconnecting… your question is safe.</div>' }),
+    paused: () => shell(qCard({ qs: voted([1, 2]).map(x => x.id === 4 ? Object.assign(x, { st: 'answered' }) : x), state: 'closed' }), { tab: 'q', n: 5 })
+  };
+  document.querySelectorAll('[data-pstate]').forEach(el => { el.innerHTML = PHONE[el.dataset.pstate](); hydrate(el); });
+  hydrate(document);
+
+  // ---------- presenter's phone remote (SW-4) ----------
+  document.getElementById('remote').innerHTML = sbar + '<div class="rem">' +
+    '<div class="rlab"><span>Slide 3 of 6</span><span>31:05</span></div>' +
+    '<div class="mirror"><div class="frame" data-mount="c2spot"></div></div>' +
+    '<div class="strip"><div class="row"><span class="pp-state open">On screen</span><b>14</b><span style="color:var(--pw-muted);font-size:12px">votes · 6 open · 1 to review</span></div>' +
+    '<div class="qtop">How do you split a database migration into small changes?</div>' +
+    '<div class="btns"><span class="go">Answered</span><span>Take off</span><span>All 6</span></div></div>' +
+    '<div class="rlab"><span>Notes</span></div><div style="font-size:13px;line-height:1.45;color:#e2e8f0">Three numbers, one sentence each. Take one question here if the panel shows a clear leader.</div>' +
+    '<div class="bignext">Next ▶</div></div>';
+  hydrate(document.getElementById('remote'));
+
+  // ---------- presenter panel ----------
+  // o: qs, tab, sort, spot, on, review, names, rx, rxc
+  function qPanel(o) {
+    const cnt = (st) => o.qs.filter(x => x.st === st).length;
+    const nRev = cnt('review');
+    const tab = (k, label, n, alert) => '<button type="button" data-ptab="' + k + '" class="' + (o.tab === k ? 'on' : '') + (alert && n ? ' alert' : '') + '">' + label + ' ' + n + '</button>';
+    const tabsH = '<div class="qp-tabs">' + tab('open', 'Open', cnt('open')) + (o.review || nRev ? tab('review', 'To review', nRev, true) : '') + tab('answered', 'Answered', cnt('answered')) + tab('hidden', 'Hidden', cnt('hidden')) +
+      '<button type="button" class="sortb" data-psort>' + (o.sort === 'top' ? 'Top ▾' : 'Newest ▾') + '</button></div>';
+    const list = o.qs.filter(x => x.st === o.tab).sort(o.sort === 'top' ? byTop : byNew);
+    const act = (x) => {
+      const b = (d, label, cls) => '<button type="button" class="tbtn' + (cls ? ' ' + cls : '') + '" data-do="' + d + '" data-id="' + x.id + '">' + label + '</button>';
+      if (x.st === 'review') return b('approve', 'Approve', 'go') + b('hide', 'Hide');
+      if (x.st === 'answered') return b('reopen', 'Reopen');
+      if (x.st === 'hidden') return b('restore', 'Restore');
+      return (o.spot === x.id ? b('clear', 'Take off screen') : b('show', o.showOn === 'qa' ? 'Show on Q&amp;A slide' : 'Show on screen', 'go')) + b('answered', 'Answered') + b('hide', 'Hide');
+    };
+    const rows = list.map(x => '<div class="qp-i' + (o.spot === x.id && x.st === 'open' ? ' on' : '') + '"><div class="qp-v"><i>▲</i>' + x.v + '</div><div><div class="qp-t">' + esc(x.t) + '</div><div class="qp-m">' + who(x) + ' · ' + x.age + (o.spot === x.id && x.st === 'open' ? ' · <b>On screen now</b>' : '') + '</div><div class="qp-a">' + act(x) + '</div></div></div>').join('');
+    const none = { open: o.on ? 'No open questions. They appear here as the room asks.' : 'Questions are closed. Nothing new can be asked.', review: 'Nothing waiting for approval.', answered: 'Nothing answered yet.', hidden: 'Nothing hidden.' }[o.tab];
+    const rxc = EM.filter(e => o.rxc[e]).map(e => e + ' ' + o.rxc[e]).join('  ');
+    return tabsH + '<div class="qp-list">' + (rows || '<div class="qp-none">' + none + '</div>') + '</div>' +
+      '<div class="qp-set"><span>Questions <b>' + (o.on ? 'open' : 'closed') + '</b></span><span>Review <b>' + (o.review ? 'first' : 'off') + '</b></span><span>Names <b>' + (o.names ? 'allowed' : 'off') + '</b></span><span class="rxc" data-rxc>' + (o.rx ? (rxc || 'No reactions yet') : 'Reactions off') + '</span></div>';
+  }
+
+  // ---------- live demo ----------
+  const SL = [2, 4, 5];
+  const NOTES = ['Three numbers, one sentence each. Take one question here if the panel shows a clear leader.', 'Pause after "every day". Let it land.', 'Ten minutes. Start with the top question, mark each one answered as you go.'];
+  const $ = (id) => document.getElementById(id);
+  const dSlide = $('dSlide'), dPanel = $('dPanel'), dPhone = $('dPhone'), dRx = $('dRx');
+  const fresh = () => ({ i: 0, qs: BASE(), next: 30, spot: null, on: $('dOn').checked, review: $('dReview').checked, names: $('dNames').checked, rx: $('dRxOn').checked, showOn: $('dShow').value, slideOff: $('dSlideOff').checked, tab: 'slide', sheet: false, text: '', named: false, name: '', sort: 'top', ptab: 'open', psort: 'top', pool: POOL.slice(), rxc: {} });
+  let D = fresh(); let timer = null;
+  const find = (id) => D.qs.find(x => x.id === id);
+  const offHere = () => D.slideOff && SL[D.i] === 4;
+  const spotQ = () => { const x = D.spot != null ? find(D.spot) : null; return x && x.st === 'open' ? x : null; };
+  const openQs = () => D.qs.filter(x => x.st === 'open').sort(byTop);
+  const guestQs = () => D.qs.filter(x => x.st === 'open' || x.st === 'answered' || x.mine);
+
+  function bigSlide() {
+    const idx = SL[D.i], s = spotQ();
+    if (idx === 5) { const o = openQs(); return qaSlide({ qs: s ? o.filter(x => x !== s) : o, n: o.length, spot: s, phase: D.on || o.length ? 'open' : 'closed' }); }
+    return contentSlide(idx, s && D.showOn === 'any' ? spot(s) : '');
+  }
+  function keepScroll(root, sel, fn) { const a = root.querySelector(sel), y = a ? a.scrollTop : 0; fn(); const b = root.querySelector(sel); if (b) b.scrollTop = y; }
+  function paintPhone() {
+    const n = D.qs.filter(x => x.st === 'open').length;
+    keepScroll(dPhone, '.qlist', () => {
+      if (D.tab === 'slide') dPhone.innerHTML = shell(slideTab({ mount: 'demo', i: SL[D.i], rx: D.rx && !offHere() }), { tab: 'slide', n });
+      else dPhone.innerHTML = shell(qCard({ qs: guestQs(), sort: D.sort, state: D.on && !offHere() ? 'open' : 'closed', why: offHere() ? 'slide' : '', spot: D.spot }), { tab: 'q', n, sheet: D.sheet ? askSheet({ text: D.text, named: D.named, name: D.name, names: D.names }) : '' });
+    });
+    hydrate(dPhone);
+  }
+  MOUNT.demo = () => SL[D.i] === 5 ? qaSlide({ qs: openQs(), n: openQs().length, phase: 'open' }) : contentSlide(SL[D.i]);
+  function paintPanel() { keepScroll(dPanel, '.qp-list', () => { dPanel.innerHTML = qPanel({ qs: D.qs, tab: D.ptab, sort: D.psort, spot: D.spot, on: D.on, review: D.review, names: D.names, rx: D.rx, rxc: D.rxc, showOn: D.showOn }); }); }
+  function paintScreen() {
+    const idx = SL[D.i];
+    setFrame(dSlide, bigSlide());
+    $('dPos').textContent = $('dCount').textContent = (idx + 1) + ' / ' + N;
+    $('dBar').style.width = ((idx + 1) / N * 100) + '%';
+    $('dPrev').disabled = D.i === 0; $('dNext').disabled = D.i === SL.length - 1;
+    $('dNotes').textContent = NOTES[D.i];
+  }
+  function paint(skipPhone) { paintScreen(); paintPanel(); if (!skipPhone) paintPhone(); }
+
+  function floatRx(e) {
+    const s = document.createElement('span');
+    s.textContent = e; s.style.right = Math.round(Math.random() * 70) + '%';
+    dRx.appendChild(s); s.addEventListener('animationend', () => s.remove());
+    if (dRx.children.length > 30) dRx.firstChild.remove();
+    D.rxc[e] = (D.rxc[e] || 0) + 1;
+    const c = dPanel.querySelector('[data-rxc]'); if (c) c.textContent = EM.filter(x => D.rxc[x]).map(x => x + ' ' + D.rxc[x]).join('  ');
+  }
+  function tick() {
+    clearTimeout(timer);
+    const r = Math.random(), open = D.qs.filter(x => x.st === 'open');
+    let changed = false;
+    if (r < .55 && open.length) { const x = open[Math.floor(Math.pow(Math.random(), 1.7) * open.length)]; if (x.v < 38) { x.v++; changed = true; } }
+    else if (r < .75 && D.on && !offHere() && D.pool.length) { const p = D.pool.shift(); D.qs.push(q(D.next++, p[0], 1, D.names ? p[1] : '', 'now', { st: D.review ? 'review' : 'open' })); changed = true; }
+    if (D.rx && !offHere() && Math.random() < .55) { floatRx(EM[Math.floor(Math.pow(Math.random(), .6) * EM.length)]); if (Math.random() < .3) setTimeout(() => floatRx('👏'), 180); }
+    if (changed) paint(D.sheet);
+    timer = setTimeout(tick, 1300 + Math.random() * 1500);
+  }
+  function go(to) { if (to < 0 || to >= SL.length || to === D.i) return; D.i = to; if (offHere()) D.sheet = false; paint(D.sheet); }
+  $('dPrev').onclick = () => go(D.i - 1);
+  $('dNext').onclick = () => go(D.i + 1);
+
+  dPanel.addEventListener('click', e => {
+    const t = e.target.closest('[data-ptab]'), s = e.target.closest('[data-psort]'), b = e.target.closest('[data-do]');
+    if (t) { D.ptab = t.dataset.ptab; paintPanel(); return; }
+    if (s) { D.psort = D.psort === 'top' ? 'new' : 'top'; paintPanel(); return; }
+    if (!b) return;
+    const x = find(+b.dataset.id); if (!x) return;
+    const d = b.dataset.do;
+    if (d === 'show') D.spot = x.id;
+    if (d === 'clear') D.spot = null;
+    if (d === 'answered') { x.st = 'answered'; if (D.spot === x.id) D.spot = null; }
+    if (d === 'hide') { x.st = 'hidden'; if (D.spot === x.id) D.spot = null; }
+    if (d === 'approve' || d === 'reopen' || d === 'restore') x.st = 'open';
+    paint(D.sheet);
+  });
+  function sendQuestion() {
+    const text = D.text.trim().replace(/\s+/g, ' '); if (!text) return;
+    D.qs.push(q(D.next++, text, 1, D.names && D.named ? D.name.trim() : '', 'now', { mine: true, voted: true, st: D.review ? 'review' : 'open' }));
+    D.text = ''; D.sheet = false; D.sort = 'new';
+    if (D.review) D.ptab = 'review';
+    paint();
+  }
+  dPhone.addEventListener('click', e => {
+    const tab = e.target.closest('[data-tab]'), rx = e.target.closest('[data-rx]'), up = e.target.closest('[data-up]'), act = e.target.closest('[data-act]'), sort = e.target.closest('[data-sort]');
+    if (tab) { D.tab = tab.dataset.tab; D.sheet = false; paintPhone(); }
+    else if (rx && !rx.disabled) { floatRx(EM[+rx.dataset.rx]); rx.classList.remove('hit'); void rx.offsetWidth; rx.classList.add('hit'); setTimeout(() => rx.classList.remove('hit'), 700); }
+    else if (up) { const x = find(+up.dataset.up); if (x) { x.voted = !x.voted; x.v += x.voted ? 1 : -1; paint(); } }
+    else if (sort) { D.sort = sort.dataset.sort; paintPhone(); }
+    else if (act) {
+      const a = act.dataset.act;
+      if (a === 'ask') { D.sheet = true; paintPhone(); const ta = dPhone.querySelector('.qta'); if (ta) { ta.focus({ preventScroll: true }); ta.setSelectionRange(ta.value.length, ta.value.length); } }
+      if (a === 'cancel') { D.sheet = false; paintPhone(); }
+      if (a === 'named') { D.named = !D.named; paintPhone(); const f = dPhone.querySelector(D.named ? '.nick' : '.qta'); if (f) f.focus({ preventScroll: true }); }
+      if (a === 'send') sendQuestion();
+    }
+  });
+  dPhone.addEventListener('input', e => {
+    const f = e.target.dataset.f; if (!f) return;
+    if (f === 'text') { D.text = e.target.value; const l = dPhone.querySelector('[data-len]'); if (l) l.textContent = D.text.length + ' / 200'; }
+    if (f === 'name') D.name = e.target.value;
+    const btn = dPhone.querySelector('[data-act="send"]');
+    if (btn) { btn.disabled = !D.text.trim(); btn.textContent = D.named && D.name.trim() ? 'Send as ' + D.name.trim() : 'Send anonymously'; }
+  });
+  dPhone.addEventListener('keydown', e => {
+    if (e.target.dataset.f === 'text' && e.key === 'Enter') { e.preventDefault(); sendQuestion(); }
+    if (e.target.dataset.act === 'named' && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); e.target.click(); }
+  });
+  $('dOn').onchange = () => { D.on = $('dOn').checked; if (!D.on) D.sheet = false; paint(); };
+  $('dReview').onchange = () => { D.review = $('dReview').checked; paint(D.sheet); };
+  $('dNames').onchange = () => { D.names = $('dNames').checked; paint(); };
+  $('dRxOn').onchange = () => { D.rx = $('dRxOn').checked; paint(D.sheet); };
+  $('dShow').onchange = () => { D.showOn = $('dShow').value; paint(D.sheet); };
+  $('dSlideOff').onchange = () => { D.slideOff = $('dSlideOff').checked; if (offHere()) D.sheet = false; paint(); };
+  $('dReset').onclick = () => { $('dOn').checked = $('dNames').checked = $('dRxOn').checked = true; $('dReview').checked = $('dSlideOff').checked = false; $('dShow').value = 'any'; dRx.innerHTML = ''; D = fresh(); paint(); };
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input, textarea, select, button, [role="switch"]')) return;
+    const r = $('demo').getBoundingClientRect();
+    if (r.top > innerHeight || r.bottom < 0) return;
+    if (e.key === 'ArrowRight') go(D.i + 1);
+    if (e.key === 'ArrowLeft') go(D.i - 1);
+  });
+  paint();
+  if (!/[?&]still\b/.test(location.search)) timer = setTimeout(tick, 1500);
+
+  // ---------- questions: local state until "Queue answer" ----------
+  document.querySelectorAll('form.q').forEach(form => {
+    const state = form.querySelector('.state');
+    form.addEventListener('change', () => { if (state.classList.contains('queued')) { state.textContent = 'Changed since queued. Queue again to replace.'; state.classList.remove('queued'); } });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const key = form.dataset.lavishQuestion;
+      const title = form.querySelector('h3').textContent.trim();
+      const fd = new FormData(form);
+      const note = (fd.get('note') || '').toString().trim();
+      const answer = (fd.get('a') || '').toString();
+      const data = { question: key, answer }; if (note) data.note = note;
+      const prompt = 'SW-9 mockups, ' + title + ' → ' + answer + (note ? '. Note: ' + note : '') + '. Record this as a decision on SW-9 and update the mockups if it changes them.';
+      if (window.lavish && window.lavish.queuePrompt) {
+        window.lavish.queuePrompt(prompt, { tag: 'choice', text: title + ': ' + answer, element: form, queueKey: key, data });
+        state.textContent = 'Queued. Press Send to agent in the Lavish bar.';
+      } else {
+        state.textContent = 'Lavish is not running. Use "Copy all answers" below.';
+      }
+      state.classList.add('queued');
+    });
+  });
+  document.getElementById('copyAll').addEventListener('click', async () => {
+    const out = [...document.querySelectorAll('form.q')].map(f => {
+      const fd = new FormData(f); const note = (fd.get('note') || '').toString().trim();
+      return f.querySelector('h3').textContent.trim() + ': ' + fd.get('a') + (note ? ' (note: ' + note + ')' : '');
+    }).join('\n');
+    const st = document.getElementById('copyStatus');
+    try { await navigator.clipboard.writeText(out); st.textContent = 'Answers copied.'; }
+    catch { const t = document.createElement('textarea'); t.value = out; t.rows = 10; t.readOnly = true; document.querySelector('.copyall').appendChild(t); t.select(); st.textContent = 'Clipboard blocked. Copy the answers below.'; }
+  });
+})();
+</script>
+</body>
+</html>
