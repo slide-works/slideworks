@@ -108,16 +108,16 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         await events.PublishAsync(new JoinedCount(deckId, counted.Count));
     }
 
-    public Task ClosedAsync(string deckId)
+    public Task ClosedAsync(string deckId, string sessionId)
     {
         lock (_gate)
         {
-            if (_decks.TryGetValue(deckId, out var audience))
-            {
-                _recorded.RemoveWhere(r => r.SessionId == audience.SessionId);
-                audience.Close(clock.GetUtcNow());
-                DropIfIdleLocked(deckId, audience);
-            }
+            // Recorded even when the deck has no entry (after a restart, before any guest rejoined), so a join already in
+            // flight with this session's id can't reopen it. The entry then lives for the closed memory.
+            var audience = AudienceOf(deckId);
+            _recorded.RemoveWhere(r => r.SessionId == audience.SessionId || r.SessionId == sessionId);
+            audience.Close(clock.GetUtcNow(), sessionId);
+            DropIfIdleLocked(deckId, audience);
             foreach (var (id, other) in _decks.ToList())
             {
                 DropIfIdleLocked(id, other);
@@ -184,7 +184,7 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
             if (_decks.TryGetValue(deckId, out var audience) && audience.GuestCount == 0 && audience.SessionId == sessionId)
             {
                 _recorded.RemoveWhere(r => r.SessionId == sessionId);
-                audience.Close(clock.GetUtcNow());
+                audience.Close(clock.GetUtcNow(), sessionId);
                 DropIfIdleLocked(deckId, audience);
             }
         }
@@ -281,9 +281,9 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
             PeakWritten = 0;
         }
 
-        public void Close(DateTimeOffset now)
+        public void Close(DateTimeOffset now, string sessionId)
         {
-            LastClosedSessionId = SessionId ?? LastClosedSessionId;
+            LastClosedSessionId = sessionId;
             SessionId = null;
             _closedAt = now;
         }

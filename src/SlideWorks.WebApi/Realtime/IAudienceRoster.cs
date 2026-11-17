@@ -21,6 +21,7 @@ public interface IAudienceRoster
     // joined count.
     Task OpenedAsync(string deckId, string sessionId);
 
-    // The session ended: the guests stay connected, but nobody is counted until a session opens again.
-    Task ClosedAsync(string deckId);
+    // The session ended: the guests stay connected, but nobody is counted until a session opens again. The session id is
+    // remembered even when the roster has no entry for the deck, so a join in flight at the End can't reopen it.
+    Task ClosedAsync(string deckId, string sessionId);
 }

@@ -219,6 +219,23 @@ public class AudienceRosterTests : ApiTestFixture
         (await JoinRowsAsync(session)).ShouldContain(guest);
     }
 
+    // After a restart, before any guest rejoined, the roster has no entry for the deck: ClosedAsync must still remember the
+    // session it closed, so a join already in flight at that End can't reopen it.
+    [Test]
+    public async Task ClosedAsync_WhenTheRosterHasNoEntryForTheDeck_ShouldNotLetAJoinInFlightReopenTheSession()
+    {
+        var (deck, _, session) = await GoLiveAsync();
+        var restarted = new AudienceRoster(Factory.Services.GetRequiredService<IServiceScopeFactory>(), Bus, Clock, NullLogger<AudienceRoster>.Instance);
+        (await Client.DeleteAsync($"/api/decks/{deck}/live")).EnsureSuccessStatusCode();
+        await restarted.ClosedAsync(deck, session);
+
+        await restarted.JoinAsync(deck, session, Guid.NewGuid().ToString("N"), "in-flight-at-end");
+
+        (await restarted.CountAsync(session)).ShouldBe(0);
+        (await JoinRowsAsync(session)).ShouldBeEmpty();
+        (await restarted.LeaveAsync("in-flight-at-end")).ShouldBeNull();
+    }
+
     [Test]
     public async Task JoinAsync_WhenSecondTabOfAGuestAlreadyCounted_ShouldWriteNothing()
     {

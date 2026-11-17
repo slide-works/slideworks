@@ -71,7 +71,7 @@ public class LiveCommands(
         }
         session.EndedAt = clock.GetUtcNow();
         await db.SaveChangesAsync();
-        await roster.ClosedAsync(deckId);
+        await roster.ClosedAsync(deckId, session.Id.ToString());
         await relay.EndedAsync(deckId);
         await activity.RecordAsync(deckId, ActivityEntry.By(actor, tool: null, "ended live session"));
         await events.PublishAsync(new LiveChanged(deckId));

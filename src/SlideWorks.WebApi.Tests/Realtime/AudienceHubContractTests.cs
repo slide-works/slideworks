@@ -440,7 +440,7 @@ public class AudienceHubContractTests : ApiTestFixture
 
         public Task OpenedAsync(string deckId, string sessionId) => Task.CompletedTask;
 
-        public Task ClosedAsync(string deckId) => Task.CompletedTask;
+        public Task ClosedAsync(string deckId, string sessionId) => Task.CompletedTask;
     }
 
     private sealed class SwitchableLimiter : IJoinLookupLimiter

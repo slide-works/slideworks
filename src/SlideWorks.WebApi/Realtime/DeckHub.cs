@@ -154,7 +154,8 @@ public sealed class DeckHub(
         return state;
     }
 
-    // Stops the code's events and takes the connection off the roster. An unknown code changes nothing.
+    // Stops the code's events and takes the connection off the roster. The roster leave happens even when the code no longer
+    // resolves; only the group removal needs a known code.
     public async Task LeaveAudience(string code)
     {
         // Off the roster first: a code that no longer resolves (its deck was deleted) must not leave the connection counted.
