@@ -27,6 +27,7 @@ export function PollCard({ activity, presenter }: { activity: PollActivity; pres
   const options = {
     questionId,
     activity,
+    disabled: answer.state === 'loading' || activity.phase !== 'open',
     picks: answer.picks,
     mine,
     bars,
@@ -52,6 +53,7 @@ export function PollCard({ activity, presenter }: { activity: PollActivity; pres
         picks={answer.picks}
         mine={answer.mine}
         answered={answer.tally?.answered ?? null}
+        joinedLate={answer.joinedLate}
         state={answer.state}
         error={answer.error}
         onSend={answer.send}

@@ -24,7 +24,8 @@ public sealed class StubPollAnswers : IPollAnswers
             false,
             null),
         new MyAnswer([2], 1),
-        new PollTally(string.Empty, PollTallyTarget.Audience, ROUND, 21, null));
+        new PollTally(string.Empty, PollTallyTarget.Audience, ROUND, 21, null),
+        false);
 
     public Task<AnswerResult> SubmitAsync(string code, string guestId, AnswerRequest request)
         => Task.FromResult<AnswerResult>(new AnswerResult.Accepted(request.Picks, request.Revision + 1));

@@ -48,6 +48,7 @@ public class PollRecordShapeTests
     [TestCase("notAnswered")]
     [TestCase("noPoll")]
     [TestCase("notOpen")]
+    [TestCase("joinedLate")]
     public void GuestPollView_ShouldRoundTripEachSample(string sample)
     {
         var example = Example("guest-poll.json").GetProperty(sample);
@@ -179,7 +180,8 @@ public class PollRecordShapeTests
         return new GuestPollView(
             Read<PollActivity?>(sample.GetProperty("activity")),
             Read<MyAnswer?>(sample.GetProperty("mine")),
-            tally.ValueKind == JsonValueKind.Null ? null : TallyOf(tally, PollTallyTarget.Audience));
+            tally.ValueKind == JsonValueKind.Null ? null : TallyOf(tally, PollTallyTarget.Audience),
+            sample.GetProperty("joinedLate").GetBoolean());
     }
 
     private static PollTally TallyOf(JsonElement sample, PollTallyTarget target) => new(

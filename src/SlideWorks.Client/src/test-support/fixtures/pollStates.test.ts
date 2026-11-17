@@ -88,12 +88,12 @@ describe('poll-activity.json', () => {
 });
 
 describe('guest-poll.json', () => {
-  it.each(['answered', 'hidden', 'notAnswered', 'noPoll', 'notOpen'] as const)(
+  it.each(['answered', 'hidden', 'notAnswered', 'noPoll', 'notOpen', 'joinedLate'] as const)(
     'the %s sample round-trips',
     (sample) => {
       const view = guestPoll(sample);
       expect(view).toEqual(guestPollJson[sample]);
-      expect(keys(view)).toEqual(['activity', 'mine', 'tally']);
+      expect(keys(view)).toEqual(['activity', 'joinedLate', 'mine', 'tally']);
       if (view.activity) expect(keys(view.activity)).toEqual(ACTIVITY_KEYS);
       if (view.mine) expect(keys(view.mine)).toEqual(['picks', 'revision']);
       if (view.tally) expect(keys(view.tally)).toEqual(['answered', 'counts', 'round', 'type']);
@@ -106,7 +106,22 @@ describe('guest-poll.json', () => {
     );
     expect(guestPoll('notAnswered').tally?.counts).toBeNull();
     expect(guestPoll('answered').tally?.counts).toEqual([12, 25, 14, 6]);
-    expect(guestPoll('noPoll')).toEqual({ activity: null, mine: null, tally: null });
+    expect(guestPoll('noPoll')).toEqual({
+      activity: null,
+      mine: null,
+      tally: null,
+      joinedLate: false,
+    });
+  });
+
+  it('marks only a guest who joined after the round closed, with no answer, as joined late', () => {
+    const late = guestPoll('joinedLate');
+    expect(late.joinedLate).toBe(true);
+    expect(late.activity?.phase).toBe('closed');
+    expect(late.mine).toBeNull();
+    for (const sample of ['answered', 'hidden', 'notAnswered', 'noPoll', 'notOpen'] as const)
+      expect(guestPoll(sample).joinedLate).toBe(false);
+    expect(answerStale().current.joinedLate).toBe(false);
   });
 
   it('shows a manual poll before it opens with no round, no answer and no tally', () => {

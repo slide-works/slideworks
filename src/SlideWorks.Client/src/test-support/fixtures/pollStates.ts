@@ -24,7 +24,8 @@ import type { Widen } from './widen';
 // poll-activity.json: "draft", "open", "closed" and "answerShown".
 export type PollActivitySample = keyof typeof pollActivityJson;
 // guest-poll.json: "answered" (closed with the answer shown), "hidden" (counts hidden after answering), "notAnswered",
-// "noPoll" and "notOpen" (a manual poll before it opens: draft, no round, no answer, no tally).
+// "noPoll", "notOpen" (a manual poll before it opens: draft, no round, no answer, no tally) and "joinedLate" (closed,
+// no answer, and the guest joined after it closed). joinedLate is false in every sample but the last.
 export type GuestPollSample = keyof typeof guestPollJson;
 // poll-control.json: "draft", "open" and "closed" ("refusals" holds the 409 bodies).
 export type PollControlSample = Exclude<keyof typeof pollControlJson, 'refusals'>;

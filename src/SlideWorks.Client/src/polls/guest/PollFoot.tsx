@@ -14,7 +14,9 @@ export type PollFootProps = {
   mine: MyAnswer | null;
   // How many have answered so far, from the latest tally, or null before one arrives. Always shown (D21).
   answered: number | null;
-  // Never 'conflict' or 'queued': PollConflict and PollQueued take the foot's place then.
+  // Closed with no answer: true for "You joined after this poll closed", false for "You didn't send an answer".
+  joinedLate: boolean;
+  // Never 'conflict' or 'queued': PollConflict and PollQueued take the foot's place then. 'loading' says nothing yet.
   state: PollAnswerState;
   // A failed call's message, when state is 'failed'.
   error: string | null;

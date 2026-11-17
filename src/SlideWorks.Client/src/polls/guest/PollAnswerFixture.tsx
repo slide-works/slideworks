@@ -3,16 +3,18 @@ import type { MyAnswer, PollPick, PollTally } from '../types';
 import { PollAnswerContext, type PollAnswer, type PollAnswerState } from './usePollAnswer';
 
 export type PollAnswerFixtureProps = {
-  // Every state of V6 is one prop away. Defaults: idle, nothing picked, no answer, no tally, no error.
+  // Every state of V6 is one prop away. Defaults: idle, nothing picked, no answer, no tally, not joined late, no error.
   state?: PollAnswerState;
   picks?: number[];
   mine?: MyAnswer | null;
   tally?: PollTally | null;
+  joinedLate?: boolean;
   error?: string | null;
   // How toggle changes the picks on the phone: 'one' replaces them, 'upTo' adds or removes one, never past max.
   pick?: PollPick;
   max?: number | null;
-  // Called with each toggle, send and clear, so a spec sees what the card asked for.
+  // Called with each toggle, send and clear, so a spec sees what the card asked for. A pick-one toggle also calls
+  // onSend, as the real hook sends at once (D3).
   onToggle?: (position: number) => void;
   onSend?: () => void;
   onClear?: () => void;
@@ -27,13 +29,15 @@ const toggled = (picks: number[], position: number, pick: PollPick, max: number 
 };
 
 // Component tests only: gives the card a PollAnswer in whatever state the spec names, with no network. toggle and clear
-// change the picks on the phone the way the real hook does, so radios and checkboxes follow a tap; nothing else moves
+// change the picks on the phone the way the real hook does, so radios and checkboxes follow a tap, and a pick-one tap
+// calls onSend as the real hook sends; nothing else moves
 // unless the spec mounts it again with other props. A new picks prop replaces the held picks.
 export function PollAnswerFixture({
   state = 'idle',
   picks = [],
   mine = null,
   tally = null,
+  joinedLate = false,
   error = null,
   pick = 'one',
   max = null,
@@ -54,11 +58,13 @@ export function PollAnswerFixture({
       picks: held,
       mine,
       tally,
+      joinedLate,
       state,
       error,
       toggle: (position) => {
         setHeld((current) => toggled(current, position, pick, max));
         onToggle?.(position);
+        if (pick === 'one') onSend?.();
       },
       send: () => onSend?.(),
       clear: () => {
@@ -66,7 +72,7 @@ export function PollAnswerFixture({
         onClear?.();
       },
     }),
-    [held, mine, tally, state, error, pick, max, onToggle, onSend, onClear],
+    [held, mine, tally, joinedLate, state, error, pick, max, onToggle, onSend, onClear],
   );
 
   return <PollAnswerContext value={value}>{children}</PollAnswerContext>;

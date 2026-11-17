@@ -96,9 +96,11 @@ type Sink = { send(text: string): void };
 // the WebSockets the page opens. It reloads the page, so call it before mount().
 //
 // With the audience option it also answers JoinAudience (or refuses it), records LeaveAudience and WatchAudience, and
-// pushes "audienceEvent" messages with pushAudienceEvent. It also answers WatchPoll (SW-6 V5), which the real hub refuses
-// with "not_answered" unless the guest has answered an afterAnswer poll (arm that with fail('WatchPoll', 'not_answered')),
-// pushes a poll's tally with pushPollTally and moves the poll on screen with pushActivity. With the transports option
+// pushes "audienceEvent" messages with pushAudienceEvent. It plays WatchPoll as the real hub does (SW-6 V5): refused
+// with "not_answered" unless the guest has an answer in an open afterAnswer round (setPollWatchable, or stubPollApi's
+// hub option keeps it in step), and a watch lasts only as long as the connection that made it. pushPollTally sends an
+// audience tally to the connection, and a results tally only to a connection that watched. pushActivity moves the poll
+// on screen. With the transports option
 // it offers only those transports, and plays WebSockets, Server-Sent Events (a small local server the page's event
 // stream is sent to) and long polling.
 //
@@ -124,6 +126,10 @@ export async function stubDeckHub(
   const audienceLeaves: string[] = [];
   const watches: string[] = [];
   const pollWatches: string[] = [];
+  // Whether WatchPoll would be allowed now, and the connection (by its negotiate count) that last watched, if any.
+  let pollWatchable = false;
+  let watchingConnection = 0;
+  const watching = () => watchingConnection !== 0 && watchingConnection === connections;
   const transportsUsed: StubTransport[] = [];
   let audienceState = audience?.state && structuredClone(audience.state);
   let audienceRefusal = audience?.refuse;
@@ -227,7 +233,14 @@ export async function stubDeckHub(
     }),
     WatchPoll: audienceMethod({
       record: ([code]) => pollWatches.push(code as string),
-      answer: (_, reply) => reply.result(),
+      answer: (_, reply) => {
+        if (!pollWatchable) {
+          reply.error('not_answered');
+          return;
+        }
+        watchingConnection = connections;
+        reply.result();
+      },
     }),
   };
 
@@ -408,9 +421,22 @@ export async function stubDeckHub(
       if (event.type === 'audienceState') audienceState = structuredClone(event);
       send(socket!, { type: 1, target: 'audienceEvent', arguments: [event] });
     },
-    // Sends one pollTally to the newest connection, as the hub does to the audience and the results group.
-    pushPollTally(tally: PollTally) {
+    // Sends one pollTally to the newest connection as the hub does: an audience tally (counts null while hidden) always,
+    // a results tally (with counts) only when that connection has watched the poll.
+    pushPollTally(
+      tally: PollTally,
+      { target = 'audience' }: { target?: 'audience' | 'results' } = {},
+    ) {
+      if (target === 'results' && !watching()) return;
       send(socket!, { type: 1, target: 'audienceEvent', arguments: [tally] });
+    },
+    // Whether a later WatchPoll is allowed: the guest has an answer in an open afterAnswer round. Starts false.
+    setPollWatchable(watchable: boolean) {
+      pollWatchable = watchable;
+    },
+    // Whether the newest connection has watched the poll (and so gets results tallies).
+    get watchingPoll() {
+      return watching();
     },
     // Puts activity on the audience state with the seq one higher and sends it, as the server does when a poll opens,
     // closes or changes on screen. Later joins get that state too.
@@ -462,6 +488,8 @@ export async function stubDeckHub(
     // Closes the newest connection the way a server going away does, letting
     // the client reconnect: SignalR's close message with allowReconnect.
     drop() {
+      // The hub forgets the connection's groups, so a reconnect must watch the poll again.
+      watchingConnection = 0;
       send(socket!, { type: 7, error: 'Server went away.', allowReconnect: true });
     },
   };

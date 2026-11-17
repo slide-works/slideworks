@@ -60,11 +60,13 @@ export type PollTally = {
 // /api/join/{code}/poll/answer.
 export type MyAnswer = { picks: number[]; revision: number };
 
-// GET /api/join/{code}/poll.
+// GET /api/join/{code}/poll. joinedLate is true only when the round is closed, this guest has no answer in it and joined
+// the session after it closed ("You joined after this poll closed"); false otherwise.
 export type GuestPollView = {
   activity: PollActivity | null;
   mine: MyAnswer | null;
   tally: PollTally | null;
+  joinedLate: boolean;
 };
 
 // The body of PUT /api/join/{code}/poll/answer. `revision` is the answer the guest holds (0 for a first answer).

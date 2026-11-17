@@ -32,6 +32,31 @@ test('draft: the options and the foot, nothing else', async ({ mount, page }) =>
   await expectParts(page, ['options', 'foot']);
 });
 
+test('loading: the options and the foot while the first read is in flight', async ({
+  mount,
+  page,
+}) => {
+  await mount(
+    <PollAnswerFixture state="loading">
+      <PollCard activity={pollActivity('open', { pick: 'one', max: null })} presenter="Sam" />
+    </PollAnswerFixture>,
+  );
+  await expectParts(page, ['options', 'foot']);
+});
+
+test('joined late: the closed card shows the options and the foot, and no verdict', async ({
+  mount,
+  page,
+}) => {
+  const late = guestPoll('joinedLate');
+  await mount(
+    <PollAnswerFixture joinedLate tally={late.tally}>
+      <PollCard activity={late.activity!} presenter="Sam" />
+    </PollAnswerFixture>,
+  );
+  await expectParts(page, ['options', 'foot']);
+});
+
 test('choosing one: the radio group labelled by the question, and the foot', async ({
   mount,
   page,

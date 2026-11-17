@@ -23,7 +23,8 @@ export type Random = () => number;
 // The poll's side of the audience connection (SW-6 V5), for the guest's poll card. Its identity never changes.
 // - onTally: calls listener with every pollTally the connection receives, in order, one call each (the results group
 //   gets two per change in one tick). It returns the unsubscribe. Only tallies that arrive after subscribing are
-//   delivered, so subscribe before reading GET /api/join/{code}/poll.
+//   delivered. Order on mount and after each reconnect: subscribe, then watchPoll when it applies, then GET
+//   /api/join/{code}/poll, so no tally falls between the read and the subscription.
 // - watchPoll: invokes WatchPoll(code) on the connection that receives the tallies. It resolves once the hub has added
 //   the connection to the poll's results group, and rejects with the hub's refusal (an Error whose message ends
 //   "HubException: not_answered") or the connection's own failure. The hub forgets the group when the connection drops,
@@ -224,8 +225,17 @@ export function useAudience(
         lastPhase = 'ended';
         setState((current) => ({ ...current, phase: 'ended', current: null }));
       } else if (event.type === 'pollTally' && active) {
-        // A copy, so a listener that unsubscribes while being called doesn't skip the next one.
-        for (const listener of [...tallyListeners.current]) listener(event);
+        // A copy, so a listener that unsubscribes while being called doesn't skip the next one. A listener that throws
+        // doesn't stop the others: its error is thrown again on its own, where the page's error reporting sees it.
+        for (const listener of [...tallyListeners.current]) {
+          try {
+            listener(event);
+          } catch (error) {
+            queueMicrotask(() => {
+              throw error;
+            });
+          }
+        }
       }
       // pollControl goes only to the presenter's screens: a guest never receives it, so nothing reads it here.
     });

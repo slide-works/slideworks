@@ -74,6 +74,29 @@ describe('useAudience polls', () => {
     expect(got).toHaveLength(2);
   });
 
+  it('a listener that throws does not stop the others, and its error is thrown again on its own', async () => {
+    const thrown = new Error('listener broke');
+    const rethrown: unknown[] = [];
+    const microtask = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation((run) => {
+      try {
+        run();
+      } catch (error) {
+        rethrown.push(error);
+      }
+    });
+    const after = vi.fn();
+    latest().polls.onTally(() => {
+      throw thrown;
+    });
+    latest().polls.onTally(after);
+
+    await event(pollTally());
+
+    expect(after).toHaveBeenCalledOnce();
+    expect(rethrown).toEqual([thrown]);
+    microtask.mockRestore();
+  });
+
   it('gives pollControl to nobody and leaves the state alone', async () => {
     const listener = vi.fn();
     latest().polls.onTally(listener);

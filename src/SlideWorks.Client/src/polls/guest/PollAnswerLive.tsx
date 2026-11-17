@@ -21,6 +21,7 @@ const NO_ANSWER: PollAnswer = {
   picks: [],
   mine: null,
   tally: null,
+  joinedLate: false,
   state: 'idle',
   error: null,
   toggle: () => {},

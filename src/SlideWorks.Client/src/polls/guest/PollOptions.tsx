@@ -8,8 +8,10 @@ export type PollBars = { counts: number[]; answered: number };
 export type PollOptionsProps = {
   // The id of the card's question: the group's label.
   questionId: string;
-  // The options, the phase (they can be picked only while open) and the correct option once it is shown.
+  // The options and the correct option once it is shown.
   activity: PollActivity;
+  // Nothing can be tapped: the card is loading, or the poll isn't open (draft or closed). The options still show.
+  disabled: boolean;
   // What is selected on the phone, 0-based.
   picks: number[];
   // The picks the server holds for this guest, for the "You" mark, or null before the first send.

@@ -2,13 +2,16 @@ import { createContext, useContext } from 'react';
 import type { MyAnswer, PollTally } from '../types';
 
 // Where the phone's answer is (V6):
+// - loading: from mount until the first GET lands, and after a reconnect until the re-read lands. The card shows the
+//   question and options but nothing can be tapped, so a guest who already answered never sees a tappable, unanswered
+//   card.
 // - idle: nothing in flight. With `mine` set, the answer is sent.
 // - sending: a PUT is in flight.
 // - queued: offline or reconnecting with an unsent pick. It sends when the connection is back, if the round is still
 //   open.
 // - conflict: a 409 came back. The pick is kept, and the card asks again.
 // - failed: any other refusal or failure. `error` says which, so nothing fails silently.
-export type PollAnswerState = 'idle' | 'sending' | 'queued' | 'conflict' | 'failed';
+export type PollAnswerState = 'loading' | 'idle' | 'sending' | 'queued' | 'conflict' | 'failed';
 
 // The guest's answer to the poll on screen (V6). Frozen: G1a fills it in behind PollAnswerLive, and the card's parts
 // build against PollAnswerFixture.
@@ -20,6 +23,8 @@ export type PollAnswer = {
   // The latest tally for the current round. Its counts are null while this guest may not see them, and a tally with
   // null counts never clears counts already held for the round.
   tally: PollTally | null;
+  // From GuestPollView.joinedLate: the round is closed, this guest has no answer in it and joined after it closed.
+  joinedLate: boolean;
   state: PollAnswerState;
   // When state is 'failed': the refusal's code or rule from the server ("too_many_answers", "picks: at most 2"), or
   // the client's own text for a call that never reached it. Null in every other state.

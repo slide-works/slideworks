@@ -35,7 +35,7 @@ afterEach(async () => {
 });
 
 describe('PollAnswerFixture', () => {
-  it.each<PollAnswerState>(['idle', 'sending', 'queued', 'conflict', 'failed'])(
+  it.each<PollAnswerState>(['loading', 'idle', 'sending', 'queued', 'conflict', 'failed'])(
     'reaches the %s state',
     async (state) => {
       await render({ state, error: state === 'failed' ? 'too_many_answers' : null });
@@ -54,14 +54,34 @@ describe('PollAnswerFixture', () => {
     expect(seen()).toMatchObject({ picks: [1], mine, tally, state: 'idle' });
   });
 
-  it('pick one: toggle replaces the pick and reports it', async () => {
+  it('pick one: toggle replaces the pick, reports it and sends, as the real hook does', async () => {
     const onToggle = vi.fn();
-    await render({ picks: [0], onToggle });
+    const onSend = vi.fn();
+    await render({ picks: [0], onToggle, onSend });
 
     await act(async () => seen().toggle(2));
 
     expect(seen().picks).toEqual([2]);
     expect(onToggle).toHaveBeenCalledWith(2);
+    expect(onSend).toHaveBeenCalledOnce();
+  });
+
+  it('pick several: a toggle sends nothing', async () => {
+    const onSend = vi.fn();
+    await render({ pick: 'upTo', max: 2, onSend });
+
+    await act(async () => seen().toggle(1));
+
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('passes joinedLate on, false by default', async () => {
+    await render({});
+    expect(seen().joinedLate).toBe(false);
+
+    await render({ joinedLate: true });
+
+    expect(seen().joinedLate).toBe(true);
   });
 
   it('pick several: toggle adds and removes, never past max', async () => {
