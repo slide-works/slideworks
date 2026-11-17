@@ -1,0 +1,220 @@
+/* The poll slide (light, mockup section 04 at 2x), in canvas px. The root (.sw-layout) fills the content box
+   (x 120-1800, y 150-960) and the body may run to y 996. Budget with 8 options of 60 characters: kicker 42, a
+   two-line question 134, the body's 34 px gap, 8 rows of 60 with 10 between (550), then the footer's 22 + 48: 830 of
+   the 846 px from y 150 to 996. Bars use the palette's accent, the correct one its positive colour (--sw-good). */
+
+.poll {
+  position: relative;
+}
+
+/* The join pill, top right, above the content box: under the part tracker (y 40-70), clear of the deep-dive pill on
+   the left. */
+.join {
+  position: absolute;
+  top: -66px;
+  right: 0;
+  max-width: 900px;
+  margin: 0;
+  padding: 12px 26px;
+  overflow: hidden;
+  border-radius: var(--sw-radius-pill);
+  background: var(--sw-night);
+  color: var(--sw-night-ink);
+  font: 500 24px/1.1 var(--sw-font-body);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.join b {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.question {
+  max-width: 1560px;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 800 60px/1.12 var(--sw-font-head);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-top: var(--sw-space-4);
+}
+
+.rows {
+  display: grid;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  --poll-label: 36px;
+  --poll-track: 84px;
+  --poll-percent: 44px;
+}
+
+.rows[data-density='medium'] {
+  gap: 16px;
+  --poll-label: 32px;
+  --poll-track: 64px;
+  --poll-percent: 38px;
+}
+
+.rows[data-density='dense'] {
+  gap: 10px;
+  --poll-label: 26px;
+  --poll-track: 44px;
+  --poll-percent: 30px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 720px minmax(0, 1fr) 140px;
+  align-items: center;
+  column-gap: 36px;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .row {
+    transition: opacity 0.4s;
+  }
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  font: 600 var(--poll-label) / 1.15 var(--sw-font-body);
+}
+
+.labelText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tick {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--sw-good);
+  color: var(--sw-on-accent);
+}
+
+.tick svg {
+  width: 28px;
+  height: 28px;
+}
+
+.track {
+  position: relative;
+  display: block;
+  height: var(--poll-track);
+  overflow: hidden;
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-chip);
+}
+
+/* Counts hidden from the room: the tracks are hatched and no bar is drawn. */
+.hatched {
+  background: repeating-linear-gradient(-45deg, var(--sw-chip) 0 20px, var(--sw-grid) 20px 40px);
+}
+
+.bar {
+  display: block;
+  height: 100%;
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-accent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bar {
+    transition:
+      width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 0.4s;
+  }
+}
+
+.correct .bar {
+  background: var(--sw-good);
+}
+
+.faded {
+  opacity: 0.42;
+}
+
+.percent {
+  font: 800 var(--poll-percent) / 1 var(--sw-font-head);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  min-height: 48px;
+  margin-top: var(--sw-space-3);
+  color: var(--sw-muted);
+  font: 500 26px/1.2 var(--sw-font-body);
+}
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-weight: 600;
+}
+
+.state::before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.state[data-phase='open'] {
+  color: var(--sw-good);
+}
+
+.state[data-phase='closed'] {
+  color: var(--sw-ink);
+}
+
+.answered b {
+  color: var(--sw-ink);
+  font: 800 40px/1 var(--sw-font-head);
+}
+
+.notes {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-left: auto;
+  font-size: 24px;
+}
+
+.hiddenNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 24px;
+  border-radius: var(--sw-radius-pill);
+  background: var(--sw-night);
+  color: var(--sw-night-ink);
+  font: 600 24px/1 var(--sw-font-body);
+}
+
+.hiddenNote svg {
+  width: 18px;
+  height: 22px;
+}
