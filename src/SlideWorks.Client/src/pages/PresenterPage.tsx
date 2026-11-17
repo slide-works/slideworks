@@ -24,6 +24,8 @@ import {
 } from '../presentation/presenter/usePresenterKeys';
 import type { PresentationState, PresentationUpdate, TimerCommand } from '../presentation/types';
 import { usePresentation, type Presentation } from '../presentation/usePresentation';
+import { PollControlLive } from '../polls/presenter/PollControlLive';
+import { PollPanel } from '../polls/presenter/PollPanel';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { JoinProvider } from '../slides/JoinContext';
 
@@ -212,6 +214,9 @@ export function PresenterPage() {
               deepDivesAhead={controls.deepDivesAhead}
               skipDeepDives={state.skipDeepDives}
             />
+            <PollControlLive deckId={id} slide={state.slide}>
+              <PollPanel deckId={id} overlayOpen={overviewOpen || phoneOpen} />
+            </PollControlLive>
             {notesShown && (
               <NotesPanel
                 notes={view.slides[state.slide - 1]?.notes ?? null}

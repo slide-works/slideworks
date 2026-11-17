@@ -14,6 +14,8 @@ import { usePresentation, type Presentation } from '../presentation/usePresentat
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { JoinProvider } from '../slides/JoinContext';
 import { SlidesSheet } from '../remote/SlidesSheet';
+import { PollControlLive } from '../polls/presenter/PollControlLive';
+import { PollStrip } from '../polls/presenter/PollStrip';
 import { ActionRow } from '../remote/speaker/ActionRow';
 import { deviceLabel } from '../remote/speaker/deviceLabel';
 import { NavButtons } from '../remote/speaker/NavButtons';
@@ -132,13 +134,15 @@ export function SpeakerPage() {
   // The phone is the owner's too, so a join slide on it shows the code and whether the deck is live (SW-5 D19).
   return (
     <JoinProvider deckId={load.view.id} join={load.view.join} owner>
-      <SpeakerMode
-        id={id}
-        view={load.view}
-        state={presentation.state}
-        presentation={presentation}
-        refreshFailed={refreshFailed}
-      />
+      <PollControlLive deckId={id} slide={presentation.state.slide}>
+        <SpeakerMode
+          id={id}
+          view={load.view}
+          state={presentation.state}
+          presentation={presentation}
+          refreshFailed={refreshFailed}
+        />
+      </PollControlLive>
     </JoinProvider>
   );
 }
@@ -323,6 +327,7 @@ function SpeakerMode({
               skipDeepDives={skip}
             />
           </div>
+          <PollStrip deckId={id} />
           <div className="mt-3 flex min-h-0 flex-1 flex-col">
             <SpeakerNotes view={view} slide={state.slide} step={state.step} lastKnown={!live} />
           </div>

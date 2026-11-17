@@ -4,7 +4,7 @@ using SlideWorks.WebApi.Realtime;
 namespace SlideWorks.WebApi.Tests.Support;
 
 // IAudienceRelay for tests that need a position without a presentation: each test sets the state a deck answers with. It
-// records the decks Go live started and End ended, in order. Add it with FakeAudienceRelay.AddTo. A deck with no state set
+// records the decks Go live started, End ended and a refresh asked for, in order. Add it with FakeAudienceRelay.AddTo. A deck with no state set
 // answers null, as the real relay does for a deck with no session.
 public sealed class FakeAudienceRelay : IAudienceRelay
 {
@@ -12,6 +12,7 @@ public sealed class FakeAudienceRelay : IAudienceRelay
     private readonly Dictionary<string, AudienceState> _states = new(StringComparer.Ordinal);
     private readonly List<string> _started = [];
     private readonly List<string> _ended = [];
+    private readonly List<string> _refreshed = [];
 
     public IReadOnlyList<string> Started
     {
@@ -31,6 +32,17 @@ public sealed class FakeAudienceRelay : IAudienceRelay
             lock (_gate)
             {
                 return [.. _ended];
+            }
+        }
+    }
+
+    public IReadOnlyList<string> Refreshed
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _refreshed];
             }
         }
     }
@@ -68,6 +80,15 @@ public sealed class FakeAudienceRelay : IAudienceRelay
         lock (_gate)
         {
             _ended.Add(deckId);
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task RefreshAsync(string deckId)
+    {
+        lock (_gate)
+        {
+            _refreshed.Add(deckId);
         }
         return Task.CompletedTask;
     }

@@ -12,7 +12,7 @@ type DeepDiveSource = {
 }[LayoutName];
 
 // A slide's headline as the divider lists it: its headline slot, or the title
-// of a title or divider slide, or a quote slide's quote.
+// of a title or divider slide, a quote slide's quote, or a poll slide's question.
 function headlineOf(slide: DeepDiveSource): string {
   switch (slide.layout) {
     case 'title':
@@ -22,6 +22,8 @@ function headlineOf(slide: DeepDiveSource): string {
       return slide.slots.quote;
     case 'join':
       return slide.slots.kicker ?? DEFAULT_JOIN_KICKER;
+    case 'poll':
+      return slide.slots.question;
     default:
       return slide.slots.headline;
   }

@@ -7,6 +7,8 @@ using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Look;
+using SlideWorks.WebApi.Features.Polls;
+using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -28,6 +30,8 @@ public class SlideEdits(
     IDeckEvents events,
     IPublicUrls urls,
     ITemplateCatalogue templates,
+    PollRows pollRows,
+    PollEdits pollEdits,
     TimeProvider clock)
 {
     public const string UPDATE_TOOL = "update_slide";
@@ -36,8 +40,14 @@ public class SlideEdits(
     public const string SET_NOTES_TOOL = "set_notes";
 
     // Refused with a conflict when the slide at that number no longer carries the revision the caller read.
-    public Task<UpdateSlideResult> UpdateAsync(UpdateSlideRequest request)
-        => EditAsync(request.Deck, UPDATE_TOOL, async deck =>
+    //
+    // A poll slide is also checked against its poll (PollEdits): while a round is open its options can't shrink or change
+    // order, and its settings must still fit its options. Reworded options and a reworded question on a live deck are
+    // announced to the audience and the presenter after the commit.
+    public async Task<UpdateSlideResult> UpdateAsync(UpdateSlideRequest request)
+    {
+        var announce = false;
+        var result = await EditAsync(request.Deck, UPDATE_TOOL, async deck =>
         {
             CheckNumber(request.Slide, await Live(deck.Id).CountAsync(), "slide");
             var slide = await Live(deck.Id).SingleAsync(s => s.Position == request.Slide - 1);
@@ -49,6 +59,7 @@ public class SlideEdits(
             var slots = request.Slots;
             await SlideChecks.ValidateAsync(images, deck.Id, layout, slots);
             SlideChecks.CheckPart(request.Part, DeckParts.Read(deck).Count);
+            announce = await pollEdits.CheckSlideEditAsync(deck.Id, slide, layout, slots);
 
             slide.Layout = layout;
             slide.SlotsJson = SlideJson.ForStorage(slots);
@@ -58,10 +69,20 @@ public class SlideEdits(
             slide.DeepDive = request.DeepDive ?? slide.DeepDive;
             slide.Revision = deck.Revision;
             await db.SaveChangesAsync();
+            if (layout == PollRows.LAYOUT)
+            {
+                await pollRows.EnsureAsync(slide.Id, deck.Id);
+            }
             var warnings = LayoutWarnings.For(LookViews.TemplateOf(deck, templates), request.Slide, layout);
-            var result = new UpdateSlideResult(request.Slide, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, request.Slide), warnings);
-            return (result, $"updated slide {request.Slide} ({layout}){deepDive}");
+            var updated = new UpdateSlideResult(request.Slide, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, request.Slide), warnings);
+            return (updated, $"updated slide {request.Slide} ({layout}){deepDive}");
         });
+        if (announce)
+        {
+            await pollEdits.AnnounceAsync(request.Deck, request.Slide);
+        }
+        return result;
+    }
 
     // The slides between the old and the new place shift by one toward the gap, and they and the moved slide get the new
     // revision, so an old number plus an old revision never matches a moved slide.
@@ -97,6 +118,7 @@ public class SlideEdits(
             CheckNumber(slide, count, "slide");
             var position = slide - 1;
             var deleted = await Live(deck.Id).SingleAsync(s => s.Position == position);
+            await pollEdits.RequireNoOpenRoundAsync(deck.Id, deleted, "deleted");
             deleted.DeletedAt = clock.GetUtcNow();
             deleted.Revision = deck.Revision;
             await db.SaveChangesAsync();
@@ -125,7 +147,11 @@ public class SlideEdits(
             return (new SetNotesResult(numbers, deck.Revision), summary);
         });
 
-    private async Task<T> EditAsync<T>(string deckId, string tool, Func<Deck, Task<(T Result, string Summary)>> edit)
+    // The one transaction every slide edit runs in; the poll tools (PollSettingsCommands) use it for theirs. A caller must not
+    // delete a slide or change its layout inside it: those are DeleteAsync and UpdateAsync, which refuse while a poll round is
+    // open on the slide (PollEdits.RequireNoOpenRoundAsync), and nothing else can close a round whose slide is gone. The guard
+    // test SlideEditsCallerGuardTests lists who may call it.
+    public async Task<T> EditAsync<T>(string deckId, string tool, Func<Deck, Task<(T Result, string Summary)>> edit)
     {
         if (!await access.CanEditAsync(deckId, actor))
         {

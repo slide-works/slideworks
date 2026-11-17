@@ -1058,5 +1058,26 @@
       "kicker": "Join on your phone and follow the talk x",
       "count": "shown"
     }
+  },
+  "pollEight": {
+    "layout": "poll",
+    "grow": [
+      "/question",
+      "/options/7"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "question": "Which Practice Helped Your Team Ship Smaller Changes Every Week While Keeping Review Fast And Feedback Close To The Fast",
+      "options": [
+        "Which Practice Helped Your Team Ship Smaller Changes Every A",
+        "Your Team Ship Smaller Changes Every Week While Keeping Fast",
+        "Smaller Changes Every Week While Keeping Review Fast And Now",
+        "Week While Keeping Review Fast And Feedback Close To The Now",
+        "Review Fast And Feedback Close To The Work Done Today Weekly",
+        "Feedback Close To The Work Done Today Which Practice Shipped",
+        "The Work Done Today Which Practice Helped Your Team Ship Now",
+        "Today Which Practice Helped Your Team Ship Smaller Changes A"
+      ]
+    }
   }
 }

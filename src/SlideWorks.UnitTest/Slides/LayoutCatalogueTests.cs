@@ -17,12 +17,12 @@ public class LayoutCatalogueTests
     private static readonly HashSet<string> _types = ["string", "number", "integer", "object", "array", "boolean", "null"];
 
     [Test]
-    public void Layouts_ShouldBeTheSeventeenFrozenNames()
+    public void Layouts_ShouldBeTheEighteenFrozenNames()
     {
         LayoutCatalogue.LayoutNames.ShouldBe(
         [
             "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote", "image",
-            "table", "chart", "gantt", "numbered-cards", "rules", "cards", "close", "join",
+            "table", "chart", "gantt", "numbered-cards", "rules", "cards", "close", "join", "poll",
         ]);
         LayoutCatalogue.Layouts.Where(l => l.Dark).Select(l => l.Name).ShouldBe(["title", "divider", "close", "join"]);
     }

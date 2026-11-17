@@ -1,0 +1,164 @@
+{
+  "answered": {
+    "activity": {
+      "type": "poll",
+      "round": "0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10",
+      "number": 1,
+      "phase": "closed",
+      "question": "How big was your last merge request?",
+      "options": [
+        "Under 50 lines",
+        "50 to 200 lines",
+        "200 to 1,000 lines",
+        "Over 1,000 lines"
+      ],
+      "pick": "upTo",
+      "max": 2,
+      "results": "afterAnswer",
+      "roomSeesCounts": true,
+      "correct": 2
+    },
+    "mine": {
+      "picks": [
+        1,
+        2
+      ],
+      "revision": 2
+    },
+    "tally": {
+      "type": "pollTally",
+      "round": "0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10",
+      "answered": 38,
+      "counts": [
+        12,
+        25,
+        14,
+        6
+      ]
+    },
+    "joinedLate": false
+  },
+  "hidden": {
+    "activity": {
+      "type": "poll",
+      "round": "0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10",
+      "number": 1,
+      "phase": "open",
+      "question": "How big was your last merge request?",
+      "options": [
+        "Under 50 lines",
+        "50 to 200 lines",
+        "200 to 1,000 lines",
+        "Over 1,000 lines"
+      ],
+      "pick": "one",
+      "max": null,
+      "results": "afterClose",
+      "roomSeesCounts": false,
+      "correct": null
+    },
+    "mine": {
+      "picks": [
+        2
+      ],
+      "revision": 1
+    },
+    "tally": {
+      "type": "pollTally",
+      "round": "0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10",
+      "answered": 21,
+      "counts": null
+    },
+    "joinedLate": false
+  },
+  "notAnswered": {
+    "activity": {
+      "type": "poll",
+      "round": "0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10",
+      "number": 1,
+      "phase": "open",
+      "question": "How big was your last merge request?",
+      "options": [
+        "Under 50 lines",
+        "50 to 200 lines",
+        "200 to 1,000 lines",
+        "Over 1,000 lines"
+      ],
+      "pick": "upTo",
+      "max": 2,
+      "results": "afterAnswer",
+      "roomSeesCounts": false,
+      "correct": null
+    },
+    "mine": null,
+    "tally": {
+      "type": "pollTally",
+      "round": "0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10",
+      "answered": 21,
+      "counts": null
+    },
+    "joinedLate": false
+  },
+  "noPoll": {
+    "activity": null,
+    "mine": null,
+    "tally": null,
+    "joinedLate": false
+  },
+  "notOpen": {
+    "activity": {
+      "type": "poll",
+      "round": null,
+      "number": 1,
+      "phase": "draft",
+      "question": "How big was your last merge request?",
+      "options": [
+        "Under 50 lines",
+        "50 to 200 lines",
+        "200 to 1,000 lines",
+        "Over 1,000 lines"
+      ],
+      "pick": "one",
+      "max": null,
+      "results": "afterClose",
+      "roomSeesCounts": false,
+      "correct": null
+    },
+    "mine": null,
+    "tally": null,
+    "joinedLate": false
+  },
+  "joinedLate": {
+    "activity": {
+      "type": "poll",
+      "round": "0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10",
+      "number": 1,
+      "phase": "closed",
+      "question": "How big was your last merge request?",
+      "options": [
+        "Under 50 lines",
+        "50 to 200 lines",
+        "200 to 1,000 lines",
+        "Over 1,000 lines"
+      ],
+      "pick": "one",
+      "max": null,
+      "results": "live",
+      "roomSeesCounts": true,
+      "correct": null
+    },
+    "mine": null,
+    "tally": {
+      "type": "pollTally",
+      "round": "0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10",
+      "answered": 38,
+      "counts": [
+        12,
+        25,
+        14,
+        6
+      ]
+    },
+    "joinedLate": true
+  }
+}

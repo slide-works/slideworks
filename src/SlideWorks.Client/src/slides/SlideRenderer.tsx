@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import { lookStyle } from '../look/lookStyle';
 import { LAYOUTS } from './layouts';
 import { SlideFrame } from './SlideFrame';
+import { SlideNumberContext } from './slideNumber';
 import { SlidePartContext } from './slidePart';
 import {
   DARK_LAYOUTS,
@@ -62,7 +63,9 @@ export function SlideRenderer({ slide, deck, total, step }: SlideRendererProps) 
         titleStamp={slide.layout === 'title' ? (slide.slots.stamp ?? null) : null}
       >
         <SlidePartContext value={slide.part}>
-          <Layout slots={slide.slots} step={step} deck={deck} />
+          <SlideNumberContext value={slide.number}>
+            <Layout slots={slide.slots} step={step} deck={deck} />
+          </SlideNumberContext>
         </SlidePartContext>
       </SlideFrame>
     </div>

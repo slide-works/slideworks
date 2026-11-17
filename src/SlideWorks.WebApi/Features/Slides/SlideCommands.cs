@@ -7,6 +7,7 @@ using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Look;
+using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -25,6 +26,7 @@ public class SlideCommands(
     IDeckEvents events,
     IPublicUrls urls,
     ITemplateCatalogue templates,
+    PollRows pollRows,
     TimeProvider clock)
 {
     public const string ADD_TOOL = "add_slide";
@@ -74,6 +76,10 @@ public class SlideCommands(
             };
             db.Slides.Add(slide);
             await db.SaveChangesAsync();
+            if (slide.Layout == PollRows.LAYOUT)
+            {
+                await pollRows.EnsureAsync(slide.Id, deck.Id);
+            }
             await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, ADD_TOOL, $"added slide {position + 1} ({slide.Layout}){(slide.DeepDive ? " as a deep dive" : "")}"));
             await transaction.CommitAsync();
         }

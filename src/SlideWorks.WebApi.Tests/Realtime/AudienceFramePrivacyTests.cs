@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.Core.Polls;
+using SlideWorks.WebApi.Features.Polls.Contracts;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Tests.Sharing;
 using SlideWorks.WebApi.Tests.Support;
@@ -45,10 +47,49 @@ public class AudienceFramePrivacyTests : ApiTestFixture
         AssertMatches(pushedState, "audienceState", ScreenShapes.AudienceState);
         AssertMatches(ended, "audienceEnded", new JsonShapeOptions());
         AssertMatches(count, "joinedCount", new JsonShapeOptions());
+        PollActivityKeys.Of(joined.GetProperty("activity")).ShouldBeSubsetOf(PollActivityKeys.All);
+        PollActivityKeys.Of(pushedState.GetProperty("activity")).ShouldBeSubsetOf(PollActivityKeys.All);
         foreach (var frame in new[] { joined, pushedState, ended, count })
         {
             frame.GetRawText().ShouldNotContain(deck, Case.Sensitive);
         }
+    }
+
+    // A poll on screen: the activity in the frame has exactly PollActivity's keys, nothing more (no counts, opens, privacy
+    // or anything about other guests). The activity is serialised as AudienceFeed does it, with the web defaults.
+    [Test]
+    public async Task Frames_WhenSlideHasPoll_ShouldCarryExactlyThePollActivityKeys()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client, "Private title");
+        var activity = new PollActivity(Guid.NewGuid().ToString(), 2, PollPhase.Closed, "Which?", ["One", "Two"], PollPick.UpTo, 2, PollResults.AfterClose, true, 1);
+        var state = new AudienceState(deck, 44, AudiencePhase.Live, SlideOf(), 7, JsonSerializer.SerializeToElement(activity, JsonSerializerOptions.Web));
+        Factory.Services.GetRequiredService<FakeAudienceSessions>().Set("123457", deck, "s2", AudiencePhase.Live);
+        Factory.Services.GetRequiredService<FakeAudienceRelay>().Set(state);
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        var bus = Factory.Services.GetRequiredService<IAudienceEvents>();
+
+        var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", "123457");
+        await bus.PublishAsync(state);
+        var pushed = await guest.NextAudienceAsync();
+
+        foreach (var frame in new[] { joined, pushed })
+        {
+            // The sample's activity is null, so the frame's own keys are compared here and its activity against poll-activity.json.
+            frame.EnumerateObject().Select(p => p.Name).ShouldBe(AudienceEventSample("audienceState").EnumerateObject().Select(p => p.Name), ignoreOrder: true);
+            PollActivityKeys.Of(frame.GetProperty("activity")).ShouldBe(PollActivityKeys.All, ignoreOrder: true);
+            JsonShape.AssertMatches(frame.GetProperty("activity"), PollActivitySample("answerShown"), "poll-activity.json answerShown", ScreenShapes.PollActivity);
+            frame.GetRawText().ShouldNotContain(deck, Case.Sensitive);
+        }
+    }
+
+    private static JsonElement PollActivitySample(string name) => SampleOf("poll-activity.json", name);
+
+    private static JsonElement AudienceEventSample(string name) => SampleOf("audience-events.json", name);
+
+    private static JsonElement SampleOf(string file, string name)
+    {
+        using var contract = JsonDocument.Parse(File.ReadAllText(Path.Combine(JsonShape.ScreensDirectory(), file)));
+        return contract.RootElement.GetProperty(name).Clone();
     }
 
     private static AudienceSlide SlideOf()

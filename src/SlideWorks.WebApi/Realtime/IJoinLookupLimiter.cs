@@ -17,4 +17,13 @@ public interface IJoinLookupLimiter
 
     // A lookup found a session: it is settled and counts for nothing.
     void Hit(string callerKey);
+
+    // The miss-only path, for a lookup that can run long (the guest poll routes, whose answer waits for a batched commit) and
+    // so must not hold an in-flight slot: true once the caller's misses in the current window are used up, the same budget
+    // Allow checks. It registers nothing, so it needs no Hit or Miss.
+    bool OverMissLimit(string callerKey);
+
+    // A miss on the miss-only path: counts toward the same budget as Miss, without settling a lookup in flight. Never call Miss
+    // without Allow; it would release another lookup's slot.
+    void RecordMiss(string callerKey);
 }

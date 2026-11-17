@@ -12,4 +12,6 @@ public sealed class AudienceRelay(AudienceFeed feed) : IAudienceRelay
     public Task StartedAsync(string deckId) => feed.StartedAsync(deckId);
 
     public Task EndedAsync(string deckId) => feed.EndedAsync(deckId);
+
+    public Task RefreshAsync(string deckId) => feed.RefreshAsync(deckId);
 }

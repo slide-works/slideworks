@@ -1,0 +1,341 @@
+using System.Data.Common;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.Core.Polls;
+using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Features.Join;
+using SlideWorks.WebApi.Features.Polls;
+using SlideWorks.WebApi.Features.Polls.Contracts;
+using SlideWorks.WebApi.Features.Polls.Data;
+using SlideWorks.WebApi.Realtime;
+using SlideWorks.WebApi.Tests.Support;
+
+namespace SlideWorks.WebApi.Tests.Polls;
+
+// The batching answer writer (V5, D16), mostly under PUT /api/join/{code}/poll/answer: queued answers commit in groups of at
+// most MAX_GROUP, a round that closes before an answer's group commits makes that answer stale and uncounted, a burst racing
+// the real close never counts an answer it refused, and a group that fails to commit fails every waiter and applies nothing
+// to the tally.
+//
+// The app's database is watched at the EF boundary: Saves counts each save that writes a round's answers and fails those of
+// a round a test poisons, and Starts tells a test when the next transaction begins. Many guests are put on the session's
+// roster through IAudienceRoster, as the hub's JoinAudience does, without a socket each. The close-versus-burst race closes
+// through the real IPolls.CloseAsync; the tests that hold SQLite's write lock themselves close inside that held transaction
+// with CloseAsync below, as V4's Close does, since no service can join a transaction the test holds. The fakes and the app
+// are shared by the fixture, so every test seeds a deck, a code, rounds and guests of its own.
+[TestFixture]
+[CancelAfter(120000)]
+public class AnswerWriterTests : PollTestFixture
+{
+    private const int RACE_ROUNDS = 25;
+    private const int RACE_GUESTS = 40;
+    private const int BURST = 500;
+
+    private static readonly TimeSpan WAIT = TimeSpan.FromSeconds(30);
+
+    private readonly SaveWatch _saves = new();
+    private readonly TransactionWatch _starts = new();
+
+    private FakePollTallies Tallies => Factory.Services.GetRequiredService<FakePollTallies>();
+
+    protected override void ConfigurePollServices(IServiceCollection services)
+    {
+        FakeAudienceActivity.AddTo(services);
+        FakePollTallies.AddTo(services);
+        services.ConfigureDbContext<AppDbContext>(options => options.AddInterceptors(_saves, _starts));
+    }
+
+    [SetUp]
+    public void NewMinute() => Clock.Advance(TimeSpan.FromMinutes(2));
+
+    [Test]
+    public async Task Answers_WhenFiveHundredArriveAtOnce_ShouldCommitInFewTransactions()
+    {
+        var poll = await SeedPollAsync();
+        var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        var target = new PollRoundRef(poll.DeckId, poll.Slide, poll.SlideId, poll.SessionId.ToString(), round.Id.ToString(), PollSeed.OPTIONS.Length);
+        var writer = Factory.Services.GetRequiredService<AnswerWriter>();
+
+        // Hold SQLite's write lock while the writer is on a first answer's group, queue the 500 behind it, then let go: the
+        // writer then finds all 500 queued at once, whatever the host's speed.
+        Task<MyAnswer?> held;
+        List<Task<MyAnswer?>> queued;
+        await using (var scope = Factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await using var hold = await db.Database.BeginTransactionAsync();
+            var writerBegins = _starts.NextStart();
+            held = writer.WriteAsync(target, GuestCookie.NewId(), 0, [0]);
+            await BoundedAsync(writerBegins);
+            queued = [.. Enumerable.Range(0, BURST).Select(i => writer.WriteAsync(target, GuestCookie.NewId(), 0, [i % 3]))];
+            await hold.RollbackAsync();
+        }
+        var results = await BoundedAsync(Task.WhenAll(queued.Prepend(held)));
+        var closed = (await Rows.CloseAsync(round.Id, joinedAtClose: BURST + 1)).Final!;
+
+        results.ShouldAllBe(written => written != null && written.Revision == 1);
+        closed.Answered.ShouldBe(BURST + 1);
+        // The held answer's group, then 500 in groups of at most MAX_GROUP: 200, 200 and 100.
+        _saves.SavesOf(round.Id).ShouldBe(1 + ((BURST + AnswerWriter.MAX_GROUP - 1) / AnswerWriter.MAX_GROUP));
+        Tallies.Applied.Count(a => a.Round.RoundId == round.Id.ToString()).ShouldBe(BURST + 1);
+    }
+
+    [Test]
+    public async Task Answer_WhenRoundClosesBeforeItsBatchCommits_ShouldBeStaleAndNotCounted()
+    {
+        var poll = await SeedPollAsync();
+        var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        var guest = (await SeatGuestsAsync(poll, 1))[0];
+        using var http = GuestHttp();
+
+        // Hold SQLite's write lock (BEGIN IMMEDIATE), so the writer's group can't begin until the round is closed under it.
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        PollFinal final;
+        Task<HttpResponseMessage> answer;
+        await using (var close = await db.Database.BeginTransactionAsync())
+        {
+            var writerBegins = _starts.NextStart();
+            answer = AnswerAsync(http, poll.Code, guest, new AnswerRequest(round.Id.ToString(), [1], 0));
+            await BoundedAsync(writerBegins);
+            final = await CloseAsync(db, round.Id);
+            await close.CommitAsync();
+        }
+        var response = await BoundedAsync(answer);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        body.GetProperty("error").GetString().ShouldBe("stale");
+        final.Answered.ShouldBe(0);
+        _saves.SavesOf(round.Id).ShouldBe(0);
+        Tallies.Applied.ShouldNotContain(a => a.Round.RoundId == round.Id.ToString());
+    }
+
+    [Test]
+    public async Task Answers_WhenACloseRacesABurst_ShouldCountExactlyTheAcceptedOnes()
+    {
+        var poll = await SeedPollAsync();
+        var guests = await SeatGuestsAsync(poll, RACE_GUESTS);
+        using var http = GuestHttp();
+        var (accepted, stale, mixed) = (0, 0, 0);
+
+        for (var number = 1; number <= RACE_ROUNDS; number++)
+        {
+            var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId, number: number);
+            // Odd rounds close from inside the writer's loop, between two of its commits, once a random number of this
+            // round's answers has committed: every answer still being checked or queued then races the close. Even rounds
+            // close from the test once the first answer has committed, against the writer's next commits.
+            var closeAfter = number % 2 == 1 ? Random.Shared.Next(1, RACE_GUESTS) : 1;
+            var inLoop = number % 2 == 1;
+            var applied = 0;
+            var committed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var closed = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var watch = Tallies.Changed(async changed =>
+            {
+                if (changed.RoundId != round.Id.ToString() || Interlocked.Increment(ref applied) != closeAfter)
+                {
+                    return;
+                }
+                committed.TrySetResult();
+                if (inLoop)
+                {
+                    closed.TrySetResult(await CloseWithPollsAsync(poll, round.Id));
+                }
+            });
+            var answers = guests.Select((guest, i) => AnswerAsync(http, poll.Code, guest, new AnswerRequest(round.Id.ToString(), [i % 3], 0))).ToList();
+            await BoundedAsync(committed.Task);
+            if (!inLoop)
+            {
+                await Task.Delay(Random.Shared.Next(0, 4), CancellationToken.None);
+                closed.TrySetResult(await CloseWithPollsAsync(poll, round.Id));
+            }
+            var answered = await BoundedAsync(closed.Task);
+            var responses = await BoundedAsync(Task.WhenAll(answers));
+
+            responses.ShouldAllBe(r => r.StatusCode == HttpStatusCode.OK || r.StatusCode == HttpStatusCode.Conflict, $"round {number}");
+            answered.ShouldBe(responses.Count(r => r.StatusCode == HttpStatusCode.OK), $"round {number}");
+            Tallies.Applied.Count(a => a.Round.RoundId == round.Id.ToString()).ShouldBe(answered, $"round {number}");
+            accepted += answered;
+            stale += responses.Count(r => r.StatusCode == HttpStatusCode.Conflict);
+            mixed += answered > 0 && answered < RACE_GUESTS ? 1 : 0;
+        }
+
+        // How many closes landed mid-burst depends on the host's speed, so it is reported, not asserted: the assertions above
+        // hold for every round however it fell. Answer_WhenRoundClosesBeforeItsBatchCommits pins the mid-burst case down.
+        await TestContext.Out.WriteLineAsync($"{RACE_ROUNDS} races of {RACE_GUESTS}: {accepted} accepted, {stale} stale, {mixed} closed mid-burst");
+    }
+
+    [Test]
+    public async Task Answer_WhenBatchFails_ShouldFailEveryWaiterAndApplyNothing()
+    {
+        var poll = await SeedPollAsync();
+        var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        var guests = await SeatGuestsAsync(poll, 5);
+        _saves.Poison(round.Id);
+
+        var failures = await BoundedAsync(Task.WhenAll(guests.Select(guest => Should.ThrowAsync<PoisonedSaveException>(
+            () => SubmitAsync(poll.Code, guest, new AnswerRequest(round.Id.ToString(), [1], 0))))));
+        _saves.Heal(round.Id);
+        var later = await BoundedAsync(SubmitAsync(poll.Code, guests[0], new AnswerRequest(round.Id.ToString(), [2], 0)));
+
+        failures.Length.ShouldBe(5);
+        Tallies.Applied.Count(a => a.Round.RoundId == round.Id.ToString()).ShouldBe(1);
+        var accepted = later.ShouldBeOfType<AnswerResult.Accepted>("the writer kept going after the failed group");
+        accepted.Picks.ShouldBe([2]);
+        accepted.Revision.ShouldBe(1, "nothing of the failed group was written");
+    }
+
+    // Guests on the live session's roster, each with an sw_guest id of its own.
+    private async Task<List<string>> SeatGuestsAsync(SeededPoll poll, int count)
+    {
+        var roster = Factory.Services.GetRequiredService<IAudienceRoster>();
+        var guests = Enumerable.Range(0, count).Select(_ => GuestCookie.NewId()).ToList();
+        foreach (var guest in guests)
+        {
+            await roster.JoinAsync(poll.DeckId, poll.SessionId.ToString(), guest, $"connection-{guest}");
+        }
+        return guests;
+    }
+
+    private HttpClient GuestHttp() => Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });
+
+    // PUT /api/join/{code}/poll/answer as this guest, from the guest's page.
+    private static Task<HttpResponseMessage> AnswerAsync(HttpClient http, string code, string guestId, AnswerRequest request)
+    {
+        var message = new HttpRequestMessage(HttpMethod.Put, $"/api/join/{code}/poll/answer") { Content = JsonContent.Create(request) };
+        message.Headers.Add("Origin", TestAppFactory.PUBLIC_URL);
+        message.Headers.Add("Cookie", $"{GuestCookie.NAME}={guestId}");
+        return http.SendAsync(message);
+    }
+
+    // The seam itself, for a failure the route would turn into an unhandled exception.
+    private async Task<AnswerResult> SubmitAsync(string code, string guestId, AnswerRequest request)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<IPollAnswers>().SubmitAsync(code, guestId, request);
+    }
+
+    // Closes the poll's open round through the real IPolls.CloseAsync, which counts the rows into Final in one write
+    // transaction (V4), and returns how many answered by its closed view, which carries Final's count.
+    private async Task<int> CloseWithPollsAsync(SeededPoll poll, Guid roundId)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var view = await scope.ServiceProvider.GetRequiredService<IPolls>().CloseAsync(poll.DeckId, poll.Slide);
+        view.Phase.ShouldBe(PollPhase.Closed);
+        view.Round.ShouldBe(roundId.ToString());
+        return view.Answered;
+    }
+
+    // Closes the round inside the caller's transaction as V4's Close does: ClosedAt, and Final counted from the answer rows.
+    private async Task<PollFinal> CloseAsync(AppDbContext db, Guid roundId)
+    {
+        var round = await db.PollRounds.SingleAsync(r => r.Id == roundId);
+        var answers = await db.PollAnswers.AsNoTracking().Where(a => a.RoundId == roundId).Select(a => a.Picks).ToListAsync();
+        var counts = PollSeed.OPTIONS.Select((_, position) => answers.Count(picks => picks.Contains(position))).ToList();
+        round.ClosedAt = Clock.GetUtcNow();
+        round.JoinedAtClose = answers.Count;
+        round.Final = new PollFinal(PollSeed.OPTIONS, counts, answers.Count);
+        await db.SaveChangesAsync();
+        return round.Final;
+    }
+
+    // The task's result, failing the test when it doesn't come within WAIT rather than hanging it.
+    private static async Task<T> BoundedAsync<T>(Task<T> task)
+    {
+        var first = await Task.WhenAny(task, Task.Delay(WAIT, CancellationToken.None));
+        first.ShouldBeSameAs(task, $"no result within {WAIT}");
+        return await task;
+    }
+
+    private static async Task BoundedAsync(Task task)
+    {
+        var first = await Task.WhenAny(task, Task.Delay(WAIT, CancellationToken.None));
+        first.ShouldBeSameAs(task, $"not done within {WAIT}");
+        await task;
+    }
+
+    // Counts each save that writes a round's answers, and throws on a save that writes a poisoned round's answers.
+    private sealed class SaveWatch : SaveChangesInterceptor
+    {
+        private readonly Lock _gate = new();
+        private readonly Dictionary<Guid, int> _saves = [];
+        private readonly HashSet<Guid> _poisoned = [];
+
+        public int SavesOf(Guid roundId)
+        {
+            lock (_gate)
+            {
+                return _saves.GetValueOrDefault(roundId);
+            }
+        }
+
+        public void Poison(Guid roundId)
+        {
+            lock (_gate)
+            {
+                _poisoned.Add(roundId);
+            }
+        }
+
+        public void Heal(Guid roundId)
+        {
+            lock (_gate)
+            {
+                _poisoned.Remove(roundId);
+            }
+        }
+
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            var rounds = eventData.Context!.ChangeTracker.Entries<PollAnswer>().Select(e => e.Entity.RoundId).Distinct().ToList();
+            lock (_gate)
+            {
+                foreach (var round in rounds)
+                {
+                    _saves[round] = _saves.GetValueOrDefault(round) + 1;
+                    if (_poisoned.Contains(round))
+                    {
+                        throw new PoisonedSaveException();
+                    }
+                }
+            }
+            return base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+    }
+
+    // Tells a waiting test when the next database transaction begins.
+    private sealed class TransactionWatch : DbTransactionInterceptor
+    {
+        private TaskCompletionSource? _next;
+
+        public Task NextStart()
+        {
+            var next = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            Volatile.Write(ref _next, next);
+            return next.Task;
+        }
+
+        public override ValueTask<InterceptionResult<DbTransaction>> TransactionStartingAsync(
+            DbConnection connection,
+            TransactionStartingEventData eventData,
+            InterceptionResult<DbTransaction> result,
+            CancellationToken cancellationToken = default)
+        {
+            Interlocked.Exchange(ref _next, null)?.TrySetResult();
+            return base.TransactionStartingAsync(connection, eventData, result, cancellationToken);
+        }
+    }
+
+    public sealed class PoisonedSaveException : Exception
+    {
+        public PoisonedSaveException()
+            : base("A test failed this save.")
+        {
+        }
+    }
+}

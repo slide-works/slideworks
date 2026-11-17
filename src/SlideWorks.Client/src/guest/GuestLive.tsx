@@ -1,3 +1,4 @@
+import { AudiencePollsContext } from './AudiencePollsContext';
 import { GuestErrorBoundary } from './GuestErrorBoundary';
 import { GuestScreens } from './GuestScreens';
 import type { GuestView } from './guestView';
@@ -5,8 +6,12 @@ import { useAudience } from './useAudience';
 import type { Retry } from './useRetry';
 
 function Screens({ code, view: initial, onRetry }: Props) {
-  const { view, state, status } = useAudience(code, initial);
-  return <GuestScreens view={view} state={state} status={status} onRetry={onRetry} />;
+  const { view, state, status, polls } = useAudience(code, initial);
+  return (
+    <AudiencePollsContext value={polls}>
+      <GuestScreens view={view} state={state} status={status} onRetry={onRetry} />
+    </AudiencePollsContext>
+  );
 }
 
 type Props = { code: string; view: GuestView; onRetry: Retry };

@@ -491,5 +491,9 @@ public class AudienceHubContractTests : ApiTestFixture
         public void Hit(string callerKey)
         {
         }
+
+        public bool OverMissLimit(string callerKey) => !Open;
+
+        public void RecordMiss(string callerKey) => Interlocked.Increment(ref _misses);
     }
 }

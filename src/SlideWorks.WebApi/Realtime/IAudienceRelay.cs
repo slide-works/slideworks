@@ -12,4 +12,8 @@ public interface IAudienceRelay
 
     // The session ended (J2): send audienceEnded to the guests and stop following.
     Task EndedAsync(string deckId);
+
+    // Something guests see changed outside the presentation state (a poll's phase, V3): compose the deck's current state
+    // again and publish it, as a move would. Does nothing when the deck's session is not live.
+    Task RefreshAsync(string deckId);
 }

@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { Page } from 'playwright/test';
 import type { AudienceEvent, AudienceState } from '../guest/audienceEvents';
+import type { PollActivity, PollTally } from '../polls/types';
 import type { PresentationState, PresentationUpdate, TimerCommand } from '../presentation/types';
 import { DECK_NOT_FOUND } from '../realtime/hubErrors';
 
@@ -97,8 +98,13 @@ type Sink = { send(text: string): void };
 // the WebSockets the page opens. It reloads the page, so call it before mount().
 //
 // With the audience option it also answers JoinAudience (or refuses it), records LeaveAudience and WatchAudience, and
-// pushes "audienceEvent" messages with pushAudienceEvent. With the transports option it offers only those transports,
-// and plays WebSockets, Server-Sent Events (a small local server the page's event stream is sent to) and long polling.
+// pushes "audienceEvent" messages with pushAudienceEvent. It plays WatchPoll as the real hub does (SW-6 V5): refused
+// with "not_answered" unless the guest has an answer in an open afterAnswer round (setPollWatchable, or stubPollApi's
+// hub option keeps it in step), and a watch lasts only as long as the connection that made it. pushPollTally sends an
+// audience tally to the connection, and a results tally only to a connection that watched. pushActivity moves the poll
+// on screen. With the transports option
+// it offers only those transports, and plays WebSockets, Server-Sent Events (a small local server the page's event
+// stream is sent to) and long polling.
 //
 // Each hub method is one entry in the methods map below: a new method is a new entry.
 export async function stubDeckHub(
@@ -122,6 +128,11 @@ export async function stubDeckHub(
   const audienceJoins: string[] = [];
   const audienceLeaves: string[] = [];
   const watches: string[] = [];
+  const pollWatches: string[] = [];
+  // Whether WatchPoll would be allowed now, and the connection (by its negotiate count) that last watched, if any.
+  let pollWatchable = false;
+  let watchingConnection = 0;
+  const watching = () => watchingConnection !== 0 && watchingConnection === connections;
   const transportsUsed: StubTransport[] = [];
   let audienceState = audience?.state && structuredClone(audience.state);
   let audienceRefusal = audience?.refuse;
@@ -226,6 +237,17 @@ export async function stubDeckHub(
     WatchAudience: audienceMethod({
       record: ([deckId]) => watches.push(deckId as string),
       answer: (_, reply) => reply.result(),
+    }),
+    WatchPoll: audienceMethod({
+      record: ([code]) => pollWatches.push(code as string),
+      answer: (_, reply) => {
+        if (!pollWatchable) {
+          reply.error('not_answered');
+          return;
+        }
+        watchingConnection = connections;
+        reply.result();
+      },
     }),
   };
 
@@ -397,12 +419,37 @@ export async function stubDeckHub(
     audienceLeaves,
     // Each WatchAudience's deck id, in order.
     watches,
+    // Each WatchPoll's code, in order, refused and failed ones included.
+    pollWatches,
     // The transport of each connection the page made, in order.
     transportsUsed,
     // Sends one "audienceEvent" to the newest connection. An audienceState also becomes the state later joins get.
     pushAudienceEvent(event: AudienceEvent) {
       if (event.type === 'audienceState') audienceState = structuredClone(event);
       send(socket!, { type: 1, target: 'audienceEvent', arguments: [event] });
+    },
+    // Sends one pollTally to the newest connection as the hub does: an audience tally (counts null while hidden) always,
+    // a results tally (with counts) only when that connection has watched the poll.
+    pushPollTally(
+      tally: PollTally,
+      { target = 'audience' }: { target?: 'audience' | 'results' } = {},
+    ) {
+      if (target === 'results' && !watching()) return;
+      send(socket!, { type: 1, target: 'audienceEvent', arguments: [tally] });
+    },
+    // Whether a later WatchPoll is allowed: the guest has an answer in an open afterAnswer round. Starts false.
+    setPollWatchable(watchable: boolean) {
+      pollWatchable = watchable;
+    },
+    // Whether the newest connection has watched the poll (and so gets results tallies).
+    get watchingPoll() {
+      return watching();
+    },
+    // Puts activity on the audience state with the seq one higher and sends it, as the server does when a poll opens,
+    // closes or changes on screen. Later joins get that state too.
+    pushActivity(activity: PollActivity | null) {
+      audienceState = { ...audienceState!, seq: audienceState!.seq + 1, activity };
+      send(socket!, { type: 1, target: 'audienceEvent', arguments: [audienceState] });
     },
     // Changes the state later JoinAudience calls answer with, sending nothing: the state a reconnecting guest lands on.
     setAudienceState(state: AudienceState) {
@@ -452,6 +499,8 @@ export async function stubDeckHub(
     // Closes the newest connection the way a server going away does, letting
     // the client reconnect: SignalR's close message with allowReconnect.
     drop() {
+      // The hub forgets the connection's groups, so a reconnect must watch the poll again.
+      watchingConnection = 0;
       send(socket!, { type: 7, error: 'Server went away.', allowReconnect: true });
     },
   };

@@ -34,6 +34,7 @@ import type {
   SharingView,
 } from '../../api/types';
 import type { LayoutName, Slots } from '../../slides/slots';
+import { LAYOUT_SLOTS } from './layoutSlots';
 import type { JsonView, Widen } from './widen';
 
 export const me = meJson satisfies Widen<MeView> as MeView;
@@ -69,3 +70,35 @@ export const sampleDeck = sampleDeckJson satisfies JsonView<DeckPlayView> as Dec
 export const SAMPLE_SLOTS = Object.fromEntries(
   [...sampleDeck.slides].reverse().map((slide) => [slide.layout, slide.slots]),
 ) as { [L in LayoutName]?: Slots[L] };
+
+// SW-6: the play view and the deck page with slide 2 made a poll slide (the mockup's question and four options, as
+// LAYOUT_SLOTS.poll). The poll-control.json samples are for slide 4, so pass { slide: POLL_SLIDE_NUMBER } to
+// pollControlView() for these decks. The poll's settings are never on the slide (V1), and the server gives a poll slide
+// no headline. Each call returns a fresh copy.
+export const POLL_SLIDE_NUMBER = 2;
+
+export function deckPlayWithPoll(): DeckPlayView {
+  const view = structuredClone(deckPlay);
+  view.slides = view.slides.map((slide) =>
+    slide.number === POLL_SLIDE_NUMBER
+      ? { ...slide, layout: 'poll', steps: 0, slots: structuredClone(LAYOUT_SLOTS.poll) }
+      : slide,
+  );
+  return view;
+}
+
+export function deckPageWithPoll(): DeckPageView {
+  const view = structuredClone(deckPage);
+  view.slides = view.slides.map((slide) =>
+    slide.number === POLL_SLIDE_NUMBER
+      ? {
+          ...slide,
+          layout: 'poll',
+          headline: null,
+          steps: 0,
+          slots: structuredClone(LAYOUT_SLOTS.poll),
+        }
+      : slide,
+  );
+  return view;
+}

@@ -120,5 +120,7 @@ public class JoinAudienceRaceTests : ApiTestFixture
         public Task StartedAsync(string deckId) => Task.CompletedTask;
 
         public Task EndedAsync(string deckId) => Task.CompletedTask;
+
+        public Task RefreshAsync(string deckId) => Task.CompletedTask;
     }
 }

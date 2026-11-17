@@ -19,6 +19,7 @@ import { RulesLayout } from './RulesLayout';
 import { CardsLayout } from './CardsLayout';
 import { CloseLayout } from './CloseLayout';
 import { JoinLayout } from './JoinLayout';
+import { PollLayout } from './PollLayout';
 
 export const LAYOUTS: { [L in LayoutName]: ComponentType<LayoutProps<L>> } = {
   title: TitleLayout,
@@ -38,4 +39,5 @@ export const LAYOUTS: { [L in LayoutName]: ComponentType<LayoutProps<L>> } = {
   cards: CardsLayout,
   close: CloseLayout,
   join: JoinLayout,
+  poll: PollLayout,
 };

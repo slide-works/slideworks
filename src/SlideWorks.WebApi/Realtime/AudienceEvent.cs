@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using SlideWorks.WebApi.Features.Polls.Contracts;
 
 namespace SlideWorks.WebApi.Realtime;
 
@@ -11,4 +12,6 @@ namespace SlideWorks.WebApi.Realtime;
 [JsonDerivedType(typeof(AudienceState), "audienceState")]
 [JsonDerivedType(typeof(AudienceEnded), "audienceEnded")]
 [JsonDerivedType(typeof(JoinedCount), "joinedCount")]
+[JsonDerivedType(typeof(PollTally), "pollTally")]
+[JsonDerivedType(typeof(PollControl), "pollControl")]
 public abstract record AudienceEvent([property: JsonIgnore] string DeckId);

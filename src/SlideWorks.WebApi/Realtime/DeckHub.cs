@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SlideWorks.WebApi.Features.Join;
+using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure.RateLimits;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -27,6 +28,10 @@ namespace SlideWorks.WebApi.Realtime;
 // messages for that deck's session; the owner calls WatchAudience(deckId) for the joined count. The hub only checks and
 // delegates: IAudienceSessions finds the session and its phase, IAudienceRoster counts guests, IAudienceRelay composes
 // the state, and IAudienceEvents carries what goes out. A closed connection leaves the roster.
+//
+// Polls (SW-6, V5): a guest who has answered a poll whose results show after answering calls WatchPoll(code) to join
+// poll-results:{roundId}, the group that gets the round's tally with counts. IPollAnswers decides; the hub only checks the
+// cookie and joins. Group membership ends with the connection, so a reconnected phone calls it again.
 [AllowAnonymous]
 public sealed class DeckHub(
     IDeckAccess access,
@@ -35,7 +40,8 @@ public sealed class DeckHub(
     IAudienceRelay relay,
     IAudienceRoster roster,
     IJoinLookupLimiter limiter,
-    IAudienceEvents audienceEvents) : Hub
+    IAudienceEvents audienceEvents,
+    IPollAnswers pollAnswers) : Hub
 {
     // The caller is the hub connection's own principal, not the request's: under long polling a hub call runs after the
     // request that opened it has finished, so IHttpContextAccessor is empty by then.
@@ -62,6 +68,10 @@ public sealed class DeckHub(
     public const string NO_SESSION = "no_session";
 
     public const string TOO_MANY_ATTEMPTS = "too_many_attempts";
+
+    // WatchPoll's refusal (V5): this guest has no answer in an open round whose results show after answering, or the code
+    // finds no such round. One refusal for both, so a caller learns nothing about a code it guessed.
+    public const string NOT_ANSWERED = "not_answered";
 
     public static string GroupName(string deckId) => $"deck:{deckId}";
 
@@ -113,6 +123,9 @@ public sealed class DeckHub(
 
     // The owner's view of the audience: joinedCount (J4).
     public static string AudienceWatchGroupName(string deckId) => $"audience-watch:{deckId}";
+
+    // The guests who may see an open round's counts because they have answered it (V5): only WatchPoll adds to it.
+    public static string PollResultsGroupName(string roundId) => $"poll-results:{roundId}";
 
     // A guest follows a deck by its join code. Needs the sw_guest cookie. A code that finds no session counts as a miss
     // toward the rate limit and is refused as NO_SESSION; a caller out of misses is refused before the lookup. The guest
@@ -177,6 +190,16 @@ public sealed class DeckHub(
             throw new HubException(DECK_NOT_FOUND);
         }
         await Groups.AddToGroupAsync(Context.ConnectionId, AudienceWatchGroupName(deckId));
+    }
+
+    // Joins poll-results:{roundId} for the round IPollAnswers says this guest may watch (an "afterAnswer" poll it has
+    // answered in the open round). Needs the sw_guest cookie. Anything else is refused with NOT_ANSWERED before any group
+    // changes. Not rate limited: an unknown code and a known one without an answer get the same refusal.
+    public async Task WatchPoll(string code)
+    {
+        var guestId = GuestCookie.IdOf(Context.GetHttpContext()) ?? throw new HubException(NO_GUEST);
+        var roundId = await pollAnswers.CanWatchAsync(code, guestId) ?? throw new HubException(NOT_ANSWERED);
+        await Groups.AddToGroupAsync(Context.ConnectionId, PollResultsGroupName(roundId));
     }
 
     private async Task LeaveRosterAsync()

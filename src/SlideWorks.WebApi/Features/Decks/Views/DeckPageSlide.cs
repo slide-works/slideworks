@@ -42,6 +42,7 @@ public sealed record DeckPageSlide(
     {
         "title" or "divider" => Text(slots, "title"),
         "quote" => Shorten(Text(slots, "quote")),
+        "poll" => Text(slots, "question"),
         _ => Text(slots, "headline"),
     };
 

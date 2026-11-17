@@ -2,13 +2,17 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Agoda.IoC.Core;
 using Microsoft.AspNetCore.SignalR;
+using SlideWorks.WebApi.Features.Polls.Contracts;
 
 namespace SlideWorks.WebApi.Realtime;
 
-// Subscribes to the audience bus for every deck and forwards each event over the hub (J4): audienceState and
-// audienceEnded to audience:{deckId} (guests), joinedCount to audience-watch:{deckId} (the owner). All go on the method
-// "audienceEvent". A joinedCount goes at most once a second per deck: the first goes at once, and a change inside the
-// second waits for it to pass and sends the latest count then, so the owner always ends on the true number.
+// Subscribes to the audience bus for every deck and forwards each event over the hub (J4, V5): audienceState and
+// audienceEnded to audience:{deckId} (guests), joinedCount to audience-watch:{deckId} (the owner). A poll's events are
+// routed so nothing a guest may not see reaches a guest: pollControl, which carries counts and the correct answer, goes to
+// audience-watch:{deckId} only; pollTally goes by its Target, Audience to audience:{deckId} and Results to
+// poll-results:{roundId}, which only DeckHub.WatchPoll joins. An event of any other type has no route and is not sent.
+// All go on the method "audienceEvent". A joinedCount goes at most once a second per deck: the first goes at once, and a
+// change inside the second waits for it to pass and sends the latest count then, so the owner always ends on the true number.
 [RegisterSingleton(For = typeof(IHostedService))]
 public sealed class AudienceEventsRelay(IAudienceEvents events, IHubContext<DeckHub> hub, TimeProvider time, ILogger<AudienceEventsRelay> logger) : IHostedService, IDisposable
 {
@@ -46,7 +50,18 @@ public sealed class AudienceEventsRelay(IAudienceEvents events, IHubContext<Deck
     private Task ForwardAsync(AudienceEvent audienceEvent) => audienceEvent switch
     {
         JoinedCount count => SendCountAsync(count),
-        _ => SendAsync(DeckHub.AudienceGroupName(audienceEvent.DeckId), audienceEvent),
+        AudienceState or AudienceEnded => SendAsync(DeckHub.AudienceGroupName(audienceEvent.DeckId), audienceEvent),
+        PollControl control => SendAsync(DeckHub.AudienceWatchGroupName(control.DeckId), control),
+        PollTally tally => SendAsync(TallyGroup(tally), tally),
+        _ => throw new InvalidOperationException($"No hub group for the audience event {audienceEvent.GetType().Name}"),
+    };
+
+    // A tally's Target names its group; a Target with no group is never sent anywhere, rather than to the guests.
+    private static string TallyGroup(PollTally tally) => tally.Target switch
+    {
+        PollTallyTarget.Audience => DeckHub.AudienceGroupName(tally.DeckId),
+        PollTallyTarget.Results => DeckHub.PollResultsGroupName(tally.Round),
+        _ => throw new InvalidOperationException($"No hub group for the poll tally target {tally.Target}"),
     };
 
     private Task SendAsync(string group, AudienceEvent audienceEvent)

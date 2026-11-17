@@ -31,14 +31,16 @@ public class DatabaseTests : ApiTestFixture
 
         var applied = (await db.Database.GetAppliedMigrationsAsync()).ToList();
 
-        // SW-54 adds a third migration after these two (S1), SW-2 a fourth (L5) and SW-4 a fifth (P7), SW-5 a sixth (the join code, sessions and joins).
-        applied.Count.ShouldBe(6);
+        // SW-54 adds a third migration after these two (S1), SW-2 a fourth (L5) and SW-4 a fifth (P7), SW-5 a sixth (the join code, sessions and joins),
+        // SW-6 a seventh (polls, rounds and answers).
+        applied.Count.ShouldBe(7);
         applied[0].ShouldEndWith("_Initial");
         applied[1].ShouldEndWith("_Sw1Foundation");
         applied[2].ShouldEndWith("_Sw54SignUpApproval");
         applied[3].ShouldEndWith("_Sw2Look");
         applied[4].ShouldEndWith("_Sw4TalkLength");
         applied[5].ShouldEndWith("_Sw5AudienceJoin");
+        applied[6].ShouldEndWith("_Sw6Polls");
     }
 
     [Test]

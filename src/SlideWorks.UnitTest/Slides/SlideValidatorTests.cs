@@ -110,7 +110,7 @@ public class SlideValidatorTests
         var result = Validate("foo", "{}");
 
         result.Error.ShouldBe("layout: unknown layout 'foo' (known: title, divider, bullets, two-column, practice, compare, "
-            + "big-number, quote, image, table, chart, gantt, numbered-cards, rules, cards, close, join)");
+            + "big-number, quote, image, table, chart, gantt, numbered-cards, rules, cards, close, join, poll)");
     }
 
     [TestCase("{}")]
@@ -125,6 +125,56 @@ public class SlideValidatorTests
     public void Validate_WhenJoinCountIsMaybe_ShouldRefuseIt()
     {
         Validate("join", """{ "count": "maybe" }""").Error.ShouldBe("join.count: expected one of 'shown', 'hidden' (got 'maybe')");
+    }
+
+    [Test]
+    public void Validate_WhenPollHasAQuestionAndTwoOptions_ShouldAcceptIt()
+    {
+        Validate("poll", """{ "question": "How big was your last merge request?", "options": ["Small", "Large"] }""").Error.ShouldBeEmpty();
+    }
+
+    [Test]
+    public void Validate_WhenPollHasEightOptions_ShouldAcceptIt()
+    {
+        Validate("poll", $$"""{ "question": "Pick one", "options": [{{Options(8, 60)}}] }""").Error.ShouldBeEmpty();
+    }
+
+    [Test]
+    public void Validate_WhenPollHasOneOption_ShouldRefuseIt()
+    {
+        Validate("poll", """{ "question": "Pick one", "options": ["Only"] }""").Error.ShouldBe("poll.options: at least 2 items");
+    }
+
+    [Test]
+    public void Validate_WhenPollHasNineOptions_ShouldRefuseIt()
+    {
+        Validate("poll", $$"""{ "question": "Pick one", "options": [{{Options(9, 10)}}] }""").Error.ShouldBe("poll.options: at most 8 items");
+    }
+
+    [Test]
+    public void Validate_WhenPollOptionIs61Characters_ShouldRefuseIt()
+    {
+        Validate("poll", $$"""{ "question": "Pick one", "options": ["Short", "{{new string('o', 61)}}"] }""")
+            .Error.ShouldBe("poll.options[1]: at most 60 characters (got 61)");
+    }
+
+    [Test]
+    public void Validate_WhenPollQuestionIs121Characters_ShouldRefuseIt()
+    {
+        Validate("poll", $$"""{ "question": "{{new string('q', 121)}}", "options": ["A", "B"] }""")
+            .Error.ShouldBe("poll.question: at most 120 characters (got 121)");
+    }
+
+    [Test]
+    public void Validate_WhenPollHasACorrectSlot_ShouldRefuseItAsUnknown()
+    {
+        Validate("poll", """{ "question": "Pick one", "options": ["A", "B"], "correct": 1 }""").Error.ShouldBe("poll.correct: unknown field");
+    }
+
+    [Test]
+    public void Validate_WhenPollHasNoOptions_ShouldRequireThem()
+    {
+        Validate("poll", """{ "question": "Pick one" }""").Error.ShouldBe("poll.options: required");
     }
 
     [TestCase("""{ "headline": 5, "items": ["a"] }""", "bullets.headline: expected text")]
@@ -544,6 +594,10 @@ public class SlideValidatorTests
         Slot("failure", "fill").Default.ShouldBe("soft");
         Slot("success", "fill").Default.ShouldBe("soft");
     }
+
+    // count options of length characters each, as a JSON list's items.
+    private static string Options(int count, int length) =>
+        string.Join(", ", Enumerable.Range(0, count).Select(i => $"\"{(char)('a' + i)}{new string('o', length - 1)}\""));
 
     private static SlideValidationResult Validate(string layout, string slots)
     {

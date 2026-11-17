@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SlideWorks.WebApi.Features.Accounts;
@@ -6,6 +7,7 @@ using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.OAuth;
+using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Slides;
 
@@ -36,6 +38,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AudienceSession> AudienceSessions => Set<AudienceSession>();
 
     public DbSet<AudienceJoin> AudienceJoins => Set<AudienceJoin>();
+
+    public DbSet<Poll> Polls => Set<Poll>();
+
+    public DbSet<PollRound> PollRounds => Set<PollRound>();
+
+    public DbSet<PollAnswer> PollAnswers => Set<PollAnswer>();
 
     // SQLite can't compare or ORDER BY a DateTimeOffset stored as TEXT, so every one is stored as a sortable integer.
     // Expiry checks and newest-first lists then run in SQL.
@@ -105,6 +113,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             join.HasOne<AudienceSession>().WithMany().HasForeignKey(j => j.SessionId);
         });
 
+        ConfigurePolls(modelBuilder);
+
         modelBuilder.Entity<OAuthClientRow>(client => client.HasKey(c => c.ClientId));
 
         modelBuilder.Entity<OAuthRequestRow>(request => request.HasKey(r => r.Id));
@@ -116,6 +126,40 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             token.Property(t => t.Kind).HasConversion<string>();
             token.HasIndex(t => t.TokenHash).IsUnique();
             token.HasIndex(t => t.FamilyId);
+        });
+    }
+
+    // SW-6's poll tables (V1, V2). Nothing cascades from a deck, a slide or a session to a poll, a round or an answer:
+    // slides are soft-deleted and keep their poll, rounds and answers, and app code removes none of them.
+    private static void ConfigurePolls(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Poll>(poll =>
+        {
+            poll.HasKey(p => p.SlideId);
+            poll.HasOne<Slide>().WithOne().HasForeignKey<Poll>(p => p.SlideId).OnDelete(DeleteBehavior.Restrict);
+            poll.HasOne<Deck>().WithMany().HasForeignKey(p => p.DeckId).OnDelete(DeleteBehavior.Restrict);
+            poll.Property(p => p.Pick).HasConversion<string>();
+            poll.Property(p => p.Results).HasConversion<string>();
+            poll.Property(p => p.Opens).HasConversion<string>();
+            poll.Property(p => p.Privacy).HasConversion<string>();
+        });
+
+        modelBuilder.Entity<PollRound>(round =>
+        {
+            round.HasOne<Slide>().WithMany().HasForeignKey(r => r.SlideId).OnDelete(DeleteBehavior.Restrict);
+            round.HasOne<AudienceSession>().WithMany().HasForeignKey(r => r.SessionId).OnDelete(DeleteBehavior.Restrict);
+            round.HasIndex(r => new { r.SlideId, r.SessionId, r.Number }).IsUnique();
+            // At most one round per session without ClosedAt (draft or open, D12), so two opens can never both land.
+            round.HasIndex(r => r.SessionId).IsUnique().HasFilter("\"ClosedAt\" IS NULL").HasDatabaseName("IX_PollRounds_SessionId_Open");
+            round.Property(r => r.Final).HasConversion(
+                final => final == null ? null : JsonSerializer.Serialize(final, JsonSerializerOptions.Web),
+                json => json == null ? null : JsonSerializer.Deserialize<PollFinal>(json, JsonSerializerOptions.Web));
+        });
+
+        modelBuilder.Entity<PollAnswer>(answer =>
+        {
+            answer.HasKey(a => new { a.RoundId, a.GuestId });
+            answer.HasOne<PollRound>().WithMany().HasForeignKey(a => a.RoundId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
