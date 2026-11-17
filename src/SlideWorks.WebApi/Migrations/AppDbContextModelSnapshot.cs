@@ -612,7 +612,12 @@ namespace SlideWorks.WebApi.Migrations
 
                     b.HasKey("DeckId");
 
-                    b.ToTable("QaSettingsRows");
+                    b.ToTable("QaSettingsRows", t =>
+                        {
+                            t.HasCheckConstraint("CK_QaSettingsRows_Questions", "\"Questions\" IN ('Open', 'Closed', 'Off')");
+
+                            t.HasCheckConstraint("CK_QaSettingsRows_ShowOn", "\"ShowOn\" IN ('AnySlide', 'QaSlide')");
+                        });
                 });
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.Qa.Data.QaSlideSwitchRow", b =>
@@ -673,6 +678,10 @@ namespace SlideWorks.WebApi.Migrations
                     b.ToTable("Questions", t =>
                         {
                             t.HasCheckConstraint("CK_Questions_Name_Length", "\"Name\" IS NULL OR length(\"Name\") <= 30");
+
+                            t.HasCheckConstraint("CK_Questions_OnScreen", "\"OnScreen\" = 0 OR (\"State\" = 'Open' AND \"HiddenAt\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_Questions_State", "\"State\" IN ('Waiting', 'Open', 'Answered')");
                         });
                 });
 
@@ -710,6 +719,8 @@ namespace SlideWorks.WebApi.Migrations
                     b.ToTable("ReactionTotals", t =>
                         {
                             t.HasCheckConstraint("CK_ReactionTotals_Count", "\"Count\" >= 0");
+
+                            t.HasCheckConstraint("CK_ReactionTotals_Emoji", "\"Emoji\" IN ('ThumbsUp', 'Heart', 'Laugh', 'Wow', 'Clap')");
                         });
                 });
 

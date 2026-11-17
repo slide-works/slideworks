@@ -140,5 +140,16 @@ public sealed class QaRowSeed(IServiceProvider services)
         await db.SaveChangesAsync();
     }
 
+    // Runs one raw write, for a test that proves the database refuses a value EF can't write (an unknown enum name, say).
+    // A Guid goes in as EF stores it: SqlGuid(id).
+    public async Task SqlAsync(FormattableString sql)
+    {
+        await using var scope = services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.ExecuteSqlAsync(sql);
+    }
+
+    // A Guid as EF Core's SQLite provider stores it: upper-case text.
+    public static string SqlGuid(Guid id) => id.ToString("D").ToUpperInvariant();
+
     private static DateTimeOffset Now(AsyncServiceScope scope) => scope.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow();
 }

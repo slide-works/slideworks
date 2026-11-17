@@ -25,6 +25,8 @@ namespace SlideWorks.WebApi.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_QaSettingsRows", x => x.DeckId);
+                    table.CheckConstraint("CK_QaSettingsRows_Questions", "\"Questions\" IN ('Open', 'Closed', 'Off')");
+                    table.CheckConstraint("CK_QaSettingsRows_ShowOn", "\"ShowOn\" IN ('AnySlide', 'QaSlide')");
                     table.ForeignKey(
                         name: "FK_QaSettingsRows_Decks_DeckId",
                         column: x => x.DeckId,
@@ -70,6 +72,8 @@ namespace SlideWorks.WebApi.Migrations
                 {
                     table.PrimaryKey("PK_Questions", x => new { x.RoundId, x.Position });
                     table.CheckConstraint("CK_Questions_Name_Length", "\"Name\" IS NULL OR length(\"Name\") <= 30");
+                    table.CheckConstraint("CK_Questions_OnScreen", "\"OnScreen\" = 0 OR (\"State\" = 'Open' AND \"HiddenAt\" IS NULL)");
+                    table.CheckConstraint("CK_Questions_State", "\"State\" IN ('Waiting', 'Open', 'Answered')");
                     table.ForeignKey(
                         name: "FK_Questions_PollOptions_RoundId_Position",
                         columns: x => new { x.RoundId, x.Position },
@@ -109,6 +113,7 @@ namespace SlideWorks.WebApi.Migrations
                 {
                     table.PrimaryKey("PK_ReactionTotals", x => new { x.SessionId, x.SlideId, x.Emoji });
                     table.CheckConstraint("CK_ReactionTotals_Count", "\"Count\" >= 0");
+                    table.CheckConstraint("CK_ReactionTotals_Emoji", "\"Emoji\" IN ('ThumbsUp', 'Heart', 'Laugh', 'Wow', 'Clap')");
                     table.ForeignKey(
                         name: "FK_ReactionTotals_AudienceSessions_SessionId",
                         column: x => x.SessionId,

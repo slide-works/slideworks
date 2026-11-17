@@ -62,5 +62,5 @@ public class Poll
         Privacy = PollPrivacy.Private,
     };
 
-    public PollSettings ToSettings()=> new(Pick, Max, Results, Correct, Opens, Privacy);
+    public PollSettings ToSettings() => new(Pick, Max, Results, Correct, Opens, Privacy);
 }

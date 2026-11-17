@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.Core.Polls;
@@ -10,9 +11,10 @@ using SlideWorks.WebApi.Tests.Support;
 namespace SlideWorks.WebApi.Tests.Qa;
 
 // SW-9's rows (Q2) and their seeds: the database refuses what the contract forbids (a second question on screen in a
-// round, a name over 30 characters), QaSeed gives a round even with IQaRounds faked, QaRowSeed writes a question at its
-// option's position, and QaRows reads the rows back with the defaults for a deck or slide that has none. Each test seeds
-// a deck of its own, since the app is shared by the fixture.
+// round, a question on screen that isn't open and shown, a name over 30 characters, a stored enum name that doesn't
+// exist), QaSeed gives a round even with IQaRounds faked, QaRowSeed writes a question at its option's position, and QaRows
+// reads the rows back with the defaults for a deck or slide that has none. Each test seeds a deck of its own, since the
+// app is shared by the fixture.
 [TestFixture]
 public class QaDataTests : QaTestFixture
 {
@@ -38,6 +40,59 @@ public class QaDataTests : QaTestFixture
         await QaRowSeed.QuestionAsync(seeded.RoundId, "What do you ship first?");
 
         (await RowsAsync(rows => rows.QuestionsAsync(seeded.RoundId))).Select(q => q.OnScreen).ShouldBe([true, false]);
+    }
+
+    [TestCase(QuestionState.Waiting, false)]
+    [TestCase(QuestionState.Answered, false)]
+    [TestCase(QuestionState.Open, true)]
+    public async Task Question_WhenOnScreenButNotOpenAndShown_ShouldBeRefused(QuestionState state, bool hidden)
+    {
+        var seeded = await SeedQaAsync();
+
+        var refused = await Should.ThrowAsync<DbUpdateException>(() => QaRowSeed.QuestionAsync(seeded.RoundId, "Why?", state, hidden, onScreen: true));
+
+        refused.InnerException!.Message.ShouldContain("CK_Questions_OnScreen");
+    }
+
+    [Test]
+    public async Task Question_WhenStateIsUnknown_ShouldBeRefused()
+    {
+        var seeded = await SeedQaAsync();
+        var option = await Rows.OptionAsync(seeded.RoundId, "Why?");
+
+        var refused = await Should.ThrowAsync<SqliteException>(() => QaRowSeed.SqlAsync($"""
+            INSERT INTO "Questions" ("RoundId", "Position", "GuestId", "State", "OnScreen", "AskedAt")
+            VALUES ({QaRowSeed.SqlGuid(seeded.RoundId)}, {option.Position}, 'g', 'Bogus', 0, 0)
+            """));
+
+        refused.Message.ShouldContain("CK_Questions_State");
+    }
+
+    [TestCase("Bogus", "AnySlide", "CK_QaSettingsRows_Questions")]
+    [TestCase("Open", "Nowhere", "CK_QaSettingsRows_ShowOn")]
+    public async Task QaSettingsRow_WhenAValueIsUnknown_ShouldBeRefused(string questions, string showOn, string check)
+    {
+        var seeded = await SeedQaAsync();
+
+        var refused = await Should.ThrowAsync<SqliteException>(() => QaRowSeed.SqlAsync($"""
+            INSERT INTO "QaSettingsRows" ("DeckId", "Questions", "Review", "Names", "Reactions", "ShowOn")
+            VALUES ({seeded.DeckId}, {questions}, 0, 1, 1, {showOn})
+            """));
+
+        refused.Message.ShouldContain(check);
+    }
+
+    [Test]
+    public async Task ReactionTotal_WhenEmojiIsUnknown_ShouldBeRefused()
+    {
+        var seeded = await SeedQaAsync();
+
+        var refused = await Should.ThrowAsync<SqliteException>(() => QaRowSeed.SqlAsync($"""
+            INSERT INTO "ReactionTotals" ("SessionId", "SlideId", "Emoji", "Count")
+            VALUES ({QaRowSeed.SqlGuid(seeded.SessionId)}, {QaRowSeed.SqlGuid(seeded.QuoteSlideId)}, 'Poop', 1)
+            """));
+
+        refused.Message.ShouldContain("CK_ReactionTotals_Emoji");
     }
 
     [Test]

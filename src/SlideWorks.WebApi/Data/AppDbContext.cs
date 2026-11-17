@@ -1,13 +1,13 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.OAuth;
-using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Qa.Data;
 using SlideWorks.WebApi.Features.Sharing;
@@ -204,7 +204,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     }
 
     // SW-9's own rows (Q2): a question per Q&A option, a deck's settings, a slide's switch, and the reaction totals and who
-    // reacted. Enums are stored by name. SQLite ignores a column's length, so the limits are checks. Every foreign key is
+    // reacted. Enums are stored by name, and a check holds each to its enum's names, since a row EF can't read back would
+    // break the read of every row beside it. SQLite ignores a column's length, so the limits are checks. Every foreign key is
     // Restrict: nothing cascades from a deck, a slide, a session or an option, and app code removes none of these rows.
     private static void ConfigureQa(ModelBuilder modelBuilder)
     {
@@ -217,7 +218,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             question.HasIndex(q => q.RoundId).IsUnique().HasFilter("\"OnScreen\" = 1").HasDatabaseName("IX_Questions_RoundId_OnScreen");
             question.Property(q => q.State).HasConversion<string>();
             question.Property(q => q.Name).HasMaxLength(QuestionText.MAX_NAME);
-            question.ToTable(table => table.HasCheckConstraint("CK_Questions_Name_Length", $"\"Name\" IS NULL OR length(\"Name\") <= {QuestionText.MAX_NAME}"));
+            question.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_Questions_Name_Length", $"\"Name\" IS NULL OR length(\"Name\") <= {QuestionText.MAX_NAME}");
+                table.HasCheckConstraint("CK_Questions_State", OneOf<QuestionState>("State"));
+                // Only an open question that isn't hidden can be on screen.
+                table.HasCheckConstraint("CK_Questions_OnScreen", $"\"OnScreen\" = 0 OR (\"State\" = '{nameof(QuestionState.Open)}' AND \"HiddenAt\" IS NULL)");
+            });
         });
 
         modelBuilder.Entity<QaSettingsRow>(settings =>
@@ -226,6 +233,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             settings.HasOne<Deck>().WithOne().HasForeignKey<QaSettingsRow>(s => s.DeckId).OnDelete(DeleteBehavior.Restrict);
             settings.Property(s => s.Questions).HasConversion<string>();
             settings.Property(s => s.ShowOn).HasConversion<string>();
+            settings.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_QaSettingsRows_Questions", OneOf<QaQuestions>("Questions"));
+                table.HasCheckConstraint("CK_QaSettingsRows_ShowOn", OneOf<QaShowOn>("ShowOn"));
+            });
         });
 
         modelBuilder.Entity<QaSlideSwitchRow>(slideSwitch =>
@@ -240,7 +252,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             total.HasOne<AudienceSession>().WithMany().HasForeignKey(t => t.SessionId).OnDelete(DeleteBehavior.Restrict);
             total.HasOne<Slide>().WithMany().HasForeignKey(t => t.SlideId).OnDelete(DeleteBehavior.Restrict);
             total.Property(t => t.Emoji).HasConversion<string>();
-            total.ToTable(table => table.HasCheckConstraint("CK_ReactionTotals_Count", "\"Count\" >= 0"));
+            total.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_ReactionTotals_Count", "\"Count\" >= 0");
+                table.HasCheckConstraint("CK_ReactionTotals_Emoji", OneOf<ReactionEmoji>("Emoji"));
+            });
         });
 
         modelBuilder.Entity<ReactionGuest>(guest =>
@@ -249,4 +265,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             guest.HasOne<AudienceSession>().WithMany().HasForeignKey(g => g.SessionId).OnDelete(DeleteBehavior.Restrict);
         });
     }
+
+    // A check that the column holds one of the enum's names, as HasConversion<string>() stores them.
+    private static string OneOf<T>(string column) where T : struct, Enum
+        => $"\"{column}\" IN ({string.Join(", ", Enum.GetNames<T>().Select(name => $"'{name}'"))})";
 }
