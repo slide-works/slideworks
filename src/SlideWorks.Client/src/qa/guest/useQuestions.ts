@@ -23,7 +23,8 @@ export type QuestionSort = 'top' | 'new';
 export type Questions = {
   // The room the list was read with, or the newer one from the audience state. Null before the first read.
   room: QaRoom | null;
-  // In `number` order, as the server sends them; the list sorts.
+  // In `number` order, as the server sends them; the list sorts. Each question's `votes` is the server's last count with
+  // this guest's upvotes as `mine` shows them, toggles not yet sent applied, so a part shows it as is.
   questions: GuestQuestion[];
   // The guest's own upvotes in the round (picks are question numbers), with any toggle not yet sent applied.
   mine: MyVotes;

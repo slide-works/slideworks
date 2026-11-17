@@ -10,6 +10,7 @@ export type PhoneReactions = {
   tap(emoji: ReactionEmoji): Promise<void>;
   // A 429 came back: true for the rest of the 5 seconds, and the row is greyed.
   cooling: boolean;
+  // Beyond Q8's { enabled, tap, cooling } (decision on SW-306), for the row's "a failed tap shows the hook's message".
   // The latest failed tap's code from the server ("reactions_off") or the client's own text for a call that never
   // reached it. Null when nothing has failed since the last tap that went through.
   error: string | null;

@@ -148,4 +148,31 @@ describe('useAudience questions', () => {
     expect(seen.audiences.length).toBeGreaterThan(1);
     expect(latest().questions).toBe(first);
   });
+
+  it('hands a tally that arrives after the hook has stopped to nobody', async () => {
+    const listener = vi.fn();
+    const handler = fake.handlers.audienceEvent;
+    latest().questions.onTally(listener);
+    await act(() => root.unmount());
+    root = createRoot(document.createElement('div'));
+
+    handler(questionTally());
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('a subscriber still gets tallies after a reconnect', async () => {
+    const got: QuestionTally[] = [];
+    latest().questions.onTally((tally) => got.push(tally));
+    const after = questionTally({ listRevision: 9 });
+
+    await act(async () => {
+      fake.handlers.reconnecting();
+      fake.handlers.reconnected();
+    });
+    await event(after);
+
+    expect(fake.connection.invoke).toHaveBeenLastCalledWith('JoinAudience', '482913');
+    expect(got).toEqual([after]);
+  });
 });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuestions } from '../qa/guest/useQuestions';
 import { usePhoneReactions } from '../qa/guest/usePhoneReactions';
-import type { ReactionEmoji } from '../qa/types';
+import { REACTION_EMOJI } from '../qa/emoji';
 
 // Component tests only: renders useQuestions() and usePhoneReactions() as plain text, one test id per value, with a
 // control per action, so the real providers can be tested without any part. Asking sends the text and name boxes'
@@ -59,7 +59,7 @@ export function QuestionsProbe({ numbers = [1, 2, 3, 4, 5, 6] }: { numbers?: num
       <p data-testid="probe-reactions-enabled">{String(reactions.enabled)}</p>
       <p data-testid="probe-cooling">{String(reactions.cooling)}</p>
       <p data-testid="probe-reaction-error">{reactions.error ?? ''}</p>
-      {(['thumbsUp', 'heart', 'laugh', 'wow', 'clap'] satisfies ReactionEmoji[]).map((emoji) => (
+      {REACTION_EMOJI.map((emoji) => (
         <button
           key={emoji}
           type="button"

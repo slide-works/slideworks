@@ -37,8 +37,9 @@ const OPEN_ROOM: QaRoom = {
 const NO_VOTES: MyVotes = { picks: [], revision: 0 };
 
 // Component tests only: gives the parts a Questions value in whatever state the spec names, with no network. toggleVote
-// adds or takes back the pick on the phone and setSort changes the sort, the way the real hook does, so a button follows
-// a tap; nothing else moves unless the spec mounts it again with other props. ask resolves at once and changes nothing.
+// adds or takes back the pick on an open question, and its votes by one, and setSort changes the sort, the way the real
+// hook does, so a button and its count follow a tap; nothing else moves unless the spec mounts it again with other
+// props. ask resolves at once and changes nothing.
 export function QuestionsFixture({
   room = OPEN_ROOM,
   questions = [],
@@ -60,7 +61,12 @@ export function QuestionsFixture({
   const value = useMemo<Questions>(
     () => ({
       room,
-      questions,
+      // The given count, moved by one where the guest's pick on the phone differs from the given mine.
+      questions: questions.map((q) => {
+        const now = picks.includes(q.number);
+        const given = mine.picks.includes(q.number);
+        return now === given ? q : { ...q, votes: q.votes + (now ? 1 : -1) };
+      }),
       mine: { picks, revision: mine.revision },
       state,
       asking,
@@ -69,11 +75,13 @@ export function QuestionsFixture({
       sort: heldSort,
       ask: async (text, name) => onAsk?.(text, name),
       toggleVote: (number) => {
-        setPicks((held) =>
-          held.includes(number)
-            ? held.filter((n) => n !== number)
-            : [...held, number].sort((a, b) => a - b),
-        );
+        // Only an open question's upvote moves; any other keeps its pick and count, as the server does.
+        if (questions.find((q) => q.number === number)?.state === 'open')
+          setPicks((held) =>
+            held.includes(number)
+              ? held.filter((n) => n !== number)
+              : [...held, number].sort((a, b) => a - b),
+          );
         onToggleVote?.(number);
       },
       retry: () => onRetry?.(),
@@ -86,6 +94,7 @@ export function QuestionsFixture({
       room,
       questions,
       picks,
+      mine.picks,
       mine.revision,
       state,
       asking,

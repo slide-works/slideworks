@@ -19,7 +19,10 @@ export type GuestQaProps = {
 export function GuestQa({ code, state, status, presenter, children }: GuestQaProps) {
   const [tab, setTab] = useState<GuestTab>('slide');
   const room = state.room;
-  const shown = room !== null && room.questions !== 'off' ? tab : 'slide';
+  const on = room !== null && room.questions !== 'off';
+  // Questions turned off while the guest was on them: back to the slide, so turning them on again lands there too.
+  if (!on && tab !== 'slide') setTab('slide');
+  const shown = on ? tab : 'slide';
   return (
     <QuestionsLive code={code} room={room} status={status} showing={shown === 'questions'}>
       <ReactionsLive code={code} room={room} status={status}>

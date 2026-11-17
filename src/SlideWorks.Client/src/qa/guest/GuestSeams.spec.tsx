@@ -71,6 +71,108 @@ for (const [name, room] of [
   });
 }
 
+test('in landscape the slide shows and the questions panel hides, even with Questions chosen', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await stubQuestionsApi(page);
+  await mount(
+    <GuestQa code="482913" state={live(qaRoom('open'))} status="live" presenter="Sam Rivera">
+      {slideChild}
+    </GuestQa>,
+  );
+  await page.getByTestId(QA_TABS_TEST_IDS.questionsTab).click();
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.questionsPanel)).toBeVisible();
+
+  await page.setViewportSize({ width: 844, height: 390 });
+
+  await expect(page.getByTestId('slide-content')).toBeVisible();
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.questionsPanel)).toBeHidden();
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.bar)).toBeHidden();
+});
+
+test("the slide's content keeps its state when questions go off and on again", async ({
+  mount,
+  page,
+}) => {
+  await stubQuestionsApi(page);
+  const withRoom = (room: QaRoom) => (
+    <GuestQa code="482913" state={live(room)} status="live" presenter="Sam Rivera">
+      <input data-testid="child-input" aria-label="Kept" />
+    </GuestQa>
+  );
+  const component = await mount(withRoom(qaRoom('open')));
+  await page.getByTestId('child-input').fill('kept');
+
+  await component.update(withRoom(qaRoom('off')));
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.bar)).toHaveCount(0);
+  await expect(page.getByTestId('child-input')).toHaveValue('kept');
+
+  await component.update(withRoom(qaRoom('open')));
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.bar)).toBeVisible();
+  await expect(page.getByTestId('child-input')).toHaveValue('kept');
+});
+
+test('questions going off while Questions is chosen selects Slide, so they come back on Slide', async ({
+  mount,
+  page,
+}) => {
+  await stubQuestionsApi(page);
+  const withRoom = (room: QaRoom) => (
+    <GuestQa code="482913" state={live(room)} status="live" presenter="Sam Rivera">
+      {slideChild}
+    </GuestQa>
+  );
+  const component = await mount(withRoom(qaRoom('open')));
+  await page.getByTestId(QA_TABS_TEST_IDS.questionsTab).click();
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.questionsTab)).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+
+  await component.update(withRoom(qaRoom('off')));
+  await expect(page.getByTestId('slide-content')).toBeVisible();
+  await component.update(withRoom(qaRoom('open')));
+
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.slideTab)).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.questionsPanel)).toBeHidden();
+});
+
+test("the questions fixture moves an open question's votes with the toggle, and nothing else", async ({
+  mount,
+  page,
+}) => {
+  const view = guestQuestions('view');
+  await mount(
+    <QuestionsFixture room={view.room} questions={view.questions} mine={view.mine}>
+      <PhoneReactionsFixture>
+        <QuestionsProbe />
+      </PhoneReactionsFixture>
+    </QuestionsFixture>,
+  );
+  const question = (n: number) => page.getByTestId(`probe-question-${n}`);
+  await expect(question(1)).toContainText('1 open 14 ');
+
+  // 1 and 2 are open (1 upvoted); 3 is answered; 4 is the guest's own, waiting and upvoted.
+  for (const n of [1, 2, 3, 4]) await page.getByTestId(`probe-vote-${n}`).click();
+
+  await expect(question(1)).toContainText('1 open 13 ');
+  await expect(question(2)).toContainText('2 open 10 ');
+  await expect(question(3)).toContainText('3 answered 6 ');
+  await expect(question(4)).toContainText('4 waiting 1 ');
+  await expect(page.getByTestId('probe-mine')).toHaveText(
+    JSON.stringify({ picks: [2, 4], revision: view.mine.revision }),
+  );
+
+  await page.getByTestId('probe-vote-2').click();
+
+  await expect(question(2)).toContainText('2 open 9 ');
+});
+
 const ASKING: AskingState[] = ['idle', 'sending', 'queued', 'limited', 'failed'];
 
 for (const asking of ASKING) {
