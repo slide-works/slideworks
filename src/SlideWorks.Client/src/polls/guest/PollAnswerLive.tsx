@@ -19,16 +19,25 @@ export type PollAnswerLiveProps = {
   children: ReactNode;
 };
 
-// What a call that never reached the server says: the poll's read, and an answer sent while the connection looked live.
-const READ_FAILED = 'Couldn’t load the poll. Check your connection.';
-const SEND_FAILED = 'Your answer wasn’t sent. Check your connection and try again.';
-// A queued pick whose round closed or moved on while the phone was away.
-const CLOSED_BEFORE_SENT = 'The poll closed before your answer was sent.';
-
-type Held = Omit<PollAnswer, 'toggle' | 'send' | 'clear'>;
-
-const samePicks = (a: number[], b: number[]) =>
-  a.length === b.length && a.every((p, i) => p === b[i]);
+// What the card says under "Your answer wasn't sent.", one plain sentence per refusal (SW-271 D1), so no code or
+// platform message ever reaches a guest. A picks rule the server names is reworded too; anything not listed is
+// UNKNOWN.
+const MESSAGES: Record<string, string> = {
+  too_many_answers:
+    'You’ve changed your answer a lot in the last minute. Wait a moment, then send it again.',
+  too_many_attempts: 'Too many tries from this network right now. Wait a moment, then try again.',
+  no_session: 'This talk isn’t live any more.',
+  no_guest:
+    'Your browser isn’t keeping this site’s cookie. Allow cookies for this site, then reload the page.',
+  'picks: required': 'Pick an answer first.',
+  'picks: pick one': 'Pick just one answer.',
+  'picks: duplicate': 'Each answer can be picked only once.',
+};
+const AT_MOST = /^picks: at most (\d+)$/;
+const UNKNOWN_OPTION = /^picks: unknown option \d+$/;
+const NETWORK = 'Your phone couldn’t reach the talk. Check your connection, then try again.';
+const CLOSED_BEFORE_SENT = 'The poll closed before your answer could be sent.';
+const UNKNOWN = 'Something went wrong on our side. Try again in a moment.';
 
 const isHubException = (error: unknown) =>
   error instanceof Error && error.message.includes('HubException:');
@@ -38,9 +47,25 @@ const isHubException = (error: unknown) =>
 const isNotAnswered = (error: unknown) =>
   error instanceof Error && error.message.endsWith('HubException: not_answered');
 
-// The code a hub refusal ends with ("…HubException: no_session" is no_session).
-const refusalOf = (error: Error) =>
-  error.message.slice(error.message.lastIndexOf('HubException:') + 13).trim();
+// A failed call as a sentence for the guest: an ApiError's code or rule (the body's error), a hub refusal's code, or a
+// call that never reached the server.
+function messageFor(error: unknown): string {
+  let code: string;
+  if (error instanceof ApiError) code = error.message;
+  else if (isHubException(error)) {
+    const message = (error as Error).message;
+    code = message.slice(message.lastIndexOf('HubException:') + 'HubException:'.length).trim();
+  } else return NETWORK;
+  const max = AT_MOST.exec(code);
+  if (max) return `Pick up to ${max[1]} answers.`;
+  if (UNKNOWN_OPTION.test(code)) return 'That option isn’t on this poll any more. Pick again.';
+  return MESSAGES[code] ?? UNKNOWN;
+}
+
+type Held = Omit<PollAnswer, 'toggle' | 'send' | 'clear'>;
+
+const samePicks = (a: number[], b: number[]) =>
+  a.length === b.length && a.every((p, i) => p === b[i]);
 
 // One guest's answer to one poll card, kept outside React so its rules read top to bottom. PollAnswerLive starts it,
 // tells it each activity and status, and renders its snapshot.
@@ -50,10 +75,11 @@ const refusalOf = (error: Error) =>
 //   until the first read lands, and after a reconnect until the re-read lands.
 // - Tallies: only for the activity's round; one with null counts keeps the counts held for that round.
 // - Sends (PUT): pick one sends on toggle, pick several on send(). A pick made while not live is 'queued' and sent after
-//   the re-read that follows the connection's return, only if the same round is still open. A pick made while a send is
-//   in flight goes after it, with the revision it returns. A 409 keeps the picks, takes mine from the current view and
-//   is 'conflict'. Anything else is 'failed' with the body's error, or a message of its own when the call never reached
-//   the server.
+//   the re-read that follows the connection's return, only if the same round is still open. At most one PUT is out:
+//   picks made while it is (arrow keys walking the radios) are coalesced, and only the latest goes after it, with the
+//   revision it returns. A pick the server already holds sends nothing, and the first tap is never delayed. A 409 keeps
+//   the picks, takes mine from the current view and is 'conflict'. Anything else is 'failed' with one of MESSAGES'
+//   sentences, never a code or a platform message.
 class AnswerSession {
   private held: Held = {
     picks: [],
@@ -186,7 +212,7 @@ class AnswerSession {
           if (this.held.state === 'sending' || this.held.state === 'queued') return;
           this.set({
             state: 'failed',
-            error: error instanceof ApiError ? error.message : READ_FAILED,
+            error: messageFor(error),
           });
         },
       );
@@ -226,6 +252,13 @@ class AnswerSession {
   }
 
   private put(picks: number[]) {
+    const mine = this.held.mine;
+    // The server already holds this pick: nothing to send.
+    if (mine !== null && samePicks(picks, mine.picks)) {
+      this.set({ state: 'idle', error: null });
+      this.watchIfAnswered();
+      return;
+    }
     const round = this.activity.round!;
     const revision = this.held.mine?.revision ?? 0;
     this.sending = true;
@@ -260,12 +293,12 @@ class AnswerSession {
         if (!this.active) return;
         const unsent = this.next ?? picks;
         this.next = null;
-        if (error instanceof ApiError) this.set({ state: 'failed', error: error.message });
+        if (error instanceof ApiError) this.set({ state: 'failed', error: messageFor(error) });
         else if (this.status !== 'live' && round === this.activity.round) {
           // The call never reached the server because the connection went: it waits for the connection to come back.
           this.queued = { round, picks: unsent };
           this.set({ state: 'queued', error: null });
-        } else this.set({ state: 'failed', error: SEND_FAILED });
+        } else this.set({ state: 'failed', error: NETWORK });
       },
     );
   }
@@ -304,7 +337,7 @@ class AnswerSession {
         if (watch !== this.watches) return;
         this.watch = 'none';
         if (this.active && isHubException(error) && !isNotAnswered(error))
-          this.set({ state: 'failed', error: refusalOf(error as Error) });
+          this.set({ state: 'failed', error: messageFor(error) });
       },
     );
   }

@@ -16,6 +16,7 @@ vi.mock('./pollApi', () => api);
 
 const CODE = '482913';
 const ROUND = '0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10';
+const NETWORK = 'Your phone couldn’t reach the talk. Check your connection, then try again.';
 const NOT_ANSWERED = new Error(
   "Failed to invoke 'WatchPoll' due to an error on the server. HubException: not_answered",
 );
@@ -249,17 +250,20 @@ describe('PollAnswerLive reads', () => {
     expect(latest().mine).toEqual({ picks: [1], revision: 2 });
   });
 
-  it('a failed read is failed with the body’s error, or a message of its own when it never reached the server', async () => {
+  it('a failed read is failed with a sentence for its code, or the network sentence when it never reached the server', async () => {
     api.getGuestPoll.mockRejectedValueOnce(new ApiError('too_many_attempts', 429));
     const activity = pickOne({ roomSeesCounts: false });
     await render(activity);
-    expect(latest()).toMatchObject({ state: 'failed', error: 'too_many_attempts' });
+    expect(latest()).toMatchObject({
+      state: 'failed',
+      error: 'Too many tries from this network right now. Wait a moment, then try again.',
+    });
 
     api.getGuestPoll.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     await render({ ...activity, roomSeesCounts: true });
     expect(latest()).toMatchObject({
       state: 'failed',
-      error: 'Couldn’t load the poll. Check your connection.',
+      error: 'Your phone couldn’t reach the talk. Check your connection, then try again.',
     });
   });
 });
@@ -400,7 +404,7 @@ describe('PollAnswerLive conflicts and failures', () => {
     expect(api.putPollAnswer).toHaveBeenCalledTimes(3);
   });
 
-  it('a refusal that is not a 409 is failed with the body’s error', async () => {
+  it('a refusal that is not a 409 is failed with a sentence for its code', async () => {
     api.putPollAnswer.mockRejectedValueOnce(new ApiError('too_many_answers', 429));
     await render(pickOne());
 
@@ -408,29 +412,33 @@ describe('PollAnswerLive conflicts and failures', () => {
 
     expect(latest()).toMatchObject({
       state: 'failed',
-      error: 'too_many_answers',
+      error:
+        'You’ve changed your answer a lot in the last minute. Wait a moment, then send it again.',
       picks: [1],
       mine: null,
     });
   });
 
-  it('a 400 with no error field is failed with a generic message', async () => {
+  it('a 400 with no error field is failed with the generic sentence', async () => {
     api.putPollAnswer.mockRejectedValueOnce(new ApiError('Request failed (400)', 400));
     await render(pickOne());
 
     await act(async () => latest().toggle(1));
 
-    expect(latest()).toMatchObject({ state: 'failed', error: 'Request failed (400)' });
+    expect(latest()).toMatchObject({
+      state: 'failed',
+      error: 'Something went wrong on our side. Try again in a moment.',
+    });
   });
 
-  it('a send that never reached the server while live is failed with a message of its own, and send tries again', async () => {
+  it('a send that never reached the server while live is failed with the network sentence, and send tries again', async () => {
     api.putPollAnswer.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     await render(pickOne());
 
     await act(async () => latest().toggle(1));
     expect(latest()).toMatchObject({
       state: 'failed',
-      error: 'Your answer wasn’t sent. Check your connection and try again.',
+      error: 'Your phone couldn’t reach the talk. Check your connection, then try again.',
     });
 
     await act(async () => latest().send());
@@ -474,7 +482,7 @@ describe('PollAnswerLive offline', () => {
     expect(api.putPollAnswer).not.toHaveBeenCalled();
     expect(latest()).toMatchObject({
       state: 'failed',
-      error: 'The poll closed before your answer was sent.',
+      error: 'The poll closed before your answer could be sent.',
       picks: [],
     });
   });
@@ -492,7 +500,7 @@ describe('PollAnswerLive offline', () => {
     expect(api.putPollAnswer).not.toHaveBeenCalled();
     expect(latest()).toMatchObject({
       state: 'failed',
-      error: 'The poll closed before your answer was sent.',
+      error: 'The poll closed before your answer could be sent.',
     });
   });
 
@@ -660,7 +668,7 @@ describe('PollAnswerLive results group', () => {
     expect(channel.polls.watchPoll).toHaveBeenCalledTimes(2);
   });
 
-  it('any other WatchPoll refusal is failed with its code', async () => {
+  it('any other WatchPoll refusal is failed with a sentence for its code', async () => {
     const activity = afterAnswer();
     vi.mocked(channel.polls.watchPoll).mockRejectedValueOnce(
       new Error(
@@ -672,6 +680,139 @@ describe('PollAnswerLive results group', () => {
     await act(async () => latest().toggle(2));
     await settle();
 
-    expect(latest()).toMatchObject({ state: 'failed', error: 'no_session' });
+    expect(latest()).toMatchObject({ state: 'failed', error: 'This talk isn’t live any more.' });
+  });
+});
+
+describe('PollAnswerLive error sentences', () => {
+  // One row per entry of the card's sentence table: what the call failed with, and what the guest reads.
+  it.each([
+    [
+      new ApiError('too_many_answers', 429),
+      'You’ve changed your answer a lot in the last minute. Wait a moment, then send it again.',
+    ],
+    [
+      new ApiError('too_many_attempts', 429),
+      'Too many tries from this network right now. Wait a moment, then try again.',
+    ],
+    [new ApiError('no_session', 404), 'This talk isn’t live any more.'],
+    [
+      new ApiError('no_guest', 400),
+      'Your browser isn’t keeping this site’s cookie. Allow cookies for this site, then reload the page.',
+    ],
+    [new ApiError('picks: required', 400), 'Pick an answer first.'],
+    [new ApiError('picks: pick one', 400), 'Pick just one answer.'],
+    [new ApiError('picks: duplicate', 400), 'Each answer can be picked only once.'],
+    [new ApiError('picks: at most 2', 400), 'Pick up to 2 answers.'],
+    [
+      new ApiError('picks: unknown option 7', 400),
+      'That option isn’t on this poll any more. Pick again.',
+    ],
+    [
+      new ApiError('Request failed (500)', 500),
+      'Something went wrong on our side. Try again in a moment.',
+    ],
+    [
+      new ApiError('some_new_code', 409),
+      'Something went wrong on our side. Try again in a moment.',
+    ],
+    [new TypeError('Failed to fetch'), NETWORK],
+  ])('a send that fails with %s reads as one plain sentence', async (error, sentence) => {
+    api.putPollAnswer.mockRejectedValueOnce(error);
+    await render(pickOne());
+
+    await act(async () => latest().toggle(1));
+
+    expect(latest()).toMatchObject({ state: 'failed', error: sentence });
+  });
+});
+
+describe('PollAnswerLive coalesces pick-one sends', () => {
+  it('three quick toggles send at most two PUTs and end on the last pick with the right revision', async () => {
+    const first = deferred<AnswerOutcome>();
+    api.putPollAnswer.mockReturnValueOnce(first.promise);
+    await render(pickOne());
+
+    await act(async () => latest().toggle(0));
+    await act(async () => latest().toggle(1));
+    await act(async () => latest().toggle(2));
+    expect(puts()).toEqual([{ round: ROUND, picks: [0], revision: 0 }]);
+
+    await act(async () => first.resolve(accepted([0], 1)));
+
+    expect(puts()).toEqual([
+      { round: ROUND, picks: [0], revision: 0 },
+      { round: ROUND, picks: [2], revision: 1 },
+    ]);
+    expect(latest()).toMatchObject({
+      state: 'idle',
+      picks: [2],
+      mine: { picks: [2], revision: 2 },
+    });
+  });
+
+  it('a conflict on the first PUT keeps the latest pick, and sending it uses the revision from current', async () => {
+    const first = deferred<AnswerOutcome>();
+    api.putPollAnswer.mockReturnValueOnce(first.promise);
+    const activity = pickOne();
+    await render(activity);
+
+    await act(async () => latest().toggle(0));
+    await act(async () => latest().toggle(3));
+    await act(async () =>
+      first.resolve({
+        type: 'stale',
+        current: view({ mine: { picks: [1], revision: 5 } }, activity),
+      }),
+    );
+    expect(latest()).toMatchObject({
+      state: 'conflict',
+      picks: [3],
+      mine: { picks: [1], revision: 5 },
+    });
+    expect(puts()).toHaveLength(1);
+
+    await act(async () => latest().send());
+
+    expect(puts()[1]).toEqual({ round: ROUND, picks: [3], revision: 5 });
+    expect(latest()).toMatchObject({ state: 'idle', mine: { picks: [3], revision: 6 } });
+  });
+
+  it('walking back to the pick the server holds sends nothing more', async () => {
+    const first = deferred<AnswerOutcome>();
+    api.putPollAnswer.mockReturnValueOnce(first.promise);
+    await render(pickOne());
+
+    await act(async () => latest().toggle(0));
+    await act(async () => latest().toggle(1));
+    await act(async () => latest().toggle(0));
+    await act(async () => first.resolve(accepted([0], 1)));
+
+    expect(puts()).toHaveLength(1);
+    expect(latest()).toMatchObject({
+      state: 'idle',
+      picks: [0],
+      mine: { picks: [0], revision: 1 },
+    });
+  });
+
+  it('tapping the pick the server already holds sends nothing', async () => {
+    const activity = pickOne();
+    api.getGuestPoll.mockResolvedValueOnce(view({ mine: { picks: [2], revision: 1 } }, activity));
+    await render(activity);
+
+    await act(async () => latest().toggle(2));
+
+    expect(api.putPollAnswer).not.toHaveBeenCalled();
+    expect(latest()).toMatchObject({ state: 'idle', picks: [2] });
+  });
+
+  it('the first tap is sent at once, with no wait before it', async () => {
+    api.putPollAnswer.mockReturnValueOnce(new Promise(() => {}));
+    await render(pickOne());
+
+    act(() => latest().toggle(1));
+
+    expect(api.putPollAnswer).toHaveBeenCalledTimes(1);
   });
 });
