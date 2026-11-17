@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
 import { GuestLive } from './GuestLive';
 import { GuestOffline } from './GuestOffline';
+import { GuestShell } from './GuestShell';
 import { NO_SESSION, TOO_MANY_ATTEMPTS, type GuestView } from './guestView';
 import { JoinCodePage } from './JoinCodePage';
 import { GUEST_TEST_IDS } from './testIds';
@@ -45,7 +46,11 @@ export function GuestPage() {
     <div data-testid={GUEST_TEST_IDS.page}>
       {load.kind === 'loading' && <p data-testid={GUEST_TEST_IDS.loading}>Loading</p>}
       {load.kind === 'rejected' && <JoinCodePage code={code} error={load.error} />}
-      {load.kind === 'failed' && <GuestOffline onRetry={retry} />}
+      {load.kind === 'failed' && (
+        <GuestShell>
+          <GuestOffline onRetry={retry} />
+        </GuestShell>
+      )}
       {load.kind === 'loaded' && <GuestLive code={code} view={load.view} onRetry={retry} />}
     </div>
   );

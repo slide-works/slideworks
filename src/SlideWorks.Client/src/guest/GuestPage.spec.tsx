@@ -130,3 +130,30 @@ test('the privacy sheet opens from the footer and closes', async ({ mount, page 
   await page.getByTestId(GUEST_TEST_IDS.privacyClose).click();
   await expect(page.getByTestId(GUEST_TEST_IDS.privacySheet)).toHaveCount(0);
 });
+
+test('a refused JoinAudience with no_guest asks for cookies and Try again reads the page again', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page, {
+    audience: { state: guestView('live').state, refuse: 'no_guest' },
+  });
+  await stubApi(page, { [joinPath]: { json: guestView('live') } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+  await expect(page.getByTestId(GUEST_TEST_IDS.needsCookies)).toBeVisible();
+  await page.getByTestId(GUEST_TEST_IDS.needsCookiesRetry).click();
+  await expect.poll(() => hub.audienceJoins.length).toBeGreaterThan(1);
+});
+
+test('an unexpected JoinAudience failure shows a recoverable message, not a blank page', async ({
+  mount,
+  page,
+}) => {
+  await stubDeckHub(page, {
+    audience: { state: guestView('live').state, refuse: 'something_else' as never },
+  });
+  await stubApi(page, { [joinPath]: { json: guestView('live') } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+  await expect(page.getByTestId(GUEST_TEST_IDS.error)).toBeVisible();
+  await expect(page.getByTestId(GUEST_TEST_IDS.errorRetry)).toBeVisible();
+});

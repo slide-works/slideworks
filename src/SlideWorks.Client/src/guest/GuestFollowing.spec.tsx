@@ -13,7 +13,7 @@ test('mirrors state.current at the phone width with the waiting card and no side
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 740 });
-  await mount(<GuestFollowing view={view} state={view.state} />);
+  await mount(<GuestFollowing view={view} state={view.state} status="live" />);
   const slide = page.getByTestId(GUEST_TEST_IDS.slide);
 
   await expect(slide).toHaveAttribute('data-slide', '3');
@@ -34,7 +34,7 @@ test('mirrors state.current at the phone width with the waiting card and no side
 test('a black state shows a black screen with no slide in it', async ({ mount, page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const state = { ...view.state, current: { ...view.state.current!, black: true } };
-  await mount(<GuestFollowing view={view} state={state} />);
+  await mount(<GuestFollowing view={view} state={state} status="live" />);
   const slide = page.getByTestId(GUEST_TEST_IDS.slide);
 
   await expect(slide).toHaveAttribute('data-black', 'true');
@@ -44,7 +44,7 @@ test('a black state shows a black screen with no slide in it', async ({ mount, p
 
 test('landscape fills the screen with the slide and hides the card', async ({ mount, page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
-  await mount(<GuestFollowing view={view} state={view.state} />);
+  await mount(<GuestFollowing view={view} state={view.state} status="live" />);
   const slide = page.getByTestId(GUEST_TEST_IDS.slide);
 
   await expect(page.getByTestId(GUEST_TEST_IDS.activity)).toBeHidden();
@@ -91,16 +91,114 @@ test('the page shows the ended screen on audienceEnded', async ({ mount, page })
   await expect(page.getByTestId(GUEST_TEST_IDS.ended)).toBeVisible();
 });
 
+test('a reconnecting status dims the slide and turns the chip amber', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mount(<GuestFollowing view={view} state={view.state} status="reconnecting" />);
+  await expect(page.getByTestId(GUEST_TEST_IDS.slide)).toHaveCSS('opacity', '0.6');
+  await expect(page.getByTestId(GUEST_TEST_IDS.chip)).toHaveText('Offline');
+});
+
+test('a live status shows the green Live chip and a full slide', async ({ mount, page }) => {
+  await mount(<GuestFollowing view={view} state={view.state} status="live" />);
+  await expect(page.getByTestId(GUEST_TEST_IDS.slide)).toHaveCSS('opacity', '1');
+  await expect(page.getByTestId(GUEST_TEST_IDS.chip)).toHaveText('Live');
+  await expect(page.getByText('Slide 3 of 12')).toHaveCount(1);
+});
+
+test("the join slide on a phone shows this page's code and address, live, with no count", async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const current = {
+    ...view.state.current!,
+    layout: 'join',
+    slots: {},
+    steps: 0,
+    step: 0,
+  } as never;
+  const state = { ...view.state, current };
+  const hub = await stubDeckHub(page, { audience: { state } });
+  await stubApi(page, { '/api/join/482913': { json: { ...view, state } } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+  void hub;
+  const slide = page.getByTestId(GUEST_TEST_IDS.slide);
+  await expect(slide.getByTestId('join-code')).toHaveText('482 913');
+  await expect(slide.getByTestId('join-host')).not.toBeEmpty();
+  await expect(slide.getByTestId('join-qr').locator('svg')).toHaveCount(1);
+  await expect(slide.getByTestId('join-not-live')).toHaveCount(0);
+  await expect(slide.getByTestId('join-count')).toHaveCount(0);
+});
+
+test('while following, nothing scrolls at 390x844 or 844x390', async ({ mount, page }) => {
+  await page.clock.install();
+  const hub = await stubDeckHub(page, { audience: { state: view.state } });
+  void hub;
+  await stubApi(page, { '/api/join/482913': { json: view } });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+  await expect(page.getByTestId(GUEST_TEST_IDS.joined)).toBeVisible();
+  await page.clock.runFor(2100);
+  await expect(page.getByTestId(GUEST_TEST_IDS.following)).toBeVisible();
+  const scrolls = () =>
+    page.evaluate(() => {
+      const el = document.documentElement;
+      return [el.scrollHeight - el.clientHeight, el.scrollWidth - el.clientWidth];
+    });
+  expect(await scrolls()).toEqual([0, 0]);
+  await expect(page.getByTestId(GUEST_TEST_IDS.privacyOpen)).toBeVisible();
+
+  await page.setViewportSize({ width: 844, height: 390 });
+  expect(await scrolls()).toEqual([0, 0]);
+  await expect(page.getByTestId(GUEST_TEST_IDS.privacyOpen)).toBeHidden();
+  const box = await page.getByTestId(GUEST_TEST_IDS.slide).boundingBox();
+  expect(Math.round(box!.height)).toBe(390);
+});
+
+test('the following screen shows the night surface with no flat colour of its own', async ({
+  mount,
+  page,
+}) => {
+  await mount(<GuestFollowing view={view} state={view.state} status="live" />);
+  await expect(page.getByTestId(GUEST_TEST_IDS.following)).toHaveCSS(
+    'background-color',
+    'rgba(0, 0, 0, 0)',
+  );
+});
+
 test('GuestFollowing screenshot at 390 wide', async ({ mount, page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await mount(<GuestFollowing view={view} state={view.state} />);
+  await mount(<GuestFollowing view={view} state={view.state} status="live" />);
   await expect(page.getByTestId(GUEST_TEST_IDS.slide).getByTestId('slide-3')).toHaveCount(1);
   await expect(page).toHaveScreenshot('guest-following-390.png');
 });
 
 test('GuestFollowing screenshot in landscape', async ({ mount, page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
-  await mount(<GuestFollowing view={view} state={view.state} />);
+  await mount(<GuestFollowing view={view} state={view.state} status="live" />);
   await expect(page.getByTestId(GUEST_TEST_IDS.slide).getByTestId('slide-3')).toHaveCount(1);
   await expect(page).toHaveScreenshot('guest-following-landscape.png');
+});
+
+test('live with no current shows the waiting placeholder, then the slide when a state arrives', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const empty = { ...view.state, current: null };
+  const hub = await stubDeckHub(page, { audience: { state: empty } });
+  await stubApi(page, { '/api/join/482913': { json: { ...view, state: empty } } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+  const placeholder = page.getByTestId(GUEST_TEST_IDS.waitingForPresenter);
+  await expect(placeholder).toHaveText('Waiting for the presenter');
+  await expect(page.getByTestId(GUEST_TEST_IDS.slide)).toHaveCount(0);
+  await expect(page.getByTestId(GUEST_TEST_IDS.progress)).toHaveCount(0);
+  await expect(page.getByTestId(GUEST_TEST_IDS.activity)).toBeVisible();
+  const box = await placeholder.boundingBox();
+  expect(Math.round((box!.width / box!.height) * 100)).toBe(178);
+
+  hub.pushAudienceEvent(audienceState({ seq: 99 }));
+
+  await expect(page.getByTestId(GUEST_TEST_IDS.slide)).toHaveAttribute('data-slide', '3');
+  await expect(placeholder).toHaveCount(0);
 });
