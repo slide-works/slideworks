@@ -28,8 +28,11 @@ public class Deck
 
     public DateTimeOffset UpdatedAt { get; set; }
 
-    // The deck's look (L5): a template and a palette by name, from ITemplateCatalogue and IPaletteCatalogue.
+    // The deck's look (L5): a template and a palette by name, from the template and palette catalogues.
     public required string Template { get; set; }
+
+    // The published version of an uploaded template the deck uses, or null for a built-in template.
+    public int? TemplateVersion { get; set; }
 
     public required string Palette { get; set; }
 

@@ -162,6 +162,9 @@ namespace SlideWorks.WebApi.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("TemplateVersion")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -776,11 +779,182 @@ namespace SlideWorks.WebApi.Migrations
                     b.Property<int>("Steps")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Surface")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DeckId", "Position");
 
                     b.ToTable("Slides");
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Templates.Data.TemplateAsset", b =>
+                {
+                    b.Property<string>("TemplateId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Id")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Bytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MetaJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("RightsConfirmed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TemplateId", "Id");
+
+                    b.ToTable("TemplateAssets", t =>
+                        {
+                            t.HasCheckConstraint("CK_TemplateAssets_FileName_Length", "length(\"FileName\") <= 120");
+
+                            t.HasCheckConstraint("CK_TemplateAssets_Kind", "\"Kind\" IN ('font', 'logo', 'art', 'layout')");
+                        });
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Templates.Data.TemplateRecord", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Access")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("ArchivedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Revision")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("Templates", t =>
+                        {
+                            t.HasCheckConstraint("CK_Templates_Access", "\"Access\" IN ('Private', 'Link', 'Named')");
+
+                            t.HasCheckConstraint("CK_Templates_Name_Length", "length(\"Name\") <= 60");
+                        });
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Templates.Data.TemplateUpload", b =>
+                {
+                    b.Property<string>("TokenHash")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ExpiresAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("RightsConfirmed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TemplateId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("UsedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("TokenHash");
+
+                    b.HasIndex("TemplateId");
+
+                    b.ToTable("TemplateUploads", t =>
+                        {
+                            t.HasCheckConstraint("CK_TemplateUploads_FileName_Length", "length(\"FileName\") <= 120");
+
+                            t.HasCheckConstraint("CK_TemplateUploads_Kind", "\"Kind\" IN ('font', 'logo', 'art', 'layout')");
+                        });
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Templates.Data.TemplateVersion", b =>
+                {
+                    b.Property<string>("TemplateId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FitWidthsJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ManifestJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("PublishedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("TemplateId", "Version");
+
+                    b.ToTable("TemplateVersions", t =>
+                        {
+                            t.HasCheckConstraint("CK_TemplateVersions_Version", "\"Version\" >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Templates.Data.TemplateViewer", b =>
+                {
+                    b.Property<string>("TemplateId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TemplateId", "Email");
+
+                    b.ToTable("TemplateViewers");
                 });
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.Activity.ActivityEntryRow", b =>
@@ -946,6 +1120,51 @@ namespace SlideWorks.WebApi.Migrations
                         .WithMany()
                         .HasForeignKey("DeckId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Templates.Data.TemplateAsset", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Templates.Data.TemplateRecord", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Templates.Data.TemplateRecord", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Accounts.User", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Templates.Data.TemplateUpload", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Templates.Data.TemplateRecord", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Templates.Data.TemplateVersion", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Templates.Data.TemplateRecord", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Templates.Data.TemplateViewer", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Templates.Data.TemplateRecord", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 #pragma warning restore 612, 618

@@ -25,6 +25,9 @@ public class Slide
     // A deep dive (D4): the slide shows the deep-dive mark, and its notes read with a skip prefix (D16).
     public bool DeepDive { get; set; }
 
+    // "light" or "dark" when the slide picks its surface, or null for the layout's own.
+    public string? Surface { get; set; }
+
     // Set when the slide is deleted; deleted slides are kept, never removed.
     public DateTimeOffset? DeletedAt { get; set; }
 }
