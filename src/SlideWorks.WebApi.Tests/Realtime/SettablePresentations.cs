@@ -11,6 +11,8 @@ public sealed class SettablePresentations : IPresentations
     private readonly Lock _gate = new();
     private readonly Dictionary<string, PresentationState> _states = new(StringComparer.Ordinal);
     private int _startCalls;
+    private (TaskCompletionSource Entered, TaskCompletionSource Release)? _held;
+    private TaskCompletionSource? _release;
 
     // How many times anything asked this registry to start a presentation.
     public int StartCalls => Volatile.Read(ref _startCalls);
@@ -34,11 +36,44 @@ public sealed class SettablePresentations : IPresentations
         }
     }
 
-    public Task<PresentationState?> GetAsync(string deckId)
+    // Arms the next GetAsync to stop before it answers. The returned task completes when that call has arrived (so whoever
+    // made it is holding whatever it held), and it stays there until ReleaseGet. Only one call is held, once.
+    public Task BlockNextGet()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        lock (_gate)
+        {
+            _held = (entered, new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+            _release = null;
+        }
+        return entered.Task;
+    }
+
+    public void ReleaseGet()
     {
         lock (_gate)
         {
-            return Task.FromResult(_states.GetValueOrDefault(deckId));
+            _release?.TrySetResult();
+        }
+    }
+
+    public async Task<PresentationState?> GetAsync(string deckId)
+    {
+        (TaskCompletionSource Entered, TaskCompletionSource Release)? held;
+        lock (_gate)
+        {
+            held = _held;
+            _held = null;
+            _release = held?.Release;
+        }
+        if (held is { } pair)
+        {
+            pair.Entered.TrySetResult();
+            await pair.Release.Task;
+        }
+        lock (_gate)
+        {
+            return _states.GetValueOrDefault(deckId);
         }
     }
 

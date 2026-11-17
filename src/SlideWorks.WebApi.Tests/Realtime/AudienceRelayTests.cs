@@ -272,29 +272,73 @@ public class AudienceRelayTests : ApiTestFixture
     }
 
     [Test]
-    public async Task End_WhenItRacesChanges_ShouldMakeAudienceEndedTheLastEvent()
+    public async Task End_WhenAPublishIsInFlightThatReadTheSessionAsLive_ShouldMakeAudienceEndedTheLastEvent()
     {
         var (deck, code) = await GoLiveAsync(await SeedAsync());
         await using var guest = await GuestClient.ConnectAsync(Factory);
         await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
-        var moves = Enumerable.Range(0, 30).Select(i => Task.Run(() => MoveAsync(deck, slide: 1 + i % 3, step: i % 2))).ToList();
+        // One publish holds the deck's gate having read the session as live, and stops inside the registry read.
+        var held = Presentations.BlockNextGet();
+        var move = Task.Run(() => MoveAsync(deck, slide: 2));
+        await held;
 
-        var ended = Client.DeleteAsync($"/api/decks/{deck}/live");
-        await Task.WhenAll([.. moves, ended]);
+        var ended = Task.Run(() => Client.DeleteAsync($"/api/decks/{deck}/live"));
+        while ((await GetLiveAsync(deck)).GetProperty("live").GetBoolean())
+        {
+            await Task.Yield();
+        }
+        Presentations.ReleaseGet();
+        await move;
         (await ended).EnsureSuccessStatusCode();
         // A second audienceEnded after everything has settled marks the end of what could have been in flight.
         await Factory.Services.GetRequiredService<IAudienceEvents>().PublishAsync(new AudienceEnded(deck));
         var types = new List<string>();
-        string type;
-        do
+        while (types.Count(t => t == "audienceEnded") < 2)
         {
-            type = (await guest.NextAudienceAsync()).GetProperty("type").GetString()!;
-            types.Add(type);
+            types.Add((await guest.NextAudienceAsync()).GetProperty("type").GetString()!);
         }
-        while (types.Count(t => t == "audienceEnded") < 2);
 
-        var firstEnded = types.IndexOf("audienceEnded");
-        types.Skip(firstEnded).ShouldAllBe(t => t == "audienceEnded");
+        types.ShouldBe(["audienceState", "audienceEnded", "audienceEnded"]);
+    }
+
+    [Test]
+    public async Task Seq_WhenTheSessionCyclesThroughLobbyLiveEndedAndLobbyUnderAFrozenClock_ShouldOnlyIncrease()
+    {
+        var deck = await SeedAsync();
+        await using (var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam))
+        {
+            await DeckSeed.AddSlideAsync(agent, deck, "join", "{}");
+        }
+        var code = (await GetLiveAsync(deck)).GetProperty("code").GetString()!;
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        var seqs = new List<long>();
+
+        seqs.Add(await JoinSeqAsync(guest, code, "lobby"));
+        await GoLiveAsync(deck);
+        seqs.Add((await guest.NextAudienceAsync()).GetProperty("seq").GetInt64());
+        await MoveAsync(deck, slide: 2);
+        seqs.Add((await guest.NextAudienceAsync()).GetProperty("seq").GetInt64());
+        seqs.Add(await JoinSeqAsync(guest, code, "live"));
+        (await Client.DeleteAsync($"/api/decks/{deck}/live")).EnsureSuccessStatusCode();
+        await guest.NextAudienceAsync();
+        seqs.Add(await JoinSeqAsync(guest, code, "ended"));
+        // Ended turns into lobby again two hours after the session ended: the one time the clock moves.
+        Clock.Advance(TimeSpan.FromHours(3));
+        seqs.Add(await JoinSeqAsync(guest, code, "lobby"));
+        await GoLiveAsync(deck);
+        seqs.Add((await guest.NextAudienceAsync()).GetProperty("seq").GetInt64());
+
+        for (var i = 1; i < seqs.Count; i++)
+        {
+            seqs[i].ShouldBeGreaterThan(seqs[i - 1], $"seq {i}: {string.Join(", ", seqs)}");
+        }
+    }
+
+    private static async Task<long> JoinSeqAsync(GuestClient guest, string code, string phase)
+    {
+        var answer = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
+        answer.GetProperty("phase").GetString().ShouldBe(phase);
+        return answer.GetProperty("seq").GetInt64();
     }
 
     [Test]
@@ -330,6 +374,8 @@ public class AudienceRelayTests : ApiTestFixture
         lobby.GetProperty("current").ValueKind.ShouldBe(JsonValueKind.Null);
         live.GetProperty("phase").GetString().ShouldBe("live");
         live.GetProperty("current").GetProperty("index").GetInt32().ShouldBe(2);
+        // The clock does not move in this test, so only the one seq source keeps the first live state above the lobby answer.
+        live.GetProperty("seq").GetInt64().ShouldBeGreaterThan(lobby.GetProperty("seq").GetInt64());
     }
 
     private async Task<string> SeedAsync(bool share = false)

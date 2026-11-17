@@ -8,8 +8,9 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Realtime;
 
-// JoinAudience reads the state again once the guest is in the group (SW-205 review), so a state published in the gap is not
-// missed, and a guest whose second read finds nothing is taken out of the group again and refused.
+// JoinAudience checks the session exists, joins the group, then reads the state once (SW-205 review), so a state published in
+// the gap between the check and the join is not missed, and a guest whose read then finds nothing is taken out of the group
+// again and refused.
 [TestFixture]
 [CancelAfter(30000)]
 public class JoinAudienceRaceTests : ApiTestFixture
@@ -17,6 +18,7 @@ public class JoinAudienceRaceTests : ApiTestFixture
     protected override Action<IServiceCollection>? ConfigureTestServices => services =>
     {
         FakeAudienceSessions.AddTo(services);
+        services.AddSingleton<HookedSessions>().AddSingleton<IAudienceSessions>(provider => provider.GetRequiredService<HookedSessions>());
         services.AddSingleton<ScriptedRelay>().AddSingleton<IAudienceRelay>(provider => provider.GetRequiredService<ScriptedRelay>());
     };
 
@@ -24,7 +26,7 @@ public class JoinAudienceRaceTests : ApiTestFixture
     public async Task JoinAudience_WhenStateVanishesAfterTheGuestJoinedTheGroup_ShouldRefuseAsNoSessionAndLeaveTheGroup()
     {
         var (deck, relay) = await SeedAsync();
-        relay.Script = (read, id) => Task.FromResult(read == 1 ? StateAt(id, seq: 1) : null);
+        relay.Script = (_, _) => Task.FromResult<AudienceState?>(null);
         await using var vanished = await GuestClient.ConnectAsync(Factory);
 
         var refused = await Should.ThrowAsync<HubException>(() => vanished.Connection.InvokeAsync<object>("JoinAudience", "123456"));
@@ -50,22 +52,20 @@ public class JoinAudienceRaceTests : ApiTestFixture
     {
         var (_, relay) = await SeedAsync();
         var bus = Factory.Services.GetRequiredService<IAudienceEvents>();
-        // The presenter moves in the gap: after the first read, before the guest is in the group, so the push itself is missed.
-        relay.Script = async (read, id) =>
+        var latest = 1L;
+        relay.Script = (_, id) => Task.FromResult<AudienceState?>(StateAt(id, Interlocked.Read(ref latest)));
+        // The presenter moves in the gap: after the existence check, before the guest is in the group, so the push itself is missed.
+        Factory.Services.GetRequiredService<HookedSessions>().SetOnFirstForDeck(async id =>
         {
-            if (read == 1)
-            {
-                await bus.PublishAsync(StateAt(id, seq: 2));
-                return StateAt(id, seq: 1);
-            }
-            return StateAt(id, seq: 2);
-        };
+            Interlocked.Exchange(ref latest, 2);
+            await bus.PublishAsync(StateAt(id, seq: 2));
+        });
         await using var guest = await GuestClient.ConnectAsync(Factory);
 
         var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", "123456");
 
         joined.GetProperty("seq").GetInt64().ShouldBe(2);
-        relay.Reads.ShouldBe(2);
+        relay.Reads.ShouldBe(1);
     }
 
     private async Task<(string Deck, ScriptedRelay Relay)> SeedAsync()
@@ -74,10 +74,31 @@ public class JoinAudienceRaceTests : ApiTestFixture
         Factory.Services.GetRequiredService<FakeAudienceSessions>().Set("123456", deck, "s1", AudiencePhase.Live);
         var relay = Factory.Services.GetRequiredService<ScriptedRelay>();
         relay.Reset();
+        Factory.Services.GetRequiredService<HookedSessions>().SetOnFirstForDeck(null);
         return (deck, relay);
     }
 
     private static AudienceState StateAt(string deck, long seq) => new(deck, seq, AudiencePhase.Live, null, 0, null);
+
+    // The fake sessions, plus a hook that runs once on the first ForDeckAsync (JoinAudience's existence check).
+    private sealed class HookedSessions(FakeAudienceSessions inner) : IAudienceSessions
+    {
+        private Func<string, Task>? _hook;
+
+        public void SetOnFirstForDeck(Func<string, Task>? hook) => Volatile.Write(ref _hook, hook);
+
+        public Task<AudienceSessionRef?> FindAsync(string code) => inner.FindAsync(code);
+
+        public async Task<AudienceSessionRef?> ForDeckAsync(string deckId)
+        {
+            var hook = Interlocked.Exchange(ref _hook, null);
+            if (hook != null)
+            {
+                await hook(deckId);
+            }
+            return await inner.ForDeckAsync(deckId);
+        }
+    }
 
     // Answers each CurrentAsync read from a script (the read's number, from 1, and the deck), so a test decides what each of
     // JoinAudience's two reads sees.

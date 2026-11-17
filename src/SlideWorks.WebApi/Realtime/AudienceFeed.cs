@@ -20,7 +20,7 @@ namespace SlideWorks.WebApi.Realtime;
 // Following is derived, not remembered: any change for a deck whose session is open is published, so a restart with a
 // session still open in the database leaves guests fed from the first change after it. Started is safe to call again.
 // Nothing reached by a guest starts a presentation: a live session with none running is live with no current slide until
-// the presenter's rejoin brings it back. Seq is floored to the clock, so it also keeps rising across a restart. A deck has
+// the presenter's rejoin brings it back. Seq comes from one source, floored to the clock, so it keeps rising across a restart and the lobby-live-ended cycle. A deck has
 // an entry (its gate and seq) only while its session is open; the entry goes when the session ends.
 [RegisterSingleton]
 public sealed class AudienceFeed : IDisposable
@@ -31,6 +31,7 @@ public sealed class AudienceFeed : IDisposable
     private readonly IAudienceEvents _audienceEvents;
     private readonly TimeProvider _clock;
     private readonly IDisposable _deckSubscription;
+    private long _lastSeq;
     private readonly ConcurrentDictionary<string, DeckFeed> _feeds = new(StringComparer.Ordinal);
 
     public AudienceFeed(IServiceScopeFactory scopes, IAudienceEvents audienceEvents, IDeckEvents deckEvents, TimeProvider clock)
@@ -49,15 +50,15 @@ public sealed class AudienceFeed : IDisposable
         var (feed, found) = await EnterAsync(scope.ServiceProvider, deckId);
         if (feed is null)
         {
-            // A lobby or an ended deck has no position and no ordering to keep: the clock is its seq, and no entry is made.
-            return found is null ? null : await ComposeAsync(scope.ServiceProvider, found, _clock.GetUtcNow().ToUnixTimeMilliseconds());
+            // A lobby or an ended deck has no position to order and gets no entry, but its answer still comes from the one seq source.
+            return found is null ? null : await ComposeAsync(scope.ServiceProvider, found, NextSeq());
         }
         try
         {
             // Taken from the same source as pushed events, under the same gate, so every push that follows is higher.
             // Reached by anonymous callers: it reads SW-4's state and never starts a presentation. A live session with no
             // presentation (a restart dropped it) is live with no current slide until the presenter's rejoin notifies us.
-            return await ComposeAsync(scope.ServiceProvider, found!, feed.Next(_clock));
+            return await ComposeAsync(scope.ServiceProvider, found!, NextSeq());
         }
         finally
         {
@@ -122,7 +123,7 @@ public sealed class AudienceFeed : IDisposable
         }
         try
         {
-            var state = await ComposeAsync(services, found!, feed.Next(_clock));
+            var state = await ComposeAsync(services, found!, NextSeq());
             await StampJoinSlideAsync(services, found!.SessionId!, state);
             await _audienceEvents.PublishAsync(state);
         }
@@ -130,6 +131,23 @@ public sealed class AudienceFeed : IDisposable
         {
             feed.Gate.Release();
         }
+    }
+
+    // The one source of seq for every answer and push of every deck: strictly increasing, floored to the clock so it also rises
+    // across a restart. One source (not one per deck entry, which comes and goes with the session) means a deck's seq keeps
+    // rising across lobby, live, ended and lobby again, even under a clock that does not move.
+    private long NextSeq()
+    {
+        var floor = _clock.GetUtcNow().ToUnixTimeMilliseconds();
+        long current;
+        long next;
+        do
+        {
+            current = Interlocked.Read(ref _lastSeq);
+            next = Math.Max(current + 1, floor);
+        }
+        while (Interlocked.CompareExchange(ref _lastSeq, next, current) != current);
+        return next;
     }
 
     // Takes the gate of a deck whose session is open, with the session read again inside it, and returns the feed holding
@@ -146,6 +164,7 @@ public sealed class AudienceFeed : IDisposable
         while (true)
         {
             var feed = _feeds.GetOrAdd(deckId, _ => new DeckFeed());
+            // Known cost for wave 2's load check: SW-4 awaits observers inline, and this gate is held across the reads below.
             await feed.Gate.WaitAsync();
             if (feed.Closed)
             {
@@ -218,24 +237,8 @@ public sealed class AudienceFeed : IDisposable
     // One deck's ordering: publishes go one at a time, so seq never goes backwards on the wire.
     private sealed class DeckFeed
     {
-        private long _seq;
-
         public SemaphoreSlim Gate { get; } = new(1, 1);
 
         public bool Closed { get; set; }
-
-        public long Next(TimeProvider clock)
-        {
-            var floor = clock.GetUtcNow().ToUnixTimeMilliseconds();
-            long current;
-            long next;
-            do
-            {
-                current = Interlocked.Read(ref _seq);
-                next = Math.Max(current + 1, floor);
-            }
-            while (Interlocked.CompareExchange(ref _seq, next, current) != current);
-            return next;
-        }
     }
 }
