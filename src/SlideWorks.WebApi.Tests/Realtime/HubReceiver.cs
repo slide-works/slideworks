@@ -8,7 +8,8 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Realtime;
 
-// One connection to /hubs/deck over a real WebSocket on the test server, and the events it has received. A browser's
+// One connection to /hubs/deck over a real transport on the test server (WebSockets unless a test names another), and the
+// events it has received: "deckEvent" through NextAsync and "audienceEvent" through NextAudienceAsync. A browser's
 // connection carries its session cookie on both the negotiate request and the WebSocket upgrade; this one names its
 // TestUser in the test sign-in header on both instead. Anonymous sends nothing.
 //
@@ -18,13 +19,19 @@ public sealed class HubReceiver : IAsyncDisposable
 {
     private readonly Channel<JsonElement> _events = Channel.CreateUnbounded<JsonElement>();
 
-    private HubReceiver(WebApplicationFactory<ApiMarker> factory, TestUser user)
+    private readonly Channel<JsonElement> _audienceEvents = Channel.CreateUnbounded<JsonElement>();
+
+    private HubReceiver(WebApplicationFactory<ApiMarker> factory, TestUser user, HttpTransportType transport, string? cookie)
     {
         var server = factory.Server;
         Connection = new HubConnectionBuilder()
             .WithUrl(new Uri(server.BaseAddress, DeckHub.PATH), options =>
             {
-                options.Transports = HttpTransportType.WebSockets;
+                options.Transports = transport;
+                if (cookie != null)
+                {
+                    options.Headers["Cookie"] = cookie;
+                }
                 options.HttpMessageHandlerFactory = _ => server.CreateHandler();
                 if (!user.IsAnonymous)
                 {
@@ -33,22 +40,37 @@ public sealed class HubReceiver : IAsyncDisposable
                 options.WebSocketFactory = async (context, cancellationToken) =>
                 {
                     var client = server.CreateWebSocketClient();
+                    if (cookie != null)
+                    {
+                        client.ConfigureRequest = request => request.Headers["Cookie"] = cookie;
+                    }
                     if (!user.IsAnonymous)
                     {
-                        client.ConfigureRequest = request => request.Headers[TestAuthScheme.HEADER] = user.Email;
+                        var withCookie = client.ConfigureRequest;
+                        client.ConfigureRequest = request =>
+                        {
+                            withCookie?.Invoke(request);
+                            request.Headers[TestAuthScheme.HEADER] = user.Email;
+                        };
                     }
                     return await client.ConnectAsync(context.Uri, cancellationToken);
                 };
             })
             .Build();
         Connection.On<JsonElement>(DeckHub.EVENT_METHOD, e => _events.Writer.TryWrite(e));
+        Connection.On<JsonElement>(DeckHub.AUDIENCE_EVENT_METHOD, e => _audienceEvents.Writer.TryWrite(e));
     }
 
     public HubConnection Connection { get; }
 
-    public static async Task<HubReceiver> StartAsync(WebApplicationFactory<ApiMarker> factory, TestUser user)
+    // cookie is a raw Cookie header value, as a guest's browser sends it (GuestClient mints it).
+    public static async Task<HubReceiver> StartAsync(
+        WebApplicationFactory<ApiMarker> factory,
+        TestUser user,
+        HttpTransportType transport = HttpTransportType.WebSockets,
+        string? cookie = null)
     {
-        var receiver = new HubReceiver(factory, user);
+        var receiver = new HubReceiver(factory, user, transport, cookie);
         try
         {
             await receiver.Connection.StartAsync();
@@ -65,6 +87,12 @@ public sealed class HubReceiver : IAsyncDisposable
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         return await _events.Reader.ReadAsync(timeout.Token);
+    }
+
+    public async Task<JsonElement> NextAudienceAsync()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        return await _audienceEvents.Reader.ReadAsync(timeout.Token);
     }
 
     public ValueTask DisposeAsync() => Connection.DisposeAsync();

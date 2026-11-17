@@ -151,6 +151,44 @@ public class CrossSiteWriteGuardTests : ApiTestFixture
         (await response.Content.ReadAsStringAsync()).ShouldNotContain("Cross-site request refused");
     }
 
+    // The audience hub is reached over Server-Sent Events and long polling too (D7). Each is a plain GET on /hubs/deck, so
+    // the guard that refuses another site's negotiate and WebSocket upgrade must refuse these as well, and a request from
+    // our own origin or with none must reach the hub.
+    [Test]
+    public async Task CrossSiteWriteGuard_WhenForeignOriginOnSse_ShouldRefuse()
+    {
+        using var client = Factory.CreateClient();
+
+        var foreign = await client.SendAsync(Transport("text/event-stream", FOREIGN_ORIGIN));
+        var own = await client.SendAsync(Transport("text/event-stream", TestAppFactory.PUBLIC_URL));
+
+        foreign.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        own.StatusCode.ShouldNotBe(HttpStatusCode.Forbidden);
+    }
+
+    [Test]
+    public async Task CrossSiteWriteGuard_WhenForeignOriginOnLongPolling_ShouldRefuse()
+    {
+        using var client = Factory.CreateClient();
+
+        var foreign = await client.SendAsync(Transport(accept: null, FOREIGN_ORIGIN));
+        var own = await client.SendAsync(Transport(accept: null, TestAppFactory.PUBLIC_URL));
+
+        foreign.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        own.StatusCode.ShouldNotBe(HttpStatusCode.Forbidden);
+    }
+
+    private static HttpRequestMessage Transport(string? accept, string origin)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/hubs/deck?id=not-a-connection");
+        if (accept != null)
+        {
+            request.Headers.Add("Accept", accept);
+        }
+        request.Headers.Add("Origin", origin);
+        return request;
+    }
+
     private static HttpRequestMessage Write(HttpMethod method, string? origin, string path = "/api/anything")
     {
         var request = new HttpRequestMessage(method, path) { Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json") };
