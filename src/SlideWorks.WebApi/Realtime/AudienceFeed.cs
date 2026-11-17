@@ -1,9 +1,11 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Slides;
 using SlideWorks.WebApi.Realtime.Presenting;
 using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace SlideWorks.WebApi.Realtime;
 
@@ -11,7 +13,8 @@ namespace SlideWorks.WebApi.Realtime;
 // Carries the presenter's position to the guests (J4). It follows SW-4's presentation state (IPresentationObserver) and
 // the deck's own changes (IDeckEvents), and publishes an audienceState for every one that lands on a deck with an open
 // session. The phase always comes from IAudienceSessions and the one slide on screen is projected with no notes and no
-// deep-dive mark (D15); Current is filled only while the phase is live.
+// deep-dive mark (D15); Current and Activity are filled only while the phase is live. Activity is what IAudienceActivity
+// says is on screen (a poll, V3), serialised as it goes to the guest.
 //
 // It is a singleton because it is an observer, so IAudienceSessions and the database are reached through a scope per call.
 // It never reads the request or the caller. IPresentations is resolved per call too, because the registry takes the
@@ -215,7 +218,16 @@ public sealed class AudienceFeed : IDisposable
             .Where(s => s.DeckId == found.DeckId && s.DeletedAt == null)
             .OrderBy(s => s.Position)
             .ToListAsync();
-        return new AudienceState(found.DeckId, seq, AudiencePhase.Live, Project(slides, presentation), revision, null);
+        return new AudienceState(found.DeckId, seq, AudiencePhase.Live, Project(slides, presentation), revision, await ActivityAsync(services, found.DeckId));
+    }
+
+    // The activity on screen, in the scope the caller opened (the seam is per request). It is called under the deck's feed
+    // gate, so it must only read: IAudienceActivity never calls IPollPublisher, which holds a gate of its own while it
+    // publishes. Neither gate is ever taken while the other is held, so the two can't deadlock.
+    private static async Task<JsonElement?> ActivityAsync(IServiceProvider services, string deckId)
+    {
+        var activity = await services.GetRequiredService<IAudienceActivity>().ForDeckAsync(deckId);
+        return activity is null ? null : JsonSerializer.SerializeToElement(activity, JsonSerializerOptions.Web);
     }
 
     // The one slide on screen. A position past the end of the deck (slides removed while live) shows the last slide.

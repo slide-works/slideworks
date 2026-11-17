@@ -95,5 +95,21 @@ public sealed class HubReceiver : IAsyncDisposable
         return await _audienceEvents.Reader.ReadAsync(timeout.Token);
     }
 
+    // The next poll event ("pollTally" or "pollControl") a connection receives, read with its next-audience-event reader
+    // (HubReceiver.NextAudienceAsync or GuestClient.NextAudienceAsync). Any other audience event before it (an audienceState
+    // push, a joinedCount) is skipped; a poll event is never skipped, so a frame the connection should not have had is what
+    // this returns, and a test proves "nothing else came" by publishing a marker after it and expecting the marker first.
+    public static async Task<JsonElement> NextPollEventAsync(Func<Task<JsonElement>> nextAudienceEvent)
+    {
+        while (true)
+        {
+            var frame = await nextAudienceEvent();
+            if (frame.GetProperty("type").GetString() is "pollTally" or "pollControl")
+            {
+                return frame;
+            }
+        }
+    }
+
     public ValueTask DisposeAsync() => Connection.DisposeAsync();
 }
