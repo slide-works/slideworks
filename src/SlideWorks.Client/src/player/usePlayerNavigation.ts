@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FIRST_POSITION, formatHash, parseHash, type PlayerPosition } from './parseHash';
 
+// A presentation's position the player follows (P8's audience mode). While live the player shows it and keeps no
+// position of its own (D4); otherwise it keeps what the last one said and moves locally.
+export type FollowedPosition = { position: PlayerPosition; live: boolean };
+
 export type PlayerNavigation = {
   position: PlayerPosition;
   next(): void;
@@ -29,8 +33,20 @@ function clampTo(position: PlayerPosition, stepCounts: readonly number[]): Playe
 // moves the player there. Each move is exactly one step, or one slide once the
 // slide's steps are all shown. When the deck changes under the player (a live
 // refetch), the position is clamped onto it and the hash replaced.
-export function usePlayerNavigation(stepCounts: readonly number[]): PlayerNavigation {
-  const [position, setPosition] = useState(() => positionFromLocation(stepCounts));
+export function usePlayerNavigation(
+  stepCounts: readonly number[],
+  follow?: FollowedPosition | null,
+): PlayerNavigation {
+  const [local, setPosition] = useState(() => positionFromLocation(stepCounts));
+  const [followed, setFollowed] = useState<PlayerPosition | null>(null);
+  const incoming = follow?.position ?? null;
+  if (incoming && (followed?.slide !== incoming.slide || followed.step !== incoming.step)) {
+    // The next followed position overrides a local one, and a player that loses its connection stays where it was.
+    setFollowed(incoming);
+    setPosition(incoming);
+  }
+  const following = follow?.live ?? false;
+  const position = following && incoming ? incoming : local;
   const [clampedFor, setClampedFor] = useState(stepCounts);
   if (clampedFor !== stepCounts) {
     // Adjusting state while rendering, so the stale position never paints.
@@ -47,14 +63,16 @@ export function usePlayerNavigation(stepCounts: readonly number[]): PlayerNaviga
   }, [position]);
 
   useEffect(() => {
-    const follow = () => setPosition(positionFromLocation(stepCounts));
-    window.addEventListener('hashchange', follow);
-    window.addEventListener('popstate', follow);
+    // No local navigation while following a live presentation (D4).
+    if (following) return;
+    const goToHash = () => setPosition(positionFromLocation(stepCounts));
+    window.addEventListener('hashchange', goToHash);
+    window.addEventListener('popstate', goToHash);
     return () => {
-      window.removeEventListener('hashchange', follow);
-      window.removeEventListener('popstate', follow);
+      window.removeEventListener('hashchange', goToHash);
+      window.removeEventListener('popstate', goToHash);
     };
-  }, [stepCounts]);
+  }, [stepCounts, following]);
 
   const total = stepCounts.length;
 

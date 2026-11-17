@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useParams } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
 import type { DeckPlayView, MeView } from '../api/types';
+import { AudienceFollower } from '../player/AudienceFollower';
 import { Player } from '../player/Player';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { PlayerMessage } from './deck/PlayerMessage';
@@ -19,6 +20,8 @@ type Load =
 export function PlayerPage() {
   const { id = '', slug } = useParams();
   const location = useLocation();
+  // ?present is the audience window (P8): it follows the presentation when the viewer owns the deck.
+  const audience = new URLSearchParams(location.search).has('present');
   // Each read is stamped with its deck, so another deck's result never shows.
   const [result, setResult] = useState<{ id: string; load: Load } | null>(null);
   const load: Load = result?.id === id ? result.load : { kind: 'loading' };
@@ -115,12 +118,15 @@ export function PlayerPage() {
     case 'loaded':
       if (slug !== load.view.slug) {
         return (
-          <Navigate to={`/d/${load.view.id}/${load.view.slug}${window.location.hash}`} replace />
+          <Navigate
+            to={`/d/${load.view.id}/${load.view.slug}${location.search}${window.location.hash}`}
+            replace
+          />
         );
       }
       return (
         <div data-testid="player-page" data-deck-id={id} className="contents">
-          <Player deck={load.view} />
+          {audience ? <AudienceFollower deck={load.view} /> : <Player deck={load.view} />}
         </div>
       );
   }
