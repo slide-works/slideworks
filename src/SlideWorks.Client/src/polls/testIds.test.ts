@@ -11,6 +11,7 @@ import {
   pollOptionTestId,
   pollOptionYouTestId,
   pollPanelBarTestId,
+  pollPanelCorrectTestId,
   pollPanelCountTestId,
   pollPanelHistoryRoundTestId,
   pollPanelRowTestId,
@@ -33,6 +34,7 @@ const PER_OPTION = [
   pollPanelRowTestId,
   pollPanelBarTestId,
   pollPanelCountTestId,
+  pollPanelCorrectTestId,
 ];
 
 describe('poll test ids', () => {

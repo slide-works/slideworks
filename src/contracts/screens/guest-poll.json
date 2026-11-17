@@ -100,5 +100,27 @@
     "activity": null,
     "mine": null,
     "tally": null
+  },
+  "notOpen": {
+    "activity": {
+      "type": "poll",
+      "round": null,
+      "number": 1,
+      "phase": "draft",
+      "question": "How big was your last merge request?",
+      "options": [
+        "Under 50 lines",
+        "50 to 200 lines",
+        "200 to 1,000 lines",
+        "Over 1,000 lines"
+      ],
+      "pick": "one",
+      "max": null,
+      "results": "afterClose",
+      "roomSeesCounts": false,
+      "correct": null
+    },
+    "mine": null,
+    "tally": null
   }
 }

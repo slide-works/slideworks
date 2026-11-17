@@ -47,6 +47,7 @@ public class PollRecordShapeTests
     [TestCase("hidden")]
     [TestCase("notAnswered")]
     [TestCase("noPoll")]
+    [TestCase("notOpen")]
     public void GuestPollView_ShouldRoundTripEachSample(string sample)
     {
         var example = Example("guest-poll.json").GetProperty(sample);

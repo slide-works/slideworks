@@ -135,6 +135,8 @@ export const POLL_PANEL_TEST_IDS = {
 export const pollPanelRowTestId = (position: number) => `poll-panel-row-${position}`;
 export const pollPanelBarTestId = (position: number) => `poll-panel-bar-${position}`;
 export const pollPanelCountTestId = (position: number) => `poll-panel-count-${position}`;
+// The correct row's mark once the answer is shown. The mockup marks it on the row itself, not apart from the rows.
+export const pollPanelCorrectTestId = (position: number) => `poll-panel-correct-${position}`;
 export const pollPanelHistoryRoundTestId = (round: number) => `poll-panel-history-round-${round}`;
 
 // The poll strip on the presenter's phone remote (polls/presenter/PollStrip).

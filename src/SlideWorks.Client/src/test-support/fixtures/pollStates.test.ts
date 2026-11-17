@@ -88,7 +88,7 @@ describe('poll-activity.json', () => {
 });
 
 describe('guest-poll.json', () => {
-  it.each(['answered', 'hidden', 'notAnswered', 'noPoll'] as const)(
+  it.each(['answered', 'hidden', 'notAnswered', 'noPoll', 'notOpen'] as const)(
     'the %s sample round-trips',
     (sample) => {
       const view = guestPoll(sample);
@@ -107,6 +107,15 @@ describe('guest-poll.json', () => {
     expect(guestPoll('notAnswered').tally?.counts).toBeNull();
     expect(guestPoll('answered').tally?.counts).toEqual([12, 25, 14, 6]);
     expect(guestPoll('noPoll')).toEqual({ activity: null, mine: null, tally: null });
+  });
+
+  it('shows a manual poll before it opens with no round, no answer and no tally', () => {
+    const view = guestPoll('notOpen');
+    expect(view.activity).toEqual(pollActivity('draft'));
+    expect(view.activity?.phase).toBe('draft');
+    expect(view.activity?.round).toBeNull();
+    expect(view.mine).toBeNull();
+    expect(view.tally).toBeNull();
   });
 });
 
