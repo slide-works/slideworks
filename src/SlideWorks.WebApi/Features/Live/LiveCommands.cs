@@ -28,6 +28,7 @@ public class LiveCommands(
     IAudienceSessions sessions,
     IPresentations presentations,
     IJoinUrls joinUrls,
+    Polls.Polls polls,
     TimeProvider clock)
 {
     // SQLITE_CONSTRAINT_UNIQUE: the extended code, so a NOT NULL or primary key failure is never mistaken for the race.
@@ -69,6 +70,8 @@ public class LiveCommands(
         {
             return;
         }
+        // Before the session ends: an open poll round is closed with its final result, and a draft round is discarded (V4).
+        await polls.EndSessionAsync(deckId);
         session.EndedAt = clock.GetUtcNow();
         await db.SaveChangesAsync();
         await roster.ClosedAsync(deckId, session.Id.ToString());
