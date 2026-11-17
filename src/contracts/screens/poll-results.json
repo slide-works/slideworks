@@ -12,6 +12,7 @@
       "rounds": [
         {
           "number": 1,
+          "open": false,
           "options": [
             "Under 50 lines",
             "50 to 200 lines",
@@ -28,6 +29,7 @@
         },
         {
           "number": 2,
+          "open": true,
           "options": [
             "Under 50 lines",
             "50 to 200 lines",

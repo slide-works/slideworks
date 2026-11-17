@@ -584,6 +584,7 @@ public class PollMcpTests : PollTestFixture
         rounds.Select(r => r.GetProperty("answered").GetInt32()).ShouldBe([3, 2]);
         rounds.Select(r => r.GetProperty("joined").GetInt32()).ShouldBe([4, 3]);
         rounds.Select(r => r.GetProperty("rate").GetDouble()).ShouldBe([0.75, 2d / 3]);
+        rounds.Select(r => r.GetProperty("open").GetBoolean()).ShouldBe([false, false]);
         rounds.Select(r => r.GetProperty("options").EnumerateArray().Select(o => o.GetString())).ShouldAllBe(options => options.SequenceEqual(PollSeed.OPTIONS));
         rounds[0].GetProperty("counts").EnumerateArray().Select(c => c.GetInt32()).ShouldBe([1, 2, 0]);
         rounds[1].GetProperty("counts").EnumerateArray().Select(c => c.GetInt32()).ShouldBe([0, 0, 2]);
@@ -616,6 +617,8 @@ public class PollMcpTests : PollTestFixture
         sessions[1].GetProperty("rounds")[0].GetProperty("rate").GetDouble().ShouldBe(0);
         var open = sessions[1].GetProperty("rounds")[1];
         open.GetProperty("number").GetInt32().ShouldBe(2);
+        open.GetProperty("open").GetBoolean().ShouldBeTrue();
+        sessions[1].GetProperty("rounds")[0].GetProperty("open").GetBoolean().ShouldBeFalse();
         open.GetProperty("options").EnumerateArray().Select(o => o.GetString()).ShouldBe(PollSeed.OPTIONS);
         open.GetProperty("counts").GetArrayLength().ShouldBe(3);
     }
@@ -656,6 +659,31 @@ public class PollMcpTests : PollTestFixture
         var open = result.GetProperty("sessions")[0].GetProperty("rounds").EnumerateArray().Single();
         open.GetProperty("options").EnumerateArray().Select(o => o.GetString()).ShouldBe([.. PollSeed.OPTIONS, "Huge"]);
         open.GetProperty("counts").GetArrayLength().ShouldBe(4);
+    }
+
+    // A live poll's last round is open and its numbers are live; once it closes it is not, and its numbers are its Final's.
+    [Test]
+    public async Task GetPollResults_WhenLastRoundIsOpenAndThenCloses_ShouldFlagItOpenOnlyWhileOpen()
+    {
+        var poll = await SeedPollAsync();
+        var first = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await Rows.AnswerAsync(first.Id, "flag-guest-1", 0);
+        await Rows.CloseAsync(first.Id, joinedAtClose: 2);
+        var second = await Rows.RoundAsync(poll.SlideId, poll.SessionId, number: 2);
+        await Rows.AnswerAsync(second.Id, "flag-guest-1", 1);
+        await Rows.AnswerAsync(second.Id, "flag-guest-2", 1);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        var live = (await SlideCalls.OkAsync(agent, "get_poll_results", new { deck = poll.DeckId, slide = poll.Slide })).GetProperty("sessions")[0].GetProperty("rounds");
+        await Rows.AnswerAsync(second.Id, "flag-guest-3", 2);
+        await Rows.CloseAsync(second.Id, joinedAtClose: 3);
+        var closed = (await SlideCalls.OkAsync(agent, "get_poll_results", new { deck = poll.DeckId, slide = poll.Slide })).GetProperty("sessions")[0].GetProperty("rounds");
+
+        live.EnumerateArray().Select(r => r.GetProperty("open").GetBoolean()).ShouldBe([false, true]);
+        closed.EnumerateArray().Select(r => r.GetProperty("open").GetBoolean()).ShouldBe([false, false]);
+        closed[1].GetProperty("answered").GetInt32().ShouldBe(3);
+        closed[1].GetProperty("joined").GetInt32().ShouldBe(3);
+        closed[1].GetProperty("counts").EnumerateArray().Select(c => c.GetInt32()).ShouldBe([0, 2, 1]);
     }
 
     [Test]

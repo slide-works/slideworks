@@ -192,6 +192,7 @@ describe('poll-results.json', () => {
       'counts',
       'joined',
       'number',
+      'open',
       'options',
       'rate',
     ]);

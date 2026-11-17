@@ -15,7 +15,7 @@ namespace SlideWorks.WebApi.Features.Polls;
 // rounds that were opened, oldest first. Each round carries the option texts its counts belong to: a closed round's from its
 // Final snapshot (so a later reword, reorder or shrink of the slide never relabels it), an open round's the slide's current
 // options with its live tally, padded as the tally pads after an option was added. Counts has as many entries as the round's
-// Options. A draft and a discarded draft are not listed. rate is answered over joined, not rounded, 0 when nobody had
+// Options. Open says the round is still open, so its numbers are live. A draft and a discarded draft are not listed. rate is answered over joined, not rounded, 0 when nobody had
 // joined (joined is the roster's count when the round closed, or now for an open round). Totals only: no answer row is read,
 // so who picked what never leaves the database (D5), and neither does the correct answer, which is not in the view. Needs
 // edit access (404 "Deck not found" otherwise). Per request. Not named PollResults: that is the results setting's enum, in
@@ -59,14 +59,14 @@ public class PollResultsReader(AppDbContext db, PollReader reader, IPollTallies 
     {
         var final = round.Final!;
         var joined = round.JoinedAtClose ?? 0;
-        return new PollResultsRound(round.Number, final.Options, final.Answered, joined, Rate(final.Answered, joined), final.Counts);
+        return new PollResultsRound(round.Number, false, final.Options, final.Answered, joined, Rate(final.Answered, joined), final.Counts);
     }
 
     private async Task<PollResultsRound> OpenRoundAsync(PollRound round, IReadOnlyList<string> options)
     {
         var tally = await tallies.ReadAsync(round.Id.ToString(), options.Count);
         var joined = await roster.CountAsync(round.SessionId.ToString());
-        return new PollResultsRound(round.Number, options, tally.Answered, joined, Rate(tally.Answered, joined), tally.Counts);
+        return new PollResultsRound(round.Number, true, options, tally.Answered, joined, Rate(tally.Answered, joined), tally.Counts);
     }
 
     private static double Rate(int answered, int joined) => joined == 0 ? 0 : (double)answered / joined;
