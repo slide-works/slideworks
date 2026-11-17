@@ -27,7 +27,7 @@ public class SetTalkLengthToolTests : ApiTestFixture
         var received = Channel.CreateUnbounded<DeckEvent>();
         using var subscription = Factory.Services.GetRequiredService<IDeckEvents>().Subscribe(deck, e => received.Writer.WriteAsync(e).AsTask());
 
-        var result = await SetAsync(agent, new { deck_id = deck, minutes = 30 });
+        var result = await SetAsync(agent, new { deck, minutes = 30 });
 
         result.GetProperty("talk_minutes").GetInt32().ShouldBe(30);
         (await GetDeckAsync(agent, deck)).GetProperty("talk_minutes").GetInt32().ShouldBe(30);
@@ -47,9 +47,9 @@ public class SetTalkLengthToolTests : ApiTestFixture
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent);
-        await SetAsync(agent, new { deck_id = deck, minutes = 25 });
+        await SetAsync(agent, new { deck, minutes = 25 });
 
-        var result = await SetAsync(agent, new { deck_id = deck, minutes = (int?)null });
+        var result = await SetAsync(agent, new { deck, minutes = (int?)null });
 
         result.GetProperty("talk_minutes").ValueKind.ShouldBe(JsonValueKind.Null);
         (await GetDeckAsync(agent, deck)).GetProperty("talk_minutes").ValueKind.ShouldBe(JsonValueKind.Null);
@@ -70,29 +70,38 @@ public class SetTalkLengthToolTests : ApiTestFixture
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent);
+        var received = Channel.CreateUnbounded<DeckEvent>();
+        using var subscription = Factory.Services.GetRequiredService<IDeckEvents>().Subscribe(deck, e => received.Writer.WriteAsync(e).AsTask());
 
-        (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck_id = deck, minutes = 0 })).ShouldStartWith("minutes: must be a whole number from 1 to 600");
-        (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck_id = deck, minutes = 601 })).ShouldStartWith("minutes: must be a whole number from 1 to 600");
-        (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck_id = deck, minutes = "30" })).ShouldStartWith("minutes");
-        (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck_id = deck })).ShouldStartWith("minutes");
-        (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck_id = deck, minutes = 30, extra = 1 })).ShouldStartWith("extra");
+        (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck, minutes = 0 })).ShouldBe("minutes: must be a whole number from 1 to 600, or null to clear the talk length");
+        (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck, minutes = 601 })).ShouldBe("minutes: must be a whole number from 1 to 600, or null to clear the talk length");
+        (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck, minutes = "30" })).ShouldBe("minutes: must be a whole number");
+        (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck })).ShouldBe("minutes: required");
+        (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck, minutes = 30, extra = 1 })).ShouldBe("extra: unknown argument");
 
         (await DeckSeed.ActivityAsync(Client, deck)).Count.ShouldBe(1);
+        received.Reader.TryRead(out _).ShouldBeFalse();
         (await GetDeckAsync(agent, deck)).GetProperty("talk_minutes").ValueKind.ShouldBe(JsonValueKind.Null);
         _presentations.For(deck).ShouldBeEmpty();
     }
 
-    [Test]
-    public async Task SetTalkLength_WhenNotTheOwner_ShouldSayDeckNotFoundAndChangeNothing()
+    // The range check runs after the owner check (D16), so a non-owner hears "Deck not found" whatever the value.
+    [TestCase(30)]
+    [TestCase(0)]
+    [TestCase(601)]
+    public async Task SetTalkLength_WhenNotTheOwner_ShouldSayDeckNotFoundAndChangeNothing(int minutes)
     {
         await using var sam = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         await using var alex = await McpTestClient.ConnectAsAsync(Factory, TestUser.Alex);
         var deck = await DeckSeed.CreateDeckAsync(sam);
+        var received = Channel.CreateUnbounded<DeckEvent>();
+        using var subscription = Factory.Services.GetRequiredService<IDeckEvents>().Subscribe(deck, e => received.Writer.WriteAsync(e).AsTask());
 
-        (await SlideCalls.ErrorAsync(alex, "set_talk_length", new { deck_id = deck, minutes = 30 })).ShouldBe("Deck not found");
+        (await SlideCalls.ErrorAsync(alex, "set_talk_length", new { deck, minutes })).ShouldBe("Deck not found");
 
         (await GetDeckAsync(sam, deck)).GetProperty("talk_minutes").ValueKind.ShouldBe(JsonValueKind.Null);
         (await DeckSeed.ActivityAsync(Client, deck)).Count.ShouldBe(1);
+        received.Reader.TryRead(out _).ShouldBeFalse();
         _presentations.For(deck).ShouldBeEmpty();
     }
 

@@ -97,14 +97,19 @@ public class TalkLengthTests : ApiTestFixture
         _presentations.For(deck).ShouldBe([20]);
     }
 
-    [Test]
-    public async Task Put_WhenNotTheOwner_ShouldReturn404AndChangeNothing()
+    // The range check runs after the owner check (D16), so a non-owner gets 404 whether the value is in range or not.
+    [TestCase("""{ "minutes": 30 }""")]
+    [TestCase("""{ "minutes": 0 }""")]
+    [TestCase("""{ "minutes": 601 }""")]
+    public async Task Put_WhenNotTheOwner_ShouldReturn404AndChangeNothing(string body)
     {
         var deck = await CreateDeckAsync();
         using var alex = ClientFor(TestUser.Alex);
         var before = await PageAsync(deck);
+        var received = Channel.CreateUnbounded<DeckEvent>();
+        using var subscription = Factory.Services.GetRequiredService<IDeckEvents>().Subscribe(deck, e => received.Writer.WriteAsync(e).AsTask());
 
-        var response = await alex.PutAsync($"/api/decks/{deck}/talk-length", Json("""{ "minutes": 30 }"""));
+        var response = await alex.PutAsync($"/api/decks/{deck}/talk-length", Json(body));
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString().ShouldBe("Deck not found");
@@ -112,6 +117,7 @@ public class TalkLengthTests : ApiTestFixture
         after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64());
         after.GetProperty("activity").GetArrayLength().ShouldBe(1);
         (await TalkMinutesAsync(deck)).ShouldBeNull();
+        received.Reader.TryRead(out _).ShouldBeFalse();
         _presentations.For(deck).ShouldBeEmpty();
     }
 

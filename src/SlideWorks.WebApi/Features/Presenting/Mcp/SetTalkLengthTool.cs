@@ -14,11 +14,11 @@ public sealed class SetTalkLengthTool
     [Description("Set how long the talk is, in minutes (1 to 600), or pass null to clear it. The presenter's timer shows the time left against it. You must own the deck. The change shows in the deck's activity.")]
     public Task<CallToolResult> SetTalkLength(
         TalkLengthCommands commands,
-        [Description("The deck's id.")] string deck_id,
+        [Description("The deck's id.")] string deck,
         [Description("The talk length in whole minutes, 1 to 600, or null to clear it.")] int? minutes)
         => McpToolErrors.Run(async () =>
         {
-            await commands.SetAsync(deck_id, minutes, TalkLengthCommands.TOOL);
+            await commands.SetAsync(deck, minutes, TalkLengthCommands.TOOL);
             return new SetTalkLengthResult(minutes);
         });
 }
