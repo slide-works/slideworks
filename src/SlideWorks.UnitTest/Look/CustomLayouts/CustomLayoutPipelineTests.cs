@@ -21,7 +21,14 @@ public class CustomLayoutPipelineTests
         "bars",
         [new CustomSlot("headline", "text", false, null, 80, [], [], null)]);
 
-    private static LayoutTree SampleTree => LayoutTreeJson.Read(Contract("custom-layout-tree.sample.json"));
+    private const string PREFIX = "cl-0a1b2c3d-bar-chart__";
+
+    // The author's side: the tree as the markup stage returns it, with no scope and bare class names.
+    private static LayoutTree MarkupStageTree => LayoutTreeJson.Read(Contract("custom-layout-tree.sample.json"));
+
+    // The compiled side: the tree inside the stored layout, with the scope and every class prefixed.
+    private static LayoutTree CompiledSampleTree =>
+        LayoutTreeJson.Read(JsonNode.Parse(Contract("custom-layout-compiled.sample.json"))!["tree"]!.ToJsonString());
 
     [Test]
     public void Compile_WhenStagesRefuse_ShouldReturnEveryStagesErrors()
@@ -82,7 +89,7 @@ public class CustomLayoutPipelineTests
         stages.BoundVars.ShouldBe(["--v"]);
         stages.GivenCss.ShouldBe(".bar {}");
         layout.Tree.Scope.ShouldBe(SCOPE);
-        LayoutTreeJson.Write(layout.Tree with { Scope = null }).ShouldBe(LayoutTreeJson.Write(SampleTree));
+        LayoutTreeJson.Write(layout.Tree).ShouldBe(LayoutTreeJson.Write(CompiledSampleTree));
         layout.CompilerVersion.ShouldBe(1);
         layout.Name.ShouldBe("bar-chart");
         layout.Description.ShouldBe("A headline over bars.");
@@ -93,6 +100,50 @@ public class CustomLayoutPipelineTests
         layout.SlotsJson.ShouldBe(SLOTS_JSON);
         layout.SampleJson.ShouldBe(BULLETS_SLOTS);
         layout.MaximumJson.ShouldBe(BULLETS_SLOTS);
+    }
+
+    [Test]
+    public void Compile_WhenAllStagesPass_ShouldPrefixEveryTreeClass()
+    {
+        var stages = new Stages();
+
+        var layout = stages.Pipeline().Compile("<div>", ".bar {}", SLOTS_JSON, SCOPE).Layout.ShouldNotBeNull();
+
+        var given = MarkupStageTree.Nodes().SelectMany(node => node.Classes).ToList();
+        var compiled = layout.Tree.Nodes().SelectMany(node => node.Classes).ToList();
+        given.ShouldNotBeEmpty();
+        compiled.ShouldBe(given.Select(name => PREFIX + name));
+        compiled.ShouldAllBe(name => name.StartsWith(stages.ClassPrefix!, StringComparison.Ordinal));
+        compiled.Intersect(given).ShouldBeEmpty();
+        layout.Tree.Nodes().Count().ShouldBe(MarkupStageTree.Nodes().Count());
+    }
+
+    [Test]
+    public void Compile_WhenAnAuthorsClassAlreadyStartsWithCl_ShouldStillPrefixIt()
+    {
+        var child = new TreeNode("span", ["cl-0a1b2c3d-bar-chart--bar", "cl-ffffffff-other"], null, null, null, null, [], [], []);
+        var root = new TreeNode("div", ["cl-0a1b2c3d-bar-chart"], null, null, null, null, [], [], [child]);
+        var stages = new Stages { Tree = new LayoutTree(1, null, [root]) };
+
+        var layout = stages.Pipeline().Compile("<div>", ".a {}", SLOTS_JSON, SCOPE).Layout.ShouldNotBeNull();
+
+        layout.Tree.Nodes().SelectMany(node => node.Classes).ShouldBe(
+        [
+            "cl-0a1b2c3d-bar-chart__cl-0a1b2c3d-bar-chart",
+            "cl-0a1b2c3d-bar-chart__cl-0a1b2c3d-bar-chart--bar",
+            "cl-0a1b2c3d-bar-chart__cl-ffffffff-other",
+        ]);
+    }
+
+    [TestCase("bar chart")]
+    [TestCase("")]
+    [TestCase("Bar")]
+    [TestCase("bar__x")]
+    public void Compile_WhenTheMarkupStageLetsABadClassThrough_ShouldThrow(string className)
+    {
+        var stages = new Stages { Tree = new LayoutTree(1, null, [new TreeNode("div", [className], null, null, null, null, [], [], [])]) };
+
+        Should.Throw<ArgumentException>(() => stages.Pipeline().Compile("<div>", ".a {}", SLOTS_JSON, SCOPE)).ParamName.ShouldBe("className");
     }
 
     [Test]
@@ -161,7 +212,17 @@ public class CustomLayoutPipelineTests
         layout.Steps.ShouldBe(new CustomSteps("list", "bars", 0));
         layout.Tree.Scope.ShouldBe(SCOPE);
         layout.Css.ShouldContain(".cl-0a1b2c3d-bar-chart__bar.cl-0a1b2c3d-bar-chart__is-alert {");
-        LayoutTreeJson.Write(layout.Tree with { Scope = null }).ShouldBe(LayoutTreeJson.Write(SampleTree));
+        layout.Tree.Nodes().SelectMany(node => node.Classes).ShouldAllBe(name => name.StartsWith(PREFIX, StringComparison.Ordinal));
+    }
+
+    [Test]
+    public void Samples_WhenTheCompiledTreeLosesItsPrefix_ShouldBeTheMarkupStagesTree()
+    {
+        var compiled = LayoutTreeJson.Write(CompiledSampleTree with { Scope = null });
+
+        compiled.Replace(PREFIX, string.Empty, StringComparison.Ordinal).ShouldBe(LayoutTreeJson.Write(MarkupStageTree));
+        MarkupStageTree.Scope.ShouldBeNull();
+        MarkupStageTree.Nodes().SelectMany(node => node.Classes).ShouldAllBe(name => !name.StartsWith("cl-", StringComparison.Ordinal));
     }
 
     [Test]
@@ -202,7 +263,7 @@ public class CustomLayoutPipelineTests
     // Every stage in one fake: each passes unless it is given errors, and records what it was given.
     private sealed class Stages : IMarkupSanitiser, ICssSanitiser, ISlotSchemaCompiler, ILayoutCrossCheck, ILayoutSamples
     {
-        public LayoutTree Tree { get; init; } = SampleTree;
+        public LayoutTree Tree { get; init; } = MarkupStageTree;
 
         public IReadOnlyList<CustomLayoutError> MarkupErrors { get; init; } = [];
 

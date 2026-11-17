@@ -5,7 +5,9 @@ using SlideWorks.UnitTest.Slides;
 
 namespace SlideWorks.UnitTest.Look.CustomLayouts;
 
-// The tree's JSON (T10) against src/contracts/custom-layout-tree.sample.json.
+// The tree's JSON (T10) against src/contracts/custom-layout-tree.sample.json. That sample is the
+// author's side: the tree as the markup stage returns it, with no scope and bare class names. The
+// compiled tree, with the scope and every class prefixed, is inside custom-layout-compiled.sample.json.
 public class LayoutTreeJsonTests
 {
     private static string Sample => File.ReadAllText(ContractFiles.PathOf("custom-layout-tree.sample.json"));

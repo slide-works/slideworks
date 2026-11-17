@@ -4,7 +4,9 @@
 // A CSS variable an element sets from a number slot.
 export type TreeVar = { name: string; slot: string };
 
-// One element. `step` is a numbered step from 1, or 0 for one step per repeated item. There is no text field:
+// One element. `classes` are final: the server has already written each with the layout's prefix
+// (cl-<scope>-<layout name>__<class>), the same names its CSS uses. The client puts them on the element
+// exactly as given and never builds or prefixes a class name. `step` is a numbered step from 1, or 0 for one step per repeated item. There is no text field:
 // text comes only from the slot named in `slot`.
 export type TreeNode = {
   tag: string;
@@ -18,7 +20,8 @@ export type TreeNode = {
   children: TreeNode[];
 };
 
-// `scope` is the 8 hex characters of the class prefix: cl-<scope>-<layout name>__<class>.
+// `scope` is the 8 hex characters inside the class prefix the server wrote. It is information only:
+// the client does not use it to make class names.
 export type LayoutTree = { version: 1; scope?: string; root: TreeNode[] };
 
 export type CustomBlockSlotName = 'callout' | 'chip' | 'badge' | 'levels' | 'facts';

@@ -5,7 +5,8 @@ namespace SlideWorks.Core.Look.CustomLayouts;
 
 // Compiles one uploaded custom layout (T10). The markup, schema and CSS stages all run, so the author
 // sees every stage's errors at once; the cross-check runs only when all three passed. This is the only
-// way an upload becomes a CompiledLayout.
+// way an upload becomes a CompiledLayout. The compiled tree and the compiled CSS both carry every class
+// with the layout's prefix (LayoutClassPrefix): the client draws those names as given.
 public sealed class CustomLayoutPipeline(
     IMarkupSanitiser markup,
     ICssSanitiser css,
@@ -16,15 +17,13 @@ public sealed class CustomLayoutPipeline(
     // scope is the first 8 characters of the upload's asset id: 8 lower-case hex characters.
     public CompileResult Compile(string markupText, string cssText, string slotsJson, string scope)
     {
-        if (!LayoutScope.IsValid(scope))
-        {
-            throw new ArgumentException("A layout's scope is 8 lower-case hex characters.", nameof(scope));
-        }
+        // Checked before any stage runs: a bad scope throws here, from the prefix's own check.
+        var unnamedPrefix = LayoutClassPrefix.Of(scope, LayoutScope.UNNAMED);
 
         var (tree, markupErrors) = markup.Sanitise(markupText);
         var (definition, compiledSchema, schemaErrors) = schema.Compile(slotsJson, tree is null ? 0 : TreeSteps.FixedCount(tree));
-        var prefix = LayoutScope.ClassPrefix(scope, compiledSchema?.Name ?? LayoutScope.UNNAMED);
-        var (scopedCss, cssErrors) = css.Sanitise(cssText, prefix, tree?.VarNames() ?? []);
+        var prefix = compiledSchema is null ? unnamedPrefix : LayoutClassPrefix.Of(scope, compiledSchema.Name);
+        var (scopedCss, cssErrors) = css.Sanitise(cssText, prefix.Value, tree?.VarNames() ?? []);
 
         IReadOnlyList<CustomLayoutError> errors = [.. markupErrors, .. schemaErrors, .. cssErrors];
         if (errors.Count > 0)
@@ -61,13 +60,22 @@ public sealed class CustomLayoutPipeline(
                 compiledSchema.Surface,
                 steps,
                 definition,
-                tree with { Scope = scope },
+                tree with { Scope = scope, Root = [.. tree.Root.Select(node => Scoped(node, prefix))] },
                 scopedCss,
                 slotsJson,
                 sample,
                 maximum),
             []);
     }
+
+    // The node with every class written with the layout's prefix, all the way down. No class of the
+    // markup stage's tree reaches the compiled tree bare.
+    private static TreeNode Scoped(TreeNode node, LayoutClassPrefix prefix) =>
+        node with
+        {
+            Classes = [.. node.Classes.Select(prefix.Apply)],
+            Children = [.. node.Children.Select(child => Scoped(child, prefix))],
+        };
 
     // Slots we wrote ourselves from a schema we accepted: a failure is our bug, not the author's.
     private static void MustValidate(LayoutDefinition definition, string slots, string which)

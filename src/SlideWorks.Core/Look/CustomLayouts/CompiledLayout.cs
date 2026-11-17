@@ -3,7 +3,8 @@ using SlideWorks.Core.Slides;
 namespace SlideWorks.Core.Look.CustomLayouts;
 
 // A custom layout that passed every check: what is stored for an upload and what a slide is validated
-// and drawn with. Css has every class written with the scoped prefix; Tree carries the scope.
+// and drawn with. Css and Tree both have every class written with the scoped prefix
+// (LayoutClassPrefix), and Tree carries the scope: the client uses the class names as given.
 // SlotsJson is the uploaded slots.json; SampleJson and MaximumJson are slots for the review page.
 public sealed record CompiledLayout(
     int CompilerVersion,

@@ -15,7 +15,7 @@
       {
         "tag": "div",
         "classes": [
-          "chart"
+          "cl-0a1b2c3d-bar-chart__chart"
         ],
         "vars": [],
         "variants": [],
@@ -23,7 +23,7 @@
           {
             "tag": "div",
             "classes": [
-              "headline"
+              "cl-0a1b2c3d-bar-chart__headline"
             ],
             "slot": "headline",
             "vars": [],
@@ -33,7 +33,7 @@
           {
             "tag": "div",
             "classes": [
-              "bars"
+              "cl-0a1b2c3d-bar-chart__bars"
             ],
             "vars": [],
             "variants": [],
@@ -41,7 +41,7 @@
               {
                 "tag": "div",
                 "classes": [
-                  "row"
+                  "cl-0a1b2c3d-bar-chart__row"
                 ],
                 "each": "bars",
                 "step": 0,
@@ -51,7 +51,7 @@
                   {
                     "tag": "span",
                     "classes": [
-                      "label"
+                      "cl-0a1b2c3d-bar-chart__label"
                     ],
                     "slot": "label",
                     "vars": [],
@@ -61,7 +61,7 @@
                   {
                     "tag": "div",
                     "classes": [
-                      "track"
+                      "cl-0a1b2c3d-bar-chart__track"
                     ],
                     "vars": [],
                     "variants": [],
@@ -69,7 +69,7 @@
                       {
                         "tag": "div",
                         "classes": [
-                          "bar"
+                          "cl-0a1b2c3d-bar-chart__bar"
                         ],
                         "vars": [
                           {
@@ -91,7 +91,7 @@
           {
             "tag": "p",
             "classes": [
-              "note"
+              "cl-0a1b2c3d-bar-chart__note"
             ],
             "slot": "note",
             "if": "note",

@@ -1,8 +1,7 @@
 namespace SlideWorks.Core.Look.CustomLayouts;
 
 // The scope of a compiled layout's classes: the first 8 characters of the upload's asset id, as
-// lower-case hex. The class prefix is cl-<scope>-<layout name>__, so two templates' layouts of one
-// name never style each other.
+// lower-case hex. LayoutClassPrefix makes the class prefix from it.
 public static class LayoutScope
 {
     public const int LENGTH = 8;
@@ -12,6 +11,4 @@ public static class LayoutScope
 
     public static bool IsValid(string? scope) =>
         scope is { Length: LENGTH } && scope.All(c => c is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
-
-    public static string ClassPrefix(string scope, string layoutName) => $"cl-{scope}-{layoutName}__";
 }
