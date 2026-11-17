@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Features.Templates.Views;
@@ -18,6 +19,11 @@ namespace SlideWorks.WebApi.Tests.Templates;
 [TestFixture]
 public class TemplateRoutesShapeTests : ApiTestFixture
 {
+    private static readonly JsonSerializerOptions WIRE = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false) },
+    };
+
     protected override Action<IServiceCollection>? ConfigureTestServices => services =>
     {
         FakeTemplateDrafts.Register(services);
@@ -252,30 +258,82 @@ public class TemplateRoutesShapeTests : ApiTestFixture
         Sharing.Calls().ShouldNotContain("Use tpl_use000000002");
     }
 
-    // The stubs registered until the real services land answer the same samples, so the app runs in the final shape.
+    // The stubs registered until the real services land read the sample files themselves, so the app runs in the final
+    // shape, and a change to a sample changes the stub's answer with it.
     [Test]
-    public async Task Stubs_WhenAsked_ShouldAnswerTheScreenSamples()
+    public async Task Stubs_WhenAsked_ShouldMatchTheScreenShapes()
     {
         using var scope = Factory.Services.CreateScope();
         var actor = scope.ServiceProvider.GetRequiredService<ICurrentActor>();
 
-        var editor = await new StubTemplateDrafts().GetAsync(actor, "tpl_stub00000001");
         var templates = await new StubTemplateDrafts().ListAsync(actor);
+        var editor = await new StubTemplateDrafts().GetAsync(actor, "tpl_stub00000001");
         var checklist = await new StubTemplatePublishing().ChecklistAsync(actor, "tpl_stub00000001");
         var review = await new StubTemplatePublishing().LayoutReviewAsync(actor, "tpl_stub00000001", "stage-ladder");
         var sharing = await new StubTemplateSharing().GetAsync(actor, "tpl_stub00000001");
         var page = await new StubTemplateSharing().PublicAsync(actor, "tpl_stub00000001");
 
-        Wire(templates).ShouldBe(Wire(TemplateScreenShapes.Sample<TemplatesView>(TemplateScreenShapes.TEMPLATES_FILE)));
-        Wire(editor).ShouldBe(Wire(TemplateScreenShapes.Sample<TemplateEditorView>(TemplateScreenShapes.EDITOR_FILE)));
-        Wire(checklist).ShouldBe(Wire(Publishing.Checklist));
-        Wire(review).ShouldBe(Wire(TemplateScreenShapes.Sample<LayoutReviewView>(TemplateScreenShapes.LAYOUT_REVIEW_FILE)));
-        Wire(sharing).ShouldBe(Wire(TemplateScreenShapes.Sample<TemplateSharingView>(TemplateScreenShapes.SHARING_FILE)));
-        Wire(page).ShouldBe(Wire(TemplateScreenShapes.Sample<TemplatePublicView>(TemplateScreenShapes.PUBLIC_FILE)));
+        JsonShape.AssertMatches(Wire(templates), TemplateScreenShapes.TEMPLATES_FILE, TemplateScreenShapes.Templates);
+        JsonShape.AssertMatches(Wire(editor), TemplateScreenShapes.EDITOR_FILE, TemplateScreenShapes.Editor);
+        JsonShape.AssertMatches(Wire(checklist), TemplateScreenShapes.ChecklistExample(), "template-editor.json's checklist", TemplateScreenShapes.Checklist);
+        JsonShape.AssertMatches(Wire(review), TemplateScreenShapes.LAYOUT_REVIEW_FILE, TemplateScreenShapes.LayoutReview);
+        JsonShape.AssertMatches(Wire(sharing), TemplateScreenShapes.SHARING_FILE, TemplateScreenShapes.Sharing);
+        JsonShape.AssertMatches(Wire(page), TemplateScreenShapes.PUBLIC_FILE, TemplateScreenShapes.Public);
+        templates.Mine.ShouldNotBeEmpty();
+        editor.Assets.ShouldNotBeEmpty();
+    }
+
+    // The owner is a name only on a template shared with the caller: null on the caller's own and on a built-in.
+    [Test]
+    public async Task GetTemplates_WhenSignedIn_ShouldNameTheOwnerOnSharedRowsOnly()
+    {
+        var response = await Client.GetAsync("/api/templates");
+
+        var view = await response.Content.ReadFromJsonAsync<JsonElement>();
+        view.GetProperty("mine").EnumerateArray().Select(row => row.GetProperty("owner").ValueKind).ShouldBe([JsonValueKind.Null, JsonValueKind.Null]);
+        view.GetProperty("builtIn").EnumerateArray().Select(row => row.GetProperty("owner").ValueKind).ShouldBe([JsonValueKind.Null]);
+        view.GetProperty("shared").EnumerateArray().Select(row => row.GetProperty("owner").GetString()).ShouldBe(["Mira Okafor"]);
+    }
+
+    // An asset's meta is opaque to the shape check, so its members by kind are asserted here: a font's measured width,
+    // nothing for an SVG, and the pixel size of a PNG.
+    [Test]
+    public async Task GetTemplate_WhenSignedIn_ShouldCarryEachAssetsMetaByKind()
+    {
+        var response = await Client.GetAsync("/api/templates/tpl_meta00000001");
+
+        var assets = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("assets").EnumerateArray().ToList();
+        var fonts = assets.Where(asset => asset.GetProperty("kind").GetString() == "font").ToList();
+        fonts.Count.ShouldBe(4);
+        fonts.Select(font => MetaOf(font)).ShouldAllBe(meta => meta == "avgCharEm:Number");
+        assets.Where(asset => asset.GetProperty("contentType").GetString() == "image/svg+xml").Select(MetaOf).ShouldBe(["", ""]);
+        var art = assets.Single(asset => asset.GetProperty("kind").GetString() == "art");
+        art.GetProperty("contentType").GetString().ShouldBe("image/png");
+        MetaOf(art).ShouldBe("width:Number,height:Number");
+        art.GetProperty("meta").GetProperty("width").TryGetInt32(out _).ShouldBeTrue();
+        art.GetProperty("meta").GetProperty("height").TryGetInt32(out _).ShouldBeTrue();
+    }
+
+    // The sample tells one story: the font rights are still to confirm, so no font is confirmed and it can't be published.
+    [Test]
+    public async Task GetTemplate_WhenSignedIn_ShouldAgreeWithItsOwnChecklistOnFontRights()
+    {
+        var response = await Client.GetAsync("/api/templates/tpl_rights000001");
+
+        var view = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var rights = view.GetProperty("checklist").EnumerateArray().Single(row => row.GetProperty("key").GetString() == "fontRights");
+        rights.GetProperty("state").GetString().ShouldBe("todo");
+        view.GetProperty("assets").EnumerateArray().Where(asset => asset.GetProperty("kind").GetString() == "font")
+            .Select(font => font.GetProperty("rightsConfirmed").GetBoolean()).ShouldBe([false, false, false, false]);
+        view.GetProperty("canPublish").GetBoolean().ShouldBeFalse();
     }
 
     private IEnumerable<string> Calls() => Drafts.Calls().Concat(Publishing.Calls()).Concat(Sharing.Calls());
 
-    // A view as compact JSON, with JSON held inside it (the manifest, an asset's meta) compacted too.
-    private static string Wire<T>(T view) => JsonSerializer.SerializeToNode(view, JsonSerializerOptions.Web)!.ToJsonString();
+    // A view as the routes write it.
+    private static JsonElement Wire<T>(T view) => JsonSerializer.SerializeToElement(view, WIRE);
+
+    // An asset's meta as "name:kind" pairs, in order.
+    private static string MetaOf(JsonElement asset)
+        => string.Join(",", asset.GetProperty("meta").EnumerateObject().Select(member => $"{member.Name}:{member.Value.ValueKind}"));
 }

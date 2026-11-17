@@ -13,7 +13,7 @@
       "deckCount": 3,
       "updatedLabel": "2 min ago",
       "sharing": "named",
-      "owner": "Sam Rivera"
+      "owner": null
     },
     {
       "id": "tpl_Bq7mXr2Vc9Hd",
@@ -28,7 +28,7 @@
       "deckCount": 0,
       "updatedLabel": "yesterday",
       "sharing": "private",
-      "owner": "Sam Rivera"
+      "owner": null
     }
   ],
   "shared": [
@@ -62,7 +62,7 @@
       "deckCount": 5,
       "updatedLabel": "16 Nov 2026",
       "sharing": "private",
-      "owner": "SlideWorks"
+      "owner": null
     }
   ]
 }
