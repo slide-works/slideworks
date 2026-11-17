@@ -143,11 +143,11 @@ export function useAudience(
     };
 
     // The answer to a (re)join is where the guest lands, whatever its seq: it is the server's current state, and the server
-    // may have restarted (D2). The exception is a state pushed while the call was in flight: that one is newer than the
-    // answer, which was read before it.
+    // may have restarted (D2). The exception is a state pushed while the call was in flight: that one is at least as new as
+    // the answer, which was read before it, so an answer with the same seq (Go live racing the join) doesn't replace it.
     const land = (next: AudienceState) => {
       if (!active) return;
-      if (pushedSinceJoin && next.seq < lastSeq) {
+      if (pushedSinceJoin && next.seq <= lastSeq) {
         setStatus('live');
         return;
       }

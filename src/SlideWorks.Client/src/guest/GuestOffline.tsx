@@ -1,13 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { GUEST_TEST_IDS } from './testIds';
+import type { Retry } from './useRetry';
 
 // The offline screen's own retries. A room that drops together comes back to this screen together, and a venue shares one
 // rate limit, so each phone waits a base time plus a random extra, and the base doubles after every attempt up to a cap.
 export const OFFLINE_RETRY_MS = 5000;
 export const OFFLINE_JITTER_MS = 2000;
 export const OFFLINE_MAX_RETRY_MS = 30000;
-
-type Retry = () => void | Promise<unknown>;
 
 // Live updates can't reach the phone (every transport failed, or it is offline). It explains and retries on its own while
 // it is shown: the next attempt is scheduled only after the last one has settled (onRetry returns a promise for that),

@@ -164,6 +164,23 @@ describe('useAudience', () => {
     expect(latest.status).toBe('live');
   });
 
+  it('keeps a state pushed while JoinAudience was in flight when the answer has the same seq', async () => {
+    await act(() => root.unmount());
+    let release!: (state: AudienceState) => void;
+    fake.connection.invoke.mockReturnValueOnce(new Promise<AudienceState>((r) => (release = r)));
+    root = createRoot(document.createElement('div'));
+    await act(async () => root.render(createElement(Probe, { report })));
+    await flush();
+
+    // Go live races the join: the live push arrives first, then the lobby answer with the same seq.
+    await push(audienceState({ seq: 51, phase: 'live' }));
+    await act(async () => release(audienceState({ seq: 51, phase: 'lobby', current: null })));
+
+    expect(latest.state.phase).toBe('live');
+    expect(latest.state.current).not.toBeNull();
+    expect(latest.status).toBe('live');
+  });
+
   it('still lands on a lower seq after a reconnect when nothing was pushed meanwhile (server restart)', async () => {
     await push(audienceState({ seq: 51 }));
     await act(async () => fake.handlers.reconnecting());
