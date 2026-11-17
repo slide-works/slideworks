@@ -16,12 +16,7 @@ public partial class PresentingRecoveryJourneyTests : AcceptanceTest
     // D4, D9: a dropped presenter shows Reconnecting while the audience window carries on. On reconnect the presenter
     // takes the server's state (the move the audience window made while it was gone, not its own resume), so both
     // windows agree, and the timer the server holds kept counting through the drop.
-    // TODO: drop the Ignore once a rejoin with a running timer works: usePresentation's resume sends elapsedMs as a
-    // performance.now() sum with a fraction (such as 4217.9), PresentationTimer.ElapsedMs is a long, so the hub fails to
-    // bind JoinPresentation's arguments ("Failed to invoke 'JoinPresentation' due to an error on the server") and the
-    // presenter stays on Reconnecting until a retry happens to send a whole number.
     [Test]
-    [Ignore("Red on a product fault: JoinPresentation's resume with a fractional timer.elapsedMs fails argument binding")]
     public async Task PresenterWindow_WhenItsHubSocketDropsAndComesBack_ShouldShowReconnectingThenAgreeWithTheAudienceAndKeepTheTimer()
     {
         var hub = await DroppableHub.RouteAsync(Page);
