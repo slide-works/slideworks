@@ -1,7 +1,8 @@
 /* The poll slide (light, mockup section 04 at 2x), in canvas px. The root (.sw-layout) fills the content box
    (x 120-1800, y 150-960) and the body may run to y 996. Budget with 8 options of 60 characters: kicker 42, a
    two-line question 134, the body's 34 px gap, 8 rows of 60 with 10 between (550), then the footer's 22 + 48: 830 of
-   the 846 px from y 150 to 996. Bars use the palette's accent, the correct one its positive colour (--sw-good). */
+   the 846 px from y 150 to 996. Bars use the palette's accent, the correct one its positive colour (--sw-good). The
+   join pill and the hidden-results chip are ink on paper, so they stand out on a dark palette's paper too. */
 
 .poll {
   position: relative;
@@ -18,8 +19,8 @@
   padding: 12px 26px;
   overflow: hidden;
   border-radius: var(--sw-radius-pill);
-  background: var(--sw-night);
-  color: var(--sw-night-ink);
+  background: var(--sw-ink);
+  color: var(--sw-paper);
   font: 500 24px/1.1 var(--sw-font-body);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -209,8 +210,8 @@
   gap: 14px;
   padding: 12px 24px;
   border-radius: var(--sw-radius-pill);
-  background: var(--sw-night);
-  color: var(--sw-night-ink);
+  background: var(--sw-ink);
+  color: var(--sw-paper);
   font: 600 24px/1 var(--sw-font-body);
 }
 

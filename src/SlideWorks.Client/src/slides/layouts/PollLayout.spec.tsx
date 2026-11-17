@@ -70,6 +70,9 @@ const openLive = (overrides: Partial<PollControlView> = {}) =>
     ...overrides,
   });
 
+// The sample's closed round (pick up to 2, 38 answers) before the answer is shown.
+const closedRound = () => pollControlView('closed', { answerShown: false });
+
 const width = (page: Page, testId: string) =>
   page.getByTestId(testId).evaluate((el) => el.getBoundingClientRect().width);
 
@@ -166,7 +169,7 @@ test('while the room cannot see the counts the tracks are hatched and only the c
 });
 
 test('a closed poll shows the final result and says Closed', async ({ mount, page }) => {
-  const closed = pollControlView('closed');
+  const closed = closedRound();
   await mount(pollSlide({ control: closed }));
   await expect(page.getByTestId(IDS.state)).toHaveText('Closed');
   await expect(page.getByTestId(IDS.answered)).toHaveText(`${closed.answered} answers`);
@@ -182,7 +185,7 @@ test('the answer shown: the correct bar turns positive with a tick and the other
   mount,
   page,
 }) => {
-  const closed = pollControlView('closed');
+  const closed = closedRound();
   const control = {
     ...closed,
     answerShown: true,
@@ -208,7 +211,7 @@ test('the answer shown: the correct bar turns positive with a tick and the other
 });
 
 test('a correct option is not marked before the answer is shown', async ({ mount, page }) => {
-  const closed = pollControlView('closed');
+  const closed = closedRound();
   await mount(pollSlide({ control: { ...closed, settings: { ...closed.settings, correct: 2 } } }));
   await expect(page.getByTestId(IDS.state)).toHaveText('Closed');
   await expect(page.getByTestId(pollSlideCorrectTestId(1))).toHaveCount(0);
@@ -267,6 +270,8 @@ async function measure(page: Page) {
   return page.getByTestId('layout-poll').evaluate((root: Element) => {
     const slide = root.closest('[data-layout]')!.getBoundingClientRect();
     const drawn = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+    // The top is the boxes' top: a text run's box reaches a little above its line box.
+    let boxTop = Infinity;
     const add = (rect: DOMRect) => {
       if (rect.width === 0 && rect.height === 0) return;
       drawn.left = Math.min(drawn.left, rect.left - slide.left);
@@ -279,6 +284,8 @@ async function measure(page: Page) {
       if (pill?.contains(element)) continue;
       const style = getComputedStyle(element);
       if (style.display === 'contents') continue;
+      const box = element.getBoundingClientRect();
+      if (box.width > 0 || box.height > 0) boxTop = Math.min(boxTop, box.top - slide.top);
       if (
         element instanceof SVGElement ||
         style.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
@@ -296,7 +303,7 @@ async function measure(page: Page) {
     const overflowing = [...root.querySelectorAll('h2, li > span')]
       .filter((el) => el.scrollWidth > el.clientWidth + 1)
       .map((el) => el.textContent);
-    return { drawn, overflowing };
+    return { drawn: { ...drawn, top: boxTop }, overflowing };
   });
 }
 
@@ -314,6 +321,8 @@ const busy = (options: number) =>
 for (const palette of PALETTES.map((p) => p.name)) {
   for (const [name, slots] of [
     ['8 options of 60 characters', POLL_EIGHT],
+    ['6 options of 60 characters', { ...POLL_EIGHT, options: POLL_EIGHT.options.slice(0, 6) }],
+    ['4 options of 60 characters', { ...POLL_EIGHT, options: POLL_EIGHT.options.slice(0, 4) }],
     ['2 options', TWO],
   ] as const) {
     test(`${name} stay inside x 120-1800, y 150-996 in ${palette}`, async ({ mount, page }) => {
@@ -360,13 +369,13 @@ const SCREENSHOTS: [string, PollControlView | null][] = [
   ['draft', pollControlView('draft')],
   ['open-live', openLive()],
   ['open-hidden', pollControlView('open')],
-  ['closed', pollControlView('closed')],
+  ['closed', closedRound()],
   [
     'answer-shown',
     {
-      ...pollControlView('closed'),
+      ...closedRound(),
       answerShown: true,
-      settings: { ...pollControlView('closed').settings, correct: 2 },
+      settings: { ...closedRound().settings, correct: 2 },
     },
   ],
   [
