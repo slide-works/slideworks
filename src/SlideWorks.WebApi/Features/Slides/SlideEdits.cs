@@ -118,6 +118,7 @@ public class SlideEdits(
             CheckNumber(slide, count, "slide");
             var position = slide - 1;
             var deleted = await Live(deck.Id).SingleAsync(s => s.Position == position);
+            await pollEdits.RequireNoOpenRoundAsync(deck.Id, deleted, "deleted");
             deleted.DeletedAt = clock.GetUtcNow();
             deleted.Revision = deck.Revision;
             await db.SaveChangesAsync();

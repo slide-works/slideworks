@@ -22,6 +22,21 @@ public class PollEdits(PollReader reader, PollRows rows, IAudienceRelay relay, I
             && await rows.OpenRoundAsync(session) is { OpenedAt: not null } round
             && round.SlideId == slideId;
 
+    // The code a refused edit starts its message with when a round is open on the slide: nothing can close a round whose slide
+    // is gone or no longer a poll, because IPolls addresses a poll by its slide's number, so the caller closes the poll first.
+    public const string POLL_OPEN = "poll_open";
+
+    // Refuses, before the caller writes anything, when a round is really open on the slide (a draft or a closed round doesn't
+    // block): what the slide is about to stop being, such as "deleted" or "a poll". Slides can't close the round itself,
+    // because the lifecycle is IPolls' and runs in a transaction of its own.
+    public async Task RequireNoOpenRoundAsync(string deckId, Slide slide, string change)
+    {
+        if (slide.Layout == PollRows.LAYOUT && await IsRoundOpenAsync(deckId, slide.Id))
+        {
+            throw new ConflictException($"{POLL_OPEN}: a round of this poll is open, so the slide can't be {change}; close the poll first (close_poll)");
+        }
+    }
+
     // Checks update_slide's new layout and slots against the slide as it is. Returns true when the slide is a poll before
     // and after, the deck is live, and the question or an option changed, so the caller announces it after its commit.
     public async Task<bool> CheckSlideEditAsync(string deckId, Slide slide, string newLayout, JsonElement newSlots)
@@ -32,15 +47,12 @@ public class PollEdits(PollReader reader, PollRows rows, IAudienceRelay relay, I
         {
             return false;
         }
-        var open = wasPoll && await IsRoundOpenAsync(deckId, slide.Id);
-        if (open && !willBePoll)
-        {
-            throw new ConflictException("A round of this poll is open, so the slide can't stop being a poll; close the poll first");
-        }
         if (!willBePoll)
         {
+            await RequireNoOpenRoundAsync(deckId, slide, "changed to another layout");
             return false;
         }
+        var open = wasPoll && await IsRoundOpenAsync(deckId, slide.Id);
 
         var (question, options) = PollReader.SlotsOf(SlideJson.ForStorage(newSlots));
         var settings = await rows.SettingsAsync(slide.Id) ?? PollSettings.Default;

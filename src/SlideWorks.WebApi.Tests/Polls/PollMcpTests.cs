@@ -337,19 +337,6 @@ public class PollMcpTests : PollTestFixture
     }
 
     [Test]
-    public async Task UpdateSlide_WhenRoundIsOpenAndLayoutLeavesPoll_ShouldRefuse()
-    {
-        var poll = await SeedPollAsync();
-        await Rows.RoundAsync(poll.SlideId, poll.SessionId);
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        var revision = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1].GetProperty("revision").GetInt64();
-
-        var error = await SlideCalls.UpdateErrorAsync(agent, poll.DeckId, poll.Slide, revision, """{ "quote": "Ship it", "attribution": "Sam" }""", layout: "quote");
-
-        error.ShouldBe("A round of this poll is open, so the slide can't stop being a poll; close the poll first");
-    }
-
-    [Test]
     public async Task UpdateSlide_WhenRoundIsOpenAndOnlyTextIsFixedOrAppended_ShouldPassAndRefreshAndPublish()
     {
         var poll = await SeedPollAsync();
@@ -404,6 +391,71 @@ public class PollMcpTests : PollTestFixture
 
         error.ShouldBe("options: max: must be 2 to 2; change the poll's settings with update_poll first");
         (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1].GetProperty("slots").GetProperty("options").GetArrayLength().ShouldBe(3);
+    }
+
+    // An open round can't be closed once its slide is gone or no longer a poll, so deleting the slide or changing its layout
+    // is refused first. A draft, a closed round and a deck that isn't live don't block.
+    [Test]
+    public async Task DeleteSlide_WhenRoundIsOpen_ShouldRefuseAndChangeNothing()
+    {
+        var poll = await SeedPollAsync();
+        var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var entries = (await DeckSeed.ActivityAsync(Client, poll.DeckId)).Count;
+
+        var error = await SlideCalls.ErrorAsync(agent, "delete_slide", new { deck = poll.DeckId, slide = poll.Slide });
+
+        error.ShouldBe("poll_open: a round of this poll is open, so the slide can't be deleted; close the poll first (close_poll)");
+        var slides = await SlideCalls.SlidesAsync(agent, poll.DeckId);
+        slides.Count.ShouldBe(2);
+        slides[poll.Slide - 1].GetProperty("layout").GetString().ShouldBe("poll");
+        (await DeckSeed.ActivityAsync(Client, poll.DeckId)).Count.ShouldBe(entries);
+        (await OpenRoundAsync(poll)).ShouldBe(round.Id);
+    }
+
+    [TestCase("draft")]
+    [TestCase("closed")]
+    [TestCase("notLive")]
+    public async Task DeleteSlide_WhenNoRoundIsReallyOpen_ShouldDeleteIt(string state)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var (deck, slide) = await PollSlideInAsync(agent, state);
+
+        var result = await SlideCalls.OkAsync(agent, "delete_slide", new { deck, slide });
+
+        result.GetProperty("deleted").GetInt32().ShouldBe(slide);
+        (await SlideCalls.SlidesAsync(agent, deck)).Count.ShouldBe(state == "notLive" ? 0 : 1);
+    }
+
+    [Test]
+    public async Task UpdateSlide_WhenRoundIsOpenAndLayoutLeavesPoll_ShouldRefuseAndChangeNothing()
+    {
+        var poll = await SeedPollAsync();
+        var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var before = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1];
+
+        var error = await SlideCalls.UpdateErrorAsync(agent, poll.DeckId, poll.Slide, before.GetProperty("revision").GetInt64(), """{ "quote": "Ship it", "attribution": "Sam" }""", layout: "quote");
+
+        error.ShouldStartWith("poll_open: ");
+        var after = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1];
+        after.GetProperty("layout").GetString().ShouldBe("poll");
+        after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64());
+        (await OpenRoundAsync(poll)).ShouldBe(round.Id);
+    }
+
+    [TestCase("draft")]
+    [TestCase("closed")]
+    [TestCase("notLive")]
+    public async Task UpdateSlide_WhenNoRoundIsReallyOpenAndLayoutLeavesPoll_ShouldChangeIt(string state)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var (deck, slide) = await PollSlideInAsync(agent, state);
+        var revision = (await SlideCalls.SlidesAsync(agent, deck))[slide - 1].GetProperty("revision").GetInt64();
+
+        await SlideCalls.UpdateAsync(agent, deck, slide, revision, """{ "quote": "Ship it", "attribution": "Sam" }""", layout: "quote");
+
+        (await SlideCalls.SlidesAsync(agent, deck))[slide - 1].GetProperty("layout").GetString().ShouldBe("quote");
     }
 
     [Test]
@@ -649,6 +701,29 @@ public class PollMcpTests : PollTestFixture
     {
         await using var scope = Factory.Services.CreateAsyncScope();
         return (await scope.ServiceProvider.GetRequiredService<PollRows>().SettingsAsync(poll.SlideId))!;
+    }
+
+    // A deck with one poll slide (number 1), in the state: a draft round, a closed round, or not live (no round can exist).
+    private async Task<(string Deck, int Slide)> PollSlideInAsync(McpTestClient agent, string state)
+    {
+        if (state == "notLive")
+        {
+            var deck = await DeckSeed.CreateDeckAsync(agent);
+            return (deck, (await DeckSeed.AddSlideAsync(agent, deck, "poll", FOUR_OPTIONS)).GetProperty("slide").GetInt32());
+        }
+        var poll = await SeedPollAsync();
+        var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId, state == "draft" ? PollPhase.Draft : PollPhase.Open);
+        if (state == "closed")
+        {
+            await Rows.CloseAsync(round.Id, joinedAtClose: 1);
+        }
+        return (poll.DeckId, poll.Slide);
+    }
+
+    private async Task<Guid?> OpenRoundAsync(SeededPoll poll)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        return (await scope.ServiceProvider.GetRequiredService<PollRows>().OpenRoundAsync(poll.SessionId))?.Id;
     }
 
     private static PollControlView ControlView(SeededPoll poll, PollPhase phase) => new(

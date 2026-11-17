@@ -226,7 +226,7 @@ Ask the agent for a deck, for example: "Make a 10-slide deck on why small batche
 |---|---|
 | `list_layouts`, `list_blocks` | The 16 layouts, their slots and limits, and the inline blocks |
 | `create_deck` | Creates a deck with a title and optional parts |
-| `add_slide`, `update_slide`, `move_slide`, `delete_slide`, `set_notes` | Change slides. The server checks each slide against its layout and names the field that broke |
+| `add_slide`, `update_slide`, `move_slide`, `delete_slide`, `set_notes` | Change slides. The server checks each slide against its layout and names the field that broke. A poll slide with a round open can't be deleted or given another layout, and its options can't shrink or change order, until the poll is closed |
 | `update_poll` | Changes a poll slide's settings: one pick or up to some, when the room sees the counts, the correct answer and when it opens. Refused while a round is open |
 | `add_poll_option` | Appends an option to a poll slide, up to 8. Allowed while a round is open, and the phones show it at once |
 | `open_poll`, `close_poll` | Opens or closes a poll slide's round on a deck a person has taken live. They need edit access; revealing counts, showing the answer and starting a new round stay with the presenter |
