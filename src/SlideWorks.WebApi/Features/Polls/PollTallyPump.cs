@@ -11,10 +11,10 @@ namespace SlideWorks.WebApi.Features.Polls;
 // inside the half second after a publish wait for it to pass and go out together then, so the last change before a quiet
 // period always goes out. A deck's window closes after a half second with nothing to publish.
 //
-// A publish that throws is logged and the pump carries on. It never publishes a poll event itself: PollPublisher does.
-// TimeProvider drives the half second, so tests step it with a fake clock. On start it loads every open round into the
-// tally before the app takes requests, so no answer can be committed to a round that is then loaded with it and counted
-// twice after a restart. On stop it drops its subscription and timers and waits for publishes already running.
+// A publish that throws, a cancellation included, is logged and the pump carries on, unless the pump is stopping. It never
+// publishes a poll event itself: PollPublisher does. TimeProvider drives the half second, so tests step it with a fake
+// clock. On start it loads the open rounds of unended sessions into the tally before the app takes requests. On stop it
+// drops its subscription and timers and waits for publishes already running.
 [RegisterSingleton(For = typeof(IHostedService))]
 public sealed class PollTallyPump(
     IPollTallies tallies,
@@ -31,21 +31,47 @@ public sealed class PollTallyPump(
     private IDisposable? _subscription;
     private bool _stopped;
 
+    private bool IsStopped
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _stopped;
+            }
+        }
+    }
+
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await using (var scope = scopes.CreateAsyncScope())
+        await PreloadAsync(cancellationToken);
+        _subscription = tallies.Changed(OnChangedAsync);
+    }
+
+    // Loads the open rounds of audience sessions that have not ended: at most one session per deck is unended, so this is
+    // bounded by the decks live when the app stopped. A round left open in an ended session is not loaded; it is answered
+    // from its rows if anything reads it. A failure is logged and the app starts anyway: the answer writer reads a round
+    // before it commits to it, so every round is loaded on demand.
+    private async Task PreloadAsync(CancellationToken cancellationToken)
+    {
+        try
         {
+            await using var scope = scopes.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var open = await db.PollRounds.AsNoTracking()
                 .Where(r => r.OpenedAt != null && r.ClosedAt == null)
-                .Select(r => r.Id)
+                .Join(db.AudienceSessions.Where(s => s.EndedAt == null), r => r.SessionId, s => s.Id, (r, _) => r.Id)
                 .ToListAsync(cancellationToken);
             foreach (var round in open)
             {
                 await tallies.ReadAsync(round.ToString(), 0);
             }
+            logger.LogInformation("Loaded {Count} open poll rounds into the tally", open.Count);
         }
-        _subscription = tallies.Changed(OnChangedAsync);
+        catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(e, "Loading the open poll rounds into the tally failed; they load when first read");
+        }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
@@ -118,7 +144,7 @@ public sealed class PollTallyPump(
         {
             await PumpAsync(deckId);
         }
-        catch (Exception e) when (e is not OperationCanceledException)
+        catch (Exception e) when (e is not OperationCanceledException || !IsStopped)
         {
             logger.LogError(e, "The poll tally pump failed for deck {DeckId}", deckId);
         }
@@ -169,7 +195,7 @@ public sealed class PollTallyPump(
         {
             await publisher.PublishAsync(deckId, slide);
         }
-        catch (Exception e) when (e is not OperationCanceledException)
+        catch (Exception e) when (e is not OperationCanceledException || !IsStopped)
         {
             logger.LogError(e, "Publishing the poll on slide {Slide} of deck {DeckId} failed", slide, deckId);
         }

@@ -105,7 +105,15 @@ public sealed class PollTallies(IServiceScopeFactory scopes, TimeProvider time, 
             .Select(r => new { r.OpenedAt, r.ClosedAt })
             .SingleOrDefaultAsync();
         var now = time.GetUtcNow();
-        await SweepAsync(db, now);
+        try
+        {
+            await SweepAsync(db, now);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            // A failed sweep must not fail this round's load; the next sweep tries again.
+            logger.LogError(e, "Dropping closed poll rounds from the tally failed");
+        }
         if (round?.OpenedAt is null)
         {
             return (RoundTally.Empty(now), false);
