@@ -111,7 +111,9 @@ public class LookCommands(
             deck.ChromeJson = new ChromeOverridesView(
                 chrome.Tracker is null ? overrides.Tracker : chrome.Tracker.Value,
                 chrome.Footer is null ? overrides.Footer : chrome.Footer.Value,
-                chrome.Progress is null ? overrides.Progress : chrome.Progress.Value).ToJson();
+                chrome.Progress is null ? overrides.Progress : chrome.Progress.Value,
+                // TODO: the look request takes joinBar; until then a look change keeps the deck's join bar as it is.
+                overrides.JoinBar).ToJson();
         }
         deck.Revision += 1;
         deck.UpdatedAt = clock.GetUtcNow();

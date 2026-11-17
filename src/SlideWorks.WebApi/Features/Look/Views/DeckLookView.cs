@@ -10,9 +10,10 @@ public sealed record DeckLookView(
     LookLogoView? Logo,
     bool Draft,
     string FooterDateLabel,
+    bool JoinBar,
     ChromeOverridesView ChromeOverrides,
     ContrastView Contrast)
 {
     public static DeckLookView From(LookView look, ChromeOverridesView overrides, Palette palette)
-        => new(look.Template, look.Palette, look.Logo, look.Draft, look.FooterDateLabel, overrides, ContrastView.From(palette));
+        => new(look.Template, look.Palette, look.Logo, look.Draft, look.FooterDateLabel, look.JoinBar, overrides, ContrastView.From(palette));
 }

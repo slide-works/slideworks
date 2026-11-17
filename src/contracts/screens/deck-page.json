@@ -17,12 +17,7 @@
     "level": "link",
     "viewerCount": 0
   },
-  "parts": [
-    "The cost",
-    "Slice it",
-    "Ship it",
-    "Make it stick"
-  ],
+  "parts": ["The cost", "Slice it", "Ship it", "Make it stick"],
   "look": {
     "template": {
       "name": "workshop",

@@ -124,8 +124,6 @@
         }
       }
     },
-    "warnings": [
-      "Slide 7: layout 'gantt' is not in the 'workshop' template"
-    ]
+    "warnings": ["Slide 7: layout 'gantt' is not in the 'workshop' template"]
   }
 }

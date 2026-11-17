@@ -15,7 +15,8 @@ public static class LookViews
             LookPaletteView.From(PaletteOf(deck, palettes)),
             LookLogoView.From(deck.LogoImageId),
             deck.Draft,
-            DisplayDate.Day(deck.UpdatedAt));
+            DisplayDate.Day(deck.UpdatedAt),
+            ChromeOverridesView.From(deck.ChromeJson).JoinBar);
 
     // The deck page's look: the LookView plus the chrome overrides and the palette's contrast.
     public static DeckLookView ForPage(Deck deck, ITemplateCatalogue templates, IPaletteCatalogue palettes)
@@ -30,7 +31,8 @@ public static class LookViews
             LookPaletteView.From(look.Palette!),
             null,
             look.Template!.Chrome.Draft,
-            DisplayDate.Day(now));
+            DisplayDate.Day(now),
+            false);
     }
 
     public static Template TemplateOf(Deck deck, ITemplateCatalogue templates)

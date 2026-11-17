@@ -45,7 +45,8 @@ public class PlayViewCarriesLookTests : ApiTestFixture
         page.GetProperty("revision").GetInt64().ShouldBeGreaterThan(0);
         var look = page.GetProperty("look");
         look.GetProperty("template").GetProperty("chrome").GetProperty("footer").GetString().ShouldBe("date");
-        look.GetProperty("chromeOverrides").EnumerateObject().ShouldAllBe(o => o.Value.ValueKind == JsonValueKind.Null);
+        look.GetProperty("chromeOverrides").EnumerateObject().Where(o => o.Name != "joinBar").ShouldAllBe(o => o.Value.ValueKind == JsonValueKind.Null);
+        look.GetProperty("chromeOverrides").GetProperty("joinBar").GetBoolean().ShouldBeFalse();
         look.GetProperty("contrast").GetProperty("pass").GetBoolean().ShouldBeTrue();
         page.GetProperty("slides")[0].GetProperty("deepDive").GetBoolean().ShouldBeFalse();
     }
@@ -66,7 +67,7 @@ public class PlayViewCarriesLookTests : ApiTestFixture
         look.GetProperty("palette").GetString().ShouldBe("ember");
         look.GetProperty("logo").ValueKind.ShouldBe(JsonValueKind.Null);
         look.GetProperty("draft").GetBoolean().ShouldBeTrue();
-        look.GetProperty("chrome").EnumerateObject().Select(c => c.Name).ShouldBe(["tracker", "footer", "progress"], ignoreOrder: true);
+        look.GetProperty("chrome").EnumerateObject().Select(c => c.Name).ShouldBe(["tracker", "footer", "progress", "joinBar"], ignoreOrder: true);
         var slide = deck.GetProperty("slides")[0];
         slide.GetProperty("deep_dive").GetBoolean().ShouldBeFalse();
         slide.GetProperty("notes").GetString().ShouldBe("Say a.");

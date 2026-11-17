@@ -13,7 +13,7 @@ public class DeckReadToolsTests : ApiTestFixture
     private static readonly string[] LAYOUTS =
     [
         "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote",
-        "image", "table", "chart", "gantt", "numbered-cards", "rules", "cards", "close",
+        "image", "table", "chart", "gantt", "numbered-cards", "rules", "cards", "close", "join",
     ];
 
     [Test]
@@ -67,7 +67,7 @@ public class DeckReadToolsTests : ApiTestFixture
     }
 
     [Test]
-    public async Task ListLayouts_ShouldReturnSixteenWithSchemas()
+    public async Task ListLayouts_ShouldReturnSeventeenWithSchemas()
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
 
@@ -88,7 +88,7 @@ public class DeckReadToolsTests : ApiTestFixture
             schema.GetProperty("type").GetString().ShouldBe("object");
             schema.GetProperty("properties").ValueKind.ShouldBe(JsonValueKind.Object);
         }
-        layouts.Where(l => l.GetProperty("dark").GetBoolean()).Select(l => l.GetProperty("name").GetString()).ShouldBe(["title", "divider", "close"]);
+        layouts.Where(l => l.GetProperty("dark").GetBoolean()).Select(l => l.GetProperty("name").GetString()).ShouldBe(["title", "divider", "close", "join"]);
         var practice = layouts.Single(l => l.GetProperty("name").GetString() == "practice").GetProperty("schema");
         practice.GetProperty("properties").EnumerateObject().Select(p => p.Name).ShouldBe(["kicker", "headline", "do", "comes_back", "avoid", "callout"], ignoreOrder: true);
         practice.GetProperty("required").EnumerateArray().Select(r => r.GetString()).ShouldContain("do");

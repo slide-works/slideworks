@@ -2,7 +2,7 @@ import type { LookView, LooksPalette, LooksTemplate } from '../api/types';
 
 // A preview look from one GET /api/looks template and palette (SW-2 L10), for
 // the New deck dialog and the Look panel: no logo, the template's own chrome
-// and draft setting, and the footer date label the caller has from the server.
+// and draft setting, the footer date label the caller has from the server, and the join bar off.
 export function lookOf(
   template: Pick<
     LooksTemplate,
@@ -26,5 +26,6 @@ export function lookOf(
     logo: null,
     draft: template.chrome.draft,
     footerDateLabel,
+    joinBar: false,
   };
 }

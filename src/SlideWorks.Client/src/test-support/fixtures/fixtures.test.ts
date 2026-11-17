@@ -16,6 +16,7 @@ import type {
   DecksLibraryView,
   ImageUploadRequest,
   ImageUploadResult,
+  JoinView,
   LastChange,
   LookChangeRequest,
   LookChangeResult,
@@ -122,6 +123,7 @@ const DECK_PAGE = keys<DeckPageView>({
   author: true,
   isOwner: true,
   playUrl: true,
+  join: true,
   sharing: true,
   revision: true,
   look: true,
@@ -155,7 +157,15 @@ const DECK_PLAY = keys<DeckPlayView>({
   author: true,
   parts: true,
   look: true,
+  join: true,
   slides: true,
+});
+const JOIN = keys<JoinView>({
+  code: true,
+  codeLabel: true,
+  joinUrl: true,
+  hostLabel: true,
+  live: true,
 });
 const DECK_PLAY_SLIDE = keys<DeckPlaySlide>({
   number: true,
@@ -173,6 +183,7 @@ const LOOK = keys<LookView>({
   logo: true,
   draft: true,
   footerDateLabel: true,
+  joinBar: true,
 });
 const DECK_PAGE_LOOK = keys<DeckPageLook>({
   template: true,
@@ -180,6 +191,7 @@ const DECK_PAGE_LOOK = keys<DeckPageLook>({
   logo: true,
   draft: true,
   footerDateLabel: true,
+  joinBar: true,
   chromeOverrides: true,
   contrast: true,
 });
@@ -201,7 +213,12 @@ const CHROME = keys<TemplateChrome>({
   deepDivesOnDivider: true,
   draft: true,
 });
-const CHROME_OVERRIDES = keys<ChromeOverrides>({ tracker: true, footer: true, progress: true });
+const CHROME_OVERRIDES = keys<ChromeOverrides>({
+  tracker: true,
+  footer: true,
+  progress: true,
+  joinBar: true,
+});
 const TEMPLATE_TYPE = keys<TemplateType>({
   head: true,
   body: true,
@@ -381,6 +398,15 @@ function expectLook(look: LookView, expected: string[] = LOOK) {
   }
 }
 
+// The join object (SW-5 J1): a six-digit code, the same in two triples, and an https link that ends in it.
+function expectJoin(join: JoinView) {
+  expect(sorted(join)).toEqual(JOIN);
+  expect(join.code).toMatch(/^[1-9]\d{5}$/);
+  expect(join.codeLabel).toBe(`${join.code.slice(0, 3)} ${join.code.slice(3)}`);
+  expect(join.joinUrl.endsWith(join.code)).toBe(true);
+  expect(typeof join.live).toBe('boolean');
+}
+
 function expectDeckPageLook(look: DeckPageLook) {
   expectLook(look, DECK_PAGE_LOOK);
   for (const key of Object.keys(look.chromeOverrides)) expect(CHROME_OVERRIDES).toContain(key);
@@ -441,6 +467,7 @@ describe('screen JSON examples', () => {
     expect(LEVELS).toContain(deckPage.sharing.level);
     expect(deckPage.revision).toBeGreaterThan(0);
     expectDeckPageLook(deckPage.look);
+    expectJoin(deckPage.join);
     expect(deckPage.slides.some((slide) => slide.deepDive)).toBe(true);
     for (const slide of deckPage.slides) {
       expect(sorted(slide)).toEqual(DECK_PAGE_SLIDE);
@@ -458,6 +485,7 @@ describe('screen JSON examples', () => {
     expect(deckPlay.id).toMatch(DECK_ID);
     expect(deckPlay.slides.map((slide) => slide.layout)).toEqual(['title', 'practice', 'close']);
     expectLook(deckPlay.look);
+    expectJoin(deckPlay.join);
     expect(deckPlay.slides.some((slide) => slide.deepDive)).toBe(true);
     for (const slide of deckPlay.slides) {
       expect(sorted(slide)).toEqual(DECK_PLAY_SLIDE);
@@ -468,6 +496,7 @@ describe('screen JSON examples', () => {
   it('sample-deck.json matches DeckPlayView, with a look and a deep dive', () => {
     expect(sorted(sampleDeck)).toEqual(DECK_PLAY);
     expectLook(sampleDeck.look);
+    expectJoin(sampleDeck.join);
     expect(sampleDeck.slides.some((slide) => slide.deepDive)).toBe(true);
     for (const slide of sampleDeck.slides) {
       expect(sorted(slide)).toEqual(DECK_PLAY_SLIDE);

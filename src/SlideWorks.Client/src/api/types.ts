@@ -95,6 +95,7 @@ export type DeckPageView = {
   author: string | null;
   isOwner: boolean;
   playUrl: string;
+  join: JoinView;
   sharing: { level: SharingLevel; viewerCount: number };
   revision: number;
   look: DeckPageLook;
@@ -111,6 +112,17 @@ export type DeckPlaySlide = WithSlots<{
   steps: number;
 }>;
 
+// How the room reaches a deck (SW-5 J1), on the play view, the deck page and the render page. code is the deck's
+// standing six digits, codeLabel the same in two triples, joinUrl what the QR code holds, hostLabel what a slide
+// prints, and live whether a session is open.
+export type JoinView = {
+  code: string;
+  codeLabel: string;
+  joinUrl: string;
+  hostLabel: string;
+  live: boolean;
+};
+
 // GET /api/play/{id}, and the shape of src/contracts/sample-deck.json.
 export type DeckPlayView = {
   id: string;
@@ -119,6 +131,7 @@ export type DeckPlayView = {
   author: string | null;
   parts: string[];
   look: LookView;
+  join: JoinView;
   slides: DeckPlaySlide[];
 };
 
@@ -240,6 +253,8 @@ export type LookView = {
   logo: { url: string } | null;
   draft: boolean;
   footerDateLabel: string;
+  // Whether the join bar (the small QR and code on every slide while live) is on (SW-5 J6).
+  joinBar: boolean;
 };
 
 // A deck's own chrome settings over its template's; a missing or null key
@@ -248,6 +263,8 @@ export type ChromeOverrides = {
   tracker?: boolean | null;
   footer?: FooterMode | null;
   progress?: boolean | null;
+  // Plain boolean, off by default (SW-5 D5): not an override of a template value.
+  joinBar?: boolean;
 };
 
 export type ContrastPair =
