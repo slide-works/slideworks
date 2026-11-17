@@ -13,20 +13,26 @@ const fs = (
   globalThis as unknown as { process: { getBuiltinModule(id: 'node:fs'): Fs } }
 ).process.getBuiltinModule('node:fs');
 
-const slidesDir = new URL('../slides/', import.meta.url);
+const srcDir = new URL('../', import.meta.url);
 const tokensCss = fs.readFileSync(new URL('../theme/tokens.css', import.meta.url), 'utf8');
+
+// The folders drawn on a slide: the slides themselves, and the layers the big
+// screen draws over them (SW-9's question card and reactions).
+const SCANNED = ['slides/', 'qa/screen/'];
 
 // The guard rail of L10: a slide, layout, block or chrome component takes every
 // colour and font from a var(--sw-…) token, so a deck's template and palette
 // re-skin it. The tests and their fixtures may spell out the colours they
-// assert, so they are not scanned.
+// assert, so they are not scanned. Keys are paths under src/.
 const sources = Object.fromEntries(
-  fs
-    .readdirSync(slidesDir, { recursive: true, encoding: 'utf8' })
-    .map((file) => file.replaceAll('\\', '/'))
-    .filter((file) => /\.(ts|tsx|css)$/.test(file))
-    .filter((file) => !/\.(spec|test|fixtures)\.[a-z]+$/.test(file))
-    .map((file) => [file, fs.readFileSync(new URL(file, slidesDir), 'utf8')]),
+  SCANNED.flatMap((folder) =>
+    fs
+      .readdirSync(new URL(folder, srcDir), { recursive: true, encoding: 'utf8' })
+      .map((file) => folder + file.replaceAll('\\', '/'))
+      .filter((file) => /\.(ts|tsx|css)$/.test(file))
+      .filter((file) => !/\.(spec|test|fixtures)\.[a-z]+$/.test(file))
+      .map((file) => [file, fs.readFileSync(new URL(file, srcDir), 'utf8')]),
+  ),
 );
 
 const COLOUR = [
@@ -66,10 +72,11 @@ const paletteKeys = Object.keys(palettesJson.palettes.find((palette) => palette.
 describe('slides use tokens', () => {
   it('scans the slide sources', () => {
     expect(Object.keys(sources).length).toBeGreaterThan(20);
-    expect(Object.keys(sources)).toContain('layouts/GanttLayout.module.css');
+    expect(Object.keys(sources)).toContain('slides/layouts/GanttLayout.module.css');
+    expect(Object.keys(sources)).toContain('qa/screen/QuestionCardLayer.tsx');
   });
 
-  it('has no colour or font literal in a slide, layout, block or chrome file', () => {
+  it('has no colour or font literal in a slide, layout, block, chrome or screen-layer file', () => {
     const literals = Object.entries(sources).flatMap(([file, source]) =>
       literalsIn(source).map((literal) => `${file}:${literal}`),
     );
