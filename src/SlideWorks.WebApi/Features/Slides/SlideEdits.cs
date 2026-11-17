@@ -7,6 +7,7 @@ using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Look;
+using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -28,6 +29,7 @@ public class SlideEdits(
     IDeckEvents events,
     IPublicUrls urls,
     ITemplateCatalogue templates,
+    PollRows pollRows,
     TimeProvider clock)
 {
     public const string UPDATE_TOOL = "update_slide";
@@ -58,6 +60,10 @@ public class SlideEdits(
             slide.DeepDive = request.DeepDive ?? slide.DeepDive;
             slide.Revision = deck.Revision;
             await db.SaveChangesAsync();
+            if (layout == PollRows.LAYOUT)
+            {
+                await pollRows.EnsureAsync(slide.Id, deck.Id);
+            }
             var warnings = LayoutWarnings.For(LookViews.TemplateOf(deck, templates), request.Slide, layout);
             var result = new UpdateSlideResult(request.Slide, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, request.Slide), warnings);
             return (result, $"updated slide {request.Slide} ({layout}){deepDive}");
