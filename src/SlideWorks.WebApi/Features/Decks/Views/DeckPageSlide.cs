@@ -37,7 +37,8 @@ public sealed record DeckPageSlide(
             slots);
     }
 
-    private static string? HeadlineOf(string layout, JsonElement slots) => layout switch
+    // Also the presenter view's headline (PresenterSlide), so the two lists name a slide the same way.
+    public static string? HeadlineOf(string layout, JsonElement slots) => layout switch
     {
         "title" or "divider" => Text(slots, "title"),
         "quote" => Shorten(Text(slots, "quote")),

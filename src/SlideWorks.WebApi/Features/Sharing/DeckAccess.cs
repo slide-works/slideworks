@@ -41,4 +41,7 @@ public class DeckAccess(AppDbContext db) : IDeckAccess
         var presenterId = actor.PresenterId;
         return presenterId != null && await db.Decks.AnyAsync(d => d.Id == deckId && d.OwnerId == presenterId);
     }
+
+    public async Task<bool> CanPresentAsync(string deckId, ICurrentActor actor)
+        => actor.Kind == ActorKind.Person && await CanEditAsync(deckId, actor);
 }

@@ -1,0 +1,12 @@
+{
+  "presentations": [
+    {
+      "deckId": "7Kq2abcdEFGH",
+      "title": "Ship smaller",
+      "slide": 8,
+      "total": 16,
+      "startedLabel": "started 12 min ago",
+      "windows": [{ "role": "presenter", "label": "Chrome on Windows" }]
+    }
+  ]
+}

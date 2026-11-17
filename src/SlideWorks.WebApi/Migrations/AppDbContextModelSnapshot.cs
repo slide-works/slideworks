@@ -15,7 +15,7 @@ namespace SlideWorks.WebApi.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.15");
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.Accounts.User", b =>
                 {
@@ -149,6 +149,9 @@ namespace SlideWorks.WebApi.Migrations
 
                     b.Property<string>("Subtitle")
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("TalkMinutes")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Template")
                         .IsRequired()

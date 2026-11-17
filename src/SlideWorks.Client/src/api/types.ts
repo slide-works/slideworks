@@ -343,3 +343,47 @@ export type ImageUploadResult = {
 
 // Every error body.
 export type ApiErrorBody = { error: string };
+
+// SW-4's screens, appended (P3, P4).
+import type { PresentationRole } from '../presentation/types';
+
+// GET /api/decks/{id}/presenter (P3), owner only: the play view's fields plus
+// each slide's notes (plain text: "**bold**" and "- " lines are the only markup,
+// rendered by NotesText) and headline, the talk length, and the audience and
+// phone URLs (absolute).
+export type PresenterSlide = WithSlots<{
+  number: number;
+  part: number | null;
+  deepDive: boolean;
+  steps: number;
+  notes: string | null;
+  headline: string | null;
+}>;
+
+export type PresenterView = {
+  id: string;
+  slug: string;
+  title: string;
+  author: string | null;
+  parts: string[];
+  look: LookView;
+  slides: PresenterSlide[];
+  talkMinutes: number | null;
+  audienceUrl: string;
+  remoteUrl: string;
+};
+
+// GET /api/presentations (P4): the signed-in person's live presentations, newest
+// first. Text only; startedLabel is pre-formatted by the server.
+export type LiveWindow = { role: PresentationRole; label: string };
+
+export type LivePresentation = {
+  deckId: string;
+  title: string;
+  slide: number;
+  total: number;
+  startedLabel: string;
+  windows: LiveWindow[];
+};
+
+export type LivePresentationsView = { presentations: LivePresentation[] };

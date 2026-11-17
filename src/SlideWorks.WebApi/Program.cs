@@ -47,7 +47,9 @@ builder.Services.AutoWireAssembly([ApiMarker.Assembly], isMockMode: false);
 // about our own types. Tests swap in a FakeTimeProvider.
 builder.Services.AddSingleton(TimeProvider.System);
 // Realtime: DeckHub, fed by IDeckEvents through DeckEventsRelay (Realtime/).
-builder.Services.AddSignalR();
+// The hub sends and reads enums as camelCase strings, as the MVC options below do (SW-4 P1).
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options => options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase, allowIntegerValues: false)));
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase, allowIntegerValues: false)));
 builder.Services.AddHttpContextAccessor();

@@ -147,3 +147,67 @@ test("a deck's card route renders without sign-in", async ({ mount, page }) => {
   await expect(card).toHaveAttribute('data-generic', 'false');
   await expect(card).not.toHaveAttribute('data-error');
 });
+
+test('/remote signed out → /signin keeping the deck in returnTo', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { status: 401, json: { error: 'Not signed in' } } });
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    { hooksConfig: { route: '/remote?deck=x' } },
+  );
+  await expect(page.getByTestId('signin-page')).toBeVisible();
+  await expect(page.getByTestId('location')).toHaveText(
+    `/signin?returnTo=${encodeURIComponent('/remote?deck=x')}`,
+  );
+});
+
+test('/decks/:id/present signed out → /signin with returnTo', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { status: 401, json: { error: 'Not signed in' } } });
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    { hooksConfig: { route: '/decks/7Kq2abcdEFGH/present' } },
+  );
+  await expect(page.getByTestId('signin-page')).toBeVisible();
+  await expect(page.getByTestId('location')).toHaveText(
+    `/signin?returnTo=${encodeURIComponent('/decks/7Kq2abcdEFGH/present')}`,
+  );
+});
+
+test('/decks/:id/present signed in renders the presenter window without the shell', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { '/api/me': { json: me } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/decks/7Kq2abcdEFGH/present' } });
+  await expect(page.getByTestId('presenter-page')).toHaveAttribute('data-deck-id', '7Kq2abcdEFGH');
+  await expect(page.getByTestId('app-shell')).toHaveCount(0);
+});
+
+test('/remote signed in renders the pick page without the shell', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { json: me } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/remote' } });
+  await expect(page.getByTestId('remote-pick')).toBeVisible();
+  await expect(page.getByTestId('app-shell')).toHaveCount(0);
+});
+
+test('/remote/:id signed in renders speaker mode without the shell', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { json: me } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/remote/7Kq2abcdEFGH' } });
+  await expect(page.getByTestId('speaker-page')).toHaveAttribute('data-deck-id', '7Kq2abcdEFGH');
+  await expect(page.getByTestId('app-shell')).toHaveCount(0);
+});
+
+test('pending person on /remote lands on /pending', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { json: { ...me, access: 'pending' } } });
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    { hooksConfig: { route: '/remote' } },
+  );
+  await expect(page.getByTestId('pending-page')).toBeAttached();
+  await expect(page.getByTestId('location')).toHaveText('/pending');
+});

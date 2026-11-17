@@ -41,4 +41,7 @@ public class Deck
 
     // Chrome overrides { tracker?, footer?, progress? } as JSON; null (or an absent key) means the template's default.
     public string? ChromeJson { get; set; }
+
+    // The talk length in minutes (SW-4 P7, 1-600), or null for none. The presenter's timer shows time left against it.
+    public int? TalkMinutes { get; set; }
 }

@@ -46,6 +46,17 @@ export default tseslint.config(
           selector: "CallExpression[callee.property.name='insertAdjacentHTML']",
           message: 'insertAdjacentHTML is banned: render text as plain React text nodes.',
         },
+        {
+          // No Date in the SPA (D7): times come from the server, advanced with performance.now() deltas.
+          selector: "NewExpression[callee.name='Date']",
+          message:
+            'new Date() is banned in the SPA: use server times, performance.now() deltas and presentation/format.ts. See .claude/skills/no-browser-datetime/.',
+        },
+        {
+          selector: "MemberExpression[object.name='Date']",
+          message:
+            'Date.now(), Date.parse() and the rest of Date are banned in the SPA: use server times, performance.now() deltas and presentation/format.ts. See .claude/skills/no-browser-datetime/.',
+        },
       ],
     },
   },
