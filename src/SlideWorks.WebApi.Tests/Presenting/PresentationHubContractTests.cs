@@ -1,0 +1,329 @@
+using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
+using SlideWorks.WebApi.Realtime;
+using SlideWorks.WebApi.Tests.Mcp;
+using SlideWorks.WebApi.Tests.Support;
+
+namespace SlideWorks.WebApi.Tests.Presenting;
+
+// P2's rules, one test each, over real HubConnections against the real registry. Sam owns every deck here; the deck has
+// PresentingSeed.SLIDES slides. Time is the fixture's FakeTimeProvider, stepped with Advance.
+// TODO: skipped until the real presentations registry replaces the stub, which fails each of these.
+[TestFixture]
+[CancelAfter(30000)]
+public class PresentationHubContractTests : ApiTestFixture
+{
+    public const string SKIP = "TODO: SW-4 S1";
+
+    private readonly List<PresentationStates> _connections = [];
+
+    [TearDown]
+    public async Task DisconnectAsync()
+    {
+        foreach (var connection in _connections)
+        {
+            await connection.DisposeAsync();
+        }
+        _connections.Clear();
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task JoinPresentation_WhenOwnerAndNoState_ShouldStartAtSlideOneWithTheClock()
+    {
+        var deck = await OwnDeckAsync();
+        var owner = await ConnectAsync(TestUser.Sam);
+
+        var joined = await owner.JoinAsync(deck, "k-1");
+
+        var state = joined.GetProperty("state");
+        (state.GetProperty("slide").GetInt32(), state.GetProperty("step").GetInt32()).ShouldBe((1, 0));
+        state.GetProperty("timer").GetProperty("state").GetString().ShouldBe("notStarted");
+        PresentationStates.ClientIds(state).ShouldBe(["k-1"]);
+        joined.GetProperty("clockMinutes").GetInt32().ShouldBe(MinutesSinceMidnight(PresentationStates.TIME_ZONE));
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task JoinPresentation_WhenUnknownTimeZone_ShouldUseUtc()
+    {
+        var deck = await OwnDeckAsync();
+        var owner = await ConnectAsync(TestUser.Sam);
+
+        var joined = await owner.JoinAsync(deck, "k-1", timeZone: "Not/AZone");
+
+        joined.GetProperty("clockMinutes").GetInt32().ShouldBe(MinutesSinceMidnight("UTC"));
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task JoinPresentation_WhenResumeAndNoState_ShouldStartAtResumeWithItsTimerKept()
+    {
+        var deck = await OwnDeckAsync();
+        var owner = await ConnectAsync(TestUser.Sam);
+
+        var joined = await owner.JoinAsync(deck, "k-1", resume: Resume(2, 1, "running", 60000));
+
+        var state = joined.GetProperty("state");
+        (state.GetProperty("slide").GetInt32(), state.GetProperty("step").GetInt32()).ShouldBe((2, 1));
+        state.GetProperty("skipDeepDives").GetBoolean().ShouldBeTrue();
+        state.GetProperty("timer").GetProperty("state").GetString().ShouldBe("running");
+        state.GetProperty("timer").GetProperty("elapsedMs").GetInt64().ShouldBe(60000);
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task JoinPresentation_WhenResumeBeyondTheDeck_ShouldClampIt()
+    {
+        var deck = await OwnDeckAsync();
+        var owner = await ConnectAsync(TestUser.Sam);
+
+        var state = (await owner.JoinAsync(deck, "k-1", resume: Resume(99, 9, "paused", 1000))).GetProperty("state");
+
+        (state.GetProperty("slide").GetInt32(), state.GetProperty("step").GetInt32()).ShouldBe((PresentingSeed.SLIDES, 0));
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task JoinPresentation_WhenStateExists_ShouldIgnoreResume()
+    {
+        var deck = await OwnDeckAsync();
+        var first = await ConnectAsync(TestUser.Sam);
+        var second = await ConnectAsync(TestUser.Sam);
+        await first.JoinAsync(deck, "k-1");
+
+        var state = (await second.JoinAsync(deck, "k-2", resume: Resume(3, 0, "running", 5000))).GetProperty("state");
+
+        state.GetProperty("slide").GetInt32().ShouldBe(1);
+        state.GetProperty("timer").GetProperty("state").GetString().ShouldBe("notStarted");
+    }
+
+    // The refusal has no side effects: the owner already in the group receives nothing, so its next state is its own
+    // update's, one seq after its join.
+    [Test, Ignore(SKIP)]
+    public async Task JoinPresentation_WhenNotTheOwner_ShouldBeRefusedAndBroadcastNothing()
+    {
+        var deck = await OwnDeckAsync();
+        var owner = await ConnectAsync(TestUser.Sam);
+        var alex = await ConnectAsync(TestUser.Alex);
+        var joinSeq = (await owner.JoinAsync(deck, "k-1")).GetProperty("state").GetProperty("seq").GetInt64();
+        await owner.NextAsync();
+
+        var refused = await Should.ThrowAsync<HubException>(() => alex.JoinAsync(deck, "k-2"));
+        await owner.UpdateAsync(deck, 2, 0);
+
+        refused.Message.ShouldContain(DeckHub.DECK_NOT_FOUND);
+        var next = await owner.NextAsync();
+        next.GetProperty("seq").GetInt64().ShouldBe(joinSeq + 1);
+        PresentationStates.ClientIds(next).ShouldBe(["k-1"]);
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task JoinPresentation_WhenSameClientIdJoinsAgain_ShouldReplaceTheEntry()
+    {
+        var deck = await OwnDeckAsync();
+        var first = await ConnectAsync(TestUser.Sam);
+        var second = await ConnectAsync(TestUser.Sam);
+        await first.JoinAsync(deck, "k-1");
+
+        var state = (await second.JoinAsync(deck, "k-1", "audience", label: "Firefox on Linux")).GetProperty("state");
+
+        var connected = state.GetProperty("connected").EnumerateArray().ToList();
+        connected.Count.ShouldBe(1);
+        connected[0].GetProperty("role").GetString().ShouldBe("audience");
+        connected[0].GetProperty("label").GetString().ShouldBe("Firefox on Linux");
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task UpdatePresentation_WhenBeyondTheDeck_ShouldClampSlideAndStep()
+    {
+        var deck = await OwnDeckAsync();
+        var owner = await ConnectAsync(TestUser.Sam);
+        await owner.JoinAsync(deck, "k-1");
+
+        var high = await owner.UpdateAsync(deck, 2, 99);
+        var past = await owner.UpdateAsync(deck, 99, 0);
+        var low = await owner.UpdateAsync(deck, 0, -1);
+
+        (high.GetProperty("slide").GetInt32(), high.GetProperty("step").GetInt32()).ShouldBe((2, PresentingSeed.BULLETS_STEPS));
+        past.GetProperty("slide").GetInt32().ShouldBe(PresentingSeed.SLIDES);
+        (low.GetProperty("slide").GetInt32(), low.GetProperty("step").GetInt32()).ShouldBe((1, 0));
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task UpdatePresentation_WhenFirstMove_ShouldStartTheTimer()
+    {
+        var deck = await OwnDeckAsync();
+        var owner = await ConnectAsync(TestUser.Sam);
+        await owner.JoinAsync(deck, "k-1");
+
+        var blackOnly = await owner.UpdateAsync(deck, 1, 0, black: true);
+        var moved = await owner.UpdateAsync(deck, 2, 0);
+
+        blackOnly.GetProperty("timer").GetProperty("state").GetString().ShouldBe("notStarted");
+        moved.GetProperty("timer").GetProperty("state").GetString().ShouldBe("running");
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task UpdatePresentation_WhenNotJoined_ShouldBeRefusedWithNotPresenting()
+    {
+        var deck = await OwnDeckAsync();
+        var owner = await ConnectAsync(TestUser.Sam);
+
+        var update = await Should.ThrowAsync<HubException>(() => owner.UpdateAsync(deck, 2, 0));
+        var timer = await Should.ThrowAsync<HubException>(() => owner.SetTimerAsync(deck, "pause"));
+
+        update.Message.ShouldContain(DeckHub.NOT_PRESENTING);
+        timer.Message.ShouldContain(DeckHub.NOT_PRESENTING);
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task SetTimer_WhenPausedResumedAndReset_ShouldFollowTheCommands()
+    {
+        var deck = await OwnDeckAsync();
+        var owner = await ConnectAsync(TestUser.Sam);
+        await owner.JoinAsync(deck, "k-1");
+        await owner.UpdateAsync(deck, 2, 0);
+
+        Clock.Advance(TimeSpan.FromSeconds(10));
+        var paused = (await owner.SetTimerAsync(deck, "pause")).GetProperty("timer");
+        Clock.Advance(TimeSpan.FromSeconds(5));
+        var resumed = (await owner.SetTimerAsync(deck, "resume")).GetProperty("timer");
+        var reset = (await owner.SetTimerAsync(deck, "reset")).GetProperty("timer");
+
+        (paused.GetProperty("state").GetString(), paused.GetProperty("elapsedMs").GetInt64()).ShouldBe(("paused", 10000L));
+        (resumed.GetProperty("state").GetString(), resumed.GetProperty("elapsedMs").GetInt64()).ShouldBe(("running", 10000L));
+        (reset.GetProperty("state").GetString(), reset.GetProperty("elapsedMs").GetInt64()).ShouldBe(("notStarted", 0L));
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task Seq_WhenChangesAreAccepted_ShouldRiseByOneWithinTheEpoch()
+    {
+        var deck = await OwnDeckAsync();
+        var owner = await ConnectAsync(TestUser.Sam);
+
+        var joined = (await owner.JoinAsync(deck, "k-1")).GetProperty("state");
+        var updated = await owner.UpdateAsync(deck, 2, 0);
+        var paused = await owner.SetTimerAsync(deck, "pause");
+
+        var epoch = joined.GetProperty("epoch").GetString();
+        new[] { updated, paused }.Select(s => s.GetProperty("epoch").GetString()).ShouldAllBe(e => e == epoch);
+        updated.GetProperty("seq").GetInt64().ShouldBe(joined.GetProperty("seq").GetInt64() + 1);
+        paused.GetProperty("seq").GetInt64().ShouldBe(joined.GetProperty("seq").GetInt64() + 2);
+    }
+
+    // D9: the state outlives its last connection by 2 hours, so a rejoin inside them keeps the epoch and one after them
+    // starts a new one.
+    [Test, Ignore(SKIP)]
+    public async Task JoinPresentation_WhenRejoinedAfterTheTwoHourDrop_ShouldStartANewEpoch()
+    {
+        var deck = await OwnDeckAsync();
+        var owner = await ConnectAsync(TestUser.Sam);
+        var first = (await owner.JoinAsync(deck, "k-1")).GetProperty("state").GetProperty("epoch").GetString();
+        await owner.LeaveAsync(deck);
+
+        Clock.Advance(TimeSpan.FromMinutes(119));
+        var kept = (await owner.JoinAsync(deck, "k-1")).GetProperty("state").GetProperty("epoch").GetString();
+        await owner.LeaveAsync(deck);
+        Clock.Advance(TimeSpan.FromMinutes(121));
+        var fresh = (await owner.JoinAsync(deck, "k-1")).GetProperty("state");
+
+        kept.ShouldBe(first);
+        fresh.GetProperty("epoch").GetString().ShouldNotBe(first);
+        fresh.GetProperty("slide").GetInt32().ShouldBe(1);
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task LeavePresentation_WhenOneLeavesAndOneDisconnects_ShouldShrinkConnectedForTheRest()
+    {
+        var deck = await OwnDeckAsync();
+        var stays = await ConnectAsync(TestUser.Sam);
+        var leaves = await ConnectAsync(TestUser.Sam);
+        var drops = await PresentationStates.ConnectAsync(Factory, TestUser.Sam);
+        await stays.JoinAsync(deck, "k-1");
+        await leaves.JoinAsync(deck, "k-2", "audience");
+        await drops.JoinAsync(deck, "k-3", "phone");
+        await DrainAsync(stays, 3);
+
+        await leaves.LeaveAsync(deck);
+        var afterLeave = await stays.NextAsync();
+        await drops.DisposeAsync();
+        var afterDrop = await stays.NextAsync();
+
+        PresentationStates.ClientIds(afterLeave).ShouldBe(["k-1", "k-3"]);
+        PresentationStates.ClientIds(afterDrop).ShouldBe(["k-1"]);
+    }
+
+    // Only the connection holding an entry removes it. C2 took over k-1, so C1's leave and C1's disconnect remove
+    // nothing. C1 also joined a second deck, so its disconnect is seen there before C2 checks the first deck.
+    [Test, Ignore(SKIP)]
+    public async Task Disconnect_WhenReplacedConnectionCloses_ShouldKeepTheNewEntry()
+    {
+        var (deck, other) = (await OwnDeckAsync(), await OwnDeckAsync());
+        var c1 = await PresentationStates.ConnectAsync(Factory, TestUser.Sam);
+        var c2 = await ConnectAsync(TestUser.Sam);
+        var watcher = await ConnectAsync(TestUser.Sam);
+        await c1.JoinAsync(deck, "k-1");
+        await c1.JoinAsync(other, "k-1b");
+        await watcher.JoinAsync(other, "k-w");
+        await c2.JoinAsync(deck, "k-1");
+
+        await c1.LeaveAsync(deck);
+        var afterLeave = await c2.UpdateAsync(deck, 2, 0);
+        await DrainAsync(watcher, 1);
+        await c1.DisposeAsync();
+        var otherAfterDrop = await watcher.NextAsync();
+        var afterDrop = await c2.UpdateAsync(deck, 3, 0);
+
+        PresentationStates.ClientIds(afterLeave).ShouldBe(["k-1"]);
+        PresentationStates.ClientIds(otherAfterDrop).ShouldBe(["k-w"]);
+        PresentationStates.ClientIds(afterDrop).ShouldBe(["k-1"]);
+    }
+
+    [Test, Ignore(SKIP)]
+    public async Task UpdatePresentation_WhenGroupHasThreeMembers_ShouldReachEveryMemberIncludingTheSender()
+    {
+        var deck = await OwnDeckAsync();
+        var members = new[] { await ConnectAsync(TestUser.Sam), await ConnectAsync(TestUser.Sam), await ConnectAsync(TestUser.Sam) };
+        await members[0].JoinAsync(deck, "k-1");
+        await members[1].JoinAsync(deck, "k-2", "audience");
+        await members[2].JoinAsync(deck, "k-3", "phone");
+        await DrainAsync(members[0], 3);
+        await DrainAsync(members[1], 2);
+        await DrainAsync(members[2], 1);
+
+        var sent = await members[2].UpdateAsync(deck, 2, 1);
+
+        foreach (var member in members)
+        {
+            var received = await member.NextAsync();
+            received.GetProperty("seq").GetInt64().ShouldBe(sent.GetProperty("seq").GetInt64());
+            (received.GetProperty("slide").GetInt32(), received.GetProperty("step").GetInt32()).ShouldBe((2, 1));
+        }
+    }
+
+    private static object Resume(int slide, int step, string timerState, long elapsedMs)
+        => new { slide, step, black = false, skipDeepDives = true, timer = new { state = timerState, elapsedMs } };
+
+    private static async Task DrainAsync(PresentationStates connection, int count)
+    {
+        for (var i = 0; i < count; i++)
+        {
+            await connection.NextAsync();
+        }
+    }
+
+    private int MinutesSinceMidnight(string timeZone)
+    {
+        var local = TimeZoneInfo.ConvertTime(Clock.GetUtcNow(), TimeZoneInfo.FindSystemTimeZoneById(timeZone));
+        return (local.Hour * 60) + local.Minute;
+    }
+
+    private async Task<string> OwnDeckAsync()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        return await PresentingSeed.CreateDeckAsync(agent);
+    }
+
+    private async Task<PresentationStates> ConnectAsync(TestUser user)
+    {
+        var connection = await PresentationStates.ConnectAsync(Factory, user);
+        _connections.Add(connection);
+        return connection;
+    }
+}
