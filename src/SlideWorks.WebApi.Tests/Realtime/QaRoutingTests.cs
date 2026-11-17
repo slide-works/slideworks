@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.Core.Qa;
+using SlideWorks.WebApi.Features.Qa;
 using SlideWorks.WebApi.Features.Qa.Contracts;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Tests.Decks;
@@ -41,6 +42,10 @@ public class QaRoutingTests : PollTestFixture
         FakeAudienceRoom.AddTo(services);
         FakeQaRounds.AddTo(services);
         FakeReactions.AddTo(services);
+        // Registered last, so the app's IQaRounds and IReactions are the probe, which passes every call on to the fakes.
+        services.AddSingleton<OrderProbe>();
+        services.AddSingleton<IQaRounds>(provider => provider.GetRequiredService<OrderProbe>());
+        services.AddSingleton<IReactions>(provider => provider.GetRequiredService<OrderProbe>());
     }
 
     [TestCase(HttpTransportType.WebSockets)]
@@ -207,6 +212,34 @@ public class QaRoutingTests : PollTestFixture
         Reactions.EndsOf(poll.SessionId).ShouldBe(1);
     }
 
+    // D1: the round is opened before the first live state is composed, so that state already carries it. The feed reads the
+    // room only when it composes a live state, so no read may come before OpenAsync.
+    [Test]
+    public async Task GoLive_WhenStarted_ShouldOpenTheQaRoundBeforeTheRoomIsRead()
+    {
+        var (deck, _) = await CreateDeckAsync();
+        var probe = Factory.Services.GetRequiredService<OrderProbe>();
+        probe.Watch(deck, sessionId: null);
+
+        (await Client.PostAsync($"/api/decks/{deck}/live", null)).EnsureSuccessStatusCode();
+
+        probe.RoomReadsAtOpen.ShouldBe([0]);
+        Room.ReadsOf(deck).ShouldBeGreaterThan(0);
+    }
+
+    // The Q&A round is closed and the reactions written while the session is still live, before End writes EndedAt.
+    [Test]
+    public async Task End_WhenLive_ShouldEndTheQaRoundAndReactionsBeforeTheSessionEnds()
+    {
+        var poll = await SeedPollAsync();
+        var probe = Factory.Services.GetRequiredService<OrderProbe>();
+        probe.Watch(poll.DeckId, poll.SessionId);
+
+        (await Client.DeleteAsync($"/api/decks/{poll.DeckId}/live")).EnsureSuccessStatusCode();
+
+        probe.Ends.ShouldBe([("Close", AudiencePhase.Live), ("EndSession", AudiencePhase.Live)]);
+    }
+
     private async Task<(string Deck, string Code)> CreateDeckAsync()
     {
         string deck;
@@ -244,6 +277,101 @@ public class QaRoutingTests : PollTestFixture
                 new QaQuestion(2, WAITING, "Sam K", "2 min", QuestionState.Waiting, false, false, 1),
             ],
             new ReactionCounts(41, 12, 7, 3, 28));
+
+    // IQaRounds and IReactions over FakeQaRounds and FakeReactions, recording for one watched deck what the order tests need:
+    // how many times the room had been read when OpenAsync ran, and the session's phase, read in a scope of its own, when
+    // CloseAsync and EndSessionAsync ran. Every call is then passed on to the fakes, so the other tests read them as before.
+    private sealed class OrderProbe(IServiceScopeFactory scopes, FakeQaRounds rounds, FakeReactions reactions, FakeAudienceRoom room) : IQaRounds, IReactions
+    {
+        private readonly Lock _gate = new();
+        private readonly List<int> _roomReadsAtOpen = [];
+        private readonly List<(string Call, AudiencePhase? Phase)> _ends = [];
+        private string? _deckId;
+        private Guid? _sessionId;
+
+        public IReadOnlyList<int> RoomReadsAtOpen
+        {
+            get
+            {
+                lock (_gate)
+                {
+                    return [.. _roomReadsAtOpen];
+                }
+            }
+        }
+
+        public IReadOnlyList<(string Call, AudiencePhase? Phase)> Ends
+        {
+            get
+            {
+                lock (_gate)
+                {
+                    return [.. _ends];
+                }
+            }
+        }
+
+        // Records from now on for this deck and, when given, this session only; forgets what was recorded before.
+        public void Watch(string deckId, Guid? sessionId)
+        {
+            lock (_gate)
+            {
+                _deckId = deckId;
+                _sessionId = sessionId;
+                _roomReadsAtOpen.Clear();
+                _ends.Clear();
+            }
+        }
+
+        public Task OpenAsync(string deckId, Guid sessionId)
+        {
+            lock (_gate)
+            {
+                if (deckId == _deckId)
+                {
+                    _roomReadsAtOpen.Add(room.ReadsOf(deckId));
+                }
+            }
+            return rounds.OpenAsync(deckId, sessionId);
+        }
+
+        public async Task CloseAsync(string deckId, Guid sessionId)
+        {
+            await RecordEndAsync("Close", sessionId);
+            await rounds.CloseAsync(deckId, sessionId);
+        }
+
+        public Task EnsureAsync(string deckId) => rounds.EnsureAsync(deckId);
+
+        public Task<ReactionResult> TapAsync(string code, string guestId, string? emoji) => reactions.TapAsync(code, guestId, emoji);
+
+        public Task<ReactionCounts> TotalsAsync(Guid sessionId) => reactions.TotalsAsync(sessionId);
+
+        public async Task EndSessionAsync(Guid sessionId)
+        {
+            await RecordEndAsync("EndSession", sessionId);
+            await reactions.EndSessionAsync(sessionId);
+        }
+
+        private async Task RecordEndAsync(string call, Guid sessionId)
+        {
+            string? deckId;
+            lock (_gate)
+            {
+                deckId = sessionId == _sessionId ? _deckId : null;
+            }
+            if (deckId is null)
+            {
+                return;
+            }
+            await using var scope = scopes.CreateAsyncScope();
+            var found = await scope.ServiceProvider.GetRequiredService<IAudienceSessions>().ForDeckAsync(deckId);
+            lock (_gate)
+            {
+                _ends.Add((call, found?.Phase));
+            }
+        }
+    }
 
     private static JsonElement QaRoomSample(string name) => SampleOf("qa-room.json", name);
 
