@@ -11,7 +11,7 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Polls;
 
-// SW-6's Measure (V10): the SQL in docs/measures.md, read from the file as written and run through the app's own database
+// The response-rate measure: the SQL in docs/measures.md, read from the file as written and run through the app's own database
 // connection. Rounds and answers are seeded through PollRowSeed, closed the way closing writes them. A draft is discarded by
 // ending the live session, which is how the app discards one.
 [TestFixture]

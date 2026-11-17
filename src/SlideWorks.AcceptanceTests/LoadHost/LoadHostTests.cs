@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace SlideWorks.LoadHost;
 
-// Not a test: the supported way to start a seeded app for a load run by hand (docs/load.md, D17). Explicit and in the LoadHost
+// Not a test: the supported way to start a seeded app for a load run by hand (docs/load.md). Explicit and in the LoadHost
 // category, so no suite runs it; select it by name (docs/load.md). It starts LoadHostApp on LOADHOST_PORT (default 5510), seeds a live deck with a results-live
 // poll (LoadSeed), writes the join code, deck id, poll slide and owner cookie to LOADHOST_DIR/seed.env and to the test's
 // progress output, and serves until LOADHOST_DIR/stop exists or LOADHOST_MINUTES (default 60) pass. The database and data

@@ -10,8 +10,8 @@ namespace SlideWorks.LoadHost;
 
 // A deck for a load run, made the way a person and an agent make one: POST /api/decks as the owner, add_slide over MCP
 // (slide 1 a quote, slide 2 a poll with its default settings: results live, opens on arrival), then Go live. The harness
-// then joins the presentation as the owner (--owner-cookie with OWNER_COOKIE) and moves to the poll slide, so SW-4's
-// registry and the arrival rule open round 1 as they do for a person in the presenter window.
+// then joins the presentation as the owner (--owner-cookie with OWNER_COOKIE) and moves to the poll slide, so the presentation
+// registry and the poll arrival rule open round 1 as they do for a person in the presenter window.
 public sealed record LoadSeed(string DeckId, string Code)
 {
     public const int POLL_SLIDE = 2;
