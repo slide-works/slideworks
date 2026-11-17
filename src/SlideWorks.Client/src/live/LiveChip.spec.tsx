@@ -180,3 +180,116 @@ test('LiveChip touch targets are at least 48px', async ({ mount, page }) => {
     expect(box?.width).toBeGreaterThanOrEqual(48);
   }
 });
+
+for (const failure of [500, 'network'] as const) {
+  test(`LiveChip shows an error with a retry when the first read fails (${failure})`, async ({
+    mount,
+    page,
+  }) => {
+    await stubDeckHub(page, hubOptions);
+    let fail = true;
+    await page.route(`**/api/decks/${deckPlay.id}/live`, (route) => {
+      if (!fail) return route.fulfill({ json: idle });
+      return failure === 'network'
+        ? route.abort('connectionrefused')
+        : route.fulfill({ status: 500, json: { error: 'boom' } });
+    });
+    await mount(chip(true));
+    await expect(page.getByTestId('live-chip-error')).toHaveText(
+      'Could not read the live session.',
+    );
+    await expect(page.getByTestId('live-chip-go-live')).toHaveCount(0);
+    fail = false;
+    await page
+      .getByRole('button', { name: `Retry reading the live session for ${deckPlay.title}` })
+      .click();
+    await expect(page.getByTestId('live-chip-go-live')).toBeVisible();
+    await expect(page.getByTestId('live-chip-error')).toHaveCount(0);
+  });
+}
+
+test('LiveChip reads again when the connection comes back up', async ({ mount, page }) => {
+  const hub = await stubDeckHub(page, hubOptions);
+  let count = 3;
+  await page.route(`**/api/decks/${deckPlay.id}/live`, (route) =>
+    route.fulfill({ json: { ...open, joinedCount: count } }),
+  );
+  await mount(chip(true, true));
+  await expect(page.getByTestId('live-chip-count')).toHaveText('3 joined');
+  await expect.poll(() => hub.watches).toEqual([deckPlay.id]);
+  count = 9;
+  hub.drop();
+  await expect.poll(() => hub.watches).toEqual([deckPlay.id, deckPlay.id]);
+  await expect(page.getByTestId('live-chip-count')).toHaveText('9 joined');
+});
+
+test('LiveChip does not announce the count, only going live and ending', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page, hubOptions);
+  await stubLive(page, idle);
+  await mount(chip(true));
+  const announcement = page.getByTestId('live-chip-announcement');
+  await expect(announcement).toHaveText('');
+  await page.getByTestId('live-chip-go-live').click();
+  await expect(announcement).toHaveText('You are live');
+  await expect.poll(() => hub.watches).toEqual([deckPlay.id]);
+  hub.pushAudienceEvent({ type: 'joinedCount', count: 12 });
+  await expect(page.getByTestId('live-chip-count')).toHaveText('12 joined');
+  await expect(announcement).toHaveText('You are live');
+  await expect(page.getByTestId('live-chip-count')).not.toHaveAttribute('role', 'status');
+  await page.getByTestId('live-chip-end').click();
+  await expect(announcement).toHaveText('Live session ended');
+});
+
+test('LiveChip join bar toggle follows the deck look when it changes elsewhere', async ({
+  mount,
+  page,
+}) => {
+  await stubDeckHub(page, hubOptions);
+  await stubLive(page, { ...open, joinBar: false });
+  const withLook = (joinBar: boolean) => (
+    <JoinProvider deckId={deckPlay.id} join={{ ...deckPlay.join, live: true }} owner>
+      <LiveChip deckTitle={deckPlay.title} joinBar={joinBar} />
+    </JoinProvider>
+  );
+  const component = await mount(withLook(false));
+  const toggle = page.getByTestId('live-chip-join-bar');
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await component.update(withLook(true));
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+});
+
+// The baselines come from CI (the ct-new-baselines artifact); none is committed from this host.
+async function chipShot(page: Page, name: string) {
+  await expect(page.getByTestId('live-chip')).toHaveScreenshot(name);
+}
+
+test.describe('screenshot', () => {
+  test.use({ colorScheme: 'light' });
+
+  test('LiveChip screenshot not live', async ({ mount, page }) => {
+    await stubDeckHub(page, hubOptions);
+    await stubLive(page, idle);
+    await mount(<div style={{ background: '#05070d', padding: 12 }}>{chip(true)}</div>);
+    await expect(page.getByTestId('live-chip-go-live')).toBeVisible();
+    await chipShot(page, 'live-chip-not-live.png');
+  });
+
+  test('LiveChip screenshot live', async ({ mount, page }) => {
+    await stubDeckHub(page, hubOptions);
+    await stubLive(page, { ...open, joinedCount: 8, joinBar: true });
+    await mount(<div style={{ background: '#05070d', padding: 12 }}>{chip(true, true)}</div>);
+    await expect(page.getByTestId('live-chip-end')).toBeVisible();
+    await chipShot(page, 'live-chip-live.png');
+  });
+
+  test('LiveChip screenshot error', async ({ mount, page }) => {
+    await stubDeckHub(page, hubOptions);
+    await stubLive(page, 500);
+    await mount(<div style={{ background: '#05070d', padding: 12 }}>{chip(true)}</div>);
+    await expect(page.getByTestId('live-chip-error')).toBeVisible();
+    await chipShot(page, 'live-chip-error.png');
+  });
+});

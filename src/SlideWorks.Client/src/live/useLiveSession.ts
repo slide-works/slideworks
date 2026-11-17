@@ -17,6 +17,10 @@ export interface LiveSession {
   goLive(): Promise<void>;
   end(): Promise<void>;
   setJoinBar(on: boolean): Promise<void>;
+  // Reads the live session again; the chip's Retry after a failed first read.
+  retry(): Promise<void>;
+  // Shows a failure from outside the hook (the publisher's), through the same error.
+  reportError(message: string): void;
 }
 
 // The session of someone who is not the owner.
@@ -28,6 +32,8 @@ export const NO_LIVE_SESSION: LiveSession = {
   goLive: () => Promise.resolve(),
   end: () => Promise.resolve(),
   setJoinBar: () => Promise.resolve(),
+  retry: () => Promise.resolve(),
+  reportError: () => undefined,
 };
 
 // The view a page starts from, for the deck's join, until GET /live confirms the owner: live when the deck is live.
@@ -50,6 +56,7 @@ function fixtureSessionId(code: string): string {
 
 const liveUrl = (deckId: string) => `/api/decks/${encodeURIComponent(deckId)}/live`;
 
+const READ_FAILED = 'Could not read the live session.';
 const WATCH_FAILED = 'Could not follow who has joined.';
 
 // The live session for one deck, for the deck's owner (SW-5 J2, J4, J6). initial is set when the viewer may be the owner
@@ -62,51 +69,65 @@ export function useLiveSession(deckId: string, initial: LiveView | null): LiveSe
   const joinLive = initial?.live;
   const [liveView, setLiveView] = useState<LiveView | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // True while the last read failed with something other than "not the owner", so Go live is not known to be missing.
+  const [readFailed, setReadFailed] = useState(false);
   const connection = useDeckConnection();
   // Latest wins: a slow read never lands over a newer answer or a Go live.
   const latest = useRef(0);
 
-  useEffect(() => {
-    if (!mayOwn) return;
+  const read = useCallback((): Promise<void> => {
+    if (!mayOwn) return Promise.resolve();
     const seq = ++latest.current;
-    api.get<LiveView>(liveUrl(deckId)).then(
+    return api.get<LiveView>(liveUrl(deckId)).then(
       (view) => {
         if (seq !== latest.current) return;
         setLiveView(view);
+        setReadFailed(false);
         setError(null);
       },
       (failure: unknown) => {
         if (seq !== latest.current) return;
         if (failure instanceof ApiError && (failure.status === 403 || failure.status === 404)) {
           setLiveView(null);
+          setReadFailed(false);
         } else {
-          setError('Could not read the live session.');
+          setReadFailed(true);
+          setError(READ_FAILED);
         }
       },
     );
+  }, [deckId, mayOwn]);
+
+  useEffect(() => {
+    void read();
     return () => {
       latest.current += 1;
     };
-  }, [deckId, mayOwn, joinLive]);
+  }, [read, joinLive]);
 
   const isOwner = mayOwn && liveView !== null;
   useEffect(() => {
-    if (!isOwner) return;
+    if (!mayOwn) return;
     const stopListening = connection.on(AUDIENCE_EVENT_METHOD, (event: unknown) => {
       if (isAudienceEvent(event) && event.type === 'joinedCount') {
         const { count } = event;
         setLiveView((view) => view && { ...view, joinedCount: count });
       }
     });
-    // Each time the connection is up: the server forgets a dead connection's groups.
+    // Each time the connection is up: the server forgets a dead connection's groups. The first time is covered by the
+    // read above; after a reconnect, read again, so a count that changed while offline (or a first read that failed)
+    // is not left stale.
+    let first = true;
     const stopUp = connection.onUp(() => {
-      connection.invoke('WatchAudience', deckId).catch(() => setError(WATCH_FAILED));
+      if (first) first = false;
+      else if (isOwner || readFailed) void read();
+      if (isOwner) connection.invoke('WatchAudience', deckId).catch(() => setError(WATCH_FAILED));
     });
     return () => {
       stopListening();
       stopUp();
     };
-  }, [connection, deckId, isOwner]);
+  }, [connection, deckId, mayOwn, isOwner, readFailed, read]);
 
   // Runs one call: clears the last error, and sets failure when it fails. A newer read must not land over its result.
   const run = useCallback(async (call: () => Promise<void>, failure: string) => {
@@ -146,6 +167,11 @@ export function useLiveSession(deckId: string, initial: LiveView | null): LiveSe
     [deckId, run],
   );
 
+  const reportError = setError;
+
+  // A failed first read: no live view yet, so carry the error for the chip's error slot and Retry.
+  if (mayOwn && liveView === null && readFailed)
+    return { ...NO_LIVE_SESSION, error, retry: read, reportError };
   if (!mayOwn || liveView === null) return NO_LIVE_SESSION;
   return {
     live: liveView.live,
@@ -155,5 +181,7 @@ export function useLiveSession(deckId: string, initial: LiveView | null): LiveSe
     goLive,
     end,
     setJoinBar,
+    retry: read,
+    reportError,
   };
 }

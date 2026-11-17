@@ -32,4 +32,32 @@ public class LiveFlowTests : AcceptanceTest
         await Expect(player.LiveChip.GoLive).ToBeVisibleAsync();
         await Expect(player.LiveChip.End).ToHaveCountAsync(0);
     }
+
+    [Test]
+    public async Task JoinBarToggle_WhenLive_ShouldDrawAndRemoveTheBarInTheSamePlayer()
+    {
+        var decks = new DecksPage(Page);
+        await SignIn.AsAsync(Page, TestUser.Sam);
+        await decks.GotoAsync();
+        await decks.CreateDeckAsync($"Join bar flow {Guid.NewGuid():N}");
+        var deck = new DeckPage(Page);
+        await Expect(deck.Present).ToBeVisibleAsync();
+        await deck.Present.ClickAsync();
+        var player = new PlayerPage(Page);
+        await Expect(player.Player).ToBeVisibleAsync();
+        await player.LiveChip.GoLive.ClickAsync();
+        await Expect(player.LiveChip.End).ToBeVisibleAsync();
+        await Page.EvaluateAsync("() => { window.sameDocument = true; }");
+
+        await player.LiveChip.JoinBarToggle.ClickAsync();
+
+        await Expect(player.JoinBar(1)).ToBeVisibleAsync();
+        await Expect(player.LiveChip.JoinBarToggle).ToHaveAttributeAsync("aria-pressed", "true");
+        (await Page.EvaluateAsync<bool>("() => window.sameDocument === true")).ShouldBeTrue();
+
+        await player.LiveChip.JoinBarToggle.ClickAsync();
+
+        await Expect(player.JoinBar(1)).ToHaveCountAsync(0);
+        await Expect(player.LiveChip.JoinBarToggle).ToHaveAttributeAsync("aria-pressed", "false");
+    }
 }

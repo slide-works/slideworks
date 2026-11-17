@@ -233,6 +233,22 @@ public class LiveRoutesTests : ApiTestFixture
     }
 
     [Test]
+    public async Task LookPut_WhenOnlyJoinBarChanges_ShouldKeepTheOtherChromeOverrides()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        (await Client.PutAsJsonAsync($"/api/decks/{deck}/look", new { chrome = new { tracker = false, footer = "none" } })).EnsureSuccessStatusCode();
+
+        var toggled = await Client.PutAsJsonAsync($"/api/decks/{deck}/look", new { chrome = new { joinBar = true } });
+        var play = await Client.GetFromJsonAsync<JsonElement>($"/api/play/{deck}");
+
+        toggled.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var overrides = play.GetProperty("look").GetProperty("chromeOverrides");
+        overrides.GetProperty("joinBar").GetBoolean().ShouldBeTrue();
+        overrides.GetProperty("tracker").GetBoolean().ShouldBeFalse();
+        overrides.GetProperty("footer").GetString().ShouldBe("none");
+    }
+
+    [Test]
     public async Task Render_WhenLive_ShouldCarryTheJoinObject()
     {
         var deck = await SharingApi.CreateDeckAsync(Client);

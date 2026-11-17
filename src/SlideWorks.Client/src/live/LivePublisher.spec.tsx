@@ -8,7 +8,9 @@ test('LivePublisher joins as a presenter and publishes the player position, then
   page,
 }) => {
   const hub = await stubDeckHub(page, { presentation: { state: presentationState() } });
-  const component = await mount(<LivePublisher deckId="deck-1" slide={3} step={1} />);
+  const component = await mount(
+    <LivePublisher deckId="deck-1" slide={3} step={1} onError={() => undefined} />,
+  );
   await expect
     .poll(() => hub.updates.at(-1))
     .toEqual({
@@ -17,6 +19,39 @@ test('LivePublisher joins as a presenter and publishes the player position, then
       black: false,
       skipDeepDives: false,
     });
-  await component.update(<LivePublisher deckId="deck-1" slide={4} step={0} />);
+  await component.update(
+    <LivePublisher deckId="deck-1" slide={4} step={0} onError={() => undefined} />,
+  );
   await expect.poll(() => hub.updates.at(-1)).toMatchObject({ slide: 4, step: 0 });
+});
+
+test('LivePublisher reports a failed publish through onError', async ({ mount, page }) => {
+  const hub = await stubDeckHub(page, { presentation: { state: presentationState() } });
+  hub.fail('UpdatePresentation', 'boom');
+  const reported: string[] = [];
+  await mount(
+    <LivePublisher
+      deckId="deck-1"
+      slide={3}
+      step={1}
+      onError={(message) => reported.push(message)}
+    />,
+  );
+  await expect.poll(() => reported.length).toBeGreaterThan(0);
+  expect(reported[0]).toContain('could not publish');
+});
+
+test('LivePublisher reports a refused join through onError', async ({ mount, page }) => {
+  await stubDeckHub(page, { presentation: { state: presentationState(), refuse: true } });
+  const reported: string[] = [];
+  await mount(
+    <LivePublisher
+      deckId="deck-1"
+      slide={3}
+      step={1}
+      onError={(message) => reported.push(message)}
+    />,
+  );
+  await expect.poll(() => reported.length).toBeGreaterThan(0);
+  expect(reported[0]).toContain('refused');
 });

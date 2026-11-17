@@ -11,6 +11,8 @@ type PlayerControlsProps = {
   onPrevious(): void;
   onNext(): void;
   onFullscreen(): void;
+  // The deck's look.joinBar, so the live chip's toggle follows a change made anywhere.
+  joinBar: boolean;
 };
 
 const BUTTON =
@@ -29,6 +31,7 @@ export function PlayerControls({
   onPrevious,
   onNext,
   onFullscreen,
+  joinBar,
 }: PlayerControlsProps) {
   const progress = total > 0 ? (position.slide / total) * 100 : 0;
   return (
@@ -100,7 +103,7 @@ export function PlayerControls({
           style={{ width: `${progress}%` }}
         />
       </span>
-      <LiveChip deckTitle={deckTitle} />
+      <LiveChip deckTitle={deckTitle} joinBar={joinBar} />
       {canFullscreen && (
         <button
           type="button"

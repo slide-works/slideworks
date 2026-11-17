@@ -4,8 +4,9 @@ import { LiveSessionProvider, useLiveSessionContext } from '../live/LiveSessionP
 import { idleLiveView } from '../live/useLiveSession';
 
 // What the join slide and the join bar read (SW-5 J6): the deck's join, whether a session is open and how many have
-// joined. Slides never fetch these themselves.
-export type JoinValue = { join: JoinView; live: boolean; joinedCount: number };
+// joined. Slides never fetch these themselves. joinedCount is null when it isn't known: only the owner can read it, so
+// for anyone else it is null, never 0.
+export type JoinValue = { join: JoinView; live: boolean; joinedCount: number | null };
 
 const JoinContext = createContext<JoinValue | null>(null);
 
@@ -19,7 +20,7 @@ function JoinValueProvider({ join, children }: { join: JoinView; children: React
   const value = useMemo<JoinValue>(
     () =>
       session.liveView === null
-        ? { join, live: join.live, joinedCount: 0 }
+        ? { join, live: join.live, joinedCount: null }
         : { join, live: session.live, joinedCount: session.joinedCount },
     [join, session.liveView, session.live, session.joinedCount],
   );

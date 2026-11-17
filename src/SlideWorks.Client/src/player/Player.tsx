@@ -38,7 +38,8 @@ export function Player({ deck }: { deck: DeckPlayView }) {
   const { position, next, previous, first, last } = navigation;
 
   // The owner's player publishes its position to guests while the deck is live (SW-5 D18).
-  const live = useLiveSessionContext().live;
+  const session = useLiveSessionContext();
+  const live = session.live;
 
   const fullscreen = useSyncExternalStore(subscribeFullscreen, isFullscreen);
   const toggleFullscreen = useCallback(() => {
@@ -70,7 +71,14 @@ export function Player({ deck }: { deck: DeckPlayView }) {
         onNext={next}
         onPrevious={previous}
       />
-      {live && <LivePublisher deckId={deck.id} slide={position.slide} step={position.step} />}
+      {live && (
+        <LivePublisher
+          deckId={deck.id}
+          slide={position.slide}
+          step={position.step}
+          onError={session.reportError}
+        />
+      )}
       <PlayerControls
         deckTitle={deck.title}
         position={position}
@@ -81,6 +89,7 @@ export function Player({ deck }: { deck: DeckPlayView }) {
         onPrevious={previous}
         onNext={next}
         onFullscreen={toggleFullscreen}
+        joinBar={deck.look.joinBar}
       />
     </section>
   );
