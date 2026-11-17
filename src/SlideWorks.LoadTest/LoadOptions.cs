@@ -13,6 +13,17 @@ public sealed record LoadOptions(
     double ResultsTimeoutSeconds,
     bool NoResults)
 {
+    // The presenter (Presenter.cs): the cookie of someone who can present the deck, the deck's id and the poll's 1-based
+    // slide. All three or none. With them the harness moves the presentation to the poll slide and probes during the run.
+    public string? OwnerCookie { get; init; }
+
+    public string? Deck { get; init; }
+
+    public int Slide { get; init; }
+
+    // Seconds into the answer window at which the presenter closes the poll, or null to leave it open.
+    public double? CloseAt { get; init; }
+
     public const int MAX_JOINS_IN_FLIGHT = 50;
 
     public const string NO_RESULTS = "--no-results";
@@ -23,6 +34,8 @@ public sealed record LoadOptions(
         + "  --pick takes 0-based option positions; random (the default) picks one option per voter.\n"
         + "  --no-results says tallies are not expected (a run against the stub routes, or a poll whose results are not live): the\n"
         + "  results check is skipped. Without it, a poll whose results are not live is refused and a results p95 of n/a fails the gate.\n"
+        + "  [--owner-cookie <cookie> --deck <id> --slide <n> [--close-at <s>]] puts the presenter on the poll slide, probes a\n"
+        + "  presenter move, a player's first join and a guest's join during the run, and closes the poll --close-at seconds in.\n"
         + "  Exit codes: 0 gate passed, 3 gate failed, 1 poll not open or app unreachable, 2 bad option.";
 
     public static LoadOptions Parse(IReadOnlyList<string> args)
@@ -38,7 +51,7 @@ public sealed record LoadOptions(
             }
             values[pairs[i]] = pairs[i + 1];
         }
-        var unknown = values.Keys.Except(["--url", "--code", "--voters", "--seconds", "--pick", "--results-timeout"]).ToList();
+        var unknown = values.Keys.Except(["--url", "--code", "--voters", "--seconds", "--pick", "--results-timeout", "--owner-cookie", "--deck", "--slide", "--close-at"]).ToList();
         if (unknown.Count > 0)
         {
             throw new ArgumentException($"Unknown option {unknown[0]}.");
@@ -58,7 +71,24 @@ public sealed record LoadOptions(
         var timeout = Positive(values, "--results-timeout", 10);
         var pick = values.GetValueOrDefault("--pick", "random");
         PickChoice.Validate(pick);
-        return new LoadOptions(url, code.Trim(), voters, seconds, pick, timeout, noResults);
+        var owner = values.GetValueOrDefault("--owner-cookie");
+        var deck = values.GetValueOrDefault("--deck");
+        var hasSlide = values.ContainsKey("--slide");
+        if ((owner != null || deck != null || hasSlide) && (owner == null || deck == null || !hasSlide))
+        {
+            throw new ArgumentException("--owner-cookie, --deck and --slide go together.");
+        }
+        if (values.ContainsKey("--close-at") && owner == null)
+        {
+            throw new ArgumentException("--close-at needs --owner-cookie, --deck and --slide.");
+        }
+        return new LoadOptions(url, code.Trim(), voters, seconds, pick, timeout, noResults)
+        {
+            OwnerCookie = owner,
+            Deck = deck,
+            Slide = hasSlide ? Whole(values, "--slide", 1) : 0,
+            CloseAt = values.ContainsKey("--close-at") ? Positive(values, "--close-at", 1) : null,
+        };
     }
 
     private static int Whole(Dictionary<string, string> values, string name, int fallback)
