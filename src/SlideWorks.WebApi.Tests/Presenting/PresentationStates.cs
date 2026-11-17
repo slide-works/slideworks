@@ -48,8 +48,12 @@ public sealed class PresentationStates : IAsyncDisposable
         return await _states.Reader.ReadAsync(timeout.Token);
     }
 
-    // The states received so far and not yet read, without waiting. A state the server sent before the result of a call
-    // on this connection has already arrived when that call returns, so after an awaited call this is everything sent.
+    // The next "deckEvent" (after a JoinDeck on this connection), for proving that no state arrived. A call's result can
+    // reach the test before the handler of a state sent ahead of it has run, but handlers run in order, so once a later
+    // deck event has been read, Received() holds every state sent before it.
+    public Task<JsonElement> NextEventAsync() => _receiver.NextAsync();
+
+    // The states received so far and not yet read, without waiting. Read it after NextEventAsync (see there).
     public IReadOnlyList<JsonElement> Received()
     {
         var received = new List<JsonElement>();

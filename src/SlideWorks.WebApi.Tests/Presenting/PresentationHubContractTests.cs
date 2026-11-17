@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Sharing;
@@ -117,8 +119,9 @@ public class PresentationHubContractTests : ApiTestFixture
     }
 
     // Not skipped: DeckHub's CanPresentAsync check refuses a non-owner before the registry is called, so this holds
-    // against the stub and against the real registry. The refused caller receives no state, and the owner already joined
-    // receives only the state of its own next update.
+    // against the stub and against the real registry. Neither the refused caller nor the owner already joined receives a
+    // state. Both follow the deck's events, and a deck event published after the refusal is the barrier: once each has
+    // received it, any state sent before it has arrived too.
     [TestCaseSource(nameof(NonOwners))]
     public async Task JoinPresentation_WhenNotTheOwner_ShouldBeRefusedBeforeAnythingIsSent(TestUser caller, string level, string[] viewers)
     {
@@ -126,15 +129,19 @@ public class PresentationHubContractTests : ApiTestFixture
         await SharingApi.PutOkAsync(Client, deck, level, viewers);
         var owner = await ConnectAsync(TestUser.Sam);
         var other = await ConnectAsync(caller);
+        await owner.Connection.InvokeAsync("JoinDeck", deck);
+        await other.Connection.InvokeAsync("JoinDeck", deck);
         await owner.JoinAsync(deck, "k-1");
         await owner.NextAsync();
 
         var refused = await Should.ThrowAsync<HubException>(() => other.JoinAsync(deck, "k-2"));
-        await owner.UpdateAsync(deck, 2, 0);
+        await Factory.Services.GetRequiredService<IDeckEvents>().PublishAsync(new DeckChanged(deck));
+        await owner.NextEventAsync();
+        await other.NextEventAsync();
 
         refused.Message.ShouldContain(DeckHub.DECK_NOT_FOUND);
         other.Received().ShouldBeEmpty();
-        owner.Received().Count.ShouldBe(1);
+        owner.Received().ShouldBeEmpty();
     }
 
     // D4 puts the per-deck rule for Update and SetTimer in the registry: having joined some presentation is not enough.
@@ -160,7 +167,6 @@ public class PresentationHubContractTests : ApiTestFixture
         next.GetProperty("seq").GetInt64().ShouldBe(joinSeq + 1);
         next.GetProperty("slide").GetInt32().ShouldBe(3);
         next.GetProperty("timer").GetProperty("state").GetString().ShouldBe("running");
-        sam.Received().ShouldBeEmpty();
     }
 
     [Test, Ignore(SKIP)]
