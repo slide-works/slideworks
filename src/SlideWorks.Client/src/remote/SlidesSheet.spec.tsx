@@ -35,7 +35,7 @@ test('rows are grouped under their part headings', async ({ mount, page }) => {
   await expect(page.getByRole('heading', { name: view.parts[0] })).toBeVisible();
 });
 
-test('the current row is focused and in view on open', async ({ mount, page }) => {
+test('the current row is marked and in view on open', async ({ mount, page }) => {
   await mount(
     <div style={{ height: 400 }}>
       <SlidesSheet
@@ -47,7 +47,7 @@ test('the current row is focused and in view on open', async ({ mount, page }) =
       />
     </div>,
   );
-  await expect(page.getByTestId('slides-sheet-row-12')).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Close slides' })).toBeFocused();
   await expect(page.getByTestId('slides-sheet-row-12')).toHaveAttribute('aria-current', 'true');
   await expect(page.getByTestId('slides-sheet-row-12')).toBeInViewport();
 });
@@ -167,6 +167,5 @@ test('the sheet at phone width, screenshot', async ({ mount, page }) => {
       onClose={() => {}}
     />,
   );
-  await expect(page.getByTestId('slides-sheet-row-8')).toBeFocused();
   await expect(page).toHaveScreenshot('slides-sheet-390.png');
 });

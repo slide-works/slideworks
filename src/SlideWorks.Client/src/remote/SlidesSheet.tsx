@@ -30,20 +30,20 @@ function groupByPart(view: PresenterView): Group[] {
 
 // The phone's slides sheet (section 06): every slide of the deck as a row, grouped by part, the current one
 // highlighted and scrolled into view. A tap jumps there and closes the sheet. Deep dives are labelled, and dimmed
-// while skipping. Focus opens on the current row, or on Done when the current slide has no row.
+// while skipping. Focus opens on Done, so a reopened sheet lands on the same control every time; the current row
+// is scrolled into view instantly (no motion).
 export function SlidesSheet({ view, current, skipDeepDives, onJump, onClose }: Props) {
   const groups = useMemo(() => groupByPart(view), [view]);
   const root = useRef<HTMLDivElement>(null);
 
-  // Focus and scroll start on the current row, once, when the sheet opens. Scrolling is instant, so no motion.
+  // Focus and scroll start once, when the sheet opens.
   useEffect(() => {
-    const row = root.current?.querySelector<HTMLElement>(
-      `[data-testid="slides-sheet-row-${current}"]`,
-    );
-    const target =
-      row ?? root.current?.querySelector<HTMLElement>('[data-testid="slides-sheet-done"]') ?? null;
-    target?.focus({ preventScroll: true });
-    row?.scrollIntoView({ block: 'center' });
+    root.current
+      ?.querySelector<HTMLElement>('[data-testid="slides-sheet-done"]')
+      ?.focus({ preventScroll: true });
+    root.current
+      ?.querySelector<HTMLElement>(`[data-testid="slides-sheet-row-${current}"]`)
+      ?.scrollIntoView({ block: 'center' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
