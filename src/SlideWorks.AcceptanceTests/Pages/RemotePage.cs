@@ -15,8 +15,6 @@ public sealed class RemotePage(IPage page)
 
     public ILocator Root => page.GetByTestId("remote-pick");
 
-    public ILocator SignedInAs => page.GetByTestId("remote-signed-in");
-
     public ILocator LiveCards => page.GetByTestId("remote-live-card");
 
     public ILocator Empty => page.GetByTestId("remote-empty");

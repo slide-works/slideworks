@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { getLivePresentations } from '../api/presenter';
-import { api } from '../api/client';
-import type { LivePresentation, MeView } from '../api/types';
+import type { LivePresentation } from '../api/types';
 import { LiveCard } from '../remote/LiveCard';
 
-type Read =
-  { kind: 'loading' } | { kind: 'failed' } | { kind: 'loaded'; talks: LivePresentation[] };
+// talks is null until the first read succeeds; a failed re-read keeps the last list and sets failed.
+interface Read {
+  talks: LivePresentation[] | null;
+  failed: boolean;
+}
 
 // /remote, where a phone picks which of the person's live talks to drive (P8): signed in, with no Shell chrome.
 // The QR code's link (/remote?deck={id}) lands here too: a deck that is live goes straight to its speaker mode,
@@ -15,19 +17,28 @@ type Read =
 export function RemotePickPage() {
   const [params] = useSearchParams();
   const wanted = params.get('deck');
-  const [read, setRead] = useState<Read>({ kind: 'loading' });
-  const [name, setName] = useState<string | null>(null);
+  const [read, setRead] = useState<Read>({ talks: null, failed: false });
+  const heading = useRef<HTMLHeadingElement>(null);
+  const refocus = useRef(false);
   const latest = useRef(0);
   const mounted = useRef(true);
 
   const load = useCallback(() => {
     const mine = ++latest.current;
     getLivePresentations().then(
-      (view) =>
+      (view) => {
+        if (!mounted.current || mine !== latest.current) return;
+        setRead({ talks: view.presentations, failed: false });
+        if (refocus.current) {
+          refocus.current = false;
+          // The Try again button is gone now; put focus on the heading so it isn't lost.
+          requestAnimationFrame(() => heading.current?.focus());
+        }
+      },
+      () =>
         mounted.current &&
         mine === latest.current &&
-        setRead({ kind: 'loaded', talks: view.presentations }),
-      () => mounted.current && mine === latest.current && setRead({ kind: 'failed' }),
+        setRead((last) => ({ talks: last.talks, failed: true })),
     );
   }, []);
 
@@ -44,52 +55,51 @@ export function RemotePickPage() {
     };
   }, [load]);
 
-  // The gate has already checked the session; this only learns the name to show. A failure leaves the line out.
-  useEffect(() => {
-    let active = true;
-    api.get<MeView>('/api/me').then(
-      (me) => active && setName(me.name),
-      () => undefined,
-    );
-    return () => {
-      active = false;
-    };
-  }, []);
+  const tryAgain = () => {
+    refocus.current = true;
+    load();
+  };
 
-  if (wanted && read.kind === 'loaded' && read.talks.some((talk) => talk.deckId === wanted)) {
+  if (wanted && read.talks?.some((talk) => talk.deckId === wanted)) {
     return <Navigate to={`/remote/${encodeURIComponent(wanted)}`} replace />;
   }
-  const notLive = wanted && read.kind === 'loaded';
+  const notLive = wanted && read.talks !== null;
 
   return (
     <main
       data-testid="remote-pick"
       className="mx-auto flex min-h-screen max-w-md flex-col gap-3 bg-[#0a0e16] px-4 py-8 text-[#e2e8f0]"
     >
-      {name && (
-        <p data-testid="remote-signed-in" className="text-xs text-[#94a3b8]">
-          Signed in as {name}
-        </p>
-      )}
-      <h1 className="text-[17px] font-bold">Presenting now</h1>
+      <h1 ref={heading} tabIndex={-1} className="text-[17px] font-bold outline-none">
+        Presenting now
+      </h1>
       {notLive && (
         <p data-testid="remote-not-live" role="status" className="text-xs text-[#fbbf24]">
           That talk isn't live right now.
         </p>
       )}
-      {read.kind === 'failed' && (
-        <p data-testid="remote-error" role="alert" className="text-sm text-[#fca5a5]">
-          Couldn't load your talks. Check your connection and come back to this screen to try again.
-        </p>
+      {read.failed && (
+        <div className="flex flex-col items-start gap-2">
+          <p data-testid="remote-error" role="alert" className="text-sm text-[#fca5a5]">
+            Couldn't load your talks. Check your connection and try again.
+          </p>
+          <button
+            type="button"
+            onClick={tryAgain}
+            className="rounded-lg border border-[#334155] px-3 py-2 text-sm font-semibold"
+          >
+            Try again
+          </button>
+        </div>
       )}
-      {read.kind === 'loaded' && read.talks.length > 0 && (
+      {read.talks && read.talks.length > 0 && (
         <ul className="grid gap-3">
           {read.talks.map((talk) => (
             <LiveCard key={talk.deckId} talk={talk} />
           ))}
         </ul>
       )}
-      {read.kind === 'loaded' && read.talks.length === 0 && (
+      {read.talks && read.talks.length === 0 && (
         <p
           data-testid="remote-empty"
           className="rounded-xl border border-[#1f2937] bg-[#111827] p-3 text-xs text-[#94a3b8]"

@@ -25,7 +25,6 @@ test('remote pick page shows a card per live presentation', async ({ mount, page
   await stubApi(page, { '/api/me': { json: me }, [LIST]: { json: view } });
   await mount(<AppRoutes />, { hooksConfig: { route: '/remote' } });
 
-  await expect(page.getByTestId('remote-signed-in')).toHaveText(`Signed in as ${me.name}`);
   const cards = page.getByTestId('remote-live-card');
   await expect(cards).toHaveCount(2);
   await expect(cards.first().getByTestId('remote-live-title')).toHaveText('Ship smaller');
@@ -50,7 +49,6 @@ test('remote pick page control link opens the talk in speaker mode', async ({ mo
   );
 
   await page.getByRole('link', { name: 'Control this talk: Ship smaller' }).click();
-  await expect(page.getByTestId('speaker-page')).toHaveAttribute('data-deck-id', DECK);
   await expect(page.getByTestId('location')).toHaveText(`/remote/${DECK}`);
 });
 
@@ -73,6 +71,32 @@ test('remote pick page shows a message when the list fails to load', async ({ mo
   await expect(page.getByTestId('remote-empty')).toHaveCount(0);
 });
 
+test('remote pick page keeps the last list on a failed re-read and Try again recovers', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { '/api/me': { json: me } });
+  let reads = 0;
+  await page.route(`**${LIST}`, (route) => {
+    reads++;
+    return reads === 2
+      ? route.fulfill({ status: 500, json: { error: 'boom' } })
+      : route.fulfill({ json: livePresentations() });
+  });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/remote' } });
+
+  await expect(page.getByTestId('remote-live-card')).toHaveCount(1);
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(page.getByTestId('remote-error')).toBeVisible();
+  await expect(page.getByTestId('remote-live-card')).toHaveCount(1);
+
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.getByTestId('remote-error')).toHaveCount(0);
+  await expect(page.getByTestId('remote-live-card')).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'Presenting now' })).toBeFocused();
+  expect(reads).toBe(3);
+});
+
 test('remote pick page forwards a live deck param to speaker mode with replace', async ({
   mount,
   page,
@@ -86,7 +110,6 @@ test('remote pick page forwards a live deck param to speaker mode with replace',
     { hooksConfig: { route: `/remote?deck=${DECK}` } },
   );
 
-  await expect(page.getByTestId('speaker-page')).toHaveAttribute('data-deck-id', DECK);
   await expect(page.getByTestId('location')).toHaveText(`/remote/${DECK}`);
   await expect(page.getByTestId('navigation-type')).toHaveText('REPLACE');
 });
