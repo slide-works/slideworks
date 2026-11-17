@@ -27,7 +27,7 @@ describe('guest.json', () => {
   });
 
   it('has a deck URL only when the deck is shared by link', () => {
-    expect(guestView('live').deckUrl).toBe('/d/7Kq2xYp9LmQa/ship-smaller');
+    expect(guestView('live').deckUrl).toBe('https://slideworks.example/d/7Kq2xYp9LmQa/ship-smaller');
     expect(guestView('lobby').deckUrl).toBeNull();
   });
 

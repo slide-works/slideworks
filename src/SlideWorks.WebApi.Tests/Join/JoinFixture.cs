@@ -12,13 +12,6 @@ public abstract class JoinFixture : ApiTestFixture
     protected const string CODE = "482913";
     protected const string SESSION = "11111111-1111-1111-1111-111111111111";
 
-    // ScreenShapes.Guest, plus the look's two keys the sample fills and a plain deck leaves null: no logo, no title art.
-    protected static readonly JsonShapeOptions GuestShape = new()
-    {
-        NullablePaths = [.. ScreenShapes.Guest.NullablePaths, "look.logo", "look.template.titleArt"],
-        OpaquePaths = ScreenShapes.Guest.OpaquePaths,
-    };
-
     protected RecordingJoinLookupLimiter Limiter { get; } = new();
 
     protected FakeAudienceSessions Sessions => Factory.Services.GetRequiredService<FakeAudienceSessions>();

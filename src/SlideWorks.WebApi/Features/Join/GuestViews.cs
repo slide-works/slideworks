@@ -6,12 +6,15 @@ using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Infrastructure;
+using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Infrastructure.RateLimits;
 using SlideWorks.WebApi.Realtime;
 
 namespace SlideWorks.WebApi.Features.Join;
 
-// Builds the guest view for a join code (J3). IAudienceSessions decides whether the code means anything and which phase
+// Builds the guest view for a join code (J3). deckUrl is absolute, from the public URL, because the guest page may be
+// served from the join host (D21). The look's logo is served to a guest only while live (D1), so a lobby or ended screen must
+// not render it. IAudienceSessions decides whether the code means anything and which phase
 // it is in, and IAudienceRelay supplies the position; nothing here computes a phase. A code with no session is 404
 // "no_session", the same body whatever the reason. Only misses count toward the rate limit (S2): a hit is never limited, and
 // once the caller's misses are used up a further miss is 429 "too_many_attempts".
@@ -21,6 +24,7 @@ public class GuestViews(
     IAudienceSessions sessions,
     IAudienceRelay relay,
     IJoinLookupLimiter limiter,
+    IPublicUrls publicUrls,
     ITemplateCatalogue templates,
     IPaletteCatalogue palettes)
 {
@@ -29,14 +33,16 @@ public class GuestViews(
 
     public async Task<GuestView> GetAsync(string code, IPAddress? caller)
     {
+        // The limit comes first, as on the hub (D20): a caller over it is refused for every code, a real one included, so
+        // 429 says nothing about whether the code exists. Only a miss counts toward it.
+        var key = CallerKey.For(caller);
+        if (!limiter.Allow(key))
+        {
+            throw new TooManyRequestsException(TOO_MANY_ATTEMPTS);
+        }
         var found = await sessions.FindAsync(code);
         if (found is null)
         {
-            var key = CallerKey.For(caller);
-            if (!limiter.Allow(key))
-            {
-                throw new TooManyRequestsException(TOO_MANY_ATTEMPTS);
-            }
             limiter.Miss(key);
             throw new NotFoundException(NO_SESSION);
         }
@@ -51,7 +57,7 @@ public class GuestViews(
             deck.Title,
             presenter,
             LookViews.From(deck, templates, palettes),
-            deck.Sharing == DeckSharing.Link ? DeckLinks.Play(deck.Id, deck.Slug) : null,
+            deck.Sharing == DeckSharing.Link ? publicUrls.Deck(deck.Id, deck.Slug) : null,
             state);
     }
 }

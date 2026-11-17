@@ -66,7 +66,7 @@ public class JoinGetTests : JoinFixture
 
         var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
         using var sample = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "guest.json")));
-        JsonShape.AssertMatches(body, sample.RootElement.GetProperty("live"), "guest.json", GuestShape);
+        JsonShape.AssertMatches(body, sample.RootElement.GetProperty("live"), "guest.json", ScreenShapes.Guest);
         body.GetProperty("presenterName").GetString().ShouldBe("Sam Rivera");
         body.GetProperty("state").GetProperty("type").GetString().ShouldBe("audienceState");
         body.GetProperty("state").GetProperty("phase").GetString().ShouldBe("live");
@@ -91,7 +91,7 @@ public class JoinGetTests : JoinFixture
     }
 
     [Test]
-    public async Task Get_WhenCallerHasUsedUpItsMisses_ShouldReturn429AndStillServeAHit()
+    public async Task Get_WhenCallerHasUsedUpItsMisses_ShouldReturn429ForARealCodeToo()
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         Open(CODE, await DeckSeed.CreateDeckAsync(agent));
@@ -99,12 +99,34 @@ public class JoinGetTests : JoinFixture
         Limiter.Refuse = true;
         try
         {
-            using var refused = await anonymous.GetAsync("/api/join/999999");
+            using var miss = await anonymous.GetAsync("/api/join/999999");
             using var hit = await anonymous.GetAsync($"/api/join/{CODE}");
 
+            miss.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+            (await miss.Content.ReadAsStringAsync()).ShouldBe("""{"error":"too_many_attempts"}""");
+            hit.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+            (await hit.Content.ReadAsStringAsync()).ShouldBe("""{"error":"too_many_attempts"}""");
+            Limiter.Misses.ShouldBe(0);
+        }
+        finally
+        {
+            Limiter.Refuse = false;
+        }
+    }
+
+    [Test]
+    public async Task Get_WhenRefusedWith429_ShouldSetNoGuestCookie()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
+        using var anonymous = ClientFor(TestUser.Anonymous);
+        Limiter.Refuse = true;
+        try
+        {
+            using var refused = await anonymous.GetAsync($"/api/join/{CODE}");
+
             refused.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
-            (await refused.Content.ReadAsStringAsync()).ShouldBe("""{"error":"too_many_attempts"}""");
-            hit.StatusCode.ShouldBe(HttpStatusCode.OK);
+            refused.Headers.Contains("Set-Cookie").ShouldBeFalse();
         }
         finally
         {
@@ -127,6 +149,6 @@ public class JoinGetTests : JoinFixture
         var shared = JsonDocument.Parse(await anonymous.GetStringAsync("/api/join/444444")).RootElement;
 
         closed.GetProperty("deckUrl").ValueKind.ShouldBe(JsonValueKind.Null);
-        shared.GetProperty("deckUrl").GetString().ShouldBe($"/d/{linkDeck}/shared-by-link");
+        shared.GetProperty("deckUrl").GetString().ShouldBe($"{TestAppFactory.PUBLIC_URL}/d/{linkDeck}/shared-by-link");
     }
 }

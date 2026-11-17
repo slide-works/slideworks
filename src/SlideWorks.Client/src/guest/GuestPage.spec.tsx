@@ -37,7 +37,7 @@ test('ended → the thank-you, with the slides link when the deck is shared', as
   await expect(page.getByTestId(GUEST_TEST_IDS.ended)).toBeVisible();
   await expect(page.getByTestId(GUEST_TEST_IDS.endedSlides)).toHaveAttribute(
     'href',
-    '/d/7Kq2xYp9LmQa/ship-smaller',
+    'https://slideworks.example/d/7Kq2xYp9LmQa/ship-smaller',
   );
 });
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using SlideWorks.WebApi.Features.Join;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure.RateLimits;
 using SlideWorks.WebApi.Infrastructure.Identity;

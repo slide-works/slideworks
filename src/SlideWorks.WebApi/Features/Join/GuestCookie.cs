@@ -18,6 +18,12 @@ public static partial class GuestCookie
     public static string? From(HttpRequest request)
         => request.Cookies.TryGetValue(NAME, out var value) && IdPattern().IsMatch(value) ? value : null;
 
+    // The same rule for a caller that holds the HttpContext, such as the hub: the context may be null on a connection with none.
+    public static string? IdOf(HttpContext? context) => context is null ? null : From(context.Request);
+
+    // Mints a guest id, the one format From accepts. Tests that act as a guest use this too.
+    public static string NewId() => Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(ID_BYTES));
+
     // Sets a new guest cookie on the response unless the request already carries a valid one.
     public static void EnsureOn(HttpRequest request, HttpResponse response)
     {
@@ -28,7 +34,7 @@ public static partial class GuestCookie
         // S2092 wants Secure set unconditionally. It is set whenever the request is https, which PublicOriginMiddleware takes
         // from the public URL; a plain-http local run still gets the cookie.
 #pragma warning disable S2092
-        response.Cookies.Append(NAME, Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(ID_BYTES)), new CookieOptions
+        response.Cookies.Append(NAME, NewId(), new CookieOptions
         {
             HttpOnly = true,
             SameSite = SameSiteMode.Lax,

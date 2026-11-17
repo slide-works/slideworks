@@ -100,7 +100,7 @@
       "footerDateLabel": "16 Nov 2026",
       "joinBar": false
     },
-    "deckUrl": "/d/7Kq2xYp9LmQa/ship-smaller",
+    "deckUrl": "https://slideworks.example/d/7Kq2xYp9LmQa/ship-smaller",
     "state": {
       "type": "audienceState",
       "seq": 42,
@@ -342,7 +342,7 @@
       "footerDateLabel": "16 Nov 2026",
       "joinBar": false
     },
-    "deckUrl": "/d/7Kq2xYp9LmQa/ship-smaller",
+    "deckUrl": "https://slideworks.example/d/7Kq2xYp9LmQa/ship-smaller",
     "state": {
       "type": "audienceState",
       "seq": 57,

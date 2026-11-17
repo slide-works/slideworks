@@ -61,7 +61,7 @@ public static class ScreenShapes
     // samples are null where a live guest has a slide, so they are checked as the same shape with these paths nullable.
     public static readonly JsonShapeOptions Guest = new()
     {
-        NullablePaths = ["deckUrl", "state.current", "state.activity"],
+        NullablePaths = ["deckUrl", "state.current", "state.activity", "look.logo", "look.template.titleArt"],
         OpaquePaths = ["state.current.slots"],
     };
 
