@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.Core.Polls;
+using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Polls.Contracts;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Tests.Sharing;
@@ -18,6 +19,9 @@ namespace SlideWorks.WebApi.Tests.Realtime;
 [CancelAfter(30000)]
 public class AudienceFramePrivacyTests : ApiTestFixture
 {
+    // The keys a room may carry to a guest (qa-room.json, SW-9 Q1): nothing about questions, guests or votes.
+    private static readonly string[] _roomKeys = ["round", "questions", "names", "reactions", "listRevision"];
+
     protected override Action<IServiceCollection>? ConfigureTestServices => services =>
     {
         FakeAudienceSessions.AddTo(services);
@@ -28,7 +32,7 @@ public class AudienceFramePrivacyTests : ApiTestFixture
     public async Task Frames_WhenGuestFollowsALiveDeck_ShouldHaveExactlyTheContractKeys()
     {
         var deck = await SharingApi.CreateDeckAsync(Client, "Private title");
-        var state = new AudienceState(deck, 43, AudiencePhase.Live, SlideOf(), 7, null, null);
+        var state = new AudienceState(deck, 43, AudiencePhase.Live, SlideOf(), 7, null, RoomOf());
         Factory.Services.GetRequiredService<FakeAudienceSessions>().Set("123456", deck, "s1", AudiencePhase.Live);
         Factory.Services.GetRequiredService<FakeAudienceRelay>().Set(state);
         await using var guest = await GuestClient.ConnectAsync(Factory);
@@ -49,6 +53,8 @@ public class AudienceFramePrivacyTests : ApiTestFixture
         AssertMatches(count, "joinedCount", new JsonShapeOptions());
         PollActivityKeys.Of(joined.GetProperty("activity")).ShouldBeSubsetOf(PollActivityKeys.All);
         PollActivityKeys.Of(pushedState.GetProperty("activity")).ShouldBeSubsetOf(PollActivityKeys.All);
+        joined.GetProperty("room").EnumerateObject().Select(p => p.Name).ShouldBe(_roomKeys, ignoreOrder: true);
+        pushedState.GetProperty("room").EnumerateObject().Select(p => p.Name).ShouldBe(_roomKeys, ignoreOrder: true);
         foreach (var frame in new[] { joined, pushedState, ended, count })
         {
             frame.GetRawText().ShouldNotContain(deck, Case.Sensitive);
@@ -91,6 +97,10 @@ public class AudienceFramePrivacyTests : ApiTestFixture
         using var contract = JsonDocument.Parse(File.ReadAllText(Path.Combine(JsonShape.ScreensDirectory(), file)));
         return contract.RootElement.GetProperty(name).Clone();
     }
+
+    // A live room as AudienceFeed serialises it, with the web defaults.
+    private static JsonElement RoomOf()
+        => JsonSerializer.SerializeToElement(new QaRoom(Guid.NewGuid().ToString(), QaRoomQuestions.Open, true, true, 57), JsonSerializerOptions.Web);
 
     private static AudienceSlide SlideOf()
         => new(3, 12, "bullets", JsonDocument.Parse("""{"headline":"Slice it","items":["a","b"],"reveal":"one-by-one"}""").RootElement.Clone(), 3, 1, false);
