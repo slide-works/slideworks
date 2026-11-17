@@ -6,7 +6,7 @@ Mockups and design decisions, with one folder per Feature.
 |---|---|---|
 | [`sw-1-foundation/`](sw-1-foundation/) | SW-1 Foundation: agent-built web decks over MCP | Mockups reviewed, decisions D3–D9 settled, built on the SW-1 branch |
 | [`sw-2-templates-palettes/`](sw-2-templates-palettes/) | SW-2 Templates and palettes (also covers SW-15 Wada palettes and SW-50 uploaded templates) | Built (SW-2's sections; Wada palettes and uploaded templates are still to come) |
-| [`sw-4-presenter/`](sw-4-presenter/) | SW-4 Presenter view and phone remote (SW-7 merged in) | Mockups reviewed, decisions D1–D6 settled, not built |
+| [`sw-4-presenter/`](sw-4-presenter/) | SW-4 Presenter view and phone remote (SW-7 merged in) | Built (decisions D1–D6 settled, plan decisions D7–D17 as built; the user guide is [`docs/presenting.md`](../docs/presenting.md)) |
 | [`sw-5-audience-join/`](sw-5-audience-join/) | SW-5 Audience join: QR code, join code and guest mode | Mockups reviewed, decisions D1–D8 settled, not built |
 
 ## SW-1 Foundation
