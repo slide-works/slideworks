@@ -148,6 +148,7 @@ public class CustomLayoutAllowTests
         CustomLayoutLimits.MAX_NODES.ShouldBe(400);
         CustomLayoutLimits.MAX_DRAWN_NODES.ShouldBe(2_000);
         CustomLayoutLimits.MAX_CLASSES_PER_ELEMENT.ShouldBe(8);
+        CustomLayoutLimits.MAX_STEPS.ShouldBe(20);
         CustomLayoutLimits.MAX_CSS_RULES.ShouldBe(300);
         CustomLayoutLimits.MAX_DECLARATIONS_PER_RULE.ShouldBe(40);
         CustomLayoutLimits.MAX_PARENTHESIS_DEPTH.ShouldBe(6);
