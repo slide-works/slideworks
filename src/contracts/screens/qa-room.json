@@ -1,0 +1,30 @@
+{
+  "open": {
+    "round": "4f1d2c8e-9a7b-4e3f-8c21-6b5a0d9e7f12",
+    "questions": "open",
+    "names": true,
+    "reactions": true,
+    "listRevision": 57
+  },
+  "closed": {
+    "round": "4f1d2c8e-9a7b-4e3f-8c21-6b5a0d9e7f12",
+    "questions": "closed",
+    "names": true,
+    "reactions": true,
+    "listRevision": 57
+  },
+  "offHere": {
+    "round": "4f1d2c8e-9a7b-4e3f-8c21-6b5a0d9e7f12",
+    "questions": "offHere",
+    "names": true,
+    "reactions": false,
+    "listRevision": 57
+  },
+  "off": {
+    "round": null,
+    "questions": "off",
+    "names": true,
+    "reactions": true,
+    "listRevision": 57
+  }
+}

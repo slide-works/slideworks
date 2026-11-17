@@ -1,0 +1,150 @@
+{
+  "live": {
+    "seq": 212,
+    "live": true,
+    "round": "4f1d2c8e-9a7b-4e3f-8c21-6b5a0d9e7f12",
+    "settings": {
+      "questions": "open",
+      "review": true,
+      "names": true,
+      "reactions": true,
+      "showOn": "anySlide"
+    },
+    "here": {
+      "slide": 5,
+      "questions": true,
+      "reactions": true
+    },
+    "slides": [
+      {
+        "slide": 3,
+        "questions": false,
+        "reactions": true
+      }
+    ],
+    "counts": {
+      "open": 3,
+      "waiting": 1,
+      "answered": 1,
+      "hidden": 1
+    },
+    "onScreen": 2,
+    "questions": [
+      {
+        "number": 1,
+        "text": "How do you split a big change?",
+        "name": "Priya",
+        "age": "12 min",
+        "state": "open",
+        "hidden": false,
+        "onScreen": false,
+        "votes": 14
+      },
+      {
+        "number": 2,
+        "text": "What is the smallest slice you have shipped?",
+        "name": null,
+        "age": "9 min",
+        "state": "open",
+        "hidden": false,
+        "onScreen": true,
+        "votes": 9
+      },
+      {
+        "number": 3,
+        "text": "Do feature flags count as shipping?",
+        "name": "Sam K",
+        "age": "8 min",
+        "state": "answered",
+        "hidden": false,
+        "onScreen": false,
+        "votes": 6
+      },
+      {
+        "number": 4,
+        "text": "Who reviews the slices?",
+        "name": null,
+        "age": "2 min",
+        "state": "waiting",
+        "hidden": false,
+        "onScreen": false,
+        "votes": 1
+      },
+      {
+        "number": 5,
+        "text": "Why is this talk so long?",
+        "name": null,
+        "age": "1 min",
+        "state": "open",
+        "hidden": true,
+        "onScreen": false,
+        "votes": 2
+      },
+      {
+        "number": 6,
+        "text": "How do you handle database migrations?",
+        "name": null,
+        "age": "now",
+        "state": "open",
+        "hidden": false,
+        "onScreen": false,
+        "votes": 3
+      }
+    ],
+    "reactions": {
+      "thumbsUp": 41,
+      "heart": 12,
+      "laugh": 7,
+      "wow": 3,
+      "clap": 28
+    }
+  },
+  "notLive": {
+    "seq": 198,
+    "live": false,
+    "round": null,
+    "settings": {
+      "questions": "open",
+      "review": false,
+      "names": true,
+      "reactions": true,
+      "showOn": "anySlide"
+    },
+    "here": null,
+    "slides": [],
+    "counts": {
+      "open": 0,
+      "waiting": 0,
+      "answered": 0,
+      "hidden": 0
+    },
+    "onScreen": null,
+    "questions": [],
+    "reactions": {
+      "thumbsUp": 0,
+      "heart": 0,
+      "laugh": 0,
+      "wow": 0,
+      "clap": 0
+    }
+  },
+  "settingsRequest": {
+    "questions": "closed",
+    "review": true,
+    "names": false,
+    "reactions": true,
+    "showOn": "qaSlide"
+  },
+  "slideRequest": {
+    "questions": false,
+    "reactions": true
+  },
+  "refusals": [
+    {
+      "error": "not_live"
+    },
+    {
+      "error": "wrong_state"
+    }
+  ]
+}

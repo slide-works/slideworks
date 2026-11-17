@@ -1,0 +1,54 @@
+{
+  "request": {
+    "text": "How do you handle database migrations?",
+    "name": "Priya"
+  },
+  "created": {
+    "question": {
+      "number": 6,
+      "text": "How do you handle database migrations?",
+      "name": "Priya",
+      "age": "now",
+      "state": "open",
+      "votes": 1,
+      "onScreen": false,
+      "yours": true
+    },
+    "mine": {
+      "picks": [
+        1,
+        6
+      ],
+      "revision": 4
+    }
+  },
+  "invalid": [
+    {
+      "error": "text: required"
+    },
+    {
+      "error": "text: at most 200"
+    },
+    {
+      "error": "name: at most 30"
+    },
+    {
+      "error": "name: not allowed"
+    }
+  ],
+  "refusals": [
+    {
+      "error": "questions_closed"
+    },
+    {
+      "error": "questions_off"
+    },
+    {
+      "error": "questions_off_here"
+    }
+  ],
+  "tooManyQuestions": {
+    "error": "too_many_questions",
+    "retryAfter": 42
+  }
+}

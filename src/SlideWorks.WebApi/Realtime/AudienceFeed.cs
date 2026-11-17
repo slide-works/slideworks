@@ -209,7 +209,7 @@ public sealed class AudienceFeed : IDisposable
     {
         if (found.Phase != AudiencePhase.Live)
         {
-            return new AudienceState(found.DeckId, seq, found.Phase, null, 0, null);
+            return new AudienceState(found.DeckId, seq, found.Phase, null, 0, null, null);
         }
         var presentation = await services.GetRequiredService<IPresentations>().GetAsync(found.DeckId);
         var db = services.GetRequiredService<AppDbContext>();
@@ -218,7 +218,8 @@ public sealed class AudienceFeed : IDisposable
             .Where(s => s.DeckId == found.DeckId && s.DeletedAt == null)
             .OrderBy(s => s.Position)
             .ToListAsync();
-        return new AudienceState(found.DeckId, seq, AudiencePhase.Live, Project(slides, presentation), revision, await ActivityAsync(services, found.DeckId));
+        // TODO: the room comes from IAudienceRoom.ForDeckAsync; null until the feed reads it.
+        return new AudienceState(found.DeckId, seq, AudiencePhase.Live, Project(slides, presentation), revision, await ActivityAsync(services, found.DeckId), null);
     }
 
     // The activity on screen, in the scope the caller opened (the seam is per request). It is called under the deck's feed

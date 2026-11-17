@@ -1,0 +1,163 @@
+{
+  "view": {
+    "room": {
+      "round": "4f1d2c8e-9a7b-4e3f-8c21-6b5a0d9e7f12",
+      "questions": "open",
+      "names": true,
+      "reactions": true,
+      "listRevision": 57
+    },
+    "questions": [
+      {
+        "number": 1,
+        "text": "How do you split a big change?",
+        "name": "Priya",
+        "age": "12 min",
+        "state": "open",
+        "votes": 14,
+        "onScreen": false,
+        "yours": false
+      },
+      {
+        "number": 2,
+        "text": "What is the smallest slice you have shipped?",
+        "name": null,
+        "age": "9 min",
+        "state": "open",
+        "votes": 9,
+        "onScreen": true,
+        "yours": false
+      },
+      {
+        "number": 3,
+        "text": "Do feature flags count as shipping?",
+        "name": "Sam K",
+        "age": "8 min",
+        "state": "answered",
+        "votes": 6,
+        "onScreen": false,
+        "yours": false
+      },
+      {
+        "number": 4,
+        "text": "Who reviews the slices?",
+        "name": null,
+        "age": "2 min",
+        "state": "waiting",
+        "votes": 1,
+        "onScreen": false,
+        "yours": true
+      },
+      {
+        "number": 6,
+        "text": "How do you handle database migrations?",
+        "name": null,
+        "age": "now",
+        "state": "open",
+        "votes": 3,
+        "onScreen": false,
+        "yours": false
+      }
+    ],
+    "mine": {
+      "picks": [
+        1,
+        4
+      ],
+      "revision": 3
+    }
+  },
+  "ownHidden": {
+    "room": {
+      "round": "4f1d2c8e-9a7b-4e3f-8c21-6b5a0d9e7f12",
+      "questions": "open",
+      "names": true,
+      "reactions": true,
+      "listRevision": 57
+    },
+    "questions": [
+      {
+        "number": 1,
+        "text": "How do you split a big change?",
+        "name": "Priya",
+        "age": "12 min",
+        "state": "open",
+        "votes": 14,
+        "onScreen": false,
+        "yours": false
+      },
+      {
+        "number": 2,
+        "text": "What is the smallest slice you have shipped?",
+        "name": null,
+        "age": "9 min",
+        "state": "open",
+        "votes": 9,
+        "onScreen": true,
+        "yours": false
+      },
+      {
+        "number": 3,
+        "text": "Do feature flags count as shipping?",
+        "name": "Sam K",
+        "age": "8 min",
+        "state": "answered",
+        "votes": 6,
+        "onScreen": false,
+        "yours": false
+      },
+      {
+        "number": 4,
+        "text": "Who reviews the slices?",
+        "name": null,
+        "age": "2 min",
+        "state": "hidden",
+        "votes": 1,
+        "onScreen": false,
+        "yours": true
+      },
+      {
+        "number": 6,
+        "text": "How do you handle database migrations?",
+        "name": null,
+        "age": "now",
+        "state": "open",
+        "votes": 3,
+        "onScreen": false,
+        "yours": false
+      }
+    ],
+    "mine": {
+      "picks": [
+        1,
+        4
+      ],
+      "revision": 3
+    }
+  },
+  "guestErrors": [
+    {
+      "error": "no_guest"
+    },
+    {
+      "error": "no_session"
+    },
+    {
+      "error": "too_many_attempts"
+    }
+  ],
+  "reaction": {
+    "request": {
+      "emoji": "clap"
+    },
+    "invalid": {
+      "error": "emoji: unknown"
+    },
+    "reactionsOff": {
+      "error": "reactions_off"
+    },
+    "tooManyReactions": {
+      "error": "too_many_reactions"
+    }
+  }
+}

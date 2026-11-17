@@ -5,7 +5,7 @@ import { LAYOUT_NAMES } from '../../slides/slots';
 import { audienceEnded, audienceState, guestView, joinedCount } from './guestStates';
 
 const keys = (value: object) => Object.keys(value).sort();
-const STATE_KEYS = ['activity', 'current', 'phase', 'revision', 'seq', 'type'];
+const STATE_KEYS = ['activity', 'current', 'phase', 'revision', 'room', 'seq', 'type'];
 
 describe('guest.json', () => {
   it.each(['live', 'lobby', 'ended'] as const)('the %s sample round-trips', (phase) => {
@@ -48,6 +48,9 @@ describe('audience-events.json', () => {
       'joinedCount',
       'pollControl',
       'pollTally',
+      'questionControl',
+      'questionTally',
+      'reactions',
     ]);
     for (const [name, sample] of Object.entries(audienceEventsJson)) expect(sample.type).toBe(name);
   });

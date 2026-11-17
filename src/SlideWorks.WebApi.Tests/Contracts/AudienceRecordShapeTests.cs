@@ -28,7 +28,8 @@ public class AudienceRecordShapeTests
                 current.GetProperty("step").GetInt32(),
                 current.GetProperty("black").GetBoolean()),
             example.GetProperty("revision").GetInt64(),
-            null);
+            null,
+            example.GetProperty("room").Clone());
 
         var json = Serialise(state);
 
@@ -39,7 +40,7 @@ public class AudienceRecordShapeTests
     [Test]
     public void AudienceState_WhenNotLive_ShouldSendNoSlideAndNeverTheDeckId()
     {
-        var json = Serialise(new AudienceState("7Kq2xYp9LmQa", 0, AudiencePhase.Lobby, null, 7, null));
+        var json = Serialise(new AudienceState("7Kq2xYp9LmQa", 0, AudiencePhase.Lobby, null, 7, null, null));
 
         JsonShape.AssertMatches(json, Example().GetProperty("audienceState"), "audience-events.json audienceState", ScreenShapes.AudienceState);
         json.GetRawText().ShouldContain("\"phase\":\"lobby\"", Case.Sensitive);

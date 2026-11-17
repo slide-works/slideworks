@@ -61,7 +61,7 @@ public static class ScreenShapes
     // samples are null where a live guest has a slide, so they are checked as the same shape with these paths nullable.
     public static readonly JsonShapeOptions Guest = new()
     {
-        NullablePaths = ["deckUrl", "state.current", "state.activity", "look.logo", "look.template.titleArt"],
+        NullablePaths = ["deckUrl", "state.current", "state.activity", "state.room", "state.room.round", "look.logo", "look.template.titleArt"],
         OpaquePaths = ["state.current.slots"],
     };
 
@@ -70,8 +70,8 @@ public static class ScreenShapes
     {
         NullablePaths =
         [
-            "live.state.activity", "lobby.deckUrl", "lobby.state.current", "lobby.state.activity",
-            "ended.state.current", "ended.state.activity",
+            "live.state.activity", "lobby.deckUrl", "lobby.state.current", "lobby.state.activity", "lobby.state.room",
+            "ended.state.current", "ended.state.activity", "ended.state.room",
         ],
         OpaquePaths = ["live.state.current.slots"],
     };
@@ -83,14 +83,20 @@ public static class ScreenShapes
     // sample is a live one, so a lobby or ended state is checked with current and activity nullable.
     public static readonly JsonShapeOptions AudienceEvents = new()
     {
-        NullablePaths = ["audienceState.activity", "pollTally.counts", "pollControl.control.round", "pollControl.control.settings.max", "pollControl.control.settings.correct"],
+        NullablePaths =
+        [
+            "audienceState.activity", "audienceState.room", "audienceState.room.round", "pollTally.counts", "pollControl.control.round",
+            "pollControl.control.settings.max", "pollControl.control.settings.correct", "questionControl.control.round",
+            "questionControl.control.here", "questionControl.control.onScreen", "questionControl.control.questions[].name",
+        ],
         OpaquePaths = ["audienceState.current.slots"],
     };
 
-    // One event's own paths, for a frame checked against a single sample: AudienceState or an event with no nulls.
+    // One event's own paths, for a frame checked against a single sample: AudienceState or an event with no nulls. Room is
+    // null outside live (SW-9 Q3); its round is null with questions off.
     public static readonly JsonShapeOptions AudienceState = new()
     {
-        NullablePaths = ["current", "activity"],
+        NullablePaths = ["current", "activity", "room", "room.round"],
         OpaquePaths = ["current.slots"],
     };
 
@@ -149,6 +155,43 @@ public static class ScreenShapes
         NullablePaths = ["draft.round", "draft.settings.max", "draft.settings.correct", "open.settings.max", "open.settings.correct"],
     };
 
+    // SW-9's Q&A shapes (Q1, Q4 to Q7, Q10). As with the poll files, check a real value against the sample with no nulls:
+    // qa-room.json "open", guest-questions.json "view", qa-control.json "live". A question's name is null when anonymous.
+
+    // A QaRoom (qa-room.json, Q1): audienceState.room while live, and GuestQuestionsView.room. Round is null with questions off.
+    public static readonly JsonShapeOptions QaRoom = new() { NullablePaths = ["round"] };
+
+    // GET /api/join/{code}/questions (guest-questions.json "view", Q4), and the stale vote's "current".
+    public static readonly JsonShapeOptions GuestQuestions = new() { NullablePaths = ["room.round", "questions[].name"] };
+
+    // The ask route's bodies (question-ask.json, Q4): the request (name null for anonymous), the 201, and the error bodies.
+    public static readonly JsonShapeOptions QuestionAsk = new() { NullablePaths = ["request.name", "created.question.name"] };
+
+    // The votes route's bodies (question-votes.json, Q4): the request, the 200, the 409 and the error bodies.
+    public static readonly JsonShapeOptions QuestionVotes = new() { NullablePaths = ["stale.current.room.round", "stale.current.questions[].name"] };
+
+    // A QaControlView (qa-control.json "live", Q6): every Q&A presenter route's response and the questionControl event's
+    // "control". Round, here and onScreen are null when not live.
+    public static readonly JsonShapeOptions QaControl = new() { NullablePaths = ["round", "here", "onScreen", "questions[].name"] };
+
+    // get_questions (questions-report.json, Q10).
+    public static readonly JsonShapeOptions QuestionsReport = new() { NullablePaths = ["sessions[].questions[].name"] };
+
+    // A questionTally or reactions event on its own (audience-events.json, Q5, Q7): no nulls.
+    public static readonly JsonShapeOptions QuestionTally = new();
+
+    private static readonly JsonShapeOptions _qaRoomFile = new() { NullablePaths = ["off.round"] };
+
+    private static readonly JsonShapeOptions _guestQuestionsFile = new()
+    {
+        NullablePaths = ["view.room.round", "view.questions[].name", "ownHidden.room.round", "ownHidden.questions[].name"],
+    };
+
+    private static readonly JsonShapeOptions _qaControlFile = new()
+    {
+        NullablePaths = ["live.questions[].name", "notLive.round", "notLive.here", "notLive.onScreen"],
+    };
+
     // The nullable and opaque paths for each screen file when JsonShapeTests checks a sample against itself. A file with
     // no entry is checked with slides[].slots opaque, which is every play-shaped screen.
     public static JsonShapeOptions SelfCheckOf(string file) => file switch
@@ -160,6 +203,12 @@ public static class ScreenShapes
         "poll-control.json" => _pollControlFile,
         "poll-answer.json" => PollAnswer,
         "poll-results.json" => PollResults,
+        "qa-room.json" => _qaRoomFile,
+        "guest-questions.json" => _guestQuestionsFile,
+        "question-ask.json" => QuestionAsk,
+        "question-votes.json" => QuestionVotes,
+        "qa-control.json" => _qaControlFile,
+        "questions-report.json" => QuestionsReport,
         _ => new JsonShapeOptions { OpaquePaths = ["slides[].slots"] },
     };
 }
