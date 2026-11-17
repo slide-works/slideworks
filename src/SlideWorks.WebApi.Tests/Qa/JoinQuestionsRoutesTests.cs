@@ -245,19 +245,28 @@ public class JoinQuestionsRoutesTests : PollTestFixture
         body.GetProperty("retryAfter").GetInt32().ShouldBe(42);
     }
 
-    // A known code whose guest isn't on the roster: the seam's NoSession is 404, and no miss.
+    // A known code whose guest isn't on the roster: the seam's NoSession is 404 as often as it asks, and no miss, so the caller
+    // still has its whole budget afterwards.
     [Test]
     public async Task Ask_WhenSeamAnswersNoSession_ShouldAnswer404NoSession()
     {
         await using var guest = await GuestClient.ConnectAsync(Factory);
         Asking.Set(_code, new AskResult.NoSession());
+        for (var i = 0; i < 2 * JoinLookupLimiter.MAX_MISSES; i++)
+        {
+            var response = await guest.AskAsync(_code, new AskRequest("Why?", null));
+            var body = await BodyAsync(response);
+            response.StatusCode.ShouldBe(HttpStatusCode.NotFound, $"ask {i + 1}");
+            JsonShape.AssertMatches(body, Example("guest-questions.json").GetProperty("guestErrors")[1], "guest-questions.json guestErrors");
+            body.GetProperty("error").GetString().ShouldBe(GuestViews.NO_SESSION);
+        }
 
-        var response = await guest.AskAsync(_code, new AskRequest("Why?", null));
-        var body = await BodyAsync(response);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        JsonShape.AssertMatches(body, Example("guest-questions.json").GetProperty("guestErrors")[1], "guest-questions.json guestErrors");
-        body.GetProperty("error").GetString().ShouldBe(GuestViews.NO_SESSION);
+        for (var i = 0; i < JoinLookupLimiter.MAX_MISSES; i++)
+        {
+            (await guest.AskAsync(NewCode(), new AskRequest("Why?", null))).StatusCode.ShouldBe(HttpStatusCode.NotFound, $"miss {i + 1}");
+        }
+        (await guest.AskAsync(_code, new AskRequest("Why?", null))).StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        Asking.CallsFor(_code).Count.ShouldBe(2 * JoinLookupLimiter.MAX_MISSES);
     }
 
     [Test]
@@ -337,6 +346,19 @@ public class JoinQuestionsRoutesTests : PollTestFixture
         request.Content = new StringContent("text=Why", Encoding.UTF8, "application/json");
 
         var response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        Asking.CallsFor(_code).ShouldBeEmpty();
+    }
+
+    // A body that is JSON null gets the framework's 400 too.
+    [Test]
+    public async Task Ask_WhenBodyIsJsonNull_ShouldAnswer400AndAskNothing()
+    {
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        Asking.Set(_code, new AskResult.Invalid("text: required"));
+
+        var response = await guest.AskAsync(_code, JsonSerializer.Deserialize<JsonElement>("null"));
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         Asking.CallsFor(_code).ShouldBeEmpty();
@@ -425,17 +447,48 @@ public class JoinQuestionsRoutesTests : PollTestFixture
         body.GetProperty("error").GetString().ShouldBe("too_many_votes");
     }
 
+    // A known code whose guest isn't on the roster: the seam's NoSession is 404 as often as it votes, and no miss.
     [Test]
     public async Task Votes_WhenSeamAnswersNoSession_ShouldAnswer404NoSession()
     {
         await using var guest = await GuestClient.ConnectAsync(Factory);
         Questions.SetVote(_code, new VoteResult.NoSession());
+        for (var i = 0; i < 2 * JoinLookupLimiter.MAX_MISSES; i++)
+        {
+            var response = await guest.VoteAsync(_code, new VoteRequest(ROUND, [1], 3));
+            response.StatusCode.ShouldBe(HttpStatusCode.NotFound, $"vote {i + 1}");
+            (await BodyAsync(response)).GetProperty("error").GetString().ShouldBe(GuestViews.NO_SESSION);
+        }
 
-        var response = await guest.VoteAsync(_code, new VoteRequest(ROUND, [1], 3));
-        var body = await BodyAsync(response);
+        for (var i = 0; i < JoinLookupLimiter.MAX_MISSES; i++)
+        {
+            (await guest.VoteAsync(NewCode(), new VoteRequest(ROUND, [1], 3))).StatusCode.ShouldBe(HttpStatusCode.NotFound, $"miss {i + 1}");
+        }
+        (await guest.VoteAsync(_code, new VoteRequest(ROUND, [1], 3))).StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        Questions.VotesFor(_code).Count.ShouldBe(2 * JoinLookupLimiter.MAX_MISSES);
+    }
 
-        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        body.GetProperty("error").GetString().ShouldBe(GuestViews.NO_SESSION);
+    // An unknown code is a miss on the votes route too: after the budget's worth of them, even this test's live code is 429
+    // too_many_attempts, in the join lookup's own body, and the seam was never called.
+    [Test]
+    public async Task Votes_WhenCodeUnknown_ShouldCountAMiss()
+    {
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        Questions.SetVote(_code, new VoteResult.Voted([1], 4));
+        var unknown = NewCode();
+        for (var i = 0; i < JoinLookupLimiter.MAX_MISSES; i++)
+        {
+            var missed = await guest.VoteAsync(unknown, new VoteRequest(ROUND, [1], 3));
+            missed.StatusCode.ShouldBe(HttpStatusCode.NotFound, $"miss {i + 1}");
+            (await BodyAsync(missed)).GetProperty("error").GetString().ShouldBe(GuestViews.NO_SESSION);
+        }
+
+        var refused = await guest.VoteAsync(_code, new VoteRequest(ROUND, [1], 3));
+
+        refused.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        (await refused.Content.ReadAsStringAsync()).ShouldBe("""{"error":"too_many_attempts"}""");
+        Questions.VotesFor(unknown).ShouldBeEmpty();
+        Questions.VotesFor(_code).ShouldBeEmpty();
     }
 
     [Test]
@@ -503,14 +556,17 @@ public class JoinQuestionsRoutesTests : PollTestFixture
     }
 
     // Every member is required: a missing one, a revision that isn't a whole number or a pick that isn't one gets the
-    // framework's 400, and a missing revision never becomes a first vote. The framework's web defaults read a number written
-    // as a string ("1"), so only a pick that is no number at all is refused.
+    // framework's 400, and a missing revision never becomes a first vote. Numbers are strict: a pick or a revision written as
+    // a string is refused too. A body that is JSON null is the framework's 400 as well.
     [TestCase("""{"picks":[1],"revision":3}""")]
     [TestCase("""{"round":"r","revision":3}""")]
     [TestCase("""{"round":"r","picks":[1]}""")]
     [TestCase("""{"round":null,"picks":[1],"revision":3}""")]
     [TestCase("""{"round":"r","picks":null,"revision":3}""")]
     [TestCase("""{"round":"r","picks":["x"],"revision":3}""")]
+    [TestCase("""{"round":"r","picks":["1"],"revision":3}""")]
+    [TestCase("""{"round":"r","picks":[1],"revision":"3"}""")]
+    [TestCase("null")]
     [TestCase("""{"round":"r","picks":[1],"revision":1.5}""")]
     [TestCase("""[1]""")]
     public async Task Votes_WhenBodyBreaksItsShape_ShouldAnswer400AndVoteNothing(string json)

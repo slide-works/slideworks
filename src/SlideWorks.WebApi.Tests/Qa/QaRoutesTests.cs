@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.Core.Qa;
+using SlideWorks.WebApi.Features.Qa;
 using SlideWorks.WebApi.Features.Qa.Contracts;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Tests.Sharing;
@@ -64,6 +65,7 @@ public class QaRoutesTests : PollTestFixture
         var response = await alex.GetAsync($"/api/decks/{deck}/qa");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await BodyAsync(response)).GetProperty("error").GetString().ShouldBe(QaAccess.FORBIDDEN);
     }
 
     [Test]
@@ -106,6 +108,7 @@ public class QaRoutesTests : PollTestFixture
         var response = await alex.PostAsync($"/api/decks/{deck}/qa/questions/3/approve", null);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await BodyAsync(response)).GetProperty("error").GetString().ShouldBe(QaAccess.FORBIDDEN);
         Moderation.CallsFor(deck).ShouldBeEmpty();
     }
 
@@ -138,6 +141,7 @@ public class QaRoutesTests : PollTestFixture
         var response = await alex.SendAsync(RequestTo(method, $"/api/decks/{deck}/qa{route}"));
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await BodyAsync(response)).GetProperty("error").GetString().ShouldBe(QaAccess.FORBIDDEN);
         Moderation.CallsFor(deck).ShouldBeEmpty();
         Settings.CallsFor(deck).ShouldBeEmpty();
     }
@@ -254,6 +258,7 @@ public class QaRoutesTests : PollTestFixture
     [TestCase("""{"showOn":1}""")]
     [TestCase("""{"review":"yes"}""")]
     [TestCase("""not json""")]
+    [TestCase("null")]
     public async Task PutSettings_WhenBodyBreaksItsShape_ShouldAnswer400AndChangeNothing(string json)
     {
         var deck = await QaDeckAsync();
@@ -276,6 +281,18 @@ public class QaRoutesTests : PollTestFixture
         JsonShape.AssertMatches(body, Example().GetProperty("live"), "qa-control.json live", ScreenShapes.QaControl);
         Settings.CallsFor(deck).ShouldBe(["SetSlide 3"]);
         Settings.SwitchOf(deck, 3).ShouldBe(new QaSlideSwitch(false, true));
+    }
+
+    [TestCase("""{"reactions":"no"}""")]
+    [TestCase("null")]
+    public async Task PutSlide_WhenBodyBreaksItsShape_ShouldAnswer400AndChangeNothing(string json)
+    {
+        var deck = await QaDeckAsync();
+
+        var response = await Client.PutAsync($"/api/decks/{deck}/qa/slides/3", JsonBody(json));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        Settings.CallsFor(deck).ShouldBeEmpty();
     }
 
     // An unknown slide is IQaSettings' NotFoundException: 404, and no view is read.

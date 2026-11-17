@@ -108,17 +108,25 @@ public class JoinReactionsRoutesTests : PollTestFixture
         body.GetProperty("error").GetString().ShouldBe("too_many_reactions");
     }
 
+    // A known code whose guest isn't on the roster: the seam's NoSession is 404 as often as it taps, and no miss.
     [Test]
     public async Task React_WhenSeamAnswersNoSession_ShouldAnswer404NoSession()
     {
         await using var guest = await GuestClient.ConnectAsync(Factory);
         Reactions.SetTap(_code, new ReactionResult.NoSession());
+        for (var i = 0; i < 2 * JoinLookupLimiter.MAX_MISSES; i++)
+        {
+            var response = await guest.ReactAsync(_code, new ReactionRequest("heart"));
+            response.StatusCode.ShouldBe(HttpStatusCode.NotFound, $"tap {i + 1}");
+            (await BodyAsync(response)).GetProperty("error").GetString().ShouldBe(GuestViews.NO_SESSION);
+        }
 
-        var response = await guest.ReactAsync(_code, new ReactionRequest("heart"));
-        var body = await BodyAsync(response);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        body.GetProperty("error").GetString().ShouldBe(GuestViews.NO_SESSION);
+        for (var i = 0; i < JoinLookupLimiter.MAX_MISSES; i++)
+        {
+            (await guest.ReactAsync(NewCode(), new ReactionRequest("heart"))).StatusCode.ShouldBe(HttpStatusCode.NotFound, $"miss {i + 1}");
+        }
+        (await guest.ReactAsync(_code, new ReactionRequest("heart"))).StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        Reactions.TapsFor(_code).Count.ShouldBe(2 * JoinLookupLimiter.MAX_MISSES);
     }
 
     [Test]
@@ -177,6 +185,18 @@ public class JoinReactionsRoutesTests : PollTestFixture
         request.Headers.Add("Cookie", $"{GuestCookie.NAME}={GuestCookie.NewId()}");
 
         var response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        Reactions.TapsFor(_code).ShouldBeEmpty();
+    }
+
+    // A body that is JSON null gets the framework's 400, and nothing is tapped.
+    [Test]
+    public async Task React_WhenBodyIsJsonNull_ShouldAnswer400AndTapNothing()
+    {
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+
+        var response = await guest.ReactAsync(_code, JsonSerializer.Deserialize<JsonElement>("null"));
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         Reactions.TapsFor(_code).ShouldBeEmpty();
