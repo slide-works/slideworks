@@ -4,7 +4,7 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests.Journeys;
 
-// SW-6's presenter controls on the real app, the real hub and the real presentation registry (E1b): the poll panel in the
+// The presenter's poll controls on the real app, the real hub and the real presentation registry: the poll panel in the
 // presenter window, with its buttons and its P, R and A keys, and the poll strip on the phone remote. Sam's deck goes in
 // over MCP: a quote, a poll and a quote, with the poll's settings set through update_poll. Sam's presenter window is the
 // test's Page and goes live from its own chip, and the audience window (the room's big screen) is a second tab of the
@@ -44,7 +44,7 @@ public partial class Sw6PollControlJourneyTests : AcceptanceTest
 
     private static readonly string[] OPTIONS = ["Under a day", "Two to five days", "Over a week"];
 
-    // D2, D19 and V4: a manual poll stays in draft when the presenter reaches it, also when they leave and come back, on
+    // A manual poll stays in draft when the presenter reaches it, also when they leave and come back, on
     // the panel, the big screen and the phone, and opens only from the panel (here its P key). Before Go live the panel's
     // Open is refused with a plain sentence, never a code.
     [Test]
@@ -127,7 +127,7 @@ public partial class Sw6PollControlJourneyTests : AcceptanceTest
         (await screen.Rows.EvaluateAsync<string[]>(COUNT_PROBE)).ShouldNotBeEmpty("the probe should find the shares once they show");
     }
 
-    // D7 and V4: New round after a close starts round 2 from zero, open at once on an on-arrival poll, on the panel, the
+    // New round after a close starts round 2 from zero, open at once on an on-arrival poll, on the panel, the
     // big screen and the phone, and the panel lists round 1 with its answers as kept. Once the session ends, the panel
     // starts again from round 1 in draft: earlier rounds belong to their session.
     [Test]
@@ -208,7 +208,7 @@ public partial class Sw6PollControlJourneyTests : AcceptanceTest
         await Expect(panel.History).ToHaveCountAsync(0);
     }
 
-    // D6, D19 and V4: with the results hidden until close, A does nothing while the poll is open, R reveals the results
+    // With the results hidden until close, A does nothing while the poll is open, R reveals the results
     // to the room, P closes the poll and A shows the answer. The panel and the big screen mark the correct option; the
     // phone that picked it is told it got it, the other is told the answer.
     [Test]
@@ -306,7 +306,7 @@ public partial class Sw6PollControlJourneyTests : AcceptanceTest
         await Expect(miss.VerdictRight).ToHaveCountAsync(0);
     }
 
-    // V8: the poll strip on the phone remote. The poll opens on arrival when the phone moves the talk there, the strip
+    // The poll strip on the phone remote. The poll opens on arrival when the phone moves the talk there, the strip
     // counts the answer, and its Close closes the poll on the big screen (the audience window), in the presenter window's
     // panel and on the guest's phone.
     [Test]

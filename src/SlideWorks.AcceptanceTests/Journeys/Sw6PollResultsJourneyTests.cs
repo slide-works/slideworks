@@ -6,7 +6,7 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests.Journeys;
 
-// SW-6's results settings end to end (E1c): who sees the bars, and when, on the real app, the real hub and the real
+// The poll's results settings end to end: who sees the bars, and when, on the real app, the real hub and the real
 // presentation registry. Sam's deck goes in over MCP (a join slide, a poll slide with three options, a quote) and its poll
 // settings through update_poll before the presenter reaches the slide, since update_poll is refused while a round is open.
 // Sam's presenter window is the test's Page and drives the talk; the audience window, the big screen, is a second tab in
@@ -14,12 +14,12 @@ namespace SlideWorks.AcceptanceTests.Journeys;
 //
 // A journey sees only the rendered page, so "hidden means hidden" is checked on the DOM with COUNT_PROBE over the whole
 // poll card on a phone and the whole poll slide on the big screen. An absence check proves nothing until the phone has
-// caught up, so before probing a phone that may not show counts the test waits for a pollTally carrying the latest answer
-// count to arrive on that phone's hub socket, then for two animation frames so React has rendered it; the same frames
-// are checked to carry no counts while the phone's guest may not see them. The phone shows "N answers so far" only once
-// its own guest has answered (PollFoot), the same before the bars are revealed as after (D21 holds on the wire; the
-// phone keeps the card clean while choosing, as the mockup's phone states have it). The correct answer is marked nowhere
-// until the presenter shows it.
+// caught up, so before probing a phone that may not show counts the test waits for a pollTally carrying the latest
+// answer count to arrive on that phone's hub socket, then for two animation frames so React has rendered it; the same
+// frames are checked to carry no counts while the phone's guest may not see them. The phone shows "N answers so far"
+// only once its own guest has answered (PollFoot), the same before the bars are revealed as after (the answer count
+// always goes to guests on the wire; the phone keeps the card clean while choosing, as the mockup's phone states have
+// it). The correct answer is marked nowhere until the presenter shows it.
 public partial class Sw6PollResultsJourneyTests : AcceptanceTest
 {
     private const int SLIDES = 3;
@@ -27,7 +27,7 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
     private const string QUESTION = "Which release train do we board?";
     private const int OPTIONS = 3;
 
-    // The keys of a pollTally on the wire (V5): type, round, answered and counts.
+    // The keys of a pollTally on the wire: type, round, answered and counts.
     private static readonly string[] TALLY_KEYS = ["type", "round", "answered", "counts"];
 
     // Returns everything under the element that could carry a count or a share, outside what the argument allows:
@@ -67,12 +67,12 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
     // Resolves after the next two paints, so state set by a message already received has been rendered.
     private const string NEXT_PAINT = "() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))";
 
-    // On a phone the only number allowed while counts are hidden is D21's answer count, "N answers so far", in the foot
+    // On a phone the only number allowed while counts are hidden is the answer count, "N answers so far", in the foot
     // (poll-foot-answered) and in its polite live region, which repeats the same sentence.
     private static readonly object PHONE_ALLOWS = new { skip = Array.Empty<string>(), allow = @"^\d+ answers? so far$" };
 
-    // On the big screen: D21's answer count ("2 answers", poll-slide-answered) and the join pill (poll-slide-join), whose
-    // digits are the join code. Nothing else on the slide may hold a number.
+    // On the big screen: the answer count, which always shows ("2 answers", poll-slide-answered) and the join pill
+    // (poll-slide-join), whose digits are the join code. Nothing else on the slide may hold a number.
     private static readonly object SCREEN_ALLOWS = new { skip = new[] { "[data-testid=\"poll-slide-answered\"]", "[data-testid=\"poll-slide-join\"]" }, allow = "^$" };
 
     // After the poll closes: while open, the big screen hatches empty tracks and counts the answers, and a phone that
@@ -248,7 +248,8 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
     // the bars while the poll is still open, and keep moving; a phone whose guest hasn't answered stays clean until it
     // does, although its tallies now carry the counts. The correct option is marked nowhere until Show answer. A viewer
     // who can't present the deck, on the shared link, sees the same slide with empty tracks, no state and no mark, and
-    // asks for no poll data, while the room sees the counts, after the close and after Show answer (D14).
+    // asks for no poll data, while the room sees the counts, after the close and after Show answer: only a person who can
+    // present the deck sees live bars.
     [Test]
     public async Task Poll_WhenRevealed_ShouldShowBarsWhileStillOpen()
     {

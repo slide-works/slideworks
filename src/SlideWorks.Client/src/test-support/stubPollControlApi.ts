@@ -74,13 +74,13 @@ function freshRound(
   return { ...next, roomSeesCounts: roomSees(next) };
 }
 
-// Answers the presenter's six poll routes for deckId at the network boundary (SW-6 V4) the way the server will: GET
+// Answers the presenter's six poll routes for deckId at the network boundary the way the server does: GET
 // /api/decks/{id}/polls/{slide} and POST …/open, /close, /reveal, /answer and /round, over poll state it keeps per slide
-// for this deck. Each action checks V4's rules before it changes anything and refuses with 409 { error } and a
+// for this deck. Each action checks the server's rules before it changes anything and refuses with 409 { error } and a
 // POLL_REFUSALS code, changing nothing:
 // - open: not_live without a session; wrong_phase unless draft; another_poll_open while another slide's round is open.
 //   A draft left by New round on another slide (opens: manual) is discarded first, back to its closed round, as the
-//   server discards that draft row (SW-6 amendment to V2 and V4).
+//   server discards that draft row.
 // - close: wrong_phase unless open. The round joins `rounds`, and the room sees the counts.
 // - reveal: wrong_phase unless open; already_visible when the room already sees the counts.
 // - show answer: wrong_phase unless closed; no_correct when the poll has no correct option.

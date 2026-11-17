@@ -4,8 +4,8 @@ import type { PollControlView } from '../polls/types';
 import { pollControlView } from './fixtures/pollStates';
 import { stubPollControlApi } from './stubPollControlApi';
 
-// The stub of the presenter's poll routes keeps poll state per slide and refuses what V4 refuses, so a panel or strip
-// that offers a control in the wrong phase fails its test.
+// The stub of the presenter's poll routes keeps poll state per slide and refuses what the server refuses, so a panel or
+// strip that offers a control in the wrong phase fails its test.
 
 const deckId = 'deck-1';
 const ROUTE = {

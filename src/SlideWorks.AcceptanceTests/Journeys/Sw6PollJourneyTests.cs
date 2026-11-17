@@ -4,13 +4,13 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests.Journeys;
 
-// SW-6's main journey on the real app, the real hub and SW-4's real presentation registry: a poll from the presenter's
-// arrival to the result. Sam's deck goes in over MCP (a join slide, a pick-one poll with live results that opens on
-// arrival, a quote). Sam presents from the presenter window (the test's Page, desktop size) with the audience window, the
-// big screen, as a second tab; each guest is its own browser context at phone size that opens the join link the server
-// gave. Every step waits on what the screens show, never on a delay: the phone card keeps one answer in flight and the
-// panel one call, so each tap waits for the phone to show it before the next. The poll's question and options carry no
-// digit, so any digit on a phone's card is a count or a share.
+// The live poll's main journey on the real app, the real hub and the real presentation registry: a poll from the
+// presenter's arrival to the result. Sam's deck goes in over MCP (a join slide, a pick-one poll with live results that
+// opens on arrival, a quote). Sam presents from the presenter window (the test's Page, desktop size) with the audience
+// window, the big screen, as a second tab; each guest is its own browser context at phone size that opens the join link
+// the server gave. Every step waits on what the screens show, never on a delay: the phone card keeps one answer in
+// flight and the panel one call, so each tap waits for the phone to show it before the next. The poll's question and
+// options carry no digit, so any digit on a phone's card is a count or a share.
 public class Sw6PollJourneyTests : AcceptanceTest
 {
     private const int SLIDES = 3;
@@ -179,11 +179,12 @@ public class Sw6PollJourneyTests : AcceptanceTest
         await Expect(second.Card.OptionYou(1)).ToBeVisibleAsync();
     }
 
-    // Criteria: moving on closes the poll (D2), and the phone shows the next slide with nothing to answer, since the closed
-    // result stays on the phone only until the presenter moves on (SW-280 D1). Coming back shows it closed, not reopened
-    // (D12): still round 1, with New round offered and no Close. The closed poll shows its result on every phone: the guest
-    // who answered sees the percentages with its own pick marked, the guest who joined before and didn't answer sees them
-    // too and is told so, and a guest who joins after the close is told it joined late. Nothing can be tapped any more.
+    // Criteria: moving on closes the poll, and the phone shows the next slide with nothing to answer, since the closed
+    // result stays on the phone only until the presenter moves on. Coming back shows it closed, not reopened, since a
+    // poll opens on arrival only once per session: still round 1, with New round offered and no Close. The closed poll
+    // shows its result on every phone: the guest who answered sees the percentages with its own pick marked, the guest
+    // who joined before and didn't answer sees them too and is told so, and a guest who joins after the close is told
+    // it joined late. Nothing can be tapped any more.
     [Test]
     public async Task Poll_WhenPresenterMovesOnThenBack_ShouldHaveClosedItAndShowTheResultOnThePhone()
     {
