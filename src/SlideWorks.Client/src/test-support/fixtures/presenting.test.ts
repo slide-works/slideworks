@@ -41,6 +41,7 @@ const PRESENTER = keys<PresenterView>({
   author: true,
   parts: true,
   look: true,
+  join: true,
   slides: true,
   talkMinutes: true,
   audienceUrl: true,

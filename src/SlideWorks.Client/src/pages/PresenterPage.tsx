@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
+import { LiveChip } from '../live/LiveChip';
 import { getPresenterView } from '../api/presenter';
 import type { PresenterView } from '../api/types';
 import {
@@ -24,6 +25,7 @@ import {
 import type { PresentationState, PresentationUpdate, TimerCommand } from '../presentation/types';
 import { usePresentation, type Presentation } from '../presentation/usePresentation';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
+import { JoinProvider } from '../slides/JoinContext';
 
 type Load =
   | { kind: 'loading' }
@@ -133,125 +135,130 @@ export function PresenterPage() {
     status === 'live' && !state.connected.some((connection) => connection.role === 'audience');
   const message = error || (refreshFailed ? "Couldn't load the deck's latest changes." : '');
 
+  // The presenter view is the owner's, so the window is the owner's: its slides know the deck's join, and its top bar
+  // carries the live chip (SW-5 D19).
   return (
-    <main
-      ref={mainRef}
-      data-testid="presenter-page"
-      data-deck-id={id}
-      tabIndex={-1}
-      aria-label={`Presenting ${view.title}`}
-      className="flex min-h-dvh flex-col bg-[#0a0e16] text-[13px] text-[#e2e8f0] outline-none"
-    >
-      <PresenterTopBar
-        view={view}
-        state={state}
-        elapsedMs={presentation.elapsedMs}
-        clockMinutes={clockMinutes}
-        onTimer={controls.timer}
-        onReopenAudience={reopenAudience}
-      />
-
-      {status === 'reconnecting' && (
-        <p
-          data-testid="presenter-reconnecting"
-          role="status"
-          className="bg-[#b4580b]/25 px-4 py-2 text-sm text-[#fdba74]"
-        >
-          Reconnecting · the audience window won't follow until it's back
-        </p>
-      )}
-      {audienceClosed && (
-        <p
-          data-testid="presenter-audience-closed"
-          role="status"
-          className="flex items-center gap-2 bg-white/5 px-4 py-2 text-sm"
-        >
-          Audience window closed ·
-          <button
-            type="button"
-            data-testid="presenter-audience-reopen"
-            aria-label="Reopen the audience window"
-            className="font-semibold text-[#8ea5ff] underline focus-visible:outline-2 focus-visible:outline-[#8ea5ff]"
-            onClick={reopenAudience}
-          >
-            Reopen
-          </button>
-        </p>
-      )}
-      {message && (
-        <p
-          data-testid="presenter-error"
-          role="alert"
-          className="bg-[#c0362c]/25 px-4 py-2 text-sm text-[#fca5a5]"
-        >
-          {message}
-        </p>
-      )}
-
-      <div className="relative grid flex-1 content-start gap-4 p-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <NowPanel
+    <JoinProvider deckId={view.id} join={view.join} owner>
+      <main
+        ref={mainRef}
+        data-testid="presenter-page"
+        data-deck-id={id}
+        tabIndex={-1}
+        aria-label={`Presenting ${view.title}`}
+        className="flex min-h-dvh flex-col bg-[#0a0e16] text-[13px] text-[#e2e8f0] outline-none"
+      >
+        <PresenterTopBar
           view={view}
-          slide={state.slide}
-          step={state.step}
-          black={state.black}
-          nextName={controls.nextName}
-          previousName={controls.previousName}
-          onNext={controls.keys.next}
-          onPrevious={controls.keys.previous}
+          state={state}
+          elapsedMs={presentation.elapsedMs}
+          clockMinutes={clockMinutes}
+          onTimer={controls.timer}
+          onReopenAudience={reopenAudience}
+          liveChip={<LiveChip deckTitle={view.title} joinBar={view.look.joinBar} />}
         />
-        <div className="grid min-w-0 content-start gap-4">
-          <NextPanel
+
+        {status === 'reconnecting' && (
+          <p
+            data-testid="presenter-reconnecting"
+            role="status"
+            className="bg-[#b4580b]/25 px-4 py-2 text-sm text-[#fdba74]"
+          >
+            Reconnecting · the audience window won't follow until it's back
+          </p>
+        )}
+        {audienceClosed && (
+          <p
+            data-testid="presenter-audience-closed"
+            role="status"
+            className="flex items-center gap-2 bg-white/5 px-4 py-2 text-sm"
+          >
+            Audience window closed ·
+            <button
+              type="button"
+              data-testid="presenter-audience-reopen"
+              aria-label="Reopen the audience window"
+              className="font-semibold text-[#8ea5ff] underline focus-visible:outline-2 focus-visible:outline-[#8ea5ff]"
+              onClick={reopenAudience}
+            >
+              Reopen
+            </button>
+          </p>
+        )}
+        {message && (
+          <p
+            data-testid="presenter-error"
+            role="alert"
+            className="bg-[#c0362c]/25 px-4 py-2 text-sm text-[#fca5a5]"
+          >
+            {message}
+          </p>
+        )}
+
+        <div className="relative grid flex-1 content-start gap-4 p-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+          <NowPanel
             view={view}
-            preview={controls.preview}
-            deepDivesAhead={controls.deepDivesAhead}
-            skipDeepDives={state.skipDeepDives}
+            slide={state.slide}
+            step={state.step}
+            black={state.black}
+            nextName={controls.nextName}
+            previousName={controls.previousName}
+            onNext={controls.keys.next}
+            onPrevious={controls.keys.previous}
           />
-          {notesShown && (
-            <NotesPanel
-              notes={view.slides[state.slide - 1]?.notes ?? null}
-              size={notesSize}
-              onSmaller={() => changeNotesSize(-NOTES_SIZE.step)}
-              onLarger={() => changeNotesSize(NOTES_SIZE.step)}
+          <div className="grid min-w-0 content-start gap-4">
+            <NextPanel
+              view={view}
+              preview={controls.preview}
+              deepDivesAhead={controls.deepDivesAhead}
+              skipDeepDives={state.skipDeepDives}
             />
+            {notesShown && (
+              <NotesPanel
+                notes={view.slides[state.slide - 1]?.notes ?? null}
+                size={notesSize}
+                onSmaller={() => changeNotesSize(-NOTES_SIZE.step)}
+                onLarger={() => changeNotesSize(NOTES_SIZE.step)}
+              />
+            )}
+          </div>
+          {overviewOpen && (
+            <div className="absolute inset-0 z-10 overflow-auto bg-[#0a0e16]">
+              <Overview
+                view={view}
+                current={state.slide}
+                skipDeepDives={state.skipDeepDives}
+                onJump={(n) => {
+                  controls.keys.jump(n);
+                  closeOverview();
+                }}
+                onClose={closeOverview}
+              />
+            </div>
           )}
         </div>
-        {overviewOpen && (
-          <div className="absolute inset-0 z-10 overflow-auto bg-[#0a0e16]">
-            <Overview
-              view={view}
-              current={state.slide}
-              skipDeepDives={state.skipDeepDives}
-              onJump={(n) => {
-                controls.keys.jump(n);
-                closeOverview();
-              }}
-              onClose={closeOverview}
-            />
-          </div>
-        )}
-      </div>
 
-      <ToolBar
-        overviewOpen={overviewOpen}
-        notesShown={notesShown}
-        skipDeepDives={state.skipDeepDives}
-        black={state.black}
-        phonesConnected={state.connected.filter((c) => c.role === 'phone').length}
-        onOverview={() => setOverviewOpen((open) => !open)}
-        onNotes={() => setNotesShown((shown) => !shown)}
-        onSkip={controls.keys.toggleSkip}
-        onBlack={controls.keys.toggleBlack}
-        onPhone={() => setPhoneOpen(true)}
-        overviewRef={overviewButton}
-        phoneRef={phoneButton}
-      />
-      <PhoneConnectDialog
-        remoteUrl={view.remoteUrl}
-        open={phoneOpen}
-        onClose={closePhone}
-        phones={state.connected.filter((c) => c.role === 'phone')}
-      />
-    </main>
+        <ToolBar
+          overviewOpen={overviewOpen}
+          notesShown={notesShown}
+          skipDeepDives={state.skipDeepDives}
+          black={state.black}
+          phonesConnected={state.connected.filter((c) => c.role === 'phone').length}
+          onOverview={() => setOverviewOpen((open) => !open)}
+          onNotes={() => setNotesShown((shown) => !shown)}
+          onSkip={controls.keys.toggleSkip}
+          onBlack={controls.keys.toggleBlack}
+          onPhone={() => setPhoneOpen(true)}
+          overviewRef={overviewButton}
+          phoneRef={phoneButton}
+        />
+        <PhoneConnectDialog
+          remoteUrl={view.remoteUrl}
+          open={phoneOpen}
+          onClose={closePhone}
+          phones={state.connected.filter((c) => c.role === 'phone')}
+        />
+      </main>
+    </JoinProvider>
   );
 }
 

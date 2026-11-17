@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
-import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { DeckPlayView } from '../api/types';
-import { LivePublisher } from '../live/LivePublisher';
+import { useLiveDrive } from '../live/useLiveDrive';
 import { useLiveSessionContext } from '../live/LiveSessionProvider';
 import { deepDivesOf } from '../look/deepDivesOf';
 import { nextPosition, previousPosition } from '../presentation/navigate';
 import type { PresentationUpdate } from '../presentation/types';
 import type { SlideDeck } from '../slides/slots';
 import { Blackout } from './Blackout';
-import type { PlayerPosition } from './parseHash';
+import { FIRST_POSITION, type PlayerPosition } from './parseHash';
 import { PlayerControls } from './PlayerControls';
 import { PlayerStage } from './PlayerStage';
 import { usePlayerKeys } from './usePlayerKeys';
@@ -62,19 +62,29 @@ export function Player({
     }),
     [deck.title, deck.author, deck.parts, deck.look, deck.slides],
   );
+  // The owner's player while live (SW-5 D18): one more presenter-role client of the presentation, so it follows the
+  // state like the audience window and publishes only the user's own moves.
+  const session = useLiveSessionContext();
+  const live = session.live;
+  const ownPosition = useRef<PlayerPosition>(FIRST_POSITION);
+  const liveDrive = useLiveDrive(deck.id, live && !audience, ownPosition, session.reportError);
+  const control = audience ?? liveDrive;
   const navigation = usePlayerNavigation(
     stepCounts,
-    audience?.position ? { position: audience.position, live: audience.live } : null,
+    control?.position ? { position: control.position, live: control.live } : null,
   );
   const { position } = navigation;
+  useEffect(() => {
+    ownPosition.current = position;
+  }, [position]);
   const deepDives = useMemo(
     () => new Set(slideDeck.deepDives.map((dive) => dive.number)),
     [slideDeck.deepDives],
   );
   // While live, every move is the presentation's: the keys and the control bar ask for it and render the answer.
   const moves = useMemo(() => {
-    if (!audience?.live) return navigation;
-    const { black, skipDeepDives, send } = audience;
+    if (!control?.live) return navigation;
+    const { black, skipDeepDives, send } = control;
     const go = (to: PlayerPosition) => {
       // At the end of the deck, or with only skipped deep dives ahead, there is nothing to send.
       if (to.slide === position.slide && to.step === position.step) return;
@@ -86,13 +96,9 @@ export function Player({
       first: () => go({ slide: 1, step: 0 }),
       last: () => go({ slide: Math.max(stepCounts.length, 1), step: 0 }),
     };
-  }, [audience, navigation, position, stepCounts, deepDives]);
+  }, [control, navigation, position, stepCounts, deepDives]);
   const { next, previous, first, last } = moves;
   const driven = audience?.driven ?? false;
-
-  // The owner's player publishes its position to guests while the deck is live (SW-5 D18).
-  const session = useLiveSessionContext();
-  const live = session.live;
 
   const fullscreen = useSyncExternalStore(subscribeFullscreen, isFullscreen);
   const toggleFullscreen = useCallback(() => {
@@ -150,14 +156,6 @@ export function Player({
           onFullscreen={toggleFullscreen}
           joinBar={deck.look.joinBar}
           liveChip={!audience}
-        />
-      )}
-      {live && !audience && (
-        <LivePublisher
-          deckId={deck.id}
-          slide={position.slide}
-          step={position.step}
-          onError={session.reportError}
         />
       )}
       {notice}

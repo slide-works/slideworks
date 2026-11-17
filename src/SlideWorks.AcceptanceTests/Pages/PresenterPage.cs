@@ -107,6 +107,19 @@ public sealed class PresenterPage(IPage page)
 
     public ILocator LiveChip => page.GetByTestId("presenter-live-chip");
 
+    // The owner's live chip inside that wrapper (Go live, the code and joined count, the join bar toggle, End), the same
+    // chip the plain player has.
+    public LiveChip Live => new(page);
+
+    // A join slide in the Now and Next panels: its code, and the line it shows until the deck is live.
+    public ILocator NowJoinCode => Now.GetByTestId("join-code");
+
+    public ILocator NowJoinNotLive => Now.GetByTestId("join-not-live");
+
+    public ILocator NextJoinCode => Next.GetByTestId("join-code");
+
+    public ILocator NextJoinNotLive => Next.GetByTestId("join-not-live");
+
     // The overview (O), and its button for slide n.
     public ILocator Overview => page.GetByTestId("overview");
 

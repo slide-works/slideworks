@@ -11,6 +11,8 @@ import {
 } from '../presentation/navigate';
 import type { PresentationState, PresentationUpdate } from '../presentation/types';
 import { usePresentation, type Presentation } from '../presentation/usePresentation';
+import { useDeckRealtime } from '../realtime/useDeckRealtime';
+import { JoinProvider } from '../slides/JoinContext';
 import { SlidesSheet } from '../remote/SlidesSheet';
 import { ActionRow } from '../remote/speaker/ActionRow';
 import { deviceLabel } from '../remote/speaker/deviceLabel';
@@ -68,6 +70,16 @@ export function SpeakerPage() {
     };
   }, [id, attempt]);
 
+  // The deck going live or ending elsewhere (the presenter window's chip) changes its join slide's state, so the view
+  // is read again. A failed re-read keeps the talk on screen.
+  useDeckRealtime(id, (event) => {
+    if (event.type !== 'liveChanged') return;
+    getPresenterView(id).then(
+      (view) => setResult({ id, load: { kind: 'loaded', view } }),
+      () => undefined,
+    );
+  });
+
   useWakeLock(presentation.status === 'live');
 
   if (load.kind === 'notYours' || presentation.status === 'refused') {
@@ -111,8 +123,16 @@ export function SpeakerPage() {
       </main>
     );
   }
+  // The phone is the owner's too, so a join slide on it shows the code and whether the deck is live (SW-5 D19).
   return (
-    <SpeakerMode id={id} view={load.view} state={presentation.state} presentation={presentation} />
+    <JoinProvider deckId={load.view.id} join={load.view.join} owner>
+      <SpeakerMode
+        id={id}
+        view={load.view}
+        state={presentation.state}
+        presentation={presentation}
+      />
+    </JoinProvider>
   );
 }
 
