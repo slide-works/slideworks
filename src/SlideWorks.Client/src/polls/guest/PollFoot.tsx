@@ -26,6 +26,9 @@ export type PollFootProps = {
   onSend: () => void;
   // Pick several's "Change my answer": clears the picks on the phone to choose again.
   onClear: () => void;
+  // Pick several after "Change my answer", until the answer is sent again: the foot is choosing (the count and Send)
+  // even while the picks equal the answer sent. Pick one ignores it.
+  editing: boolean;
 };
 
 const answersOf = (answered: number) => `${answered} ${answered === 1 ? 'answer' : 'answers'}`;
@@ -123,12 +126,13 @@ export function PollFoot({
   error,
   onSend,
   onClear,
+  editing,
 }: PollFootProps) {
   const question = activity.question;
   const many = activity.pick === 'upTo';
   const open = activity.phase === 'open';
-  // Pick several after "Change my answer": the phone's picks differ from the answer sent, so Send is back.
-  const choosing = mine === null || (many && !samePicks(picks, mine.picks));
+  // Pick several after "Change my answer", or with picks that differ from the answer sent: Send is back.
+  const choosing = mine === null || (many && (editing || !samePicks(picks, mine.picks)));
   const counting = open && !choosing && answered !== null;
   const announced = useCalmAnnouncement(counting ? `${answersOf(answered)} so far` : '');
 

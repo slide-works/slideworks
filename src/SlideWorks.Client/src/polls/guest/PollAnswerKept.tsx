@@ -9,9 +9,11 @@ import { PollAnswerContext, type PollAnswer } from './usePollAnswer';
 export function PollAnswerKept({
   activity,
   revision,
+  onSend,
 }: {
   activity: PollActivity;
   revision: number;
+  onSend?: () => void;
 }) {
   const value: PollAnswer = {
     picks: [1],
@@ -21,7 +23,7 @@ export function PollAnswerKept({
     state: 'idle',
     error: null,
     toggle: () => {},
-    send: () => {},
+    send: () => onSend?.(),
     clear: () => {},
   };
   return (

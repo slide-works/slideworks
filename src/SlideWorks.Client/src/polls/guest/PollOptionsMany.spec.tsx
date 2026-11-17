@@ -195,7 +195,7 @@ test('with the picks kept, Change my answer unlocks them; a new round or a new a
   await page.getByTestId(POLL_CARD_TEST_IDS.change).click();
   for (const box of await boxes.all()) await expect(box).toBeEnabled();
   await expect(page.getByTestId(pollOptionTestId(1))).toBeFocused();
-  await expect(page.getByTestId(POLL_CARD_TEST_IDS.sent)).toBeVisible();
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.pickCount)).toBeVisible();
 
   await card.update(<PollAnswerKept activity={many({ round: 'round-b' })} revision={1} />);
   for (const box of await boxes.all()) await expect(box).toBeDisabled();
@@ -204,6 +204,62 @@ test('with the picks kept, Change my answer unlocks them; a new round or a new a
   for (const box of await boxes.all()) await expect(box).toBeEnabled();
   await card.update(<PollAnswerKept activity={many({ round: 'round-b' })} revision={2} />);
   for (const box of await boxes.all()) await expect(box).toBeDisabled();
+});
+
+test('Change my answer shows the count and Send at once with the sent picks ticked, and says so politely', async ({
+  mount,
+  page,
+}) => {
+  await mount(<PollAnswerKept activity={many()} revision={1} />);
+  await page.getByTestId(POLL_CARD_TEST_IDS.change).click();
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.pickCount)).toContainText('1 of 2 picked');
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.send)).toBeEnabled();
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.sent)).toHaveCount(0);
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.change)).toHaveCount(0);
+  await expect(page.getByTestId(pollOptionTestId(1))).toBeChecked();
+  await expect(page.getByTestId(pollOptionTestId(1))).toBeFocused();
+  const note = page.locator('[aria-live="polite"]', { hasText: 'You can change your answer now.' });
+  await expect(note).toHaveCount(1);
+});
+
+test('Send with the picks unchanged sends nothing and locks the boxes again', async ({
+  mount,
+  page,
+}) => {
+  let sends = 0;
+  await mount(<PollAnswerKept activity={many()} revision={1} onSend={() => (sends += 1)} />);
+  await page.getByTestId(POLL_CARD_TEST_IDS.change).click();
+  await page.getByTestId(POLL_CARD_TEST_IDS.send).click();
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.sent)).toBeVisible();
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.change)).toBeVisible();
+  for (const box of await page.getByRole('checkbox').all()) await expect(box).toBeDisabled();
+  expect(sends).toBe(0);
+});
+
+test('a changed tick and Send sends once; the accepted answer locks the boxes', async ({
+  mount,
+  page,
+}) => {
+  let sends = 0;
+  const view = (revision: number, picks: number[]) => (
+    <PollAnswerFixture
+      picks={picks}
+      mine={{ picks, revision }}
+      pick="upTo"
+      max={2}
+      onSend={() => (sends += 1)}
+    >
+      <PollCard activity={many()} presenter="Sam" />
+    </PollAnswerFixture>
+  );
+  const card = await mount(view(1, [1]));
+  await page.getByTestId(POLL_CARD_TEST_IDS.change).click();
+  await page.getByTestId(pollOptionTestId(0)).click();
+  await page.getByTestId(POLL_CARD_TEST_IDS.send).click();
+  await expect.poll(() => sends).toBe(1);
+  await card.update(view(2, [0]));
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.sent)).toBeVisible();
+  for (const box of await page.getByRole('checkbox').all()) await expect(box).toBeDisabled();
 });
 
 test('pick one is never locked after an answer', async ({ mount, page }) => {
@@ -327,7 +383,7 @@ test('pick several, two ticked, at the limit screenshot at 360', async ({ mount,
 
 // Forced colours (a high-contrast theme) replace backgrounds and borders and keep images, so a drawn tick or dot can
 // vanish. The native control draws its state in system colours, and a ticked box looks different from an empty one.
-test('forced colours: a checked checkbox differs from an unchecked one without its tick image', async ({
+test('forced colours: a checked checkbox differs from an unchecked one in its native state, not only in a drawn tick', async ({
   mount,
   page,
 }) => {

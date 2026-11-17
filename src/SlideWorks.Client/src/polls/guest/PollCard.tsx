@@ -31,15 +31,34 @@ export function PollCard({ activity, presenter }: { activity: PollActivity; pres
   const locked =
     activity.pick === 'upTo' && mine !== null && samePicks(answer.picks, mine) && !unlocked;
   const list = useRef<HTMLDivElement>(null);
+  // Set by the press, so focus moves only after "Change my answer", never because the key came back to an earlier value.
+  const pressed = useRef(false);
   useEffect(() => {
-    // Change my answer unlocks the boxes and the button may go: focus moves to the first box that can be ticked.
-    if (unlocked) {
-      const boxes = list.current?.querySelectorAll<HTMLInputElement>('input:not(:disabled)');
-      (
-        list.current?.querySelector<HTMLInputElement>('input:checked:not(:disabled)') ?? boxes?.[0]
-      )?.focus();
+    if (!unlocked) {
+      pressed.current = false;
+      return;
     }
+    if (!pressed.current) return;
+    pressed.current = false;
+    // The boxes unlock and the button goes: focus moves to the first ticked box, else the first one that can be ticked.
+    const root = list.current;
+    (
+      root?.querySelector<HTMLInputElement>('input:checked:not(:disabled)') ??
+      root?.querySelector<HTMLInputElement>('input:not(:disabled)')
+    )?.focus();
   }, [unlocked]);
+  const change = () => {
+    pressed.current = true;
+    setEditing(editKey);
+    answer.clear();
+  };
+  // Send ends the edit. The same picks as the answer sent are no change: nothing is sent (the hook would skip it and the
+  // guest would wonder), the boxes lock again and the foot says "Answer sent".
+  const send = () => {
+    setEditing(null);
+    if (unlocked && mine !== null && samePicks(answer.picks, mine)) return;
+    answer.send();
+  };
   const bars: PollBars | null =
     answer.tally?.counts && (mine !== null || activity.phase === 'closed')
       ? { counts: answer.tally.counts, answered: answer.tally.answered }
@@ -76,11 +95,9 @@ export function PollCard({ activity, presenter }: { activity: PollActivity; pres
         joinedLate={answer.joinedLate}
         state={answer.state}
         error={answer.error}
-        onSend={answer.send}
-        onClear={() => {
-          setEditing(editKey);
-          answer.clear();
-        }}
+        onSend={send}
+        onClear={change}
+        editing={unlocked}
       />
     );
 
@@ -122,6 +139,9 @@ export function PollCard({ activity, presenter }: { activity: PollActivity; pres
         </div>
         <div className="flex shrink-0 flex-col gap-2">
           {below}
+          <p aria-live="polite" className="sr-only">
+            {unlocked && activity.pick === 'upTo' ? 'You can change your answer now.' : ''}
+          </p>
           {activity.correct !== null && (
             <PollVerdict correct={activity.correct} options={activity.options} mine={mine} />
           )}
