@@ -1,6 +1,8 @@
+import { LiveChip } from '../live/LiveChip';
 import type { PlayerPosition } from './parseHash';
 
 type PlayerControlsProps = {
+  deckTitle: string;
   position: PlayerPosition;
   total: number;
   steps: number;
@@ -18,6 +20,7 @@ const BUTTON =
 // The bar under the stage: previous and next, "n / total", one dot per step of
 // the current slide, the deck's progress, and fullscreen (or exit fullscreen).
 export function PlayerControls({
+  deckTitle,
   position,
   total,
   steps,
@@ -97,6 +100,7 @@ export function PlayerControls({
           style={{ width: `${progress}%` }}
         />
       </span>
+      <LiveChip deckTitle={deckTitle} />
       {canFullscreen && (
         <button
           type="button"

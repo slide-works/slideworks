@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import type { DeckPlayView } from '../api/types';
 import { deepDivesOf } from '../look/deepDivesOf';
+import { JoinProvider } from '../slides/JoinContext';
 import { SlideRenderer } from '../slides/SlideRenderer';
 import type { SlideDeck } from '../slides/slots';
 
@@ -157,12 +158,14 @@ export function RenderPage() {
         </p>
       )}
       {!error && slide && slideDeck && view && (
-        <SlideRenderer
-          slide={slide}
-          deck={slideDeck}
-          total={view.slides.length}
-          step={slide.steps}
-        />
+        <JoinProvider deckId={view.id} join={view.join} owner={false}>
+          <SlideRenderer
+            slide={slide}
+            deck={slideDeck}
+            total={view.slides.length}
+            step={slide.steps}
+          />
+        </JoinProvider>
       )}
     </div>
   );

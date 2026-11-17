@@ -104,6 +104,30 @@ public sealed class PlayerPage(IPage page)
     // The layer slide {number} sits in on the canvas; its data-active is "true" while it shows.
     public ILocator Layer(int number) => page.GetByTestId($"player-slide-{number}");
 
+    // The owner's live chip in the control bar.
+    public LiveChip LiveChip => new(page);
+
+    // The join slide's parts on slide {number} (SW-5 J6): the kicker, the code as "482 913", the address and the QR code.
+    public ILocator JoinSlide(int number) => Slide(number).GetByTestId("layout-join");
+
+    public ILocator JoinKicker(int number) => Slide(number).GetByTestId("join-kicker");
+
+    public ILocator JoinCode(int number) => Slide(number).GetByTestId("join-code");
+
+    public ILocator JoinHost(int number) => Slide(number).GetByTestId("join-host");
+
+    public ILocator JoinQr(int number) => Slide(number).GetByTestId("join-qr");
+
+    // "37 joined": only while live, and absent when the slide's count slot is hidden.
+    public ILocator JoinCount(int number) => Slide(number).GetByTestId("join-count");
+
+    // The join bar the frame draws on slide {number} while live and the deck's join bar is on: a small QR and the code.
+    public ILocator JoinBar(int number) => Slide(number).GetByTestId("join-bar");
+
+    public ILocator JoinBarCode(int number) => JoinBar(number).GetByTestId("join-bar-code");
+
+    public ILocator JoinBarQr(int number) => JoinBar(number).GetByTestId("join-bar-qr");
+
     public ILocator Image(int number) => Slide(number).GetByTestId("image-picture");
 
     public ILocator Bullets(int number) => Slide(number).GetByTestId("bullets-item");

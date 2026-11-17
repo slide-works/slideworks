@@ -3,6 +3,7 @@ import { Navigate, useLocation, useParams } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
 import type { DeckPlayView, MeView } from '../api/types';
 import { Player } from '../player/Player';
+import { JoinProvider } from '../slides/JoinContext';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { PlayerMessage } from './deck/PlayerMessage';
 
@@ -120,7 +121,9 @@ export function PlayerPage() {
       }
       return (
         <div data-testid="player-page" data-deck-id={id} className="contents">
-          <Player deck={load.view} />
+          <JoinProvider deckId={load.view.id} join={load.view.join} owner>
+            <Player deck={load.view} />
+          </JoinProvider>
         </div>
       );
   }

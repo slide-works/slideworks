@@ -18,6 +18,7 @@ import { NumberedCardsLayout } from './NumberedCardsLayout';
 import { RulesLayout } from './RulesLayout';
 import { CardsLayout } from './CardsLayout';
 import { CloseLayout } from './CloseLayout';
+import { JoinLayout } from './JoinLayout';
 
 export const LAYOUTS: { [L in LayoutName]: ComponentType<LayoutProps<L>> } = {
   title: TitleLayout,
@@ -36,4 +37,5 @@ export const LAYOUTS: { [L in LayoutName]: ComponentType<LayoutProps<L>> } = {
   rules: RulesLayout,
   cards: CardsLayout,
   close: CloseLayout,
+  join: JoinLayout,
 };

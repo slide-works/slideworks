@@ -19,6 +19,8 @@ function headlineOf(slide: DeepDiveSource): string {
       return slide.slots.title;
     case 'quote':
       return slide.slots.quote;
+    case 'join':
+      return slide.slots.kicker ?? 'Join on your phone';
     default:
       return slide.slots.headline;
   }

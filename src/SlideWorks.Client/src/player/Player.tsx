@@ -66,6 +66,7 @@ export function Player({ deck }: { deck: DeckPlayView }) {
         onPrevious={previous}
       />
       <PlayerControls
+        deckTitle={deck.title}
         position={position}
         total={deck.slides.length}
         steps={stepCounts[position.slide - 1] ?? 0}

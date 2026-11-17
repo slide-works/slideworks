@@ -138,4 +138,5 @@ export const LAYOUT_SLOTS: { [L in keyof Slots]: Slots[L] } = {
     sub: 'Then tell us what you learned at the next demo.',
     author: 'Sam Rivera · Product Engineering',
   },
+  join: { kicker: 'Join on your phone', count: 'shown' },
 };

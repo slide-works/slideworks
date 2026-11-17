@@ -402,3 +402,25 @@ test('player page screenshot', async ({ mount, page }) => {
   await expect(page.getByTestId('player')).toBeVisible();
   await expect(page).toHaveScreenshot('player-page.png');
 });
+
+test('player page mounts the live chip and re-reads on liveChanged, showing the new live state', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page);
+  let reads = 0;
+  await page.route(`**${playPath}`, (route) => {
+    reads += 1;
+    return route.fulfill({
+      json: reads <= 2 ? deckPlay : { ...deckPlay, join: { ...deckPlay.join, live: true } },
+    });
+  });
+  await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
+  await expect(page.getByTestId('live-chip')).toBeVisible();
+  await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
+  await expect.poll(() => reads).toBe(2);
+
+  hub.push({ type: 'liveChanged', deckId: deckPlay.id });
+
+  await expect.poll(() => reads).toBe(3);
+});

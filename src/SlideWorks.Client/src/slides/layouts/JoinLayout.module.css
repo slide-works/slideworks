@@ -1,0 +1,31 @@
+/* The join slide (dark), in canvas px. */
+.join {
+  align-items: flex-start;
+  justify-content: safe center;
+  padding-left: 40px;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--sw-night-2);
+  font: 700 40px/1.2 var(--sw-font-body);
+  letter-spacing: 0.04em;
+}
+
+.code {
+  margin: 40px 0 0;
+  font: 800 260px/1 var(--sw-font-head);
+  letter-spacing: 0.04em;
+}
+
+.host {
+  margin: 32px 0 0;
+  color: var(--sw-night-2);
+  font: 600 56px/1.2 var(--sw-font-body);
+}
+
+.count {
+  margin: 32px 0 0;
+  color: var(--sw-night-muted);
+  font: 600 40px/1.2 var(--sw-font-body);
+}
