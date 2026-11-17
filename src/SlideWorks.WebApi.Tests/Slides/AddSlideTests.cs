@@ -208,6 +208,33 @@ public class AddSlideTests : ApiTestFixture
     }
 
     [Test]
+    public async Task AddSlide_WhenLayoutIsQaWithNoSlots_ShouldBeAccepted()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+
+        var added = await DeckSeed.AddSlideAsync(agent, deck, "qa", "{}");
+
+        added.GetProperty("slide").GetInt32().ShouldBe(1);
+        added.GetProperty("steps").GetInt32().ShouldBe(0);
+        var slide = (await GetDeckAsync(agent, deck)).GetProperty("slides")[0];
+        slide.GetProperty("layout").GetString().ShouldBe("qa");
+        slide.GetProperty("slots").EnumerateObject().ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task AddSlide_WhenQaTitleIs81Characters_ShouldBeRefused()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+
+        var error = await AddSlideErrorAsync(agent, deck, "qa", $$"""{ "title": "{{new string('q', 81)}}" }""");
+
+        error.ShouldBe("qa.title: at most 80 characters (got 81)");
+        (await GetDeckAsync(agent, deck)).GetProperty("slides").GetArrayLength().ShouldBe(0);
+    }
+
+    [Test]
     public async Task AddSlide_ShouldRecordAgentActivity()
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam, "Claude");

@@ -171,7 +171,7 @@ public class PollFramePrivacyTests : PollTestFixture
     private async Task AnswerAsync(Room room, GuestClient guest, params int[] picks)
     {
         await Rows.AnswerAsync(Guid.Parse(room.Round), guest.GuestId, picks);
-        var roundRef = new PollRoundRef(room.Poll.DeckId, room.Poll.Slide, room.Poll.SlideId, room.Poll.SessionId.ToString(), room.Round, 3);
+        var roundRef = new PollRoundRef(room.Poll.DeckId, PollKind.Slide, room.Poll.Slide, room.Poll.SlideId, room.Poll.SessionId.ToString(), room.Round, 3);
         await Tallies.ApplyAsync(roundRef, [], picks);
     }
 

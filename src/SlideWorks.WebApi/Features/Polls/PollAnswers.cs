@@ -56,7 +56,7 @@ public class PollAnswers(AppDbContext db, GuestPollViews views, PollRows rows, A
             return new AnswerResult.Invalid(broken);
         }
 
-        var target = new PollRoundRef(slide.DeckId, slide.Position + 1, round.SlideId, sessionId.ToString(), round.Id.ToString(), optionCount);
+        var target = new PollRoundRef(slide.DeckId, PollKind.Slide, slide.Position + 1, round.SlideId, sessionId.ToString(), round.Id.ToString(), optionCount);
         var written = await writer.WriteAsync(target, guestId, request.Revision, [.. request.Picks.Order()]);
         return written is null
             ? await StaleAsync(seat, code, guestId)

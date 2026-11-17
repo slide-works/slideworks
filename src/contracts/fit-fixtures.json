@@ -1079,5 +1079,15 @@
         "Today Which Practice Helped Your Team Ship Smaller Changes A"
       ]
     }
+  },
+  "qaTitle": {
+    "layout": "qa",
+    "grow": [
+      "/title"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "title": "Questions From The Room About Shipping Smaller Changes Every Week And Keeping It"
+    }
   }
 }

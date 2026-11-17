@@ -1,6 +1,6 @@
 namespace SlideWorks.Core.Slides;
 
-// The 18 layouts and 5 inline blocks (K2, D8). Names and slot fields are frozen in the plan's
+// The 19 layouts and 5 inline blocks (K2, D8). Names and slot fields are frozen in the plan's
 // section 4. The limits come from the mockup CSS so that a slide at its limits fits 1920×1080: a
 // headline wraps to at most two lines, and where counts times lengths could overflow, a fit rule in
 // LayoutRules checks the text the slide actually has.
@@ -182,6 +182,10 @@ public static class LayoutCatalogue
             Req("question", new TextSlot(120)),
             Req("options", new ListSlot(new TextSlot(60), 2, 8), "Known by position: while a round is open they can be reworded or added to, not removed or reordered"),
         ], rules: LayoutRules.Poll),
+        new("qa", "Q&A slide: the room's questions, most upvoted first, while the deck is live, and one question at full size when the presenter shows it. The questions come from the live session, never from the slots; the Q&A settings are set with update_qa.", false,
+        [
+            Opt("title", new TextSlot(80), "Defaults to 'Questions from the room'"),
+        ]),
     ];
 
     public static IReadOnlyList<string> LayoutNames { get; } = Layouts.Select(l => l.Name).ToArray();

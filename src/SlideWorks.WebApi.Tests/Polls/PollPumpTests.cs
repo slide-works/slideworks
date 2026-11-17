@@ -169,7 +169,7 @@ public class PollPumpTests : PollTestFixture
     // Raises Changed for the test's deck, as the tally does after each answer.
     private async Task ChangeAsync(int times = 1, int slide = SLIDE)
     {
-        var round = new PollRoundRef(_deck, slide, Guid.NewGuid(), Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), 3);
+        var round = new PollRoundRef(_deck, PollKind.Slide, slide, Guid.NewGuid(), Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), 3);
         for (var i = 0; i < times; i++)
         {
             await Tallies.ApplyAsync(round, [], [0]);

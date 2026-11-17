@@ -49,7 +49,7 @@ public class PollAnswerTests : PollTestFixture
         body.GetProperty("revision").GetInt32().ShouldBe(1);
         var applied = Tallies.Applied.Where(a => a.Round.RoundId == round.Id.ToString()).ToList();
         applied.Count.ShouldBe(1);
-        applied[0].Round.ShouldBe(new PollRoundRef(poll.DeckId, poll.Slide, poll.SlideId, poll.SessionId.ToString(), round.Id.ToString(), PollSeed.OPTIONS.Length));
+        applied[0].Round.ShouldBe(new PollRoundRef(poll.DeckId, PollKind.Slide, poll.Slide, poll.SlideId, poll.SessionId.ToString(), round.Id.ToString(), PollSeed.OPTIONS.Length));
         applied[0].OldPicks.ShouldBeEmpty();
         applied[0].NewPicks.ShouldBe([1]);
     }

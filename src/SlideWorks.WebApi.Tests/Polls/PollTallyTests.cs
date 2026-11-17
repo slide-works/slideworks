@@ -230,6 +230,6 @@ public class PollTallyTests : PollTestFixture
         var poll = await SeedPollAsync();
         var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
         var id = round.Id.ToString();
-        return (id, new PollRoundRef(poll.DeckId, poll.Slide, poll.SlideId, poll.SessionId.ToString(), id, OPTIONS));
+        return (id, new PollRoundRef(poll.DeckId, PollKind.Slide, poll.Slide, poll.SlideId, poll.SessionId.ToString(), id, OPTIONS));
     }
 }

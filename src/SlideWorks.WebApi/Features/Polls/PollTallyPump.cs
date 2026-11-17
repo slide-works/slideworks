@@ -112,11 +112,11 @@ public sealed class PollTallyPump(
             }
             if (_windows.TryGetValue(round.DeckId, out var window))
             {
-                window.Mark(round.Slide);
+                window.Mark(round.Slide!.Value);
                 return Task.CompletedTask;
             }
             window = new DeckWindow();
-            window.Mark(round.Slide);
+            window.Mark(round.Slide!.Value);
             _windows[round.DeckId] = window;
         }
         Track(Task.Run(() => RunAsync(round.DeckId)));

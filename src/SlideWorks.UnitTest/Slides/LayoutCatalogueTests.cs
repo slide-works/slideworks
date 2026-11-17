@@ -17,12 +17,12 @@ public class LayoutCatalogueTests
     private static readonly HashSet<string> _types = ["string", "number", "integer", "object", "array", "boolean", "null"];
 
     [Test]
-    public void Layouts_ShouldBeTheEighteenFrozenNames()
+    public void Layouts_ShouldBeTheNineteenFrozenNames()
     {
         LayoutCatalogue.LayoutNames.ShouldBe(
         [
             "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote", "image",
-            "table", "chart", "gantt", "numbered-cards", "rules", "cards", "close", "join", "poll",
+            "table", "chart", "gantt", "numbered-cards", "rules", "cards", "close", "join", "poll", "qa",
         ]);
         LayoutCatalogue.Layouts.Where(l => l.Dark).Select(l => l.Name).ShouldBe(["title", "divider", "close", "join"]);
     }
@@ -64,6 +64,19 @@ public class LayoutCatalogueTests
             CheckSchema(schema, block.Name, problems);
             problems.ShouldBeEmpty();
         }
+    }
+
+    [Test]
+    public void Find_WhenLayoutIsQa_ShouldHaveOneOptionalTitleSlot()
+    {
+        var qa = LayoutCatalogue.Find("qa")!;
+
+        var title = qa.Slots.Fields.ShouldHaveSingleItem();
+        title.Name.ShouldBe("title");
+        title.Required.ShouldBeFalse();
+        title.Type.ShouldBeOfType<TextSlot>().MaxLength.ShouldBe(80);
+        qa.Dark.ShouldBeFalse();
+        qa.StepsFrom.ShouldBeNull();
     }
 
     [Test]
