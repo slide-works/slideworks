@@ -1,0 +1,87 @@
+using System.Text.Json;
+using Agoda.IoC.Core;
+using SlideWorks.Core.Polls;
+using SlideWorks.WebApi.Features.Polls.Data;
+using SlideWorks.WebApi.Features.Slides;
+using SlideWorks.WebApi.Infrastructure;
+using SlideWorks.WebApi.Realtime;
+
+namespace SlideWorks.WebApi.Features.Polls;
+
+// What an edit of a poll slide must keep true (V1, D13) and who must hear about it, shared by update_slide (SlideEdits) and
+// the poll tools (PollSettingsCommands). While a round is open on the slide, its option count can't shrink and its order
+// can't change, because answers are known by position; text may be fixed and options appended. A settings row must stay
+// valid for the options the slide ends up with, so correct and max never point at an option that is gone. Every check
+// throws before the caller writes anything. Per request, because it uses the database.
+[RegisterPerRequest]
+public class PollEdits(PollReader reader, PollRows rows, IAudienceRelay relay, IPollPublisher publisher)
+{
+    // True when a round is really open (not a draft) on that slide in the deck's live audience session.
+    public async Task<bool> IsRoundOpenAsync(string deckId, Guid slideId)
+        => await reader.LiveSessionAsync(deckId) is { } session
+            && await rows.OpenRoundAsync(session) is { OpenedAt: not null } round
+            && round.SlideId == slideId;
+
+    // Checks update_slide's new layout and slots against the slide as it is. Returns true when the slide is a poll before
+    // and after, the deck is live, and the question or an option changed, so the caller announces it after its commit.
+    public async Task<bool> CheckSlideEditAsync(string deckId, Slide slide, string newLayout, JsonElement newSlots)
+    {
+        var wasPoll = slide.Layout == PollRows.LAYOUT;
+        var willBePoll = newLayout == PollRows.LAYOUT;
+        if (!wasPoll && !willBePoll)
+        {
+            return false;
+        }
+        var open = wasPoll && await IsRoundOpenAsync(deckId, slide.Id);
+        if (open && !willBePoll)
+        {
+            throw new ConflictException("A round of this poll is open, so the slide can't stop being a poll; close the poll first");
+        }
+        if (!willBePoll)
+        {
+            return false;
+        }
+
+        var (question, options) = PollReader.SlotsOf(SlideJson.ForStorage(newSlots));
+        var settings = await rows.SettingsAsync(slide.Id) ?? PollSettings.Default;
+        if (PollSettingsRules.Check(settings, options.Count) is { } broken)
+        {
+            throw new BadRequestException($"options: {broken}; change the poll's settings with update_poll first");
+        }
+        if (!wasPoll)
+        {
+            return false;
+        }
+
+        var (oldQuestion, oldOptions) = PollReader.SlotsOf(slide.SlotsJson);
+        if (open)
+        {
+            CheckOptionsKeepTheirPlaces(oldOptions, options);
+        }
+        var changed = question != oldQuestion || !options.SequenceEqual(oldOptions, StringComparer.Ordinal);
+        return changed && await reader.LiveSessionAsync(deckId) != null;
+    }
+
+    // After the commit: the audience state, then the poll events, one after the other (V4).
+    public async Task AnnounceAsync(string deckId, int slide)
+    {
+        await relay.RefreshAsync(deckId);
+        await publisher.PublishAsync(deckId, slide);
+    }
+
+    // The count can't shrink, and the texts can't be the same texts in another order. A reorder that also rewords an
+    // option can't be told from rewording, and is allowed.
+    private static void CheckOptionsKeepTheirPlaces(IReadOnlyList<string> was, IReadOnlyList<string> now)
+    {
+        if (now.Count < was.Count)
+        {
+            throw new BadRequestException($"slots.options: a round is open, so the options can't shrink from {was.Count} to {now.Count}; close the poll first");
+        }
+        var samePlaces = was.Select((text, position) => now[position] == text).All(same => same);
+        var sameTexts = was.Order(StringComparer.Ordinal).SequenceEqual(now.Take(was.Count).Order(StringComparer.Ordinal), StringComparer.Ordinal);
+        if (!samePlaces && sameTexts)
+        {
+            throw new BadRequestException("slots.options: a round is open, so the options can't change order; close the poll first");
+        }
+    }
+}

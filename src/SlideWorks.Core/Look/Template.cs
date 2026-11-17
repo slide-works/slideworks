@@ -22,5 +22,10 @@ public sealed record Template
     public string? Palette { get; init; }
     public required bool LockPalette { get; init; }
 
-    public bool Allows(string layout) => Layouts.Contains(layout, StringComparer.Ordinal);
+    // The layouts of the live room, which belong to a talk whatever its template: the join slide and the poll. A template
+    // lists the layouts it is about, so these are in none of them, and Allows is the one place that lets them through (the
+    // layout warning and list_layouts both ask it).
+    private static readonly string[] EveryTemplate = ["join", "poll"];
+
+    public bool Allows(string layout) => EveryTemplate.Contains(layout, StringComparer.Ordinal) || Layouts.Contains(layout, StringComparer.Ordinal);
 }
