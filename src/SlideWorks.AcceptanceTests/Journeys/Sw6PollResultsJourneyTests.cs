@@ -25,6 +25,10 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
     private const int SLIDES = 3;
     private const int POLL = 2;
     private const string QUESTION = "Which release train do we board?";
+    private const int OPTIONS = 3;
+
+    // The keys of a pollTally on the wire (V5): type, round, answered and counts.
+    private static readonly string[] TALLY_KEYS = ["type", "round", "answered", "counts"];
 
     // Returns everything under the element that could carry a count or a share, outside what the argument allows:
     //   - any attribute whose value holds a percentage or a CSS width;
@@ -81,7 +85,7 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
     public async Task Poll_WhenResultsAfterClose_ShouldHideBarsOnScreenAndPhoneUntilClosed()
     {
         var deck = await CreateDeckAsync("After close", results: "afterClose", correct: 2);
-        var (presenter, audience, joinUrl) = await PresentLiveAsync(deck);
+        var (presenter, audience, joinUrl, presenterFrames) = await PresentLiveAsync(deck);
         await using var firstPhone = await OpenPhoneAsync();
         var first = await JoinAsync(firstPhone, joinUrl);
         await using var secondPhone = await OpenPhoneAsync();
@@ -118,7 +122,10 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         }
         (await PhoneCountsAsync(second)).ShouldBeEmpty("the phone still choosing, after the first answer");
 
-        // A third guest joins mid-round: it sees the open poll, ready to tap, with nothing of the counts.
+        // A third guest joins mid-round: it sees the open poll, ready to tap, with nothing of the counts. This first check
+        // covers what the join's GET brought: the tap hint shows only once the card has left 'loading', which it does
+        // when the GET (whose body carries this guest's tally) has landed. No push reaches this phone until the next
+        // answer, so the re-check after that answer, behind a tally on its own socket, is the assertion on the push.
         await using var thirdPhone = await OpenPhoneAsync();
         var third = await JoinAsync(thirdPhone, joinUrl);
         await Expect(third.Card.Question).ToHaveTextAsync(QUESTION);
@@ -169,7 +176,9 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         (await PhoneCountsAsync(third)).ShouldBeEmpty("the mid-round guest's phone while hidden");
         foreach (var phone in new[] { first, second, third })
         {
-            TalliesWithCounts(phone).ShouldBeEmpty("no tally with counts should reach a phone while results are hidden");
+            var tallies = Events(phone.Frames, "pollTally");
+            tallies.ShouldNotBeEmpty("the phone should have received tallies to check");
+            tallies.SelectMany(HiddenTallyProblems).ShouldBeEmpty("a tally reaching a phone while results are hidden");
         }
 
         // Close: the final result on the big screen and on every phone; the guest who never answered is told so.
@@ -226,6 +235,13 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
             await Expect(phone.Card.VerdictRight).ToHaveCountAsync(0);
             await Expect(phone.Card.VerdictMiss).ToHaveCountAsync(0);
         }
+
+        // The presenter's controls went to the presenter's window only, never to a guest.
+        Events(presenterFrames, "pollControl").ShouldNotBeEmpty("the presenter window should receive pollControl");
+        foreach (var phone in new[] { first, second, third, late })
+        {
+            Events(phone.Frames, "pollControl").ShouldBeEmpty("no pollControl should reach a guest");
+        }
     }
 
     // Reveal, on a poll whose results show after it closes: the big screen and every phone whose guest has answered show
@@ -241,7 +257,7 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         {
             await AgentSeed.CallAsync(agent, "set_sharing", new() { ["deck"] = deck.Id, ["level"] = "link" });
         }
-        var (presenter, audience, joinUrl) = await PresentLiveAsync(deck);
+        var (presenter, audience, joinUrl, presenterFrames) = await PresentLiveAsync(deck);
         await using var firstPhone = await OpenPhoneAsync();
         var first = await JoinAsync(firstPhone, joinUrl);
         await using var secondPhone = await OpenPhoneAsync();
@@ -270,7 +286,9 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         (await ScreenCountsAsync(screen)).ShouldBeEmpty("the big screen before the reveal");
         (await PhoneCountsAsync(first)).ShouldBeEmpty("the answered phone before the reveal");
         (await PhoneCountsAsync(second)).ShouldBeEmpty("the unanswered phone before the reveal");
-        TalliesWithCounts(second).ShouldBeEmpty("no tally with counts should reach a phone before the reveal");
+        var talliesBeforeReveal = Events(second.Frames, "pollTally");
+        talliesBeforeReveal.ShouldNotBeEmpty("the second phone should have received tallies to check");
+        talliesBeforeReveal.SelectMany(HiddenTallyProblems).ShouldBeEmpty("a tally reaching a phone before the reveal");
 
         // Reveal while open: the room sees the counts now, the poll stays open, and Reveal is gone from the panel.
         await panel.Reveal.ClickAsync();
@@ -380,8 +398,14 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         await Expect(viewerSlide.State).ToHaveCountAsync(0);
         (await ScreenCountsAsync(viewerSlide)).ShouldBeEmpty("the viewer's slide after Show answer");
         viewerRequests.Where(path => path.Contains("/polls", StringComparison.Ordinal)).ShouldBeEmpty("the viewer should ask for no poll data");
-        viewerFrames.Where(frame => frame.Contains("\"pollTally\"", StringComparison.Ordinal) || frame.Contains("\"pollControl\"", StringComparison.Ordinal))
-            .ShouldBeEmpty("no poll event should reach the viewer");
+        viewerFrames.ShouldNotBeEmpty("the viewer's frame recorder should have seen its hub connection");
+        Events(viewerFrames, "pollTally").ShouldBeEmpty("no pollTally should reach the viewer");
+        Events(viewerFrames, "pollControl").ShouldBeEmpty("no pollControl should reach the viewer");
+        Events(presenterFrames, "pollControl").ShouldNotBeEmpty("the presenter window should receive pollControl");
+        foreach (var phone in new[] { first, second })
+        {
+            Events(phone.Frames, "pollControl").ShouldBeEmpty("no pollControl should reach a guest");
+        }
     }
 
     // After you've answered: each phone shows the bars once its own guest has answered and follows them from then on,
@@ -393,7 +417,7 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
     public async Task Poll_WhenResultsAfterAnswer_ShouldShowBarsOnlyOnThePhoneThatAnswered()
     {
         var deck = await CreateDeckAsync("After answer", results: "afterAnswer", correct: 2);
-        var (presenter, audience, joinUrl) = await PresentLiveAsync(deck);
+        var (presenter, audience, joinUrl, presenterFrames) = await PresentLiveAsync(deck);
         await using var firstPhone = await OpenPhoneAsync();
         var first = await JoinAsync(firstPhone, joinUrl);
         await using var secondPhone = await OpenPhoneAsync();
@@ -435,7 +459,9 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         (await ScreenCountsAsync(screen)).ShouldBeEmpty("the big screen after one answer");
         (await PhoneCountsAsync(second)).ShouldBeEmpty("the unanswered phone");
 
-        // A third guest joins mid-round and doesn't answer: the open poll, ready to tap, with nothing of the counts.
+        // A third guest joins mid-round and doesn't answer: the open poll, ready to tap, with nothing of the counts. As in
+        // the after-close journey, this first check covers the join's GET (the tap hint shows once it has landed); the
+        // re-check after the next answer, behind a tally on its own socket, covers the push.
         await using var thirdPhone = await OpenPhoneAsync();
         var third = await JoinAsync(thirdPhone, joinUrl);
         await Expect(third.Card.TapHint).ToBeVisibleAsync();
@@ -475,7 +501,9 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         }
         (await ScreenCountsAsync(screen)).ShouldBeEmpty("the big screen after two answers");
         (await PhoneCountsAsync(third)).ShouldBeEmpty("the mid-round guest's phone after two answers");
-        TalliesWithCounts(third).ShouldBeEmpty("no tally with counts should reach a guest who hasn't answered");
+        var talliesUnanswered = Events(third.Frames, "pollTally");
+        talliesUnanswered.ShouldNotBeEmpty("the mid-round guest should have received tallies to check");
+        talliesUnanswered.SelectMany(HiddenTallyProblems).ShouldBeEmpty("a tally reaching a guest who hasn't answered");
 
         // Close: the big screen shows the result; the third guest sees it and that it sent no answer; no correct mark.
         await panel.Close.ClickAsync();
@@ -519,6 +547,13 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         }
         await Expect(first.Card.VerdictMiss).ToBeVisibleAsync();
         await Expect(second.Card.VerdictMiss).ToBeVisibleAsync();
+
+        // The presenter's controls went to the presenter's window only, never to a guest.
+        Events(presenterFrames, "pollControl").ShouldNotBeEmpty("the presenter window should receive pollControl");
+        foreach (var phone in new[] { first, second, third, late })
+        {
+            Events(phone.Frames, "pollControl").ShouldBeEmpty("no pollControl should reach a guest");
+        }
     }
 
     // Sam's deck: a join slide, the poll on slide 2 with three options, and a quote, with the poll's results setting and
@@ -542,10 +577,12 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
     }
 
     // Sam opens the presenter window, the audience window next to it in the same browser, and goes live from the
-    // presenter window's chip. Waits for the window's join to be answered (the Now panel) and for the audience window to
+    // presenter window's chip. Every hub frame the presenter window receives is kept. Waits for the window's join to be answered (the Now panel) and for the audience window to
     // follow before anything is pressed.
-    private async Task<(PresenterPage Presenter, PlayerPage Audience, string JoinUrl)> PresentLiveAsync(Deck deck)
+    private async Task<(PresenterPage Presenter, PlayerPage Audience, string JoinUrl, ConcurrentQueue<string> PresenterFrames)> PresentLiveAsync(Deck deck)
     {
+        var presenterFrames = new ConcurrentQueue<string>();
+        Page.WebSocket += (_, socket) => socket.FrameReceived += (_, frame) => presenterFrames.Enqueue(frame.Text ?? "");
         await SignIn.AsAsync(Page, TestUser.Sam);
         var viewResponse = await Page.APIRequest.GetAsync($"/api/decks/{deck.Id}/presenter");
         viewResponse.Status.ShouldBe(200, await viewResponse.TextAsync());
@@ -566,7 +603,7 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         var live = await Page.APIRequest.GetAsync($"/api/decks/{deck.Id}/live");
         live.Status.ShouldBe(200, await live.TextAsync());
         var joinUrl = JsonDocument.Parse(await live.TextAsync()).RootElement.GetProperty("joinUrl").GetString().ShouldNotBeNull();
-        return (presenter, audience, joinUrl);
+        return (presenter, audience, joinUrl, presenterFrames);
     }
 
     // A guest scans the link and follows. Every hub frame the phone receives is kept from before it connects.
@@ -599,31 +636,92 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
 
     private static Task<string[]> ScreenCountsAsync(PollSlide slide) => slide.Root.EvaluateAsync<string[]>(COUNT_PROBE, SCREEN_ALLOWS);
 
-    // The hub messages a phone has received (a frame may hold several, each ended by the record separator).
-    private static IEnumerable<string> MessagesOf(Phone phone) =>
-        phone.Frames.SelectMany(frame => frame.Split('\u001e', StringSplitOptions.RemoveEmptyEntries));
+    // Every object, at any depth inside the arguments of a hub invocation the socket received, whose "type" is the given
+    // event type. Each frame is split on SignalR's record separator and each record parsed as JSON; an invocation is a
+    // record of type 1 (the audience events come on the "audienceEvent" target; any target is searched).
+    private static List<JsonElement> Events(IEnumerable<string> frames, string type)
+    {
+        var found = new List<JsonElement>();
+        foreach (var record in frames.SelectMany(frame => frame.Split('\u001e', StringSplitOptions.RemoveEmptyEntries)))
+        {
+            using var document = JsonDocument.Parse(record);
+            var root = document.RootElement;
+            if (root.ValueKind == JsonValueKind.Object
+                && root.TryGetProperty("type", out var kind) && kind.ValueKind == JsonValueKind.Number && kind.GetInt32() == 1
+                && root.TryGetProperty("arguments", out var arguments))
+            {
+                Collect(arguments, type, found);
+            }
+        }
+        return found;
+    }
 
-    // True once a message the predicate accepts has reached the phone, or false after Eventually's 5 seconds.
-    private static Task<bool> ReachedAsync(Phone phone, Func<string, bool> message) =>
-        Eventually.ReadAsync(() => Task.FromResult(MessagesOf(phone).Any(message)), seen => seen);
+    private static void Collect(JsonElement element, string type, List<JsonElement> found)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            if (element.TryGetProperty("type", out var kind) && kind.ValueKind == JsonValueKind.String && kind.GetString() == type)
+            {
+                found.Add(element.Clone());
+            }
+            foreach (var property in element.EnumerateObject())
+            {
+                Collect(property.Value, type, found);
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in element.EnumerateArray())
+            {
+                Collect(item, type, found);
+            }
+        }
+    }
 
-    // A pollTally message carrying this answer count.
-    private static Func<string, bool> Tally(int answered) =>
-        message => message.Contains("\"pollTally\"", StringComparison.Ordinal) && Regex.IsMatch(message, $@"""answered""\s*:\s*{answered}\b");
+    // What is wrong with a tally sent to a phone that may not see the counts: keys other than the contract's (type,
+    // round, answered and counts, which may be left out when null), counts that are not null, or any array of as many
+    // numbers as the poll has options, wherever it sits, so a renamed or nested counts field fails too.
+    private static IEnumerable<string> HiddenTallyProblems(JsonElement tally)
+    {
+        var keys = tally.EnumerateObject().Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
+        if (!keys.SetEquals(TALLY_KEYS) && !keys.SetEquals(TALLY_KEYS.Where(key => key != "counts")))
+        {
+            yield return $"keys {string.Join(", ", keys)}: {tally}";
+        }
+        if (tally.TryGetProperty("counts", out var counts) && counts.ValueKind != JsonValueKind.Null)
+        {
+            yield return $"counts not null: {tally}";
+        }
+        if (HasOptionCounts(tally))
+        {
+            yield return $"an array of {OPTIONS} numbers: {tally}";
+        }
+    }
 
-    private static bool TallyWithCounts(string message) =>
-        message.Contains("\"pollTally\"", StringComparison.Ordinal) && CountsArray().IsMatch(message);
+    private static bool HasOptionCounts(JsonElement element) => element.ValueKind switch
+    {
+        JsonValueKind.Array => (element.GetArrayLength() == OPTIONS && element.EnumerateArray().All(item => item.ValueKind == JsonValueKind.Number))
+            || element.EnumerateArray().Any(HasOptionCounts),
+        JsonValueKind.Object => element.EnumerateObject().Any(property => HasOptionCounts(property.Value)),
+        _ => false,
+    };
 
-    private static IEnumerable<string> TalliesWithCounts(Phone phone) => MessagesOf(phone).Where(TallyWithCounts).ToList();
+    // True once a pollTally the predicate accepts has reached the phone, or false after Eventually's 5 seconds.
+    private static Task<bool> ReachedAsync(Phone phone, Func<JsonElement, bool> tally) =>
+        Eventually.ReadAsync(() => Task.FromResult(Events(phone.Frames, "pollTally").Any(tally)), seen => seen);
+
+    // A tally carrying this answer count.
+    private static Func<JsonElement, bool> Tally(int answered) =>
+        tally => tally.TryGetProperty("answered", out var value) && value.ValueKind == JsonValueKind.Number && value.GetInt32() == answered;
+
+    private static bool TallyWithCounts(JsonElement tally) =>
+        tally.TryGetProperty("counts", out var counts) && counts.ValueKind == JsonValueKind.Array;
 
     // The bar's inline width, as React writes it.
     private static Regex Width(int percent) => new($@"width:\s*{percent}%");
 
     [GeneratedRegex(@"^\d{3} \d{3}$")]
     private static partial Regex CodeLabel();
-
-    [GeneratedRegex(@"""counts""\s*:\s*\[")]
-    private static partial Regex CountsArray();
 
     private sealed record Deck(string Id, string Slug);
 
