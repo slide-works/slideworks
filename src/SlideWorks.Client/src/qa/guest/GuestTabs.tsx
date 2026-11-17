@@ -28,7 +28,8 @@ const TAB_CLASS =
 
 // The guest page's two tabs at the bottom (Q8, D1): Slide, with the reaction row under the activity card, and Questions,
 // with the list, the Ask bar and the ask sheet. It provides useAskSheet. With questions off there is no tab bar and only
-// the Slide tab's content.
+// the Slide tab's content. In the landscape slide-only layout the Slide panel lays out as SW-5's page did (display:
+// contents) and the tab bar hides, as the header does.
 // TODO: a shell with two plain tabs that switch; the tabs' badge, poll dot and the poll switch (D7) replace it.
 export function GuestTabs({ tab, onTab, room, presenter, children }: GuestTabsProps) {
   const [open, setOpen] = useState(false);
@@ -62,7 +63,7 @@ export function GuestTabs({ tab, onTab, room, presenter, children }: GuestTabsPr
         aria-labelledby="qa-tab-slide"
         data-testid={QA_TABS_TEST_IDS.slidePanel}
         hidden={tab !== 'slide'}
-        className="flex min-h-0 flex-1 flex-col gap-3"
+        className="flex min-h-0 flex-1 flex-col gap-3 [@media(orientation:landscape)_and_(max-height:500px)]:contents"
       >
         {children}
         <ReactionRow />
