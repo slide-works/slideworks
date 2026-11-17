@@ -44,8 +44,7 @@ public class PollAnswers(AppDbContext db, GuestPollViews views, PollRows rows, A
         {
             return await StaleAsync(seat, code, guestId);
         }
-        var settings = await rows.SettingsAsync(round.SlideId)
-            ?? throw new InvalidOperationException($"Round {round.Id} has no poll settings for slide {round.SlideId}.");
+        var settings = await rows.RoundSettingsAsync(round);
         var slide = await db.Slides.AsNoTracking()
             .Where(s => s.Id == round.SlideId)
             .Select(s => new { s.DeckId, s.Position, s.SlotsJson })
@@ -79,7 +78,7 @@ public class PollAnswers(AppDbContext db, GuestPollViews views, PollRows rows, A
             return null;
         }
         var round = await rows.OpenRoundAsync(sessionId);
-        if (round?.OpenedAt is null || (await rows.SettingsAsync(round.SlideId))?.Results != PollResults.AfterAnswer)
+        if (round?.OpenedAt is null || (await rows.RoundSettingsAsync(round)).Results != PollResults.AfterAnswer)
         {
             return null;
         }
