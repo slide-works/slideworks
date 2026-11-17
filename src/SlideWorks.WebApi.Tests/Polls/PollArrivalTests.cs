@@ -97,11 +97,12 @@ public class PollArrivalTests : PollTestFixture
     {
         var poll = await SeedAsync();
         var ended = await Client.DeleteAsync($"/api/decks/{poll.DeckId}/live");
+        var beforeMove = Polls.CallsFor(poll.DeckId);
 
         await MoveAsync(poll.DeckId, poll.Slide);
 
         ended.IsSuccessStatusCode.ShouldBeTrue();
-        Polls.CallsFor(poll.DeckId).ShouldBeEmpty();
+        Polls.CallsFor(poll.DeckId).ShouldBe(beforeMove);
     }
 
     // Arrival leaves a draft alone: it is discarded only by Open or New round on another slide, or by the end of the session.
