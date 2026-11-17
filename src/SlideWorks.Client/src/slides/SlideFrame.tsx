@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { DeepDiveMark } from './chrome/DeepDiveMark';
 import { DraftStamp } from './chrome/DraftStamp';
+import { JoinBar } from './chrome/JoinBar';
 import { PartTracker } from './chrome/PartTracker';
 import { ProgressBar } from './chrome/ProgressBar';
 import { SlideFooter } from './chrome/SlideFooter';
@@ -86,6 +87,7 @@ export function SlideFrame({
           draft={look.draft}
         />
       )}
+      {look.joinBar ? <JoinBar /> : null}
       {chrome.progress ? <ProgressBar number={number} total={total} /> : null}
     </div>
   );

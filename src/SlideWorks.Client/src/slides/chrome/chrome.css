@@ -202,3 +202,39 @@
   background: var(--sw-accent-glow);
   opacity: 0.7;
 }
+
+/* The join bar (SW-5 D5): bottom right, above the progress bar and clear of the footer text. */
+.sw-join-bar {
+  position: absolute;
+  right: 40px;
+  bottom: 24px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 24px 14px 14px;
+  border-radius: 20px;
+  background: var(--sw-night-surface);
+  color: var(--sw-night-ink);
+}
+
+.sw-frame[data-dark='true'] .sw-join-bar {
+  background: var(--sw-night-surface);
+  outline: 2px solid var(--sw-night-2);
+}
+
+.sw-join-bar-qr {
+  width: 120px;
+  height: 120px;
+}
+
+.sw-join-bar-text small {
+  display: block;
+  color: var(--sw-night-2);
+  font: 600 24px/1.2 var(--sw-font-body);
+}
+
+.sw-join-bar-text b {
+  font: 800 44px/1 var(--sw-font-head);
+  letter-spacing: 0.04em;
+}

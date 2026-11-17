@@ -1,8 +1,23 @@
-/* The join slide (dark), in canvas px. */
+/* The join slide (dark), in canvas px: the QR code (780 square) on the left, the text beside it. */
 .join {
-  align-items: flex-start;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   justify-content: safe center;
-  padding-left: 40px;
+  gap: 72px;
+}
+
+.qr {
+  flex: none;
+  width: 780px;
+  height: 780px;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
 }
 
 .kicker {
@@ -13,19 +28,26 @@
 }
 
 .code {
-  margin: 40px 0 0;
-  font: 800 260px/1 var(--sw-font-head);
+  margin: 32px 0 0;
+  font: 800 150px/1 var(--sw-font-head);
   letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .host {
-  margin: 32px 0 0;
+  margin: 28px 0 0;
   color: var(--sw-night-2);
-  font: 600 56px/1.2 var(--sw-font-body);
+  font: 600 52px/1.2 var(--sw-font-body);
 }
 
 .count {
-  margin: 32px 0 0;
+  margin: 28px 0 0;
+  color: var(--sw-night-2);
+  font: 600 44px/1.2 var(--sw-font-body);
+}
+
+.notLive {
+  margin: 28px 0 0;
   color: var(--sw-night-muted);
-  font: 600 40px/1.2 var(--sw-font-body);
+  font: 600 36px/1.3 var(--sw-font-body);
 }

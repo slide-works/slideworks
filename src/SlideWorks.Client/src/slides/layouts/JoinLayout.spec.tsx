@@ -44,6 +44,21 @@ test('JoinLayout shows the count only while live and not hidden', async ({ mount
   );
   await expect(page.getByTestId('layout-join')).toBeVisible();
   await expect(page.getByTestId('join-count')).toHaveCount(0);
+  await expect(page.getByTestId('join-not-live')).toContainText('Not live yet');
+});
+
+test('JoinLayout draws the QR code 780 px wide, black on white', async ({ mount, page }) => {
+  await mount(
+    <JoinProvider deckId={deckPlay.id} join={join} owner={false}>
+      <SlideRenderer slide={slide({})} deck={deck} total={1} step={0} />
+    </JoinProvider>,
+  );
+  const qr = page.getByTestId('join-qr');
+  const box = await qr.boundingBox();
+  expect(box?.width).toBe(780);
+  expect(box?.height).toBe(780);
+  await expect(qr.locator('rect')).toHaveAttribute('fill', '#ffffff');
+  await expect(qr.locator('path')).toHaveAttribute('fill', '#000000');
 });
 
 test('JoinLayout leaves the count off when the slot hides it', async ({ mount, page }) => {
@@ -54,4 +69,32 @@ test('JoinLayout leaves the count off when the slot hides it', async ({ mount, p
   );
   await expect(page.getByTestId('join-code')).toBeVisible();
   await expect(page.getByTestId('join-count')).toHaveCount(0);
+});
+
+test('JoinLayout with the longest kicker stays inside x 120-1800, y 150-996', async ({
+  mount,
+  page,
+}) => {
+  await mount(
+    <JoinProvider deckId={deckPlay.id} join={{ ...join, live: true }} owner={false}>
+      <SlideRenderer
+        slide={slide({ kicker: 'Join on your phone and follow the talk', count: 'shown' })}
+        deck={deck}
+        total={1}
+        step={0}
+      />
+    </JoinProvider>,
+  );
+  const frame = (await page.getByTestId('slide-frame').boundingBox())!;
+  for (const id of ['join-qr', 'join-kicker', 'join-code', 'join-host', 'join-count']) {
+    const box = (await page.getByTestId(id).boundingBox())!;
+    expect(box.x - frame.x, `${id} left`).toBeGreaterThanOrEqual(119.5);
+    expect(box.x + box.width - frame.x, `${id} right`).toBeLessThanOrEqual(1800.5);
+    expect(box.y - frame.y, `${id} top`).toBeGreaterThanOrEqual(149.5);
+    expect(box.y + box.height - frame.y, `${id} bottom`).toBeLessThanOrEqual(996.5);
+  }
+  const code =
+    (await page.getByTestId('join-code').evaluate((el) => el.scrollWidth)) <=
+    (await page.getByTestId('join-code').evaluate((el) => el.clientWidth));
+  expect(code).toBe(true);
 });
