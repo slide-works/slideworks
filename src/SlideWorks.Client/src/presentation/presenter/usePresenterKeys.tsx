@@ -90,8 +90,9 @@ export function usePresenterKeys(actions: PresenterKeyActions | null, overlayOpe
 }
 
 // The poll's keys (SW-6 D19), for the poll panel, which sits under the poll control provider inside the presenter
-// window. Same rules as the window's own keys: ignored in inputs, while composing, with a modifier held, when something
-// is open on top (overlayOpen) and when an earlier listener has handled the key. A key whose action is missing (not
+// window. Same rules as the window's own keys: ignored in inputs, while composing (and the IME's Process key), with a
+// modifier held, when something is open on top (overlayOpen) and when an earlier listener has handled the key. Unlike
+// the window's keys, a held key's repeats are ignored. A key whose action is missing (not
 // available in the poll's phase, or no poll on the slide) does nothing and is left alone. actions may change on every
 // render without re-subscribing; null ignores every key.
 export function usePresenterPollKeys(
@@ -106,7 +107,10 @@ export function usePresenterPollKeys(
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const { actions: act, overlayOpen: covered } = latest.current;
-      if (!act || covered || event.defaultPrevented || event.isComposing) return;
+      // A held key repeats: the poll's keys are toggles, so only the first press counts (holding P must not open and
+      // then close the poll).
+      if (!act || covered || event.defaultPrevented || event.repeat) return;
+      if (event.isComposing || event.key === 'Process') return;
       if (event.ctrlKey || event.metaKey || event.altKey || isTyping(event.target)) return;
       const handler = pollHandlerFor(event.key, act);
       if (!handler) return;

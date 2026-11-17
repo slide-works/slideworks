@@ -97,7 +97,7 @@ export function PollPanelButtons({
           data-testid={button.testId}
           aria-label={button.name(control.question)}
           aria-disabled={busy || undefined}
-          className={`min-h-9 rounded-md px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-[#8ea5ff] aria-disabled:opacity-60 ${TONES[button.tone]}`}
+          className={`min-h-9 rounded-md px-3 text-sm font-semibold forced-colors:border-2 forced-colors:border-[ButtonText] focus-visible:outline-2 focus-visible:outline-[#8ea5ff] aria-disabled:opacity-60 ${TONES[button.tone]}`}
           onClick={(event) => {
             // The second click of a double click is ignored: the phase may have moved on under the pointer, and the
             // button now there (Close where Open was) is not the one aimed at.

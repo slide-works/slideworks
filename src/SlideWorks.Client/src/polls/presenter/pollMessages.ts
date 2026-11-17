@@ -8,6 +8,11 @@ import type { PollAction } from './usePollControl';
 export const POLL_READ_FAILED =
   "Couldn't load this slide's poll. Check your connection; it loads again when you move or reconnect.";
 
+// The deck's audience watch (which carries the poll's live updates) failed: what the panel shows is the last read, not
+// live. Shown only on a slide with a poll.
+export const POLL_WATCH_FAILED =
+  "Live poll updates aren't reaching this window, so these counts may be out of date. It keeps trying, and tries again when you change slides.";
+
 // Each refusal code (V4) as a sentence. The provider reads the poll again after one, so the buttons already show what
 // can be done now.
 export const POLL_REFUSAL_MESSAGES: Readonly<Record<PollRefusalCode, string>> = {

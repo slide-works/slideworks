@@ -108,6 +108,41 @@ test('PresenterPollPanel_WhenPRAndAPressed_ShouldRunThePollThroughItsRoutes', as
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
 });
 
+test('PresenterPollPanel_WhenPROrAIsHeld_ShouldActOnceAndIgnoreTheRepeats', async ({
+  mount,
+  page,
+}) => {
+  const { api } = await openPresenter(page, mount, { slide: POLL });
+  const state = page.getByTestId(IDS.state);
+  await expect(state).toHaveText('Draft');
+
+  // Held P: the first keydown opens; the auto-repeats that follow once Close is in P's place must not close.
+  await page.keyboard.down('p');
+  await expect(state).toHaveText('Open');
+  await page.keyboard.down('p');
+  await page.keyboard.down('p');
+  await page.keyboard.up('p');
+  await settle(page);
+  await expect(state).toHaveText('Open');
+
+  // Held R reveals once.
+  await page.keyboard.down('r');
+  await expect(page.getByTestId(IDS.room)).toHaveText('Revealed: the room sees these results.');
+  await page.keyboard.down('r');
+  await page.keyboard.up('r');
+
+  // Closed, then held A shows the answer once.
+  await page.keyboard.press('p');
+  await expect(state).toHaveText('Closed');
+  await page.keyboard.down('a');
+  await expect(page.getByTestId(IDS.panel).getByTestId(IDS.showAnswer)).toHaveCount(0);
+  await page.keyboard.down('a');
+  await page.keyboard.up('a');
+
+  await settle(page);
+  expect(actions(api)).toEqual(['open', 'reveal', 'close', 'showAnswer']);
+});
+
 test('PresenterPollPanel_WhenTheSlideHasNoPoll_ShouldShowNoPanelAndIgnorePRAndA', async ({
   mount,
   page,

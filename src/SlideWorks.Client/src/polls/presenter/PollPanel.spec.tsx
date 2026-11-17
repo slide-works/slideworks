@@ -156,6 +156,13 @@ test('PollPanel_WhenClosedWithACorrectAnswer_ShouldOfferShowAnswerThenMarkTheCor
   await expectButtons(page, [IDS.newRound]);
 });
 
+test('PollPanel_WhenPickSeveralHasNoMax_ShouldSayPickSeveral', async ({ mount, page }) => {
+  const closed = pollControlView('closed');
+  await mount(panel({ ...closed, settings: { ...closed.settings, max: null } }));
+
+  await expect(page.getByTestId(IDS.settings)).toHaveText('Pick several · After answering');
+});
+
 test('PollPanel_WhenClosedWithNoCorrectAnswer_ShouldOfferNewRoundOnly', async ({ mount, page }) => {
   const closed = pollControlView('closed');
   await mount(
@@ -386,6 +393,50 @@ test('PollPanel_WhenNoPollOrTypingOrAnOverlayIsOpen_ShouldIgnoreTheKeys', async 
   // The same panel still answers a plain key, so the presses above were really ignored.
   await page.keyboard.press('r');
   await expect.poll(() => actions).toEqual(['reveal']);
+});
+
+test('PollPanel_WhenForcedColorsAreActive_ShouldKeepTheBarsTheCorrectMarkAndTheButtonEdges', async ({
+  mount,
+  page,
+}) => {
+  await page.emulateMedia({ forcedColors: 'active' });
+  const view = await mount(panel(pollControlView('closed')));
+
+  // The fill keeps a system Highlight background of its own (the mode would paint it as the background), inside a
+  // bordered track, so the bar stays visible.
+  const fill = page.getByTestId(pollPanelBarTestId(1));
+  const styles = await fill.evaluate((element) => {
+    const own = getComputedStyle(element);
+    const track = getComputedStyle(element.parentElement!);
+    return {
+      adjust: own.forcedColorAdjust,
+      fill: own.backgroundColor,
+      track: track.backgroundColor,
+      trackBorder: track.borderTopWidth,
+    };
+  });
+  expect(styles.adjust).toBe('none');
+  expect(styles.fill).not.toBe(styles.track);
+  expect(styles.fill).not.toBe('rgba(0, 0, 0, 0)');
+  expect(styles.trackBorder).toBe('1px');
+  expect((await fill.boundingBox())!.width).toBeGreaterThan(0);
+
+  // The correct row says so in words, in a box.
+  const correct = page.getByTestId(pollPanelCorrectTestId(1));
+  await expect(correct).toHaveText('✓ Correct');
+  await expect(correct).toHaveCSS('border-top-width', '1px');
+  // The state pill has an edge.
+  await expect(page.getByTestId(IDS.state)).toHaveCSS('border-top-width', '1px');
+  await expect(page.getByTestId(IDS.room)).toHaveText('The room sees the final result.');
+
+  // Every button has an edge.
+  await expect(button(page, IDS.newRound)).toHaveCSS('border-top-width', '2px');
+  await view.update(panel(hidden()));
+  await expect(page.getByTestId(IDS.room)).toHaveText(
+    'Hidden from the room until the poll closes.',
+  );
+  for (const id of [IDS.close, IDS.reveal])
+    await expect(button(page, id)).toHaveCSS('border-top-width', '2px');
 });
 
 test('PollPanel open hidden screenshot', async ({ mount, page }) => {

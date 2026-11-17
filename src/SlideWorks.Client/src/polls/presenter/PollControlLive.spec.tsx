@@ -10,6 +10,7 @@ import {
   type PollControlCall,
 } from '../../test-support/stubPollControlApi';
 import type { PollControlView } from '../types';
+import { POLL_WATCH_FAILED } from './pollMessages';
 import { POLL_PANEL_TEST_IDS as IDS, pollPanelCountTestId } from '../testIds';
 import { PollControlLive } from './PollControlLive';
 import { PollPanel } from './PollPanel';
@@ -205,19 +206,113 @@ test('PollControlLive_WhenTheConnectionComesBack_ShouldWatchAndReadAgain', async
   expect(reads(api.calls)).toHaveLength(2);
 });
 
-test('PollControlLive_WhenTheWatchIsRefused_ShouldReadNothingAndShowNothing', async ({
+test('PollControlLive_WhenTheWatchFails_ShouldStillReadSayLiveUpdatesArentArrivingAndRetry', async ({
   mount,
   page,
 }) => {
   const { hub, api } = await stubs(page);
-  hub.fail('WatchAudience', 'deck_not_found');
+  hub.fail('WatchAudience', 'Server timeout.');
   await mount(presenter(POLL_SLIDE_NUMBER));
 
-  await expect.poll(() => hub.watches.length).toBe(1);
-  await settle(page);
-  expect(api.calls).toEqual([]);
-  await expect(page.getByTestId(IDS.state)).toHaveCount(0);
+  // The poll is read anyway, and the panel says the counts aren't live: not the no-poll text.
+  await expect(page.getByTestId(IDS.state)).toHaveText('Open');
+  await expect(page.getByTestId(IDS.error)).toHaveText(POLL_WATCH_FAILED);
+  expect(reads(api.calls)).toHaveLength(1);
+
+  // The connection stayed up; the watch is tried again on a timer, and works this time.
+  await expect.poll(() => hub.watches.length, { timeout: 5000 }).toBe(2);
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+  await expect.poll(() => reads(api.calls).length).toBe(2);
+  pushPollControl(hub, live({ seq: 6000, answered: 34 }));
+  await expect(answered(page)).toHaveText('34 answers');
+});
+
+test('PollControlLive_WhenTheWatchKeepsFailing_ShouldTryAgainOnTheNextSlideChange', async ({
+  mount,
+  page,
+}) => {
+  const { hub } = await stubs(page);
+  hub.fail('WatchAudience', 'Server timeout.', { sticky: true });
+  const view = await mount(presenter(POLL_SLIDE_NUMBER));
+  await expect(page.getByTestId(IDS.error)).toHaveText(POLL_WATCH_FAILED);
+  await expect.poll(() => hub.watches.length).toBe(1);
+
+  // On a slide with no poll there is nothing to say.
+  hub.stopFailing('WatchAudience');
+  await view.update(presenter(NO_POLL_SLIDE));
+  await expect.poll(() => hub.watches.length).toBe(2);
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+
+  await view.update(presenter(POLL_SLIDE_NUMBER));
+  await expect(page.getByTestId(IDS.state)).toHaveText('Open');
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+  // The watch worked: no more retries on a slide change.
+  await settle(page);
+  expect(hub.watches).toHaveLength(2);
+});
+
+test('PollControlLive_WhenA404LandsAfterANewerPollControl_ShouldKeepThePushedView', async ({
+  mount,
+  page,
+}) => {
+  // The slide has no poll when the read arrives, so the held read answers 404.
+  const { hub, api } = await stubs(page, []);
+  const held = api.hold('read');
+  await mount(presenter(POLL_SLIDE_NUMBER));
+  await expect.poll(() => reads(api.calls).length).toBe(1);
+
+  // An agent made the slide a poll and opened it: its pollControl arrives before the old read's 404.
+  pushPollControl(hub, live({ seq: 7000, answered: 3 }));
+  await expect(answered(page)).toHaveText('3 answers');
+
+  held.release();
+  await settle(page);
+  await expect(answered(page)).toHaveText('3 answers');
+});
+
+test('PollControlLive_WhenAReadAfterADeckEventFails_ShouldKeepTheRefusalMessage', async ({
+  mount,
+  page,
+}) => {
+  const { hub, api } = await stubs(page, [poll('draft')]);
+  api.setLive(false);
+  await mount(presenter(POLL_SLIDE_NUMBER));
+  await page.getByTestId(IDS.panel).getByTestId(IDS.open).click();
+  const refusal = "The deck isn't live, so the poll can't open. Go live first, then open it.";
+  await expect(page.getByTestId(IDS.error)).toHaveText(refusal);
+  await expect.poll(() => reads(api.calls).length).toBe(2);
+
+  // The server stops answering reads; a deck event reads again and fails.
+  await page.route(`**/api/decks/${DECK}/polls/${POLL_SLIDE_NUMBER}`, (route) =>
+    route.fulfill({ status: 500, json: {} }),
+  );
+  let failedReads = 0;
+  page.on('response', (response) => {
+    if (response.url().endsWith(`/polls/${POLL_SLIDE_NUMBER}`) && response.status() === 500)
+      failedReads += 1;
+  });
+  hub.push({ type: 'deckChanged', deckId: DECK });
+  await expect.poll(() => failedReads).toBe(1);
+  await settle(page);
+  await expect(page.getByTestId(IDS.error)).toHaveText(refusal);
+});
+
+test('PollControlLive_WhenAnActionFailsOnTheNetwork_ShouldReadThePollAgain', async ({
+  mount,
+  page,
+}) => {
+  await stubDeckHub(page, { audience: { state: guestView('live').state } });
+  const api = await stubPollControlApi(page, DECK, {
+    polls: [live()],
+    routes: { close: 'network-down' },
+  });
+  await mount(presenter(POLL_SLIDE_NUMBER));
+  await page.getByTestId(IDS.panel).getByTestId(IDS.close).click();
+
+  await expect(page.getByTestId(IDS.error)).toHaveText(
+    "Couldn't close the poll. Check your connection and try again.",
+  );
+  await expect.poll(() => api.calls.map((c) => c.call)).toEqual(['read', 'close', 'read']);
 });
 
 test('PollControlLive_WhenEachActionIsUsed_ShouldCallItsRouteOnce', async ({ mount, page }) => {

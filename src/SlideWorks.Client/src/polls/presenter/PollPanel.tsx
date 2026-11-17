@@ -35,7 +35,12 @@ const RESULTS_LABELS: Readonly<Record<PollResults, string>> = {
 
 // "Pick one · Live", "Pick up to 2 · After close"
 function settingsOf({ settings }: PollControlView): string {
-  const pick = settings.pick === 'one' ? 'Pick one' : `Pick up to ${settings.max ?? 2}`;
+  const pick =
+    settings.pick === 'one'
+      ? 'Pick one'
+      : settings.max === null
+        ? 'Pick several'
+        : `Pick up to ${settings.max}`;
   return `${pick} · ${RESULTS_LABELS[settings.results]}`;
 }
 
@@ -128,7 +133,7 @@ export function PollPanel({ deckId, overlayOpen = false }: Props) {
       <h2 className="text-[11px] font-semibold tracking-[0.12em] text-[#94a3b8] uppercase">Poll</h2>
       <div className="grid gap-3 rounded-lg border border-[#1f2937] bg-[#111827] px-4 py-3">
         {control === null ? (
-          <p data-testid={POLL_PANEL_TEST_IDS.empty} className="text-[#64748b] italic">
+          <p data-testid={POLL_PANEL_TEST_IDS.empty} className="text-[#94a3b8] italic">
             No poll on this slide.
           </p>
         ) : (
@@ -136,7 +141,7 @@ export function PollPanel({ deckId, overlayOpen = false }: Props) {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span
                 data-testid={POLL_PANEL_TEST_IDS.state}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2 py-0.5 text-[11px] font-semibold tracking-[0.08em] uppercase"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2 py-0.5 text-[11px] font-semibold tracking-[0.08em] uppercase forced-colors:border forced-colors:border-[CanvasText]"
               >
                 <span
                   className={`size-1.5 rounded-full ${PHASE_DOTS[control.phase]}`}
@@ -202,7 +207,7 @@ export function PollPanel({ deckId, overlayOpen = false }: Props) {
           </ul>
         )}
         {control !== null && (
-          <p data-testid={POLL_PANEL_TEST_IDS.keys} className="text-[11px] text-[#64748b]">
+          <p data-testid={POLL_PANEL_TEST_IDS.keys} className="text-[11px] text-[#94a3b8]">
             <kbd className="rounded border border-[#334155] px-1 font-mono">P</kbd> open or close
             the poll · <kbd className="rounded border border-[#334155] px-1 font-mono">R</kbd>{' '}
             reveal · <kbd className="rounded border border-[#334155] px-1 font-mono">A</kbd> show

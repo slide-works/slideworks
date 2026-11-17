@@ -10,7 +10,8 @@ import {
 // One row per option in the poll panel: its text, a bar and its count. The presenter always sees the counts, whatever
 // the room sees (SW-6 V4). A bar is the share of people who answered that picked the option, so with pick several they
 // can add up to more than the whole. Once the answer is shown, the correct row is marked in words, not colour alone.
-// Counts change in place: nothing here takes or moves focus.
+// Counts change in place: nothing here takes or moves focus. In forced-colours mode a fill would be painted as the
+// background and vanish, so it keeps a system Highlight fill inside a bordered track, and the correct mark is boxed.
 export function PollPanelBars({ control }: { control: PollControlView }) {
   const { options, counts, answered, settings, answerShown } = control;
   const correct = answerShown ? settings.correct : null;
@@ -35,16 +36,19 @@ export function PollPanelBars({ control }: { control: PollControlView }) {
               {isCorrect && (
                 <span
                   data-testid={pollPanelCorrectTestId(position)}
-                  className="ml-2 rounded bg-[#14532d] px-1.5 py-0.5 text-[11px] font-semibold text-[#86efac]"
+                  className="ml-2 rounded bg-[#14532d] px-1.5 py-0.5 text-[11px] font-semibold text-[#86efac] forced-colors:border forced-colors:border-[CanvasText]"
                 >
                   ✓ Correct
                 </span>
               )}
             </span>
-            <span className="h-1.5 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+            <span
+              className="h-1.5 overflow-hidden rounded-full bg-white/10 forced-colors:h-2.5 forced-colors:border forced-colors:border-[CanvasText]"
+              aria-hidden="true"
+            >
               <span
                 data-testid={pollPanelBarTestId(position)}
-                className={`block h-full rounded-full ${isCorrect ? 'bg-[#4ade80]' : 'bg-[#6d8cff]'}`}
+                className={`block h-full rounded-full forced-colors:bg-[Highlight] forced-colors:forced-color-adjust-none ${isCorrect ? 'bg-[#4ade80]' : 'bg-[#6d8cff]'}`}
                 style={{ width: `${share}%` }}
               />
             </span>
