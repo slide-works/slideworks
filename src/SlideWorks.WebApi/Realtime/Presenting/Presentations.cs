@@ -19,7 +19,8 @@ namespace SlideWorks.WebApi.Realtime.Presenting;
 // join can still be on its way (in the hub's access check or the deck read) when its connection's leave has already
 // run. LeaveAllAsync therefore marks the connection closed, and a join adds its entry only if, in the same step under
 // _indexLock, it finds the connection not closed and indexes it. Either the join is refused before anything changes, or
-// it is indexed first and the leave then finds and removes it. Marks are pruned after KEEP_CLOSED.
+// it is indexed first and the leave then finds and removes it. Marks are pruned after KEEP_CLOSED, timed with the
+// monotonic TimeProvider timestamp so a wall-clock jump neither prunes them early nor keeps them longer.
 [RegisterSingleton(For = typeof(IPresentations))]
 public sealed class Presentations(
     IHubContext<DeckHub> hub,
@@ -41,8 +42,8 @@ public sealed class Presentations(
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, Live> _states = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ImmutableHashSet<string>> _decksByConnection = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, DateTimeOffset> _closed = new(StringComparer.Ordinal);
-    private readonly Queue<(string ConnectionId, DateTimeOffset ClosedAt)> _closedOrder = new();
+    private readonly HashSet<string> _closed = new(StringComparer.Ordinal);
+    private readonly Queue<(string ConnectionId, long ClosedAt)> _closedOrder = new();
     private readonly Lock _indexLock = new();
     private readonly IPresentationObserver[] _observers = observers.ToArray();
 
@@ -132,7 +133,7 @@ public sealed class Presentations(
         ImmutableHashSet<string>? decks;
         lock (_indexLock)
         {
-            MarkClosed(connectionId, clock.GetUtcNow());
+            MarkClosed(connectionId);
             _decksByConnection.TryGetValue(connectionId, out decks);
         }
         foreach (var deckId in decks ?? [])
@@ -323,7 +324,7 @@ public sealed class Presentations(
     {
         lock (_indexLock)
         {
-            if (_closed.ContainsKey(connectionId))
+            if (_closed.Contains(connectionId))
             {
                 return false;
             }
@@ -332,17 +333,17 @@ public sealed class Presentations(
         }
     }
 
-    // Under _indexLock: marks the connection closed and prunes the marks older than KEEP_CLOSED.
-    private void MarkClosed(string connectionId, DateTimeOffset now)
+    // Under _indexLock: marks the connection closed and prunes the marks older than KEEP_CLOSED (monotonic timestamps).
+    private void MarkClosed(string connectionId)
     {
-        while (_closedOrder.TryPeek(out var oldest) && now - oldest.ClosedAt >= KEEP_CLOSED)
+        while (_closedOrder.TryPeek(out var oldest) && clock.GetElapsedTime(oldest.ClosedAt) >= KEEP_CLOSED)
         {
             _closedOrder.Dequeue();
             _closed.Remove(oldest.ConnectionId);
         }
-        if (_closed.TryAdd(connectionId, now))
+        if (_closed.Add(connectionId))
         {
-            _closedOrder.Enqueue((connectionId, now));
+            _closedOrder.Enqueue((connectionId, clock.GetTimestamp()));
         }
     }
 
