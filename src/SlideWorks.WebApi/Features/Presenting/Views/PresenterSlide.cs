@@ -1,4 +1,6 @@
 using System.Text.Json;
+using SlideWorks.WebApi.Features.Decks.Views;
+using SlideWorks.WebApi.Features.Slides;
 
 namespace SlideWorks.WebApi.Features.Presenting.Views;
 
@@ -13,4 +15,20 @@ public sealed record PresenterSlide(
     int Steps,
     JsonElement Slots,
     string? Notes,
-    string? Headline);
+    string? Headline)
+{
+    // Notes are the stored notes, with no deep-dive prefix: the presenter view shows the deep-dive flag itself (SW-175 D4).
+    public static PresenterSlide From(Slide slide)
+    {
+        var slots = SlideJson.Slots(slide);
+        return new PresenterSlide(
+            slide.Position + 1,
+            slide.Layout,
+            slide.Part,
+            slide.DeepDive,
+            slide.Steps,
+            slots,
+            slide.Notes,
+            DeckPageSlide.HeadlineOf(slide.Layout, slots));
+    }
+}

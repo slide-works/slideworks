@@ -9,4 +9,8 @@ public interface IDeckAccess
     Task<bool> CanViewAsync(string deckId, ICurrentActor actor);
 
     Task<bool> CanEditAsync(string deckId, ICurrentActor actor);
+
+    // Who may present the deck and see its notes (SW-4 D3, P2, P3): its owner, signed in as a person. An agent acting for
+    // the owner and every viewer are false.
+    Task<bool> CanPresentAsync(string deckId, ICurrentActor actor);
 }

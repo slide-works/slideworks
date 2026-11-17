@@ -1,4 +1,7 @@
+using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Look.Views;
+using SlideWorks.WebApi.Features.Slides;
+using SlideWorks.WebApi.Infrastructure.Identity;
 
 namespace SlideWorks.WebApi.Features.Presenting.Views;
 
@@ -15,4 +18,18 @@ public sealed record PresenterView(
     IReadOnlyList<PresenterSlide> Slides,
     int? TalkMinutes,
     string AudienceUrl,
-    string RemoteUrl);
+    string RemoteUrl)
+{
+    public static PresenterView From(Deck deck, IEnumerable<Slide> slides, LookView look, IPublicUrls urls)
+        => new(
+            deck.Id,
+            deck.Slug,
+            deck.Title,
+            deck.Author,
+            DeckParts.Read(deck),
+            look,
+            slides.Select(PresenterSlide.From).ToList(),
+            deck.TalkMinutes,
+            $"{urls.Deck(deck.Id, deck.Slug)}?present",
+            $"{urls.Base}/remote?deck={Uri.EscapeDataString(deck.Id)}");
+}
