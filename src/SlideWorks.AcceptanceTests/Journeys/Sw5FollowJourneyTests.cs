@@ -12,6 +12,21 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
 {
     private const int SLIDES = 3;
 
+    // Run on the slide element: records every "slide/step" it renders into window.__seenPositions, the one it shows now first.
+    private const string RECORD_POSITIONS =
+        """
+        (element) => {
+          const seen = [];
+          const note = () => {
+            const position = `${element.getAttribute('data-slide')}/${element.getAttribute('data-step')}`;
+            if (seen[seen.length - 1] !== position) seen.push(position);
+          };
+          note();
+          window.__seenPositions = seen;
+          new MutationObserver(note).observe(element, { attributes: true, attributeFilter: ['data-slide', 'data-step'] });
+        }
+        """;
+
     // The path a guest takes: scan, "You're in", follow a slide and its step reveals, a second guest, the count on the owner's
     // chip and the join slide, End and the thank-you screen, and a later Go live that brings the phone back without a reload.
     [Test]
@@ -23,6 +38,8 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         await Expect(player.LiveChip.Count).ToHaveTextAsync("0 joined");
         var joinUrl = await JoinUrlAsync(deckId);
         joinUrl.ShouldMatch(@"^http://localhost:\d+/\d{6}$");
+        var code = joinUrl[^6..];
+        await Expect(player.LiveChip.Code).ToHaveTextAsync($"{code[..3]} {code[3..]}");
 
         await using var phone = await OpenPhoneAsync();
         var first = new GuestPage(await phone.NewPageAsync());
@@ -52,6 +69,14 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         await Expect(second.Slide).ToHaveAttributeAsync("data-slide", "2");
         await Expect(second.Slide).ToHaveAttributeAsync("data-step", "2");
         await Expect(second.Progress).ToHaveTextAsync($"2 / {SLIDES}");
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(first.Slide).ToHaveAttributeAsync("data-step", "3");
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(first.Slide).ToHaveAttributeAsync("data-slide", "3");
+        await Expect(first.Slide).ToHaveAttributeAsync("data-step", "0");
+        await Expect(first.Progress).ToHaveTextAsync($"3 / {SLIDES}");
+        await Expect(second.Slide).ToHaveAttributeAsync("data-slide", "3");
+        await Expect(second.Progress).ToHaveTextAsync($"3 / {SLIDES}");
 
         await player.LiveChip.End.ClickAsync();
         await Expect(first.Ended).ToBeVisibleAsync();
@@ -63,7 +88,7 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         await player.LiveChip.GoLive.ClickAsync();
         await Expect(player.LiveChip.End).ToBeVisibleAsync();
         await Expect(first.Following).ToBeVisibleAsync();
-        await Expect(first.Slide).ToHaveAttributeAsync("data-slide", "2");
+        await Expect(first.Slide).ToHaveAttributeAsync("data-slide", "3");
         await Expect(first.Ended).ToHaveCountAsync(0);
         (await first.Root.Page.EvaluateAsync<bool>("() => window.sameDocument === true")).ShouldBeTrue("the phone should follow without a reload");
     }
@@ -94,7 +119,7 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
     }
 
     // The presenter window blacks the screen out and brings it back; the phone shows the same. The presenter window, not the
-    // plain player, can black out, so the owner goes live over the API as the owner's own page does.
+    // plain player, can black out, so the owner goes live over the API for now: a chip click replaces it once the presenter window has the live chip.
     [Test]
     public async Task Guest_WhenThePresenterBlacksOutAndBack_ShouldShowABlackScreenThenTheSlide()
     {
@@ -139,10 +164,13 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         (await hub.DropAsync()).ShouldBe(1, "the phone should have one hub connection to drop");
         await Expect(guest.Reconnecting).ToBeVisibleAsync();
         await Expect(guest.Chip).ToHaveTextAsync("Offline");
-        await Page.Keyboard.PressAsync("ArrowRight");
+        // The player renders the presentation's answer and moves from it, so each key waits for the one before.
         await Page.Keyboard.PressAsync("ArrowRight");
         await Expect(player.Count).ToHaveTextAsync($"2 / {SLIDES}");
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(player.RevealedBullets(2)).ToHaveCountAsync(1);
         await Expect(guest.Slide).ToHaveAttributeAsync("data-slide", "1");
+        await guest.Slide.EvaluateAsync(RECORD_POSITIONS);
         hub.Release();
 
         await Expect(guest.Reconnecting).ToBeHiddenAsync(new() { Timeout = 20_000 });
@@ -150,9 +178,37 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         await Expect(guest.Slide).ToHaveAttributeAsync("data-step", "1");
         await Expect(guest.Chip).ToHaveTextAsync("Live");
         await Expect(guest.Offline).ToHaveCountAsync(0);
+        var seen = await guest.Root.Page.EvaluateAsync<string[]>("() => window.__seenPositions");
+        seen.ShouldNotContain("2/0", "the phone should land on the current position, not replay the moves it missed");
+        seen.ShouldContain("2/1");
 
         await Page.Keyboard.PressAsync("ArrowRight");
         await Expect(guest.Slide).ToHaveAttributeAsync("data-step", "2");
+    }
+
+    // A live deck with no slides has no position to show. What the phone shows is a product call, so this holds only that it
+    // stays on the guest page in a phase screen (no error, no offline screen, no slide) and doesn't crash.
+    [Test]
+    public async Task Guest_WhenTheLiveDeckHasNoSlides_ShouldShowAPhaseScreenWithoutAnErrorOrASlide()
+    {
+        string deckId;
+        await using (var agent = await AgentSeed.ConnectAsync(TestUser.Sam))
+        {
+            var created = await AgentSeed.CallAsync(agent, "create_deck", new() { ["title"] = $"Empty live {Guid.NewGuid():N}" });
+            deckId = created.GetProperty("deck").GetString().ShouldNotBeNull();
+        }
+        await SignIn.AsAsync(Page, TestUser.Sam);
+        var joinUrl = await GoLiveAsync(deckId);
+
+        await using var phone = await OpenPhoneAsync();
+        var guest = new GuestPage(await phone.NewPageAsync());
+        await guest.GotoUrlAsync(joinUrl);
+
+        await Expect(guest.Root).ToBeVisibleAsync();
+        await Expect(guest.Loading).ToHaveCountAsync(0);
+        await Expect(guest.Error).ToHaveCountAsync(0);
+        await Expect(guest.Offline).ToHaveCountAsync(0);
+        await Expect(guest.Slide).ToHaveCountAsync(0);
     }
 
     // Sam's deck: a join slide, a bullets slide with three points revealed one per step, and a quote.
