@@ -94,6 +94,16 @@ function send(
 const act = (page: Page, action: QaAction, number: number) =>
   send(page, `/questions/${number}/${action}`, 'POST');
 
+// The test ids in document order, among those given: where a part sits next to SW-4's and SW-6's parts.
+const orderOf = (page: Page, ids: string[]) =>
+  page.evaluate(
+    (wanted) =>
+      [...document.querySelectorAll('[data-testid]')]
+        .map((element) => element.getAttribute('data-testid')!)
+        .filter((id) => wanted.includes(id)),
+    ids,
+  );
+
 test('QaControlFixture_WhenItsPartsAct_ShouldGiveTheViewAndRecordEachCall', async ({
   mount,
   page,
@@ -164,6 +174,10 @@ test('PresenterPage_WhenQPressed_ShouldOpenAndCloseTheQuestionsPanel', async ({ 
   await page.keyboard.press('q');
   await expect(panel).toHaveCount(1);
   await expect(tool).toHaveAttribute('aria-pressed', 'true');
+  // In the right column, after Next (and SW-6's poll panel, absent on a slide with no poll) and before the notes.
+  expect(
+    await orderOf(page, ['presenter-next', QA_PANEL_TEST_IDS.panel, 'presenter-notes']),
+  ).toEqual(['presenter-next', QA_PANEL_TEST_IDS.panel, 'presenter-notes']);
   await page.keyboard.press('Q');
   await expect(panel).toHaveCount(0);
   await expect(tool).toHaveAttribute('aria-pressed', 'false');
@@ -208,15 +222,18 @@ test('PresenterPage_WhenQPressedOverTheOverview_ShouldDoNothing', async ({ mount
   await expect(page.getByTestId(QA_PANEL_TEST_IDS.panel)).toHaveCount(0);
 });
 
-test('SpeakerPage_WhenOpen_ShouldPlaceTheQuestionsStripUnderThePollStrip', async ({
-  mount,
-  page,
-}) => {
+test('SpeakerPage_WhenOpen_ShouldPlaceTheQuestionsStripAboveTheNotes', async ({ mount, page }) => {
   await openWindow(page, mount, `/remote/${deckId}`);
   await expect(page.getByTestId('speaker-status')).toHaveAttribute('data-status', 'live');
   await expect(page.getByTestId('speaker-page').getByTestId(QA_STRIP_TEST_IDS.strip)).toHaveCount(
     1,
   );
+  // Under the slide and SW-6's poll strip (absent on a slide with no poll), above the notes.
+  expect(await orderOf(page, ['speaker-now', QA_STRIP_TEST_IDS.strip, 'speaker-notes'])).toEqual([
+    'speaker-now',
+    QA_STRIP_TEST_IDS.strip,
+    'speaker-notes',
+  ]);
 });
 
 test('DeckPage_WhenTheViewerCanPresent_ShouldPlaceTheSettingsCard', async ({ mount, page }) => {
