@@ -17,7 +17,6 @@ import { NextPanel } from '../presentation/presenter/NextPanel';
 import { NotesPanel } from '../presentation/presenter/NotesPanel';
 import { NowPanel } from '../presentation/presenter/NowPanel';
 import { PresenterTopBar } from '../presentation/presenter/PresenterTopBar';
-import { ToolBar } from '../presentation/presenter/ToolBar';
 import {
   usePresenterKeys,
   type PresenterKeyActions,
@@ -28,6 +27,7 @@ import { PollControlLive } from '../polls/presenter/PollControlLive';
 import { PollPanel } from '../polls/presenter/PollPanel';
 import { QaControlLive } from '../qa/presenter/QaControlLive';
 import { QaPanel } from '../qa/presenter/QaPanel';
+import { QuestionsToolBar } from '../qa/presenter/QuestionsToolBar';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { JoinProvider } from '../slides/JoinContext';
 
@@ -66,6 +66,7 @@ export function PresenterPage() {
   const mainRef = useRef<HTMLElement>(null);
   const overviewButton = useRef<HTMLButtonElement>(null);
   const phoneButton = useRef<HTMLButtonElement>(null);
+  const questionsButton = useRef<HTMLButtonElement>(null);
 
   const ready = view !== null && state !== null && clockMinutes !== null;
   const controls = usePresenterControls(view, state, presentation, setError);
@@ -96,6 +97,7 @@ export function PresenterPage() {
   useFocusOnReady(ready, mainRef);
   useFocusOnClose(overviewOpen, overviewButton);
   useFocusOnClose(phoneOpen, phoneButton);
+  useFocusOnClose(questionsOpen, questionsButton);
 
   if (load.kind === 'notFound' || status === 'refused') {
     return (
@@ -200,69 +202,73 @@ export function PresenterPage() {
           </p>
         )}
 
-        <div className="relative grid flex-1 content-start gap-4 p-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-          <NowPanel
-            view={view}
-            slide={state.slide}
-            step={state.step}
-            black={state.black}
-            nextName={controls.nextName}
-            previousName={controls.previousName}
-            onNext={controls.keys.next}
-            onPrevious={controls.keys.previous}
-          />
-          <div className="grid min-w-0 content-start gap-4">
-            <NextPanel
+        <QaControlLive deckId={id} slide={state.slide}>
+          <div className="relative grid flex-1 content-start gap-4 p-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+            <NowPanel
               view={view}
-              preview={controls.preview}
-              deepDivesAhead={controls.deepDivesAhead}
-              skipDeepDives={state.skipDeepDives}
+              slide={state.slide}
+              step={state.step}
+              black={state.black}
+              nextName={controls.nextName}
+              previousName={controls.previousName}
+              onNext={controls.keys.next}
+              onPrevious={controls.keys.previous}
             />
-            <PollControlLive deckId={id} slide={state.slide}>
-              <PollPanel deckId={id} overlayOpen={overviewOpen || phoneOpen} />
-            </PollControlLive>
-            <QaControlLive deckId={id}>{questionsOpen && <QaPanel deckId={id} />}</QaControlLive>
-            {notesShown && (
-              <NotesPanel
-                notes={view.slides[state.slide - 1]?.notes ?? null}
-                size={notesSize}
-                onSmaller={() => changeNotesSize(-NOTES_SIZE.step)}
-                onLarger={() => changeNotesSize(NOTES_SIZE.step)}
+            <div className="grid min-w-0 content-start gap-4">
+              <NextPanel
+                view={view}
+                preview={controls.preview}
+                deepDivesAhead={controls.deepDivesAhead}
+                skipDeepDives={state.skipDeepDives}
               />
+              <PollControlLive deckId={id} slide={state.slide}>
+                <PollPanel deckId={id} overlayOpen={overviewOpen || phoneOpen} />
+              </PollControlLive>
+              {questionsOpen && <QaPanel deckId={id} />}
+              {notesShown && (
+                <NotesPanel
+                  notes={view.slides[state.slide - 1]?.notes ?? null}
+                  size={notesSize}
+                  onSmaller={() => changeNotesSize(-NOTES_SIZE.step)}
+                  onLarger={() => changeNotesSize(NOTES_SIZE.step)}
+                />
+              )}
+            </div>
+            {overviewOpen && (
+              <div className="absolute inset-0 z-10 overflow-auto bg-[#0a0e16]">
+                <Overview
+                  view={view}
+                  current={state.slide}
+                  skipDeepDives={state.skipDeepDives}
+                  onJump={(n) => {
+                    controls.keys.jump(n);
+                    closeOverview();
+                  }}
+                  onClose={closeOverview}
+                />
+              </div>
             )}
           </div>
-          {overviewOpen && (
-            <div className="absolute inset-0 z-10 overflow-auto bg-[#0a0e16]">
-              <Overview
-                view={view}
-                current={state.slide}
-                skipDeepDives={state.skipDeepDives}
-                onJump={(n) => {
-                  controls.keys.jump(n);
-                  closeOverview();
-                }}
-                onClose={closeOverview}
-              />
-            </div>
-          )}
-        </div>
 
-        <ToolBar
-          overviewOpen={overviewOpen}
-          notesShown={notesShown}
-          skipDeepDives={state.skipDeepDives}
-          black={state.black}
-          phonesConnected={state.connected.filter((c) => c.role === 'phone').length}
-          onOverview={() => setOverviewOpen((open) => !open)}
-          onNotes={() => setNotesShown((shown) => !shown)}
-          onSkip={controls.keys.toggleSkip}
-          onBlack={controls.keys.toggleBlack}
-          onPhone={() => setPhoneOpen(true)}
-          questionsOpen={questionsOpen}
-          onQuestions={() => setQuestionsOpen((open) => !open)}
-          overviewRef={overviewButton}
-          phoneRef={phoneButton}
-        />
+          <QuestionsToolBar
+            deckId={id}
+            overviewOpen={overviewOpen}
+            notesShown={notesShown}
+            skipDeepDives={state.skipDeepDives}
+            black={state.black}
+            phonesConnected={state.connected.filter((c) => c.role === 'phone').length}
+            onOverview={() => setOverviewOpen((open) => !open)}
+            onNotes={() => setNotesShown((shown) => !shown)}
+            onSkip={controls.keys.toggleSkip}
+            onBlack={controls.keys.toggleBlack}
+            onPhone={() => setPhoneOpen(true)}
+            questionsOpen={questionsOpen}
+            onQuestions={() => setQuestionsOpen((open) => !open)}
+            overviewRef={overviewButton}
+            phoneRef={phoneButton}
+            questionsRef={questionsButton}
+          />
+        </QaControlLive>
         <PhoneConnectDialog
           remoteUrl={view.remoteUrl}
           open={phoneOpen}

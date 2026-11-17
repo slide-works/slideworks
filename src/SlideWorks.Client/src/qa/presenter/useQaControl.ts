@@ -25,8 +25,9 @@ export type QaControlValue = {
   error: string | null;
 };
 
-// A provider's value, stamped with the deck it is for.
-export type QaControlSource = { deckId: string; value: QaControlValue };
+// A provider's value, stamped with the deck it is for and the presenter's slide it follows (1-based, from SW-4's
+// presentation state; null on the deck page).
+export type QaControlSource = { deckId: string; slide: number | null; value: QaControlValue };
 
 export const QaControlContext = createContext<QaControlSource | null>(null);
 

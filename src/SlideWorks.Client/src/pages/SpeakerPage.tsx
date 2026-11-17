@@ -137,7 +137,7 @@ export function SpeakerPage() {
   return (
     <JoinProvider deckId={load.view.id} join={load.view.join} owner>
       <PollControlLive deckId={id} slide={presentation.state.slide}>
-        <QaControlLive deckId={id}>
+        <QaControlLive deckId={id} slide={presentation.state.slide}>
           <SpeakerMode
             id={id}
             view={load.view}

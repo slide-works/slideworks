@@ -12,6 +12,10 @@ public sealed class QaPanel(IPage page)
     // The tool bar's "Questions" tool (key Q), pressed while the panel is open. It sits outside the panel.
     public ILocator Tool => page.GetByTestId("presenter-tool-questions");
 
+    // The count on the Questions tool: the questions waiting or open. Absent (count 0) when there are none or the view
+    // hasn't been read.
+    public ILocator ToolCount => page.GetByTestId("presenter-tool-questions-count");
+
     public ILocator Tabs => Root.GetByTestId("qa-panel-tabs");
 
     // "Open 3"

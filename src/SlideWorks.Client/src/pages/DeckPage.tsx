@@ -144,7 +144,7 @@ export function DeckPage() {
           <div className="grid gap-4">
             {view.isOwner && <LookPanel deck={view} onSaved={showLook} />}
             {view.isOwner && (
-              <QaControlLive deckId={view.id}>
+              <QaControlLive deckId={view.id} slide={null}>
                 <QaSettingsCard deckId={view.id} slide={slide?.number ?? null} />
               </QaControlLive>
             )}

@@ -24,10 +24,16 @@ import {
   QA_STRIP_TEST_IDS,
 } from '../testIds';
 import type { QaAction, QaControlView } from '../types';
+import {
+  QUESTIONS_TOOL_COUNT_TEST_ID,
+  QUESTIONS_TOOL_TEST_ID,
+} from '../../presentation/presenter/ToolBar';
 import { QaControlFixture, type QaControlCall } from './QaControlFixture';
+import { QaControlLive } from './QaControlLive';
 import { QaPanel } from './QaPanel';
 import { QaSettingsCard } from './QaSettingsCard';
 import { QaStrip } from './QaStrip';
+import { QuestionsToolBar } from './QuestionsToolBar';
 
 // SW-9 wave 0.2's presenter seams in the browser: useQaControl under its fixture, the stubs' root test ids, Q and the
 // Questions tool in the presenter window, the strip on the phone remote, the card on the deck page, and the stub of the
@@ -164,10 +170,79 @@ test('QaPresenterParts_WhenUnderTheFixture_ShouldRenderTheirRootTestIds', async 
   await expect(page.getByTestId(QA_SETTINGS_CARD_TEST_IDS.card)).toHaveCount(1);
 });
 
+test('QaControlLive_WhenGivenTheSlide_ShouldFollowIt', async ({ mount, page }) => {
+  const shown = await mount(
+    <QaControlLive deckId="deck-1" slide={5}>
+      <QaControlProbe deckId="deck-1" />
+    </QaControlLive>,
+  );
+  const slide = page.getByTestId('probe-qa-provider-slide');
+  await expect(slide).toHaveText('5');
+  await shown.update(
+    <QaControlLive deckId="deck-1" slide={6}>
+      <QaControlProbe deckId="deck-1" />
+    </QaControlLive>,
+  );
+  await expect(slide).toHaveText('6');
+  await shown.update(
+    <QaControlLive deckId="deck-1" slide={null}>
+      <QaControlProbe deckId="deck-1" />
+    </QaControlLive>,
+  );
+  await expect(slide).toHaveText('null');
+});
+
+const toolBarProps = {
+  deckId: 'deck-1',
+  overviewOpen: false,
+  notesShown: true,
+  skipDeepDives: false,
+  black: false,
+  phonesConnected: 0,
+  onOverview: () => {},
+  onNotes: () => {},
+  onSkip: () => {},
+  onBlack: () => {},
+  onPhone: () => {},
+  onQuestions: () => {},
+};
+
+test('QuestionsToolBar_WhenTheViewHasQuestionsWaitingOrOpen_ShouldShowTheirCountOnTheTool', async ({
+  mount,
+  page,
+}) => {
+  // The live sample has 3 open and 1 waiting.
+  const shown = await mount(
+    <QaControlFixture deckId="deck-1" control={qaControlView('live')}>
+      <QuestionsToolBar {...toolBarProps} />
+    </QaControlFixture>,
+  );
+  const count = page.getByTestId(QUESTIONS_TOOL_TEST_ID).getByTestId(QUESTIONS_TOOL_COUNT_TEST_ID);
+  await expect(count).toHaveText(/(^|\D)4(\D|$)/);
+
+  const none = qaControlView('live');
+  await shown.update(
+    <QaControlFixture
+      deckId="deck-1"
+      control={{ ...none, counts: { ...none.counts, open: 0, waiting: 0 } }}
+    >
+      <QuestionsToolBar {...toolBarProps} />
+    </QaControlFixture>,
+  );
+  await expect(count).toHaveCount(0);
+  await shown.update(
+    <QaControlFixture deckId="deck-1" control={null}>
+      <QuestionsToolBar {...toolBarProps} />
+    </QaControlFixture>,
+  );
+  await expect(count).toHaveCount(0);
+  await expect(page.getByTestId(QUESTIONS_TOOL_TEST_ID)).toHaveCount(1);
+});
+
 test('PresenterPage_WhenQPressed_ShouldOpenAndCloseTheQuestionsPanel', async ({ mount, page }) => {
   const api = await openPresenter(page, mount);
   const panel = page.getByTestId(QA_PANEL_TEST_IDS.panel);
-  const tool = page.getByTestId('presenter-tool-questions');
+  const tool = page.getByTestId(QUESTIONS_TOOL_TEST_ID);
   await expect(panel).toHaveCount(0);
   await expect(tool).toHaveAttribute('aria-pressed', 'false');
 
@@ -181,6 +256,10 @@ test('PresenterPage_WhenQPressed_ShouldOpenAndCloseTheQuestionsPanel', async ({ 
   await page.keyboard.press('Q');
   await expect(panel).toHaveCount(0);
   await expect(tool).toHaveAttribute('aria-pressed', 'false');
+  // Closing gives focus back to the tool, as the overview and the phone dialog do, never to the page's body.
+  await expect(tool).toBeFocused();
+  // The stub provider has no view yet, so the tool shows no count.
+  await expect(page.getByTestId(QUESTIONS_TOOL_COUNT_TEST_ID)).toHaveCount(0);
 
   await tool.click();
   await expect(panel).toHaveCount(1);
@@ -203,10 +282,7 @@ test('PresenterPage_WhenQPressedInATextBox_ShouldLeaveThePanelAlone', async ({ m
   await page.keyboard.press('q');
   await expect(box).toHaveValue('q');
   await expect(page.getByTestId(QA_PANEL_TEST_IDS.panel)).toHaveCount(0);
-  await expect(page.getByTestId('presenter-tool-questions')).toHaveAttribute(
-    'aria-pressed',
-    'false',
-  );
+  await expect(page.getByTestId(QUESTIONS_TOOL_TEST_ID)).toHaveAttribute('aria-pressed', 'false');
 });
 
 test('PresenterPage_WhenQPressedOverTheOverview_ShouldDoNothing', async ({ mount, page }) => {
@@ -236,7 +312,8 @@ test('SpeakerPage_WhenOpen_ShouldPlaceTheQuestionsStripAboveTheNotes', async ({ 
   ]);
 });
 
-test('DeckPage_WhenTheViewerCanPresent_ShouldPlaceTheSettingsCard', async ({ mount, page }) => {
+// The owner's deck page, or another viewer's, over the stub hub (the page connects through useDeckRealtime).
+async function openDeckPage(page: Page, mount: Mount, isOwner: boolean) {
   const looks: LooksView = {
     templates: TEMPLATES.map(looksTemplateOf),
     palettes: PALETTES.map(looksPaletteOf),
@@ -245,21 +322,26 @@ test('DeckPage_WhenTheViewerCanPresent_ShouldPlaceTheSettingsCard', async ({ mou
   await page.route(`**${deckPage.look.logo!.url}`, (route) =>
     route.fulfill({ path: 'src/test-support/fixtures/sample-image.png', contentType: 'image/png' }),
   );
-  const deckPath = `/api/decks/${deckPage.id}`;
-  await stubApi(page, { '/api/me': { json: me }, [deckPath]: { json: deckPage } });
-  const card = page.getByTestId(QA_SETTINGS_CARD_TEST_IDS.card);
-  const shown = await mount(<AppRoutes />, { hooksConfig: { route: `/decks/${deckPage.id}` } });
-  await expect(page.getByTestId('deck-page')).toBeVisible();
-  await expect(card).toHaveCount(1);
-  await shown.unmount();
-
+  await stubDeckHub(page);
   await stubApi(page, {
     '/api/me': { json: me },
-    [deckPath]: { json: { ...deckPage, isOwner: false } },
+    [`/api/decks/${deckPage.id}`]: { json: { ...deckPage, isOwner } },
   });
   await mount(<AppRoutes />, { hooksConfig: { route: `/decks/${deckPage.id}` } });
   await expect(page.getByTestId('deck-page')).toBeVisible();
-  await expect(card).toHaveCount(0);
+}
+
+test('DeckPage_WhenTheViewerCanPresent_ShouldPlaceTheSettingsCard', async ({ mount, page }) => {
+  await openDeckPage(page, mount, true);
+  await expect(page.getByTestId(QA_SETTINGS_CARD_TEST_IDS.card)).toHaveCount(1);
+});
+
+test('DeckPage_WhenTheViewerCannotPresent_ShouldLeaveTheSettingsCardOut', async ({
+  mount,
+  page,
+}) => {
+  await openDeckPage(page, mount, false);
+  await expect(page.getByTestId(QA_SETTINGS_CARD_TEST_IDS.card)).toHaveCount(0);
 });
 
 test('stubQaControlApi_WhenApproveIsSentForAnOpenQuestion_ShouldRefuseWithWrongStateAndChangeNothing', async ({
@@ -304,8 +386,17 @@ test('stubQaControlApi_WhenModerating_ShouldFollowTheLifecycleAndRaiseSeq', asyn
   expect(answered.questions.find((q) => q.number === 4)!.state).toBe('answered');
   expect((await act(page, 'hide', 4)).body).toEqual({ error: 'wrong_state' });
   expect((await act(page, 'reopen', 4)).status).toBe(200);
-  // Question 5 is hidden: it can't be shown or answered until restored.
+  // Question 5 is hidden: it can't be shown or answered until restored, nor hidden again.
   expect((await act(page, 'show', 5)).body).toEqual({ error: 'wrong_state' });
+  expect((await act(page, 'hide', 5)).body).toEqual({ error: 'wrong_state' });
+  // Hiding the question on screen takes it off.
+  expect((await act(page, 'show', 1)).body.onScreen).toBe(1);
+  const hidden = (await act(page, 'hide', 1)).body;
+  expect(hidden.onScreen).toBeNull();
+  expect(hidden.questions.find((q) => q.number === 1)!.onScreen).toBe(false);
+  // Question 6 is open and not hidden: nothing to reopen or restore.
+  expect((await act(page, 'reopen', 6)).body).toEqual({ error: 'wrong_state' });
+  expect((await act(page, 'restore', 6)).body).toEqual({ error: 'wrong_state' });
   expect((await act(page, 'restore', 5)).status).toBe(200);
   expect((await act(page, 'unshow', 5)).body).toEqual({ error: 'wrong_state' });
   expect((await act(page, 'approve', 99)).status).toBe(404);

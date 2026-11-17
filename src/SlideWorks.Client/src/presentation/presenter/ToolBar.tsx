@@ -1,6 +1,6 @@
 import type { ReactNode, Ref } from 'react';
 
-type Props = {
+export type ToolBarProps = {
   overviewOpen: boolean;
   notesShown: boolean;
   skipDeepDives: boolean;
@@ -11,13 +11,20 @@ type Props = {
   onSkip(): void;
   onBlack(): void;
   onPhone(): void;
-  // The Questions panel (SW-9 Q9): its tool is drawn only when onQuestions is given.
+  // The Questions panel (SW-9 Q9): its tool is drawn only when onQuestions is given. questionsCount is the questions
+  // waiting or open, shown as a badge on the tool when above 0, so a closed panel still says questions are arriving.
   questionsOpen?: boolean;
+  questionsCount?: number;
   onQuestions?(): void;
   // Where focus goes back to when the overview or the phone dialog closes.
   overviewRef?: Ref<HTMLButtonElement>;
   phoneRef?: Ref<HTMLButtonElement>;
+  questionsRef?: Ref<HTMLButtonElement>;
 };
+
+// The Questions tool's test id and its count badge's (SW-9). SW-4's other tool ids are literals below.
+export const QUESTIONS_TOOL_TEST_ID = 'presenter-tool-questions';
+export const QUESTIONS_TOOL_COUNT_TEST_ID = 'presenter-tool-questions-count';
 
 // The presenter window's tool bar: Overview, Notes, Skip deep dives, Blackout and Questions, each with its key, and the
 // phone button on the right. The toggles say whether they are on with aria-pressed.
@@ -33,10 +40,12 @@ export function ToolBar({
   onBlack,
   onPhone,
   questionsOpen = false,
+  questionsCount,
   onQuestions,
   overviewRef,
   phoneRef,
-}: Props) {
+  questionsRef,
+}: ToolBarProps) {
   return (
     <nav
       aria-label="Presenter tools"
@@ -62,12 +71,23 @@ export function ToolBar({
       </Tool>
       {onQuestions && (
         <Tool
-          testId="presenter-tool-questions"
+          testId={QUESTIONS_TOOL_TEST_ID}
           pressed={questionsOpen}
           shortcut="Q"
           onClick={onQuestions}
+          buttonRef={questionsRef}
         >
           Questions
+          {questionsCount !== undefined && questionsCount > 0 && (
+            <span
+              data-testid={QUESTIONS_TOOL_COUNT_TEST_ID}
+              className="rounded-full bg-[#8ea5ff] px-1.5 text-[10.5px] font-semibold text-[#0a0e16]"
+            >
+              <span className="sr-only">, </span>
+              {questionsCount}
+              <span className="sr-only"> to answer</span>
+            </span>
+          )}
         </Tool>
       )}
       <button

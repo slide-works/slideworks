@@ -12,15 +12,18 @@ export type QaControlCall =
 // them. Build `control` from qaControlView() in test-support/fixtures/qaStates.ts ("live": review on, question 2 on
 // screen, question 4 waiting, question 5 hidden, slide 3's questions off; or "notLive"), with overrides; null is "not
 // read yet". Each action calls onAction with what it was asked and changes nothing: mount again (or update) for the
-// next state. Frozen after wave 0.2.
+// next state. `slide` is the presenter's slide the provider follows (null by default, as on the deck page). Frozen after
+// wave 0.2.
 export function QaControlFixture({
   deckId,
+  slide = null,
   control,
   error = null,
   onAction,
   children,
 }: {
   deckId: string;
+  slide?: number | null;
   control: QaControlView | null;
   error?: string | null;
   onAction?: (call: QaControlCall) => void;
@@ -34,6 +37,7 @@ export function QaControlFixture({
     const act = (action: QaAction) => (number: number) => record({ action, number });
     return {
       deckId,
+      slide,
       value: {
         control,
         approve: act('approve'),
@@ -48,6 +52,6 @@ export function QaControlFixture({
         error,
       },
     };
-  }, [deckId, control, error, onAction]);
+  }, [deckId, slide, control, error, onAction]);
   return <QaControlContext value={source}>{children}</QaControlContext>;
 }

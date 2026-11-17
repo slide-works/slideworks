@@ -1,13 +1,17 @@
-import { useQaControl } from '../qa/presenter/useQaControl';
+import { useContext } from 'react';
+import { QaControlContext, useQaControl } from '../qa/presenter/useQaControl';
 import { QA_ACTIONS } from '../qa/types';
 
-// Component tests only: prints what useQaControl gives for deckId, as JSON, and offers a button per action, so a spec
+// Component tests only: prints what useQaControl gives for deckId, as JSON, and the slide its provider follows, and
+// offers a button per action, so a spec
 // can assert a provider's values and calls while the presenter's parts are still stubs. Each action button acts on
 // question `number`; the settings button turns review off and the slide button turns slide 3's questions back on.
 export function QaControlProbe({ deckId, number = 2 }: { deckId: string; number?: number }) {
   const value = useQaControl(deckId);
+  const slide = useContext(QaControlContext)?.slide;
   return (
     <div>
+      <pre data-testid="probe-qa-provider-slide">{JSON.stringify(slide)}</pre>
       <pre data-testid="probe-qa-control">{JSON.stringify(value.control)}</pre>
       <pre data-testid="probe-qa-error">{JSON.stringify(value.error)}</pre>
       {QA_ACTIONS.map((action) => (
