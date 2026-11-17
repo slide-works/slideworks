@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
+using SlideWorks.AcceptanceTests.Journeys;
 using SlideWorks.AcceptanceTests.Pages;
+using SlideWorks.AcceptanceTests.Support;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests;
@@ -7,6 +9,14 @@ namespace SlideWorks.AcceptanceTests;
 // The owner goes live and ends from the plain player's live chip (SW-5 J2, J6, D18).
 public class LiveFlowTests : AcceptanceTest
 {
+    private AgentOAuthClient _oauth = null!;
+
+    [OneTimeSetUp]
+    public async Task RegisterAgent() => _oauth = await AgentOAuthClient.RegisterAsync(AcceptanceApp.BaseUrl, "Claude");
+
+    [OneTimeTearDown]
+    public void ForgetAgent() => _oauth.Dispose();
+
     [Test]
     public async Task GoLive_WhenOwnerClicks_ShouldShowCodeAndEndReturnsToGoLive()
     {
@@ -36,15 +46,12 @@ public class LiveFlowTests : AcceptanceTest
     [Test]
     public async Task JoinBarToggle_WhenLive_ShouldDrawAndRemoveTheBarInTheSamePlayer()
     {
-        var decks = new DecksPage(Page);
-        await SignIn.AsAsync(Page, TestUser.Sam);
-        await decks.GotoAsync();
-        await decks.CreateDeckAsync($"Join bar flow {Guid.NewGuid():N}");
-        var deck = new DeckPage(Page);
-        await Expect(deck.Present).ToBeVisibleAsync();
-        await deck.Present.ClickAsync();
+        await using var agent = await AgentSession.ConnectAsync(_oauth, Page, TestUser.Sam);
+        var deckId = (await agent.CallAsync("create_deck", new { title = $"Join bar flow {Guid.NewGuid():N}" })).GetProperty("deck").GetString()!;
+        await agent.CallAsync("add_slide", new { deck = deckId, layout = "quote", slots = new { quote = "Start small.", attribution = "Sam Rivera" } });
         var player = new PlayerPage(Page);
-        await Expect(player.Player).ToBeVisibleAsync();
+        await player.GotoAsync(deckId);
+        await Expect(player.Count).ToHaveTextAsync("1 / 1");
         await player.LiveChip.GoLive.ClickAsync();
         await Expect(player.LiveChip.End).ToBeVisibleAsync();
         await Page.EvaluateAsync("() => { window.sameDocument = true; }");

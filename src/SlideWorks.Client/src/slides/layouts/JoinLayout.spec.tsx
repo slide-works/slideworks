@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/experimental-ct-react';
+import type { Page } from 'playwright/test';
 import fitFixturesJson from '@contracts/fit-fixtures.json' with { type: 'json' };
 import { LAYOUT_SLOTS } from '../../test-support/fixtures/layoutSlots';
 import { lookViewOf } from '../../test-support/fixtures/lookViewOf';
+import { guestView } from '../../test-support/fixtures/guestStates';
 import { deckPlay } from '../../test-support/fixtures/screens';
+import { stubDeckHub } from '../../test-support/stubDeckHub';
 import { JoinProvider } from '../JoinContext';
 import { SlideRenderer } from '../SlideRenderer';
 import type { SlideDeck } from '../slots';
@@ -76,8 +79,9 @@ test('JoinLayout with the longest kicker stays inside x 120-1800, y 150-996', as
   mount,
   page,
 }) => {
+  await stubOwnerLive(page, 5);
   await mount(
-    <JoinProvider deckId={deckPlay.id} join={{ ...join, live: true }} owner={false}>
+    <JoinProvider deckId={deckPlay.id} join={{ ...join, live: true }} owner>
       <SlideRenderer
         slide={slide({ kicker: fitFixturesJson.joinKicker.slots.kicker, count: 'shown' })}
         deck={deck}
@@ -141,8 +145,9 @@ for (const live of [true, false]) {
 
 test('JoinLayout shows a 40 character host in full inside x 120-1800', async ({ mount, page }) => {
   const hostLabel = 'presentations.example-university.org/j';
+  await stubOwnerLive(page, 5);
   await mount(
-    <JoinProvider deckId={deckPlay.id} join={{ ...join, hostLabel }} owner={false}>
+    <JoinProvider deckId={deckPlay.id} join={{ ...join, hostLabel }} owner>
       <SlideRenderer slide={slide({})} deck={deck} total={1} step={0} />
     </JoinProvider>,
   );
@@ -155,4 +160,44 @@ test('JoinLayout shows a 40 character host in full inside x 120-1800', async ({ 
     expect(box.x + box.width - frame.x, `${id} right`).toBeLessThanOrEqual(1800.5);
     expect(box.y + box.height - frame.y, `${id} bottom`).toBeLessThanOrEqual(996.5);
   }
+});
+
+// The owner's live session, which is the only place the count is known (a non-owner's is null and hidden).
+async function stubOwnerLive(page: Page, joinedCount: number) {
+  await stubDeckHub(page, { audience: { state: guestView('live').state } });
+  await page.route(`**/api/decks/${deckPlay.id}/live`, (route) =>
+    route.fulfill({
+      json: {
+        sessionId: 'session-1',
+        code: join.code,
+        codeLabel: join.codeLabel,
+        joinUrl: join.joinUrl,
+        hostLabel: join.hostLabel,
+        live: true,
+        joinedCount,
+        joinBar: false,
+      },
+    }),
+  );
+}
+
+test('JoinLayout hides the count when it is not known', async ({ mount, page }) => {
+  // A non-owner on a live deck: the count is null, so there is nothing to show.
+  await mount(
+    <JoinProvider deckId={deckPlay.id} join={join} owner={false}>
+      <SlideRenderer slide={slide({})} deck={deck} total={1} step={0} />
+    </JoinProvider>,
+  );
+  await expect(page.getByTestId('layout-join')).toBeVisible();
+  await expect(page.getByTestId('join-count')).toHaveCount(0);
+});
+
+test('JoinLayout shows a known count of 0 as "0 joined"', async ({ mount, page }) => {
+  await stubOwnerLive(page, 0);
+  await mount(
+    <JoinProvider deckId={deckPlay.id} join={join} owner>
+      <SlideRenderer slide={slide({})} deck={deck} total={1} step={0} />
+    </JoinProvider>,
+  );
+  await expect(page.getByTestId('join-count')).toHaveText('0 joined');
 });
