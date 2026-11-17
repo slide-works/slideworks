@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using SlideWorks.Core.Slides;
+using SlideWorks.Core.Slides.Layouts;
 
 namespace SlideWorks.UnitTest.Slides;
 
@@ -28,10 +29,28 @@ public class LayoutCatalogueTests
     }
 
     [Test]
-    public void Blocks_ShouldBeTheFiveFrozenNames()
+    public void Layouts_WhenCollected_ShouldKeepTheFrozenOrder()
     {
-        LayoutCatalogue.Blocks.Select(b => b.Name).ShouldBe(["callout", "chip", "badge", "stamp", "journey"]);
-        LayoutCatalogue.Blocks.Where(b => !b.SetByAgent).Select(b => b.Name).ShouldBe(["journey"]);
+        LayoutDefinition[] definitions =
+        [
+            TitleLayout.Definition, DividerLayout.Definition, BulletsLayout.Definition, TwoColumnLayout.Definition,
+            PracticeLayout.Definition, CompareLayout.Definition, BigNumberLayout.Definition, QuoteLayout.Definition,
+            ImageLayout.Definition, TableLayout.Definition, ChartLayout.Definition, GanttLayout.Definition,
+            NumberedCardsLayout.Definition, RulesLayout.Definition, CardsLayout.Definition, CloseLayout.Definition,
+            JoinLayout.Definition, PollLayout.Definition, QaLayout.Definition,
+        ];
+
+        LayoutCatalogue.Layouts.Count.ShouldBe(definitions.Length);
+        for (var i = 0; i < definitions.Length; i++)
+        {
+            LayoutCatalogue.Layouts[i].ShouldBeSameAs(definitions[i]);
+        }
+
+        definitions.Select(d => d.Name).ShouldBe(
+        [
+            "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote", "image",
+            "table", "chart", "gantt", "numbered-cards", "rules", "cards", "close", "join", "poll", "qa",
+        ]);
     }
 
     [Test]
