@@ -257,12 +257,17 @@ test('PollPanel_WhenPPressed_ShouldOpenADraftAndCloseAnOpenPoll', async ({ mount
   const actions: PollAction[] = [];
   const onAction = (a: PollAction) => actions.push(a);
   const view = await mount(panel(pollControlView('draft'), { onAction }));
+  await expect(page.getByTestId(IDS.state)).toHaveText('Draft');
 
   await page.keyboard.press('p');
+  await expect.poll(() => actions).toEqual(['open']);
   await view.update(panel(live(), { onAction }));
+  await expect(page.getByTestId(IDS.state)).toHaveText('Open');
   await page.keyboard.press('P');
+  await expect.poll(() => actions).toEqual(['open', 'close']);
   // Closed: P has nothing to do.
   await view.update(panel(pollControlView('closed'), { onAction }));
+  await expect(page.getByTestId(IDS.state)).toHaveText('Closed');
   await page.keyboard.press('p');
 
   await settle(page);
@@ -273,11 +278,16 @@ test('PollPanel_WhenRPressed_ShouldRevealOnlyWhileHiddenFromTheRoom', async ({ m
   const actions: PollAction[] = [];
   const onAction = (a: PollAction) => actions.push(a);
   const view = await mount(panel(live(), { onAction }));
+  await expect(page.getByTestId(IDS.room)).toHaveText('The room sees these results.');
 
   await page.keyboard.press('r');
   await view.update(panel(hidden(), { onAction }));
+  await expect(page.getByTestId(IDS.room)).toHaveText(
+    'Hidden from the room until the poll closes.',
+  );
   await page.keyboard.press('r');
 
+  await expect.poll(() => actions).toEqual(['reveal']);
   await settle(page);
   expect(actions).toEqual(['reveal']);
 });
@@ -290,17 +300,25 @@ test('PollPanel_WhenAPressed_ShouldShowTheAnswerOnlyWhenClosedWithOneNotShown', 
   const onAction = (a: PollAction) => actions.push(a);
   const closed = pollControlView('closed', { answerShown: false });
   const view = await mount(panel(live(), { onAction }));
+  const showAnswer = button(page, IDS.showAnswer);
+  await expect(page.getByTestId(IDS.state)).toHaveText('Open');
 
   await page.keyboard.press('a');
+  // Closed with no correct answer.
   await view.update(
     panel({ ...closed, settings: { ...closed.settings, correct: null } }, { onAction }),
   );
+  await expect(page.getByTestId(IDS.state)).toHaveText('Closed');
   await page.keyboard.press('a');
+  // Closed with the answer already shown.
   await view.update(panel(pollControlView('closed'), { onAction }));
+  await expect(page.getByTestId(pollPanelCorrectTestId(1))).toBeVisible();
   await page.keyboard.press('a');
   await view.update(panel(closed, { onAction }));
+  await expect(showAnswer).toBeVisible();
   await page.keyboard.press('a');
 
+  await expect.poll(() => actions).toEqual(['showAnswer']);
   await settle(page);
   expect(actions).toEqual(['showAnswer']);
 });
@@ -312,22 +330,30 @@ test('PollPanel_WhenNoPollOrTypingOrAnOverlayIsOpen_ShouldIgnoreTheKeys', async 
   const actions: PollAction[] = [];
   const onAction = (a: PollAction) => actions.push(a);
   const view = await mount(panel(null, { onAction }));
+  await expect(page.getByTestId(IDS.empty)).toBeAttached();
   for (const key of ['p', 'r', 'a']) await page.keyboard.press(key);
 
   await view.update(panel(hidden(), { onAction }));
+  await expect(page.getByTestId(IDS.state)).toHaveText('Open');
   await page.getByTestId('typing').focus();
   for (const key of ['p', 'r']) await page.keyboard.press(key);
   await expect(page.getByTestId('typing')).toHaveValue('pr');
   await page.getByTestId('typing').blur();
 
   await view.update(panel(hidden(), { onAction, overlayOpen: true }));
+  await settle(page);
   for (const key of ['p', 'r']) await page.keyboard.press(key);
   // With a modifier held the key belongs to the browser or the system.
   await view.update(panel(hidden(), { onAction }));
+  await settle(page);
   await page.keyboard.press('Alt+p');
 
   await settle(page);
   expect(actions).toEqual([]);
+
+  // The same panel still answers a plain key, so the presses above were really ignored.
+  await page.keyboard.press('r');
+  await expect.poll(() => actions).toEqual(['reveal']);
 });
 
 test('PollPanel open hidden screenshot', async ({ mount, page }) => {
