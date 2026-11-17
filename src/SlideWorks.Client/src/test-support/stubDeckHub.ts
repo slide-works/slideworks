@@ -249,15 +249,22 @@ export async function stubDeckHub(
   };
 
   const offered = transports ?? (['WebSockets', 'ServerSentEvents', 'LongPolling'] as const);
-  let startConnection = () => {};
+  // Long polling keeps one state per connection, found by the token negotiate gave it (the id= query value), so a poll
+  // held by a dropped connection can never take the next connection's frames.
+  type PollState = { token: string; queued: string[]; first: boolean; wake?: () => void };
+  let connections = 0;
+  let poll: PollState = { token: '', queued: [], first: true };
   await page.route('**/hubs/deck/negotiate**', (route) => {
-    // A new connection: its first long poll is answered at once again.
-    startConnection();
+    // A new connection: the previous one's held poll is answered with 204 and forgotten.
+    connections += 1;
+    const old = poll;
+    poll = { token: `token-${connections}`, queued: [], first: true };
+    old.wake?.();
     return route.fulfill({
       json: {
         negotiateVersion: 1,
-        connectionId: 'conn-1',
-        connectionToken: 'token-1',
+        connectionId: `conn-${connections}`,
+        connectionToken: poll.token,
         availableTransports: offered.map((transport) => ({
           transport,
           transferFormats: transport === 'WebSockets' ? ['Text', 'Binary'] : ['Text'],
@@ -284,19 +291,12 @@ export async function stubDeckHub(
 
   // Long polling: a GET is a poll (the first is answered at once, as the client waits for it to connect), a POST carries
   // the client's frames, a DELETE ends the connection. A poll is held until the hub has something to send.
-  const queued: string[] = [];
-  let heldPoll: (() => void) | undefined;
-  let firstPoll = true;
-  startConnection = () => {
-    firstPoll = true;
-    queued.length = 0;
-  };
-  const longPoll: Sink = {
+  const longPollSink = (state: PollState): Sink => ({
     send(text) {
-      queued.push(text);
-      heldPoll?.();
+      state.queued.push(text);
+      state.wake?.();
     },
-  };
+  });
   // Server-Sent Events: the page's event stream is sent to a local server that holds it open, because a fulfilled route
   // can't stream. The client's frames still arrive as POSTs, handled like the long poll's.
   let stream: import('node:http').ServerResponse | undefined;
@@ -335,25 +335,34 @@ export async function stubDeckHub(
   await page.route(/\/hubs\/deck\?/, async (route) => {
     const request = route.request();
     const method = request.method();
+    const token = new URL(request.url()).searchParams.get('id');
     if (method === 'POST') {
-      const sink = socket === eventStream ? eventStream : longPoll;
-      receive(sink, request.postData() ?? '');
+      const sink = socket === eventStream ? eventStream : longPollSink(poll);
+      // Frames from a connection that has been replaced are dropped.
+      if (sink === eventStream || token === poll.token) receive(sink, request.postData() ?? '');
       await route.fulfill({ status: 200, body: '' });
     } else if (method === 'DELETE') {
       await route.fulfill({ status: 202, body: '' });
     } else if ((await request.headerValue('accept'))?.includes('text/event-stream')) {
       await route.continue({ url: await streamUrl() });
     } else {
-      if (firstPoll) {
-        firstPoll = false;
-        socket = longPoll;
+      const mine = poll;
+      if (token !== mine.token) {
+        await route.fulfill({ status: 204, body: '' });
+        return;
+      }
+      if (mine.first) {
+        mine.first = false;
+        socket = longPollSink(mine);
         transportsUsed.push('LongPolling');
         await route.fulfill({ status: 200, body: '' });
         return;
       }
-      if (queued.length === 0) await new Promise<void>((wake) => (heldPoll = wake));
-      heldPoll = undefined;
-      await route.fulfill({ status: 200, body: queued.splice(0).join('') });
+      if (mine.queued.length === 0) await new Promise<void>((wake) => (mine.wake = wake));
+      mine.wake = undefined;
+      // A poll whose connection was replaced while it was held gets nothing.
+      if (mine !== poll) await route.fulfill({ status: 204, body: '' });
+      else await route.fulfill({ status: 200, body: mine.queued.splice(0).join('') });
     }
   });
   // The component-test page is loaded before the test starts, and the
