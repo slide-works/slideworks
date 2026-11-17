@@ -137,25 +137,37 @@ public class PollKindDataTests : PollTestFixture
             var migrator = db.GetService<IMigrator>();
             var all = db.Database.GetMigrations().ToList();
             await migrator.MigrateAsync(all.Single(m => m.EndsWith("_Sw6Polls", StringComparison.Ordinal)));
-            var slideA = Upper(Guid.NewGuid());
-            var slideB = Upper(Guid.NewGuid());
-            var session = Upper(Guid.NewGuid());
-            var openRound = Upper(Guid.NewGuid());
-            await SeedSw6RowsAsync(db, slideA, slideB, session, openRound);
+            var sw6 = new Sw6Rows(Upper(Guid.NewGuid()), Upper(Guid.NewGuid()), Upper(Guid.NewGuid()), Upper(Guid.NewGuid()), Upper(Guid.NewGuid()));
+            await SeedSw6RowsAsync(db, sw6);
 
             await migrator.MigrateAsync(all.Single(m => m.EndsWith("_Sw9PollKinds", StringComparison.Ordinal)));
 
-            var polls = await db.Database.SqlQueryRaw<string>("""SELECT "Id" || '|' || "SlideId" || '|' || "Kind" AS Value FROM "Polls" ORDER BY "DeckId", "SlideId" """).ToListAsync();
-            var rounds = await db.Database.SqlQueryRaw<string>("""SELECT "PollId" || '|' || "SlideId" || '|' || "Kind" || '|' || "Number" AS Value FROM "PollRounds" ORDER BY "SlideId", "Number" """).ToListAsync();
-            var answers = await db.Database.SqlQueryRaw<string>("""SELECT "RoundId" AS Value FROM "PollAnswers" """).ToListAsync();
+            var polls = await db.Database.SqlQueryRaw<string>("""
+                SELECT "Id" || '|' || "SlideId" || '|' || "Kind" || '|' || "Pick" || '|' || ifnull("Max", '-') || '|' || "Results"
+                    || '|' || ifnull("Correct", '-') || '|' || "Opens" || '|' || "Privacy" AS Value FROM "Polls"
+                """).ToListAsync();
+            var rounds = await db.Database.SqlQueryRaw<string>("""
+                SELECT "PollId" || '|' || "SlideId" || '|' || "Kind" || '|' || "SessionId" || '|' || "Number" || '|' || ifnull("OpenedAt", '-')
+                    || '|' || ifnull("ClosedAt", '-') || '|' || ifnull("RevealedAt", '-') || '|' || ifnull("AnswerShownAt", '-')
+                    || '|' || ifnull("JoinedAtClose", '-') || '|' || ifnull("Final", '-') AS Value FROM "PollRounds"
+                """).ToListAsync();
+            var answers = await db.Database.SqlQueryRaw<string>("""SELECT "RoundId" || '|' || "GuestId" || '|' || "Picks" || '|' || "Revision" AS Value FROM "PollAnswers" """).ToListAsync();
             var broken = await db.Database.SqlQueryRaw<string>("""SELECT "table" AS Value FROM pragma_foreign_key_check""").ToListAsync();
-            var expectedPolls = new[] { $"{slideA}|{slideA}|Slide", $"{slideB}|{slideB}|Slide" }.Order(StringComparer.Ordinal).ToList();
-            polls.Order(StringComparer.Ordinal).ShouldBe(expectedPolls);
+            var (a, b, live, ended) = (sw6.SlideA, sw6.SlideB, sw6.LiveSession, sw6.EndedSession);
+            polls.Order(StringComparer.Ordinal).ShouldBe(new[]
+            {
+                $"{a}|{a}|Slide|One|-|Live|-|OnArrival|Private",
+                $"{b}|{b}|Slide|UpTo|2|AfterAnswer|1|Manual|Private",
+            }.Order(StringComparer.Ordinal).ToList());
             rounds.Order(StringComparer.Ordinal).ShouldBe(new[]
             {
-                $"{slideA}|{slideA}|Slide|1", $"{slideA}|{slideA}|Slide|2", $"{slideB}|{slideB}|Slide|1",
+                $"{a}|{a}|Slide|{live}|1|1|2|1|2|5|{FINAL_A}",
+                $"{a}|{a}|Slide|{live}|2|-|3|-|-|-|-",
+                $"{a}|{a}|Slide|{live}|3|4|-|-|-|-|-",
+                $"{b}|{b}|Slide|{live}|1|1|2|-|-|0|{FINAL_B}",
+                $"{b}|{b}|Slide|{ended}|1|-|-|-|-|-|-",
             }.Order(StringComparer.Ordinal).ToList());
-            answers.ShouldBe(new[] { openRound });
+            answers.ShouldBe(new[] { $"{sw6.OpenRound}|guest-1|[0]|1" });
             broken.ShouldBeEmpty();
         }
         finally
@@ -165,9 +177,16 @@ public class PollKindDataTests : PollTestFixture
         }
     }
 
-    // SW-6's rows as its migration left them: two poll slides in one deck, a live session, a closed and an open round on
-    // the first slide and a closed round numbered 1 on the second (the same number in the same session), and an answer.
-    private static async Task SeedSw6RowsAsync(AppDbContext db, string slideA, string slideB, string session, string openRound)
+    private const string FINAL_A = """{"options":["One","Two"],"counts":[1,0],"answered":1}""";
+
+    private const string FINAL_B = """{"options":["One","Two"],"counts":[0,0],"answered":0}""";
+
+    // SW-6's rows as its migration left them: two poll slides in one deck, the second with settings other than the
+    // defaults. In the live session, the first slide has a closed round (revealed, answer shown, with its Final), a
+    // discarded draft (no OpenedAt, ClosedAt set) and an open round with an answer; the second has a closed round numbered
+    // 1 too (the same number in the same session). In an ended session the second slide has a draft (no OpenedAt, no
+    // ClosedAt), so the one-unclosed-round index holds per session.
+    private static async Task SeedSw6RowsAsync(AppDbContext db, Sw6Rows sw6)
     {
         var owner = Upper(Guid.NewGuid());
         const string DECK = "deck0001";
@@ -179,17 +198,26 @@ public class PollKindDataTests : PollTestFixture
             + "VALUES ({0}, 'd', 'Deck', '[]', {1}, 'Private', 0, 0, 0, 'talk', 'cobalt', 0, '123456')", DECK, owner);
         await db.Database.ExecuteSqlRawAsync(
             "INSERT INTO Slides (Id, DeckId, Position, Layout, SlotsJson, Steps, Revision, DeepDive) VALUES ({0}, {1}, 0, 'poll', {2}, 0, 1, 0), ({3}, {1}, 1, 'poll', {2}, 0, 1, 0)",
-            slideA, DECK, SLOTS, slideB);
-        await db.Database.ExecuteSqlRawAsync("INSERT INTO AudienceSessions (Id, DeckId, StartedAt, PeakJoined) VALUES ({0}, {1}, 0, 0)", session, DECK);
+            sw6.SlideA, DECK, SLOTS, sw6.SlideB);
         await db.Database.ExecuteSqlRawAsync(
-            "INSERT INTO Polls (SlideId, DeckId, Pick, Results, Opens, Privacy) VALUES ({0}, {1}, 'One', 'Live', 'OnArrival', 'Private'), ({2}, {1}, 'One', 'Live', 'Manual', 'Private')",
-            slideA, DECK, slideB);
+            "INSERT INTO AudienceSessions (Id, DeckId, StartedAt, PeakJoined, EndedAt) VALUES ({0}, {1}, 0, 0, 9), ({2}, {1}, 10, 0, NULL)",
+            sw6.EndedSession, DECK, sw6.LiveSession);
         await db.Database.ExecuteSqlRawAsync(
-            "INSERT INTO PollRounds (Id, SlideId, SessionId, Number, OpenedAt, ClosedAt) VALUES ({0}, {1}, {2}, 1, 1, 2), ({3}, {1}, {2}, 2, 3, NULL), ({4}, {5}, {2}, 1, 1, 2)",
-            Upper(Guid.NewGuid()), slideA, session, openRound, Upper(Guid.NewGuid()), slideB);
+            "INSERT INTO Polls (SlideId, DeckId, Pick, Max, Results, Correct, Opens, Privacy) "
+            + "VALUES ({0}, {1}, 'One', NULL, 'Live', NULL, 'OnArrival', 'Private'), ({2}, {1}, 'UpTo', 2, 'AfterAnswer', 1, 'Manual', 'Private')",
+            sw6.SlideA, DECK, sw6.SlideB);
         await db.Database.ExecuteSqlRawAsync(
-            "INSERT INTO PollAnswers (RoundId, GuestId, Picks, Revision, UpdatedAt) VALUES ({0}, 'guest-1', '[0]', 1, 3)", openRound);
+            "INSERT INTO PollRounds (Id, SlideId, SessionId, Number, OpenedAt, ClosedAt, RevealedAt, AnswerShownAt, JoinedAtClose, Final) VALUES "
+            + "({0}, {1}, {2}, 1, 1, 2, 1, 2, 5, {3}), ({4}, {1}, {2}, 2, NULL, 3, NULL, NULL, NULL, NULL), ({5}, {1}, {2}, 3, 4, NULL, NULL, NULL, NULL, NULL), "
+            + "({6}, {7}, {2}, 1, 1, 2, NULL, NULL, 0, {8}), ({9}, {7}, {10}, 1, NULL, NULL, NULL, NULL, NULL, NULL)",
+            Upper(Guid.NewGuid()), sw6.SlideA, sw6.LiveSession, FINAL_A, Upper(Guid.NewGuid()), sw6.OpenRound,
+            Upper(Guid.NewGuid()), sw6.SlideB, FINAL_B, Upper(Guid.NewGuid()), sw6.EndedSession);
+        await db.Database.ExecuteSqlRawAsync(
+            "INSERT INTO PollAnswers (RoundId, GuestId, Picks, Revision, UpdatedAt) VALUES ({0}, 'guest-1', '[0]', 1, 4)", sw6.OpenRound);
     }
+
+    // The ids the SW-6 seed uses, as stored (upper-case text).
+    private sealed record Sw6Rows(string SlideA, string SlideB, string LiveSession, string EndedSession, string OpenRound);
 
     private static string Upper(Guid id) => id.ToString().ToUpperInvariant();
 }
