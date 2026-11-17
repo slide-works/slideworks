@@ -118,6 +118,7 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         await Expect(screen.Percent(1)).ToHaveTextAsync("50%");
         await Expect(screen.Percent(2)).ToHaveTextAsync("0%");
         await Expect(screen.Bar(0)).ToHaveAttributeAsync("style", Width(50));
+        (await screen.Rows.EvaluateAsync<string[]>(COUNT_PROBE)).ShouldNotBeEmpty("the probe should find the shares once they show");
         foreach (var phone in new[] { first, second })
         {
             await Expect(phone.Closed).ToContainTextAsync("2 answers");
@@ -260,6 +261,7 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         await Expect(first.OptionPercent(0)).ToHaveTextAsync("100%");
         await Expect(first.OptionPercent(1)).ToHaveTextAsync("0%");
         await Expect(first.OptionBar(0)).ToHaveAttributeAsync("style", Width(100));
+        (await first.Options.EvaluateAsync<string[]>(COUNT_PROBE)).ShouldNotBeEmpty("the probe should find the shares on the phone that answered");
         await Expect(first.ResultsLater).ToHaveCountAsync(0);
         await Expect(first.Answered).ToHaveTextAsync("1 answer so far");
         await Expect(screen.Answered).ToHaveTextAsync("1 answer");
