@@ -17,6 +17,8 @@ namespace SlideWorks.LoadHost;
 // does not start alongside it.
 public sealed class LoadHostApp : IDisposable
 {
+    public const int ADDRESSES = 8;
+
     private readonly string _folder;
     private readonly WebApplicationFactory<ApiMarker> _factory;
 
@@ -38,7 +40,16 @@ public sealed class LoadHostApp : IDisposable
                 }));
             builder.ConfigureTestServices(TestAuthScheme.AddTo);
         });
-        _factory.UseKestrel(options => options.Listen(IPAddress.Loopback, port));
+        // Also on 127.0.0.2 to 127.0.0.ADDRESSES, the same app: a client on this machine has only its ephemeral port range
+        // (4,096 ports on this WSL host) per destination address and port, so a run of thousands of voters spreads its hub
+        // connections over these (the harness's --hub-urls).
+        _factory.UseKestrel(options =>
+        {
+            for (var last = 1; last <= ADDRESSES; last++)
+            {
+                options.Listen(IPAddress.Parse($"127.0.0.{last}"), port);
+            }
+        });
         _factory.StartServer();
     }
 

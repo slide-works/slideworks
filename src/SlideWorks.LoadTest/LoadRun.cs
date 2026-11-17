@@ -22,7 +22,7 @@ public static class LoadRun
             await presenter.StartAsync(ct);
         }
         var state = new RunState(await BaselineAsync(options, http, ct));
-        var voters = Enumerable.Range(0, options.Voters).Select(_ => new Voter(options, http, state)).ToList();
+        var voters = Enumerable.Range(0, options.Voters).Select(i => new Voter(options, options.HubUrls[i % options.HubUrls.Count], http, state)).ToList();
         var phase = "1 before";
         using var stopProbes = CancellationTokenSource.CreateLinkedTokenSource(ct);
         var probes = presenter?.ProbeAsync(() => phase, stopProbes.Token) ?? Task.CompletedTask;

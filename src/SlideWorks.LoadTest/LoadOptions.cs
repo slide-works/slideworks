@@ -21,6 +21,10 @@ public sealed record LoadOptions(
 
     public int Slide { get; init; }
 
+    // The origins voters' hub connections are spread over, round robin: the same app under several addresses, so a run of
+    // thousands of voters is not capped by the client machine's ephemeral ports per destination. Defaults to Url.
+    public IReadOnlyList<Uri> HubUrls { get; init; } = [];
+
     // Seconds into the answer window at which the presenter closes the poll, or null to leave it open.
     public double? CloseAt { get; init; }
 
@@ -36,6 +40,7 @@ public sealed record LoadOptions(
         + "  results check is skipped. Without it, a poll whose results are not live is refused and a results p95 of n/a fails the gate.\n"
         + "  [--owner-cookie <cookie> --deck <id> --slide <n> [--close-at <s>]] puts the presenter on the poll slide, probes a\n"
         + "  presenter move, a player's first join and a guest's join during the run, and closes the poll --close-at seconds in.\n"
+        + "  [--hub-urls <url>,<url>...] spreads the voters' hub connections over several origins of the same app.\n"
         + "  Exit codes: 0 gate passed, 3 gate failed, 1 poll not open or app unreachable, 2 bad option.";
 
     public static LoadOptions Parse(IReadOnlyList<string> args)
@@ -51,7 +56,7 @@ public sealed record LoadOptions(
             }
             values[pairs[i]] = pairs[i + 1];
         }
-        var unknown = values.Keys.Except(["--url", "--code", "--voters", "--seconds", "--pick", "--results-timeout", "--owner-cookie", "--deck", "--slide", "--close-at"]).ToList();
+        var unknown = values.Keys.Except(["--url", "--code", "--voters", "--seconds", "--pick", "--results-timeout", "--owner-cookie", "--deck", "--slide", "--close-at", "--hub-urls"]).ToList();
         if (unknown.Count > 0)
         {
             throw new ArgumentException($"Unknown option {unknown[0]}.");
@@ -88,8 +93,16 @@ public sealed record LoadOptions(
             Deck = deck,
             Slide = hasSlide ? Whole(values, "--slide", 1) : 0,
             CloseAt = values.ContainsKey("--close-at") ? Positive(values, "--close-at", 1) : null,
+            HubUrls = values.TryGetValue("--hub-urls", out var hubUrls)
+                ? hubUrls.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(Origin).ToList()
+                : [url],
         };
     }
+
+    private static Uri Origin(string text) =>
+        Uri.TryCreate(text, UriKind.Absolute, out var url) && (url.Scheme == Uri.UriSchemeHttp || url.Scheme == Uri.UriSchemeHttps)
+            ? url
+            : throw new ArgumentException($"--hub-urls: '{text}' is not an absolute http or https URL.");
 
     private static int Whole(Dictionary<string, string> values, string name, int fallback)
     {

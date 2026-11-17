@@ -28,6 +28,7 @@ public class LoadHostTests
             DECK={seed.DeckId}
             SLIDE={LoadSeed.POLL_SLIDE}
             OWNER_COOKIE={LoadSeed.OwnerCookie}
+            HUB_URLS={string.Join(",", Enumerable.Range(1, LoadHostApp.ADDRESSES).Select(last => $"http://127.0.0.{last}:{port}"))}
 
             """;
         await File.WriteAllTextAsync(Path.Combine(folder, "seed.env"), env);
