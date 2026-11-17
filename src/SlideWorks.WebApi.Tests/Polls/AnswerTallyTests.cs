@@ -17,7 +17,7 @@ namespace SlideWorks.WebApi.Tests.Polls;
 
 // The batching answer writer against the real tally (PollTallies), not the fake: a round the tally has never seen is
 // loaded from its rows before the writer's group writes any, so every answer is counted once, whether a whole group lands
-// on it at once or a read first touches it between the writer's commit and its ApplyAsync. Each test compares the tally
+// on it at once (queued on AnswerWriter directly, behind a held write lock) or a read first touches it between the writer's commit and its ApplyAsync. Each test compares the tally
 // with Final, which closing the round counts from the rows. The app's database is watched at the EF boundary: Saves counts
 // each save of a round's answers, and Transactions tells a test when the next transaction begins and runs a step right
 // after the next one commits. Guests go on the roster through IAudienceRoster, as JoinAudience does. Every test seeds decks,
@@ -29,9 +29,6 @@ public class AnswerTallyTests : PollTestFixture
     private const int GROUP = 50;
 
     private static readonly TimeSpan WAIT = TimeSpan.FromSeconds(30);
-
-    // Long enough for GROUP queued answers to pass their checks in memory over the test server.
-    private static readonly TimeSpan QUEUE_TIME = TimeSpan.FromSeconds(1);
 
     private readonly SaveWatch _saves = new();
     private readonly TransactionWatch _transactions = new();
@@ -49,34 +46,31 @@ public class AnswerTallyTests : PollTestFixture
     {
         var blocking = await SeedPollAsync();
         var blockingRound = await Rows.RoundAsync(blocking.SlideId, blocking.SessionId);
-        var blocker = (await SeatGuestsAsync(blocking, 1))[0];
         var poll = await SeedPollAsync();
         var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
-        var guests = await SeatGuestsAsync(poll, GROUP);
-        using var http = GuestHttp();
+        var writer = Factory.Services.GetRequiredService<AnswerWriter>();
 
-        // Hold SQLite's write lock while the writer is on another round's group, so this round's answers all queue behind it
-        // and go in one group.
-        Task<HttpResponseMessage> first;
-        List<Task<HttpResponseMessage>> answers;
+        // Hold SQLite's write lock while the writer is on another round's group, and queue this round's answers behind it, so
+        // they all go in one group.
+        Task<MyAnswer?> first;
+        List<Task<MyAnswer?>> answers;
         await using (var scope = Factory.Services.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             await using var hold = await db.Database.BeginTransactionAsync();
             var writerBegins = _transactions.NextStart();
-            first = AnswerAsync(http, blocking.Code, blocker, new AnswerRequest(blockingRound.Id.ToString(), [0], 0));
+            first = writer.WriteAsync(RefOf(blocking, blockingRound), GuestCookie.NewId(), 0, [0]);
             await BoundedAsync(writerBegins);
-            answers = [.. guests.Select((guest, i) => AnswerAsync(http, poll.Code, guest, new AnswerRequest(round.Id.ToString(), [i % 3], 0)))];
-            await Task.Delay(QUEUE_TIME, CancellationToken.None);
+            answers = [.. Enumerable.Range(0, GROUP).Select(i => writer.WriteAsync(RefOf(poll, round), GuestCookie.NewId(), 0, [i % 3]))];
             await hold.RollbackAsync();
         }
-        (await BoundedAsync(first)).StatusCode.ShouldBe(HttpStatusCode.OK);
-        var responses = await BoundedAsync(Task.WhenAll(answers));
+        (await BoundedAsync(first)).ShouldNotBeNull();
+        var written = await BoundedAsync(Task.WhenAll(answers));
         var tally = await Tallies.ReadAsync(round.Id.ToString(), PollSeed.OPTIONS.Length);
         var final = await CloseInOneTransactionAsync(round.Id);
 
-        responses.ShouldAllBe(r => r.StatusCode == HttpStatusCode.OK);
-        _saves.SavesOf(round.Id).ShouldBeLessThan(GROUP, "the answers should have committed in groups of several");
+        written.ShouldAllBe(answer => answer != null && answer.Revision == 1);
+        _saves.SavesOf(round.Id).ShouldBe(1, "all of the round's answers should have committed in one group");
         final.Answered.ShouldBe(GROUP);
         tally.Answered.ShouldBe(final.Answered);
         tally.Counts.ShouldBe(final.Counts);
@@ -102,6 +96,9 @@ public class AnswerTallyTests : PollTestFixture
         tally.Counts.ShouldBe([0, 1, 0]);
         tally.Counts.ShouldBe(final.Counts);
     }
+
+    private static PollRoundRef RefOf(SeededPoll poll, PollRound round)
+        => new(poll.DeckId, poll.Slide, poll.SlideId, poll.SessionId.ToString(), round.Id.ToString(), PollSeed.OPTIONS.Length);
 
     // Guests on the live session's roster, each with an sw_guest id of its own.
     private async Task<List<string>> SeatGuestsAsync(SeededPoll poll, int count)

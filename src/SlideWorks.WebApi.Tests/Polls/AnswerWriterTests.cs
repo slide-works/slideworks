@@ -16,7 +16,8 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Polls;
 
-// The batching answer writer (V5, D16) under PUT /api/join/{code}/poll/answer: answers commit in groups, a round that
+// The batching answer writer (V5, D16), mostly under PUT /api/join/{code}/poll/answer: queued answers commit in groups of at
+// most MAX_GROUP, a round that
 // closes before an answer's group commits makes that answer stale and uncounted, a burst racing a close never counts an
 // answer it refused, and a group that fails to commit fails every waiter and applies nothing to the tally.
 //
@@ -56,17 +57,31 @@ public class AnswerWriterTests : PollTestFixture
     {
         var poll = await SeedPollAsync();
         var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
-        var guests = await SeatGuestsAsync(poll, BURST);
-        using var http = GuestHttp();
+        var target = new PollRoundRef(poll.DeckId, poll.Slide, poll.SlideId, poll.SessionId.ToString(), round.Id.ToString(), PollSeed.OPTIONS.Length);
+        var writer = Factory.Services.GetRequiredService<AnswerWriter>();
 
-        var responses = await BoundedAsync(Task.WhenAll(guests.Select((guest, i) => AnswerAsync(http, poll.Code, guest, new AnswerRequest(round.Id.ToString(), [i % 3], 0)))));
+        // Hold SQLite's write lock while the writer is on a first answer's group, queue the 500 behind it, then let go: the
+        // writer then finds all 500 queued at once, whatever the host's speed.
+        Task<MyAnswer?> held;
+        List<Task<MyAnswer?>> queued;
+        await using (var scope = Factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await using var hold = await db.Database.BeginTransactionAsync();
+            var writerBegins = _starts.NextStart();
+            held = writer.WriteAsync(target, GuestCookie.NewId(), 0, [0]);
+            await BoundedAsync(writerBegins);
+            queued = [.. Enumerable.Range(0, BURST).Select(i => writer.WriteAsync(target, GuestCookie.NewId(), 0, [i % 3]))];
+            await hold.RollbackAsync();
+        }
+        var results = await BoundedAsync(Task.WhenAll(queued.Prepend(held)));
         var closed = await CloseInOneTransactionAsync(round.Id);
 
-        await TestContext.Out.WriteLineAsync($"{BURST} answers committed in {_saves.SavesOf(round.Id)} transactions");
-        responses.ShouldAllBe(r => r.StatusCode == HttpStatusCode.OK);
-        closed.Answered.ShouldBe(BURST);
-        _saves.SavesOf(round.Id).ShouldBeLessThanOrEqualTo(BURST / 20, "500 answers should commit in a few groups, not one transaction each");
-        Tallies.Applied.Count(a => a.Round.RoundId == round.Id.ToString()).ShouldBe(BURST);
+        results.ShouldAllBe(written => written != null && written.Revision == 1);
+        closed.Answered.ShouldBe(BURST + 1);
+        // The held answer's group, then 500 in groups of at most MAX_GROUP: 200, 200 and 100.
+        _saves.SavesOf(round.Id).ShouldBe(1 + ((BURST + AnswerWriter.MAX_GROUP - 1) / AnswerWriter.MAX_GROUP));
+        Tallies.Applied.Count(a => a.Round.RoundId == round.Id.ToString()).ShouldBe(BURST + 1);
     }
 
     [Test]
@@ -149,8 +164,9 @@ public class AnswerWriterTests : PollTestFixture
             mixed += final.Answered > 0 && final.Answered < RACE_GUESTS ? 1 : 0;
         }
 
+        // How many closes landed mid-burst depends on the host's speed, so it is reported, not asserted: the assertions above
+        // hold for every round however it fell. Answer_WhenRoundClosesBeforeItsBatchCommits pins the mid-burst case down.
         await TestContext.Out.WriteLineAsync($"{RACE_ROUNDS} races of {RACE_GUESTS}: {accepted} accepted, {stale} stale, {mixed} closed mid-burst");
-        mixed.ShouldBeGreaterThanOrEqualTo(4, "closes should land in the middle of a burst");
     }
 
     [Test]
