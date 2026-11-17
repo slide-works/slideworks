@@ -113,13 +113,13 @@ export function GuestFollowing({
         <div className="min-w-0 flex-1">
           <h1
             data-testid={GUEST_TEST_IDS.deckTitle}
-            className="truncate font-head text-lg font-bold"
+            className="truncate font-head text-[13px] leading-tight font-bold"
           >
             {view.deckTitle}
           </h1>
           <p
             data-testid={GUEST_TEST_IDS.presenter}
-            className="truncate text-sm text-(--sw-night-muted)"
+            className="truncate text-[11px] text-(--sw-night-muted)"
           >
             {view.presenterName}
           </p>

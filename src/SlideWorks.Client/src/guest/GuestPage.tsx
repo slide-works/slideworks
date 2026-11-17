@@ -19,28 +19,40 @@ type Load =
 export function GuestPage() {
   const { code = '' } = useParams();
   const [result, setResult] = useState<{ code: string; load: Load } | null>(null);
-  const [attempt, setAttempt] = useState(0);
+  const [attempt, setAttempt] = useState({ code, n: 0 });
+  const retries = attempt.code === code ? attempt.n : 0;
   const load: Load = result?.code === code ? result.load : { kind: 'loading' };
+
+  // One read of the view. Only the first read for a code, from the keypad path, may end on the keypad's "wait a minute"
+  // message: a retry that is rate limited leaves the screen as it is (the offline screen keeps backing off).
+  const read = useCallback(
+    (isRetry: boolean, live: () => boolean) => {
+      const show = (next: Load) => live() && setResult({ code, load: next });
+      return api.get<GuestView>(`/api/join/${encodeURIComponent(code)}`).then(
+        (view) => show({ kind: 'loaded', view }),
+        (error: unknown) => {
+          if (error instanceof ApiError && error.message === NO_SESSION)
+            show({ kind: 'rejected', error: NO_SESSION });
+          else if (error instanceof ApiError && error.message === TOO_MANY_ATTEMPTS) {
+            if (!isRetry) show({ kind: 'rejected', error: TOO_MANY_ATTEMPTS });
+          } else show({ kind: 'failed' });
+        },
+      );
+    },
+    [code],
+  );
 
   useEffect(() => {
     let current = true;
-    const show = (next: Load) => current && setResult({ code, load: next });
-    api.get<GuestView>(`/api/join/${encodeURIComponent(code)}`).then(
-      (view) => show({ kind: 'loaded', view }),
-      (error: unknown) => {
-        if (error instanceof ApiError && error.message === NO_SESSION)
-          show({ kind: 'rejected', error: NO_SESSION });
-        else if (error instanceof ApiError && error.message === TOO_MANY_ATTEMPTS)
-          show({ kind: 'rejected', error: TOO_MANY_ATTEMPTS });
-        else show({ kind: 'failed' });
-      },
-    );
+    void read(retries > 0, () => current);
     return () => {
       current = false;
     };
-  }, [code, attempt]);
+  }, [read, retries]);
 
-  const retry = useCallback(() => setAttempt((n) => n + 1), []);
+  const retry = useCallback(() => setAttempt({ code, n: retries + 1 }), [code, retries]);
+  // The offline screen's own retries read here, so it can wait for each one to settle before the next.
+  const retryOffline = useCallback(() => read(true, () => true), [read]);
 
   return (
     <div data-testid={GUEST_TEST_IDS.page}>
@@ -48,7 +60,7 @@ export function GuestPage() {
       {load.kind === 'rejected' && <JoinCodePage code={code} error={load.error} />}
       {load.kind === 'failed' && (
         <GuestShell>
-          <GuestOffline onRetry={retry} />
+          <GuestOffline onRetry={retryOffline} />
         </GuestShell>
       )}
       {load.kind === 'loaded' && <GuestLive code={code} view={load.view} onRetry={retry} />}

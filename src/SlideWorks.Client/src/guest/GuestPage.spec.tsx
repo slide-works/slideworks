@@ -24,6 +24,7 @@ test('live → "you\'re in", then the slide mirror with the waiting card', async
 });
 
 test('lobby → the lobby', async ({ mount, page }) => {
+  await stubDeckHub(page, { audience: { state: guestView('lobby').state } });
   await stubApi(page, { [joinPath]: { json: guestView('lobby') } });
   await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
   await expect(page.getByTestId(GUEST_TEST_IDS.lobby)).toBeVisible();
@@ -34,6 +35,7 @@ test('ended → the thank-you, with the slides link when the deck is shared', as
   mount,
   page,
 }) => {
+  await stubDeckHub(page, { audience: { state: guestView('ended').state } });
   await stubApi(page, { [joinPath]: { json: guestView('ended') } });
   await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
   await expect(page.getByTestId(GUEST_TEST_IDS.ended)).toBeVisible();
@@ -57,7 +59,35 @@ test('a failed read says the phone cannot reach the talk', async ({ mount, page 
   await expect(page.getByTestId(GUEST_TEST_IDS.offlineRetry)).toBeVisible();
 });
 
+test('a rate-limited retry on the offline screen keeps the offline screen, not the keypad', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { [joinPath]: { status: 500, json: { error: 'boom' } } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/482913' } });
+  await expect(page.getByTestId(GUEST_TEST_IDS.offline)).toBeVisible();
+
+  await page.route('**/api/join/482913', (route) =>
+    route.fulfill({ status: 429, json: { error: 'too_many_attempts' } }),
+  );
+  const answered = page.waitForResponse('**/api/join/482913');
+  await page.getByTestId(GUEST_TEST_IDS.offlineRetry).click();
+  expect((await answered).status()).toBe(429);
+  await expect(page.getByTestId(GUEST_TEST_IDS.offline)).toBeVisible();
+  await expect(page.getByTestId(JOIN_CODE_TEST_IDS.page)).toHaveCount(0);
+});
+
+test('a rate-limited first read still shows the keypad message', async ({ mount, page }) => {
+  await stubApi(page, {
+    [joinPath]: { status: 429, json: { error: 'too_many_attempts' } },
+  });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/482913' } });
+  await expect(page.getByTestId(JOIN_CODE_TEST_IDS.page)).toBeVisible();
+  await expect(page.getByTestId(GUEST_TEST_IDS.offline)).toHaveCount(0);
+});
+
 test('/482913 mounts the guest page without a sign-in', async ({ mount, page }) => {
+  await stubDeckHub(page, { audience: { state: guestView('lobby').state } });
   await stubApi(page, {
     '/api/me': { status: 401, json: { error: 'Not signed in' } },
     [joinPath]: { json: guestView('lobby') },
