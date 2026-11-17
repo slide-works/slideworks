@@ -43,7 +43,7 @@ public class LookRecordShapeTests : ApiTestFixture
             DeepDive = slide.GetProperty("deepDive").GetBoolean(),
         });
 
-        var json = Serialise(DeckPlayView.From(deck, slides, example.GetProperty("look").Deserialize<LookView>(AppJsonOptions())!, example.GetProperty("join").Deserialize<JoinView>(AppJsonOptions())!));
+        var json = Serialise(DeckPlayView.From(deck, slides, example.GetProperty("look").Deserialize<LookView>(AppJsonOptions())!, example.GetProperty("join").Deserialize<JoinView>(AppJsonOptions())!, example.GetProperty("isOwner").GetBoolean()));
 
         JsonShape.AssertMatches(json, "deck-play.json", ScreenShapes.DeckPlay);
         SameJson(json, example).ShouldBeTrue(Differs(json, example));

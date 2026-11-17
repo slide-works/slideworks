@@ -132,6 +132,8 @@ export type DeckPlayView = {
   parts: string[];
   look: LookView;
   join: JoinView;
+  // True only for the signed-in person who owns the deck; the player asks the live session only when it is true.
+  isOwner: boolean;
   slides: DeckPlaySlide[];
 };
 

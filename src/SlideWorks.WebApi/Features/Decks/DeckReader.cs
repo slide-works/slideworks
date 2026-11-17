@@ -33,7 +33,7 @@ public class DeckReader(
         {
             throw new NotFoundException(NOT_FOUND);
         }
-        return await PlayAsync(await LoadDeckAsync(deckId));
+        return await PlayAsync(await LoadDeckAsync(deckId), await access.CanPresentAsync(deckId, actor));
     }
 
     // For the render API (behind a render token) and the card cache only (L9): the play view with the deck's revision
@@ -41,7 +41,7 @@ public class DeckReader(
     public async Task<DeckForRender> ReadForRenderAsync(string deckId)
     {
         var deck = await db.Decks.AsNoTracking().SingleOrDefaultAsync(d => d.Id == deckId) ?? throw new NotFoundException(NOT_FOUND);
-        return new DeckForRender(await PlayAsync(deck), deck.Subtitle, deck.Revision, deck.Sharing);
+        return new DeckForRender(await PlayAsync(deck, isOwner: false), deck.Subtitle, deck.Revision, deck.Sharing);
     }
 
     // Only the owner, or an agent acting for the owner: the slides carry notes and revisions.
@@ -55,8 +55,8 @@ public class DeckReader(
         return GetDeckResult.From(deck, await LiveSlidesAsync(deckId), urls.Deck(deck.Id, deck.Slug));
     }
 
-    private async Task<DeckPlayView> PlayAsync(Deck deck)
-        => DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), LookViews.From(deck, templates, palettes), await joinViews.ForAsync(deck));
+    private async Task<DeckPlayView> PlayAsync(Deck deck, bool isOwner)
+        => DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), LookViews.From(deck, templates, palettes), await joinViews.ForAsync(deck), isOwner);
 
     private Task<Deck> LoadDeckAsync(string deckId) => db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);
 

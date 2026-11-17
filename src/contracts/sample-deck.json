@@ -112,6 +112,7 @@
     "hostLabel": "slideworks.live",
     "live": false
   },
+  "isOwner": false,
   "slides": [
     {
       "number": 1,

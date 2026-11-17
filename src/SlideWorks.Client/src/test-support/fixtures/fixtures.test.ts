@@ -158,6 +158,7 @@ const DECK_PLAY = keys<DeckPlayView>({
   parts: true,
   look: true,
   join: true,
+  isOwner: true,
   slides: true,
 });
 const JOIN = keys<JoinView>({

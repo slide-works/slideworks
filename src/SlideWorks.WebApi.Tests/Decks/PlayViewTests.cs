@@ -5,6 +5,7 @@ using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Tests.Dtos;
 using SlideWorks.WebApi.Tests.Images;
 using SlideWorks.WebApi.Tests.Mcp;
+using SlideWorks.WebApi.Tests.Sharing;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Decks;
@@ -100,5 +101,52 @@ public class PlayViewTests : ApiTestFixture
         (await signedIn.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe("Deck not found");
         signedOut.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await signedOut.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe("Deck not found");
+    }
+
+    [Test]
+    public async Task Get_WhenOwner_ShouldSayIsOwner()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+
+        var play = await Client.GetFromJsonAsync<JsonElement>($"/api/play/{deck}");
+
+        play.GetProperty("isOwner").GetBoolean().ShouldBeTrue();
+    }
+
+    [Test]
+    public async Task Get_WhenNamedViewer_ShouldNotSayIsOwner()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        await SharingApi.PutOkAsync(Client, deck, "named", TestUser.Alex.Email);
+        using var alex = ClientFor(TestUser.Alex);
+
+        var play = await alex.GetFromJsonAsync<JsonElement>($"/api/play/{deck}");
+
+        play.GetProperty("isOwner").GetBoolean().ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task Get_WhenAnonymousLinkViewer_ShouldNotSayIsOwner()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        await SharingApi.PutOkAsync(Client, deck, "link");
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        var play = await anonymous.GetFromJsonAsync<JsonElement>($"/api/play/{deck}");
+
+        play.GetProperty("isOwner").GetBoolean().ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task Get_WhenPendingNamedViewer_ShouldNotSayIsOwner()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        var pendingUser = TestUser.NewPending();
+        await SharingApi.PutOkAsync(Client, deck, "named", pendingUser.Email);
+        using var pending = ClientFor(pendingUser);
+
+        var play = await pending.GetFromJsonAsync<JsonElement>($"/api/play/{deck}");
+
+        play.GetProperty("isOwner").GetBoolean().ShouldBeFalse();
     }
 }
