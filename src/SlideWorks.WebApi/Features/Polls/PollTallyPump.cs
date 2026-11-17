@@ -1,5 +1,6 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
+using SlideWorks.Core.Polls;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Polls.Contracts;
 
@@ -101,12 +102,13 @@ public sealed class PollTallyPump(
     }
 
     // Marks the slide dirty. A deck with an open window is published when that window's half second passes; a deck with
-    // none is published at once, on the thread pool rather than inside the writer's call.
+    // none is published at once, on the thread pool rather than inside the writer's call. A Q&A round's change is not a
+    // poll's: SW-9's own pump publishes it, so it is left alone here.
     private Task OnChangedAsync(PollRoundRef round)
     {
         lock (_gate)
         {
-            if (_stopped)
+            if (_stopped || round.Kind != PollKind.Slide)
             {
                 return Task.CompletedTask;
             }

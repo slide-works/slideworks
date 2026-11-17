@@ -17,6 +17,11 @@ namespace SlideWorks.WebApi.Features.Polls;
 // unknown id is answered from the rows on each touch and not kept, so reads of those never grow memory. A round that has
 // been kept but not touched for a while is dropped once its row says it has closed; that check runs at most once per
 // interval, on the next load. A singleton: each load opens a scope of its own for the database.
+//
+// A Q&A round (SW-9 Q3) is counted the same way: its options are its PollOption rows, one per question, and a guest's
+// upvotes are its answer's picks. The counters are sized by the picks they have seen and grow when a vote lands past the
+// end; a reader passes the round's current PollOption count as optionCount, and a question added since the last vote reads
+// as zero. So no read queries the options, and after a restart the round rebuilds from its answer rows like a slide round.
 [RegisterSingleton(For = typeof(IPollTallies))]
 public sealed class PollTallies(IServiceScopeFactory scopes, TimeProvider time, ILogger<PollTallies> logger) : IPollTallies
 {
