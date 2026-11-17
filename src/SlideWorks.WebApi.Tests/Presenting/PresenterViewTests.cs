@@ -52,6 +52,21 @@ public class PresenterViewTests : ApiTestFixture
         Headlines(presenter).ShouldBe(Headlines(page));
     }
 
+    // The join slide in the presenter window and on the phone shows the deck's code and whether it is live.
+    [Test]
+    public async Task GetPresenter_WhenDeckIsLive_ShouldCarryTheJoinAsLive()
+    {
+        var deck = await OwnDeckAsync();
+        var before = await Client.GetFromJsonAsync<JsonElement>($"/api/decks/{deck}/presenter");
+        (await Client.PostAsync($"/api/decks/{deck}/live", null)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var after = await Client.GetFromJsonAsync<JsonElement>($"/api/decks/{deck}/presenter");
+
+        before.GetProperty("join").GetProperty("live").GetBoolean().ShouldBeFalse();
+        after.GetProperty("join").GetProperty("live").GetBoolean().ShouldBeTrue();
+        after.GetProperty("join").GetProperty("code").GetString().ShouldBe(before.GetProperty("join").GetProperty("code").GetString());
+    }
+
     [Test]
     public async Task GetPresenter_WhenLinkViewer_ShouldReturn404()
     {

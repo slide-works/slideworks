@@ -102,6 +102,13 @@
     "footerDateLabel": "16 Nov 2026",
     "joinBar": false
   },
+  "join": {
+    "code": "482913",
+    "codeLabel": "482 913",
+    "joinUrl": "https://slideworks.live/482913",
+    "hostLabel": "slideworks.live",
+    "live": false
+  },
   "slides": [
     {
       "number": 1,

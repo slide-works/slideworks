@@ -405,3 +405,30 @@ test('speaker mode screenshot at phone size', async ({ mount, page }) => {
   await live(page);
   await expect(page.getByTestId('speaker-page')).toHaveScreenshot('speaker-mode.png');
 });
+
+test('a failed re-read after the deck goes live or ends shows a message, and the next one clears it', async ({
+  mount,
+  page,
+}) => {
+  let failing = false;
+  await stubApi(page, { '/api/me': { json: me } });
+  await page.route(`**${presenterPath}`, (r) =>
+    failing ? r.fulfill({ status: 500, json: { error: 'boom' } }) : r.fulfill({ json: view }),
+  );
+  const hub = await stubDeckHub(page, { presentation: { state: paused() } });
+  await mount(<AppRoutes />, route);
+  await live(page);
+  await expect(page.getByTestId('speaker-error')).toHaveCount(0);
+
+  failing = true;
+  hub.push({ type: 'liveChanged', deckId });
+
+  await expect(page.getByTestId('speaker-error')).toHaveText(
+    "Couldn't load the deck's latest changes.",
+  );
+  await expect(page.getByTestId('speaker-count')).toHaveText('8 / 16');
+
+  failing = false;
+  hub.push({ type: 'liveChanged', deckId });
+  await expect(page.getByTestId('speaker-error')).toHaveCount(0);
+});

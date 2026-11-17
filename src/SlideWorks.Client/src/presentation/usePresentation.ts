@@ -47,7 +47,7 @@ type Clock = { minutes: number; at: number };
 let pageClientId: string | undefined;
 
 // One random id per page load (P1). crypto.randomUUID is missing on plain HTTP, so fall back to 16 random bytes.
-function clientId(): string {
+export function clientId(): string {
   if (pageClientId === undefined) {
     pageClientId =
       typeof crypto.randomUUID === 'function'

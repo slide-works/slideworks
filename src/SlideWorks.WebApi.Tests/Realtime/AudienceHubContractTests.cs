@@ -158,7 +158,16 @@ public class AudienceHubContractTests : ApiTestFixture
         await Bus.PublishAsync(State(probeDeck, 10, AudiencePhase.Live));
 
         refused.Message.ShouldContain("no_session", Case.Sensitive);
-        (await guest.NextAudienceAsync()).GetProperty("seq").GetInt64().ShouldBe(10);
+        // The real feed may publish a state for the probe deck first, so read up to the marker and check the refused deck's
+        // event is not among what came before it.
+        var seen = new List<long>();
+        long seq;
+        do
+        {
+            seq = (await guest.NextAudienceAsync()).GetProperty("seq").GetInt64();
+            seen.Add(seq);
+        } while (seq != 10);
+        seen.ShouldNotContain(9);
         Roster.Joins.ShouldNotContain(join => join.Deck == deck);
         // The owner watches the deck: a joinedCount it got would be the refused join's.
         await Bus.PublishAsync(new JoinedCount(deck, 77));
@@ -177,7 +186,14 @@ public class AudienceHubContractTests : ApiTestFixture
         await Bus.PublishAsync(State(deck, 9, AudiencePhase.Live));
         await Bus.PublishAsync(State(probeDeck, 10, AudiencePhase.Live));
 
-        (await guest.NextAudienceAsync()).GetProperty("seq").GetInt64().ShouldBe(10);
+        var seen = new List<long>();
+        long seq;
+        do
+        {
+            seq = (await guest.NextAudienceAsync()).GetProperty("seq").GetInt64();
+            seen.Add(seq);
+        } while (seq != 10);
+        seen.ShouldNotContain(9);
         Roster.Joins.ShouldNotContain(join => join.Deck == deck);
     }
 
@@ -190,7 +206,14 @@ public class AudienceHubContractTests : ApiTestFixture
         await Should.ThrowAsync<HubException>(() => guest.Connection.InvokeAsync<JsonElement>("JoinAudience", "999997"));
         await Bus.PublishAsync(State(probeDeck, 10, AudiencePhase.Live));
 
-        (await guest.NextAudienceAsync()).GetProperty("seq").GetInt64().ShouldBe(10);
+        var seen = new List<long>();
+        long seq;
+        do
+        {
+            seq = (await guest.NextAudienceAsync()).GetProperty("seq").GetInt64();
+            seen.Add(seq);
+        } while (seq != 10);
+        seen.ShouldContain(10);
     }
 
     [Test]
@@ -325,7 +348,17 @@ public class AudienceHubContractTests : ApiTestFixture
 
         var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
         await Bus.PublishAsync(State(deck, 42, AudiencePhase.Live));
-        return (joined, await guest.NextAudienceAsync());
+        return (joined, await NextStateWithSeqAsync(guest, 42));
+    }
+
+    // The next audience message whose seq is the given one. The real AudienceFeed still listens to deck events, so a state it
+    // publishes for the deck can arrive before the bus event the test published; the messages before it are skipped.
+    private static async Task<JsonElement> NextStateWithSeqAsync(GuestClient guest, long seq)
+    {
+        JsonElement message;
+        do message = await guest.NextAudienceAsync();
+        while (message.GetProperty("seq").GetInt64() != seq);
+        return message;
     }
 
     private static AudienceState State(string deck, long seq, AudiencePhase phase)

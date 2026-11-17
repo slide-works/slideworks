@@ -1,4 +1,5 @@
 using SlideWorks.WebApi.Features.Decks;
+using SlideWorks.WebApi.Features.Join.Views;
 using SlideWorks.WebApi.Features.Look.Views;
 using SlideWorks.WebApi.Features.Slides;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -15,12 +16,13 @@ public sealed record PresenterView(
     string? Author,
     IReadOnlyList<string> Parts,
     LookView Look,
+    JoinView Join,
     IReadOnlyList<PresenterSlide> Slides,
     int? TalkMinutes,
     string AudienceUrl,
     string RemoteUrl)
 {
-    public static PresenterView From(Deck deck, IEnumerable<Slide> slides, LookView look, IPublicUrls urls)
+    public static PresenterView From(Deck deck, IEnumerable<Slide> slides, LookView look, JoinView join, IPublicUrls urls)
         => new(
             deck.Id,
             deck.Slug,
@@ -28,6 +30,7 @@ public sealed record PresenterView(
             deck.Author,
             DeckParts.Read(deck),
             look,
+            join,
             slides.Select(PresenterSlide.From).ToList(),
             deck.TalkMinutes,
             $"{urls.Deck(deck.Id, deck.Slug)}?present",
