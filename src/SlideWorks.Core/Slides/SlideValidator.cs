@@ -6,27 +6,52 @@ namespace SlideWorks.Core.Slides;
 // match its schema.
 public static class SlideValidator
 {
+    private const string NOT_UTF16 = "text is not valid UTF-16";
+
     public static SlideValidationResult Validate(string layout, JsonElement slots)
     {
-        var validation = new SlotValidation();
         var definition = LayoutCatalogue.Find(layout);
+        if (definition is not null)
+        {
+            return Validate(definition, slots, FitWidths.Default);
+        }
+
+        var validation = new SlotValidation();
+        if (!IsValidUtf16(slots))
+        {
+            validation.Fail("slots", NOT_UTF16);
+        }
+        else
+        {
+            validation.Fail("layout", $"unknown layout '{EchoText.Of(layout ?? "")}' (known: {string.Join(", ", LayoutCatalogue.LayoutNames)})");
+        }
+
+        return Result(validation);
+    }
+
+    // The same check for a layout already found, with the glyph widths of the deck's fonts. The
+    // surface is the slide's own: "light", "dark" or null.
+    public static SlideValidationResult Validate(LayoutDefinition definition, JsonElement slots, FitWidths widths, string? surface = null)
+    {
+        // TODO: the surface is not checked against the layout yet.
+        _ = surface;
+        var validation = new SlotValidation { Widths = widths };
         if (!IsValidUtf16(slots))
         {
             // Reading a lone surrogate (half an emoji, such as an escaped "\ud83d") as a .NET string throws, so the
             // schema walk would never return. Refuse the whole slide before it starts.
-            validation.Fail("slots", "text is not valid UTF-16");
-        }
-        else if (definition is null)
-        {
-            validation.Fail("layout", $"unknown layout '{EchoText.Of(layout ?? "")}' (known: {string.Join(", ", LayoutCatalogue.LayoutNames)})");
+            validation.Fail("slots", NOT_UTF16);
         }
         else
         {
             definition.Validate(slots, validation);
         }
 
-        return new SlideValidationResult(validation.Errors.ToArray(), validation.ErrorCount == 0 ? validation.ImageIds.ToArray() : []);
+        return Result(validation);
     }
+
+    private static SlideValidationResult Result(SlotValidation validation) =>
+        new(validation.Errors.ToArray(), validation.ErrorCount == 0 ? validation.ImageIds.ToArray() : []);
 
     // True when every property name and string value in the slots decodes to valid UTF-16.
     private static bool IsValidUtf16(JsonElement element)
