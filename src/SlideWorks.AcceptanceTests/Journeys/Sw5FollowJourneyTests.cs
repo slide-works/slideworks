@@ -59,19 +59,26 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         await Expect(player.LiveChip.Count).ToHaveTextAsync("2 joined");
         await Expect(player.JoinCount(1)).ToHaveTextAsync("2 joined");
 
+        // The player renders the presentation's answer and moves from it, so each key waits for the player to show the move
+        // before the next, and the phones are checked after.
         await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(player.Count).ToHaveTextAsync($"2 / {SLIDES}");
         await Expect(first.Slide).ToHaveAttributeAsync("data-slide", "2");
         await Expect(first.Slide).ToHaveAttributeAsync("data-step", "0");
         await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(player.RevealedBullets(2)).ToHaveCountAsync(1);
         await Expect(first.Slide).ToHaveAttributeAsync("data-step", "1");
         await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(player.RevealedBullets(2)).ToHaveCountAsync(2);
         await Expect(first.Slide).ToHaveAttributeAsync("data-step", "2");
         await Expect(second.Slide).ToHaveAttributeAsync("data-slide", "2");
         await Expect(second.Slide).ToHaveAttributeAsync("data-step", "2");
         await Expect(second.Progress).ToHaveTextAsync($"2 / {SLIDES}");
         await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(player.RevealedBullets(2)).ToHaveCountAsync(3);
         await Expect(first.Slide).ToHaveAttributeAsync("data-step", "3");
         await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(player.Count).ToHaveTextAsync($"3 / {SLIDES}");
         await Expect(first.Slide).ToHaveAttributeAsync("data-slide", "3");
         await Expect(first.Slide).ToHaveAttributeAsync("data-step", "0");
         await Expect(first.Progress).ToHaveTextAsync($"3 / {SLIDES}");
