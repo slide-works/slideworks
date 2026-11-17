@@ -1,0 +1,533 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://slideworks.app/contracts/template-manifest.schema.json",
+  "title": "SlideWorks template manifest (template.json)",
+  "description": "A custom template: structure, type, shape, fonts, logos, title art, ornament, an optional palette and custom layouts. A file field holds the asset id of an uploaded file in a stored manifest and on the wire, and a path in the zip inside a bundle. Limits on counts and sizes are checked when files are uploaded and when the template is saved, not here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "label",
+    "purpose",
+    "basedOn",
+    "layouts",
+    "chrome",
+    "outline",
+    "houseStyle",
+    "type",
+    "shape",
+    "fonts",
+    "logos",
+    "titleArt",
+    "ornament",
+    "lockPalette",
+    "customLayouts"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]{1,40}$",
+      "maxLength": 40,
+      "description": "The short name, shown to people and agents. Not unique and never an address."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "basedOn": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The name of the built-in template this one started from."
+    },
+    "layouts": {
+      "type": "array",
+      "description": "The layouts a deck on this template is offered.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "chrome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tracker",
+        "footer",
+        "progress",
+        "deepDivesOnDivider",
+        "draft",
+        "topBar"
+      ],
+      "properties": {
+        "tracker": {
+          "type": "boolean"
+        },
+        "footer": {
+          "type": "string",
+          "enum": [
+            "author",
+            "date",
+            "off"
+          ]
+        },
+        "progress": {
+          "type": "boolean"
+        },
+        "deepDivesOnDivider": {
+          "type": "boolean"
+        },
+        "draft": {
+          "type": "boolean"
+        },
+        "topBar": {
+          "type": "string",
+          "enum": [
+            "none",
+            "accent"
+          ],
+          "description": "An 8 px accent bar across the top of every slide."
+        }
+      }
+    },
+    "outline": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "houseStyle": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "type": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "head",
+        "body",
+        "headWeight",
+        "headTracking"
+      ],
+      "properties": {
+        "head": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The heading font family name."
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The body font family name."
+        },
+        "headWeight": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 900
+        },
+        "headTracking": {
+          "type": "string",
+          "description": "The heading letter spacing, such as -0.025em."
+        }
+      }
+    },
+    "shape": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "radius",
+        "shadow"
+      ],
+      "properties": {
+        "radius": {
+          "type": "object",
+          "description": "Corner radii in px.",
+          "additionalProperties": false,
+          "required": [
+            "sm",
+            "md",
+            "lg",
+            "xl"
+          ],
+          "properties": {
+            "sm": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "md": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "lg": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "xl": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "shadow": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "The card shadow: none, or a comma-separated list of shadows, each two to four lengths (a number with px, or 0) and one rgb() colour, such as 0 1px 2px rgb(15 23 42 / 0.06). Any other function is refused."
+        }
+      }
+    },
+    "fonts": {
+      "type": "array",
+      "description": "The uploaded woff2 files. The right to serve a font is kept on the stored file, not here.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "family",
+          "file",
+          "weight",
+          "style"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "head",
+              "body",
+              "mono"
+            ],
+            "description": "mono is the monospace font of custom layouts; it has no other key in the manifest."
+          },
+          "family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "file": {
+            "$ref": "#/$defs/file"
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 900
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "italic"
+            ]
+          }
+        }
+      }
+    },
+    "logos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "showOnDark"
+      ],
+      "properties": {
+        "light": {
+          "$ref": "#/$defs/file"
+        },
+        "dark": {
+          "$ref": "#/$defs/file"
+        },
+        "showOnDark": {
+          "type": "boolean",
+          "description": "Draw the dark logo in the corner of title, divider and close slides."
+        }
+      }
+    },
+    "titleArt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "none",
+            "generator",
+            "image"
+          ]
+        },
+        "generator": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The name of a built-in generator, when kind is generator."
+        },
+        "file": {
+          "$ref": "#/$defs/file"
+        }
+      }
+    },
+    "ornament": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dots"
+      ],
+      "properties": {
+        "dots": {
+          "type": "array",
+          "description": "Palette token names, one per dot.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "palette": {
+      "type": "object",
+      "description": "The palette the template brings: every token as # plus 6 hex digits.",
+      "additionalProperties": false,
+      "required": [
+        "paper",
+        "card",
+        "chip",
+        "grid",
+        "ink",
+        "muted",
+        "accent",
+        "accent-2",
+        "accent-dark",
+        "accent-light",
+        "accent-glow",
+        "accent-past",
+        "on-accent",
+        "good",
+        "good-soft",
+        "good-ink",
+        "bad",
+        "bad-soft",
+        "bad-ink",
+        "warn",
+        "warn-soft",
+        "warn-ink",
+        "dd",
+        "on-dd",
+        "dd-on-night",
+        "night",
+        "night-ink",
+        "night-2",
+        "night-muted",
+        "night-line",
+        "night-glow",
+        "number-from",
+        "number-to",
+        "stamp",
+        "panel-accent",
+        "panel-accent-ink",
+        "panel-positive",
+        "panel-positive-ink",
+        "panel-negative",
+        "panel-negative-ink",
+        "panel-inverse",
+        "panel-inverse-ink"
+      ],
+      "properties": {
+        "paper": {
+          "$ref": "#/$defs/hex"
+        },
+        "card": {
+          "$ref": "#/$defs/hex"
+        },
+        "chip": {
+          "$ref": "#/$defs/hex"
+        },
+        "grid": {
+          "$ref": "#/$defs/hex"
+        },
+        "ink": {
+          "$ref": "#/$defs/hex"
+        },
+        "muted": {
+          "$ref": "#/$defs/hex"
+        },
+        "accent": {
+          "$ref": "#/$defs/hex"
+        },
+        "accent-2": {
+          "$ref": "#/$defs/hex"
+        },
+        "accent-dark": {
+          "$ref": "#/$defs/hex"
+        },
+        "accent-light": {
+          "$ref": "#/$defs/hex"
+        },
+        "accent-glow": {
+          "$ref": "#/$defs/hex"
+        },
+        "accent-past": {
+          "$ref": "#/$defs/hex"
+        },
+        "on-accent": {
+          "$ref": "#/$defs/hex"
+        },
+        "good": {
+          "$ref": "#/$defs/hex"
+        },
+        "good-soft": {
+          "$ref": "#/$defs/hex"
+        },
+        "good-ink": {
+          "$ref": "#/$defs/hex"
+        },
+        "bad": {
+          "$ref": "#/$defs/hex"
+        },
+        "bad-soft": {
+          "$ref": "#/$defs/hex"
+        },
+        "bad-ink": {
+          "$ref": "#/$defs/hex"
+        },
+        "warn": {
+          "$ref": "#/$defs/hex"
+        },
+        "warn-soft": {
+          "$ref": "#/$defs/hex"
+        },
+        "warn-ink": {
+          "$ref": "#/$defs/hex"
+        },
+        "dd": {
+          "$ref": "#/$defs/hex"
+        },
+        "on-dd": {
+          "$ref": "#/$defs/hex"
+        },
+        "dd-on-night": {
+          "$ref": "#/$defs/hex"
+        },
+        "night": {
+          "$ref": "#/$defs/hex"
+        },
+        "night-ink": {
+          "$ref": "#/$defs/hex"
+        },
+        "night-2": {
+          "$ref": "#/$defs/hex"
+        },
+        "night-muted": {
+          "$ref": "#/$defs/hex"
+        },
+        "night-line": {
+          "$ref": "#/$defs/hex"
+        },
+        "night-glow": {
+          "$ref": "#/$defs/hex"
+        },
+        "number-from": {
+          "$ref": "#/$defs/hex"
+        },
+        "number-to": {
+          "$ref": "#/$defs/hex"
+        },
+        "stamp": {
+          "$ref": "#/$defs/hex"
+        },
+        "panel-accent": {
+          "$ref": "#/$defs/hex"
+        },
+        "panel-accent-ink": {
+          "$ref": "#/$defs/hex"
+        },
+        "panel-positive": {
+          "$ref": "#/$defs/hex"
+        },
+        "panel-positive-ink": {
+          "$ref": "#/$defs/hex"
+        },
+        "panel-negative": {
+          "$ref": "#/$defs/hex"
+        },
+        "panel-negative-ink": {
+          "$ref": "#/$defs/hex"
+        },
+        "panel-inverse": {
+          "$ref": "#/$defs/hex"
+        },
+        "panel-inverse-ink": {
+          "$ref": "#/$defs/hex"
+        },
+        "extras": {
+          "type": "array",
+          "description": "Up to four extra named colours, for ornament and custom layouts only. ink is the text colour on it.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "colour",
+              "ink"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "enum": [
+                  "extra-1",
+                  "extra-2",
+                  "extra-3",
+                  "extra-4"
+                ]
+              },
+              "colour": {
+                "$ref": "#/$defs/hex"
+              },
+              "ink": {
+                "$ref": "#/$defs/hex"
+              }
+            }
+          }
+        }
+      }
+    },
+    "lockPalette": {
+      "type": "boolean",
+      "description": "A deck on this template always uses its palette."
+    },
+    "customLayouts": {
+      "type": "array",
+      "description": "Each custom layout and its uploaded document {markup, css, slots}. Inside a bundle file is the stem layouts/<name> of three files: .html, .css and .json.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "file"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "file": {
+            "$ref": "#/$defs/file"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "file": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "An asset id, or inside a bundle a relative path in the zip: no .. segment, no leading /, no backslash, no drive letter."
+    },
+    "hex": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    }
+  }
+}
