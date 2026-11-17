@@ -7,4 +7,5 @@ namespace SlideWorks.WebApi.Realtime;
 // Add an event as a record deriving from this one, with a [JsonDerivedType] line here and a case in deckEvents.ts.
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(DeckChanged), "deckChanged")]
+[JsonDerivedType(typeof(LiveChanged), "liveChanged")]
 public abstract record DeckEvent(string DeckId);

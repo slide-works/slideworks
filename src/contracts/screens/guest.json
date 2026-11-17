@@ -1,0 +1,355 @@
+{
+  "live": {
+    "deckTitle": "Ship smaller",
+    "presenterName": "Sam Rivera",
+    "look": {
+      "template": {
+        "name": "workshop",
+        "label": "Workshop",
+        "layouts": [
+          "title",
+          "divider",
+          "bullets",
+          "two-column",
+          "practice",
+          "compare",
+          "quote",
+          "image",
+          "table",
+          "numbered-cards",
+          "rules",
+          "cards",
+          "close"
+        ],
+        "chrome": {
+          "tracker": true,
+          "footer": "author",
+          "progress": true,
+          "deepDivesOnDivider": true,
+          "draft": true
+        },
+        "type": {
+          "head": "Plus Jakarta Sans",
+          "body": "Inter",
+          "headWeight": 800,
+          "headTracking": "-0.025em"
+        },
+        "shape": {
+          "radius": {
+            "sm": 10,
+            "md": 12,
+            "lg": 16,
+            "xl": 18
+          },
+          "shadow": "0 1px 2px rgb(15 23 42 / 0.06), 0 14px 36px rgb(15 23 42 / 0.09)"
+        },
+        "ornament": "dots",
+        "titleArt": "waves"
+      },
+      "palette": {
+        "name": "cobalt",
+        "label": "Cobalt",
+        "tokens": {
+          "paper": "#f7f8fa",
+          "card": "#ffffff",
+          "chip": "#eef1f6",
+          "grid": "#e3e6ec",
+          "ink": "#111827",
+          "muted": "#5b6474",
+          "accent": "#2f5bea",
+          "accent-dark": "#1e3a8a",
+          "accent-light": "#e4eafd",
+          "accent-glow": "#a5b8ff",
+          "accent-past": "#b9c8f8",
+          "on-accent": "#ffffff",
+          "good": "#16a34a",
+          "good-soft": "#dcfce7",
+          "good-ink": "#166534",
+          "bad": "#dc2626",
+          "bad-soft": "#fdecec",
+          "bad-ink": "#991b1b",
+          "warn": "#ea580c",
+          "warn-soft": "#ffedd5",
+          "warn-ink": "#9a3412",
+          "dd": "#c2410c",
+          "on-dd": "#ffffff",
+          "dd-on-night": "#fdba74",
+          "night": "#0b1020",
+          "night-ink": "#ffffff",
+          "night-2": "#cbd5e1",
+          "night-muted": "#8c97ad",
+          "night-line": "#334155",
+          "night-glow": "rgb(47 91 234)",
+          "number-from": "#c3d0ff",
+          "number-to": "#5b7cff",
+          "stamp": "#fcd34d",
+          "panel-accent": "#2f5bea",
+          "panel-accent-ink": "#ffffff",
+          "panel-positive": "#15803d",
+          "panel-positive-ink": "#ffffff",
+          "panel-negative": "#b91c1c",
+          "panel-negative-ink": "#ffffff",
+          "panel-inverse": "#0b1020",
+          "panel-inverse-ink": "#ffffff"
+        }
+      },
+      "logo": {
+        "url": "/api/images/img_logo0001"
+      },
+      "draft": true,
+      "footerDateLabel": "16 Nov 2026",
+      "joinBar": false
+    },
+    "deckUrl": "/d/7Kq2xYp9LmQa/ship-smaller",
+    "state": {
+      "type": "audienceState",
+      "seq": 42,
+      "phase": "live",
+      "current": {
+        "index": 3,
+        "count": 12,
+        "layout": "bullets",
+        "slots": {
+          "kicker": "Slice it",
+          "headline": "Slice by what a customer can do",
+          "items": [
+            "Start from one user action",
+            {
+              "lead": "Hard-code the second case.",
+              "text": "Generalise on the third."
+            },
+            "Ship behind a flag"
+          ],
+          "reveal": "one-by-one"
+        },
+        "steps": 3,
+        "step": 1,
+        "black": false
+      },
+      "revision": 7,
+      "activity": null
+    }
+  },
+  "lobby": {
+    "deckTitle": "Ship smaller",
+    "presenterName": "Sam Rivera",
+    "look": {
+      "template": {
+        "name": "workshop",
+        "label": "Workshop",
+        "layouts": [
+          "title",
+          "divider",
+          "bullets",
+          "two-column",
+          "practice",
+          "compare",
+          "quote",
+          "image",
+          "table",
+          "numbered-cards",
+          "rules",
+          "cards",
+          "close"
+        ],
+        "chrome": {
+          "tracker": true,
+          "footer": "author",
+          "progress": true,
+          "deepDivesOnDivider": true,
+          "draft": true
+        },
+        "type": {
+          "head": "Plus Jakarta Sans",
+          "body": "Inter",
+          "headWeight": 800,
+          "headTracking": "-0.025em"
+        },
+        "shape": {
+          "radius": {
+            "sm": 10,
+            "md": 12,
+            "lg": 16,
+            "xl": 18
+          },
+          "shadow": "0 1px 2px rgb(15 23 42 / 0.06), 0 14px 36px rgb(15 23 42 / 0.09)"
+        },
+        "ornament": "dots",
+        "titleArt": "waves"
+      },
+      "palette": {
+        "name": "cobalt",
+        "label": "Cobalt",
+        "tokens": {
+          "paper": "#f7f8fa",
+          "card": "#ffffff",
+          "chip": "#eef1f6",
+          "grid": "#e3e6ec",
+          "ink": "#111827",
+          "muted": "#5b6474",
+          "accent": "#2f5bea",
+          "accent-dark": "#1e3a8a",
+          "accent-light": "#e4eafd",
+          "accent-glow": "#a5b8ff",
+          "accent-past": "#b9c8f8",
+          "on-accent": "#ffffff",
+          "good": "#16a34a",
+          "good-soft": "#dcfce7",
+          "good-ink": "#166534",
+          "bad": "#dc2626",
+          "bad-soft": "#fdecec",
+          "bad-ink": "#991b1b",
+          "warn": "#ea580c",
+          "warn-soft": "#ffedd5",
+          "warn-ink": "#9a3412",
+          "dd": "#c2410c",
+          "on-dd": "#ffffff",
+          "dd-on-night": "#fdba74",
+          "night": "#0b1020",
+          "night-ink": "#ffffff",
+          "night-2": "#cbd5e1",
+          "night-muted": "#8c97ad",
+          "night-line": "#334155",
+          "night-glow": "rgb(47 91 234)",
+          "number-from": "#c3d0ff",
+          "number-to": "#5b7cff",
+          "stamp": "#fcd34d",
+          "panel-accent": "#2f5bea",
+          "panel-accent-ink": "#ffffff",
+          "panel-positive": "#15803d",
+          "panel-positive-ink": "#ffffff",
+          "panel-negative": "#b91c1c",
+          "panel-negative-ink": "#ffffff",
+          "panel-inverse": "#0b1020",
+          "panel-inverse-ink": "#ffffff"
+        }
+      },
+      "logo": {
+        "url": "/api/images/img_logo0001"
+      },
+      "draft": true,
+      "footerDateLabel": "16 Nov 2026",
+      "joinBar": false
+    },
+    "deckUrl": null,
+    "state": {
+      "type": "audienceState",
+      "seq": 0,
+      "phase": "lobby",
+      "current": null,
+      "revision": 7,
+      "activity": null
+    }
+  },
+  "ended": {
+    "deckTitle": "Ship smaller",
+    "presenterName": "Sam Rivera",
+    "look": {
+      "template": {
+        "name": "workshop",
+        "label": "Workshop",
+        "layouts": [
+          "title",
+          "divider",
+          "bullets",
+          "two-column",
+          "practice",
+          "compare",
+          "quote",
+          "image",
+          "table",
+          "numbered-cards",
+          "rules",
+          "cards",
+          "close"
+        ],
+        "chrome": {
+          "tracker": true,
+          "footer": "author",
+          "progress": true,
+          "deepDivesOnDivider": true,
+          "draft": true
+        },
+        "type": {
+          "head": "Plus Jakarta Sans",
+          "body": "Inter",
+          "headWeight": 800,
+          "headTracking": "-0.025em"
+        },
+        "shape": {
+          "radius": {
+            "sm": 10,
+            "md": 12,
+            "lg": 16,
+            "xl": 18
+          },
+          "shadow": "0 1px 2px rgb(15 23 42 / 0.06), 0 14px 36px rgb(15 23 42 / 0.09)"
+        },
+        "ornament": "dots",
+        "titleArt": "waves"
+      },
+      "palette": {
+        "name": "cobalt",
+        "label": "Cobalt",
+        "tokens": {
+          "paper": "#f7f8fa",
+          "card": "#ffffff",
+          "chip": "#eef1f6",
+          "grid": "#e3e6ec",
+          "ink": "#111827",
+          "muted": "#5b6474",
+          "accent": "#2f5bea",
+          "accent-dark": "#1e3a8a",
+          "accent-light": "#e4eafd",
+          "accent-glow": "#a5b8ff",
+          "accent-past": "#b9c8f8",
+          "on-accent": "#ffffff",
+          "good": "#16a34a",
+          "good-soft": "#dcfce7",
+          "good-ink": "#166534",
+          "bad": "#dc2626",
+          "bad-soft": "#fdecec",
+          "bad-ink": "#991b1b",
+          "warn": "#ea580c",
+          "warn-soft": "#ffedd5",
+          "warn-ink": "#9a3412",
+          "dd": "#c2410c",
+          "on-dd": "#ffffff",
+          "dd-on-night": "#fdba74",
+          "night": "#0b1020",
+          "night-ink": "#ffffff",
+          "night-2": "#cbd5e1",
+          "night-muted": "#8c97ad",
+          "night-line": "#334155",
+          "night-glow": "rgb(47 91 234)",
+          "number-from": "#c3d0ff",
+          "number-to": "#5b7cff",
+          "stamp": "#fcd34d",
+          "panel-accent": "#2f5bea",
+          "panel-accent-ink": "#ffffff",
+          "panel-positive": "#15803d",
+          "panel-positive-ink": "#ffffff",
+          "panel-negative": "#b91c1c",
+          "panel-negative-ink": "#ffffff",
+          "panel-inverse": "#0b1020",
+          "panel-inverse-ink": "#ffffff"
+        }
+      },
+      "logo": {
+        "url": "/api/images/img_logo0001"
+      },
+      "draft": true,
+      "footerDateLabel": "16 Nov 2026",
+      "joinBar": false
+    },
+    "deckUrl": "/d/7Kq2xYp9LmQa/ship-smaller",
+    "state": {
+      "type": "audienceState",
+      "seq": 57,
+      "phase": "ended",
+      "current": null,
+      "revision": 7,
+      "activity": null
+    }
+  }
+}

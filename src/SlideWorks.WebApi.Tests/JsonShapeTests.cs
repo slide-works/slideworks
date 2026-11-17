@@ -113,7 +113,26 @@ public class JsonShapeTests
     {
         using var example = JsonDocument.Parse(File.ReadAllText(Path.Combine(JsonShape.ScreensDirectory(), file)));
 
-        Should.NotThrow(() => JsonShape.AssertMatches(example.RootElement, file, new JsonShapeOptions { OpaquePaths = ["slides[].slots"] }));
+        Should.NotThrow(() => JsonShape.AssertMatches(example.RootElement, file, ScreenShapes.SelfCheckOf(file)));
+    }
+
+    [Test]
+    public void AssertMatches_WhenExampleIsNullAtANullablePathAndActualIsNull_ShouldPass()
+    {
+        using var example = JsonDocument.Parse("""{ "nothing": null }""");
+        using var actual = JsonDocument.Parse("""{ "nothing": null }""");
+
+        Should.NotThrow(() => JsonShape.AssertMatches(actual.RootElement, example.RootElement, "the example", "nothing"));
+    }
+
+    [Test]
+    public void AssertMatches_WhenExampleIsNullAndActualIsNotNull_ShouldFail()
+    {
+        using var example = JsonDocument.Parse("""{ "nothing": null }""");
+        using var actual = JsonDocument.Parse("""{ "nothing": 1 }""");
+
+        Should.Throw<ShouldAssertException>(() => JsonShape.AssertMatches(actual.RootElement, example.RootElement, "the example", "nothing"))
+            .Message.ShouldContain("the example is null");
     }
 
     private static IEnumerable<string> ScreenExamples() =>

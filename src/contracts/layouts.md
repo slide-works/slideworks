@@ -26,6 +26,7 @@ Error paths name the failing field with 0-based indexes, such as `practice.do[2]
 | [`rules`](#rules) | no | one per `rules` item when `reveal` is `one-by-one` | 1–4 numbered rules, each a title and text. Can reveal one rule per step. |
 | [`cards`](#cards) | no | one per `cards` item when `reveal` is `one-by-one` | 1–3 cards, each with an optional badge, a title, text and chips. Can reveal one card per step. |
 | [`close`](#close) | yes | none | Closing slide (dark): a short headline of up to three written lines, with an optional sub and author. |
+| [`join`](#join) | yes | none | Join slide (dark): a QR code, the join code and the address, so the room can follow the talk on their phones. The code and the QR come from the live session, never from the slots. |
 
 ## title
 
@@ -274,6 +275,15 @@ Closing slide (dark): a short headline of up to three written lines, with an opt
 | `headline` | text | yes | up to 80 chars, line breaks allowed | Set at 112 px, about 22 characters a line: use \n for a line break, at most 3 written and 4 shown lines; it shrinks to 60 px to keep 4 lines |
 | `sub` | text | no | up to 110 chars |  |
 | `author` | text | no | up to 60 chars |  |
+
+## join
+
+Join slide (dark): a QR code, the join code and the address, so the room can follow the talk on their phones. The code and the QR come from the live session, never from the slots.
+
+| Slot | Kind | Required | Limits | Notes |
+|---|---|---|---|---|
+| `kicker` | text | no | up to 40 chars | Defaults to 'Join on your phone' |
+| `count` | `shown` or `hidden` | no | default `shown` | 'shown' (the default) shows how many have joined; 'hidden' leaves the count off |
 
 ## Inline blocks
 
