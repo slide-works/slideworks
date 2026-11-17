@@ -15,6 +15,9 @@ public class QaRecordShapeTests
 {
     private const string DECK = "7Kq2xYp9LmQa";
 
+    // Words that would tie a question or a vote to a guest (Q4, Q10).
+    private static readonly string[] _guestWords = ["guest", "yours", "pick", "mine", "voter", "asker"];
+
     [TestCase("open")]
     [TestCase("closed")]
     [TestCase("offHere")]
@@ -276,14 +279,28 @@ public class QaRecordShapeTests
     }
 
     [Test]
-    public void QuestionsReport_ShouldNeverSayWhichGuestAskedOrUpvoted()
+    public void QuestionsReport_WhenSerialised_ShouldNeverSayWhichGuestAskedOrUpvoted()
     {
         var text = Example("questions-report.json").GetRawText();
+        var written = Serialise(Read<QuestionsReport>(Example("questions-report.json"))).GetRawText();
 
         foreach (var word in new[] { "guest", "guestId", "yours", "picks", "mine" })
         {
             text.ShouldNotContain($"\"{word}\"", Case.Sensitive);
+            written.ShouldNotContain($"\"{word}\"", Case.Sensitive);
         }
+    }
+
+    // The records themselves, not only the sample: a guest-id-like property added to any of them fails here, even before a
+    // sample carries it.
+    [TestCase(typeof(QuestionsReport))]
+    [TestCase(typeof(QuestionsReportSession))]
+    [TestCase(typeof(QuestionsReportQuestion))]
+    public void QuestionsReportRecords_WhenReflected_ShouldHaveNoGuestOrVoterProperty(Type record)
+    {
+        var names = record.GetProperties().Select(p => p.Name);
+
+        names.ShouldNotContain(name => _guestWords.Any(word => name.Contains(word, StringComparison.OrdinalIgnoreCase)));
     }
 
     [Test]
@@ -321,13 +338,13 @@ public class QaRecordShapeTests
     }
 
     [Test]
-    public void ReactionBatch_ShouldMatchContract()
+    public void ReactionsBurst_ShouldMatchContract()
     {
         var example = Example("audience-events.json").GetProperty("reactions");
 
-        var json = Serialise<AudienceEvent>(new ReactionBatch(DECK, example.GetProperty("slide").GetInt32(), Read<ReactionCounts>(example.GetProperty("counts"))));
+        var json = Serialise<AudienceEvent>(new ReactionsBurst(DECK, example.GetProperty("slide").GetInt32(), Read<ReactionCounts>(example.GetProperty("counts"))));
 
-        JsonShape.AssertMatches(json, example, "audience-events.json reactions", ScreenShapes.QuestionTally);
+        JsonShape.AssertMatches(json, example, "audience-events.json reactions", ScreenShapes.ReactionsBurst);
         SameJson(json, example).ShouldBeTrue(Differs(json, example));
     }
 
@@ -339,7 +356,7 @@ public class QaRecordShapeTests
         [
             new QuestionTally(DECK, "r1", 3, [new QuestionVotes(1, 2)]),
             new QuestionControl(DECK, control),
-            new ReactionBatch(DECK, 2, ReactionCounts.Zero),
+            new ReactionsBurst(DECK, 2, ReactionCounts.Zero),
         ];
 
         foreach (var audienceEvent in events)

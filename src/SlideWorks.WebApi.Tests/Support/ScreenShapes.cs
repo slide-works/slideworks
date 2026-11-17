@@ -177,8 +177,11 @@ public static class ScreenShapes
     // get_questions (questions-report.json, Q10).
     public static readonly JsonShapeOptions QuestionsReport = new() { NullablePaths = ["sessions[].questions[].name"] };
 
-    // A questionTally or reactions event on its own (audience-events.json, Q5, Q7): no nulls.
+    // A questionTally event on its own (audience-events.json, Q5): no nulls.
     public static readonly JsonShapeOptions QuestionTally = new();
+
+    // A reactions event on its own (audience-events.json, Q7): no nulls.
+    public static readonly JsonShapeOptions ReactionsBurst = new();
 
     private static readonly JsonShapeOptions _qaRoomFile = new() { NullablePaths = ["off.round"] };
 

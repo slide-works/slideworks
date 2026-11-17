@@ -8,5 +8,5 @@ namespace SlideWorks.WebApi.Features.Qa.Contracts;
 // to phones, at most four times a second per deck. Slide is the 1-based slide on screen when they were tapped; every count
 // is an integer. Only Reactions publishes it.
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
-[JsonDerivedType(typeof(ReactionBatch), "reactions")]
-public record ReactionBatch(string DeckId, int Slide, ReactionCounts Counts) : AudienceEvent(DeckId);
+[JsonDerivedType(typeof(ReactionsBurst), "reactions")]
+public record ReactionsBurst(string DeckId, int Slide, ReactionCounts Counts) : AudienceEvent(DeckId);

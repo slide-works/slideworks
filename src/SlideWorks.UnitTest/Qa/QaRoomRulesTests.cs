@@ -43,7 +43,17 @@ public class QaRoomRulesTests
 
         room.Questions.ShouldBe(QaRoomQuestions.Off);
         room.Round.ShouldBeNull();
-        room.ListRevision.ShouldBe(12);
+        room.ListRevision.ShouldBe(0);
+    }
+
+    [Test]
+    public void For_WhenNoRoundIsOpen_ShouldGiveListRevisionZero()
+    {
+        var room = QaRoomRules.For(QaSettings.Default, QaSlideSwitch.On, new QaRoundState(null, 0));
+
+        room.Round.ShouldBeNull();
+        room.ListRevision.ShouldBe(0);
+        room.Questions.ShouldBe(QaRoomQuestions.Open);
     }
 
     [Test]

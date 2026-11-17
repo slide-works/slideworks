@@ -1,28 +1,6 @@
 {
   "sessions": [
     {
-      "startedAt": "2026-11-10T09:30:00+00:00",
-      "asked": 2,
-      "answered": 2,
-      "hidden": 0,
-      "questions": [
-        {
-          "text": "Is the recording shared afterwards?",
-          "name": "Alex",
-          "state": "answered",
-          "votes": 4,
-          "askedAt": "2026-11-10T09:41:00+00:00"
-        },
-        {
-          "text": "Can we get the slides?",
-          "name": null,
-          "state": "answered",
-          "votes": 11,
-          "askedAt": "2026-11-10T09:52:00+00:00"
-        }
-      ]
-    },
-    {
       "startedAt": "2026-11-17T09:00:00+00:00",
       "asked": 6,
       "answered": 1,
@@ -69,6 +47,28 @@
           "state": "open",
           "votes": 3,
           "askedAt": "2026-11-17T09:24:00+00:00"
+        }
+      ]
+    },
+    {
+      "startedAt": "2026-11-10T09:30:00+00:00",
+      "asked": 2,
+      "answered": 2,
+      "hidden": 0,
+      "questions": [
+        {
+          "text": "Is the recording shared afterwards?",
+          "name": "Alex",
+          "state": "answered",
+          "votes": 4,
+          "askedAt": "2026-11-10T09:41:00+00:00"
+        },
+        {
+          "text": "Can we get the slides?",
+          "name": null,
+          "state": "answered",
+          "votes": 11,
+          "askedAt": "2026-11-10T09:52:00+00:00"
         }
       ]
     }

@@ -60,9 +60,9 @@ public class AudienceDiscriminatorTests : ApiTestFixture
     }
 
     [Test]
-    public void ReactionBatch_WhenDeclaredAsItsOwnType_ShouldCarryTheReactionsDiscriminator()
+    public void ReactionsBurst_WhenDeclaredAsItsOwnType_ShouldCarryTheReactionsDiscriminator()
     {
-        JsonSerializer.Serialize(new ReactionBatch("7Kq2xYp9LmQa", 2, ReactionCounts.Zero), HubJson).ShouldContain("\"type\":\"reactions\"");
+        JsonSerializer.Serialize(new ReactionsBurst("7Kq2xYp9LmQa", 2, ReactionCounts.Zero), HubJson).ShouldContain("\"type\":\"reactions\"");
     }
 
     [Test]

@@ -17,5 +17,5 @@ namespace SlideWorks.WebApi.Realtime;
 [JsonDerivedType(typeof(PollControl), "pollControl")]
 [JsonDerivedType(typeof(QuestionTally), "questionTally")]
 [JsonDerivedType(typeof(QuestionControl), "questionControl")]
-[JsonDerivedType(typeof(ReactionBatch), "reactions")]
+[JsonDerivedType(typeof(ReactionsBurst), "reactions")]
 public abstract record AudienceEvent([property: JsonIgnore] string DeckId);
