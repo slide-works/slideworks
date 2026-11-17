@@ -36,8 +36,9 @@ public sealed record LoadReport(
         var results = state.ResultsMs;
         var errors = state.ErrorCount();
         var writeP95 = Percentile.Of(write, 95);
-        // With no tally received at all there is nothing to measure: n/a, not the timeout.
-        var resultsP95 = state.ResultsReceived == 0 ? null : Percentile.Of(results, 95);
+        // With no tally received, or more voters timed out than received one, the percentile would mostly be the timeout
+        // itself and read as a latency: n/a instead, beside the received and timed-out counts. n/a fails the gate.
+        var resultsP95 = state.ResultsReceived == 0 || state.ResultsTimedOut > state.ResultsReceived ? null : Percentile.Of(results, 95);
         var errorRate = errors / (double)options.Voters;
         var failures = Failures(options, writeP95, resultsP95, errorRate);
         return new LoadReport(

@@ -25,7 +25,9 @@ All durations are measured with `Stopwatch`, never by subtracting clock readings
   answered count before the run plus the number of answers acknowledged so far, this one included. Every acknowledged
   answer was committed first, so that tally includes it. A tally that was already there when the 200 arrived counts as 0.
   A voter that does not see such a tally within `--results-timeout` counts at the full timeout, so a slow app shows up as
-  a high p95 rather than a missing one. When no voter sees one, results p95 is `n/a`.
+  a high p95 rather than a missing one. When no voter sees one, or more voters time out than see
+  one, results p95 is `n/a` (the received and timed-out counts are still shown), since the figure would mostly be the
+  timeout itself.
 - **Errors** are voters that failed to join or whose answer was not a 200 (a 409 stale, a 429, a timeout), and voters
   whose hub connection dropped, and voters whose tally did not arrive within `--results-timeout`. A voter counts as at most one error, so the error rate is errors divided by voters, and
   each kind is listed.
@@ -112,9 +114,10 @@ results timeout, so the error-rate gate fails when more than 1% of voters never 
 looks fine. A voter is still one error at most, and a timed-out voter is never also counted as dropped. The timeout count
 stays in the table and the JSON (`resultsTimedOut`). This rule came after the recorded runs; every recorded run had 0
 timeouts, so none of their numbers change. Forced check (2026-11-17, 50 voters, `--results-timeout 0.001`): 47 timed out,
-`errors 47 (94.00 %), of which 0 dropped connections`, `47 results: timed out`, `GATE FAIL`, exit 3.
+`errors 47 (94.00 %), of which 0 dropped connections`, `47 results: timed out`, `GATE FAIL`, exit 3. That check ran before the `n/a` rule above; it printed `results ms p95 1` beside the 47 timeouts,
+which is why the rule was added. Today the same run prints `n/a` and also fails on results.
 
-A results p95 of `n/a` (no voter saw its tally) is a fail, because against the real tally publisher it means results
+A results p95 of `n/a` (no voter saw its tally, or more timed out than saw it) is a fail, because against the real tally publisher it means results
 never arrived. It passes only with `--no-results`, for a run where tallies are not expected. Also run the poll's own measure (people who answered divided by guests joined when the poll closed) from
 `docs/measures.md`.
 
@@ -151,11 +154,12 @@ dotnet src/SlideWorks.LoadTest/bin/Release/net10.0/SlideWorks.LoadTest.dll --url
 The 1,000-voter gate passed three runs in a row with no change to the app. Every voter received its tally (1,000 received,
 0 timed out, each run). Only the three 1,000-voter rows are the gate (D8); the 3,000 and 10,000 rows are measurements.
 
-**How to read results p95.** The figures of 477 to 506 ms in every row are the publisher's tick, not headroom. The pump
-publishes a deck's tally at most twice a second, so an answer waits for the next tick: on average half a tick, and a wait
-spread evenly over a 500 ms tick has a p95 of about 475 ms. The only signal about the app in that column is the excess
-over the tick, which was small: about 6 ms at 10,000 voters (506 ms), and within a few milliseconds of 475 to 486 ms
-up to 3,000. Its error bar: the harness counts a voter's result as received at the first tally whose `answered` reaches
+**How to read results p95.** The figures of 480 to 506 ms in the results column are the publisher's tick, not headroom.
+The pump publishes a deck's tally at most twice a second, so an answer waits for the next tick: on average half a tick,
+and a wait spread evenly over a 500 ms tick has a p95 of about 475 ms. Against that expected 475 ms, the rows up to
+3,000 voters (480 to 486 ms) are 5 to 11 ms over, and the 10,000-voter rerun (506 ms) is about 31 ms over. Against the
+500 ms tick itself, only the 10,000-voter rerun is over, by about 6 ms. Either way the excess, not the figure, is the
+signal about the app, and it is small. Its error bar: the harness counts a voter's result as received at the first tally whose `answered` reaches
 the count that includes its answer, which can read low by up to one publish interval (500 ms) when the harness handles
 200s out of commit order. So a recorded results p95 is a measurement to within -500 ms / +0 ms of the true one.
 
@@ -215,7 +219,10 @@ as the audience window, the player's first join. "Guest" is a fresh guest's star
   **Known limit.** While answers keep arriving, a presenter's Close waits for a gap in them. Until the close commits, the
   poll stays visibly open on the big screen, the panel and the phones, and every answer that arrives before then is
   counted. Nothing is lost or counted twice (V5 holds). The fix is in `AnswerWriter.cs` and `Polls.cs`, which SW-9 is
-  rewriting; it is raised on SW-9 (SW-351) and not made here.
+  rewriting; it is raised on SW-9 (SW-351) and not made here. At the bound, as a reading of the code and not something a
+  run showed: nothing in the app sets a busy timeout (`Program.cs:43`, `UseSqlite($"Data Source={dbPath}")`), so the
+  provider's 30 s default applies; past it, beginning the close's transaction fails with a "database is locked" error,
+  nothing handles it, and the presenter's Close call would most likely return a server error with the poll still open.
 - **(b) What does a presenter move cost with 1,000 guests connected?** The step probe (a move on the poll slide, hub call
   to return, with the arrival observer's indexed read inline), median / maximum: 4 / 4 to 12 ms with no guests, 11 to 17
   / 12 to 23 ms with 1,000 connected and idle, 9 to 10 / 14 to 204 ms during the answers (14 or 15 samples). Median 16 ms
@@ -223,7 +230,7 @@ as the audience window, the player's first join. "Guest" is a fresh guest's star
   recompose and its broadcast.
 - **(c) Join and follow latency for guests during the answers?** A fresh guest's join (start, `JoinAudience`, poll view)
   during the 1,000-voter window, median / maximum of 15: 19 to 26 / 172 to 318 ms. 190 / 477 ms at 3,000 and 448 /
-  1,361 ms at 10,000 (14 or 15 samples). Following, measured as each voter's own tally: results p95 477 to 486 ms up to
+  1,361 ms at 10,000 (14 or 15 samples). Following, measured as each voter's own tally: results p95 480 to 486 ms up to
   3,000 and 506 ms at 10,000, read as the publisher's tick plus a few milliseconds (above). A presenter move's own
   audienceState was not timed at the guest (SW-353).
 - **(d) Does SW-6 add measurably to the player's first join?** The player probe (start plus `JoinPresentation` as the
