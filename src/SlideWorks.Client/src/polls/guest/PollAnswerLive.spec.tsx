@@ -29,7 +29,7 @@ const answeredView = (activity: PollActivity): GuestPollView => ({
   tally: { type: 'pollTally', round: activity.round!, answered: 3, counts: [0, 2, 1, 0] },
 });
 
-test('reads the poll once on load and watches its results when the guest has answered an afterAnswer poll', async ({
+test('reads the poll on load, watches its results when the guest has answered an afterAnswer poll, then reads once more', async ({
   mount,
   page,
 }) => {
@@ -40,7 +40,8 @@ test('reads the poll once on load and watches its results when the guest has ans
   await expect(page.getByTestId(POLL_CARD_TEST_IDS.card)).toBeVisible();
   await expect.poll(() => hub.watchingPoll).toBe(true);
   expect(hub.pollWatches).toEqual(['482913']);
-  expect(api.gets).toBe(1);
+  // One read on load, and one more once the watch is in, since WatchPoll brings no tally (D5).
+  await expect.poll(() => api.gets).toBe(2);
 });
 
 test('after a reconnect it watches the results again and reads the poll again', async ({
@@ -50,13 +51,14 @@ test('after a reconnect it watches the results again and reads the poll again', 
   const { hub, api } = await guestOnPoll(page, afterAnswer, answeredView(afterAnswer));
   await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
   await expect.poll(() => hub.watchingPoll).toBe(true);
+  await expect.poll(() => api.gets).toBe(2);
 
   hub.drop();
 
   await expect.poll(() => hub.audienceJoins.length).toBe(2);
   await expect.poll(() => hub.pollWatches).toEqual(['482913', '482913']);
   await expect.poll(() => hub.watchingPoll).toBe(true);
-  await expect.poll(() => api.gets).toBe(2);
+  await expect.poll(() => api.gets).toBe(3);
   await expect(page.getByTestId(GUEST_TEST_IDS.chip)).toHaveText('Live');
 });
 

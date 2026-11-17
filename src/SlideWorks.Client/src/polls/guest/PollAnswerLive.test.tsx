@@ -491,7 +491,7 @@ describe('PollAnswerLive offline', () => {
     });
   });
 
-  it('a queued pick is dropped as failed when a new round started while the phone was away', async () => {
+  it('a queued pick is never sent into a new round that started while the phone was away', async () => {
     const activity = pickOne();
     await render(activity, 'offline');
     await act(async () => latest().toggle(0));
@@ -502,10 +502,7 @@ describe('PollAnswerLive offline', () => {
     await render(next, 'live');
 
     expect(api.putPollAnswer).not.toHaveBeenCalled();
-    expect(latest()).toMatchObject({
-      state: 'failed',
-      error: 'The poll closed before your answer could be sent.',
-    });
+    expect(latest()).toMatchObject({ state: 'idle', error: null, picks: [] });
   });
 
   it('a send that fails because the connection went is queued and goes when it is back', async () => {
@@ -670,21 +667,6 @@ describe('PollAnswerLive results group', () => {
     await act(async () => latest().toggle(2));
 
     expect(channel.polls.watchPoll).toHaveBeenCalledTimes(2);
-  });
-
-  it('any other WatchPoll refusal is failed with a sentence for its code', async () => {
-    const activity = afterAnswer();
-    vi.mocked(channel.polls.watchPoll).mockRejectedValueOnce(
-      new Error(
-        "Failed to invoke 'WatchPoll' due to an error on the server. HubException: no_session",
-      ),
-    );
-    await render(activity);
-
-    await act(async () => latest().toggle(2));
-    await settle();
-
-    expect(latest()).toMatchObject({ state: 'failed', error: 'This talk isn’t live any more.' });
   });
 });
 
@@ -889,5 +871,162 @@ describe('PollAnswerLive clear', () => {
     await render(activity, 'live');
 
     expect(api.putPollAnswer).not.toHaveBeenCalled();
+  });
+});
+
+describe('PollAnswerLive send races (review round 1)', () => {
+  it('a pick in a new round is sent at once in that round, whatever the old round’s PUT does when it returns', async () => {
+    const old = deferred<AnswerOutcome>();
+    api.putPollAnswer.mockReturnValueOnce(old.promise);
+    const activity = pickOne();
+    await render(activity);
+    await act(async () => latest().toggle(1));
+    const next = { ...activity, round: 'round-2', number: 2 };
+    await render(next);
+
+    await act(async () => latest().toggle(2));
+    expect(puts()).toEqual([
+      { round: ROUND, picks: [1], revision: 0 },
+      { round: 'round-2', picks: [2], revision: 0 },
+    ]);
+    await act(async () => old.resolve(accepted([1], 1)));
+
+    expect(latest()).toMatchObject({
+      state: 'idle',
+      picks: [2],
+      mine: { picks: [2], revision: 1 },
+    });
+    expect(puts()).toHaveLength(2);
+  });
+
+  it('a newer pick queued while the first PUT is out survives that PUT failing for the network', async () => {
+    const first = deferred<AnswerOutcome>();
+    api.putPollAnswer.mockReturnValueOnce(first.promise);
+    const activity = pickOne();
+    await render(activity);
+    await act(async () => latest().toggle(0));
+    await render(activity, 'reconnecting');
+    await act(async () => latest().toggle(3));
+
+    await act(async () => first.reject(new TypeError('Failed to fetch')));
+    expect(latest()).toMatchObject({ state: 'queued', picks: [3] });
+    await render(activity, 'live');
+
+    expect(puts()).toEqual([
+      { round: ROUND, picks: [0], revision: 0 },
+      { round: ROUND, picks: [3], revision: 0 },
+    ]);
+    expect(latest()).toMatchObject({
+      state: 'idle',
+      picks: [3],
+      mine: { picks: [3], revision: 1 },
+    });
+  });
+
+  it('after a reconnect a queued pick waits for the PUT still out, then goes with the revision it returned', async () => {
+    const first = deferred<AnswerOutcome>();
+    api.putPollAnswer.mockReturnValueOnce(first.promise);
+    const activity = pickOne();
+    await render(activity);
+    await act(async () => latest().toggle(0));
+    await render(activity, 'reconnecting');
+    await act(async () => latest().toggle(3));
+
+    await render(activity, 'live');
+    expect(puts()).toHaveLength(1);
+    await act(async () => first.resolve(accepted([0], 1)));
+
+    expect(puts()).toEqual([
+      { round: ROUND, picks: [0], revision: 0 },
+      { round: ROUND, picks: [3], revision: 1 },
+    ]);
+    expect(latest()).toMatchObject({
+      state: 'idle',
+      picks: [3],
+      mine: { picks: [3], revision: 2 },
+    });
+  });
+
+  it('a read that was out when a PUT was accepted never moves mine back', async () => {
+    const activity = pickOne({ roomSeesCounts: false });
+    api.getGuestPoll.mockResolvedValueOnce(view({ mine: { picks: [2], revision: 1 } }, activity));
+    await render(activity);
+    const read = deferred<GuestPollView>();
+    api.getGuestPoll.mockReturnValueOnce(read.promise);
+    await render({ ...activity, roomSeesCounts: true });
+
+    await act(async () => latest().toggle(1));
+    expect(latest().mine).toEqual({ picks: [1], revision: 2 });
+    await act(async () => read.resolve(view({ mine: { picks: [2], revision: 1 } }, activity)));
+    expect(latest().mine).toEqual({ picks: [1], revision: 2 });
+
+    await act(async () => latest().toggle(2));
+    expect(puts()[1]).toEqual({ round: ROUND, picks: [2], revision: 2 });
+  });
+
+  it('a conflict or failure from one round does not show on the next', async () => {
+    const activity = pickOne();
+    api.putPollAnswer.mockRejectedValueOnce(new ApiError('too_many_answers', 429));
+    await render(activity);
+    await act(async () => latest().toggle(1));
+    expect(latest().state).toBe('failed');
+
+    await render({ ...activity, round: 'round-2', number: 2 });
+
+    expect(latest()).toMatchObject({ state: 'idle', error: null, picks: [] });
+  });
+
+  it('a failed re-read does not hide a conflict', async () => {
+    const activity = pickOne({ roomSeesCounts: false });
+    api.putPollAnswer.mockResolvedValueOnce({
+      type: 'stale',
+      current: view({ mine: { picks: [0], revision: 2 } }, activity),
+    } satisfies AnswerOutcome);
+    await render(activity);
+    await act(async () => latest().toggle(1));
+    api.getGuestPoll.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    await render({ ...activity, roomSeesCounts: true });
+
+    expect(latest()).toMatchObject({ state: 'conflict', picks: [1] });
+  });
+});
+
+describe('PollAnswerLive watch decisions (D5, D6)', () => {
+  const afterAnswer = () => pickOne({ results: 'afterAnswer', roomSeesCounts: false });
+
+  it('reads once more after the first watch resolves, so a quiet room still gets the counts', async () => {
+    const activity = afterAnswer();
+    await render(activity);
+    expect(api.getGuestPoll).toHaveBeenCalledTimes(1);
+
+    await act(async () => latest().toggle(1));
+    await settle();
+
+    expect(channel.polls.watchPoll).toHaveBeenCalledTimes(1);
+    expect(api.getGuestPoll).toHaveBeenCalledTimes(2);
+  });
+
+  it('a WatchPoll refusal shows nothing, keeps the answer, and is tried again only at the next accepted answer', async () => {
+    const activity = afterAnswer();
+    vi.mocked(channel.polls.watchPoll).mockRejectedValueOnce(
+      new Error(
+        "Failed to invoke 'WatchPoll' due to an error on the server. HubException: no_session",
+      ),
+    );
+    await render(activity);
+    await act(async () => latest().toggle(2));
+    await settle();
+    expect(latest()).toMatchObject({
+      state: 'idle',
+      error: null,
+      mine: { picks: [2], revision: 1 },
+    });
+
+    await render({ ...activity, question: 'The same poll again' });
+    expect(channel.polls.watchPoll).toHaveBeenCalledTimes(1);
+
+    await act(async () => latest().toggle(3));
+    expect(channel.polls.watchPoll).toHaveBeenCalledTimes(2);
   });
 });

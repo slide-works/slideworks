@@ -39,23 +39,15 @@ const NETWORK = 'Your phone couldn’t reach the talk. Check your connection, th
 const CLOSED_BEFORE_SENT = 'The poll closed before your answer could be sent.';
 const UNKNOWN = 'Something went wrong on our side. Try again in a moment.';
 
+// The hub's own refusal (not_answered or any other code), as opposed to the connection's failure.
 const isHubException = (error: unknown) =>
   error instanceof Error && error.message.includes('HubException:');
 
-// The hub's WatchPoll refusal for a guest with no answer in the open round (V5): expected when the answer is not there
-// yet, such as a reconnect into a round that moved on.
-const isNotAnswered = (error: unknown) =>
-  error instanceof Error && error.message.endsWith('HubException: not_answered');
-
-// A failed call as a sentence for the guest: an ApiError's code or rule (the body's error), a hub refusal's code, or a
-// call that never reached the server.
+// A failed call as a sentence for the guest: an ApiError's code or rule (the body's error), or a call that never
+// reached the server.
 function messageFor(error: unknown): string {
-  let code: string;
-  if (error instanceof ApiError) code = error.message;
-  else if (isHubException(error)) {
-    const message = (error as Error).message;
-    code = message.slice(message.lastIndexOf('HubException:') + 'HubException:'.length).trim();
-  } else return NETWORK;
+  if (!(error instanceof ApiError)) return NETWORK;
+  const code = error.message;
   const max = AT_MOST.exec(code);
   if (max) return `Pick up to ${max[1]} answers.`;
   if (UNKNOWN_OPTION.test(code)) return 'That option isn’t on this poll any more. Pick again.';
@@ -70,16 +62,19 @@ const samePicks = (a: number[], b: number[]) =>
 // One guest's answer to one poll card, kept outside React so its rules read top to bottom. PollAnswerLive starts it,
 // tells it each activity and status, and renders its snapshot.
 //
-// - Reads (GET): on start, when the round, phase or roomSeesCounts changes, and after a reconnect, when it first watches
-//   the poll if this guest has answered an afterAnswer poll. Only the newest read is applied. 'loading' runs from start
-//   until the first read lands, and after a reconnect until the re-read lands.
+// - Reads (GET): on start, when the round, phase or roomSeesCounts changes, after a reconnect (when it first watches
+//   the poll if this guest has answered an afterAnswer poll), and once more after a first watch resolves. Only the
+//   newest read is applied, and a read never moves mine back within a round. 'loading' runs from start until the first
+//   read lands, and after a reconnect until the re-read lands. A failed read shows its sentence; the next activity
+//   change or reconnect reads again.
 // - Tallies: only for the activity's round; one with null counts keeps the counts held for that round.
-// - Sends (PUT): pick one sends on toggle, pick several on send(). A pick made while not live is 'queued' and sent after
-//   the re-read that follows the connection's return, only if the same round is still open. At most one PUT is out:
-//   picks made while it is (arrow keys walking the radios) are coalesced, and only the latest goes after it, with the
-//   revision it returns. A pick the server already holds sends nothing, and the first tap is never delayed. A 409 keeps
-//   the picks, takes mine from the current view and is 'conflict'. Anything else is 'failed' with one of MESSAGES'
-//   sentences, never a code or a platform message.
+// - Sends (PUT), for the current round only. Its invariants: at most one PUT is out (known by its token); the latest
+//   unsent pick wins (`pending`, coalescing arrow keys walking the radios); nothing crosses a round (a round change
+//   forgets the PUT out, the pending pick and the old round's state); mine only moves forward. Pick one sends on
+//   toggle, pick several on send(); the first tap is never delayed, and a pick the server already holds sends nothing.
+//   A pick made while not live is 'queued' and goes after the reconnect's re-read if the round is still open. A 409
+//   keeps the picks, takes mine from the current view and is 'conflict'. Anything else is 'failed' with one of
+//   MESSAGES' sentences, never a code or a platform message.
 class AnswerSession {
   private held: Held = {
     picks: [],
@@ -93,13 +88,14 @@ class AnswerSession {
   private active = false;
   private stopTallies: (() => void) | null = null;
   private reads = 0;
-  // A PUT is in flight, and the picks to send when it comes back (a pick-one tap made meanwhile).
-  private sending = false;
-  private next: number[] | null = null;
-  // A pick made while the connection was away: its round and picks.
-  private queued: { round: string; picks: number[] } | null = null;
-  // Whether this connection is in the round's results group. Each change of connection or round starts a new watch.
-  private watch: 'none' | 'pending' | 'watching' = 'none';
+  // The PUT out, by its token: a response whose token isn't this one's is from a forgotten PUT and is ignored.
+  private out: number | null = null;
+  private puts = 0;
+  // The latest pick not yet sent in this round: made while a PUT was out, or while the connection was away.
+  private pending: number[] | null = null;
+  // Whether this connection is in the round's results group. Each change of connection or round starts a new watch;
+  // a refused watch is tried again at the next accepted answer or reconnect.
+  private watch: 'none' | 'pending' | 'watching' | 'refused' = 'none';
   private watches = 0;
 
   constructor(
@@ -126,8 +122,9 @@ class AnswerSession {
       this.stopTallies?.();
       this.stopTallies = null;
       this.reads += 1;
-      this.watches += 1;
-      this.watch = 'none';
+      this.out = null;
+      this.pending = null;
+      this.forgetWatch();
     };
   }
 
@@ -138,23 +135,32 @@ class AnswerSession {
     this.activity = activity;
     this.status = status;
     if (!this.active || (before === activity && was === status)) return;
+    const newRound = activity.round !== before.round;
 
     // The hub forgets the results group when the connection drops, and a new round has its own group.
-    if (status !== 'live' || activity.round !== before.round) this.forgetWatch();
-    if (activity.round !== before.round) {
-      this.next = null;
-      this.set({ picks: [], mine: null, tally: null, joinedLate: false });
+    if (status !== 'live' || newRound) this.forgetWatch();
+    // Nothing crosses a round: the old round's PUT, pending pick, answer and state are forgotten.
+    if (newRound) {
+      this.out = null;
+      this.pending = null;
+      this.set({
+        picks: [],
+        mine: null,
+        tally: null,
+        joinedLate: false,
+        ...(this.held.state === 'loading' ? {} : { state: 'idle', error: null }),
+      });
     }
 
-    const back = status === 'live' && was !== 'live' && (was !== 'connecting' || this.queued);
+    const back = status === 'live' && was !== 'live' && (was !== 'connecting' || this.pending);
     if (back) this.read(true);
     else if (
-      activity.round !== before.round ||
+      newRound ||
       activity.phase !== before.phase ||
       activity.roomSeesCounts !== before.roomSeesCounts
     )
       this.read(false);
-    this.watchIfAnswered();
+    void this.watchIfAnswered(true);
   }
 
   readonly toggle = (position: number) => {
@@ -183,7 +189,7 @@ class AnswerSession {
   readonly clear = () => {
     const { state, mine } = this.held;
     if (state !== 'conflict' && state !== 'failed' && state !== 'queued') return;
-    this.queued = null;
+    this.pending = null;
     this.set({ picks: mine?.picks ?? [], state: 'idle', error: null });
   };
 
@@ -192,7 +198,8 @@ class AnswerSession {
     this.set({ tally: this.merged(tally) });
   };
 
-  // A tally with null counts keeps the counts held for its round.
+  // A tally with null counts keeps the counts held for its round. (Whether the card may draw them is PollCard's, from
+  // the server's fields, not from whether counts are held here.)
   private merged(tally: PollTally | null): PollTally | null {
     if (tally === null) return this.held.tally;
     const held = this.held.tally;
@@ -200,10 +207,16 @@ class AnswerSession {
     return { ...tally, counts: held.counts };
   }
 
+  // mine only moves forward within the round: a view read before an accepted PUT carries a lower revision.
+  private forward(mine: MyAnswer | null): MyAnswer | null {
+    const held = this.held.mine;
+    return held !== null && (mine?.revision ?? 0) < held.revision ? held : mine;
+  }
+
   private read(afterReconnect: boolean) {
     const read = ++this.reads;
-    if (afterReconnect && !this.sending) this.set({ state: 'loading', error: null });
-    const watched = afterReconnect ? this.watchIfAnswered() : Promise.resolve();
+    if (afterReconnect && this.out === null) this.set({ state: 'loading', error: null });
+    const watched = afterReconnect ? this.watchIfAnswered(false) : Promise.resolve();
     void watched
       .then(() => getGuestPoll(this.code))
       .then(
@@ -212,115 +225,120 @@ class AnswerSession {
         },
         (error: unknown) => {
           if (!this.active || read !== this.reads) return;
-          if (this.held.state === 'sending' || this.held.state === 'queued') return;
-          this.set({
-            state: 'failed',
-            error: messageFor(error),
-          });
+          // A failed read never hides a send in progress or a conflict; the next change or reconnect reads again.
+          const { state } = this.held;
+          if (state === 'sending' || state === 'queued' || state === 'conflict') return;
+          this.set({ state: 'failed', error: messageFor(error) });
         },
       );
   }
 
-  // Applies a read: mine, the tally and joinedLate when it is about the activity's round. Then sends a queued pick if
-  // its round is still the open one, or drops it as failed.
+  // Applies a read: mine (never backwards), the tally and joinedLate when it is about the activity's round. Then a
+  // pending pick goes if the round is still open (after the PUT out, if any), or is dropped as failed.
   private landed(view: GuestPollView) {
     const same = (view.activity?.round ?? null) === this.activity.round;
-    const mine = same ? view.mine : null;
+    const mine = same ? this.forward(view.mine) : this.held.mine;
     const { state, picks } = this.held;
     this.set({
       mine,
       tally: same ? this.merged(view.tally) : this.held.tally,
       joinedLate: same && view.joinedLate,
-      picks: picks.length === 0 && !this.queued ? (mine?.picks ?? []) : picks,
+      picks: picks.length === 0 && this.pending === null ? (mine?.picks ?? []) : picks,
       ...(state === 'loading' ? { state: 'idle', error: null } : {}),
     });
-    this.watchIfAnswered();
+    void this.watchIfAnswered(true);
 
-    const queued = this.queued;
-    if (queued === null || this.status !== 'live') return;
-    this.queued = null;
-    if (same && view.activity?.phase === 'open' && view.activity.round === queued.round)
-      this.put(queued.picks);
-    else this.set({ picks: mine?.picks ?? [], state: 'failed', error: CLOSED_BEFORE_SENT });
+    if (this.pending === null || this.status !== 'live') return;
+    if (!same || view.activity?.phase !== 'open') {
+      this.pending = null;
+      this.set({ picks: mine?.picks ?? [], state: 'failed', error: CLOSED_BEFORE_SENT });
+    } else if (this.out !== null) this.set({ state: 'sending', error: null });
+    else this.flush();
   }
 
   private submit(picks: number[]) {
-    const round = this.activity.round;
-    if (round === null) return;
-    if (this.status !== 'live') {
-      this.queued = { round, picks };
-      this.set({ state: 'queued', error: null });
-    } else if (this.sending) this.next = picks;
-    else this.put(picks);
+    if (this.activity.round === null) return;
+    this.pending = picks;
+    if (this.status !== 'live') this.set({ state: 'queued', error: null });
+    else this.flush();
+  }
+
+  // Sends the pending pick when nothing is out and the connection is live. A pick the server holds sends nothing.
+  private flush() {
+    if (this.out !== null || this.pending === null || this.status !== 'live') return;
+    const picks = this.pending;
+    this.pending = null;
+    const mine = this.held.mine;
+    if (mine !== null && samePicks(picks, mine.picks)) {
+      this.set({ state: 'idle', error: null });
+      return;
+    }
+    this.put(picks);
   }
 
   private put(picks: number[]) {
-    const mine = this.held.mine;
-    // The server already holds this pick: nothing to send.
-    if (mine !== null && samePicks(picks, mine.picks)) {
-      this.set({ state: 'idle', error: null });
-      this.watchIfAnswered();
-      return;
-    }
     const round = this.activity.round!;
     const revision = this.held.mine?.revision ?? 0;
-    this.sending = true;
+    const token = ++this.puts;
+    this.out = token;
     this.set({ state: 'sending', error: null });
     putPollAnswer(this.code, { round, picks, revision }).then(
       (outcome) => {
-        this.sending = false;
-        if (!this.active) return;
-        const next = this.next;
-        this.next = null;
-        // The round moved on while the answer was out: the read that followed the change says where the guest is.
-        if (round !== this.activity.round) {
-          if (this.held.state === 'sending') this.set({ state: 'idle' });
-          return;
-        }
+        if (!this.active || this.out !== token) return;
+        this.out = null;
         if (outcome.type === 'stale') {
+          // The card asks again with the latest pick kept; nothing more goes by itself.
+          this.pending = null;
           const same = (outcome.current.activity?.round ?? null) === round;
           this.set({
-            mine: same ? outcome.current.mine : this.held.mine,
+            mine: same ? this.forward(outcome.current.mine) : this.held.mine,
             tally: same ? this.merged(outcome.current.tally) : this.held.tally,
             joinedLate: same && outcome.current.joinedLate,
-            picks: next ?? this.held.picks,
             state: 'conflict',
             error: null,
           });
-          return;
-        }
-        this.accepted(outcome.answer, picks, next);
+        } else this.accepted(outcome.answer, picks);
       },
       (error: unknown) => {
-        this.sending = false;
-        if (!this.active) return;
-        const unsent = this.next ?? picks;
-        this.next = null;
-        if (error instanceof ApiError) this.set({ state: 'failed', error: messageFor(error) });
-        else if (this.status !== 'live' && round === this.activity.round) {
-          // The call never reached the server because the connection went: it waits for the connection to come back.
-          this.queued = { round, picks: unsent };
+        if (!this.active || this.out !== token) return;
+        this.out = null;
+        if (error instanceof ApiError) {
+          this.pending = null;
+          this.set({ state: 'failed', error: messageFor(error) });
+        } else if (this.status !== 'live') {
+          // The call never reached the server because the connection went: the latest pick waits for it to come back.
+          this.pending = this.pending ?? picks;
           this.set({ state: 'queued', error: null });
-        } else this.set({ state: 'failed', error: NETWORK });
+        } else {
+          this.pending = null;
+          this.set({ state: 'failed', error: NETWORK });
+        }
       },
     );
   }
 
-  private accepted(answer: MyAnswer, sent: number[], next: number[] | null) {
+  private accepted(answer: MyAnswer, sent: number[]) {
     const picks = this.held.picks;
-    this.set({ mine: answer, picks: samePicks(picks, sent) ? answer.picks : picks });
-    if (next !== null && !samePicks(next, answer.picks)) {
-      this.put(next);
+    this.set({
+      mine: this.forward(answer),
+      picks: this.pending === null && samePicks(picks, sent) ? answer.picks : picks,
+    });
+    if (this.pending !== null) {
+      if (this.status === 'live') this.flush();
+      else this.set({ state: 'queued', error: null });
       return;
     }
     this.set({ state: 'idle', error: null });
-    this.watchIfAnswered();
+    // An accepted answer is the moment a refused watch is tried again.
+    if (this.watch === 'refused') this.watch = 'none';
+    void this.watchIfAnswered(true);
   }
 
-  // Joins the round's results group once this guest has an answer in an open afterAnswer round. Resolves when the hub
-  // has answered, either way: not_answered (the answer isn't in this round) and a dropped connection (the reconnect
-  // watches again) leave the card as it is; any other refusal is shown.
-  private watchIfAnswered(): Promise<void> {
+  // Joins the round's results group once this guest has an answer in an open afterAnswer round, and resolves when the
+  // hub has answered either way. A refusal shows nothing (the answer was accepted; only live counts are missing) and
+  // waits for the next accepted answer or reconnect; a dropped connection is the reconnect's. With reRead, a watch that
+  // succeeds reads once more, because WatchPoll brings no tally and a quiet room may not send one soon.
+  private watchIfAnswered(reRead: boolean): Promise<void> {
     const { activity } = this;
     if (
       this.watch !== 'none' ||
@@ -334,13 +352,12 @@ class AnswerSession {
     this.watch = 'pending';
     return this.polls.watchPoll().then(
       () => {
-        if (watch === this.watches) this.watch = 'watching';
+        if (watch !== this.watches) return;
+        this.watch = 'watching';
+        if (reRead && this.active) this.read(false);
       },
       (error: unknown) => {
-        if (watch !== this.watches) return;
-        this.watch = 'none';
-        if (this.active && isHubException(error) && !isNotAnswered(error))
-          this.set({ state: 'failed', error: messageFor(error) });
+        if (watch === this.watches) this.watch = isHubException(error) ? 'refused' : 'none';
       },
     );
   }
