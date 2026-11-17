@@ -1,0 +1,1374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-50 mockups: custom template upload</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&family=Sora:wght@600;700;800&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   Review-page chrome: same light ledger as the SW-1 and SW-2 mockups
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", system-ui, sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 20px 80px; }
+h1, h2, h3, h4, p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+p, li, td, th, h1, h2, h3, h4 { overflow-wrap: anywhere; }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 26px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { color: var(--muted); max-width: 880px; font-size: 15px; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 18px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 920px; }
+h3.sub-h { font: 600 14px/1.3 var(--ui); margin: 26px 0 10px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.pad { padding: 16px 18px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 980px) { .grid3, .grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .grid2, .grid3, .grid4 { grid-template-columns: minmax(0, 1fr); } }
+.grid2 > *, .grid3 > *, .grid4 > * { min-width: 0; }
+.note { color: var(--muted); font-size: 12.5px; }
+.card h3 { font: 600 13.5px/1.3 var(--ui); margin-bottom: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+ul.plain { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+ul.plain li { position: relative; padding-left: 20px; }
+ul.plain li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+ul.plain.later li::before { background: var(--later); opacity: .6; }
+ul.plain.grey li::before { background: var(--faint); }
+ul.plain.yes li::before, ul.plain.no li::before { background: none; top: 0; left: 0; width: auto; height: auto; font-weight: 700; }
+ul.plain.yes li::before { content: "✓"; color: var(--ok); }
+ul.plain.no li::before { content: "✗"; color: var(--bad); }
+
+.diagram { padding: 18px; overflow-x: auto; }
+.diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+.diagram text { font-family: var(--ui); }
+
+table.ledger { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-size: 13px; }
+.ledger th { text-align: left; font: 600 11px/1.2 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ledger td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.ledger tr:last-child td { border-bottom: 0; }
+.ledger td.t { font-weight: 600; }
+.ledger td.t small, .ledger td small { display: block; font: 400 12px/1.35 var(--ui); color: var(--faint); }
+.ledger td code { color: var(--accent-dark); }
+.ledger tr.group td { background: #fafbfc; font: 600 11px/1.2 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 7px 12px; }
+.ledger.top td { vertical-align: top; }
+.table-wrap { overflow-x: auto; }
+
+/* app shell */
+.browser { border-radius: 12px; overflow: hidden; border: 1px solid var(--line-2); background: var(--surface); box-shadow: var(--raise); }
+.browser-bar { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #e9ecf1; border-bottom: 1px solid var(--line-2); }
+.browser-bar .dots { display: flex; gap: 6px; }
+.browser-bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: #c9ced7; display: block; }
+.browser-bar .url { flex: 1; min-width: 0; background: #fff; border-radius: 6px; padding: 4px 10px; font: 400 12px/1.4 var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browser-bar .url b { color: var(--text); font-weight: 500; }
+.app { background: #f6f7f9; font-size: 13px; position: relative; }
+.app-top { display: flex; align-items: center; gap: 14px; padding: 10px 18px; background: #fff; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.logo { display: flex; align-items: center; gap: 8px; font: 700 14px/1 var(--ui); letter-spacing: -.01em; }
+.logo svg { width: 22px; height: 22px; }
+.app-top nav { display: flex; gap: 2px; }
+.app-top nav a { text-decoration: none; color: var(--muted); padding: 5px 10px; border-radius: 6px; font-weight: 500; }
+.app-top nav a.on { background: var(--surface-2); color: var(--text); }
+.sp { flex: 1; }
+.avatar { width: 26px; height: 26px; border-radius: 50%; background: #dfe6f7; color: var(--accent-dark); display: grid; place-items: center; font: 600 11px/1 var(--ui); flex: none; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); font: 500 13px/1.2 var(--ui); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.sm { padding: 3px 9px; font-size: 12px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.app-body { padding: 18px; }
+.app-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.app-h h3 { font: 650 18px/1.2 var(--ui); font-weight: 650; }
+.scrim { padding: 28px 18px; background: rgb(15 20 32 / .42); }
+.dlg { max-width: 760px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 20px 60px rgb(0 0 0 / .3); }
+.dlg.wide { max-width: 1040px; }
+.dlg-h { padding: 16px 20px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.dlg-h h3 { font: 650 17px/1.2 var(--ui); font-weight: 650; }
+.dlg-b { padding: 18px 20px; display: grid; gap: 14px; }
+.dlg-f { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+.dlg-f .note { margin-right: auto; }
+.lbl { font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px; }
+.inp, select.inp { width: 100%; min-width: 0; padding: 7px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.3 var(--ui); background: #fff; color: var(--text); }
+.pick { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; background: #fff; }
+.pick:has(input:checked) { border-color: var(--accent); background: #f6f8ff; box-shadow: 0 0 0 1px var(--accent); }
+.pick input { margin: 3px 0 0; accent-color: var(--accent); }
+.pick b { font-weight: 600; }
+.pick span { display: block; color: var(--muted); font-size: 12.5px; }
+.banner { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 9px 12px; border-radius: 8px; font-size: 13px; }
+.banner.warn { background: var(--warn-soft); color: #7a3d06; }
+.banner.bad { background: var(--bad-soft); color: #8a251e; }
+.banner.ok { background: var(--ok-soft); color: #0f5a39; }
+.banner.info { background: var(--accent-soft); color: var(--accent-dark); }
+
+/* =====================================================================
+   Mini slides: every size in cqw, so a slide scales with its box.
+   1920 px wide canvas, so 1 px = 0.0521cqw. Colours come from --t-* on
+   the nearest .look ancestor.
+   ===================================================================== */
+.look {
+  --t-paper: #F6FAF9; --t-card: #ffffff; --t-ink: #0F1F1E; --t-muted: #51625F; --t-grid: #DCE7E4;
+  --t-acc: #0F766E; --t-acc-soft: #D9F2EE; --t-on-acc: #ffffff;
+  --t-night: #0B1F1E; --t-night-ink: #F2FBF9; --t-glow: #14B8A6;
+  --t-dd: #C2410C; --t-good: #15803D; --t-bad: #B91C1C;
+  --t-acc2: #0EA5E9; --t-stage: #020617; --t-d1: #14B8A6; --t-d2: #0EA5E9; --t-d3: #6366F1; --t-d4: #F59E0B;
+  --t-head: "Sora", "Inter", sans-serif; --t-body: "Inter", sans-serif; --t-headw: 700; --t-track: -.02em; --t-radius: 8;
+}
+.look.cobalt {
+  --t-paper: #F7F8FB; --t-ink: #0F172A; --t-muted: #475569; --t-grid: #E2E8F0; --t-acc: #2F5BEA; --t-acc-soft: #E6ECFD;
+  --t-night: #0B1020; --t-night-ink: #F4F6FF; --t-glow: #4F6BFF; --t-dd: #C2410C; --t-acc2: #2F5BEA;
+  --t-head: "Plus Jakarta Sans", "Inter", sans-serif; --t-headw: 800; --t-track: -.025em; --t-radius: 16;
+}
+.sl { position: relative; container-type: inline-size; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 6px; border: 1px solid var(--line); background: var(--t-paper); color: var(--t-ink); font-family: var(--t-body); }
+.sl * { margin: 0; }
+.sl.dark { background: radial-gradient(60cqw 38cqw at 88% 112%, color-mix(in srgb, var(--t-glow) 42%, transparent), transparent 62%), var(--t-night); color: var(--t-night-ink); border-color: transparent; }
+.sl .art { position: absolute; inset: auto 0 0 0; width: 100%; height: 62%; opacity: .55; }
+.sl .art.grid { inset: 0; height: 100%; opacity: .16; background-image: linear-gradient(var(--t-glow) 1px, transparent 1px), linear-gradient(90deg, var(--t-glow) 1px, transparent 1px); background-size: 5cqw 5cqw; }
+.sl .art.img { inset: 0; height: 100%; opacity: .5; background: conic-gradient(from 210deg at 78% 60%, transparent 0 40%, color-mix(in srgb, var(--t-glow) 70%, transparent) 55%, transparent 70%), radial-gradient(30cqw 30cqw at 80% 30%, color-mix(in srgb, var(--t-d3) 60%, transparent), transparent 70%); }
+.sl .in { position: absolute; inset: 0; padding: 7.8cqw 6.25cqw 6.25cqw; display: flex; flex-direction: column; }
+.sl .dots { display: flex; gap: .5cqw; margin-bottom: 1.6cqw; }
+.sl .dots i { width: .9cqw; height: .9cqw; border-radius: 50%; background: var(--t-glow); display: block; }
+.sl .dots i:nth-child(1) { background: var(--t-d1); } .sl .dots i:nth-child(2) { background: var(--t-d2); }
+.sl .dots i:nth-child(3) { background: var(--t-d3); } .sl .dots i:nth-child(4) { background: var(--t-d4); }
+.sl .kick { font: 700 .95cqw/1 var(--t-body); letter-spacing: .16em; text-transform: uppercase; color: var(--t-acc); margin-bottom: 1.1cqw; }
+.sl.dark .kick { color: var(--t-glow); }
+.sl .ttl { font: 7.6cqw/1.02 var(--t-head); font-weight: var(--t-headw); letter-spacing: var(--t-track); margin-top: auto; }
+.sl .sub { font: 600 1.9cqw/1.25 var(--t-head); margin-top: 1.4cqw; max-width: 60cqw; }
+.sl .tag { font: italic 400 1.25cqw/1.3 var(--t-body); color: var(--t-glow); margin-top: 1cqw; }
+.sl .by { font: 500 1cqw/1 var(--t-body); margin-top: 2.4cqw; opacity: .85; margin-bottom: auto; }
+.sl .num { font: 9cqw/1 var(--t-head); font-weight: var(--t-headw); color: var(--t-glow); letter-spacing: var(--t-track); margin-top: auto; }
+.sl .dtl { font: 4.6cqw/1.1 var(--t-head); font-weight: var(--t-headw); letter-spacing: var(--t-track); margin-top: 1cqw; }
+.sl .dsub { font: 400 1.5cqw/1.3 var(--t-body); opacity: .8; margin-top: .9cqw; margin-bottom: auto; }
+.sl .trk { position: absolute; left: 6.25cqw; right: 6.25cqw; top: 2.6cqw; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1cqw; font: 600 .75cqw/1 var(--t-body); letter-spacing: .1em; text-transform: uppercase; color: var(--t-muted); }
+.sl .trk span { border-top: .16cqw solid var(--t-grid); padding-top: .7cqw; }
+.sl .trk span.on { border-color: var(--t-acc); color: var(--t-ink); }
+.sl .trk span.past { border-color: var(--t-acc-soft); }
+.sl .hl { font: 3.3cqw/1.12 var(--t-head); font-weight: var(--t-headw); letter-spacing: var(--t-track); }
+.sl .hl em { font-style: normal; color: var(--t-acc); }
+.sl .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2cqw; margin-top: 2.4cqw; }
+.sl .col { display: grid; gap: .8cqw; align-content: start; }
+.sl .ch { font: 700 .8cqw/1 var(--t-body); letter-spacing: .12em; text-transform: uppercase; color: var(--t-acc); }
+.sl .ch.good { color: var(--t-good); } .sl .ch.bad { color: var(--t-bad); }
+.sl .bx { background: var(--t-card); border: .06cqw solid var(--t-grid); border-left: .26cqw solid var(--t-acc); border-radius: calc(var(--t-radius) * .0521cqw); padding: .9cqw 1.1cqw; font: 400 1.15cqw/1.3 var(--t-body); box-shadow: 0 .1cqw .3cqw rgb(15 23 42 / .06); }
+.sl .bx b { color: var(--t-acc); font-weight: 600; }
+.sl .bx.good { border-left-color: var(--t-good); } .sl .bx.bad { border-left-color: var(--t-bad); }
+.sl .call { background: var(--t-acc); color: var(--t-on-acc); border-radius: calc(var(--t-radius) * .0521cqw); padding: 1cqw 1.2cqw; font: 600 1.2cqw/1.3 var(--t-body); }
+.sl .ft { position: absolute; left: 6.25cqw; right: 6.25cqw; bottom: 2.2cqw; display: flex; align-items: center; gap: 1cqw; font: 400 .85cqw/1 var(--t-body); color: var(--t-muted); }
+.sl.dark .ft { color: color-mix(in srgb, var(--t-night-ink) 70%, transparent); }
+.sl .ft .lg { margin-left: auto; height: 1.7cqw; display: flex; align-items: center; gap: .5cqw; font: 700 1.15cqw/1 var(--t-head); letter-spacing: -.01em; color: var(--t-ink); }
+.sl.dark .ft .lg { color: var(--t-night-ink); }
+.sl .ft .lg svg { height: 1.7cqw; width: 1.7cqw; }
+.sl .ft .lg.none { display: none; }
+.sl .prog { position: absolute; left: 0; bottom: 0; height: .3cqw; width: 42%; background: linear-gradient(90deg, var(--t-acc), var(--t-acc2)); }
+.sl .tb { position: absolute; inset: 0 0 auto 0; height: .42cqw; background: var(--t-acc); }
+.look.cobalt .tb, .look.notb .tb { display: none; }
+.sl.dark .hl em { color: var(--t-glow); }
+.sl.dark .rung { background: color-mix(in srgb, var(--t-night-ink) 7%, transparent); border-color: color-mix(in srgb, var(--t-night-ink) 16%, transparent); border-top-color: var(--t-glow); color: var(--t-night-ink); }
+.sl.dark .rung i { color: var(--t-glow); }
+.sl.dark .rung:nth-child(4) { background: var(--t-acc); border-color: var(--t-acc); }
+.sl .rung.later { opacity: .22; }
+/* custom layout: bars driven by numbers */
+.sl .bars { display: grid; gap: 2.4cqw; margin-top: 3.4cqw; }
+.sl .bar { display: grid; grid-template-columns: 15cqw 1fr; gap: 1.6cqw; align-items: center; }
+.sl .bar b { font: 1.5cqw/1.15 var(--t-head); font-weight: var(--t-headw); }
+.sl .bar small { display: block; font: 400 .95cqw/1.3 var(--t-body); color: var(--t-muted); margin-top: .3cqw; }
+.sl .track { position: relative; height: 4.4cqw; border-radius: calc(var(--t-radius) * .0521cqw); background: var(--t-acc-soft); }
+.sl .fill { position: absolute; inset: 0 auto 0 0; width: calc(var(--v) * 1%); border-radius: inherit; background: var(--t-acc); display: flex; align-items: center; justify-content: flex-end; padding-right: 1cqw; color: var(--t-on-acc); font: 700 1.3cqw/1 var(--t-body); }
+.sl .bar.is-alert .fill { background: var(--t-bad); }
+.sl .ghost { position: absolute; inset: 0 auto 0 0; width: calc(var(--g) * 1%); border-radius: inherit; border: .14cqw dashed var(--t-acc2); }
+.sl .stagebox { margin-top: auto; margin-bottom: 3.6cqw; background: var(--t-stage); color: #fff; border-radius: calc(var(--t-radius) * .0521cqw); padding: 1cqw 1.3cqw; font: 600 1.15cqw/1.3 var(--t-body); justify-self: start; align-self: flex-start; }
+.sl .ddpill { position: absolute; right: 6.25cqw; top: 5.6cqw; background: var(--t-dd); color: #fff; font: 700 .75cqw/1 var(--t-body); letter-spacing: .1em; text-transform: uppercase; padding: .5cqw .9cqw; border-radius: 99cqw; }
+/* custom layout: stage ladder */
+.sl .ladder { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2cqw; align-items: end; margin-top: 2.6cqw; flex: 1; padding-bottom: 3.4cqw; }
+.sl .rung { background: var(--t-card); border: .06cqw solid var(--t-grid); border-top: .4cqw solid var(--t-acc); border-radius: calc(var(--t-radius) * .0521cqw); padding: 1cqw 1.1cqw; display: grid; gap: .5cqw; align-content: start; }
+.sl .rung:nth-child(1) { height: 40%; } .sl .rung:nth-child(2) { height: 58%; } .sl .rung:nth-child(3) { height: 78%; } .sl .rung:nth-child(4) { height: 100%; background: var(--t-acc); color: var(--t-on-acc); border-color: var(--t-acc); }
+.sl .rung i { font: normal 700 .75cqw/1 var(--t-body); letter-spacing: .12em; text-transform: uppercase; color: var(--t-acc); }
+.sl .rung:nth-child(4) i { color: var(--t-on-acc); opacity: .8; }
+.sl .rung b { font: 1.5cqw/1.15 var(--t-head); font-weight: var(--t-headw); }
+.sl .rung span { font: 400 1cqw/1.3 var(--t-body); opacity: .85; overflow: hidden; }
+.sl .over { position: absolute; inset: 7.8cqw 6.25cqw 6.25cqw; border: .12cqw dashed #e11d48; pointer-events: none; }
+.cap { display: block; padding: 8px 2px 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+.cap code.layout { font-weight: 500; color: var(--accent-dark); background: var(--accent-soft); padding: 1px 7px; border-radius: 5px; margin-right: 4px; }
+.thumb { width: 92px; flex: none; }
+.thumb .sl { border-radius: 4px; }
+
+/* scope */
+.scope { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .scope { grid-template-columns: minmax(0, 1fr); } }
+
+/* templates page */
+.tname { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.tname b { font-weight: 600; display: block; }
+.tname code { color: var(--accent-dark); }
+
+/* editor */
+.ed { display: grid; grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1.05fr); gap: 16px; align-items: start; }
+@media (max-width: 1080px) { .ed { grid-template-columns: minmax(0, 1fr); } }
+.ed > * { min-width: 0; }
+.ed-nav { display: grid; gap: 2px; }
+@media (max-width: 1080px) { .ed-nav { display: flex; flex-wrap: wrap; } }
+.ed-nav button { display: flex; align-items: center; gap: 8px; text-align: left; padding: 7px 10px; border: 0; background: transparent; border-radius: 7px; font: 500 13px/1.2 var(--ui); color: var(--muted); cursor: pointer; }
+.ed-nav button[aria-selected="true"] { background: #fff; color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+.ed-nav .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+.ed-nav .dot.warn { background: #e08a1e; } .ed-nav .dot.bad { background: var(--bad); }
+.ed-panel { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 16px; }
+.ed-panel[hidden] { display: none; }
+.ed-panel h4 { font: 650 15px/1.2 var(--ui); font-weight: 650; }
+.fld { display: grid; gap: 4px; }
+.fld .hint { font-size: 12px; color: var(--muted); }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.chk { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; cursor: pointer; }
+.chk input { margin: 3px 0 0; accent-color: var(--accent); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tags label { display: inline-flex; gap: 6px; align-items: center; padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; font: 400 12px/1.5 var(--mono); cursor: pointer; background: #fff; }
+.tags label:has(input:checked) { background: var(--accent-soft); border-color: #c5d2fb; color: var(--accent-dark); }
+.tags input { display: none; }
+.files { display: grid; gap: 6px; }
+.file { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12.5px; }
+.file code { color: var(--text); }
+.file small { color: var(--muted); display: block; }
+.drop { border: 1.5px dashed var(--line-2); border-radius: 8px; padding: 12px; text-align: center; color: var(--muted); font-size: 12.5px; background: #fafbfc; }
+.sw { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.sw:last-child { border-bottom: 0; }
+.sw input[type=color] { width: 34px; height: 26px; padding: 0; border: 1px solid var(--line-2); border-radius: 6px; background: #fff; cursor: pointer; }
+.sw small { color: var(--muted); display: block; font-size: 12px; }
+.sw code { color: var(--muted); }
+.sw input.nm { width: 100%; padding: 4px 8px; border: 1px solid var(--line-2); border-radius: 6px; font: 400 13px/1.3 var(--ui); }
+.logos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.logobox { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.logobox .stage { height: 64px; display: grid; place-items: center; font: 700 17px/1 "Sora", sans-serif; letter-spacing: -.01em; }
+.logobox .stage span { display: inline-flex; gap: 7px; align-items: center; }
+.logobox .stage svg { width: 22px; height: 22px; }
+.logobox .meta { padding: 6px 10px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 7px; overflow: hidden; flex-wrap: wrap; }
+.seg label { padding: 5px 11px; font: 500 12.5px/1.3 var(--ui); cursor: pointer; border-right: 1px solid var(--line-2); background: #fff; color: var(--muted); }
+.seg label:last-child { border-right: 0; }
+.seg label:has(input:checked) { background: var(--accent-soft); color: var(--accent-dark); }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.prev { display: grid; gap: 10px; position: sticky; top: 56px; }
+@media (max-width: 1080px) { .prev { position: static; } }
+.prev .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.checks { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+.checks h4 { font: 600 13px/1.3 var(--ui); margin-bottom: 4px; display: flex; gap: 8px; align-items: center; }
+.ck { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; align-items: baseline; }
+.ck:last-of-type { border-bottom: 0; }
+.ck i { font-style: normal; font-weight: 700; }
+.ck.ok i { color: var(--ok); } .ck.warn i { color: #c26a0a; } .ck.bad i { color: var(--bad); }
+.ck small { color: var(--muted); }
+.ck a { font-size: 12px; }
+
+/* states */
+.st { padding: 14px; display: grid; gap: 10px; align-content: start; }
+.st h3 { margin: 0; }
+.st p { font-size: 12.5px; color: var(--muted); }
+.st .ui { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fafbfc; display: grid; gap: 8px; font-size: 12.5px; }
+.err { color: var(--bad); font-size: 12.5px; }
+.pair { display: inline-grid; place-items: center; min-width: 54px; padding: 4px 8px; border-radius: 6px; font: 600 12px/1.2 var(--ui); }
+
+/* code */
+.mcp { background: #0f1420; color: #cbd5e1; border-radius: 10px; padding: 16px 18px; font: 400 12.5px/1.6 var(--mono); overflow-x: auto; white-space: pre; }
+.mcp .u { color: #fbbf24; } .mcp .c { color: #8ea5ff; } .mcp .r { color: #86efac; } .mcp .m { color: #64748b; } .mcp .x { color: #fca5a5; }
+
+/* custom layout editor */
+.cl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+@media (max-width: 980px) { .cl { grid-template-columns: minmax(0, 1fr); } }
+.cl > * { min-width: 0; }
+.cl > div > div, .grid2 > div > div { min-width: 0; }
+
+/* plan */
+.waves { display: grid; gap: 10px; }
+.wave { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 14px; padding: 12px 14px; }
+@media (max-width: 700px) { .wave { grid-template-columns: minmax(0, 1fr); } }
+.wave .w { font: 600 12px/1.3 var(--mono); color: var(--accent-dark); }
+.wave .w small { display: block; color: var(--faint); font-weight: 400; margin-top: 4px; }
+.lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.lane { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; background: #fafbfc; }
+.lane b { display: block; font-weight: 600; font-size: 13px; }
+.lane span { color: var(--muted); }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px 18px; }
+.q h3 { font: 600 15px/1.35 var(--ui); margin-bottom: 4px; }
+.q .why { color: var(--muted); margin: 0 0 10px; }
+.q .choices { display: grid; gap: 6px; }
+.q label.choice { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.q label.choice:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.q label.choice input { margin: 3px 0 0; accent-color: var(--accent); }
+.q label.choice b { font-weight: 600; }
+.q label.choice span:not(.rec) { display: block; color: var(--muted); font-size: 12.5px; }
+.q .rec { display: inline-block; font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.q textarea { width: 100%; margin-top: 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.4 var(--ui); resize: vertical; }
+.q .qfoot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.q .state { font-size: 12.5px; color: var(--faint); }
+.q .state.queued { color: var(--ok); font-weight: 600; }
+.copyall { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.copyall textarea { width: 100%; }
+</style>
+</head>
+<body>
+<script type="application/json" data-lavish-revisions>
+[
+ {
+  "id": "r1",
+  "label": "Round 1",
+  "timestamp": "2026-11-17T13:30:00Z",
+  "summary": "Q1-Q7 answered. Q4 changed: decks pin a template version and are offered the update"
+ },
+ {
+  "id": "r2",
+  "label": "Round 2",
+  "timestamp": "2026-11-17T14:00:00Z",
+  "summary": "Checked against the rebuilt conference deck: second accent token and extra colours, top accent bar, custom layouts that react to numbers, choices and clicks, dark custom layouts"
+ },
+ {
+  "id": "r3",
+  "label": "Round 3",
+  "timestamp": "2026-11-17T14:20:00Z",
+  "summary": "SW-355 merged into SW-50: the built-in layout gaps are in scope, not mocked yet"
+ }
+]
+</script>
+<main>
+
+<header class="page-head">
+  <span class="eyebrow">SlideWorks · SW-50 · design mockups · 17 Nov 2026</span>
+  <h1>Custom template upload</h1>
+  <p>A person or an agent makes their own template: fonts, logos, title art, ornament, a palette and, later, custom layouts. It is checked, published and shared like a deck. The example brand, Northwind, is made up. Importing a look from an existing deck is now a separate Feature, SW-354. The built-in layout gaps found rebuilding a real deck (was SW-355) are merged into SW-50 and are not mocked here yet.</p>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#scope">Scope</a><a href="#list">Templates page</a><a href="#editor">Editor</a><a href="#states">Checks</a><a href="#layouts">Custom layouts</a><a href="#use">Sharing and use</a><a href="#agent">Agents</a><a href="#build">How we build it</a><a href="#questions">Questions</a>
+</nav>
+
+<!-- ================================================================== -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">00</span><h2>The split, and what SW-50 ships</h2></div>
+  <p class="sec-sub">SW-50 used to cover two things. It is now only the template itself. Reading a look out of an existing deck moved to SW-354, which produces a draft that opens in this Feature's editor.</p>
+  <div class="scope">
+    <div class="card pad">
+      <h3><span class="pill acc">SW-50</span> Custom template upload</h3>
+      <ul class="plain">
+        <li>A template editor in the app, starting from a built-in template</li>
+        <li>Fonts (<code>woff2</code>), logos for light and dark slides, title art, ornament dots</li>
+        <li>Its own palette, contrast-checked, optionally locked, with a second accent and up to four extra colours</li>
+        <li>Draft, publish checklist, publish; archive instead of delete</li>
+        <li>Versions: a deck stays on the version it was made with and is offered the update</li>
+        <li>Templates page; sharing like a deck</li>
+        <li>MCP: <code>create_template</code>, <code>update_template</code>, <code>get_template</code>, <code>publish_template</code>, <code>upload_asset</code></li>
+        <li>Last wave: custom layouts as HTML with typed slots, which can react to numbers, choices and clicks</li>
+      </ul>
+    </div>
+    <div class="card pad">
+      <h3><span class="pill later">SW-354</span> Deck import (new Feature)</h3>
+      <ul class="plain later">
+        <li><code>import_template</code> and "Import from a deck…"</li>
+        <li>Reads an HTML deck: colours, logos, font names, known art</li>
+        <li>The import report: mapped, adjusted, needs files, needs review, dropped</li>
+        <li>PowerPoint (<code>.pptx</code>, <code>.potx</code>) later</li>
+        <li>Open there: whether slides come in too</li>
+      </ul>
+      <p class="note" style="margin-top:10px">Comes after SW-50. Its output is an SW-50 draft template.</p>
+    </div>
+    <div class="card pad">
+      <h3><span class="pill grey">Today</span> What SW-2 already built</h3>
+      <ul class="plain grey">
+        <li>The <code>Template</code> record already has type, shape, <code>titleArt</code>, <code>ornament</code>, <code>logo</code>, <code>palette</code> and <code>lockPalette</code></li>
+        <li>Three built-in templates, four palettes, from JSON files</li>
+        <li>The contrast check that fails a bad palette</li>
+        <li>One raster logo per deck, in the footer</li>
+        <li>Not drawn on slides yet: title art and ornament colours</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card pad" data-lavish-revision="r3" style="margin-top:16px">
+    <h3><span class="pill warn">Merged in</span> The layout gaps a real deck found (was SW-355) <span class="pill grey">not designed yet</span></h3>
+    <p class="note" style="margin-bottom:8px">A 44-slide conference deck was rebuilt in SlideWorks on 17 Nov. A custom template fixes its colours, fonts, logo and art. These fix the rest, and are now part of SW-50. This page does not mock them yet.</p>
+    <div class="grid3">
+      <ul class="plain grey"><li>A callout on every content layout</li><li>Coloured words in headlines and quotes</li><li>Icons on cards, bullets and chips</li><li>Click-by-click reveals on more layouts</li></ul>
+      <ul class="plain grey"><li>A big-statement layout</li><li>Dark content slides, per slide</li><li>Cards that fill the slide; a 2×2 grid</li><li>Fuller compare, quote, image and links layouts</li></ul>
+      <ul class="plain grey"><li>Parts with captions and an appendix</li><li>Diagram blocks (overlaps custom layouts)</li><li>Slot length limits, bold in notes</li><li>A built-in template that allows every layout</li></ul>
+    </div>
+  </div>
+
+  <h3 class="sub-h">A template's life</h3>
+  <div class="card diagram">
+    <svg viewBox="0 0 1160 150" role="img" aria-label="Make, check, publish, share, use">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a93a3"/></marker></defs>
+      <g font-size="13">
+        <g id="life-make"><title>Make a draft</title><rect x="10" y="30" width="200" height="90" rx="10" fill="#fff" stroke="#d3d8e0"/><text x="26" y="56" font-weight="600" fill="#1b2230">1 · Make a draft</text><text x="26" y="78" fill="#5b6474" font-size="12">Editor, a bundle, or an</text><text x="26" y="95" fill="#5b6474" font-size="12">agent's create_template</text></g>
+        <g id="life-check"><title>Checks run as you edit</title><rect x="248" y="30" width="200" height="90" rx="10" fill="#fff" stroke="#d3d8e0"/><text x="264" y="56" font-weight="600" fill="#1b2230">2 · Checks</text><text x="264" y="78" fill="#5b6474" font-size="12">Contrast, font files and</text><text x="264" y="95" fill="#5b6474" font-size="12">width, safe SVG, rights</text></g>
+        <g id="life-publish"><title>Publish</title><rect x="486" y="30" width="200" height="90" rx="10" fill="#e6ecfd" stroke="#2f5bea"/><text x="502" y="56" font-weight="600" fill="#1e3a8a">3 · Publish</text><text x="502" y="78" fill="#1e3a8a" font-size="12">Only when every check</text><text x="502" y="95" fill="#1e3a8a" font-size="12">passes</text></g>
+        <g id="life-share"><title>Share</title><rect x="724" y="30" width="200" height="90" rx="10" fill="#fff" stroke="#d3d8e0"/><text x="740" y="56" font-weight="600" fill="#1b2230">4 · Share</text><text x="740" y="78" fill="#5b6474" font-size="12">Private, named people,</text><text x="740" y="95" fill="#5b6474" font-size="12">or anyone with the link</text></g>
+        <g id="life-use"><title>Use in decks</title><rect x="962" y="30" width="188" height="90" rx="10" fill="#fff" stroke="#d3d8e0"/><text x="978" y="56" font-weight="600" fill="#1b2230">5 · Use</text><text x="978" y="78" fill="#5b6474" font-size="12">New deck, Look panel,</text><text x="978" y="95" fill="#5b6474" font-size="12">create_deck, set_look</text></g>
+        <path d="M210 75H246M448 75H484M686 75H722M924 75H960" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ah)" fill="none"/>
+        <path id="life-edit" d="M1056 120C1056 146 586 146 586 122" stroke="#7a5af8" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah)" fill="none"><title>Editing a published template</title></path>
+        <text x="700" y="141" fill="#7a5af8" font-size="12">edit later: publish a new version; each deck is offered the update</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="list">
+  <div class="sec-head"><span class="n">01</span><h2>The Templates page</h2><span class="pill grey">new page, new nav item</span></div>
+  <p class="sec-sub">One list in three groups: yours, shared with you, and the built-ins. The row opens the editor for your own templates and a read-only view for the others.</p>
+  <div class="browser">
+    <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/templates</div></div>
+    <div class="app look">
+      <div class="app-top">
+        <div class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="16" height="11" rx="2" fill="#b9c8f8"/><rect x="3" y="7" width="16" height="11" rx="2" fill="#2f5bea"/><path d="M8 21h6" stroke="#2f5bea" stroke-width="2" stroke-linecap="round"/></svg>SlideWorks</div>
+        <nav><a href="#list">Decks</a><a class="on" href="#list">Templates</a><a href="#agent">Connect an agent</a></nav><span class="sp"></span><span class="avatar">SR</span>
+      </div>
+      <div class="app-body">
+        <div class="app-h"><h3>Templates</h3><span class="sp"></span><button class="btn" type="button">Upload a bundle…</button><button class="btn primary" type="button">New template</button></div>
+        <div class="table-wrap"><table class="ledger">
+          <thead><tr><th>Template</th><th>Type</th><th>Palette</th><th>Sharing</th><th style="text-align:right">Decks</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr class="group"><td colspan="7">Yours</td></tr>
+            <tr>
+              <td><div class="tname"><div class="thumb"><div class="sl dark" data-slide="title"></div></div><div><b>Northwind kickoff</b><code>northwind-kickoff</code></div></div></td>
+              <td>Northwind Sans / Northwind Text</td>
+              <td><span class="pill grey">Northwind harbour · locked</span></td>
+              <td><span class="pill acc">Link</span></td>
+              <td style="text-align:right">3</td>
+              <td><span class="pill ok">Published · v2</span><small>Draft of v3 waiting</small></td>
+              <td><button class="btn sm" type="button">Edit</button></td>
+            </tr>
+            <tr>
+              <td><div class="tname"><div class="thumb cobalt look"><div class="sl dark" data-slide="title" data-title="Board pack"></div></div><div><b>Board pack</b><code>board-pack</code></div></div></td>
+              <td>Plus Jakarta Sans / Inter</td>
+              <td><span class="pill grey">any</span></td>
+              <td><span class="pill grey">Private</span></td>
+              <td style="text-align:right">0</td>
+              <td><span class="pill warn">Draft · 2 checks to fix</span></td>
+              <td><button class="btn sm" type="button">Edit</button></td>
+            </tr>
+            <tr class="group"><td colspan="7">Shared with you</td></tr>
+            <tr>
+              <td><div class="tname"><div class="thumb cobalt look" style="--t-night:#2A1638;--t-glow:#F472B6"><div class="sl dark" data-slide="title" data-title="Design review"></div></div><div><b>Design review</b><code>design-review</code><small style="color:var(--faint);font-size:12px">by Mira Okafor</small></div></div></td>
+              <td>Plus Jakarta Sans / Inter</td>
+              <td><span class="pill grey">Orchid · locked</span></td>
+              <td><span class="pill grey">Named · 4</span></td>
+              <td style="text-align:right">1</td>
+              <td><span class="pill ok">Published · v1</span></td>
+              <td><button class="btn sm" type="button">View</button></td>
+            </tr>
+            <tr class="group"><td colspan="7">Built-in</td></tr>
+            <tr>
+              <td><div class="tname"><div class="thumb cobalt look"><div class="sl dark" data-slide="title" data-title="Talk"></div></div><div><b>Talk</b><code>talk</code></div></div></td>
+              <td>Plus Jakarta Sans / Inter</td><td><span class="pill grey">any</span></td><td><span class="pill grey">Everyone</span></td><td style="text-align:right">9</td><td><span class="pill ok">Built-in</span></td>
+              <td><button class="btn sm" type="button">Start from this</button></td>
+            </tr>
+            <tr>
+              <td><div class="tname"><div class="thumb cobalt look"><div class="sl dark" data-slide="title" data-title="Workshop"></div></div><div><b>Workshop</b><code>workshop</code></div></div></td>
+              <td>Plus Jakarta Sans / Inter</td><td><span class="pill grey">any</span></td><td><span class="pill grey">Everyone</span></td><td style="text-align:right">6</td><td><span class="pill ok">Built-in</span></td>
+              <td><button class="btn sm" type="button">Start from this</button></td>
+            </tr>
+            <tr>
+              <td><div class="tname"><div class="thumb cobalt look"><div class="sl dark" data-slide="title" data-title="Update"></div></div><div><b>Update</b><code>update</code></div></div></td>
+              <td>Plus Jakarta Sans / Inter</td><td><span class="pill grey">any</span></td><td><span class="pill grey">Everyone</span></td><td style="text-align:right">4</td><td><span class="pill ok">Built-in</span></td>
+              <td><button class="btn sm" type="button">Start from this</button></td>
+            </tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub-h">New template</h3>
+  <div class="grid2">
+    <div class="browser"><div class="app"><div class="scrim">
+      <div class="dlg">
+        <div class="dlg-h"><h3>New template</h3><span class="note">An agent does the same with <code>create_template {from}</code>.</span></div>
+        <div class="dlg-b">
+          <div><span class="lbl">Name</span><input class="inp" value="Northwind kickoff" aria-label="Name"></div>
+          <div><span class="lbl">Start from</span>
+            <div style="display:grid;gap:6px">
+              <label class="pick"><input type="radio" name="from"><div><b>Talk</b><span>A story in parts, one point per slide.</span></div></label>
+              <label class="pick"><input type="radio" name="from" checked><div><b>Workshop</b><span>A talk plus exercises the room does.</span></div></label>
+              <label class="pick"><input type="radio" name="from"><div><b>Update</b><span>A status or metrics report.</span></div></label>
+            </div>
+          </div>
+          <p class="note">The new template copies the built-in's layouts, chrome, outline and house style. You change the look from there.</p>
+        </div>
+        <div class="dlg-f"><button class="btn" type="button">Cancel</button><button class="btn primary" type="button">Create draft</button></div>
+      </div>
+    </div></div></div>
+    <div class="card pad" style="display:grid;gap:12px;align-content:start">
+      <h3>Or upload a bundle <span class="pill grey">Q1</span></h3>
+      <p class="note">A bundle is a <code>.zip</code> with <code>template.json</code> and the files it names. It fills the editor as a draft. The editor's Download gives the same file back, so a template can move between servers.</p>
+      <div class="mcp">northwind-kickoff.zip
+├─ template.json
+├─ fonts/
+│  ├─ northwind-sans-700.woff2
+│  ├─ northwind-sans-800.woff2
+│  └─ northwind-text-400.woff2
+├─ logo-light.svg
+├─ logo-dark.svg
+└─ layouts/
+   └─ stage-ladder.html</div>
+      <h3 style="margin-top:4px">Empty state</h3>
+      <div class="card pad" style="background:#fafbfc;text-align:center;display:grid;gap:8px;justify-items:center">
+        <b>No templates of your own yet</b>
+        <span class="note">Make one to give your decks your fonts, logo and colours.</span>
+        <button class="btn primary" type="button">New template</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="editor">
+  <div class="sec-head"><span class="n">02</span><h2>The template editor</h2><span class="pill ok">interactive: switch tabs, change colours, fonts and art</span></div>
+  <p class="sec-sub">Settings on the left, the sample deck in this template on the right, and the publish checklist under it. Every change saves to the draft. Publish stays off until every check passes.</p>
+
+  <div class="browser">
+    <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/templates/northwind-kickoff</div></div>
+    <div class="app look" id="edLook">
+      <div class="app-top">
+        <div class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="16" height="11" rx="2" fill="#b9c8f8"/><rect x="3" y="7" width="16" height="11" rx="2" fill="#2f5bea"/><path d="M8 21h6" stroke="#2f5bea" stroke-width="2" stroke-linecap="round"/></svg>SlideWorks</div>
+        <nav><a href="#list">Decks</a><a class="on" href="#list">Templates</a><a href="#agent">Connect an agent</a></nav><span class="sp"></span><span class="avatar">SR</span>
+      </div>
+      <div class="app-body">
+        <div class="app-h">
+          <h3>Northwind kickoff</h3><span class="pill warn" id="edStatus">Draft</span><span class="note">Saved</span><span class="sp"></span>
+          <button class="btn" type="button">Download bundle</button><button class="btn" type="button">Share</button><button class="btn primary" type="button" id="edPublish" disabled>Publish</button>
+        </div>
+        <div class="ed">
+          <div class="ed-nav" role="tablist" aria-label="Template settings">
+            <button role="tab" aria-selected="true" data-tab="basics"><span class="dot"></span>Basics</button>
+            <button role="tab" aria-selected="false" data-tab="type"><span class="dot warn" id="dotType"></span>Fonts</button>
+            <button role="tab" aria-selected="false" data-tab="logo"><span class="dot"></span>Logo and art</button>
+            <button role="tab" aria-selected="false" data-tab="palette"><span class="dot" id="dotPal"></span>Palette</button>
+            <button role="tab" aria-selected="false" data-tab="layouts"><span class="dot warn"></span>Custom layouts</button>
+          </div>
+
+          <div>
+            <!-- basics -->
+            <div class="ed-panel" data-panel="basics">
+              <h4>Basics</h4>
+              <div class="row2">
+                <div class="fld"><span class="lbl">Name</span><input class="inp" value="Northwind kickoff" aria-label="Name"></div>
+                <div class="fld"><span class="lbl">Short name</span><input class="inp mono" value="northwind-kickoff" aria-label="Short name"><span class="hint">What agents pass as <code>template</code>.</span></div>
+              </div>
+              <div class="fld"><span class="lbl">What it is for</span><input class="inp" value="Northwind team kickoffs and workshops, in the Northwind look." aria-label="Purpose"><span class="hint">Agents read this in <code>list_templates</code> to pick a template.</span></div>
+              <div class="fld"><span class="lbl">Layouts allowed</span>
+                <div class="tags">
+                  <label><input type="checkbox" checked>title</label><label><input type="checkbox" checked>divider</label><label><input type="checkbox" checked>bullets</label><label><input type="checkbox" checked>two-column</label><label><input type="checkbox" checked>practice</label><label><input type="checkbox" checked>compare</label><label><input type="checkbox" checked>quote</label><label><input type="checkbox" checked>image</label><label><input type="checkbox">big-number</label><label><input type="checkbox" checked>table</label><label><input type="checkbox">chart</label><label><input type="checkbox">gantt</label><label><input type="checkbox" checked>numbered-cards</label><label><input type="checkbox" checked>rules</label><label><input type="checkbox" checked>cards</label><label><input type="checkbox" checked>close</label>
+                </div>
+                <span class="hint">Copied from Workshop. <code>join</code> and <code>poll</code> are always allowed.</span>
+              </div>
+              <div class="fld"><span class="lbl">Chrome defaults</span>
+                <div class="row2">
+                  <label class="chk"><input type="checkbox" checked>Part tracker</label>
+                  <label class="chk"><input type="checkbox" checked>Progress bar</label>
+                  <label class="chk"><input type="checkbox" checked>Dividers list deep dives</label>
+                  <label class="chk"><input type="checkbox">Draft stamp on new decks</label>
+                  <label class="chk" data-lavish-revision="r2"><input type="checkbox" id="chkTopBar" checked>Accent bar across the top</label>
+                </div>
+                <select class="inp" aria-label="Footer" style="margin-top:6px"><option>Footer shows the author</option><option>Footer shows the date</option><option>No footer</option></select>
+              </div>
+              <div class="fld"><span class="lbl">Outline and house style</span>
+                <textarea class="inp" rows="4" aria-label="Outline">Title
+Per part, a divider then one practice slide per idea
+Exercises as deep dives at the end of their part
+Close with the first step for Monday</textarea>
+                <span class="hint">One line each. Agents get these back from <code>create_deck</code>. The six house-style rules are edited the same way.</span>
+              </div>
+              <div class="fld"><span class="lbl">Shape</span>
+                <div class="seg" id="segRadius"><label><input type="radio" name="radius" value="0">Square</label><label><input type="radio" name="radius" value="8" checked>8 px</label><label><input type="radio" name="radius" value="16">16 px</label></div>
+                <span class="hint">Corner radius of cards and panels. Spacing and the 1920×1080 scale are fixed for every template.</span>
+              </div>
+            </div>
+
+            <!-- fonts -->
+            <div class="ed-panel" data-panel="type" hidden>
+              <h4>Fonts</h4>
+              <div class="fld"><span class="lbl">Headings</span>
+                <div class="files">
+                  <div class="file"><div><code>northwind-sans-700.woff2</code><small>Northwind Sans · weight 700 · 38 KB · width 0.57 em</small></div><span class="pill ok">ok</span><button class="btn sm ghost" type="button">Remove</button></div>
+                  <div class="file"><div><code>northwind-sans-800.woff2</code><small>Northwind Sans · weight 800 · 39 KB · width 0.58 em</small></div><span class="pill ok">ok</span><button class="btn sm ghost" type="button">Remove</button></div>
+                </div>
+                <div class="row2" style="margin-top:6px">
+                  <select class="inp" aria-label="Heading weight" id="selHeadW"><option value="700">Headings at 700</option><option value="800">Headings at 800</option></select>
+                  <select class="inp" aria-label="Heading tracking"><option>Tracking −0.02 em</option><option>Tracking 0</option><option>Tracking −0.03 em</option></select>
+                </div>
+              </div>
+              <div class="fld"><span class="lbl">Body text</span>
+                <div class="files" id="bodyFiles">
+                  <div class="file"><div><code>northwind-text-400.woff2</code><small>Northwind Text · weight 400 · 31 KB · width 0.47 em</small></div><span class="pill ok">ok</span><button class="btn sm ghost" type="button">Remove</button></div>
+                  <div class="file" id="missingFont"><div><code>Northwind Text · weight 600</code><small>Needed for bold text in cards. Until it is uploaded, bold falls back to Inter.</small></div><span class="pill warn">missing</span><button class="btn sm" type="button" id="btnAddFont">Upload</button></div>
+                </div>
+                <div class="drop">Drop <code>.woff2</code> files here, or choose files. Up to 8 files, 2 MB each.</div>
+              </div>
+              <div class="fld"><span class="lbl">Fallback</span>
+                <select class="inp" aria-label="Fallback"><option>Inter, when a file is missing or still loading</option><option>Plus Jakarta Sans</option></select>
+              </div>
+              <label class="chk"><input type="checkbox" id="chkRights"><span>I have the right to serve these fonts on the web to anyone who views a deck on this template.<br><span class="note">Recorded with your name and the time. The files are sent only to people viewing a deck that uses this template.</span></span></label>
+              <div class="banner info"><span><b>Width measured at upload.</b> SlideWorks checks that text still fits in your font, so slides agents write don't overflow (Q5).</span></div>
+            </div>
+
+            <!-- logo & art -->
+            <div class="ed-panel" data-panel="logo" hidden>
+              <h4>Logo and art</h4>
+              <div class="fld"><span class="lbl">Logo</span>
+                <div class="logos">
+                  <div class="logobox"><div class="stage" style="background:#F6FAF9;color:#0F1F1E"><span><svg viewBox="0 0 24 24"><path d="M12 2l2.6 7.4L22 12l-7.4 2.6L12 22l-2.6-7.4L2 12l7.4-2.6z" fill="#0F766E"/></svg>northwind</span></div><div class="meta"><code>logo-light.svg</code><span class="sp"></span><span class="pill ok">safe SVG</span></div></div>
+                  <div class="logobox"><div class="stage" style="background:#0B1F1E;color:#F2FBF9"><span><svg viewBox="0 0 24 24"><path d="M12 2l2.6 7.4L22 12l-7.4 2.6L12 22l-2.6-7.4L2 12l7.4-2.6z" fill="#14B8A6"/></svg>northwind</span></div><div class="meta"><code>logo-dark.svg</code><span class="sp"></span><span class="pill ok">safe SVG</span></div></div>
+                </div>
+                <div class="row2" style="margin-top:6px">
+                  <label class="chk"><input type="checkbox" id="chkLogoFooter" checked>Show in every footer</label>
+                  <label class="chk"><input type="checkbox" checked>Show on dark slides</label>
+                </div>
+                <span class="hint">SVG, PNG or WebP (Q3). A deck's own logo, set in its Look panel, replaces the template's.</span>
+              </div>
+              <div class="fld"><span class="lbl">Title art</span>
+                <div class="seg" id="segArt"><label><input type="radio" name="art" value="none">None</label><label><input type="radio" name="art" value="waves" checked>Waves</label><label><input type="radio" name="art" value="grid">Grid</label><label><input type="radio" name="art" value="img">Your image</label></div>
+                <span class="hint">Behind the title, divider and close slides. A generator takes its colour from the palette's glow. An image is SVG, PNG or WebP, at least 1920×1080.</span>
+              </div>
+              <div class="fld"><span class="lbl">Ornament</span>
+                <div class="seg" id="segDots"><label><input type="radio" name="dots" value="0">None</label><label><input type="radio" name="dots" value="accent">Accent dots</label><label><input type="radio" name="dots" value="brand" checked>Brand dots</label></div>
+                <div id="dotInputs" style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center">
+                  <input type="color" value="#14B8A6" data-var="--t-d1" aria-label="Dot 1"><input type="color" value="#0EA5E9" data-var="--t-d2" aria-label="Dot 2"><input type="color" value="#6366F1" data-var="--t-d3" aria-label="Dot 3"><input type="color" value="#F59E0B" data-var="--t-d4" aria-label="Dot 4"><span class="note">Up to six. Saved with the template's palette, so a template still holds no colours of its own.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- palette -->
+            <div class="ed-panel" data-panel="palette" hidden>
+              <h4>Palette</h4>
+              <div class="row2">
+                <div class="fld"><span class="lbl">Palette name</span><input class="inp" value="Northwind harbour" aria-label="Palette name"></div>
+                <div class="fld"><span class="lbl">Start from</span><select class="inp" aria-label="Start from"><option>Cobalt</option><option>Ember</option><option>Plum</option><option>Midnight</option></select></div>
+              </div>
+              <div>
+                <span class="lbl">Brand colours</span>
+                <div class="sw"><input type="color" value="#0F766E" data-var="--t-acc" aria-label="Accent"><div>Accent<small>Headline highlights, bars, callouts</small></div><code>accent</code></div>
+                <div class="sw" data-lavish-revision="r2"><input type="color" value="#0EA5E9" data-var="--t-acc2" aria-label="Second accent"><div>Second accent <span class="pill ok">new token</span><small>The far end of the progress bar, the current journey stop, title art. Built-in palettes set it to their accent.</small></div><code>accent-2</code></div>
+                <div class="sw"><input type="color" value="#F6FAF9" data-var="--t-paper" aria-label="Paper"><div>Paper<small>Light slide background</small></div><code>paper</code></div>
+                <div class="sw"><input type="color" value="#0F1F1E" data-var="--t-ink" aria-label="Ink"><div>Ink<small>Body text</small></div><code>ink</code></div>
+                <div class="sw"><input type="color" value="#0B1F1E" data-var="--t-night" aria-label="Night"><div>Night<small>Dark slide background</small></div><code>night</code></div>
+                <div class="sw"><input type="color" value="#14B8A6" data-var="--t-glow" aria-label="Glow"><div>Glow<small>Dark slide highlights and art</small></div><code>night-glow</code></div>
+                <div class="sw"><input type="color" value="#C2410C" data-var="--t-dd" aria-label="Deep dive"><div>Deep dive<small>The deep-dive bar and pill</small></div><code>dd</code></div>
+              </div>
+              <div data-lavish-revision="r2">
+                <span class="lbl">Extra colours <span style="text-transform:none;letter-spacing:0;font-weight:500">· up to four, for ornament and custom layouts only</span></span>
+                <div class="sw"><input type="color" value="#020617" data-var="--t-stage" aria-label="Extra 1"><div><input class="nm" value="Stage" aria-label="Extra 1 name"><small>White text on it: 20.2:1, passes</small></div><code>extra-1</code></div>
+                <button class="btn sm" type="button" style="margin-top:6px">Add a colour</button>
+              </div>
+              <details><summary class="note" style="cursor:pointer">All 41 colour tokens</summary><p class="note" style="margin-top:6px">The rest (card, grid, muted, the soft and ink versions of each role, the panel pairs, the number gradient) start as values worked out from the six above and the palette you started from. Each can be set by hand here.</p></details>
+              <div>
+                <span class="lbl">Contrast <span id="palSummary" style="text-transform:none;letter-spacing:0;font-weight:500"></span></span>
+                <div id="contrastRows"></div>
+              </div>
+              <label class="chk"><input type="checkbox" checked><span>Lock the palette<br><span class="note">Decks on this template always use Northwind harbour. The palette choice is greyed out in New deck and the Look panel.</span></span></label>
+            </div>
+
+            <!-- custom layouts -->
+            <div class="ed-panel" data-panel="layouts" hidden>
+              <h4>Custom layouts <span class="pill later">last wave (Q2)</span></h4>
+              <p class="note">Layouts of your own, next to the built-in ones. Each is HTML that uses only this template's tokens, with typed slots. See section 04.</p>
+              <div class="files">
+                <div class="file"><div><code>stage-ladder</code><small>Four steps rising left to right, the last one filled</small></div><span class="pill ok">approved</span><button class="btn sm" type="button">Open</button></div>
+                <div class="file"><div><code>card-sort</code><small>Up to 12 small cards in three labelled piles</small></div><span class="pill warn">needs review</span><button class="btn sm" type="button">Review</button></div>
+              </div>
+              <button class="btn" type="button" style="justify-self:start">Add a layout</button>
+            </div>
+          </div>
+
+          <div class="prev">
+            <div class="sl dark" data-slide="title" id="pvTitle"></div>
+            <div class="two">
+              <div class="sl" data-slide="practice"></div>
+              <div class="sl dark" data-slide="divider"></div>
+            </div>
+            <div class="checks" id="checks"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="states">
+  <div class="sec-head"><span class="n">03</span><h2>Checks, and what each failure looks like</h2></div>
+  <p class="sec-sub">A file that fails a check is refused at upload with the reason. Checks that depend on several fields show in the publish checklist. The same texts go back to an agent as the tool's error.</p>
+  <div class="grid3">
+    <div class="card st"><h3>Not a woff2 file</h3>
+      <div class="ui"><div class="file" style="background:#fff"><div><code>NorthwindSans-Bold.ttf</code></div><span class="pill bad">refused</span><span></span></div><span class="err">Fonts must be woff2 files. This one is TrueType.</span></div>
+      <p>Checked by the file's first bytes, not its name. Other formats are refused, not converted.</p></div>
+    <div class="card st"><h3>Font too wide or too narrow</h3>
+      <div class="ui"><div class="file" style="background:#fff"><div><code>northwind-display-900.woff2</code><small>width 0.74 em</small></div><span class="pill bad">refused</span><span></span></div><span class="err">This font is too wide for slide text (0.74 em; the limit is 0.70).</span></div>
+      <p>The server measures a sample line in headless Chromium. Inside the limits, the measured width replaces the built-in 0.56 em when slides are checked for fit (Q5).</p></div>
+    <div class="card st"><h3>Rights not confirmed</h3>
+      <div class="ui"><div class="ck warn"><i>!</i><span>Confirm you can serve these fonts<br><small>3 font files uploaded</small></span><a href="#editor">Fonts</a></div></div>
+      <p>Publishing is blocked. An agent can't confirm this: <code>publish_template</code> returns the reason and the editor's link for a person to open.</p></div>
+    <div class="card st"><h3>Palette fails contrast</h3>
+      <div class="ui"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="pill bad">3.6:1</span><span>Deep-dive pill needs 4.5:1</span></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="pair" style="background:#EA580C;color:#fff">Deep dive</span><span>→</span><span class="pair" style="background:#C2410C;color:#fff">Deep dive</span><button class="btn sm" type="button">Use #C2410C</button></div></div>
+      <p>The same bars as the built-in palettes (SW-2). The editor offers the nearest colour that passes. It never changes a colour by itself.</p></div>
+    <div class="card st"><h3>Unsafe SVG</h3>
+      <div class="ui"><div class="file" style="background:#fff"><div><code>logo.svg</code></div><span class="pill bad">refused</span><span></span></div><span class="err">This SVG contains a script. Export it again without scripts, or upload a PNG.</span></div>
+      <p>Scripts, event handlers, <code>foreignObject</code> and links to other files are refused, not stripped silently (Q3).</p></div>
+    <div class="card st" data-lavish-revision="r1"><h3>Editing a published template</h3>
+      <div class="ui"><div class="banner warn" style="background:#fff;border:1px solid #f1d3ae"><span><b>Draft of version 3.</b> 3 decks are on version 2 and stay there until each is updated.</span></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm primary" type="button">Publish version 3</button><button class="btn sm" type="button">Discard draft</button><button class="btn sm ghost" type="button">See the 3 decks</button></div></div>
+      <p>Publishing makes a new version. New decks get it. No existing deck changes by itself, not even one being presented.</p></div>
+    <div class="card st" data-lavish-revision="r1"><h3>A deck is offered the update</h3>
+      <div class="ui"><span class="lbl" style="margin:0">Template</span><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>Northwind kickoff</b><span class="pill grey">version 2</span><span class="pill acc">version 3 available</span></div><span class="note">Changed in 3: logo, accent colour, heading weight.</span><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm primary" type="button">Update this deck</button><button class="btn sm" type="button">Preview</button></div></div>
+      <p>In the deck's Look panel, for the deck's owner. Preview shows the deck's own slides in the new version. Updating is one activity entry and can be undone by picking version 2 again.</p></div>
+    <div class="card st" data-lavish-revision="r1"><h3>After publishing a new version</h3>
+      <div class="ui"><div class="banner ok"><span><b>Version 3 published.</b> 2 of your decks are on version 2.</span></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" type="button">Update my 2 decks</button><button class="btn sm ghost" type="button">Not now</button></div></div>
+      <p>The template's owner can move their own decks in one go, with one activity entry per deck. Other people's decks are theirs to update.</p></div>
+    <div class="card st"><h3>Layout removed that decks use</h3>
+      <div class="ui"><div class="ck warn"><i>!</i><span>2 slides in 1 deck use <code>practice</code><br><small>They still render, with a warning on the deck page</small></span><span></span></div></div>
+      <p>Shown when a deck updates to a version that dropped a layout it uses. The same rule as switching template (SW-2 D9): it warns and never blocks.</p></div>
+    <div class="card st"><h3>Archive</h3>
+      <div class="ui"><span>Archive "Northwind kickoff"? 3 decks keep this look. Nobody can pick it for a new deck.</span><div style="display:flex;gap:6px"><button class="btn sm" type="button">Cancel</button><button class="btn sm" type="button" style="color:var(--bad)">Archive</button></div></div>
+      <p>Nothing is deleted, so a deck never loses its fonts or logo. Every published version is kept. An archived template can be restored.</p></div>
+    <div class="card st"><h3>Limits</h3>
+      <ul class="plain grey" style="font-size:12.5px">
+        <li>8 font files, 2 MB each</li><li>Logos and art: 10 MB each, like deck images</li><li>12 custom layouts per template</li><li>50 templates per person</li>
+      </ul>
+      <p>Proposed. Each has an error text naming the limit.</p></div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="layouts">
+  <div class="sec-head"><span class="n">04</span><h2>Custom layouts</h2><span class="pill later">last wave of SW-50 (Q2)</span></div>
+  <p class="sec-sub">A custom layout is defined the way a built-in one is: a name, a description for agents, and typed slots. The difference is that its markup is uploaded. It is parsed into a checked tree on the server and drawn from that tree, so no uploaded HTML string ever reaches a page. The markup can react to slot values in three ways: a number sets a length or an angle, a choice picks a variant, and an element can wait for a later click.</p>
+
+  <div class="browser">
+    <div class="browser-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><b>slideworks.example</b>/templates/northwind-kickoff/layouts/stage-ladder</div></div>
+    <div class="app look">
+      <div class="app-body">
+        <div class="app-h"><h3>stage-ladder</h3><span class="pill warn">Needs review</span><span class="sp"></span><button class="btn" type="button">Replace files…</button><button class="btn primary" type="button">Approve layout</button></div>
+        <div class="cl">
+          <div style="display:grid;gap:12px">
+            <div><span class="lbl">Slots <code style="text-transform:none;letter-spacing:0">stage-ladder.json</code></span>
+<div class="mcp">{ <span class="c">"name"</span>: "stage-ladder",
+  <span class="c">"description"</span>: "Four stages rising left to right; the goal is filled.",
+  <span class="u">"surface"</span>: "either",   <span class="m">// light, dark, or the slide picks</span>
+  <span class="u">"steps"</span>: "stages",     <span class="m">// one stage per click</span>
+  <span class="c">"slots"</span>: {
+    <span class="c">"kicker"</span>:   { "type": "text", "max": 40, "optional": true },
+    <span class="c">"headline"</span>: { "type": "text", "max": 80 },
+    <span class="c">"stages"</span>:   { "type": "list", "min": 4, "max": 4, "of": {
+      "label": { "type": "text", "max": 14 },
+      "title": { "type": "text", "max": 28 },
+      "text":  { "type": "text", "max": 90, "optional": true },
+      <span class="u">"state"</span>: { "type": "enum", "values": ["step", "goal"] } } } } }</div></div>
+            <div><span class="lbl">Markup <code style="text-transform:none;letter-spacing:0">stage-ladder.html</code></span>
+<div class="mcp">&lt;p class="kicker" <span class="u">data-slot</span>="kicker"&gt;&lt;/p&gt;
+&lt;h2 class="headline" <span class="u">data-slot</span>="headline"&gt;&lt;/h2&gt;
+&lt;div class="ladder"&gt;
+  &lt;div class="rung" <span class="u">data-each</span>="stages" <span class="u">data-variant</span>="state" <span class="u">data-step</span>&gt;
+    &lt;i <span class="u">data-slot</span>="label"&gt;&lt;/i&gt;
+    &lt;b <span class="u">data-slot</span>="title"&gt;&lt;/b&gt;
+    &lt;span <span class="u">data-slot</span>="text"&gt;&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;style&gt;
+  .ladder { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; align-items: end; }
+  .rung   { background: <span class="r">var(--sw-card)</span>; border-top: 8px solid <span class="r">var(--sw-accent)</span>;
+            border-radius: <span class="r">var(--sw-radius-md)</span>; padding: 20px; }
+  .rung<span class="u">.is-goal</span> { background: <span class="r">var(--sw-accent)</span>; color: <span class="r">var(--sw-on-accent)</span>; }
+&lt;/style&gt;</div></div>
+          </div>
+          <div style="display:grid;gap:12px">
+            <div><span class="lbl">With sample content</span><div class="sl" data-slide="ladder"></div></div>
+            <div class="grid2" style="gap:10px" data-lavish-revision="r2"><div><span class="lbl">On a dark slide</span><div class="sl dark" data-slide="ladder"></div></div><div><span class="lbl">After two clicks</span><div class="sl" data-slide="ladder" data-step="2"></div></div></div>
+            <div><span class="lbl">With every slot at its maximum</span><div class="sl" data-slide="ladder" data-max="1"></div><span class="cap">The dashed box is the safe area (x 120–1800, y 150–996). Anything outside it blocks approval.</span></div>
+            <div class="checks">
+              <h4>Layout checks</h4>
+              <div class="ck ok"><i>✓</i><span>Markup uses allowed tags only</span><span></span></div>
+              <div class="ck ok"><i>✓</i><span>Every colour and font is a token</span><span></span></div>
+              <div class="ck ok"><i>✓</i><span>Every slot in the markup is declared, and the reverse</span><span></span></div>
+              <div class="ck ok"><i>✓</i><span>Stays inside the safe area at maximum content</span><span></span></div>
+              <div class="ck ok" data-lavish-revision="r2"><i>✓</i><span>Passes contrast on light and on dark</span><span></span></div>
+              <div class="ck warn"><i>!</i><span>Not approved yet<br><small>Look at both renders, then approve (Q6)</small></span><span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub-h" data-lavish-revision="r2">Three ways the markup reacts to a slide's values</h3>
+  <div class="cl look" data-lavish-revision="r2">
+    <div class="table-wrap"><table class="ledger top">
+      <thead><tr><th>Binding</th><th>In the markup</th><th>What it is for</th></tr></thead>
+      <tbody>
+        <tr><td class="t">A number sets a CSS variable</td><td><code>data-var="--v: share"</code>, then <code>width: calc(var(--v) * 1%)</code></td><td>Bar lengths, a gauge needle's angle, a marker's position. The slot declares its range, so the value can't push anything off the slide.</td></tr>
+        <tr><td class="t">A choice picks a variant</td><td><code>data-variant="state"</code> adds <code>.is-goal</code></td><td>A highlighted rung, an alert bar, a struck-through row. Only the values the slot lists become classes.</td></tr>
+        <tr><td class="t">An element waits for a click</td><td><code>data-step</code>, or <code>data-step="2"</code></td><td>Reveals, the same as built-in layouts: hidden steps keep their space, and the presenter's step count includes them.</td></tr>
+        <tr><td class="t">Light or dark</td><td><code>"surface": "either"</code> in the slots file</td><td>The slide chooses. On dark, tokens resolve to the night colours, and both are contrast-checked.</td></tr>
+        <tr><td class="t">Motion</td><td>None yet</td><td>Bars that grow and needles that swing are a later story, with a few named effects SlideWorks owns.</td></tr>
+      </tbody>
+    </table></div>
+    <div><div class="sl" data-slide="bars"></div><span class="cap"><code class="layout">bottleneck-bars</code>Two numbers set the bar lengths, a third the dashed outline; <code>state: alert</code> turns a bar red. The dark note uses the extra colour "Stage".</span></div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="card pad"><h3>Allowed</h3>
+      <ul class="plain yes">
+        <li><b>Tags:</b> <code>div</code>, <code>span</code>, <code>p</code>, <code>h2</code>, <code>h3</code>, <code>ul</code>, <code>ol</code>, <code>li</code>, <code>b</code>, <code>i</code>, <code>em</code>, <code>strong</code>, and <code>svg</code> shapes without text or links</li>
+        <li><b>Attributes:</b> <code>class</code>, <code>data-slot</code>, <code>data-each</code>, <code>data-if</code>, <code>data-var</code>, <code>data-variant</code>, <code>data-step</code></li>
+        <li><b>Slot types:</b> the ones built-in layouts use: text, number, enum, list, object, image, and the callout, chip and badge blocks</li>
+        <li><b>CSS:</b> one <code>&lt;style&gt;</code> block with class selectors; layout, spacing, borders and type size; colours and fonts only as <code>var(--sw-…)</code>, including the template's extra colours</li>
+        <li>Slot text is plain text, as everywhere else in SlideWorks</li>
+      </ul></div>
+    <div class="card pad"><h3>Refused, with the line it is on</h3>
+      <ul class="plain no">
+        <li><code>&lt;script&gt;</code>, event handlers, <code>&lt;iframe&gt;</code>, <code>&lt;form&gt;</code>, <code>&lt;a&gt;</code>, <code>&lt;img&gt;</code> outside an image slot</li>
+        <li>Hex, <code>rgb()</code>, named colours and font names: the same rule as the repo's own layouts</li>
+        <li><code>url()</code>, <code>@import</code>, <code>@font-face</code>, <code>position: fixed</code>, animation and transitions (motion comes later, as named effects)</li>
+        <li>Selectors that reach outside the layout: element selectors, <code>:root</code>, <code>.sw-…</code> classes</li>
+        <li>Text written in the markup. Every word on a slide comes from a slot, so agents and lint can see it</li>
+      </ul></div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="use">
+  <div class="sec-head"><span class="n">05</span><h2>Sharing a template, and using it</h2></div>
+  <p class="sec-sub">A template is shared with the same three choices as a deck. A published template you can use appears wherever a template is chosen.</p>
+  <div class="grid2" style="align-items:start">
+    <div class="browser"><div class="app"><div class="scrim">
+      <div class="dlg">
+        <div class="dlg-h"><h3>Share "Northwind kickoff"</h3></div>
+        <div class="dlg-b">
+          <div style="display:grid;gap:6px">
+            <label class="pick"><input type="radio" name="shr"><div><b>Private</b><span>Only you can make decks with it.</span></div></label>
+            <label class="pick"><input type="radio" name="shr"><div><b>Named people</b><span>People you list by email can use it.</span></div></label>
+            <label class="pick"><input type="radio" name="shr" checked><div><b>Anyone with the link</b><span>Anyone signed in who opens the link can add it to their templates.</span></div></label>
+          </div>
+          <div><span class="lbl">Link</span><div style="display:flex;gap:6px"><input class="inp mono" readonly value="https://slideworks.example/t/Qm4xT9aLp2Kd" aria-label="Link"><button class="btn" type="button">Copy</button></div></div>
+          <p class="note">People you share with can use the template, not edit it. Anyone who can see a deck sees it in this template, shared or not.</p>
+        </div>
+        <div class="dlg-f"><button class="btn primary" type="button">Done</button></div>
+      </div>
+    </div></div></div>
+
+    <div class="browser"><div class="app look"><div class="scrim">
+      <div class="dlg">
+        <div class="dlg-h"><h3>New deck</h3><span class="note">The existing dialog, with your templates added.</span></div>
+        <div class="dlg-b">
+          <div><span class="lbl">Template</span>
+            <div style="display:grid;gap:6px">
+              <label class="pick"><input type="radio" name="nd"><div><b>Talk</b><span>A talk to a room: a story in parts.</span></div></label>
+              <label class="pick"><input type="radio" name="nd"><div><b>Workshop</b><span>A talk plus exercises the room does.</span></div></label>
+              <label class="pick"><input type="radio" name="nd" checked><div><b>Northwind kickoff</b> <span class="pill acc" style="display:inline-flex">yours</span><span>Northwind team kickoffs and workshops, in the Northwind look.</span></div></label>
+              <label class="pick"><input type="radio" name="nd"><div><b>Design review</b> <span class="pill grey" style="display:inline-flex">shared by Mira Okafor</span><span>Weekly design reviews.</span></div></label>
+            </div>
+          </div>
+          <div><span class="lbl">Palette</span><select class="inp" disabled aria-label="Palette"><option>Northwind harbour (set by the template)</option></select></div>
+          <div class="sl dark" data-slide="title"></div>
+        </div>
+        <div class="dlg-f"><button class="btn" type="button">Cancel</button><button class="btn primary" type="button">Create deck</button></div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <h3 class="sub-h">Who sees what</h3>
+  <div class="table-wrap"><table class="ledger top">
+    <thead><tr><th>Person</th><th>Templates page</th><th>Pick it for a deck</th><th>See a deck on it</th><th>Edit it</th></tr></thead>
+    <tbody>
+      <tr><td class="t">Owner</td><td>Yes, under Yours</td><td>Yes, once published</td><td>Yes</td><td>Yes</td></tr>
+      <tr><td class="t">Shared with (named, or opened the link)</td><td>Yes, under Shared with you</td><td>Yes</td><td>Yes</td><td>No. They can duplicate it into their own draft</td></tr>
+      <tr><td class="t">Anyone else who can view the deck</td><td>No</td><td>No</td><td>Yes: the deck's fonts, logo and art load for them</td><td>No</td></tr>
+      <tr><td class="t">A guest on a phone, the share card bot</td><td>No</td><td>No</td><td>Yes</td><td>No</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="agent">
+  <div class="sec-head"><span class="n">06</span><h2>The agent's side: one session over MCP</h2></div>
+  <p class="sec-sub">An agent builds a template from a manifest. Files go up through the same one-time upload URL that <code>upload_image</code> uses, so bytes never pass through the model.</p>
+  <div class="grid2">
+<div class="mcp"><span class="m">// Make a draft from Workshop, with the brand's look</span>
+<span class="u">create_template</span> { <span class="c">name</span>: "Northwind kickoff", <span class="c">from</span>: "workshop",
+  <span class="c">type</span>: { head: "Northwind Sans", body: "Northwind Text", head_weight: 700 },
+  <span class="c">shape</span>: { radius: 8 }, <span class="c">art</span>: "waves", <span class="c">ornament</span>: ["#14B8A6","#0EA5E9","#6366F1","#F59E0B"],
+  <span class="c">palette</span>: { name: "Northwind harbour", from: "cobalt", lock: true,
+    tokens: { accent: "#0F766E", "accent-2": "#0EA5E9", paper: "#F6FAF9", night: "#0B1F1E", "night-glow": "#14B8A6", dd: "#EA580C" },
+    extras: [ { name: "Stage", colour: "#020617" } ] } }
+<span class="r">→ { template: "northwind-kickoff", status: "draft", url: "…/templates/northwind-kickoff",
+    checks: [
+      { check: "contrast", ok: false, detail: "Deep-dive pill is 3.6:1, needs 4.5:1. Nearest passing colour: #C2410C" },
+      { check: "fonts", ok: false, detail: "No files for Northwind Sans or Northwind Text; headings and body fall back to Inter" },
+      { check: "font_rights", ok: false, detail: "A person must confirm the right to serve the fonts, at the url" } ] }</span>
+
+<span class="u">update_template</span> { <span class="c">template</span>: "northwind-kickoff", <span class="c">palette</span>: { tokens: { dd: "#C2410C" } } }
+<span class="r">→ { checks: [ { check: "contrast", ok: true }, … ] }</span>
+
+<span class="u">upload_asset</span> { <span class="c">template</span>: "northwind-kickoff", <span class="c">kind</span>: "font", <span class="c">role</span>: "head", <span class="c">weight</span>: 700,
+  <span class="c">filename</span>: "northwind-sans-700.woff2" }
+<span class="r">→ { asset: "ast_8Kq…", upload_url: "…/api/uploads/…", curl: "curl -T northwind-sans-700.woff2 '…'" }</span>
+
+<span class="u">upload_asset</span> { <span class="c">template</span>: "northwind-kickoff", <span class="c">kind</span>: "logo", <span class="c">role</span>: "dark", <span class="c">filename</span>: "logo-dark.svg" }
+
+<span class="u">publish_template</span> { <span class="c">template</span>: "northwind-kickoff" }
+<span class="x">→ error: "Can't publish yet: a person must confirm the right to serve the fonts.
+   Ask them to open …/templates/northwind-kickoff"</span></div>
+    <div style="display:grid;gap:12px;align-content:start">
+      <div class="table-wrap"><table class="ledger top">
+        <thead><tr><th>Tool</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>create_template</code></td><td>A draft from a manifest. <code>from</code> names a built-in to copy structure from. Returns the checks.</td></tr>
+          <tr><td><code>update_template</code></td><td>Changes any field of a draft, or starts a draft of a published template.</td></tr>
+          <tr><td><code>get_template</code></td><td>The manifest, the files, the checks, sharing and the decks that use it.</td></tr>
+          <tr><td><code>upload_asset</code></td><td><code>kind: font | logo | art | layout</code>. Returns an upload URL and a curl command.</td></tr>
+          <tr data-lavish-revision="r1"><td><code>publish_template</code></td><td>Publishes the draft as the next version if every check passes; otherwise the failing checks.</td></tr>
+          <tr data-lavish-revision="r1"><td><code>get_deck</code>, <code>set_look</code></td><td><code>get_deck</code>'s look gains <code>template_version</code> and <code>update_available</code>. <code>set_look {template_version}</code> moves a deck to a version, or to <code>"latest"</code>.</td></tr>
+          <tr><td><code>set_sharing</code></td><td>Gains <code>template</code> next to <code>deck</code>.</td></tr>
+          <tr><td><code>list_templates</code></td><td>Gains the caller's own and shared templates, each with <code>source: builtin | yours | shared</code>.</td></tr>
+          <tr><td><code>list_layouts</code></td><td>With <code>template</code>, includes that template's approved custom layouts and their slots.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="banner info"><span><b>No change for deck tools.</b> <code>create_deck {template: "northwind-kickoff"}</code> and <code>set_look</code> take an uploaded template by its short name, exactly like a built-in, and use its latest version.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="build">
+  <div class="sec-head"><span class="n">07</span><h2>How we build it</h2><span class="pill grey">checked against main at 21160cc</span></div>
+  <p class="sec-sub">Most of the model exists. The work is in five places: a store for templates and their files, a catalogue that knows who is asking, the checks, drawing the new parts on slides, and the screens.</p>
+
+  <div class="card diagram">
+    <svg viewBox="0 0 1160 380" role="img" aria-label="How a custom template gets from the editor to a slide">
+      <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a93a3"/></marker></defs>
+      <g font-size="12.5">
+        <text x="10" y="18" font-size="11" font-weight="600" fill="#8a93a3" letter-spacing="1">WHO MAKES IT</text>
+        <text x="300" y="18" font-size="11" font-weight="600" fill="#8a93a3" letter-spacing="1">SERVER: NEW</text>
+        <text x="650" y="18" font-size="11" font-weight="600" fill="#8a93a3" letter-spacing="1">SERVER: CHANGED</text>
+        <text x="930" y="18" font-size="11" font-weight="600" fill="#8a93a3" letter-spacing="1">CLIENT: CHANGED</text>
+
+        <g id="b-editor"><title>Template editor and Templates page (new)</title><rect x="10" y="34" width="220" height="70" rx="9" fill="#e6ecfd" stroke="#2f5bea"/><text x="24" y="58" font-weight="600" fill="#1e3a8a">Template editor</text><text x="24" y="78" fill="#1e3a8a">Templates page · /api/templates</text></g>
+        <g id="b-mcp"><title>MCP tools (new)</title><rect x="10" y="122" width="220" height="70" rx="9" fill="#e6ecfd" stroke="#2f5bea"/><text x="24" y="146" font-weight="600" fill="#1e3a8a">MCP tools</text><text x="24" y="166" fill="#1e3a8a">create_template · upload_asset …</text></g>
+
+        <g id="b-commands"><title>TemplateCommands: the only code that changes a template</title><rect x="300" y="60" width="280" height="96" rx="9" fill="#fff" stroke="#2f5bea"/><text x="314" y="84" font-weight="600" fill="#1b2230">Features/Templates</text><text x="314" y="104" fill="#5b6474">TemplateCommands: draft, publish a</text><text x="314" y="121" fill="#5b6474">version, archive, share. Activity log.</text><text x="314" y="141" fill="#5b6474">Tables: Templates, Versions, Assets</text></g>
+        <g id="b-checks"><title>Checks</title><rect x="300" y="176" width="280" height="96" rx="9" fill="#fff" stroke="#2f5bea"/><text x="314" y="200" font-weight="600" fill="#1b2230">Checks</text><text x="314" y="220" fill="#5b6474">woff2 bytes · font width (Chromium)</text><text x="314" y="237" fill="#5b6474">safe SVG · palette contrast (exists)</text><text x="314" y="254" fill="#5b6474">layout markup → checked tree</text></g>
+        <g id="b-store"><title>Asset store on the data volume</title><rect x="300" y="292" width="280" height="62" rx="9" fill="#fff" stroke="#2f5bea"/><text x="314" y="316" font-weight="600" fill="#1b2230">Asset store</text><text x="314" y="336" fill="#5b6474">/data/templates/&lt;id&gt;/&lt;assetId&gt;</text></g>
+
+        <g id="b-catalogue"><title>The catalogue seam</title><rect x="650" y="60" width="220" height="96" rx="9" fill="#fdf0e1" stroke="#b4580b"/><text x="664" y="84" font-weight="600" fill="#7a3d06">Template + palette catalogue</text><text x="664" y="104" fill="#7a3d06">built-in JSON + database</text><text x="664" y="121" fill="#7a3d06">Find(name): any, for rendering</text><text x="664" y="138" fill="#7a3d06">ListFor(actor): for choosing</text></g>
+        <g id="b-lookview"><title>LookView</title><rect x="650" y="176" width="220" height="96" rx="9" fill="#fdf0e1" stroke="#b4580b"/><text x="664" y="200" font-weight="600" fill="#7a3d06">LookView</text><text x="664" y="220" fill="#7a3d06">+ font files, logo pair, art,</text><text x="664" y="237" fill="#7a3d06">ornament colours, custom layouts</text><text x="664" y="254" fill="#7a3d06">SlideFit: widths per template</text></g>
+        <g id="b-files"><title>Asset route</title><rect x="650" y="292" width="220" height="62" rx="9" fill="#fff" stroke="#2f5bea"/><text x="664" y="316" font-weight="600" fill="#1b2230">GET /api/template-assets/{id}</text><text x="664" y="336" fill="#5b6474">cached for good; sandbox CSP</text></g>
+
+        <g id="b-style"><title>lookStyle and font faces</title><rect x="930" y="60" width="220" height="62" rx="9" fill="#fdf0e1" stroke="#b4580b"/><text x="944" y="84" font-weight="600" fill="#7a3d06">lookStyle + @font-face</text><text x="944" y="104" fill="#7a3d06">one rule per uploaded file</text></g>
+        <g id="b-art"><title>Art layer</title><rect x="930" y="136" width="220" height="62" rx="9" fill="#fdf0e1" stroke="#b4580b"/><text x="944" y="160" font-weight="600" fill="#7a3d06">Title, divider, close</text><text x="944" y="180" fill="#7a3d06">art layer, dots, light/dark logo</text></g>
+        <g id="b-custom"><title>CustomLayout</title><rect x="930" y="212" width="220" height="62" rx="9" fill="#e6ecfd" stroke="#2f5bea"/><text x="944" y="236" font-weight="600" fill="#1e3a8a">CustomLayout (new)</text><text x="944" y="256" fill="#1e3a8a">draws the checked tree in React</text></g>
+        <g id="b-pick"><title>Pickers</title><rect x="930" y="292" width="220" height="62" rx="9" fill="#fdf0e1" stroke="#b4580b"/><text x="944" y="316" font-weight="600" fill="#7a3d06">New deck · Look panel</text><text x="944" y="336" fill="#7a3d06">list yours and shared</text></g>
+
+        <path d="M230 69H298M230 157C262 157 268 120 298 116M440 156V174M440 272V290M580 108H648M760 156V174M870 216H900C914 216 914 92 928 92M870 226H900C914 226 914 167 928 167M870 236H928M580 323H648M870 323H928" stroke="#8a93a3" stroke-width="1.4" fill="none" marker-end="url(#ah2)"/>
+      </g>
+    </svg>
+    <p class="note" style="margin-top:8px">Blue is new. Orange exists and changes.</p>
+  </div>
+
+  <h3 class="sub-h">What changes, and where</h3>
+  <div class="table-wrap"><table class="ledger top">
+    <thead><tr><th>Piece</th><th>Today</th><th>For SW-50</th></tr></thead>
+    <tbody>
+      <tr><td class="t">Where templates come from</td><td><code>ITemplateCatalogue</code> is a singleton over the embedded <code>templates.json</code>, injected into about 14 classes. It has no idea who is asking.</td><td>The catalogue also reads the database. <code>Find(name)</code> returns any template so a deck always renders. A new <code>ListFor(actor)</code> returns what the caller may pick. <code>GET /api/looks</code> stops being the same for everyone.</td></tr>
+      <tr><td class="t">What a deck stores</td><td><code>Deck.Template</code> and <code>Deck.Palette</code> are names.</td><td data-lavish-revision="r1">The names stay, and a deck also stores the template version it is on. An uploaded template's short name is unique across the server and can't clash with a built-in. Built-ins have no versions, so no existing deck row needs more than a default. A template's palette is stored inside each version.</td></tr>
+      <tr><td class="t">Files</td><td><code>ImageStore</code> keeps images per deck: 10 MB, PNG, JPEG, WebP, GIF. SVG is refused.</td><td>A template asset store beside it, with font, logo, art and layout kinds, and the same one-time upload URL. Files are kept under ids and never replaced in place, so a URL can be cached for good and every published version keeps its own files.</td></tr>
+      <tr><td class="t">Fonts</td><td>Inter and Plus Jakarta Sans are bundled. <code>lookStyle.ts</code> sets families by name.</td><td>The look carries a list of font files. The slide adds one <code>@font-face</code> per file, under a family name unique to the template. The share card and <code>preview_deck</code> wait for fonts before the screenshot.</td></tr>
+      <tr><td class="t">Text fit</td><td><code>SlideFit</code> measures every line at 0.56 em.</td><td>The widths come from the template. The server measures each uploaded font once (Q5).</td></tr>
+      <tr data-lavish-revision="r2"><td class="t">Palette tokens</td><td>40 keys, the same in every palette. No second accent.</td><td>One new key, <code>accent-2</code>, in every palette; the four built-ins set it to their accent, so they look the same. The progress bar, the current journey stop and title art use it. A custom palette can also hold up to four extra named colours with a checked ink each, which only ornament and custom layouts can use.</td></tr>
+      <tr><td class="t">Title art and ornament</td><td>Fields on <code>Template</code>, but no slide draws them. Only the share card draws <code>waves</code>.</td><td>An art layer on the title, divider and close layouts; <code>waves</code>, <code>grid</code> or an image. Ornament colours on the title slide.</td></tr>
+      <tr><td class="t">Logo</td><td>One raster logo per deck, in the footer. Title, divider and close slides draw no footer, so no logo.</td><td>The template brings a light and a dark logo. The deck's own logo still wins. Title, divider and close slides draw the dark logo in the bottom-right corner, with no footer text.</td></tr>
+      <tr><td class="t">Chrome</td><td>Tracker, footer, progress, draft, deep dives on dividers.</td><td>One more setting, a top accent bar (none or accent, 8 px), which a deck can override like the others.</td></tr>
+      <tr><td class="t">Sharing</td><td><code>DeckAccess</code> and <code>DeckViewers</code>, per deck.</td><td>The same shape for templates: <code>TemplateAccess</code>, <code>TemplateViewers</code>, and <code>set_sharing {template}</code>.</td></tr>
+      <tr><td class="t">Custom layouts</td><td>One React component per layout. <code>dangerouslySetInnerHTML</code> is banned by lint. <code>LayoutCatalogue</code> is static.</td><td>The server turns uploaded markup into a checked tree and a slot schema. One <code>CustomLayout</code> component draws any tree, sets CSS variables from number slots, adds variant classes from enum slots and hides later steps through the existing <code>Reveal</code>. <code>SlideValidator</code> validates against the schema as it does for built-ins.</td></tr>
+      <tr data-lavish-revision="r1"><td class="t">Versions</td><td>None. A built-in changes only with a release.</td><td>A published version is never changed. Publishing a draft adds the next version. A deck moves only when its owner updates it, which is an ordinary look change: one activity entry and the existing <code>DeckEvent</code>.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 class="sub-h">Order of work</h3>
+  <div class="waves">
+    <div class="card wave"><div class="w">Wave 0<small>contracts, one agent</small></div><div class="lanes">
+      <div class="lane"><b>Manifest and views</b><span><code>template.json</code> schema, the wider <code>LookView</code>, the <code>accent-2</code> token, the screens' JSON samples, error texts</span></div>
+      <div class="lane"><b>Seams</b><span>Catalogue with <code>ListFor(actor)</code>, tables and migration, asset store and upload route, empty Templates page</span></div>
+    </div></div>
+    <div class="card wave"><div class="w">Wave 1<small>five lanes side by side</small></div><div class="lanes">
+      <div class="lane"><b>A · Store and checks</b><span>Draft, publish as a version, archive; woff2, SVG and contrast checks; font width</span></div>
+      <div class="lane"><b>B · Slides draw it</b><span>Font faces, logo pair, art layer, ornament; share card and render wait for fonts</span></div>
+      <div class="lane"><b>C · Editor</b><span>Templates page, editor tabs, live preview, publish checklist, bundle up and down</span></div>
+      <div class="lane"><b>D · Agents</b><span>The five template tools; <code>list_templates</code> and <code>set_sharing</code> changes</span></div>
+      <div class="lane"><b>E · Sharing and pickers</b><span>Template access, share dialog, <code>/t/{id}</code>, New deck dialog, Look panel with the update offer</span></div>
+    </div></div>
+    <div class="card wave"><div class="w">Wave 2<small>custom layouts</small></div><div class="lanes">
+      <div class="lane"><b>Format and sanitiser</b><span>Markup and CSS allow-lists, the checked tree, the slot schema, the three bindings</span></div>
+      <div class="lane"><b>Renderer and fit</b><span><code>CustomLayout</code>, validation, steps, light and dark, the maximum-content render</span></div>
+      <div class="lane"><b>Review screen and tools</b><span>The layout page, approve, <code>upload_asset {kind: layout}</code>, <code>list_layouts</code></span></div>
+    </div></div>
+    <div class="card wave"><div class="w">Wave 3<small>finish</small></div><div class="lanes">
+      <div class="lane"><b>Journeys</b><span>Make, publish, share, use, publish a new version and update a deck, archive: one acceptance journey each</span></div>
+      <div class="lane"><b>Docs and measure</b><span>User guide, self-hosting notes on storage, the measure's query</span></div>
+    </div></div>
+  </div>
+
+  <h3 class="sub-h">Risks</h3>
+  <div class="grid2">
+    <div class="card pad"><ul class="plain no">
+      <li><b>Font licences.</b> A woff2 sent to a browser can be saved by any viewer. The rights tick, the name and time recorded, and serving fonts only for decks on the template are what we can do. Worth one line in the docs for server owners.</li>
+      <li><b>The catalogue seam touches about 14 classes</b>, and SW-9 is being built on the same files now. Wave 0 should land it small and early.</li>
+      <li><b>SVG.</b> Allowed today nowhere. A sanitiser is new code on a security boundary; it needs its own hostile-file tests.</li>
+    </ul></div>
+    <div class="card pad"><ul class="plain no">
+      <li><b>Custom layouts are the largest and least certain part.</b> CSS that passes the allow-list can still be ugly or fragile. That is why they are last and why each is looked at before publishing.</li>
+      <li data-lavish-revision="r1"><b>A rebrand takes a click per deck.</b> Decks don't follow the template by themselves. "Update my decks" covers the owner's own; decks other people made stay on the old version until they update.</li>
+      <li data-lavish-revision="r1"><b>Disk.</b> Every published version keeps its files for good. A file unchanged between versions is stored once. The limits in section 03 cap it per person.</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="questions" data-lavish-question-group>
+  <div class="sec-head"><span class="n">08</span><h2>Questions before planning</h2><span class="pill ok">answered 17 Nov</span></div>
+  <div class="card" data-lavish-revision="r1" style="padding:12px 16px;margin:0 0 14px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">Answered 17 Nov.</b> Q1, Q2, Q3, Q5, Q6 and Q7 went as recommended. Q4 changed: <b>decks pin the version of the template they were made with and are offered the update in the Look panel</b>. The mockups above now work that way. All seven are recorded as decisions D4–D10 on SW-50. Q8–Q11 below are new (D11–D14).</div>
+  <div class="card" data-lavish-revision="r2" style="padding:12px 16px;margin:0 0 14px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">Round 2, 17 Nov.</b> After checking the design against the conference deck that was rebuilt in SlideWorks today: Q8 is answered with <b>a second accent token in every palette plus up to four extra colours</b>, and three more are settled as D15–D17: <b>custom layouts react to numbers, choices and clicks</b>, <b>a layout can be light, dark or either</b>, and <b>no motion in SW-50</b>. Q9, Q10 and Q11 were then answered as recommended (D12–D14): <b>the dark logo in the corner of title, divider and close slides</b>, <b>a top accent bar as a chrome setting</b>, and <b>Update my decks</b>. Nothing is open.</div>
+  <div class="qs">
+
+    <form class="card q" data-lavish-question="D4-how-made">
+      <h3>Q1 · How does a person make a custom template?</h3>
+      <p class="why">The Feature is called "upload", but a template is about 15 fields and up to a dozen files.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="An editor in the app that starts from a built-in template, with a live preview and a publish checklist. A bundle (.zip with template.json and the files) can be uploaded to fill it and downloaded from it" checked><div><b>An editor in the app, plus a bundle file up and down</b><span class="rec">answered</span><span>As mocked. People who aren't agents can make a template, and the bundle moves one between servers. The most screen work.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Bundle upload only: people write template.json by hand or have an agent do it; the app shows a read-only preview and the checks"><div><b>Bundle upload only, with a read-only preview</b><span>Smallest. Fixing one colour means editing JSON and uploading again. Fine for agents, poor for people.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Editor only: no bundle file; agents use create_template"><div><b>Editor only, no bundle</b><span>Saves the zip reader and writer. A template can't be copied to another server except by an agent.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="D5-custom-layouts-when">
+      <h3>Q2 · When are custom layouts built?</h3>
+      <p class="why">They are the largest and least certain part: a sanitiser, a new renderer, fit checks and a review screen. Everything else is useful without them.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="As the last wave of SW-50: templates with fonts, logos, art and a palette ship first, and custom layouts follow on the same Feature" checked><div><b>The last wave of SW-50</b><span class="rec">answered</span><span>Brand templates are usable after wave 1. One Feature, one design.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Split custom layouts into their own Feature after SW-50"><div><b>Their own Feature, after SW-50</b><span>SW-50 closes sooner and can be measured on its own. One more Feature to plan, and SW-354's importer waits on it for the layouts it finds.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Build custom layouts together with the rest; nothing ships until they are done"><div><b>Together with the rest</b><span>One release. The simple parts wait on the hard one.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="D6-svg">
+      <h3>Q3 · Which file types can a logo or title art be?</h3>
+      <p class="why">Brand logos are almost always SVG. SlideWorks refuses SVG today because an SVG can carry script.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="SVG, PNG and WebP. An SVG is checked on upload (no script, no external references, no foreignObject) and only ever served as an image with a sandbox Content-Security-Policy" checked><div><b>SVG, PNG and WebP, with SVG checked and sandboxed</b><span class="rec">answered</span><span>Sharp at any size, small files. New security-sensitive code: the checker and its tests.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Raster only (PNG, WebP), as deck images are today; SVG stays refused"><div><b>PNG and WebP only</b><span>No new risk and no new code. Logos need exporting at 2× or more, and title art files are large.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="SVG is accepted but converted to PNG on upload by the server's Chromium; only the PNG is stored and served"><div><b>Accept SVG, store a PNG made from it</b><span>People upload what they have and nothing risky is served. Rendering an untrusted SVG on the server is its own risk, and the result isn't sharp when zoomed.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="D7-editing-published">
+      <h3>Q4 · What happens to decks when a published template is edited?</h3>
+      <p class="why">A logo refresh should reach every deck. A half-finished edit should reach none.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Edits go to a draft of the template. Publish changes re-skins every deck on it at once. Decks never pin a version"><div><b>Edits wait in a draft, then reach every deck at once</b><span>My recommendation. One template, one look, like changing a built-in. A bad publish shows everywhere until it is fixed.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Decks pin the version of the template they were made with and are offered an update in the Look panel" checked><div><b>Decks pin a version and are offered the update</b><span class="rec">answered</span><span>As mocked now. An old deck never changes under its author. Every version's files are kept for good, and a rebrand needs a click per deck.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="A published template is frozen; duplicate it to change it, and move decks over by hand"><div><b>Published means frozen</b><span>Simplest to build. The list fills up with "Northwind kickoff 2", "3", and decks split across them.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="D8-font-fit">
+      <h3>Q5 · How does text fit work with an uploaded font?</h3>
+      <p class="why">The server refuses a slide whose text won't fit, and it assumes Inter and Plus Jakarta Sans (0.56 em a character). A wider brand font would overflow slides it accepted.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="The server measures each uploaded font's average character width in headless Chromium at upload and stores it on the template. SlideFit uses those widths, so add_slide refuses text that won't fit in that font. A font outside 0.45 to 0.70 em is refused" checked><div><b>Measure each font at upload and fit against it</b><span class="rec">answered</span><span>Agents get the same "this won't fit" answer in any font. Needs Chromium at upload, and a deck that switches to a wider template can gain fit warnings.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Check at publish only: render each layout's accepted maximum in the template and block publishing on overflow"><div><b>Check at publish against the maximum-content slides</b><span>No change to SlideFit. A slightly wide font can't be published at all, with nothing the owner can adjust.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="No check: trust the uploader; slides may overflow in a wide font"><div><b>No check</b><span>Nothing to build. Overflow shows up in front of a room.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="D9-layout-review">
+      <h3>Q6 · Who reviews a custom layout before it is published?</h3>
+      <p class="why">D1 says each layout is "reviewed by a person". The checker already stops scripts and outside styles, so the review is about whether the layout looks right and holds its content.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="The template's owner, in the editor: each layout is shown with sample content and with its maximum content, and the owner approves each one. The sanitiser, not the review, is the security boundary" checked><div><b>The template's owner</b><span class="rec">answered</span><span>As mocked. No queue and no waiting. An agent can upload a layout but can't approve it.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="An admin approves each custom layout before the template can be shared beyond its owner"><div><b>An admin, before the template is shared</b><span>A second pair of eyes on anything other people will use. Needs an admin queue, and a one-person server approves its own work anyway.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Owner review, plus admin approval only for templates shared by link"><div><b>Owner, plus an admin for link-shared templates</b><span>The check lands where the reach is widest. Two rules to explain.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="D10-measure">
+      <h3>Q7 · SW-50's Measure</h3>
+      <p class="why">The belief is that uploaded templates make decks match a house look without hand-written HTML.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="The share of new decks that use an uploaded template, counted from the activity log; target set after two weeks of use" checked><div><b>The share of new decks on an uploaded template</b><span class="rec">answered</span><span>Counts use, not uploads. The same query style as SW-2's measure.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="The number of published custom templates that have at least one deck"><div><b>Published templates with at least one deck</b><span>Easy to read on a small server. One enthusiastic person can move it alone.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="The share of approved people who have published a template"><div><b>The share of people who have published one</b><span>Shows reach. Most people should use a shared template, not make one, so a low number can be a good sign.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <h3 class="sub-h" data-lavish-revision="r1" style="margin:12px 0 0">Four more, from the real deck tried against SW-50 today and from the Q4 answer</h3>
+
+    <form class="card q" data-lavish-question="D11-extra-colours" data-lavish-revision="r1">
+      <h3>Q8 · Can a custom palette hold colours beyond the 40 tokens? <span class="pill ok">answered</span></h3>
+      <p class="why">The conference deck has a second accent colour and a stage colour darker than night. Neither has a token.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Both: accent-2 as a real token in every palette (built-ins set it to their accent), used by the progress bar, the current journey stop and title art; plus up to four extra named colours per custom palette for ornament and custom layouts only" checked><div><b>A second accent token in every palette, plus up to four extra colours</b><span class="rec">answered</span><span>As mocked now. The real deck uses its second accent in chrome, not only in diagrams. Built-in palettes look the same.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Extras only: up to four extra named colours for ornament and custom layouts; built-in chrome never uses a second accent"><div><b>Extra colours only</b><span>My first recommendation. The token list stays frozen, but the progress bar and journey can't match the deck.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="No: every brand colour maps onto one of the 40 tokens"><div><b>No extras</b><span>Nothing to build. A second accent is lost or squeezed into a role colour.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Add accent-2 and stage as fixed tokens in every palette, built-ins included"><div><b>Two new tokens in every palette</b><span>Built-in layouts could use them too. Reopens the token list SW-2 froze, and all four built-in palettes need values.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="D12-logo-dark-slides" data-lavish-revision="r1">
+      <h3>Q9 · Where does the logo show on title, divider and close slides?</h3>
+      <p class="why">Those three layouts draw no footer today, so they show no logo at all. The mockups above draw one.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="In the bottom-right corner of title, divider and close slides, using the dark logo, when the template's show on dark slides setting is on. No footer text is added to those slides" checked><div><b>Bottom-right corner, logo only</b><span class="rec">answered</span><span>As mocked. The brand is on the opening slide. A small change to three built-in layouts.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Only in the footer of content slides, as today"><div><b>Content slides only</b><span>No change to the built-in layouts. The title slide carries no logo.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Give title, divider and close slides the full footer"><div><b>Full footer on those slides</b><span>One rule for every slide. Page numbers on a title slide look wrong.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="D13-top-bar" data-lavish-revision="r1">
+      <h3>Q10 · Can a template put an accent bar across the top of every slide?</h3>
+      <p class="why">An 8 px bar is part of that deck's look. Templates can't carry free CSS, so it has to be a setting or nothing.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Yes, as a chrome setting drawn by SlideWorks: top bar none or accent (8 px). A deck can override it like the other chrome settings" checked><div><b>A chrome setting: none or accent</b><span class="rec">answered</span><span>Cheap, and built-ins could use it too. One more switch, and it must not collide with the deep-dive bar.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="No: not part of SW-50"><div><b>Not in SW-50</b><span>Keeps chrome as it is. That look can't be matched.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Only through custom layouts"><div><b>Only in custom layouts</b><span>No chrome change. The bar is missing from every built-in layout.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="D14-update-my-decks" data-lavish-revision="r1">
+      <h3>Q11 · Can the owner update their own decks in one go?</h3>
+      <p class="why">With pinned versions (Q4), a rebrand is a click per deck.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Yes: an Update my decks action moves every deck the owner owns to the new version, one activity entry per deck. Other people's decks are updated by their owners" checked><div><b>Yes, for the owner's own decks</b><span class="rec">answered</span><span>As mocked in section 03. Other people's decks stay theirs to update.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="No: each deck is updated from its own Look panel"><div><b>No, one deck at a time</b><span>Nothing changes without someone looking at that deck. Slow with many decks.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+  </div>
+
+  <div class="copyall">
+    <button type="button" class="btn" id="copyAll">Copy all answers</button>
+    <span id="copyStatus" role="status" aria-live="polite" style="color:var(--muted);font-size:13px"></span>
+  </div>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  // ---------- mini slides ----------
+  const mark = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 7.4L22 12l-7.4 2.6L12 22l-2.6-7.4L2 12l7.4-2.6z" fill="currentColor"/></svg>';
+  const logo = '<span class="lg">' + mark + 'northwind</span>';
+  const waves = '<svg class="art waves" viewBox="0 0 1920 640" preserveAspectRatio="none" aria-hidden="true">' +
+    [0, 1, 2, 3, 4, 5, 6].map(i => '<path d="M0 ' + (260 + i * 52) + ' C 320 ' + (150 + i * 58) + ', 620 ' + (420 + i * 40) + ', 960 ' + (300 + i * 50) + ' S 1600 ' + (190 + i * 62) + ', 1920 ' + (330 + i * 46) + '" fill="none" stroke="var(--t-acc2)" stroke-width="2" opacity="' + (0.9 - i * 0.1) + '"/>').join('') + '</svg>';
+  const art = '<span data-art>' + waves + '</span>';
+  const dots = '<div class="dots"><i></i><i></i><i></i><i></i></div>';
+  const SLIDES = {
+    title: (el) => art + '<div class="in">' + dots + '<p class="kick">Team offsite · 2026</p><h4 class="ttl">' + (el.dataset.title || 'Ship smaller') + '</h4><p class="sub">Why small batches beat big plans, and how to start on Monday</p><p class="tag">One change a day beats one launch a quarter.</p><p class="by">Sam Rivera · Product Engineering</p></div><div class="ft"><span>Northwind kickoff</span>' + logo + '</div>',
+    divider: () => art + '<div class="in"><p class="num">02</p><h4 class="dtl">Slice it thin</h4><p class="dsub">How to cut work so each piece reaches a customer.</p></div><div class="ft"><span>7 / 16 · Ship smaller</span>' + logo + '</div>',
+    practice: () => '<div class="trk"><span class="past">The cost</span><span class="on">Slice it</span><span>Ship it</span><span>Make it stick</span></div><div class="in"><p class="kick">Slice it</p><h4 class="hl">Slice by what a customer can do, <em>not by layer</em></h4><div class="cols"><div class="col"><p class="ch">Do</p><div class="bx"><b>Start from one user action</b> and build every layer it needs, thinly.</div><div class="bx"><b>Ship behind a flag</b> to one team first, then widen.</div></div><div class="col"><p class="ch good">What comes back</p><div class="bx good">Feedback in days, not quarters.</div><div class="call">If a slice can\'t be demoed to a customer, it isn\'t a slice yet.</div></div></div></div><div class="ft"><span>8 / 16 · Ship smaller · Sam Rivera</span>' + logo + '</div><i class="prog"></i>',
+    bars: () => '<div class="in"><p class="kick">The bottleneck moved</p><h4 class="hl">Writing got cheap. <em>Checking did not.</em></h4><div class="bars"><div class="bar"><div><b>Writing the code</b><small>Hours per change</small></div><div class="track"><i class="ghost" style="--g:78"></i><i class="fill" style="--v:22">22</i></div></div><div class="bar is-alert"><div><b>Checking it</b><small>Hours per change</small></div><div class="track"><i class="fill" style="--v:64">64</i></div></div></div><div class="stagebox">The dashed outline is last year.</div></div><div class="ft"><span>16 / 44 · Ship smaller</span>' + logo + '</div>',
+    ladder: (el) => {
+      const max = el.dataset.max;
+      const st = max
+        ? [['Stage one now', 'Quarterly launches planned', 'Everything is planned up front and nothing reaches a customer until the very end of it'], ['Stage two soon', 'Monthly releases to a few', 'A release train leaves each month with whatever is ready, behind a flag for one team'], ['Stage three', 'Weekly slices behind flags', 'Each pair ships one customer-visible slice a week and widens the flag on Friday if safe'], ['Stage four aim', 'A change a day, every day', 'Every merged change reaches customers the same day, and rollback is one switch away']]
+        : [['Now', 'Quarterly launches', 'Big plans, late feedback'], ['Next', 'Monthly releases', 'A train each month'], ['Then', 'Weekly slices', 'One slice per pair'], ['Aim', 'A change a day', 'Small, safe, routine']];
+      return '<div class="in"><p class="kick">' + (max ? 'Where we are and where we are going' : 'Make it stick') + '</p><h4 class="hl">' + (max ? 'Four stages from quarterly launches to shipping a small change every single day' : 'Four stages to <em>a change a day</em>') + '</h4><div class="ladder">' + st.map((s, i) => '<div class="rung' + (el.dataset.step && i >= +el.dataset.step ? ' later' : '') + '"><i>' + s[0] + '</i><b>' + s[1] + '</b><span>' + s[2] + '</span></div>').join('') + '</div></div><div class="ft"><span>12 / 16 · Ship smaller</span>' + logo + '</div>' + (max ? '<i class="over"></i>' : '');
+    },
+  };
+  $$('[data-slide]').forEach(el => { el.innerHTML = SLIDES[el.dataset.slide](el) + '<i class="tb"></i>'; });
+
+  // ---------- editor: tabs ----------
+  const tabs = $$('.ed-nav [role=tab]');
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.setAttribute('aria-selected', String(x === t)));
+    $$('.ed-panel').forEach(p => { p.hidden = p.dataset.panel !== t.dataset.tab; });
+  }));
+  const openTab = (name) => tabs.find(t => t.dataset.tab === name).click();
+
+  // ---------- editor: state ----------
+  const look = $('#edLook');
+  const state = { rights: false, bodyBold: false };
+  const hex = (v) => { const n = parseInt(v.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+  const lum = (v) => { const [r, g, b] = hex(v).map(c => { c /= 255; return c <= .03928 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+  const toHex = (rgb) => '#' + rgb.map(c => Math.round(c).toString(16).padStart(2, '0')).join('').toUpperCase();
+  // The nearest colour that passes: move towards black or white, whichever gets there.
+  const fix = (colour, against, bar) => {
+    for (const target of [0, 255]) {
+      for (let k = 1; k <= 40; k++) {
+        const c = toHex(hex(colour).map(v => v + (target - v) * k / 40));
+        if (ratio(c, against) >= bar) return c;
+      }
+    }
+    return null;
+  };
+  const val = (name) => $('input[data-var="' + name + '"]', look).value;
+  const PAIRS = [
+    { label: 'Body text', fg: '--t-ink', bg: '--t-paper', bar: 4.5 },
+    { label: 'Headline accent', fg: '--t-acc', bg: '--t-paper', bar: 3 },
+    { label: 'Text on an accent fill', fg: '--t-acc', bg: '#FFFFFF', bar: 4.5, move: '--t-acc' },
+    { label: 'Deep-dive pill', fg: '--t-dd', bg: '#FFFFFF', bar: 4.5, move: '--t-dd' },
+    { label: 'Dark-slide highlight', fg: '--t-glow', bg: '--t-night', bar: 3 },
+  ];
+  function paintContrast() {
+    let failing = 0;
+    $('#contrastRows').innerHTML = PAIRS.map((p, i) => {
+      const fg = val(p.fg), bg = p.bg.startsWith('#') ? p.bg : val(p.bg);
+      const r = ratio(fg, bg), ok = r >= p.bar;
+      if (!ok) failing++;
+      const moveVar = p.move || p.fg;
+      const better = ok ? null : fix(val(moveVar), moveVar === p.fg ? bg : fg, p.bar);
+      const chip = p.move ? '<span class="pair" style="background:' + fg + ';color:#fff">Aa</span>' : '<span class="pair" style="background:' + bg + ';color:' + fg + ';border:1px solid var(--line)">Aa</span>';
+      return '<div class="sw" style="grid-template-columns:54px minmax(0,1fr) auto">' + chip + '<div>' + p.label + '<small>' + r.toFixed(1) + ':1, needs ' + p.bar + ':1</small></div>' +
+        (ok ? '<span class="pill ok">passes</span>' : (better ? '<button class="btn sm" type="button" data-fix="' + moveVar + '" data-to="' + better + '">Use ' + better + '</button>' : '<span class="pill bad">fails</span>')) + '</div>';
+    }).join('');
+    $('#palSummary').textContent = failing ? '· ' + failing + ' to fix' : '· all pairs pass';
+    $('#palSummary').style.color = failing ? 'var(--bad)' : 'var(--ok)';
+    $('#dotPal').className = 'dot' + (failing ? ' bad' : '');
+    return failing;
+  }
+  function paintChecks() {
+    const failing = paintContrast();
+    const rows = [
+      failing ? ['bad', '✗', 'Palette contrast', failing + ' pair' + (failing > 1 ? 's' : '') + ' below the bar', 'palette'] : ['ok', '✓', 'Palette contrast', 'All pairs pass', null],
+      state.bodyBold ? ['ok', '✓', 'Font files', '4 files, widths inside the limits', null] : ['warn', '!', 'Font files', 'Northwind Text 600 is missing; bold falls back to Inter. You can publish like this.', 'type'],
+      state.rights ? ['ok', '✓', 'Right to serve the fonts', 'Confirmed by Sam Rivera, 17 Nov', null] : ['bad', '✗', 'Right to serve the fonts', 'Not confirmed', 'type'],
+      ['ok', '✓', 'Logo and art', '2 safe SVG logos', null],
+      ['bad', '✗', 'Custom layouts', '1 of 2 approved. card-sort needs review, or remove it.', 'layouts'],
+    ];
+    const blocked = rows.filter(r => r[0] === 'bad').length;
+    $('#checks').innerHTML = '<h4>Publish checklist ' + (blocked ? '<span class="pill bad">' + blocked + ' to fix</span>' : '<span class="pill ok">ready</span>') + '</h4>' +
+      rows.map(r => '<div class="ck ' + r[0] + '"><i>' + r[1] + '</i><span>' + r[2] + '<br><small>' + r[3] + '</small></span>' + (r[4] ? '<a href="#editor" data-go="' + r[4] + '">Fix</a>' : '<span></span>') + '</div>').join('');
+    $('#edPublish').disabled = blocked > 0;
+    $('#dotType').className = 'dot' + (!state.rights ? ' bad' : state.bodyBold ? '' : ' warn');
+  }
+  look.addEventListener('input', (e) => {
+    const v = e.target.dataset && e.target.dataset.var;
+    if (v) { look.style.setProperty(v, e.target.value); paintChecks(); }
+  });
+  look.addEventListener('click', (e) => {
+    const go = e.target.closest('[data-go]');
+    if (go) { e.preventDefault(); openTab(go.dataset.go); return; }
+    const f = e.target.closest('[data-fix]');
+    if (f) { const inp = $('input[data-var="' + f.dataset.fix + '"]', look); inp.value = f.dataset.to.toLowerCase(); look.style.setProperty(f.dataset.fix, f.dataset.to); paintChecks(); }
+  });
+  $('#chkRights').addEventListener('change', (e) => { state.rights = e.target.checked; paintChecks(); });
+  $('#btnAddFont').addEventListener('click', () => {
+    state.bodyBold = true;
+    $('#missingFont').innerHTML = '<div><code>northwind-text-600.woff2</code><small>Northwind Text · weight 600 · 32 KB · width 0.49 em</small></div><span class="pill ok">ok</span><button class="btn sm ghost" type="button">Remove</button>';
+    paintChecks();
+  });
+  $('#selHeadW').addEventListener('change', (e) => look.style.setProperty('--t-headw', e.target.value));
+  $('#segRadius').addEventListener('change', (e) => look.style.setProperty('--t-radius', e.target.value));
+  $('#segArt').addEventListener('change', (e) => {
+    const kind = e.target.value;
+    $$('[data-art]', look).forEach(a => { a.innerHTML = kind === 'waves' ? waves : kind === 'none' ? '' : '<i class="art ' + kind + '"></i>'; });
+  });
+  $('#segDots').addEventListener('change', (e) => {
+    const kind = e.target.value;
+    $('#dotInputs').style.display = kind === 'brand' ? 'flex' : 'none';
+    $$('.dots', look).forEach(d => { d.style.display = kind === '0' ? 'none' : 'flex'; });
+    ['--t-d1', '--t-d2', '--t-d3', '--t-d4'].forEach(v => {
+      if (kind === 'accent') look.style.setProperty(v, 'var(--t-glow)');
+      else look.style.setProperty(v, val(v));
+    });
+  });
+  $('#chkTopBar').addEventListener('change', (e) => look.classList.toggle('notb', !e.target.checked));
+  $('#chkLogoFooter').addEventListener('change', (e) => $$('.ft .lg', look).forEach(l => l.classList.toggle('none', !e.target.checked)));
+  paintChecks();
+
+  // ---------- questions: local state until "Queue answer" ----------
+  $$('form.q').forEach(form => {
+    const st = form.querySelector('.state');
+    form.addEventListener('change', () => { if (st.classList.contains('queued')) { st.textContent = 'Changed since queued. Queue again to replace.'; st.classList.remove('queued'); } });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const key = form.dataset.lavishQuestion;
+      const title = form.querySelector('h3').textContent.trim();
+      const fd = new FormData(form);
+      const note = (fd.get('note') || '').toString().trim();
+      const answer = (fd.get('a') || '').toString();
+      const data = { question: key, answer }; if (note) data.note = note;
+      const prompt = 'SW-50 mockups, ' + title + ' (' + key.split('-')[0] + ' on SW-50) → ' + answer + (note ? '. Note: ' + note : '') + '. Record this as the decision\'s answer on SW-50 and update the mockups if it changes them.';
+      if (window.lavish && window.lavish.queuePrompt) {
+        window.lavish.queuePrompt(prompt, { tag: 'choice', text: title + ': ' + answer, element: form, queueKey: key, data });
+        st.textContent = 'Queued. Press Send to agent in the Lavish bar.';
+      } else {
+        st.textContent = 'Lavish is not running. Use "Copy all answers" below.';
+      }
+      st.classList.add('queued');
+    });
+  });
+  $('#copyAll').addEventListener('click', async () => {
+    const out = $$('form.q').map(f => {
+      const fd = new FormData(f); const note = (fd.get('note') || '').toString().trim();
+      return f.querySelector('h3').textContent.trim() + ': ' + fd.get('a') + (note ? ' (note: ' + note + ')' : '');
+    }).join('\n');
+    const st = $('#copyStatus');
+    try { await navigator.clipboard.writeText(out); st.textContent = 'Answers copied.'; }
+    catch { const t = document.createElement('textarea'); t.value = out; t.rows = 10; t.readOnly = true; $('.copyall').appendChild(t); t.select(); st.textContent = 'Clipboard blocked. Copy the answers below.'; }
+  });
+})();
+</script>
+</body>
+</html>

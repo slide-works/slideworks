@@ -5,11 +5,12 @@ Mockups and design decisions, with one folder per Feature.
 | Folder | Feature | Status |
 |---|---|---|
 | [`sw-1-foundation/`](sw-1-foundation/) | SW-1 Foundation: agent-built web decks over MCP | Mockups reviewed, decisions D3–D9 settled, built on the SW-1 branch |
-| [`sw-2-templates-palettes/`](sw-2-templates-palettes/) | SW-2 Templates and palettes (also covers SW-15 Wada palettes and SW-50 uploaded templates) | Built (SW-2's sections; Wada palettes and uploaded templates are still to come) |
+| [`sw-2-templates-palettes/`](sw-2-templates-palettes/) | SW-2 Templates and palettes (also covers SW-15 Wada palettes; its SW-50 sketch is replaced by `sw-50-custom-templates/`) | Built (SW-2's sections; Wada palettes and uploaded templates are still to come) |
 | [`sw-4-presenter/`](sw-4-presenter/) | SW-4 Presenter view and phone remote (SW-7 merged in) | Built (decisions D1–D6 settled, plan decisions D7–D17 as built; the user guide is [`docs/presenting.md`](../docs/presenting.md)) |
 | [`sw-5-audience-join/`](sw-5-audience-join/) | SW-5 Audience join: QR code, join code and guest mode | Mockups reviewed, decisions D1–D8 settled, not built |
 | [`sw-6-polls/`](sw-6-polls/) | SW-6 Live multiple-choice polls | Built (decisions D1–D8 settled; the mockups differ in a few places, listed under "As built" in the SW-6 section) |
 | [`sw-9-qa-reactions/`](sw-9-qa-reactions/) | SW-9 Audience Q&A and reactions | Mockups reviewed, decisions D1–D9 settled, D10 proposed, not built |
+| [`sw-50-custom-templates/`](sw-50-custom-templates/) | SW-50 Custom templates, and the layout gaps a real deck found | Template mockups reviewed, decisions D4–D17 settled, not built. The layout gaps are not designed yet |
 
 ## SW-1 Foundation
 
@@ -211,3 +212,42 @@ Open [`sw-9-qa-reactions/sw-9-mockups.html`](sw-9-qa-reactions/sw-9-mockups.html
 - **D8. The model:** Q&A is a real poll on SW-6's model. It is one poll per deck with a round per live session, where a question is an option the audience appended and a guest's upvotes are one answer. SW-6's contracts change before it is built: a poll that isn't keyed by a slide, one open round per session per kind, and options as rows. Approve, hide, answered and on screen are a separate `Question` row that the poll doesn't know about.
 - **D9. Measure and load:** the measure is questions asked per session, and the share of joined guests who asked, upvoted or reacted at least once. SW-6's load harness gets one more script: 1,000 guests who each upvote three questions and tap ten reactions within 30 seconds, held to SW-6's gates and run by hand.
 - **D10. Detail of D2 and D5 (proposed, not yet confirmed):** a slide with questions or reactions off hides the reaction row and replaces asking with "Questions are off on this slide" while it is on screen; the list and upvotes stay. The deck setting `show_on` has two values: `any_slide`, the default, where the card lays over whatever slide is up, and `qa_slide`, where a shown question appears only while a Q&A slide is up.
+
+## SW-50 Custom templates
+
+Open [`sw-50-custom-templates/sw-50-mockups.html`](sw-50-custom-templates/sw-50-mockups.html) in a browser. A person or an agent makes their own template: fonts, logos, title art, ornament, a palette and custom layouts. It is checked, published as a version and shared like a deck. The template editor is interactive: the tabs switch, the colour pickers re-skin the sample slides and re-run the contrast check, and the publish checklist follows. The example brand, Northwind, is made up. Brand templates are user content and never ship in this repo. The PNGs are screenshots of each section at 1300 px wide.
+
+SW-50 was first sketched in the SW-2 mockups (section 07) as "uploaded templates and deck import". It was split on 2026-11-17: importing a look from an existing deck is now SW-354. The same day, the built-in layout gaps found by rebuilding a real 44-slide deck were merged into SW-50. They are listed in the scope section and have no mockups yet.
+
+| Screen | PNG |
+|---|---|
+| Scope: the split from SW-354, what SW-2 already built, the merged-in layout gaps, a template's life | [01-scope](sw-50-custom-templates/png/sw-50-01-scope.png) |
+| The Templates page, the New template dialog, the bundle file | [02-templates-page](sw-50-custom-templates/png/sw-50-02-templates-page.png) |
+| The template editor: basics, fonts, logo and art, palette, custom layouts, live preview, publish checklist | [03-editor](sw-50-custom-templates/png/sw-50-03-editor.png) |
+| Checks and what each failure looks like; versions and the update offer; archive; limits | [04-checks](sw-50-custom-templates/png/sw-50-04-checks.png) |
+| Custom layouts: slots, markup, the renders to review, the bindings, what is allowed and refused | [05-custom-layouts](sw-50-custom-templates/png/sw-50-05-custom-layouts.png) |
+| Sharing a template, the New deck dialog, who sees what | [06-sharing-and-use](sw-50-custom-templates/png/sw-50-06-sharing-and-use.png) |
+| The agent's side: an MCP session and the tools | [07-agent-mcp](sw-50-custom-templates/png/sw-50-07-agent-mcp.png) |
+| How we build it: what changes where, the order of work, risks | [08-how-we-build-it](sw-50-custom-templates/png/sw-50-08-how-we-build-it.png) |
+| Design questions and the answers given | [09-questions-answered](sw-50-custom-templates/png/sw-50-09-questions-answered.png) |
+
+### Decisions (2026-11-17)
+
+D1–D3 were settled with SW-2 on 2026-11-16 and are listed in its section. D2's importer half moved to SW-354.
+
+- **D4. Making a template:** an editor in the app that starts from a built-in template, with a live preview and a publish checklist. A bundle (`.zip` with `template.json` and the files) can be uploaded to fill it and downloaded from it.
+- **D5. Custom layouts come last:** templates with fonts, logos, art and a palette ship first. Custom layouts are the last wave of the same Feature.
+- **D6. Logo and art files:** SVG, PNG and WebP. An SVG is checked on upload (no script, no external references, no `foreignObject`) and only ever served as an image with a sandbox Content-Security-Policy.
+- **D7. Versions:** publishing a draft adds a version, and a published version never changes. A deck stays on the version it was made with and is offered the update in its Look panel.
+- **D8. Text fit:** the server measures each uploaded font's average character width in headless Chromium at upload. `SlideFit` uses the template's widths, so `add_slide` refuses text that won't fit in that font. A font outside 0.45–0.70 em is refused.
+- **D9. Layout review:** the template's owner approves each custom layout after seeing it with sample content and with maximum content. The sanitiser, not the review, is the security boundary.
+- **D10. Measure:** the share of new decks that use an uploaded template, counted from the activity log.
+- **D11. Colours beyond the token list:** a new token, `accent-2`, in every palette. The built-in palettes set it to their accent, so they look the same. The progress bar's far end, the current journey stop and title art use it. A custom palette can also hold up to four extra named colours, which only ornament and custom layouts can use.
+- **D12. Logo on dark slides:** title, divider and close slides draw the dark logo in the bottom-right corner, with no footer text.
+- **D13. Top accent bar:** a chrome setting drawn by SlideWorks, none or accent (8 px), which a deck can override.
+- **D14. Update my decks:** after publishing a version, the template's owner can move their own decks to it in one go. Other people's decks are updated by their owners.
+- **D15. Custom layouts react to values:** a number slot can set a CSS variable (a bar's length, a needle's angle), an enum slot can pick a variant class, and `data-step` puts an element on a later click.
+- **D16. Light or dark:** a custom layout declares its surface: light, dark, or either, where the slide picks.
+- **D17. Motion:** none in SW-50 beyond step reveals. Named effects are a later story.
+
+Not designed yet: the built-in layout gaps (a callout on every content layout, inline emphasis, a statement layout, dark content slides, fuller cards, compare, quote, image and links layouts, parts with captions and an appendix, diagram blocks). Which diagrams become built-in blocks and which become custom layouts is decided in planning.
