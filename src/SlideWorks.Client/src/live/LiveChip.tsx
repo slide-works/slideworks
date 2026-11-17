@@ -65,9 +65,11 @@ export function LiveChip({ deckTitle }: { deckTitle: string }) {
           Go live
         </button>
       )}
-      <span data-testid="live-chip-error" role="alert">
-        {error}
-      </span>
+      {error && (
+        <span data-testid="live-chip-error" role="alert">
+          {error}
+        </span>
+      )}
     </span>
   );
 }

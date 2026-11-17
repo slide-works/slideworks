@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -15,7 +16,7 @@ public class LiveChipTests : AcceptanceTest
         var title = $"Live chip {Guid.NewGuid():N}";
         await decks.CreateDeckAsync(title);
         var deck = new DeckPage(Page);
-        await Expect(deck.Title).ToHaveTextAsync(title);
+        await Expect(Page).ToHaveURLAsync(new Regex(@"/decks/[0-9A-Za-z]{12}$"));
         await Expect(deck.Present).ToBeVisibleAsync();
         var player = new PlayerPage(Page);
 

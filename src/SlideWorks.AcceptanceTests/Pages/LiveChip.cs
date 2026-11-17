@@ -21,6 +21,6 @@ public sealed class LiveChip(IPage page)
     // "N joined", shown while live.
     public ILocator Count => Root.GetByTestId("live-chip-count");
 
-    // The message for a failed Go live, End or join bar change; empty when nothing failed.
+    // The message for a failed Go live, End or join bar change; absent (count 0) when nothing failed.
     public ILocator Error => Root.GetByTestId("live-chip-error");
 }
