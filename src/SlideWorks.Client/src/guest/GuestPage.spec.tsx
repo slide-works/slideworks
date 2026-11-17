@@ -47,7 +47,7 @@ test('an unknown code keeps the page and asks for the code again', async ({ moun
   await stubApi(page, { [joinPath]: { status: 404, json: { error: 'no_session' } } });
   await mount(<AppRoutes />, { hooksConfig: { route: '/482913' } });
   await expect(page.getByTestId(GUEST_TEST_IDS.page)).toBeVisible();
-  await expect(page.getByTestId(JOIN_CODE_TEST_IDS.error)).toContainText('482913');
+  await expect(page.getByTestId(JOIN_CODE_TEST_IDS.error)).toContainText('482 913');
 });
 
 test('a failed read says the phone cannot reach the talk', async ({ mount, page }) => {
