@@ -13,7 +13,8 @@ public class AgentJourneys : AcceptanceTest
     private static readonly string[] TOOLS =
     [
         "add_slide", "create_deck", "delete_slide", "get_deck", "get_deck_url", "list_blocks", "list_decks",
-        "list_layouts", "move_slide", "set_notes", "set_sharing", "update_slide", "upload_image",
+        "list_layouts", "list_palettes", "list_templates", "move_slide", "preview_deck", "set_look", "set_notes",
+        "set_sharing", "update_slide", "upload_image",
     ];
 
     private AgentOAuthClient _oauth = null!;
@@ -25,7 +26,7 @@ public class AgentJourneys : AcceptanceTest
     public void ForgetAgent() => _oauth.Dispose();
 
     [Test]
-    public async Task McpListsAllThirteenTools_WhenAgentConnects_ShouldListEveryToolOfK6()
+    public async Task McpListsAllTools_WhenAgentConnects_ShouldListK6AndLookTools()
     {
         await using var agent = await AgentSession.ConnectAsync(_oauth, Page, TestUser.Sam);
 
