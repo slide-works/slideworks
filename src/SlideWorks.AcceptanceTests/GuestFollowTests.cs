@@ -1,6 +1,7 @@
 using System.Text.Json;
 using SlideWorks.AcceptanceTests.Journeys;
 using SlideWorks.AcceptanceTests.Pages;
+using SlideWorks.AcceptanceTests.Support;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests;
