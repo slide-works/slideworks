@@ -81,6 +81,21 @@ public class PollActivityTests : PollTestFixture
         activity.ValueKind.ShouldBe(JsonValueKind.Null);
     }
 
+    // Slides removed while live can leave the presenter's position past the end; the feed then shows the last slide, and the
+    // card follows it.
+    [Test]
+    public async Task Activity_WhenPresenterIsPastTheEndOfTheDeck_ShouldBeTheLastSlidesPoll()
+    {
+        var poll = await SeedPollAsync();
+        Presentations.Set(SettablePresentations.At(poll.DeckId, poll.Slide + 3));
+
+        var activity = await ActivityAsync(poll.Code);
+
+        activity.GetProperty("type").GetString().ShouldBe("poll");
+        activity.GetProperty("question").GetString().ShouldBe(PollSeed.QUESTION);
+        activity.GetProperty("phase").GetString().ShouldBe("draft");
+    }
+
     [Test]
     public async Task Activity_WhenPollIsManualAndHasNoRound_ShouldBeDraftWithNullRound()
     {
