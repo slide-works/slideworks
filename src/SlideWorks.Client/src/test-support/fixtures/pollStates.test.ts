@@ -192,8 +192,16 @@ describe('poll-results.json', () => {
       'counts',
       'joined',
       'number',
+      'options',
       'rate',
     ]);
+  });
+
+  it('gives every round its own options, with one count for each', () => {
+    const results = pollResults();
+    for (const round of results.sessions[0].rounds)
+      expect(round.counts).toHaveLength(round.options.length);
+    expect(results.sessions[0].rounds[0].options).not.toEqual(results.options);
   });
 
   it('sends totals only, never who picked what', () => {

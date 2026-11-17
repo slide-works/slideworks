@@ -58,7 +58,9 @@ public class PollEdits(PollReader reader, PollRows rows, IAudienceRelay relay, I
         var settings = await rows.SettingsAsync(slide.Id) ?? PollSettings.Default;
         if (PollSettingsRules.Check(settings, options.Count) is { } broken)
         {
-            throw new BadRequestException($"options: {broken}; change the poll's settings with update_poll first");
+            throw new BadRequestException(wasPoll
+                ? $"slots.options: {broken}; change the poll's settings with update_poll first"
+                : $"slots.options: this slide's saved poll settings don't fit its options ({broken}); give it options they fit");
         }
         if (!wasPoll)
         {
@@ -81,19 +83,32 @@ public class PollEdits(PollReader reader, PollRows rows, IAudienceRelay relay, I
         await publisher.PublishAsync(deckId, slide);
     }
 
-    // The count can't shrink, and the texts can't be the same texts in another order. A reorder that also rewords an
-    // option can't be told from rewording, and is allowed.
+    // While a round is open the options are known by position, so what a position says can't move to another: the count can't
+    // shrink, and no position may take the text another position had (trimmed, ignoring case). That catches a swap, a shift
+    // (removing an option by moving the rest up) and a plain reorder, even when one more text is reworded at the same time;
+    // rewording an option in place and appending still pass. Rewording two options into each other's places at once can't
+    // be told from two rewords, and is allowed.
     private static void CheckOptionsKeepTheirPlaces(IReadOnlyList<string> was, IReadOnlyList<string> now)
     {
         if (now.Count < was.Count)
         {
-            throw new BadRequestException($"slots.options: a round is open, so the options can't shrink from {was.Count} to {now.Count}; close the poll first");
+            throw new BadRequestException($"slots.options: a round is open, so the options can't shrink from {was.Count} to {now.Count}; close the poll first (close_poll)");
         }
-        var samePlaces = was.Select((text, position) => now[position] == text).All(same => same);
-        var sameTexts = was.Order(StringComparer.Ordinal).SequenceEqual(now.Take(was.Count).Order(StringComparer.Ordinal), StringComparer.Ordinal);
-        if (!samePlaces && sameTexts)
+        for (var position = 0; position < was.Count; position++)
         {
-            throw new BadRequestException("slots.options: a round is open, so the options can't change order; close the poll first");
+            var text = Normal(now[position]);
+            if (text == Normal(was[position]))
+            {
+                continue;
+            }
+            var taken = was.Select(Normal).ToList().IndexOf(text);
+            if (taken >= 0)
+            {
+                throw new BadRequestException(
+                    $"slots.options: a round is open, so option {position + 1} can't take option {taken + 1}'s text, which would move answers between options; reword options in place, or close the poll first (close_poll)");
+            }
         }
     }
+
+    private static string Normal(string text) => text.Trim().ToLowerInvariant();
 }

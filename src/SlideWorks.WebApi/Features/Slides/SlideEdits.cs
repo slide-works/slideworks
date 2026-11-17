@@ -147,7 +147,10 @@ public class SlideEdits(
             return (new SetNotesResult(numbers, deck.Revision), summary);
         });
 
-    // The one transaction every slide edit runs in; the poll tools (PollSettingsCommands) use it for theirs.
+    // The one transaction every slide edit runs in; the poll tools (PollSettingsCommands) use it for theirs. A caller must not
+    // delete a slide or change its layout inside it: those are DeleteAsync and UpdateAsync, which refuse while a poll round is
+    // open on the slide (PollEdits.RequireNoOpenRoundAsync), and nothing else can close a round whose slide is gone. The guard
+    // test SlideEditsCallerGuardTests lists who may call it.
     public async Task<T> EditAsync<T>(string deckId, string tool, Func<Deck, Task<(T Result, string Summary)>> edit)
     {
         if (!await access.CanEditAsync(deckId, actor))

@@ -121,10 +121,13 @@ export type PollRefusal = { error: PollRefusalCode };
 // get_poll_results over MCP (V9). Totals only, never who picked what.
 export type PollResultsRound = {
   number: number;
+  // The option texts this round's counts belong to: a closed round's own, an open round's the slide's current ones.
+  options: string[];
   answered: number;
   joined: number;
   // answered ÷ joined
   rate: number;
+  // One count per entry of this round's options.
   counts: number[];
 };
 

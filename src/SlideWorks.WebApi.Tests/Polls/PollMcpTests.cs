@@ -85,7 +85,7 @@ public class PollMcpTests : PollTestFixture
 
         var error = await SlideCalls.ErrorAsync(agent, "update_poll", new { deck = poll.DeckId, slide = poll.Slide, results = "afterClose" });
 
-        error.ShouldBe($"A round of the poll on slide {poll.Slide} is open, so its settings can't change; close it first (close_poll)");
+        error.ShouldBe($"poll_open: a round of the poll on slide {poll.Slide} is open, so its settings can't change; close it first (close_poll)");
         (await SettingsAsync(poll)).ShouldBe(PollSettings.Default);
         (await DeckSeed.ActivityAsync(Client, poll.DeckId)).Count.ShouldBe(entries);
         Relay.Refreshed.ShouldNotContain(poll.DeckId);
@@ -148,8 +148,8 @@ public class PollMcpTests : PollTestFixture
 
     [TestCase("""{ "pick": "upTo" }""", "max: required when pick is upTo")]
     [TestCase("""{ "max": 2 }""", "max: only when pick is upTo")]
-    [TestCase("""{ "correct": 4 }""", "correct: must be 1 to 3")]
-    [TestCase("""{ "correct": -1 }""", "correct: must be 1 to 3")]
+    [TestCase("""{ "correct": 4 }""", "correct: must be 1 to 3, or 0 to clear it")]
+    [TestCase("""{ "correct": -1 }""", "correct: must be 1 to 3, or 0 to clear it")]
     [TestCase("""{ "pick": "many" }""", "pick: must be one of 'one', 'upTo'")]
     [TestCase("""{ "results": "never" }""", "results: must be one of 'live', 'afterAnswer', 'afterClose'")]
     [TestCase("""{ "opens": "later" }""", "opens: must be one of 'onArrival', 'manual'")]
@@ -313,7 +313,35 @@ public class PollMcpTests : PollTestFixture
 
         var error = await SlideCalls.UpdateErrorAsync(agent, poll.DeckId, poll.Slide, before.GetProperty("revision").GetInt64(), """{ "question": "How big?", "options": ["Small", "Big"] }""");
 
-        error.ShouldBe("slots.options: a round is open, so the options can't shrink from 3 to 2; close the poll first");
+        error.ShouldBe("slots.options: a round is open, so the options can't shrink from 3 to 2; close the poll first (close_poll)");
+        var after = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1];
+        after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64());
+        after.GetProperty("slots").GetRawText().ShouldBe(before.GetProperty("slots").GetRawText());
+        (await DeckSeed.ActivityAsync(Client, poll.DeckId)).Count.ShouldBe(entries);
+        Relay.Refreshed.ShouldNotContain(poll.DeckId);
+        Publisher.PublishedFor(poll.DeckId).ShouldBeEmpty();
+    }
+
+    // While a round is open no position may take the text another position had (trimmed, ignoring case): a swap, a shift or a
+    // reorder, even with another option reworded at the same time, would move the round's answers to other labels.
+    [TestCase("""["50 to 200 lines", "Under 50 lines", "Over 200 lines"]""", 1, 2)]
+    [TestCase("""["50 to 200 lines", "Under 50 lines", "Over 200 lines!"]""", 1, 2)]
+    [TestCase("""["Under 50 lines", "Over 200 lines", "Huge"]""", 2, 3)]
+    [TestCase("""["50 to 200 lines", "Over 200 lines", "Under 50 lines"]""", 1, 2)]
+    [TestCase("""["50 TO 200 LINES", "under 50 lines", "Over 200 lines"]""", 1, 2)]
+    [TestCase("""["  50 to 200 lines ", "Under 50 lines", "Over 200 lines"]""", 1, 2)]
+    [TestCase("""["Under 50 lines", "50 to 200 lines", "Under 50 lines", "A fourth"]""", 3, 1)]
+    public async Task UpdateSlide_WhenRoundIsOpenAndAnOptionTakesAnotherOnesText_ShouldRefuseAndWriteNothing(string optionsJson, int position, int taken)
+    {
+        var poll = await SeedPollAsync();
+        await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var before = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1];
+        var entries = (await DeckSeed.ActivityAsync(Client, poll.DeckId)).Count;
+
+        var error = await SlideCalls.UpdateErrorAsync(agent, poll.DeckId, poll.Slide, before.GetProperty("revision").GetInt64(), $$"""{ "question": "How big?", "options": {{optionsJson}} }""");
+
+        error.ShouldBe($"slots.options: a round is open, so option {position} can't take option {taken}'s text, which would move answers between options; reword options in place, or close the poll first (close_poll)");
         var after = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1];
         after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64());
         after.GetProperty("slots").GetRawText().ShouldBe(before.GetProperty("slots").GetRawText());
@@ -323,17 +351,16 @@ public class PollMcpTests : PollTestFixture
     }
 
     [Test]
-    public async Task UpdateSlide_WhenRoundIsOpenAndOptionsChangeOrder_ShouldRefuse()
+    public async Task UpdateSlide_WhenRoundIsOpenAndOptionsAreReworded_ShouldPassWhateverTheCaseOrSpacing()
     {
         var poll = await SeedPollAsync();
         await Rows.RoundAsync(poll.SlideId, poll.SessionId);
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var revision = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1].GetProperty("revision").GetInt64();
 
-        var error = await SlideCalls.UpdateErrorAsync(agent, poll.DeckId, poll.Slide, revision, """{ "question": "How big?", "options": ["50 to 200 lines", "Under 50 lines", "Over 200 lines"] }""");
+        var result = await SlideCalls.UpdateAsync(agent, poll.DeckId, poll.Slide, revision, """{ "question": "How big?", "options": ["UNDER 50 LINES", " 50 to 200 lines ", "A new third"] }""");
 
-        error.ShouldBe("slots.options: a round is open, so the options can't change order; close the poll first");
-        Publisher.PublishedFor(poll.DeckId).ShouldBeEmpty();
+        result.GetProperty("revision").GetInt64().ShouldBeGreaterThan(revision);
     }
 
     [Test]
@@ -389,7 +416,7 @@ public class PollMcpTests : PollTestFixture
 
         var error = await SlideCalls.UpdateErrorAsync(agent, poll.DeckId, poll.Slide, revision, """{ "question": "How big?", "options": ["Small", "Big"] }""");
 
-        error.ShouldBe("options: max: must be 2 to 2; change the poll's settings with update_poll first");
+        error.ShouldBe("slots.options: max: must be 2 to 2; change the poll's settings with update_poll first");
         (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1].GetProperty("slots").GetProperty("options").GetArrayLength().ShouldBe(3);
     }
 
@@ -557,13 +584,14 @@ public class PollMcpTests : PollTestFixture
         rounds.Select(r => r.GetProperty("answered").GetInt32()).ShouldBe([3, 2]);
         rounds.Select(r => r.GetProperty("joined").GetInt32()).ShouldBe([4, 3]);
         rounds.Select(r => r.GetProperty("rate").GetDouble()).ShouldBe([0.75, 2d / 3]);
+        rounds.Select(r => r.GetProperty("options").EnumerateArray().Select(o => o.GetString())).ShouldAllBe(options => options.SequenceEqual(PollSeed.OPTIONS));
         rounds[0].GetProperty("counts").EnumerateArray().Select(c => c.GetInt32()).ShouldBe([1, 2, 0]);
         rounds[1].GetProperty("counts").EnumerateArray().Select(c => c.GetInt32()).ShouldBe([0, 0, 2]);
         session.GetProperty("startedAt").GetString().ShouldNotBeNullOrEmpty();
     }
 
     [Test]
-    public async Task GetPollResults_WhenRoundsAreOpenOrDraftOrFromEarlierSessions_ShouldListOnlyOpenedAndClosedOnesPerSession()
+    public async Task GetPollResults_WhenRoundsAreOpenOrFromEarlierSessions_ShouldListEveryOpenedRoundPerSession()
     {
         var poll = await SeedPollAsync();
         var earlier = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
@@ -582,26 +610,82 @@ public class PollMcpTests : PollTestFixture
 
         var sessions = result.GetProperty("sessions").EnumerateArray().ToList();
         sessions.Count.ShouldBe(2);
-        sessions.Select(s => s.GetProperty("rounds").GetArrayLength()).ShouldBe([1, 1]);
+        sessions.Select(s => s.GetProperty("rounds").GetArrayLength()).ShouldBe([1, 2]);
         sessions[0].GetProperty("rounds")[0].GetProperty("joined").GetInt32().ShouldBe(2);
         sessions[1].GetProperty("rounds")[0].GetProperty("joined").GetInt32().ShouldBe(5);
         sessions[1].GetProperty("rounds")[0].GetProperty("rate").GetDouble().ShouldBe(0);
+        var open = sessions[1].GetProperty("rounds")[1];
+        open.GetProperty("number").GetInt32().ShouldBe(2);
+        open.GetProperty("options").EnumerateArray().Select(o => o.GetString()).ShouldBe(PollSeed.OPTIONS);
+        open.GetProperty("counts").GetArrayLength().ShouldBe(3);
     }
 
+    // D13: a closed round keeps the texts it ran with, so rewording or shrinking the slide later never relabels it.
     [Test]
-    public async Task GetPollResults_WhenAnOptionWasAddedAfterARoundClosed_ShouldPadItsCountsToTheOptions()
+    public async Task GetPollResults_WhenSlideWasRewordedAndShrunkAfterARoundClosed_ShouldKeepTheRoundsOwnOptionsAndCounts()
     {
         var poll = await SeedPollAsync();
         var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
-        await Rows.AnswerAsync(round.Id, "padded-guest", 2);
-        await Rows.CloseAsync(round.Id, joinedAtClose: 1);
+        await Rows.AnswerAsync(round.Id, "kept-guest-1", 0);
+        await Rows.AnswerAsync(round.Id, "kept-guest-2", 2);
+        await Rows.AnswerAsync(round.Id, "kept-guest-3", 2);
+        await Rows.CloseAsync(round.Id, joinedAtClose: 4);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var revision = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1].GetProperty("revision").GetInt64();
+        await SlideCalls.UpdateAsync(agent, poll.DeckId, poll.Slide, revision, """{ "question": "How big?", "options": ["Tiny", "Huge"] }""");
+
+        var result = await SlideCalls.OkAsync(agent, "get_poll_results", new { deck = poll.DeckId, slide = poll.Slide });
+
+        result.GetProperty("options").EnumerateArray().Select(o => o.GetString()).ShouldBe(["Tiny", "Huge"]);
+        var kept = result.GetProperty("sessions")[0].GetProperty("rounds")[0];
+        kept.GetProperty("options").EnumerateArray().Select(o => o.GetString()).ShouldBe(PollSeed.OPTIONS);
+        kept.GetProperty("counts").EnumerateArray().Select(c => c.GetInt32()).ShouldBe([1, 0, 2]);
+    }
+
+    [Test]
+    public async Task GetPollResults_WhenARoundIsOpenAndAnOptionWasAppended_ShouldGiveMatchingLengths()
+    {
+        var poll = await SeedPollAsync();
+        var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await Rows.AnswerAsync(round.Id, "open-guest-1", 2);
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         await SlideCalls.OkAsync(agent, "add_poll_option", new { deck = poll.DeckId, slide = poll.Slide, text = "Huge" });
 
         var result = await SlideCalls.OkAsync(agent, "get_poll_results", new { deck = poll.DeckId, slide = poll.Slide });
 
-        result.GetProperty("options").GetArrayLength().ShouldBe(4);
-        result.GetProperty("sessions")[0].GetProperty("rounds")[0].GetProperty("counts").EnumerateArray().Select(c => c.GetInt32()).ShouldBe([0, 0, 1, 0]);
+        var open = result.GetProperty("sessions")[0].GetProperty("rounds").EnumerateArray().Single();
+        open.GetProperty("options").EnumerateArray().Select(o => o.GetString()).ShouldBe([.. PollSeed.OPTIONS, "Huge"]);
+        open.GetProperty("counts").GetArrayLength().ShouldBe(4);
+    }
+
+    [Test]
+    public async Task GetPollResults_WhenOnlyADraftWasDiscarded_ShouldNeverListIt()
+    {
+        var poll = await SeedPollAsync();
+        await Rows.RoundAsync(poll.SlideId, poll.SessionId, PollPhase.Draft);
+        (await Client.DeleteAsync($"/api/decks/{poll.DeckId}/live")).EnsureSuccessStatusCode();
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        var result = await SlideCalls.OkAsync(agent, "get_poll_results", new { deck = poll.DeckId, slide = poll.Slide });
+
+        result.GetProperty("sessions").GetArrayLength().ShouldBe(0);
+    }
+
+    // A slide that was a poll with a correct answer, made another layout and then a poll again with fewer options: the saved
+    // settings no longer fit, and the refusal says so, not to call update_poll (which refuses a slide that isn't a poll yet).
+    [Test]
+    public async Task UpdateSlide_WhenSlideBecomesAPollAgainWithOptionsItsSavedSettingsDontFit_ShouldRefuseNamingThem()
+    {
+        var poll = await SeedPollAsync(options: ["1", "2", "3", "4"]);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        await SlideCalls.OkAsync(agent, "update_poll", new { deck = poll.DeckId, slide = poll.Slide, correct = 4 });
+        (await Client.DeleteAsync($"/api/decks/{poll.DeckId}/live")).EnsureSuccessStatusCode();
+        var revision = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1].GetProperty("revision").GetInt64();
+        var asQuote = await SlideCalls.UpdateAsync(agent, poll.DeckId, poll.Slide, revision, """{ "quote": "Ship it", "attribution": "Sam" }""", layout: "quote");
+
+        var error = await SlideCalls.UpdateErrorAsync(agent, poll.DeckId, poll.Slide, asQuote.GetProperty("revision").GetInt64(), """{ "question": "How big?", "options": ["1", "2", "3"] }""", layout: "poll");
+
+        error.ShouldBe("slots.options: this slide's saved poll settings don't fit its options (correct: must be 1 to 3); give it options they fit");
     }
 
     [Test]

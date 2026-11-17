@@ -12,18 +12,28 @@
       "rounds": [
         {
           "number": 1,
+          "options": [
+            "Under 50 lines",
+            "50 to 200 lines",
+            "Over 200 lines"
+          ],
           "answered": 38,
           "joined": 40,
           "rate": 0.95,
           "counts": [
             7,
             17,
-            10,
-            4
+            14
           ]
         },
         {
           "number": 2,
+          "options": [
+            "Under 50 lines",
+            "50 to 200 lines",
+            "200 to 1,000 lines",
+            "Over 1,000 lines"
+          ],
           "answered": 30,
           "joined": 40,
           "rate": 0.75,

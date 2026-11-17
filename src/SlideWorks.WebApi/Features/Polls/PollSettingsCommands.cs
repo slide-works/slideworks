@@ -35,7 +35,7 @@ public class PollSettingsCommands(SlideEdits edits, AppDbContext db, PollReader 
             var (poll, current) = await PollAsync(deck.Id, slide);
             if (await pollEdits.IsRoundOpenAsync(deck.Id, poll.Id))
             {
-                throw new ConflictException($"A round of the poll on slide {slide} is open, so its settings can't change; close it first (close_poll)");
+                throw new ConflictException($"{PollEdits.POLL_OPEN}: a round of the poll on slide {slide} is open, so its settings can't change; close it first (close_poll)");
             }
             var next = Merge(current, change, PollReader.SlotsOf(poll.SlotsJson).Options.Count);
             var row = await db.Polls.SingleAsync(p => p.SlideId == poll.Id);
@@ -99,7 +99,11 @@ public class PollSettingsCommands(SlideEdits edits, AppDbContext db, PollReader 
         };
         var opens = change.Opens == null ? current.Opens : ParseOpens(change.Opens);
         var next = current with { Pick = pick, Max = max, Results = results, Correct = correct, Opens = opens };
-        return PollSettingsRules.Check(next, optionCount) is { } broken ? throw new BadRequestException(broken) : next;
+        if (PollSettingsRules.Check(next, optionCount) is { } broken)
+        {
+            throw new BadRequestException(broken.StartsWith("correct:", StringComparison.Ordinal) ? $"{broken}, or 0 to clear it" : broken);
+        }
+        return next;
     }
 
     private static PollPick ParsePick(string value) => value switch
