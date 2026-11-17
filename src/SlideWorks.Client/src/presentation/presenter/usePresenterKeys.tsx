@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 // What the presenter window's keys do (P8). Each one is a call the page makes; none of them moves anything locally.
 export type PresenterKeyActions = {
@@ -43,7 +43,9 @@ function activates(target: EventTarget | null): boolean {
 // (nothing to drive yet) ignores every key.
 export function usePresenterKeys(actions: PresenterKeyActions | null, overlayOpen: boolean) {
   const latest = useRef({ actions, overlayOpen });
-  useEffect(() => {
+  // A layout effect, so the listener sees the new actions as soon as the render is on screen: a passive effect can run
+  // after a key press that follows the paint, and that key would move from the position the page just left.
+  useLayoutEffect(() => {
     latest.current = { actions, overlayOpen };
   }, [actions, overlayOpen]);
   const digits = useRef('');
