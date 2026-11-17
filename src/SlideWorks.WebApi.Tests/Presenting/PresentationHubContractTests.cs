@@ -2,13 +2,16 @@ using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Tests.Mcp;
+using SlideWorks.WebApi.Tests.Sharing;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Presenting;
 
 // P2's rules, one test each, over real HubConnections against the real registry. Sam owns every deck here; the deck has
 // PresentingSeed.SLIDES slides. Time is the fixture's FakeTimeProvider, stepped with Advance.
-// TODO: skipped until the real presentations registry replaces the stub, which fails each of these.
+// TODO: skipped until the real presentations registry replaces the stub, which fails each of these. The one exception,
+// JoinPresentation_WhenNotTheOwner_ShouldBeRefusedBeforeAnythingIsSent, runs now: DeckHub refuses before it calls the
+// registry, so it holds against the stub and guards DeckHub's access check.
 [TestFixture]
 [CancelAfter(30000)]
 public class PresentationHubContractTests : ApiTestFixture
@@ -111,6 +114,53 @@ public class PresentationHubContractTests : ApiTestFixture
         var next = await owner.NextAsync();
         next.GetProperty("seq").GetInt64().ShouldBe(joinSeq + 1);
         PresentationStates.ClientIds(next).ShouldBe(["k-1"]);
+    }
+
+    // Not skipped: DeckHub's CanPresentAsync check refuses a non-owner before the registry is called, so this holds
+    // against the stub and against the real registry. The refused caller receives no state, and the owner already joined
+    // receives only the state of its own next update.
+    [TestCaseSource(nameof(NonOwners))]
+    public async Task JoinPresentation_WhenNotTheOwner_ShouldBeRefusedBeforeAnythingIsSent(TestUser caller, string level, string[] viewers)
+    {
+        var deck = await OwnDeckAsync();
+        await SharingApi.PutOkAsync(Client, deck, level, viewers);
+        var owner = await ConnectAsync(TestUser.Sam);
+        var other = await ConnectAsync(caller);
+        await owner.JoinAsync(deck, "k-1");
+        await owner.NextAsync();
+
+        var refused = await Should.ThrowAsync<HubException>(() => other.JoinAsync(deck, "k-2"));
+        await owner.UpdateAsync(deck, 2, 0);
+
+        refused.Message.ShouldContain(DeckHub.DECK_NOT_FOUND);
+        other.Received().ShouldBeEmpty();
+        owner.Received().Count.ShouldBe(1);
+    }
+
+    // D4 puts the per-deck rule for Update and SetTimer in the registry: having joined some presentation is not enough.
+    // Alex presents his own deck, then tries to drive Sam's live deck; Sam's next state is his own update's.
+    [Test, Ignore(SKIP)]
+    public async Task UpdatePresentation_WhenJoinedToAnotherDeckOnly_ShouldBeRefusedWithNotPresenting()
+    {
+        var samsDeck = await OwnDeckAsync();
+        var alexsDeck = await DeckOwnedByAsync(TestUser.Alex);
+        var sam = await ConnectAsync(TestUser.Sam);
+        var alex = await ConnectAsync(TestUser.Alex);
+        var joinSeq = (await sam.JoinAsync(samsDeck, "k-sam")).GetProperty("state").GetProperty("seq").GetInt64();
+        await sam.NextAsync();
+        await alex.JoinAsync(alexsDeck, "k-alex");
+
+        var update = await Should.ThrowAsync<HubException>(() => alex.UpdateAsync(samsDeck, 2, 0));
+        var timer = await Should.ThrowAsync<HubException>(() => alex.SetTimerAsync(samsDeck, "pause"));
+        await sam.UpdateAsync(samsDeck, 3, 0);
+
+        update.Message.ShouldContain(DeckHub.NOT_PRESENTING);
+        timer.Message.ShouldContain(DeckHub.NOT_PRESENTING);
+        var next = await sam.NextAsync();
+        next.GetProperty("seq").GetInt64().ShouldBe(joinSeq + 1);
+        next.GetProperty("slide").GetInt32().ShouldBe(3);
+        next.GetProperty("timer").GetProperty("state").GetString().ShouldBe("running");
+        sam.Received().ShouldBeEmpty();
     }
 
     [Test, Ignore(SKIP)]
@@ -297,6 +347,14 @@ public class PresentationHubContractTests : ApiTestFixture
         }
     }
 
+    // A link viewer, a named viewer and an anonymous caller of a deck Sam shares.
+    private static IEnumerable<TestCaseData> NonOwners()
+    {
+        yield return new TestCaseData(TestUser.Alex, "link", Array.Empty<string>()).SetArgDisplayNames("link viewer");
+        yield return new TestCaseData(TestUser.Mira, "named", new[] { TestUser.Mira.Email }).SetArgDisplayNames("named viewer");
+        yield return new TestCaseData(TestUser.Anonymous, "link", Array.Empty<string>()).SetArgDisplayNames("anonymous");
+    }
+
     private static object Resume(int slide, int step, string timerState, long elapsedMs)
         => new { slide, step, black = false, skipDeepDives = true, timer = new { state = timerState, elapsedMs } };
 
@@ -314,9 +372,11 @@ public class PresentationHubContractTests : ApiTestFixture
         return (local.Hour * 60) + local.Minute;
     }
 
-    private async Task<string> OwnDeckAsync()
+    private Task<string> OwnDeckAsync() => DeckOwnedByAsync(TestUser.Sam);
+
+    private async Task<string> DeckOwnedByAsync(TestUser owner)
     {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, owner);
         return await PresentingSeed.CreateDeckAsync(agent);
     }
 

@@ -48,6 +48,18 @@ public sealed class PresentationStates : IAsyncDisposable
         return await _states.Reader.ReadAsync(timeout.Token);
     }
 
+    // The states received so far and not yet read, without waiting. A state the server sent before the result of a call
+    // on this connection has already arrived when that call returns, so after an awaited call this is everything sent.
+    public IReadOnlyList<JsonElement> Received()
+    {
+        var received = new List<JsonElement>();
+        while (_states.Reader.TryRead(out var state))
+        {
+            received.Add(state);
+        }
+        return received;
+    }
+
     public static IReadOnlyList<string> ClientIds(JsonElement state)
         => state.GetProperty("connected").EnumerateArray().Select(c => c.GetProperty("clientId").GetString()!).ToList();
 
