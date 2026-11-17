@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { AudienceState } from '../guest/audienceEvents';
-import { audienceState } from '../test-support/fixtures/guestStates';
+import { audienceState, guestView } from '../test-support/fixtures/guestStates';
 import { stubDeckHub, type StubTransport } from '../test-support/stubDeckHub';
 import { AudienceProbe } from '../test-support/AudienceProbe';
 
-const live: AudienceState = audienceState();
+// The state JoinAudience answers with: seq 42, as GET /api/join sends it. The event sample that follows is seq 43.
+const live: AudienceState = guestView('live').state;
 
 for (const transport of ['WebSockets', 'ServerSentEvents', 'LongPolling'] as StubTransport[]) {
   test(`${transport}: joins the audience and receives an audienceEvent`, async ({
@@ -17,7 +18,7 @@ for (const transport of ['WebSockets', 'ServerSentEvents', 'LongPolling'] as Stu
     expect(hub.audienceJoins).toEqual(['482913']);
     expect(hub.transportsUsed).toEqual([transport]);
 
-    hub.pushAudienceEvent(audienceState({ seq: 43 }));
+    hub.pushAudienceEvent(audienceState());
     await expect(page.getByTestId('probe-state')).toHaveText('seq 43');
   });
 }
