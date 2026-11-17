@@ -18,10 +18,7 @@ public class GuestFollowTests : AcceptanceTest
     [OneTimeTearDown]
     public void ForgetAgent() => _oauth.Dispose();
 
-    // Needs SW-4's real presentation registry (S1, PR #10) on main: until then the stub registry never reports the
-    // presenter's moves, so the relay has nothing to carry. E1a (SW-220) removes the Ignore.
     [Test]
-    [Ignore("TODO: SW-4 S1")]
     public async Task Follow_WhenPresenterMoves_ShouldShowNewSlide()
     {
         await using var agent = await AgentSession.ConnectAsync(_oauth, Page, TestUser.Sam);
