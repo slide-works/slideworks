@@ -1,21 +1,67 @@
 import { useEffect, useRef } from 'react';
 import { GUEST_TEST_IDS } from './testIds';
 
-// How often the offline screen tries again by itself.
+// The offline screen's own retries. A room that drops together comes back to this screen together, and a venue shares one
+// rate limit, so each phone waits a base time plus a random extra, and the base doubles after every attempt up to a cap.
 export const OFFLINE_RETRY_MS = 5000;
+export const OFFLINE_JITTER_MS = 2000;
+export const OFFLINE_MAX_RETRY_MS = 30000;
 
-// Live updates can't reach the phone (every transport failed, or it is offline). It explains and retries: every few
-// seconds on its own while it is shown, and at once on "Try now". It sits on the shell's night surface.
-export function GuestOffline({ onRetry }: { onRetry: () => void }) {
+type Retry = () => void | Promise<unknown>;
+
+// Live updates can't reach the phone (every transport failed, or it is offline). It explains and retries on its own while
+// it is shown: the next attempt is scheduled only after the last one has settled (onRetry returns a promise for that),
+// after a wait that doubles from 5 s to 30 s with a random extra of up to 2 s. "Try now" retries at once and starts the
+// waits again. It sits on the shell's night surface. random is injected so tests are deterministic.
+export function GuestOffline({
+  onRetry,
+  random = Math.random,
+}: {
+  onRetry: Retry;
+  random?: () => number;
+}) {
   const heading = useRef<HTMLHeadingElement>(null);
   const retry = useRef(onRetry);
+  const randomRef = useRef(random);
+  const tryNow = useRef<() => void>(() => undefined);
   useEffect(() => {
     retry.current = onRetry;
+    randomRef.current = random;
   });
   useEffect(() => heading.current?.focus(), []);
   useEffect(() => {
-    const timer = setInterval(() => retry.current(), OFFLINE_RETRY_MS);
-    return () => clearInterval(timer);
+    let active = true;
+    let inFlight = false;
+    let delay = OFFLINE_RETRY_MS;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      clearTimeout(timer);
+      timer = setTimeout(attempt, delay + Math.floor(randomRef.current() * OFFLINE_JITTER_MS));
+    };
+    function attempt() {
+      inFlight = true;
+      clearTimeout(timer);
+      void Promise.resolve()
+        .then(() => retry.current())
+        .catch(() => undefined)
+        .then(() => {
+          inFlight = false;
+          if (!active) return;
+          delay = Math.min(delay * 2, OFFLINE_MAX_RETRY_MS);
+          schedule();
+        });
+    }
+    tryNow.current = () => {
+      // The wait after this attempt is the base again (the doubling after an attempt takes it back up from half of it).
+      delay = OFFLINE_RETRY_MS / 2;
+      // An attempt already running reschedules itself when it settles.
+      if (!inFlight) attempt();
+    };
+    schedule();
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   return (
@@ -54,7 +100,7 @@ export function GuestOffline({ onRetry }: { onRetry: () => void }) {
         type="button"
         data-testid={GUEST_TEST_IDS.offlineRetry}
         aria-label="Try now to reach the room"
-        onClick={onRetry}
+        onClick={() => tryNow.current()}
         className="mt-3 min-h-12 w-full rounded-xl bg-white/10 px-4 text-base font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sw-accent-glow)"
       >
         Try now

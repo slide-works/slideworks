@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import { audienceState, guestView } from '../test-support/fixtures/guestStates';
-import { OFFLINE_RETRY_MS } from './GuestOffline';
+import { OFFLINE_JITTER_MS, OFFLINE_RETRY_MS } from './GuestOffline';
 import { GuestScreens } from './GuestScreens';
 import { GUEST_TEST_IDS } from './testIds';
 
@@ -107,7 +107,10 @@ test('the offline screen fills the screen on the night surface', async ({ mount,
   expect(box!.height).toBeGreaterThan(600);
 });
 
-test('the offline screen retries by itself every few seconds', async ({ mount, page }) => {
+test('the offline screen retries by itself after the base wait plus a random extra', async ({
+  mount,
+  page,
+}) => {
   await page.clock.install();
   const view = guestView('live');
   let retries = 0;
@@ -116,10 +119,30 @@ test('the offline screen retries by itself every few seconds', async ({ mount, p
   );
   await page.clock.runFor(OFFLINE_RETRY_MS - 100);
   expect(retries).toBe(0);
-  await page.clock.runFor(200);
+  await page.clock.runFor(OFFLINE_JITTER_MS + 200);
   expect(retries).toBe(1);
+  // The next wait is longer (it doubles), so the base alone is not enough.
   await page.clock.runFor(OFFLINE_RETRY_MS);
-  expect(retries).toBe(2);
+  expect(retries).toBe(1);
+});
+
+test('the lobby with a long title and presenter name does not scroll sideways at 360 px', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  const view = {
+    ...guestView('lobby'),
+    deckTitle:
+      'A very long deck title that keeps going well past the width of a phone screen'.repeat(2),
+    presenterName: 'Maximilian Alexander Featherstonehaugh-Cholmondeley the Third',
+  };
+  await mount(<GuestScreens view={view} state={view.state} status="live" onRetry={noop} />);
+  await expect(page.getByTestId(GUEST_TEST_IDS.lobby)).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
 });
 
 test('"You\'re in" shows for 2 seconds, then the slide mirror', async ({ mount, page }) => {

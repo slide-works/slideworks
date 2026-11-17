@@ -14,13 +14,13 @@ export function GuestLobby({ view }: { view: GuestView }) {
         <div className="min-w-0">
           <p
             data-testid={GUEST_TEST_IDS.deckTitle}
-            className="truncate font-head text-[15px] font-bold"
+            className="truncate font-head text-[13px] leading-tight font-bold"
           >
             {view.deckTitle}
           </p>
           <p
             data-testid={GUEST_TEST_IDS.presenter}
-            className="truncate text-xs text-(--sw-night-muted)"
+            className="truncate text-[11px] text-(--sw-night-muted)"
           >
             {view.presenterName}
           </p>
