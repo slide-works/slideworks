@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AudienceStatus } from './useAudience';
 import type { AudienceState } from './audienceEvents';
 import { GuestEnded } from './GuestEnded';
@@ -29,6 +29,7 @@ export function GuestScreens({
 }) {
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [joinedDone, setJoinedDone] = useState(false);
+  const privacyButton = useRef<HTMLButtonElement>(null);
   const live = state.phase === 'live';
 
   useEffect(() => {
@@ -44,20 +45,29 @@ export function GuestScreens({
   else if (!joinedDone) screen = <GuestJoined view={view} />;
   else screen = <GuestFollowing view={view} state={state} />;
 
+  const closePrivacy = () => {
+    setPrivacyOpen(false);
+    privacyButton.current?.focus();
+  };
+
   return (
-    <>
+    <div className="flex min-h-dvh flex-col bg-(--sw-night-surface) text-(--sw-night-ink)">
       {screen}
       {status === 'reconnecting' && <ReconnectingBanner />}
-      <footer>
+      <footer className="flex items-center justify-between px-5 text-xs text-(--sw-night-muted)">
+        <span>Guest · no account</span>
         <button
+          ref={privacyButton}
           type="button"
+          aria-label="Guest, privacy: what this page keeps about you"
           data-testid={GUEST_TEST_IDS.privacyOpen}
           onClick={() => setPrivacyOpen(true)}
+          className="min-h-12 px-2 font-semibold text-(--sw-accent-glow) focus-visible:outline-2 focus-visible:outline-(--sw-accent-glow)"
         >
           Guest · Privacy
         </button>
       </footer>
-      {privacyOpen && <PrivacySheet onClose={() => setPrivacyOpen(false)} />}
-    </>
+      {privacyOpen && <PrivacySheet onClose={closePrivacy} />}
+    </div>
   );
 }
