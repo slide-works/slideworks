@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { PollActivity } from '../types';
 import { POLL_CARD_TEST_IDS } from '../testIds';
 import { PollConflict } from './PollConflict';
@@ -12,6 +12,9 @@ import { usePollAnswer } from './usePollAnswer';
 const kindOf = (activity: PollActivity) =>
   activity.pick === 'one' ? 'Poll · Pick one' : `Poll · Pick up to ${activity.max}`;
 
+const samePicks = (a: number[], b: number[]) =>
+  a.length === b.length && a.every((pick, i) => pick === b[i]);
+
 // The poll on a guest's phone (V6): its kind, round and question, the options, and under them the foot, or the
 // conflict or the queued note in its place, then the verdict once the answer is shown. The options scroll past five and
 // the foot stays in view. A phone never shows counts before its guest has answered, whatever the setting; once the
@@ -20,6 +23,23 @@ export function PollCard({ activity, presenter }: { activity: PollActivity; pres
   const answer = usePollAnswer();
   const questionId = useId();
   const mine = answer.mine?.picks ?? null;
+  // Pick several: once an answer is sent the boxes lock until "Change my answer". The edit holds for this round and this
+  // answer's revision, so a new accepted answer or a new round locks them again without any reset.
+  const editKey = `${activity.round ?? ''}:${answer.mine?.revision ?? 0}`;
+  const [editing, setEditing] = useState<string | null>(null);
+  const unlocked = editing === editKey;
+  const locked =
+    activity.pick === 'upTo' && mine !== null && samePicks(answer.picks, mine) && !unlocked;
+  const list = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // Change my answer unlocks the boxes and the button may go: focus moves to the first box that can be ticked.
+    if (unlocked) {
+      const boxes = list.current?.querySelectorAll<HTMLInputElement>('input:not(:disabled)');
+      (
+        list.current?.querySelector<HTMLInputElement>('input:checked:not(:disabled)') ?? boxes?.[0]
+      )?.focus();
+    }
+  }, [unlocked]);
   const bars: PollBars | null =
     answer.tally?.counts && (mine !== null || activity.phase === 'closed')
       ? { counts: answer.tally.counts, answered: answer.tally.answered }
@@ -27,7 +47,7 @@ export function PollCard({ activity, presenter }: { activity: PollActivity; pres
   const options = {
     questionId,
     activity,
-    disabled: answer.state === 'loading' || activity.phase !== 'open',
+    disabled: answer.state === 'loading' || activity.phase !== 'open' || locked,
     picks: answer.picks,
     mine,
     bars,
@@ -57,7 +77,10 @@ export function PollCard({ activity, presenter }: { activity: PollActivity; pres
         state={answer.state}
         error={answer.error}
         onSend={answer.send}
-        onClear={answer.clear}
+        onClear={() => {
+          setEditing(editKey);
+          answer.clear();
+        }}
       />
     );
 
@@ -90,7 +113,7 @@ export function PollCard({ activity, presenter }: { activity: PollActivity; pres
             {activity.question}
           </h2>
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div ref={list} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {activity.pick === 'one' ? (
             <PollOptions {...options} />
           ) : (

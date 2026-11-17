@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
 });
 
-test('shows the message with focus on it, and names the round when a new one started', async ({
+test('shows the message with focus on it, once: focus without an alert role', async ({
   mount,
   page,
 }) => {
@@ -25,13 +25,16 @@ test('shows the message with focus on it, and names the round when a new one sta
     />,
   );
   const message = page.getByTestId(POLL_CARD_TEST_IDS.conflictMessage);
-  await expect(message).toHaveText('Sam started round 2. Send this pick again?');
+  await expect(message).toHaveText('Sam changed the poll. Send this pick again?');
   await expect(message).toBeFocused();
-  await expect(message).toHaveAttribute('role', 'alert');
+  await expect(message).not.toHaveAttribute('role', 'alert');
 });
 
-test('in round 1 it says the poll changed, not a round', async ({ mount, page }) => {
-  await mount(
+test('it never claims a new round, in round 1 or later: a change within the round reads the same', async ({
+  mount,
+  page,
+}) => {
+  const card = await mount(
     <PollConflict
       activity={pollActivity('open', { number: 1 })}
       presenter="Sam"
@@ -39,9 +42,17 @@ test('in round 1 it says the poll changed, not a round', async ({ mount, page })
       onClear={() => {}}
     />,
   );
-  await expect(page.getByTestId(POLL_CARD_TEST_IDS.conflictMessage)).toHaveText(
-    'Sam changed the poll. Send this pick again?',
+  const message = page.getByTestId(POLL_CARD_TEST_IDS.conflictMessage);
+  await expect(message).toHaveText('Sam changed the poll. Send this pick again?');
+  await card.update(
+    <PollConflict
+      activity={pollActivity('open', { number: 3 })}
+      presenter="Sam"
+      onSend={() => {}}
+      onClear={() => {}}
+    />,
   );
+  await expect(message).not.toContainText('round');
 });
 
 test('Send it calls send once and Clear calls clear once, each named with the question', async ({

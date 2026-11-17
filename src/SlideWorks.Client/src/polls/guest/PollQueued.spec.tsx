@@ -18,6 +18,44 @@ test('shows "Not sent yet" and says the pick goes by itself', async ({ mount, pa
   );
 });
 
+test('the status region is mounted empty and filled after, so it is announced; its text is dark enough', async ({
+  mount,
+  page,
+}) => {
+  await page.evaluate(() => {
+    const seen: string[] = [];
+    (window as unknown as { seen: string[] }).seen = seen;
+    new MutationObserver(() => {
+      const el = document.querySelector('[data-testid="poll-queued-message"]');
+      if (el) seen.push(el.textContent ?? '');
+    }).observe(document, { childList: true, subtree: true, characterData: true });
+  });
+  await mount(<PollQueued />);
+  const message = page.getByTestId(POLL_CARD_TEST_IDS.queuedMessage);
+  await expect(message).toHaveAttribute('role', 'status');
+  await expect(message).toHaveText('Not sent yet');
+  const seen = await page.evaluate(() => (window as unknown as { seen: string[] }).seen);
+  expect(seen[0]).toBe('');
+  expect(seen.at(-1)).toBe('Not sent yet');
+  // The warning ink on the card's white, at least 4.5:1 for 13 px text.
+  const ratio = await message.evaluate((el) => {
+    const lum = (rgb: string) => {
+      const [r, g, b] = (rgb.match(/[\d.]+/g) ?? [])
+        .slice(0, 3)
+        .map(Number)
+        .map((v) => {
+          const c = v / 255;
+          return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const fg = lum(getComputedStyle(el).color);
+    const bg = lum('rgb(255, 255, 255)');
+    return (bg + 0.05) / (fg + 0.05);
+  });
+  expect(ratio).toBeGreaterThanOrEqual(4.5);
+});
+
 test('in the card there is no Send button, no Change button, and the pick stays ticked', async ({
   mount,
   page,

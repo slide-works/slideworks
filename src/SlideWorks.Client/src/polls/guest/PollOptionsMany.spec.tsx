@@ -11,6 +11,7 @@ import {
 import type { PollActivity } from '../types';
 import { PollAnswerFixture } from './PollAnswerFixture';
 import { PollCard } from './PollCard';
+import { PollAnswerKept } from './PollAnswerKept';
 
 // The pick-several options on a 360 px phone, through the card and the fixture provider (V6, D3). The foot (the count,
 // Send, Change my answer) is PollFoot's; these specs only look at it where the options and the foot meet.
@@ -147,39 +148,71 @@ test('send: disabled with no picks, enabled with one, and calls send once', asyn
   await card.unmount();
 });
 
-test('after sending, Change my answer asks the card to choose again and Send is back for new picks', async ({
+test('after sending the boxes lock; Change my answer unlocks them and Send comes back for new picks; a new answer locks them again', async ({
   mount,
   page,
 }) => {
-  let clears = 0;
-  const card = await mount(
-    <PollAnswerFixture
-      picks={[0, 2]}
-      mine={{ picks: [0, 2], revision: 1 }}
-      tally={pollTally({ counts: [5, 1, 6, 0], answered: 8 })}
-      pick="upTo"
-      max={2}
-      onClear={() => (clears += 1)}
-    >
-      <PollCard activity={many()} presenter="Sam" />
-    </PollAnswerFixture>,
+  const activity = many();
+  const tally = pollTally({ counts: [5, 1, 6, 0], answered: 8 });
+  const sent = (revision: number, picks: number[]) => (
+    <PollAnswerFixture picks={picks} mine={{ picks, revision }} tally={tally} pick="upTo" max={2}>
+      <PollCard activity={activity} presenter="Sam" />
+    </PollAnswerFixture>
   );
-  await expect(page.getByTestId(POLL_CARD_TEST_IDS.sent)).toBeVisible();
-  await expect(page.getByTestId(pollOptionYouTestId(0))).toBeVisible();
-  await expect(page.getByTestId(pollOptionYouTestId(2))).toBeVisible();
-  await expect(page.getByTestId(POLL_CARD_TEST_IDS.send)).toHaveCount(0);
-  await page.getByTestId(POLL_CARD_TEST_IDS.change).click();
-  await expect.poll(() => clears).toBe(1);
+  const boxes = page.getByRole('checkbox');
+  const card = await mount(sent(1, [0, 2]));
 
-  // Choosing again with the picks held: Send is back, the boxes keep their ticks.
-  await card.update(
-    <PollAnswerFixture picks={[0]} mine={{ picks: [0, 2], revision: 1 }} pick="upTo" max={2}>
-      <PollCard activity={many()} presenter="Sam" />
+  // Locked: Answer sent and Change my answer, every box disabled, the ticks still shown.
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.sent)).toBeVisible();
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.send)).toHaveCount(0);
+  for (const box of await boxes.all()) await expect(box).toBeDisabled();
+  await expect(page.getByTestId(pollOptionTestId(0))).toBeChecked();
+  await expect(page.getByTestId(pollOptionYouTestId(2))).toBeVisible();
+
+  // Change my answer: the boxes can be ticked again and focus moves to the first ticked one.
+  await page.getByTestId(POLL_CARD_TEST_IDS.change).click();
+  await expect(page.getByTestId(pollOptionTestId(0))).toBeEnabled();
+  await expect(page.getByTestId(pollOptionTestId(0))).toBeFocused();
+  // The fixture's clear empties the picks, so the foot is choosing: the count and a disabled Send.
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.pickCount)).toContainText('0 of 2 picked');
+  await page.getByTestId(pollOptionTestId(3)).click();
+  await expect(page.getByTestId(pollOptionTestId(3))).toBeChecked();
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.send)).toBeEnabled();
+
+  // A new accepted answer (a new revision) locks them again.
+  await card.update(sent(2, [3]));
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.change)).toBeVisible();
+  for (const box of await boxes.all()) await expect(box).toBeDisabled();
+});
+
+test('with the picks kept, Change my answer unlocks them; a new round or a new answer locks them again', async ({
+  mount,
+  page,
+}) => {
+  const boxes = page.getByRole('checkbox');
+  const card = await mount(<PollAnswerKept activity={many({ round: 'round-a' })} revision={1} />);
+  for (const box of await boxes.all()) await expect(box).toBeDisabled();
+  await page.getByTestId(POLL_CARD_TEST_IDS.change).click();
+  for (const box of await boxes.all()) await expect(box).toBeEnabled();
+  await expect(page.getByTestId(pollOptionTestId(1))).toBeFocused();
+  await expect(page.getByTestId(POLL_CARD_TEST_IDS.sent)).toBeVisible();
+
+  await card.update(<PollAnswerKept activity={many({ round: 'round-b' })} revision={1} />);
+  for (const box of await boxes.all()) await expect(box).toBeDisabled();
+
+  await page.getByTestId(POLL_CARD_TEST_IDS.change).click();
+  for (const box of await boxes.all()) await expect(box).toBeEnabled();
+  await card.update(<PollAnswerKept activity={many({ round: 'round-b' })} revision={2} />);
+  for (const box of await boxes.all()) await expect(box).toBeDisabled();
+});
+
+test('pick one is never locked after an answer', async ({ mount, page }) => {
+  await mount(
+    <PollAnswerFixture picks={[1]} mine={{ picks: [1], revision: 1 }}>
+      <PollCard activity={pollActivity('open', { pick: 'one', max: null })} presenter="Sam" />
     </PollAnswerFixture>,
   );
-  await expect(page.getByTestId(POLL_CARD_TEST_IDS.send)).toBeEnabled();
-  await expect(page.getByTestId(pollOptionTestId(0))).toBeChecked();
-  await expect(page.getByTestId(pollOptionTestId(2))).not.toBeChecked();
+  for (const radio of await page.getByRole('radio').all()) await expect(radio).toBeEnabled();
 });
 
 test('real checkboxes in a group labelled by the question, each named by its option and the question', async ({
@@ -290,4 +323,39 @@ test('pick several, two ticked, at the limit screenshot at 360', async ({ mount,
     </PollAnswerFixture>,
   );
   await expect(page).toHaveScreenshot('pick-several-at-limit.png', { maxDiffPixels: 100 });
+});
+
+// Forced colours (a high-contrast theme) replace backgrounds and borders and keep images, so a drawn tick or dot can
+// vanish. The native control draws its state in system colours, and a ticked box looks different from an empty one.
+test('forced colours: a checked checkbox differs from an unchecked one without its tick image', async ({
+  mount,
+  page,
+}) => {
+  await page.emulateMedia({ forcedColors: 'active' });
+  await mount(
+    <PollAnswerFixture picks={[1]} pick="upTo" max={3}>
+      <PollCard activity={many({ max: 3 })} presenter="Sam" />
+    </PollAnswerFixture>,
+  );
+  const checked = page.getByTestId(pollOptionTestId(1));
+  const empty = page.getByTestId(pollOptionTestId(0));
+  expect(await checked.evaluate((el) => getComputedStyle(el).appearance)).not.toBe('none');
+  const a = await checked.screenshot();
+  const b = await empty.screenshot();
+  expect(a.equals(b)).toBe(false);
+});
+
+test('forced colours: a selected radio differs from an unselected one', async ({ mount, page }) => {
+  await page.emulateMedia({ forcedColors: 'active' });
+  await mount(
+    <PollAnswerFixture picks={[1]}>
+      <PollCard activity={pollActivity('open', { pick: 'one', max: null })} presenter="Sam" />
+    </PollAnswerFixture>,
+  );
+  const selected = page.getByTestId(pollOptionTestId(1));
+  const other = page.getByTestId(pollOptionTestId(0));
+  expect(await selected.evaluate((el) => getComputedStyle(el).appearance)).not.toBe('none');
+  const a = await selected.screenshot();
+  const b = await other.screenshot();
+  expect(a.equals(b)).toBe(false);
 });

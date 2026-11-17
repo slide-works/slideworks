@@ -3,7 +3,7 @@ import type { PollActivity } from '../types';
 import { POLL_CARD_TEST_IDS } from '../testIds';
 
 export type PollConflictProps = {
-  // The poll as it is now: its round number for "<presenter> started round 2".
+  // The poll as it is now: its question names the buttons.
   activity: PollActivity;
   presenter: string;
   // Send it: sends the kept pick again.
@@ -16,17 +16,14 @@ const BUTTON =
   'flex min-h-11 flex-1 items-center justify-center rounded-xl px-3 text-[14px] font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sw-accent-dark)';
 
 // A 409 came back: the answer went against an old round or revision. The pick is kept and the card asks again. Focus
-// moves to the message when the card appears, so a screen reader reads it at once.
+// moves to the message when the card appears, so a screen reader reads it once, on focus (no alert role on top). The
+// props don't say which round the pick was sent against, so it says only that the poll changed.
 export function PollConflict({ activity, presenter, onSend, onClear }: PollConflictProps) {
   const message = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
     message.current?.focus();
   }, []);
 
-  const what =
-    activity.number > 1
-      ? `${presenter} started round ${activity.number}.`
-      : `${presenter} changed the poll.`;
   return (
     <div
       data-testid={POLL_CARD_TEST_IDS.conflict}
@@ -35,11 +32,10 @@ export function PollConflict({ activity, presenter, onSend, onClear }: PollConfl
       <p
         ref={message}
         tabIndex={-1}
-        role="alert"
         data-testid={POLL_CARD_TEST_IDS.conflictMessage}
         className="text-[13px] leading-snug font-semibold outline-none"
       >
-        {`${what} Send this pick again?`}
+        {`${presenter} changed the poll. Send this pick again?`}
       </p>
       <div className="flex gap-2">
         <button

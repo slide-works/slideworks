@@ -138,3 +138,13 @@
     transition: none;
   }
 }
+
+/* Forced colours replace backgrounds and borders but keep images and drop shadows' fills, so a drawn dot or tick can
+   vanish. The native control draws its own state in system colours. */
+@media (forced-colors: active) {
+  .box {
+    appearance: auto;
+    width: 20px;
+    height: 20px;
+  }
+}
