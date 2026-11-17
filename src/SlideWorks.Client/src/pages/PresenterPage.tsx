@@ -154,7 +154,7 @@ export function PresenterPage() {
           clockMinutes={clockMinutes}
           onTimer={controls.timer}
           onReopenAudience={reopenAudience}
-          liveChip={<LiveChip deckTitle={view.title} joinBar={view.look.joinBar} />}
+          liveChip={<LiveChip deckTitle={view.title} joinBar={view.look.joinBar} compact />}
         />
 
         {status === 'reconnecting' && (

@@ -4,6 +4,7 @@ import type { PresenterView } from '../api/types';
 import { AppRoutes } from '../AppRoutes';
 import type { LiveView } from '../live/liveView';
 import type { PresentationState } from '../presentation/types';
+import { guestView } from '../test-support/fixtures/guestStates';
 import { presentationState, presenterView } from '../test-support/fixtures/presenting';
 import { me } from '../test-support/fixtures/screens';
 import { stubApi } from '../test-support/stubApi';
@@ -14,6 +15,9 @@ const deckId = base.id;
 const route = { hooksConfig: { route: `/decks/${deckId}/present` } };
 const liveUrl = `**/api/decks/${deckId}/live`;
 const JOIN_SLIDE = 9;
+// The narrowest the presenter window's top bar is held to one row at: the live chip, the timer and a phone and an
+// audience window connected (the repo states no minimum, so this is the width the bar was measured to fit at).
+const MIN_WIDTH = 1200;
 
 const idle: LiveView = {
   sessionId: null,
@@ -74,7 +78,10 @@ async function openPresenter(
   session: LiveView,
   { joinSlide = false, state = paused() }: { joinSlide?: boolean; state?: PresentationState } = {},
 ) {
-  const hub = await stubDeckHub(page, { presentation: { state } });
+  const hub = await stubDeckHub(page, {
+    presentation: { state },
+    audience: { state: guestView('live').state },
+  });
   const server = await stubServer(page, session, joinSlide);
   await mount(<AppRoutes />, route);
   await expect(page.getByTestId('presenter-now')).toBeVisible();
@@ -232,6 +239,7 @@ test('PresenterTopBar with the live chip not live screenshot', async ({ mount, p
   await page.setViewportSize({ width: 1280, height: 800 });
   await openPresenter(page, mount, idle);
   await expect(page.getByTestId('live-chip-go-live')).toBeVisible();
+  await expect(page.getByTestId('live-chip-error')).toHaveCount(0);
   await expect(page.getByTestId('presenter-top-bar')).toHaveScreenshot();
 });
 
@@ -239,5 +247,28 @@ test('PresenterTopBar with the live chip live screenshot', async ({ mount, page 
   await page.setViewportSize({ width: 1280, height: 800 });
   await openPresenter(page, mount, open);
   await expect(page.getByTestId('live-chip-count')).toHaveText('7 joined');
+  await expect(page.getByTestId('live-chip-error')).toHaveCount(0);
   await expect(page.getByTestId('presenter-top-bar')).toHaveScreenshot();
 });
+
+// A top bar is one row when the title, the live chip and the timer sit side by side: a second row doubles its height.
+const barHeight = (page: Page) =>
+  page.getByTestId('presenter-top-bar').evaluate((bar) => bar.getBoundingClientRect().height);
+const ONE_ROW_MAX_PX = 64;
+
+for (const session of [
+  { name: 'not live', view: idle, ready: 'live-chip-go-live' },
+  { name: 'live', view: open, ready: 'live-chip-end' },
+]) {
+  test(`PresenterTopBar_WhenWindowIsAtItsMinimumWidthAndOwner${session.name === 'live' ? 'Live' : 'NotLive'}_ShouldFitOneRow`, async ({
+    mount,
+    page,
+  }) => {
+    await page.setViewportSize({ width: MIN_WIDTH, height: 800 });
+    await openPresenter(page, mount, session.view);
+    await expect(page.getByTestId(session.ready)).toBeVisible();
+    await expect(page.getByTestId('live-chip-error')).toHaveCount(0);
+
+    expect(await barHeight(page)).toBeLessThan(ONE_ROW_MAX_PX);
+  });
+}

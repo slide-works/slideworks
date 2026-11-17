@@ -1,15 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLiveSessionContext } from './LiveSessionProvider';
 
-const BUTTON =
+const FULL_BUTTON =
   'inline-flex h-12 min-w-12 shrink-0 cursor-pointer items-center justify-center rounded-md px-3.5 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-[#93a8ff]';
-const NEUTRAL = `${BUTTON} bg-white/10 text-white hover:bg-white/15`;
+// The presenter window's top bar is a desktop bar with the timer and its controls beside the chip, so it takes the
+// smaller buttons of its other controls (the mockups' 28 px row) and keeps the 48 px ones for the player and the phone.
+const COMPACT_BUTTON =
+  'inline-flex h-8 min-w-8 shrink-0 cursor-pointer items-center justify-center rounded-md px-2.5 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-[#93a8ff]';
 
 // The live chip: the owner's control for going live and ending (SW-5 P1/P2, mockup section 03). Not live: an accent Go
 // live. Live: one green pill with the code and the joined count, the join bar toggle, and a red-tinted End. Drawn for
 // the owner only. joinBar is the deck's look.joinBar when the page knows it, so the toggle follows a change made
 // elsewhere; with none, the live session's own answer.
-export function LiveChip({ deckTitle, joinBar }: { deckTitle: string; joinBar?: boolean }) {
+export function LiveChip({
+  deckTitle,
+  joinBar,
+  compact = false,
+}: {
+  deckTitle: string;
+  joinBar?: boolean;
+  compact?: boolean;
+}) {
+  const BUTTON = compact ? COMPACT_BUTTON : FULL_BUTTON;
+  const NEUTRAL = `${BUTTON} bg-white/10 text-white hover:bg-white/15`;
   const session = useLiveSessionContext();
   const { live, liveView, error } = session;
   const announcement = useAnnouncement(live, liveView !== null);
@@ -46,7 +59,7 @@ export function LiveChip({ deckTitle, joinBar }: { deckTitle: string; joinBar?: 
           <span
             role="group"
             aria-label={`Live, code ${liveView.codeLabel}`}
-            className="inline-flex items-center gap-2 rounded-md bg-ok/25 px-2.5 py-2 text-xs font-semibold text-ok-soft"
+            className={`inline-flex items-center gap-2 rounded-md bg-ok/25 px-2.5 ${compact ? 'py-1.5' : 'py-2'} text-xs font-semibold text-ok-soft`}
           >
             <i aria-hidden="true" className="size-[7px] rounded-full bg-ok-soft" />
             <span aria-hidden="true">Live</span>
