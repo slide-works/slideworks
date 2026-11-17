@@ -23,6 +23,28 @@ for (const transport of ['WebSockets', 'ServerSentEvents', 'LongPolling'] as Stu
   });
 }
 
+for (const transport of ['WebSockets', 'ServerSentEvents', 'LongPolling'] as StubTransport[]) {
+  test(`${transport}: a dropped connection reconnects and lands on the pushed state`, async ({
+    mount,
+    page,
+  }) => {
+    const hub = await stubDeckHub(page, { audience: { state: live }, transports: [transport] });
+    await mount(<AudienceProbe code="482913" />);
+    await expect(page.getByTestId('probe-state')).toHaveText('seq 42');
+
+    // The state moves on while the guest is away; only a rejoin after the drop can reach seq 43.
+    hub.setAudienceState(audienceState());
+    hub.drop();
+    await expect(page.getByTestId('probe-status')).toHaveText('live');
+    await expect(page.getByTestId('probe-state')).toHaveText('seq 43');
+    expect(hub.audienceJoins).toEqual(['482913', '482913']);
+    expect(hub.transportsUsed).toEqual([transport, transport]);
+
+    hub.pushAudienceEvent(audienceState({ seq: 44 }));
+    await expect(page.getByTestId('probe-state')).toHaveText('seq 44');
+  });
+}
+
 test('with every transport offered the connection uses WebSockets', async ({ mount, page }) => {
   const hub = await stubDeckHub(page, { audience: { state: live } });
   await mount(<AudienceProbe code="482913" />);

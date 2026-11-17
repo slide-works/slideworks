@@ -12,9 +12,11 @@ import { DECK_HUB_PATH, RETRY_DELAYS_MS } from './useDeckConnection';
 export const AUDIENCE_TRANSPORTS =
   HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling;
 
-// Seconds-scale back-off for a dropped connection; the last delay repeats. The same delays SW-1's shared connection uses.
-export function audienceRetryDelayMs(previousRetryCount: number): number {
-  return RETRY_DELAYS_MS[Math.min(previousRetryCount, RETRY_DELAYS_MS.length - 1)];
+// Seconds-scale back-off for a dropped connection, the same delays SW-1's shared connection uses. After one pass through
+// them it returns null, so SignalR stops retrying and closes the connection, which is what lets the guest page show
+// offline.
+export function audienceRetryDelayMs(previousRetryCount: number): number | null {
+  return RETRY_DELAYS_MS[previousRetryCount] ?? null;
 }
 
 // The browser sends the sw_guest cookie on the negotiate request and on every later request of the same origin, so there

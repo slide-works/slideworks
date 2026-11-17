@@ -18,10 +18,18 @@ describe('AUDIENCE_TRANSPORTS', () => {
 });
 
 describe('audienceRetryDelayMs', () => {
-  it("uses SW-1's delays in order and repeats the last", () => {
+  it("uses SW-1's delays in order", () => {
     const delays = RETRY_DELAYS_MS.map((_, attempt) => audienceRetryDelayMs(attempt));
     expect(delays).toEqual([...RETRY_DELAYS_MS]);
-    expect(audienceRetryDelayMs(RETRY_DELAYS_MS.length + 7)).toBe(RETRY_DELAYS_MS.at(-1));
+  });
+
+  it('returns the last delay for the last retry', () => {
+    expect(audienceRetryDelayMs(RETRY_DELAYS_MS.length - 1)).toBe(RETRY_DELAYS_MS.at(-1));
+  });
+
+  it('stops once every delay has been used', () => {
+    expect(audienceRetryDelayMs(RETRY_DELAYS_MS.length)).toBeNull();
+    expect(audienceRetryDelayMs(RETRY_DELAYS_MS.length + 7)).toBeNull();
   });
 });
 
@@ -42,11 +50,14 @@ describe('createAudienceConnection', () => {
       transport: AUDIENCE_TRANSPORTS,
     });
     const policy = withAutomaticReconnect.mock.calls[0][0] as {
-      nextRetryDelayInMilliseconds(context: { previousRetryCount: number }): number;
+      nextRetryDelayInMilliseconds(context: { previousRetryCount: number }): number | null;
     };
     const seen = RETRY_DELAYS_MS.map((_, previousRetryCount) =>
       policy.nextRetryDelayInMilliseconds({ previousRetryCount }),
     );
     expect(seen).toEqual([...RETRY_DELAYS_MS]);
+    expect(
+      policy.nextRetryDelayInMilliseconds({ previousRetryCount: RETRY_DELAYS_MS.length }),
+    ).toBeNull();
   });
 });

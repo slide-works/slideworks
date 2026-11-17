@@ -7,14 +7,22 @@ import { createAudienceConnection } from '../realtime/audienceConnection';
 export function AudienceProbe({ code }: { code: string }) {
   const [seq, setSeq] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [status, setStatus] = useState('connecting');
 
   useEffect(() => {
     const connection = createAudienceConnection();
     connection.on(AUDIENCE_EVENT_METHOD, (event: AudienceState) => setSeq(event.seq));
+    const join = () =>
+      connection.invoke<AudienceState>('JoinAudience', code).then((state) => setSeq(state.seq));
+    connection.onreconnecting(() => setStatus('reconnecting'));
+    connection.onreconnected(() => {
+      setStatus('live');
+      join().catch((failure: Error) => setError(failure.message));
+    });
     connection
       .start()
-      .then(() => connection.invoke<AudienceState>('JoinAudience', code))
-      .then((state) => setSeq(state.seq))
+      .then(join)
+      .then(() => setStatus('live'))
       .catch((failure: Error) => setError(failure.message));
     return () => void connection.stop();
   }, [code]);
@@ -22,6 +30,7 @@ export function AudienceProbe({ code }: { code: string }) {
   return (
     <div>
       <p data-testid="probe-state">{seq === null ? '' : `seq ${seq}`}</p>
+      <p data-testid="probe-status">{status}</p>
       <p data-testid="probe-error">{error}</p>
     </div>
   );

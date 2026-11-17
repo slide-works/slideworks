@@ -1,4 +1,4 @@
-import { createServer, type Server } from 'node:http';
+import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { Page } from 'playwright/test';
 import type { AudienceEvent, AudienceState } from '../guest/audienceEvents';
@@ -122,7 +122,6 @@ export async function stubDeckHub(
   const transportsUsed: StubTransport[] = [];
   let audienceState = audience?.state && structuredClone(audience.state);
   let audienceRefusal = audience?.refuse;
-  let eventStreams: Server | undefined;
 
   const send = (ws: Sink, message: object) => ws.send(`${JSON.stringify(message)}${RS}`);
   const broadcast = (state: PresentationState) =>
@@ -250,8 +249,11 @@ export async function stubDeckHub(
   };
 
   const offered = transports ?? (['WebSockets', 'ServerSentEvents', 'LongPolling'] as const);
-  await page.route('**/hubs/deck/negotiate**', (route) =>
-    route.fulfill({
+  let startConnection = () => {};
+  await page.route('**/hubs/deck/negotiate**', (route) => {
+    // A new connection: its first long poll is answered at once again.
+    startConnection();
+    return route.fulfill({
       json: {
         negotiateVersion: 1,
         connectionId: 'conn-1',
@@ -261,8 +263,8 @@ export async function stubDeckHub(
           transferFormats: transport === 'WebSockets' ? ['Text', 'Binary'] : ['Text'],
         })),
       },
-    }),
-  );
+    });
+  });
 
   // What the hub does with the frames a client sent, whichever transport carried them.
   const receive = (sink: Sink, raw: string) => {
@@ -285,6 +287,10 @@ export async function stubDeckHub(
   const queued: string[] = [];
   let heldPoll: (() => void) | undefined;
   let firstPoll = true;
+  startConnection = () => {
+    firstPoll = true;
+    queued.length = 0;
+  };
   const longPoll: Sink = {
     send(text) {
       queued.push(text);
@@ -295,8 +301,12 @@ export async function stubDeckHub(
   // can't stream. The client's frames still arrive as POSTs, handled like the long poll's.
   let stream: import('node:http').ServerResponse | undefined;
   const eventStream: Sink = { send: (text) => stream?.write(`data: ${text}\n\n`) };
+  // The server lives as long as the stream it serves: it closes when that stream ends (the client stopped, dropped or
+  // the page went away) or when the page closes, so no server outlives its test even though the page is reused.
+  // The browser reaches it at 127.0.0.1, so this needs the browser on the same host as the test, as it is in CI's
+  // Playwright image; a remote browser (connectOptions) could not.
   const streamUrl = async () => {
-    eventStreams ??= createServer((request, response) => {
+    const server = createServer((request, response) => {
       response.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -307,16 +317,20 @@ export async function stubDeckHub(
       stream = response;
       socket = eventStream;
       transportsUsed.push('ServerSentEvents');
+      response.on('close', () => {
+        if (stream === response) stream = undefined;
+        closeServer();
+      });
     });
-    if (!eventStreams.listening)
-      await new Promise<void>((done) => eventStreams!.listen(0, '127.0.0.1', done));
-    return `http://127.0.0.1:${(eventStreams.address() as AddressInfo).port}/`;
+    const closeServer = () => {
+      page.off('close', closeServer);
+      server.closeAllConnections();
+      server.close();
+    };
+    page.once('close', closeServer);
+    await new Promise<void>((done) => server.listen(0, '127.0.0.1', done));
+    return `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
   };
-  page.on('close', () => {
-    stream?.end();
-    eventStreams?.closeAllConnections();
-    eventStreams?.close();
-  });
 
   await page.route(/\/hubs\/deck\?/, async (route) => {
     const request = route.request();
@@ -373,6 +387,10 @@ export async function stubDeckHub(
     pushAudienceEvent(event: AudienceEvent) {
       if (event.type === 'audienceState') audienceState = structuredClone(event);
       send(socket!, { type: 1, target: 'audienceEvent', arguments: [event] });
+    },
+    // Changes the state later JoinAudience calls answer with, sending nothing: the state a reconnecting guest lands on.
+    setAudienceState(state: AudienceState) {
+      audienceState = structuredClone(state);
     },
     // Refuses every later JoinAudience with message (on), or answers them again (off).
     refuseAudience(message: StubAudienceOptions['refuse']) {
