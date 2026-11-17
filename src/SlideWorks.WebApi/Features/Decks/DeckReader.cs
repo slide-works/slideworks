@@ -8,6 +8,7 @@ using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Slides;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 
@@ -22,8 +23,7 @@ public class DeckReader(
     IDeckAccess access,
     IPublicUrls urls,
     JoinViews joinViews,
-    ITemplateCatalogue templates,
-    IPaletteCatalogue palettes)
+    IDeckLooks looks)
 {
     public const string NOT_FOUND = "Deck not found";
 
@@ -56,7 +56,7 @@ public class DeckReader(
     }
 
     private async Task<DeckPlayView> PlayAsync(Deck deck, bool isOwner)
-        => DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), LookViews.From(deck, templates, palettes), await joinViews.ForAsync(deck), isOwner);
+        => DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), await looks.ForAsync(deck, CancellationToken.None), await joinViews.ForAsync(deck), isOwner);
 
     private Task<Deck> LoadDeckAsync(string deckId) => db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);
 

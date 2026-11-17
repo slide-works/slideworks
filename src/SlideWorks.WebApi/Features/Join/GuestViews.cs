@@ -5,6 +5,7 @@ using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Look;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Infrastructure.RateLimits;
@@ -25,8 +26,7 @@ public class GuestViews(
     IAudienceRelay relay,
     IJoinLookupLimiter limiter,
     IPublicUrls publicUrls,
-    ITemplateCatalogue templates,
-    IPaletteCatalogue palettes)
+    IDeckLooks looks)
 {
     public const string NO_SESSION = "no_session";
     public const string TOO_MANY_ATTEMPTS = "too_many_attempts";
@@ -57,7 +57,7 @@ public class GuestViews(
         return new GuestView(
             deck.Title,
             presenter,
-            LookViews.From(deck, templates, palettes),
+            await looks.ForAsync(deck, CancellationToken.None),
             deck.Sharing == DeckSharing.Link ? publicUrls.Deck(deck.Id, deck.Slug) : null,
             state);
     }
