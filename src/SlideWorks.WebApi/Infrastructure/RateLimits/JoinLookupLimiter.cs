@@ -12,7 +12,13 @@ namespace SlideWorks.WebApi.Infrastructure.RateLimits;
 // gets at most MAX_MISSES + MAX_IN_FLIGHT - 1 misses answered per window, while a room of real guests (a synchronised
 // re-read, a mass rejoin) is not refused below MAX_IN_FLIGHT. Callers are keyed by CallerKey, so everyone behind one NAT
 // shares a budget. Per process, like the rest of SlideWorks' in-memory state; windows that have ended are swept at most once
-// a minute, and a settle that arrives after its window ended is ignored, so no slot outlives its window.
+// a minute (one with lookups in flight after two).
+//
+// A lookup can straddle a window boundary: Allow in one window, Hit or Miss after the next began. So a new window inherits the
+// old one's in-flight count, and a settle always decrements what some Allow registered, whichever window it lands in. A window
+// with lookups in flight is never dropped, and its own misses can't be lost. An inherited count that is still unsettled after
+// a whole further window (a lookup that threw and settled with neither) is dropped at the next boundary, so a lost lookup
+// can't hold a slot for good. A straddling miss counts in the window it settles in, which is conservative.
 [RegisterSingleton(For = typeof(IJoinLookupLimiter))]
 public sealed class JoinLookupLimiter(TimeProvider clock) : IJoinLookupLimiter
 {
@@ -34,7 +40,7 @@ public sealed class JoinLookupLimiter(TimeProvider clock) : IJoinLookupLimiter
         {
             if (!_windows.TryGetValue(callerKey, out var current))
             {
-                if (_windows.TryAdd(callerKey, new Window(now, 0, 1)))
+                if (_windows.TryAdd(callerKey, new Window(now, 0, 1, 0)))
                 {
                     return true;
                 }
@@ -42,7 +48,9 @@ public sealed class JoinLookupLimiter(TimeProvider clock) : IJoinLookupLimiter
             }
             if (now - current.Start >= WINDOW)
             {
-                if (_windows.TryUpdate(callerKey, new Window(now, 0, 1), current))
+                // Lookups still in flight carry over, except those already carried over once and still unsettled.
+                var carried = Math.Min(Math.Max(0, current.InFlight - current.Carried), MAX_IN_FLIGHT - 1);
+                if (_windows.TryUpdate(callerKey, new Window(now, 0, carried + 1, carried), current))
                 {
                     return true;
                 }
@@ -67,10 +75,16 @@ public sealed class JoinLookupLimiter(TimeProvider clock) : IJoinLookupLimiter
 
     private void Settle(string callerKey, int misses)
     {
-        var now = clock.GetUtcNow();
-        while (_windows.TryGetValue(callerKey, out var current) && now - current.Start < WINDOW)
+        while (_windows.TryGetValue(callerKey, out var current))
         {
-            var next = current with { Misses = current.Misses + misses, InFlight = Math.Max(0, current.InFlight - 1) };
+            // A settle can't say which window registered it. The total stays exact; the carried part is only used to age out
+            // a lost lookup, so a settle is charged to the window's own lookups first and to the carried ones when none remain.
+            var next = current with
+            {
+                Misses = current.Misses + misses,
+                InFlight = Math.Max(0, current.InFlight - 1),
+                Carried = current.InFlight > current.Carried ? current.Carried : Math.Max(0, current.Carried - 1),
+            };
             var done = next.Misses == 0 && next.InFlight == 0
                 ? _windows.TryRemove(new KeyValuePair<string, Window>(callerKey, current))
                 : _windows.TryUpdate(callerKey, next, current);
@@ -90,12 +104,15 @@ public sealed class JoinLookupLimiter(TimeProvider clock) : IJoinLookupLimiter
         }
         foreach (var entry in _windows)
         {
-            if (now - entry.Value.Start >= WINDOW)
+            // A window with lookups in flight stays for one more window, so the next Allow can carry them over.
+            var age = now - entry.Value.Start;
+            if (age >= WINDOW * 2 || (age >= WINDOW && entry.Value.InFlight == 0))
             {
                 _windows.TryRemove(entry);
             }
         }
     }
 
-    private sealed record Window(DateTimeOffset Start, int Misses, int InFlight);
+    // Carried is the part of InFlight inherited from the previous window.
+    private sealed record Window(DateTimeOffset Start, int Misses, int InFlight, int Carried);
 }

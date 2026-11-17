@@ -5,7 +5,8 @@ namespace SlideWorks.WebApi.Realtime;
 // every lookup is refused, a real code included, with 429 {"error":"too_many_attempts"} on the API and
 // HubException("too_many_attempts") on the hub. Only a miss is counted; a hit never adds to it.
 // Allow registers the lookup as in flight, and Hit or Miss settles it: a caller can have a bounded number in flight at once
-// (a room of real guests is not refused), and a lookup that fails with neither is forgotten when the window ends.
+// (a room of real guests is not refused), and a lookup that fails with neither is forgotten after a window or two. A lookup that settles in a later window than it
+// started in still releases its own slot.
 public interface IJoinLookupLimiter
 {
     // False once the caller's misses are used up or it has too many lookups in flight. True registers this lookup as in flight.
