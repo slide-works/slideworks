@@ -2,11 +2,13 @@ using System.Data.Common;
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Threading.Channels;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Realtime.Presenting;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Mcp;
@@ -64,10 +66,17 @@ public partial class MeasuresSqlTests : ApiTestFixture
     public async Task MeasuresSql_WhenAGuestLeavesBeforeAnotherJoins_ShouldReportPeakTwoOfThreeJoins()
     {
         var from = Clock.GetUtcNow().AddMinutes(-1);
-        var (_, code, session) = await GoLiveOnAJoinSlideAsync();
+        var (deck, code, session) = await GoLiveOnAJoinSlideAsync();
+        var counts = Channel.CreateUnbounded<int>();
+        using var subscription = Factory.Services.GetRequiredService<IAudienceEvents>()
+            .Subscribe(deck, e => e is JoinedCount count ? Task.FromResult(counts.Writer.TryWrite(count.Count)) : Task.CompletedTask);
         var first = await JoinAsync(code);
         await JoinAsync(code);
+        await NextCountAsync(counts);
+        await NextCountAsync(counts);
         await first.DisposeAsync();
+        // The roster publishes a count for each leave, so reading it proves the leave was processed before the next join.
+        (await NextCountAsync(counts)).ShouldBe(1);
         await JoinAsync(code);
 
         var peak = (await RunAsync(PEAK_HEADING, from, Clock.GetUtcNow().AddMinutes(1))).Single(r => IsSession(r, session));
@@ -165,6 +174,12 @@ public partial class MeasuresSqlTests : ApiTestFixture
         var session = await PostLiveAsync(deck);
         await MoveAsync(deck, slide: 2);
         return (deck, code, session);
+    }
+
+    private static async Task<int> NextCountAsync(Channel<int> counts)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        return await counts.Reader.ReadAsync(timeout.Token);
     }
 
     // The fixture shares one app, so earlier tests' sessions are in the window too: each test looks for its own.

@@ -96,7 +96,7 @@ convert the parameters themselves.
 
 ### Peak joined per session
 
-**Columns:** `session_id`, `deck_id`, `started_at` (UTC), and `peak_joined`, the Measure.
+**Columns:** `session_id`, `deck_id`, `started_at` (UTC), and `peak_joined`, the Measure. Rows are newest session first.
 
 ```sql
 WITH bounds AS (
@@ -109,7 +109,7 @@ SELECT s.Id AS session_id,
        s.PeakJoined AS peak_joined
 FROM AudienceSessions s, bounds b
 WHERE s.StartedAt >= b.lo AND s.StartedAt < b.hi
-ORDER BY s.StartedAt, s.Id;
+ORDER BY s.StartedAt DESC, s.Id;
 ```
 
 ### Seconds from the join slide to each join
@@ -131,7 +131,7 @@ gaps AS (
          s.DeckId AS deck_id,
          s.StartedAt AS started,
          MAX(0, ((j.JoinedAt >> 11) - (s.JoinSlideFirstShownAt >> 11)) / 10000.0) AS seconds,
-         CASE WHEN j.JoinedAt <= s.JoinSlideFirstShownAt THEN 1 ELSE 0 END AS before
+         CASE WHEN j.JoinedAt <= s.JoinSlideFirstShownAt THEN 1 ELSE 0 END AS before_join
   FROM AudienceJoins j
   JOIN AudienceSessions s ON s.Id = j.SessionId, bounds b
   WHERE s.JoinSlideFirstShownAt IS NOT NULL
@@ -144,7 +144,7 @@ ranked AS (
          seconds,
          ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY seconds) AS rn,
          COUNT(*) OVER (PARTITION BY session_id) AS n,
-         SUM(before) OVER (PARTITION BY session_id) AS before_slide
+         SUM(before_join) OVER (PARTITION BY session_id) AS before_slide
   FROM gaps
 )
 SELECT session_id,
