@@ -252,3 +252,97 @@ test('usePresentation shares one WebSocket with useDeckRealtime on the same page
   expect(hub.sockets).toBe(1);
   expect(hub.presentationJoins).toHaveLength(1);
 });
+
+test('usePresentation leaves the presentation when it unmounts while the page keeps the connection', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page, { presentation: { state: presentationState() } });
+  const component = await mount(<PresentationHarness deckId={deckId} followDeck />);
+  await expect(status(page)).toHaveText('live');
+  await expect.poll(() => hub.joined).toEqual([deckId]);
+
+  await component.update(<PresentationHarness deckId={deckId} followDeck present={false} />);
+
+  await expect.poll(() => hub.leaves).toEqual([deckId]);
+  await settle(page);
+  expect(hub.sockets).toBe(1);
+  expect(hub.leftDecks).toEqual([]);
+});
+
+test('usePresentation keeps the presentation when the deck events stop, and the page leaves the deck', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page, { presentation: { state: presentationState() } });
+  const component = await mount(<PresentationHarness deckId={deckId} followDeck />);
+  await expect(status(page)).toHaveText('live');
+  await expect.poll(() => hub.joined).toEqual([deckId]);
+
+  await component.update(<PresentationHarness deckId={deckId} followDeck={false} />);
+
+  await expect.poll(() => hub.leftDecks).toEqual([deckId]);
+  await settle(page);
+  expect(hub.leaves).toEqual([]);
+  expect(hub.sockets).toBe(1);
+  await expect(status(page)).toHaveText('live');
+});
+
+test('usePresentation retries a join that fails with a server error until it is live', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page, { presentation: { state: presentationState() } });
+  hub.fail('JoinPresentation', 'Something broke');
+  await mount(<PresentationHarness deckId={deckId} />);
+
+  await expect(status(page)).toHaveText('live');
+  expect(hub.presentationJoins).toHaveLength(2);
+  await expect(position(page)).toHaveText('8.0');
+});
+
+test('usePresentation joins again when the page becomes visible after a failed join', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page, { presentation: { state: presentationState() } });
+  hub.fail('JoinPresentation', 'Something broke', { sticky: true });
+  await mount(<PresentationHarness deckId={deckId} />);
+  // The first join and the immediate retry fail; the next retry waits 2 seconds.
+  await expect.poll(() => hub.presentationJoins.length, { intervals: [50] }).toBe(2);
+  await expect(status(page)).toHaveText('connecting');
+  hub.stopFailing('JoinPresentation');
+
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+
+  await expect(status(page)).toHaveText('live', { timeout: 1000 });
+  expect(hub.presentationJoins).toHaveLength(3);
+});
+
+test('usePresentation update rejects with the hub error when the hub fails the call', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page, { presentation: { state: presentationState() } });
+  await mount(<PresentationHarness deckId={deckId} />);
+  await expect(status(page)).toHaveText('live');
+  hub.fail('UpdatePresentation', 'Not presenting');
+
+  await page.getByTestId('next').click();
+
+  await expect(page.getByTestId('error')).toHaveText(/HubException: Not presenting$/);
+  await expect(position(page)).toHaveText('8.0');
+  expect(hub.updates).toHaveLength(1);
+});
+
+test('usePresentation is refused when a rejoin is refused mid-talk', async ({ mount, page }) => {
+  const hub = await stubDeckHub(page, { presentation: { state: presentationState() } });
+  await mount(<PresentationHarness deckId={deckId} />);
+  await expect(status(page)).toHaveText('live');
+
+  hub.refuseJoins(true);
+  hub.drop();
+
+  await expect(status(page)).toHaveText('refused');
+  expect(hub.presentationJoins).toHaveLength(2);
+});
