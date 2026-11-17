@@ -76,7 +76,8 @@ const BUTTONS: readonly {
 ];
 
 // The poll panel's controls: only those the phase allows. While a call is on its way they are disabled (aria-disabled,
-// so focus stays on the button pressed), so one press sends one call.
+// so focus stays on the button pressed), and the second click of a double click does nothing, so one press sends one
+// call.
 export function PollPanelButtons({
   control,
   busy,
@@ -97,8 +98,10 @@ export function PollPanelButtons({
           aria-label={button.name(control.question)}
           aria-disabled={busy || undefined}
           className={`min-h-9 rounded-md px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-[#8ea5ff] aria-disabled:opacity-60 ${TONES[button.tone]}`}
-          onClick={() => {
-            if (!busy) onAction(button.action);
+          onClick={(event) => {
+            // The second click of a double click is ignored: the phase may have moved on under the pointer, and the
+            // button now there (Close where Open was) is not the one aimed at.
+            if (!busy && event.detail <= 1) onAction(button.action);
           }}
         >
           {button.label}

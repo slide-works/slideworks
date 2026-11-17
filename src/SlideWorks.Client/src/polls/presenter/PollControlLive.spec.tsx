@@ -256,6 +256,34 @@ test('PollControlLive_WhenEachActionIsUsed_ShouldCallItsRouteOnce', async ({ mou
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
 });
 
+test('PollControlLive_WhenOpenIsDoubleClicked_ShouldOpenOnceAndNotClose', async ({
+  mount,
+  page,
+}) => {
+  const { api } = await stubs(page, [poll('draft')]);
+  await mount(presenter(POLL_SLIDE_NUMBER));
+  const panel = page.getByTestId(IDS.panel);
+  await expect(panel.getByTestId(IDS.open)).toBeVisible();
+
+  await panel.getByTestId(IDS.open).dblclick();
+  await expect(page.getByTestId(IDS.state)).toHaveText('Open');
+  await settle(page);
+  expect(api.calls.filter((c) => c.call !== 'read').map((c) => c.call)).toEqual(['open']);
+  await expect(page.getByTestId(IDS.state)).toHaveText('Open');
+
+  // With the call still on its way, a second press is ignored too: the button now there is Close.
+  const held = api.hold('close');
+  await panel.getByTestId(IDS.close).click();
+  await expect(panel.getByTestId(IDS.close)).toHaveAttribute('aria-disabled', 'true');
+  // force: Playwright waits for an aria-disabled button to be enabled; a person's click doesn't.
+  await panel.getByTestId(IDS.close).click({ force: true });
+  held.release();
+  await expect(page.getByTestId(IDS.state)).toHaveText('Closed');
+  await settle(page);
+  expect(api.calls.filter((c) => c.call !== 'read').map((c) => c.call)).toEqual(['open', 'close']);
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+});
+
 test('PollControlLive_WhenAnActionIsRefused_ShouldSayWhatToDoAndReadThePollAgain', async ({
   mount,
   page,

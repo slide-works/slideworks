@@ -39,10 +39,11 @@ function settingsOf({ settings }: PollControlView): string {
   return `${pick} · ${RESULTS_LABELS[settings.results]}`;
 }
 
-// "93% of 41 joined"
-function rateOf({ answered, joined }: PollControlView): string {
-  if (joined === 0) return 'No one has joined yet';
-  return `${Math.round((answered / joined) * 100)}% of ${joined} joined`;
+// "93% of 41 joined". joined is the guests connected now, which drops as phones sleep or people leave after answering,
+// so only the percentage is capped at 100; the numbers are shown as they are. No percentage when nobody is joined.
+function rateOf({ answered, joined }: { answered: number; joined: number }): string {
+  if (joined === 0) return '0 joined';
+  return `${Math.min(100, Math.round((answered / joined) * 100))}% of ${joined} joined`;
 }
 
 // What the room sees. The presenter always sees the counts; this says whether the room does too (roomSeesCounts).
@@ -195,7 +196,7 @@ export function PollPanel({ deckId, overlayOpen = false }: Props) {
           >
             {earlier.map((round) => (
               <li key={round.number} data-testid={pollPanelHistoryRoundTestId(round.number)}>
-                Round {round.number}: {answersOf(round.answered)}, kept
+                Round {round.number}: {answersOf(round.answered)}, {rateOf(round)}, kept
               </li>
             ))}
           </ul>

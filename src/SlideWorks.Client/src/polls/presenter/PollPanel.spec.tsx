@@ -170,7 +170,7 @@ test('PollPanel_WhenASecondRoundRuns_ShouldListTheFirstAsKept', async ({ mount, 
 
   await expect(page.getByTestId(IDS.round)).toHaveText('round 2');
   await expect(page.getByTestId(pollPanelHistoryRoundTestId(1))).toHaveText(
-    'Round 1: 38 answers, kept',
+    'Round 1: 38 answers, 93% of 41 joined, kept',
   );
 
   // A draft left by New round on a manual poll: not open yet, with its number, earlier rounds listed.
@@ -191,12 +191,44 @@ test('PollPanel_WhenASecondRoundRuns_ShouldListTheFirstAsKept', async ({ mount, 
     'Round 3 is not open yet. The room sees it once you open it.',
   );
   await expect(page.getByTestId(pollPanelHistoryRoundTestId(1))).toHaveText(
-    'Round 1: 38 answers, kept',
+    'Round 1: 38 answers, 93% of 41 joined, kept',
   );
   await expect(page.getByTestId(pollPanelHistoryRoundTestId(2))).toHaveText(
-    'Round 2: 1 answer, kept',
+    'Round 2: 1 answer, 2% of 41 joined, kept',
   );
   await expectButtons(page, [IDS.open]);
+});
+
+test('PollPanel_WhenMoreHaveAnsweredThanAreJoinedNow_ShouldCapTheRateAt100AndKeepTheNumbers', async ({
+  mount,
+  page,
+}) => {
+  const view = await mount(
+    panel(
+      live({
+        answered: 45,
+        joined: 40,
+        rounds: [
+          { number: 1, answered: 50, joined: 41 },
+          { number: 3, answered: 0, joined: 0 },
+        ],
+        number: 4,
+      }),
+    ),
+  );
+
+  await expect(page.getByTestId(IDS.answered)).toHaveText('45 answers');
+  await expect(page.getByTestId(IDS.rate)).toHaveText('100% of 40 joined');
+  await expect(page.getByTestId(pollPanelHistoryRoundTestId(1))).toHaveText(
+    'Round 1: 50 answers, 100% of 41 joined, kept',
+  );
+  // Nobody joined: the numbers, no percentage.
+  await expect(page.getByTestId(pollPanelHistoryRoundTestId(3))).toHaveText(
+    'Round 3: 0 answers, 0 joined, kept',
+  );
+
+  await view.update(panel(live({ answered: 3, joined: 0 })));
+  await expect(page.getByTestId(IDS.rate)).toHaveText('0 joined');
 });
 
 test('PollPanel_WhenTheSlideHasNoPoll_ShouldShowNothingOnScreenButSaySoToAssistiveTech', async ({
