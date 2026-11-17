@@ -102,6 +102,7 @@ export function GuestFollowing({
   state: AudienceState;
   status: AudienceStatus;
 }) {
+  const { code = '' } = useParams();
   const current = state.current;
   const reconnecting = status === 'reconnecting';
   return (
@@ -161,7 +162,12 @@ export function GuestFollowing({
         </div>
       )}
       <div className="flex min-h-0 flex-1 flex-col [@media(orientation:landscape)_and_(max-height:500px)]:hidden">
-        <ActivitySlot />
+        <ActivitySlot
+          code={code}
+          activity={state.activity}
+          status={status}
+          presenter={view.presenterName}
+        />
       </div>
     </main>
   );
