@@ -47,6 +47,42 @@ test('offline status → the offline screen, and Try now calls onRetry', async (
   expect(retries).toBe(1);
 });
 
+test('ended phase wins over offline status → the thank-you screen', async ({ mount, page }) => {
+  const view = guestView('ended');
+  await mount(<GuestScreens view={view} state={view.state} status="offline" onRetry={noop} />);
+  await expect(page.getByTestId(GUEST_TEST_IDS.ended)).toBeVisible();
+  await expect(page.getByTestId(GUEST_TEST_IDS.offline)).toHaveCount(0);
+});
+
+test('the offline screen stays through connecting, keeps backing off, and goes when live again', async ({
+  mount,
+  page,
+}) => {
+  await page.clock.install();
+  const view = guestView('lobby');
+  let retries = 0;
+  const screens = (status: 'offline' | 'connecting' | 'live') => (
+    <GuestScreens view={view} state={view.state} status={status} onRetry={() => retries++} />
+  );
+  const component = await mount(screens('offline'));
+  await page.clock.runFor(OFFLINE_RETRY_MS + OFFLINE_JITTER_MS + 100);
+  expect(retries).toBe(1);
+
+  // The re-read worked, so the hook says connecting; the offline screen must not unmount (its backoff would restart).
+  await component.update(screens('connecting'));
+  await expect(page.getByTestId(GUEST_TEST_IDS.offline)).toBeVisible();
+  await expect(page.getByTestId(GUEST_TEST_IDS.lobby)).toHaveCount(0);
+  // The next attempt waits the doubled base, not 5 s again.
+  await page.clock.runFor(OFFLINE_RETRY_MS + OFFLINE_JITTER_MS);
+  expect(retries).toBe(1);
+  await page.clock.runFor(OFFLINE_RETRY_MS + OFFLINE_JITTER_MS);
+  expect(retries).toBe(2);
+
+  await component.update(screens('live'));
+  await expect(page.getByTestId(GUEST_TEST_IDS.lobby)).toBeVisible();
+  await expect(page.getByTestId(GUEST_TEST_IDS.offline)).toHaveCount(0);
+});
+
 test('reconnecting status → the banner over the last screen', async ({ mount, page }) => {
   const view = guestView('lobby');
   await mount(<GuestScreens view={view} state={view.state} status="reconnecting" onRetry={noop} />);
