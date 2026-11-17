@@ -6,18 +6,19 @@ namespace SlideWorks.UnitTest.Look;
 
 public class PaletteCatalogueTests
 {
-    // L1's key list, frozen with T0.1's first push (dd-on-night added by its literal audit).
+    // L1's key list, frozen with T0.1's first push (dd-on-night added by its literal audit; accent-2 by T2).
     private static readonly string[] _keys =
     [
         "paper", "card", "chip", "grid", "ink", "muted",
-        "accent", "accent-dark", "accent-light", "accent-glow", "accent-past", "on-accent",
+        "accent", "accent-2", "accent-dark", "accent-light", "accent-glow", "accent-past", "on-accent",
         "good", "good-soft", "good-ink", "bad", "bad-soft", "bad-ink", "warn", "warn-soft", "warn-ink", "dd", "on-dd", "dd-on-night",
         "night", "night-ink", "night-2", "night-muted", "night-line", "night-glow", "number-from", "number-to", "stamp",
         "panel-accent", "panel-accent-ink", "panel-positive", "panel-positive-ink", "panel-negative", "panel-negative-ink",
         "panel-inverse", "panel-inverse-ink",
     ];
 
-    private static readonly Regex _colour = new(@"^(#[0-9a-f]{6}|rgb\(\d{1,3} \d{1,3} \d{1,3}\))$", RegexOptions.None, TimeSpan.FromSeconds(1));
+    // A draft copied from a built-in must pass the manifest's palette rule, so no rgb() form here.
+    private static readonly Regex _colour = new("^#[0-9a-f]{6}$", RegexOptions.None, TimeSpan.FromSeconds(1));
 
     [Test]
     public void EveryPaletteHasExactlyTheTokenKeys_WhenBuiltIn_ShouldMatchL1()
@@ -33,7 +34,7 @@ public class PaletteCatalogueTests
     }
 
     [Test]
-    public void EveryTokenIsACompleteCssColour_WhenBuiltIn_ShouldParse()
+    public void EveryTokenIsSixDigitHex_WhenBuiltIn_ShouldParse()
     {
         var problems = new PaletteCatalogue().All
             .SelectMany(p => p.Tokens.Select(t => (Palette: p.Name, t.Key, t.Value)).Concat(p.Swatch.Select(s => (Palette: p.Name, Key: "swatch", Value: s))))
@@ -41,6 +42,15 @@ public class PaletteCatalogueTests
             .Select(t => $"{t.Palette}.{t.Key} = '{t.Value}'");
 
         problems.ShouldBeEmpty();
+    }
+
+    [Test]
+    public void Palettes_WhenBuiltIn_ShouldSetAccent2ToAccent()
+    {
+        var palettes = new PaletteCatalogue().All;
+
+        palettes.Count.ShouldBe(4);
+        palettes.Where(p => p.Tokens["accent-2"] != p.Tokens["accent"]).Select(p => p.Name).ShouldBeEmpty();
     }
 
     [Test]

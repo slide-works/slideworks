@@ -175,6 +175,7 @@ export type PaletteTokenKey =
   | 'ink'
   | 'muted'
   | 'accent'
+  | 'accent-2'
   | 'accent-dark'
   | 'accent-light'
   | 'accent-glow'

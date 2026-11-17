@@ -7,7 +7,7 @@ public class BuiltInPaletteContrastTests
 {
     private static readonly string[] _pairs =
     [
-        "body", "secondary", "card-bold", "headline-accent", "on-accent", "deep-dive-pill", "panel-accent",
+        "body", "secondary", "card-bold", "headline-accent", "on-accent", "on-accent-2", "deep-dive-pill", "panel-accent",
         "panel-positive", "panel-negative", "panel-inverse", "badge-positive", "badge-negative", "dark-subtitle",
         "soft-accent", "soft-inverse", "deep-dive-list",
     ];

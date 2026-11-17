@@ -85,8 +85,15 @@ describe('slides use tokens', () => {
 
   it('declares every palette token in tokens.css', () => {
     const missing = paletteKeys.filter((key) => !new RegExp(`--sw-${key}\\s*:`).test(tokensCss));
-    expect(paletteKeys).toHaveLength(41);
+    expect(paletteKeys).toHaveLength(42);
     expect(missing).toEqual([]);
+  });
+
+  it('declares the second accent and the mono font, and leaves the extras to a look', () => {
+    const declared = [...tokensCss.matchAll(/^\s*(--sw-[a-z0-9-]+)\s*:/gm)].map(([, name]) => name);
+    expect(declared).toContain('--sw-accent-2');
+    expect(declared).toContain('--sw-font-mono');
+    expect(declared.filter((name) => name.startsWith('--sw-extra-'))).toEqual([]);
   });
 
   it('gives every palette token its default palette value in tokens.css', () => {
@@ -124,7 +131,13 @@ describe('slides use tokens', () => {
       'a colour mixed from tokens',
       '.x { color: color-mix(in srgb, var(--sw-warn) 75%, var(--sw-card)); }',
     ],
+    ['the second accent', '.x { background: var(--sw-accent-2); }'],
+    [
+      'an extra colour and its ink',
+      '.x { background: var(--sw-extra-1); color: var(--sw-extra-1-ink); }',
+    ],
     ['a font token', '.x { font-family: var(--sw-font-body); }'],
+    ['the mono font token', '.x { font: 500 20px/1.2 var(--sw-font-mono); }'],
     ['a font shorthand with a font token', '.x { font: 800 64px/1.08 var(--sw-font-head); }'],
     ['a fontFamily token', "const style = { fontFamily: 'var(--sw-font-head)' };"],
   ])('accepts %s', (_form, source) => {
