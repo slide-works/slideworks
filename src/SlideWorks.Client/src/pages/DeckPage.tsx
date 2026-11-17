@@ -4,6 +4,8 @@ import { ApiError, api } from '../api/client';
 import type { DeckPageLook, DeckPageView } from '../api/types';
 import { SharingDialog } from '../components/SharingDialog';
 import { LookPanel } from '../look/LookPanel';
+import { QaControlLive } from '../qa/presenter/QaControlLive';
+import { QaSettingsCard } from '../qa/presenter/QaSettingsCard';
 import { JoinProvider } from '../slides/JoinContext';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { ActivityFeed } from './deck/ActivityFeed';
@@ -141,6 +143,11 @@ export function DeckPage() {
           />
           <div className="grid gap-4">
             {view.isOwner && <LookPanel deck={view} onSaved={showLook} />}
+            {view.isOwner && (
+              <QaControlLive deckId={view.id}>
+                <QaSettingsCard deckId={view.id} slide={slide?.number ?? null} />
+              </QaControlLive>
+            )}
             {slide && <SelectedSlide slide={slide} />}
             <ActivityFeed rows={view.activity} isOwner={view.isOwner} />
             <LaterOnThisPage />

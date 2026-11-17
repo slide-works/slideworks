@@ -26,6 +26,8 @@ import type { PresentationState, PresentationUpdate, TimerCommand } from '../pre
 import { usePresentation, type Presentation } from '../presentation/usePresentation';
 import { PollControlLive } from '../polls/presenter/PollControlLive';
 import { PollPanel } from '../polls/presenter/PollPanel';
+import { QaControlLive } from '../qa/presenter/QaControlLive';
+import { QaPanel } from '../qa/presenter/QaPanel';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { JoinProvider } from '../slides/JoinContext';
 
@@ -60,6 +62,7 @@ export function PresenterPage() {
   const [notesSize, setNotesSize] = useState(readNotesSize);
   const [overviewOpen, setOverviewOpen] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false);
+  const [questionsOpen, setQuestionsOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const overviewButton = useRef<HTMLButtonElement>(null);
   const phoneButton = useRef<HTMLButtonElement>(null);
@@ -82,6 +85,7 @@ export function PresenterPage() {
       ...controls.keys,
       toggleNotes: () => setNotesShown((shown) => !shown),
       toggleOverview: () => setOverviewOpen((open) => !open),
+      questions: () => setQuestionsOpen((open) => !open),
       close: () => {
         setOverviewOpen(false);
         setPhoneOpen(false);
@@ -217,6 +221,7 @@ export function PresenterPage() {
             <PollControlLive deckId={id} slide={state.slide}>
               <PollPanel deckId={id} overlayOpen={overviewOpen || phoneOpen} />
             </PollControlLive>
+            <QaControlLive deckId={id}>{questionsOpen && <QaPanel deckId={id} />}</QaControlLive>
             {notesShown && (
               <NotesPanel
                 notes={view.slides[state.slide - 1]?.notes ?? null}
@@ -253,6 +258,8 @@ export function PresenterPage() {
           onSkip={controls.keys.toggleSkip}
           onBlack={controls.keys.toggleBlack}
           onPhone={() => setPhoneOpen(true)}
+          questionsOpen={questionsOpen}
+          onQuestions={() => setQuestionsOpen((open) => !open)}
           overviewRef={overviewButton}
           phoneRef={phoneButton}
         />

@@ -11,13 +11,16 @@ type Props = {
   onSkip(): void;
   onBlack(): void;
   onPhone(): void;
+  // The Questions panel (SW-9 Q9): its tool is drawn only when onQuestions is given.
+  questionsOpen?: boolean;
+  onQuestions?(): void;
   // Where focus goes back to when the overview or the phone dialog closes.
   overviewRef?: Ref<HTMLButtonElement>;
   phoneRef?: Ref<HTMLButtonElement>;
 };
 
-// The presenter window's tool bar: Overview, Notes, Skip deep dives and Blackout, each with its key, and the phone
-// button on the right. The toggles say whether they are on with aria-pressed.
+// The presenter window's tool bar: Overview, Notes, Skip deep dives, Blackout and Questions, each with its key, and the
+// phone button on the right. The toggles say whether they are on with aria-pressed.
 export function ToolBar({
   overviewOpen,
   notesShown,
@@ -29,6 +32,8 @@ export function ToolBar({
   onSkip,
   onBlack,
   onPhone,
+  questionsOpen = false,
+  onQuestions,
   overviewRef,
   phoneRef,
 }: Props) {
@@ -55,6 +60,16 @@ export function ToolBar({
       <Tool testId="presenter-tool-black" pressed={black} shortcut="B" onClick={onBlack}>
         Blackout
       </Tool>
+      {onQuestions && (
+        <Tool
+          testId="presenter-tool-questions"
+          pressed={questionsOpen}
+          shortcut="Q"
+          onClick={onQuestions}
+        >
+          Questions
+        </Tool>
+      )}
       <button
         ref={phoneRef}
         type="button"
