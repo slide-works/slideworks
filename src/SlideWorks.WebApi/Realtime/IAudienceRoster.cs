@@ -5,10 +5,10 @@ namespace SlideWorks.WebApi.Realtime;
 public interface IAudienceRoster
 {
     // A guest's connection joined the session. Returns the count after it.
-    int Join(string sessionId, string guestId, string connectionId);
+    Task<int> JoinAsync(string deckId, string sessionId, string guestId, string connectionId);
 
-    // A connection closed or left, whichever session it was in.
-    void Leave(string connectionId);
+    // A connection closed or left, whichever session it was in. Null when the connection was on no roster.
+    Task<RosterLeave?> LeaveAsync(string connectionId);
 
-    int Count(string sessionId);
+    Task<int> CountAsync(string sessionId);
 }
