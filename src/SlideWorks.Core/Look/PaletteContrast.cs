@@ -2,7 +2,8 @@ namespace SlideWorks.Core.Look;
 
 // The contrast test every palette passes (L2, SW-2's "Contrast test"). The pair names are frozen.
 // soft-accent, soft-inverse and deep-dive-list were added after (L2 amended in SW-72's fix round): the soft
-// accent and inverse panels' text, and the divider's deep-dive pills on the dark slide.
+// accent and inverse panels' text, and the divider's deep-dive pills on the dark slide. on-accent-2 is the
+// second accent as a fill: it sits after on-accent, so a tie for the lowest pair still names on-accent.
 public static class PaletteContrast
 {
     private const double TEXT = 4.5;
@@ -15,6 +16,7 @@ public static class PaletteContrast
         ("card-bold", "accent-dark", "card", TEXT),
         ("headline-accent", "accent", "paper", LARGE_TEXT),
         ("on-accent", "on-accent", "accent", TEXT),
+        ("on-accent-2", "on-accent", "accent-2", TEXT),
         ("deep-dive-pill", "on-dd", "dd", TEXT),
         ("panel-accent", "panel-accent-ink", "panel-accent", TEXT),
         ("panel-positive", "panel-positive-ink", "panel-positive", TEXT),

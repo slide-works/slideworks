@@ -235,6 +235,7 @@ const TOKENS = keys<Record<PaletteTokenKey, string>>({
   ink: true,
   muted: true,
   accent: true,
+  'accent-2': true,
   'accent-dark': true,
   'accent-light': true,
   'accent-glow': true,
