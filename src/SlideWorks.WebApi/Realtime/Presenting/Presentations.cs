@@ -14,6 +14,12 @@ namespace SlideWorks.WebApi.Realtime.Presenting;
 // and while the new state is sent there, so the group receives states in seq order. Observers run after the lock is let
 // go. Every check that can refuse a call runs before anything changes, so a refused call changes, sends and notifies
 // nothing. A state with no connections is kept for KEEP_IDLE and dropped by the next call that finds it (no timer).
+//
+// SignalR runs OnDisconnectedAsync (LeaveAllAsync) without waiting for the connection's hub calls still in flight, so a
+// join can still be on its way (in the hub's access check or the deck read) when its connection's leave has already
+// run. LeaveAllAsync therefore marks the connection closed, and a join adds its entry only if, in the same step under
+// _indexLock, it finds the connection not closed and indexes it. Either the join is refused before anything changes, or
+// it is indexed first and the leave then finds and removes it. Marks are pruned after KEEP_CLOSED.
 [RegisterSingleton(For = typeof(IPresentations))]
 public sealed class Presentations(
     IHubContext<DeckHub> hub,
@@ -26,9 +32,17 @@ public sealed class Presentations(
 
     public static readonly TimeSpan KEEP_IDLE = TimeSpan.FromHours(2);
 
+    // How long a closed connection stays marked, which bounds how long its in-flight join may take to be refused.
+    public static readonly TimeSpan KEEP_CLOSED = TimeSpan.FromMinutes(10);
+
+    // JoinAsync's refusal for a connection that closed while the join was in flight. Nobody receives it.
+    public const string CONNECTION_CLOSED = "Connection closed";
+
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, Live> _states = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ImmutableHashSet<string>> _decksByConnection = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, DateTimeOffset> _closed = new(StringComparer.Ordinal);
+    private readonly Queue<(string ConnectionId, DateTimeOffset ClosedAt)> _closedOrder = new();
     private readonly Lock _indexLock = new();
     private readonly IPresentationObserver[] _observers = observers.ToArray();
 
@@ -45,6 +59,10 @@ public sealed class Presentations(
         PresentationState state;
         await using (await LockAsync(deckId))
         {
+            if (!TryIndex(connectionId, deckId))
+            {
+                throw new HubException(CONNECTION_CLOSED);
+            }
             var now = clock.GetUtcNow();
             var live = Current(deckId, now) ?? Create(deckId, facts, resume, now);
             foreach (var replaced in live.Join(connectionId, clientId, role, Label(label)))
@@ -52,7 +70,6 @@ public sealed class Presentations(
                 await hub.Groups.RemoveFromGroupAsync(replaced, DeckHub.PresentationGroupName(deckId));
                 Unindex(replaced, deckId);
             }
-            Index(connectionId, deckId);
             await hub.Groups.AddToGroupAsync(connectionId, DeckHub.PresentationGroupName(deckId));
             state = await AcceptAsync(live, now);
         }
@@ -115,6 +132,7 @@ public sealed class Presentations(
         ImmutableHashSet<string>? decks;
         lock (_indexLock)
         {
+            MarkClosed(connectionId, clock.GetUtcNow());
             _decksByConnection.TryGetValue(connectionId, out decks);
         }
         foreach (var deckId in decks ?? [])
@@ -299,12 +317,32 @@ public sealed class Presentations(
         }
     }
 
-    // The connection -> decks index LeaveAllAsync walks. A connection with no decks left has no row.
-    private void Index(string connectionId, string deckId)
+    // The connection -> decks index LeaveAllAsync walks. A connection with no decks left has no row. False, with nothing
+    // indexed, when the connection has closed.
+    private bool TryIndex(string connectionId, string deckId)
     {
         lock (_indexLock)
         {
+            if (_closed.ContainsKey(connectionId))
+            {
+                return false;
+            }
             _decksByConnection[connectionId] = _decksByConnection.TryGetValue(connectionId, out var decks) ? decks.Add(deckId) : [deckId];
+            return true;
+        }
+    }
+
+    // Under _indexLock: marks the connection closed and prunes the marks older than KEEP_CLOSED.
+    private void MarkClosed(string connectionId, DateTimeOffset now)
+    {
+        while (_closedOrder.TryPeek(out var oldest) && now - oldest.ClosedAt >= KEEP_CLOSED)
+        {
+            _closedOrder.Dequeue();
+            _closed.Remove(oldest.ConnectionId);
+        }
+        if (_closed.TryAdd(connectionId, now))
+        {
+            _closedOrder.Enqueue((connectionId, now));
         }
     }
 
