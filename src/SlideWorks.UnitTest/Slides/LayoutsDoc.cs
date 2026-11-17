@@ -1,47 +1,77 @@
 using System.Globalization;
 using System.Text;
 using SlideWorks.Core.Slides;
+using SlideWorks.Core.Slides.Layouts;
 
 namespace SlideWorks.UnitTest.Slides;
 
-// Renders src/contracts/layouts.md from the catalogue, so the doc can never drift from the code.
+// Renders the layout docs from the catalogue, so they can never drift from the code: src/contracts/layouts.md
+// (the index), one src/contracts/layouts/<name>.md per layout and src/contracts/layouts/_blocks.md. A task that
+// changes one layout regenerates only that layout's file.
 public static class LayoutsDoc
 {
-    public static string Render()
+    public const string IndexFile = "layouts.md";
+
+    public const string Folder = "layouts";
+
+    public const string BlocksFile = Folder + "/_blocks.md";
+
+    // Every generated file, keyed by its path under src/contracts with forward slashes, in the order written.
+    public static IReadOnlyDictionary<string, string> Files()
+    {
+        var files = new Dictionary<string, string> { [IndexFile] = RenderIndex() };
+        foreach (var layout in LayoutCatalogue.Layouts)
+        {
+            files.Add(FileOf(layout.Name), RenderLayout(layout));
+        }
+
+        files.Add(BlocksFile, RenderBlocks());
+        return files;
+    }
+
+    public static string FileOf(string layoutName) => $"{Folder}/{layoutName}.md";
+
+    private static string RenderIndex()
     {
         var doc = new StringBuilder();
+        doc.Append("# Layouts and inline blocks\n\n");
+        doc.Append("These files are generated from `LayoutCatalogue`: do not edit them by hand, rerun `UPDATE_LAYOUTS_DOC=1 dotnet test src/SlideWorks.UnitTest --filter \"FullyQualifiedName~LayoutsDoc\"`.\n\n");
         doc.Append("""
-            # Layouts and inline blocks
-
-            <!-- Generated from LayoutCatalogue (src/SlideWorks.Core/Slides). Do not edit by hand. To rewrite it:
-                 UPDATE_LAYOUTS_DOC=1 dotnet test src/SlideWorks.UnitTest --filter "FullyQualifiedName~LayoutsDoc" -->
-
             A slide is a layout plus slots (K2). Slot text is plain text: Markdown and HTML are not interpreted,
             and line breaks are allowed only where a slot says so. Every slide also has `part` (1-based, or null)
             and `notes`, which are set next to the slots, not inside them. A JSON null counts as an absent slot.
             Error paths name the failing field with 0-based indexes, such as `practice.do[2].lead: required`.
 
-            | Layout | Dark | Steps | Description |
-            |---|---|---|---|
 
             """);
         foreach (var layout in LayoutCatalogue.Layouts)
         {
-            var steps = layout.StepsFrom is null ? "none" : $"one per `{layout.StepsFrom}` item when `reveal` is `one-by-one`";
-            doc.Append(CultureInfo.InvariantCulture, $"| [`{layout.Name}`](#{layout.Name}) | {(layout.Dark ? "yes" : "no")} | {steps} | {layout.Description} |\n");
+            doc.Append(CultureInfo.InvariantCulture, $"- [`{layout.Name}`]({FileOf(layout.Name)})\n");
         }
 
-        foreach (var layout in LayoutCatalogue.Layouts)
+        doc.Append(CultureInfo.InvariantCulture, $"\nInline blocks: [`_blocks`]({BlocksFile})\n");
+        return doc.ToString();
+    }
+
+    private static string RenderLayout(LayoutDefinition layout)
+    {
+        var doc = new StringBuilder();
+        var steps = layout.StepsFrom is null ? "none" : $"one per `{layout.StepsFrom}` item when `reveal` is `one-by-one`";
+        doc.Append(CultureInfo.InvariantCulture, $"Dark: {(layout.Dark ? "yes" : "no")}. Steps: {steps}.\n");
+        doc.Append(CultureInfo.InvariantCulture, $"\n## {layout.Name}\n\n{layout.Description}\n\n");
+        doc.Append("| Slot | Kind | Required | Limits | Notes |\n|---|---|---|---|---|\n");
+        foreach (var field in layout.Slots.Fields)
         {
-            doc.Append(CultureInfo.InvariantCulture, $"\n## {layout.Name}\n\n{layout.Description}\n\n");
-            doc.Append("| Slot | Kind | Required | Limits | Notes |\n|---|---|---|---|---|\n");
-            foreach (var field in layout.Slots.Fields)
-            {
-                AppendField(doc, "", field.Name, field.Type, field.Required, field.Description);
-            }
+            AppendField(doc, "", field.Name, field.Type, field.Required, field.Description);
         }
 
-        doc.Append("\n## Inline blocks\n\n| Block | Kind | Required | Limits | Description |\n|---|---|---|---|---|\n");
+        return doc.ToString();
+    }
+
+    private static string RenderBlocks()
+    {
+        var doc = new StringBuilder();
+        doc.Append("## Inline blocks\n\n| Block | Kind | Required | Limits | Description |\n|---|---|---|---|---|\n");
         foreach (var block in LayoutCatalogue.Blocks)
         {
             var (kind, limits) = block.Type is null ? ("rendered, never set by agents", "") : Describe(block.Type);
