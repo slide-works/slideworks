@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -132,6 +133,30 @@ public class AnonymousRoutesTests : ApiTestFixture
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await response.Content.ReadAsStringAsync()).ShouldContain("SlideWorks");
+    }
+
+    // V5: a guest's poll routes are anonymous, so a phone with no sign-in reaches them with sign-in required elsewhere. With
+    // no sw_guest cookie they answer 400 no_guest themselves, never the sign-in gate.
+    [Test]
+    public async Task GetJoinPoll_WhenAnonymousAndSignInRequiredElsewhere_ShouldBeAnsweredByTheRoute()
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await anonymous.GetAsync("/api/join/482913/poll");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).ShouldContain("no_guest", Case.Sensitive);
+    }
+
+    [Test]
+    public async Task PutJoinPollAnswer_WhenAnonymousAndSignInRequiredElsewhere_ShouldBeAnsweredByTheRoute()
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await anonymous.PutAsJsonAsync("/api/join/482913/poll/answer", new { round = "r", picks = new[] { 1 }, revision = 0 });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).ShouldContain("no_guest", Case.Sensitive);
     }
 
     private static string CreateWebRoot()

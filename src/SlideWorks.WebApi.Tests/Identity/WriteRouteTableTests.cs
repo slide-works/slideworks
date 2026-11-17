@@ -51,6 +51,30 @@ public class WriteRouteTableTests : ApiTestFixture
         writesOutsideApi.ShouldBeEmpty();
     }
 
+    // V4, V5: every poll write (the presenter's five actions and a guest's answer) is under /api, so the guard covers it, and
+    // a guest's page on the join host passes it only with the join origin (JoinPollRoutesTests).
+    [Test]
+    public void Endpoints_WhenTheyArePollWrites_ShouldAllBeUnderApi()
+    {
+        var pollWrites = Factory.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(AcceptsWrites)
+            .Select(endpoint => "/" + (endpoint.RoutePattern.RawText ?? "").TrimStart('/'))
+            .Where(pattern => pattern.Contains("/polls/", StringComparison.OrdinalIgnoreCase) || pattern.Contains("/poll/", StringComparison.OrdinalIgnoreCase))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        pollWrites.ShouldBe(
+        [
+            "/api/decks/{id}/polls/{slide:int:min(1)}/answer",
+            "/api/decks/{id}/polls/{slide:int:min(1)}/close",
+            "/api/decks/{id}/polls/{slide:int:min(1)}/open",
+            "/api/decks/{id}/polls/{slide:int:min(1)}/reveal",
+            "/api/decks/{id}/polls/{slide:int:min(1)}/round",
+            "/api/join/{code}/poll/answer",
+        ]);
+    }
+
     // No method metadata means the endpoint takes any method, writes included.
     private static bool AcceptsWrites(Endpoint endpoint)
     {
