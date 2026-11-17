@@ -11,15 +11,10 @@ namespace SlideWorks.WebApi.Tests.Presenting;
 
 // P2's rules, one test each, over real HubConnections against the real registry. Sam owns every deck here; the deck has
 // PresentingSeed.SLIDES slides. Time is the fixture's FakeTimeProvider, stepped with Advance.
-// TODO: skipped until the real presentations registry replaces the stub, which fails each of these. The one exception,
-// JoinPresentation_WhenNotTheOwner_ShouldBeRefusedBeforeAnythingIsSent, runs now: DeckHub refuses before it calls the
-// registry, so it holds against the stub and guards DeckHub's access check.
 [TestFixture]
 [CancelAfter(30000)]
 public class PresentationHubContractTests : ApiTestFixture
 {
-    public const string SKIP = "TODO: SW-4 S1";
-
     private readonly List<PresentationStates> _connections = [];
 
     [TearDown]
@@ -32,7 +27,7 @@ public class PresentationHubContractTests : ApiTestFixture
         _connections.Clear();
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task JoinPresentation_WhenOwnerAndNoState_ShouldStartAtSlideOneWithTheClock()
     {
         var deck = await OwnDeckAsync();
@@ -47,7 +42,7 @@ public class PresentationHubContractTests : ApiTestFixture
         joined.GetProperty("clockMinutes").GetInt32().ShouldBe(MinutesSinceMidnight(PresentationStates.TIME_ZONE));
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task JoinPresentation_WhenUnknownTimeZone_ShouldUseUtc()
     {
         var deck = await OwnDeckAsync();
@@ -58,7 +53,7 @@ public class PresentationHubContractTests : ApiTestFixture
         joined.GetProperty("clockMinutes").GetInt32().ShouldBe(MinutesSinceMidnight("UTC"));
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task JoinPresentation_WhenResumeAndNoState_ShouldStartAtResumeWithItsTimerKept()
     {
         var deck = await OwnDeckAsync();
@@ -73,7 +68,7 @@ public class PresentationHubContractTests : ApiTestFixture
         state.GetProperty("timer").GetProperty("elapsedMs").GetInt64().ShouldBe(60000);
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task JoinPresentation_WhenResumeBeyondTheDeck_ShouldClampIt()
     {
         var deck = await OwnDeckAsync();
@@ -84,7 +79,7 @@ public class PresentationHubContractTests : ApiTestFixture
         (state.GetProperty("slide").GetInt32(), state.GetProperty("step").GetInt32()).ShouldBe((PresentingSeed.SLIDES, 0));
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task JoinPresentation_WhenStateExists_ShouldIgnoreResume()
     {
         var deck = await OwnDeckAsync();
@@ -100,7 +95,7 @@ public class PresentationHubContractTests : ApiTestFixture
 
     // The refusal has no side effects: the owner already in the group receives nothing, so its next state is its own
     // update's, one seq after its join.
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task JoinPresentation_WhenNotTheOwner_ShouldBeRefusedAndBroadcastNothing()
     {
         var deck = await OwnDeckAsync();
@@ -146,7 +141,7 @@ public class PresentationHubContractTests : ApiTestFixture
 
     // D4 puts the per-deck rule for Update and SetTimer in the registry: having joined some presentation is not enough.
     // Alex presents his own deck, then tries to drive Sam's live deck; Sam's next state is his own update's.
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task UpdatePresentation_WhenJoinedToAnotherDeckOnly_ShouldBeRefusedWithNotPresenting()
     {
         var samsDeck = await OwnDeckAsync();
@@ -169,7 +164,7 @@ public class PresentationHubContractTests : ApiTestFixture
         next.GetProperty("timer").GetProperty("state").GetString().ShouldBe("running");
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task JoinPresentation_WhenSameClientIdJoinsAgain_ShouldReplaceTheEntry()
     {
         var deck = await OwnDeckAsync();
@@ -185,7 +180,7 @@ public class PresentationHubContractTests : ApiTestFixture
         connected[0].GetProperty("label").GetString().ShouldBe("Firefox on Linux");
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task UpdatePresentation_WhenBeyondTheDeck_ShouldClampSlideAndStep()
     {
         var deck = await OwnDeckAsync();
@@ -201,7 +196,7 @@ public class PresentationHubContractTests : ApiTestFixture
         (low.GetProperty("slide").GetInt32(), low.GetProperty("step").GetInt32()).ShouldBe((1, 0));
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task UpdatePresentation_WhenFirstMove_ShouldStartTheTimer()
     {
         var deck = await OwnDeckAsync();
@@ -215,7 +210,7 @@ public class PresentationHubContractTests : ApiTestFixture
         moved.GetProperty("timer").GetProperty("state").GetString().ShouldBe("running");
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task UpdatePresentation_WhenNotJoined_ShouldBeRefusedWithNotPresenting()
     {
         var deck = await OwnDeckAsync();
@@ -228,7 +223,7 @@ public class PresentationHubContractTests : ApiTestFixture
         timer.Message.ShouldContain(DeckHub.NOT_PRESENTING);
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task SetTimer_WhenPausedResumedAndReset_ShouldFollowTheCommands()
     {
         var deck = await OwnDeckAsync();
@@ -247,7 +242,7 @@ public class PresentationHubContractTests : ApiTestFixture
         (reset.GetProperty("state").GetString(), reset.GetProperty("elapsedMs").GetInt64()).ShouldBe(("notStarted", 0L));
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task Seq_WhenChangesAreAccepted_ShouldRiseByOneWithinTheEpoch()
     {
         var deck = await OwnDeckAsync();
@@ -265,7 +260,7 @@ public class PresentationHubContractTests : ApiTestFixture
 
     // D9: the state outlives its last connection by 2 hours, so a rejoin inside them keeps the epoch and one after them
     // starts a new one.
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task JoinPresentation_WhenRejoinedAfterTheTwoHourDrop_ShouldStartANewEpoch()
     {
         var deck = await OwnDeckAsync();
@@ -284,7 +279,7 @@ public class PresentationHubContractTests : ApiTestFixture
         fresh.GetProperty("slide").GetInt32().ShouldBe(1);
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task LeavePresentation_WhenOneLeavesAndOneDisconnects_ShouldShrinkConnectedForTheRest()
     {
         var deck = await OwnDeckAsync();
@@ -307,7 +302,7 @@ public class PresentationHubContractTests : ApiTestFixture
 
     // Only the connection holding an entry removes it. C2 took over k-1, so C1's leave and C1's disconnect remove
     // nothing. C1 also joined a second deck, so its disconnect is seen there before C2 checks the first deck.
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task Disconnect_WhenReplacedConnectionCloses_ShouldKeepTheNewEntry()
     {
         var (deck, other) = (await OwnDeckAsync(), await OwnDeckAsync());
@@ -331,7 +326,7 @@ public class PresentationHubContractTests : ApiTestFixture
         PresentationStates.ClientIds(afterDrop).ShouldBe(["k-1"]);
     }
 
-    [Test, Ignore(SKIP)]
+    [Test]
     public async Task UpdatePresentation_WhenGroupHasThreeMembers_ShouldReachEveryMemberIncludingTheSender()
     {
         var deck = await OwnDeckAsync();
