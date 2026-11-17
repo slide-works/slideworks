@@ -1,0 +1,130 @@
+import { useEffect, useRef, useState } from 'react';
+import type { FocusEvent, KeyboardEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import type { DeckPageView } from '../../api/types';
+import { PhoneConnectDialog } from '../../presentation/PhoneConnectDialog';
+
+// The split Present button. ▶ Present opens the player as it always did. For the deck's owner the arrow opens
+// three ways to present (PNG 03): the player, the presenter view, and the phone remote. Opening the menu moves focus
+// to its first item; Escape closes it and returns focus to the arrow; a click outside or tabbing out closes it.
+export function PresentMenu({ view }: { view: DeckPageView }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const arrowRef = useRef<HTMLButtonElement>(null);
+  const firstItemRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    firstItemRef.current?.focus();
+    function closeOnOutsidePointer(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePointer);
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer);
+  }, [open]);
+
+  function closeOnEscape(event: KeyboardEvent) {
+    if (open && event.key === 'Escape') {
+      event.preventDefault();
+      setOpen(false);
+      arrowRef.current?.focus();
+    }
+  }
+
+  function closeOnFocusLeaving(event: FocusEvent) {
+    const next = event.relatedTarget;
+    if (next instanceof Node && !rootRef.current?.contains(next)) setOpen(false);
+  }
+
+  // The audience window opens in the same click handler as the navigation: that is the only reliable way past a
+  // popup blocker (D10).
+  function startPresenterView() {
+    setOpen(false);
+    window.open(`/d/${view.id}/${view.slug}?present`, `sw-audience-${view.id}`);
+    navigate(`/decks/${view.id}/present`);
+  }
+
+  const present = (
+    <Link to={view.playUrl} data-testid="deck-present" className="btn-primary no-underline">
+      ▶ Present
+    </Link>
+  );
+  if (!view.isOwner) return present;
+
+  return (
+    <div ref={rootRef} className="relative" onKeyDown={closeOnEscape} onBlur={closeOnFocusLeaving}>
+      <div className="flex items-stretch gap-px">
+        <Link
+          to={view.playUrl}
+          data-testid="deck-present"
+          className="btn-primary rounded-r-none no-underline"
+        >
+          ▶ Present
+        </Link>
+        <button
+          ref={arrowRef}
+          type="button"
+          data-testid="present-menu"
+          aria-label="More ways to present"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          className="btn-primary rounded-l-none px-2"
+          onClick={() => setOpen((value) => !value)}
+        >
+          ▾
+        </button>
+      </div>
+      {open && (
+        <div
+          role="menu"
+          aria-label="More ways to present"
+          className="absolute right-0 z-10 mt-2 grid w-72 gap-0.5 rounded-panel border border-edge bg-panel p-1.5 shadow-lg"
+        >
+          <Link
+            ref={firstItemRef}
+            role="menuitem"
+            to={view.playUrl}
+            data-testid="present-menu-player"
+            className="grid rounded-panel px-2.5 py-2 text-ink no-underline hover:bg-panel-2"
+          >
+            <b className="text-meta">Present</b>
+            <span className="text-xs text-ink-muted">The player in this tab.</span>
+          </Link>
+          <button
+            type="button"
+            role="menuitem"
+            data-testid="present-menu-presenter-view"
+            className="grid rounded-panel px-2.5 py-2 text-left text-ink hover:bg-panel-2"
+            onClick={startPresenterView}
+          >
+            <b className="text-meta">Presenter view</b>
+            <span className="text-xs text-ink-muted">
+              Notes, next slide and timer here. Opens the audience window to drag onto the
+              projector.
+            </span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            data-testid="present-menu-phone"
+            className="grid rounded-panel px-2.5 py-2 text-left text-ink hover:bg-panel-2"
+            onClick={() => {
+              setOpen(false);
+              setPhoneOpen(true);
+            }}
+          >
+            <b className="text-meta">Control from your phone</b>
+            <span className="text-xs text-ink-muted">Shows a QR code that opens the remote.</span>
+          </button>
+        </div>
+      )}
+      <PhoneConnectDialog
+        remoteUrl={`${window.location.origin}/remote?deck=${view.id}`}
+        open={phoneOpen}
+        onClose={() => setPhoneOpen(false)}
+      />
+    </div>
+  );
+}
