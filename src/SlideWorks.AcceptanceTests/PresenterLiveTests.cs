@@ -56,6 +56,7 @@ public class PresenterLiveTests : AcceptanceTest
         await Expect(phone.Slide).ToHaveAttributeAsync("data-slide", "2");
         await presenter.PressAsync("b");
         await Expect(presenter.BlackBadge).ToBeVisibleAsync();
+        await Expect(phone.Slide).ToHaveAttributeAsync("data-black", "true");
         await Expect(presenter.Timer).ToHaveAttributeAsync("data-state", "running");
 
         // The owner also opens the plain player in another tab. It adopts the talk: nothing in the presenter window moves.
@@ -69,10 +70,12 @@ public class PresenterLiveTests : AcceptanceTest
         await Expect(presenter.Timer).ToHaveAttributeAsync("data-state", "running");
         await Expect(phone.Slide).ToHaveAttributeAsync("data-slide", "2");
 
-        // A move in the player is followed by the presenter window and the phone, and keeps the black screen.
+        // A move in the player is followed by the presenter window and the phone, and carries the black screen through: the
+        // room stays black on the new slide.
         await playerTab.Keyboard.PressAsync("ArrowRight");
         await Expect(presenter.Count).ToHaveTextAsync("3 / 3");
         await Expect(phone.Slide).ToHaveAttributeAsync("data-slide", "3");
+        await Expect(phone.Slide).ToHaveAttributeAsync("data-black", "true");
         await Expect(presenter.BlackBadge).ToBeVisibleAsync();
 
         // A move in the presenter window is followed by the player and the phone.
