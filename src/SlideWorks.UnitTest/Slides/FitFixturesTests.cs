@@ -4,7 +4,8 @@ using SlideWorks.Core.Slides;
 
 namespace SlideWorks.UnitTest.Slides;
 
-// src/contracts/fit-fixtures.json holds the most text the validator accepts for each layout case, in
+// src/contracts/fit-fixtures holds one file per layout, <layout>.json, each an object of named fixtures
+// for that layout. A fixture is the most text the validator accepts for a layout case, in
 // Title Case and, for the card and data layouts, in prose too. The client's CT fit tests render the same
 // fixtures and check they stay on the slide, so this test is what ties those renders to the validator:
 // each fixture is accepted, and one more word in any of its "grow" fields (JSON pointers into slots) is
@@ -17,8 +18,39 @@ public class FitFixturesTests
 {
     private const string ONE_MORE_WORD = " Work";
 
-    private static readonly Lazy<JsonObject> _fixtures = new(() =>
-        JsonNode.Parse(File.ReadAllText(ContractFiles.PathOf("fit-fixtures.json")))!.AsObject());
+    // The names fit-fixtures.json held before it was split into one file per layout.
+    private static readonly string[] _oldNames =
+    [
+        "bulletsEight", "bulletsCallout", "twoColumnItems", "twoColumnText", "practice", "compare",
+        "numberedCardsProse", "numberedCardsTitleCase", "numberedCardsWide",
+        "rulesProse", "rulesTitleCase", "rulesWide", "cardsProse", "cardsTitleCase", "cardsWide",
+        "tableTitle", "tableProse", "chartTitle", "chartProse", "ganttTitle", "ganttProse",
+        "imageTitle", "imageProse", "joinKicker", "pollEight", "qaTitle",
+    ];
+
+    private static readonly Lazy<JsonObject> _fixtures = new(ReadFolder);
+
+    // Every fixture of every file in the folder, by name. A name in two files throws, and so does a
+    // fixture whose "layout" is not its file's name.
+    private static JsonObject ReadFolder()
+    {
+        var all = new JsonObject();
+        foreach (var path in ContractFiles.FilesIn("fit-fixtures"))
+        {
+            var layout = Path.GetFileNameWithoutExtension(path);
+            foreach (var (name, fixture) in JsonNode.Parse(File.ReadAllText(path))!.AsObject())
+            {
+                if (fixture!["layout"]!.GetValue<string>() != layout)
+                {
+                    throw new InvalidDataException($"fit-fixtures/{layout}.json holds {name}, a fixture for another layout");
+                }
+
+                all.Add(name, fixture.DeepClone());
+            }
+        }
+
+        return all;
+    }
 
     private static IEnumerable<TestCaseData> Fixtures(bool accepted) =>
         _fixtures.Value.Where(f => IsAccepted(f.Value!) == accepted)
@@ -31,6 +63,15 @@ public class FitFixturesTests
     private static IEnumerable<TestCaseData> GrownFixtures() =>
         _fixtures.Value.SelectMany(f => f.Value!["grow"]!.AsArray()
             .Select(p => new TestCaseData(f.Key, p!.GetValue<string>()).SetArgDisplayNames(f.Key + p)));
+
+    [Test]
+    public void Fixtures_WhenReadFromTheFolder_ShouldCoverEveryOldName()
+    {
+        var names = _fixtures.Value.Select(f => f.Key).ToList();
+
+        _oldNames.Length.ShouldBe(26);
+        _oldNames.Where(name => !names.Contains(name)).ShouldBeEmpty();
+    }
 
     [Test]
     public void Fixtures_WhenAccepted_ShouldEachGrowAtLeastOneField()

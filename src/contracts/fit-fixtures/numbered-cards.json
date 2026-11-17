@@ -1,0 +1,95 @@
+{
+  "numberedCardsProse": {
+    "layout": "numbered-cards",
+    "grow": [
+      "/cards/3/title",
+      "/cards/3/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "The team ships a small slice of work toe",
+      "headline": "The team ships a small slice of work to customers every week, and the feedback a",
+      "cards": [
+        {
+          "title": "The team ships a small slice of work toe",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than quarters, so the risk shows up ea"
+        },
+        {
+          "title": "The team ships a small slice of work toe",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than quarters, so the risk shows up ea"
+        },
+        {
+          "title": "The team ships a small slice of work toe",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than quarters, so the risk shows up ea"
+        },
+        {
+          "title": "The team ships a small slice of work toe",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than quarters, so the risk shows up ea"
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "numberedCardsTitleCase": {
+    "layout": "numbered-cards",
+    "grow": [
+      "/cards/3/title",
+      "/cards/3/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "The Team Ships A Small Slice Of Work Toe",
+      "headline": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback A",
+      "cards": [
+        {
+          "title": "The Team Ships A Small Slice Of Work Toe",
+          "text": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback Arrives In Days Rather Than Quarters, So The Risk Shows Up Ea"
+        },
+        {
+          "title": "The Team Ships A Small Slice Of Work Toe",
+          "text": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback Arrives In Days Rather Than Quarters, So The Risk Shows Up Ea"
+        },
+        {
+          "title": "The Team Ships A Small Slice Of Work Toe",
+          "text": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback Arrives In Days Rather Than Quarters, So The Risk Shows Up Ea"
+        },
+        {
+          "title": "The Team Ships A Small Slice Of Work Toe",
+          "text": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback Arrives In Days Rather Than Quarters, So The Risk Shows Up Ea"
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "numberedCardsWide": {
+    "layout": "numbered-cards",
+    "grow": [
+      "/cards/3/title",
+      "/cards/3/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Many Women Who Wander Wide Meadows Mow M",
+      "headline": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMB",
+      "cards": [
+        {
+          "title": "Many Women Who Wander Wide Meadows Mow M",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Wo"
+        },
+        {
+          "title": "Many Women Who Wander Wide Meadows Mow M",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Wo"
+        },
+        {
+          "title": "Many Women Who Wander Wide Meadows Mow M",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Wo"
+        },
+        {
+          "title": "Many Women Who Wander Wide Meadows Mow M",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Wo"
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  }
+}

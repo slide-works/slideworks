@@ -1,0 +1,48 @@
+{
+  "imageTitle": {
+    "layout": "image",
+    "grow": [
+      "/points/3",
+      "/caption"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Team Ships A Small Slice Of Work Toeeeee",
+      "headline": "Customers Every Week And The Feedback Arrives In Days Rather Than Quarters Soeee",
+      "image": {
+        "image": "img_sample0001",
+        "alt": "The Risk Shows Up Early While It Is Still Cheap To Change Course And Nobody Has To Guess How Far Along The Work Really Is The Team Ships A Small Slice Of Work To Customers Every Week And The Feedbacke"
+      },
+      "points": [
+        "Arrives In Days Rather Than Quarters So The Risk Shows Up Early While It Iseeeee",
+        "Still Cheap To Change Course And Nobody Has To Guess How Far Along The Workeeeee",
+        "Really Is The Team Ships A Small Slice Of Work To Customers Every Week And Theee",
+        "Feedback Arrives In Days Rather Than Quarters So The Risk Shows Up Early Whileee"
+      ],
+      "caption": "It Is Still Cheap To Change Course And Nobody Has To Guess How Far Along The Work Really Is The Team Ships A Small Slice Of Work Toeeeeeeeee"
+    }
+  },
+  "imageProse": {
+    "layout": "image",
+    "grow": [
+      "/points/3",
+      "/caption"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Team ships a small slice of work toeeeee",
+      "headline": "Customers every week and the feedback arrives in days rather than quarters soeee",
+      "image": {
+        "image": "img_sample0001",
+        "alt": "The risk shows up early while it is still cheap to change course and nobody has to guess how far along the work really is the team ships a small slice of work to customers every week and the feedbacke"
+      },
+      "points": [
+        "Arrives in days rather than quarters so the risk shows up early while it iseeeee",
+        "Still cheap to change course and nobody has to guess how far along the workeeeee",
+        "Really is the team ships a small slice of work to customers every week and theee",
+        "Feedback arrives in days rather than quarters so the risk shows up early whileee"
+      ],
+      "caption": "It is still cheap to change course and nobody has to guess how far along the work really is the team ships a small slice of work toeeeeeeeee"
+    }
+  }
+}

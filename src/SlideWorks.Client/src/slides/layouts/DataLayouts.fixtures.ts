@@ -1,8 +1,8 @@
-import fitFixturesJson from '@contracts/fit-fixtures.json' with { type: 'json' };
+import { legacyFitFixturesOf } from '../../test-support/fixtures/fitFixtures';
 import type { Slots } from '../slots';
 
 // The max-content fit fixtures for the image, table, chart and gantt layouts,
-// shared with the server: src/contracts/fit-fixtures.json holds the most text
+// shared with the server: src/contracts/fit-fixtures/<layout>.json holds the most text
 // the validator accepts in each, in Title Case and in prose, and
 // SlideWorks.UnitTest's FitFixturesTests proves each is accepted and that one
 // more word is refused, by the rule `refusedBy` names: the table's fit rule
@@ -23,11 +23,10 @@ export type DataFitFixture = {
   };
 }[DataLayout];
 
-export const DATA_FIT_FIXTURES = Object.fromEntries(
-  Object.entries(fitFixturesJson).filter(([, f]) =>
-    (DATA_LAYOUTS as readonly string[]).includes(f.layout),
-  ),
-) as Record<string, DataFitFixture>;
+export const DATA_FIT_FIXTURES = legacyFitFixturesOf(DATA_LAYOUTS) as Record<
+  string,
+  DataFitFixture
+>;
 
 const WIDE_TEXT =
   'Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, ' +

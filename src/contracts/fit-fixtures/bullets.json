@@ -1,0 +1,57 @@
+{
+  "bulletsEight": {
+    "layout": "bullets",
+    "estimate": 598.8,
+    "grow": [
+      "/items/7"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Weekly Metrics Show Where Work Waits See",
+      "headline": "Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working",
+      "items": [
+        "Throughput Ship Working Software Every Week Teams Learn Faster When See",
+        "Customers See Real Progress Weekly Metrics Show Where Work Waits Make",
+        "Every Merge Small And Reviewable Momentum Matters More Than Maximum See",
+        "Throughput Ship Working Software Every Week Teams Learn Faster When See",
+        "Customers See Real Progress Weekly Metrics Show Where Work Waits Make",
+        "Every Merge Small And Reviewable Momentum Matters More Than Maximum See",
+        "Throughput Ship Working Software Every Week Teams Learn Faster When See",
+        "Customers See Real Progress Weekly Metrics Show Where Work Waits Make"
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "bulletsCallout": {
+    "layout": "bullets",
+    "estimate": 591.8,
+    "grow": [
+      "/items/0/text",
+      "/items/3"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Weekly Metrics Show Where Work Waits See",
+      "headline": "Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working",
+      "items": [
+        {
+          "lead": "Every Merge Small And Progress",
+          "text": "Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster"
+        },
+        {
+          "lead": "When Customers See Real Faster",
+          "text": "Progress Weekly Metrics Show Where Work Waits Make Every Merge Small And Reviewable Momentum Matters More Than"
+        },
+        {
+          "lead": "Maximum Throughput Ship Faster",
+          "text": "Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work"
+        },
+        "Waits Make Every Merge Small And Reviewable Momentum Matters More Than"
+      ],
+      "callout": {
+        "tone": "info",
+        "text": "Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge"
+      }
+    }
+  }
+}

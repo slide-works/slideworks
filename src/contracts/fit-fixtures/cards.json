@@ -1,0 +1,149 @@
+{
+  "cardsProse": {
+    "layout": "cards",
+    "grow": [
+      "/cards/2/title",
+      "/cards/2/text",
+      "/cards/2/chips/3"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "The team ships a small slice of work toe",
+      "headline": "The team ships a small slice of work to customers every week, and the feedback a",
+      "cards": [
+        {
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of work to customerse",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than quarters, so the risk shows up ea",
+          "chips": [
+            "The team ships a small s",
+            "The team ships a small s",
+            "The team ships a small s",
+            "The team ships a small s"
+          ]
+        },
+        {
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of work to customerse",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than quarters, so the risk shows up ea",
+          "chips": [
+            "The team ships a small s",
+            "The team ships a small s",
+            "The team ships a small s",
+            "The team ships a small s"
+          ]
+        },
+        {
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of work to customerse",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than quarters, so the risk shows up ea",
+          "chips": [
+            "The team ships a small s",
+            "The team ships a small s",
+            "The team ships a small s",
+            "The team ships a small s"
+          ]
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "cardsTitleCase": {
+    "layout": "cards",
+    "grow": [
+      "/cards/2/title",
+      "/cards/2/text",
+      "/cards/2/chips/3"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "The Team Ships A Small Slice Of Work Toe",
+      "headline": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback A",
+      "cards": [
+        {
+          "badge": "The Team Ships A Sma",
+          "title": "The Team Ships A Small Slice Of Work To Customerse",
+          "text": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback Arrives In Days Rather Than Quarters, So The Risk Shows Up Ea",
+          "chips": [
+            "The Team Ships A Small S",
+            "The Team Ships A Small S",
+            "The Team Ships A Small S",
+            "The Team Ships A Small S"
+          ]
+        },
+        {
+          "badge": "The Team Ships A Sma",
+          "title": "The Team Ships A Small Slice Of Work To Customerse",
+          "text": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback Arrives In Days Rather Than Quarters, So The Risk Shows Up Ea",
+          "chips": [
+            "The Team Ships A Small S",
+            "The Team Ships A Small S",
+            "The Team Ships A Small S",
+            "The Team Ships A Small S"
+          ]
+        },
+        {
+          "badge": "The Team Ships A Sma",
+          "title": "The Team Ships A Small Slice Of Work To Customerse",
+          "text": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback Arrives In Days Rather Than Quarters, So The Risk Shows Up Ea",
+          "chips": [
+            "The Team Ships A Small S",
+            "The Team Ships A Small S",
+            "The Team Ships A Small S",
+            "The Team Ships A Small S"
+          ]
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "cardsWide": {
+    "layout": "cards",
+    "grow": [
+      "/cards/2/title",
+      "/cards/2/text",
+      "/cards/2/chips/3"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Many Women Who Wander Wide Meadows Mow M",
+      "headline": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMB",
+      "cards": [
+        {
+          "badge": "Many Women Who Wande",
+          "title": "Many Women Who Wander Wide Meadows Mow Moss With M",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Wo",
+          "chips": [
+            "Many Women Who Wander Wi",
+            "Many Women Who Wander Wi",
+            "Many Women Who Wander Wi",
+            "Many Women Who Wander Wi"
+          ]
+        },
+        {
+          "badge": "Many Women Who Wande",
+          "title": "Many Women Who Wander Wide Meadows Mow Moss With M",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Wo",
+          "chips": [
+            "Many Women Who Wander Wi",
+            "Many Women Who Wander Wi",
+            "Many Women Who Wander Wi",
+            "Many Women Who Wander Wi"
+          ]
+        },
+        {
+          "badge": "Many Women Who Wande",
+          "title": "Many Women Who Wander Wide Meadows Mow Moss With M",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Wo",
+          "chips": [
+            "Many Women Who Wander Wi",
+            "Many Women Who Wander Wi",
+            "Many Women Who Wander Wi",
+            "Many Women Who Wander Wi"
+          ]
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  }
+}

@@ -4,6 +4,10 @@ namespace SlideWorks.UnitTest.Slides;
 // folder that holds the solution.
 public static class ContractFiles
 {
+    // Every .json file in a folder of contract files, in name order.
+    public static IReadOnlyList<string> FilesIn(string folder) =>
+        [.. Directory.GetFiles(PathOf(folder), "*.json").Order(StringComparer.Ordinal)];
+
     public static string PathOf(string name)
     {
         var directory = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
