@@ -44,4 +44,8 @@ public class Deck
 
     // The talk length in minutes (SW-4 P7, 1-600), or null for none. The presenter's timer shows time left against it.
     public int? TalkMinutes { get; set; }
+
+    // The standing join code (J1): 6 digits from 100000 to 999999, unique across decks, assigned at creation. Every Go live
+    // opens a session behind the same code. DeckCommands assigns it; the empty default only serves decks built in memory.
+    public string JoinCode { get; set; } = "";
 }

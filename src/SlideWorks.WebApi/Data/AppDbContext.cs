@@ -4,6 +4,7 @@ using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
+using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.OAuth;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Slides;
@@ -32,6 +33,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<AgentTokenRow> AgentTokens => Set<AgentTokenRow>();
 
+    public DbSet<AudienceSession> AudienceSessions => Set<AudienceSession>();
+
+    public DbSet<AudienceJoin> AudienceJoins => Set<AudienceJoin>();
+
     // SQLite can't compare or ORDER BY a DateTimeOffset stored as TEXT, so every one is stored as a sortable integer.
     // Expiry checks and newest-first lists then run in SQL.
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
@@ -55,6 +60,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             deck.Property(d => d.Sharing).HasConversion<string>();
             deck.HasOne<User>().WithMany().HasForeignKey(d => d.OwnerId).OnDelete(DeleteBehavior.Restrict);
             deck.HasIndex(d => d.OwnerId);
+            deck.Property(d => d.JoinCode).HasMaxLength(6);
+            deck.HasIndex(d => d.JoinCode).IsUnique();
         });
 
         modelBuilder.Entity<Slide>(slide =>
@@ -81,6 +88,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             image.HasOne<Deck>().WithMany().HasForeignKey(i => i.DeckId);
             image.HasIndex(i => i.DeckId);
             image.HasIndex(i => i.UploadTokenHash).IsUnique();
+        });
+
+        // Deleting a deck cascades to its sessions, and a session to its joins, as it does for slides and activity.
+        modelBuilder.Entity<AudienceSession>(session =>
+        {
+            session.HasOne<Deck>().WithMany().HasForeignKey(s => s.DeckId);
+            session.HasIndex(s => new { s.DeckId, s.StartedAt });
+        });
+
+        modelBuilder.Entity<AudienceJoin>(join =>
+        {
+            join.HasKey(j => new { j.SessionId, j.GuestId });
+            join.HasOne<AudienceSession>().WithMany().HasForeignKey(j => j.SessionId);
         });
 
         modelBuilder.Entity<OAuthClientRow>(client => client.HasKey(c => c.ClientId));

@@ -122,6 +122,11 @@ namespace SlideWorks.WebApi.Migrations
                     b.Property<bool>("Draft")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("JoinCode")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("LogoImageId")
                         .HasColumnType("TEXT");
 
@@ -165,6 +170,9 @@ namespace SlideWorks.WebApi.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("JoinCode")
+                        .IsUnique();
 
                     b.HasIndex("OwnerId");
 
@@ -212,6 +220,51 @@ namespace SlideWorks.WebApi.Migrations
                         .IsUnique();
 
                     b.ToTable("DeckImages");
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Live.AudienceJoin", b =>
+                {
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GuestId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("JoinedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("SessionId", "GuestId");
+
+                    b.ToTable("AudienceJoins");
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Live.AudienceSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeckId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("EndedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("JoinSlideFirstShownAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("PeakJoined")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("StartedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeckId", "StartedAt");
+
+                    b.ToTable("AudienceSessions");
                 });
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.OAuth.AgentTokenRow", b =>
@@ -445,6 +498,24 @@ namespace SlideWorks.WebApi.Migrations
                 });
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.Images.DeckImage", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Decks.Deck", null)
+                        .WithMany()
+                        .HasForeignKey("DeckId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Live.AudienceJoin", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Live.AudienceSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Live.AudienceSession", b =>
                 {
                     b.HasOne("SlideWorks.WebApi.Features.Decks.Deck", null)
                         .WithMany()
