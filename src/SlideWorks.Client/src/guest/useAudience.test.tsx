@@ -1,4 +1,4 @@
-import { act, createElement } from 'react';
+import { act, createElement, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { audienceState, guestView } from '../test-support/fixtures/guestStates';
@@ -28,13 +28,18 @@ vi.mock('../api/client', () => ({ api: { get: fake.get } }));
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let root: Root;
-let latest: Audience;
+const seen = { current: null as unknown as Audience };
+const latest = new Proxy({} as Audience, { get: (_t, key) => seen.current[key as keyof Audience] });
 const initial = guestView('live');
 
-function Probe() {
-  latest = useAudience('482913', initial);
+function Probe({ report }: { report: (audience: Audience) => void }) {
+  const audience = useAudience('482913', initial);
+  useEffect(() => report(audience));
   return null;
 }
+const report = (audience: Audience) => {
+  seen.current = audience;
+};
 
 const flush = () => act(async () => undefined);
 const push = (state: AudienceState) => act(async () => void fake.handlers.audienceEvent(state));
@@ -48,7 +53,7 @@ beforeEach(async () => {
   fake.connection.invoke.mockResolvedValue(audienceState({ seq: 50 }));
   fake.get.mockResolvedValue(initial);
   root = createRoot(document.createElement('div'));
-  await act(async () => root.render(createElement(Probe)));
+  await act(async () => root.render(createElement(Probe, { report })));
   await flush();
 });
 
@@ -106,7 +111,7 @@ describe('useAudience', () => {
     await act(() => root.unmount());
     fake.connection.start.mockRejectedValueOnce(new Error('blocked'));
     root = createRoot(document.createElement('div'));
-    await act(async () => root.render(createElement(Probe)));
+    await act(async () => root.render(createElement(Probe, { report })));
     await flush();
     expect(latest.status).toBe('offline');
   });
@@ -117,7 +122,7 @@ describe('useAudience', () => {
       await act(() => root.unmount());
       fake.connection.invoke.mockRejectedValueOnce(hubRefusal(code));
       root = createRoot(document.createElement('div'));
-      await act(async () => root.render(createElement(Probe)));
+      await act(async () => root.render(createElement(Probe, { report })));
       await flush();
       expect(latest.status).toBe('offline');
     },
