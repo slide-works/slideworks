@@ -386,6 +386,7 @@ export type PresenterView = {
   author: string | null;
   parts: string[];
   look: LookView;
+  join: JoinView;
   slides: PresenterSlide[];
   talkMinutes: number | null;
   audienceUrl: string;

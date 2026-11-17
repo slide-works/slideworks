@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
-import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { DeckPlayView } from '../api/types';
-import { LivePublisher } from '../live/LivePublisher';
+import { useLiveDrive } from '../live/useLiveDrive';
 import { useLiveSessionContext } from '../live/LiveSessionProvider';
 import { deepDivesOf } from '../look/deepDivesOf';
 import { nextPosition, previousPosition } from '../presentation/navigate';
 import type { PresentationUpdate } from '../presentation/types';
 import type { SlideDeck } from '../slides/slots';
 import { Blackout } from './Blackout';
-import type { PlayerPosition } from './parseHash';
+import { FIRST_POSITION, type PlayerPosition } from './parseHash';
 import { PlayerControls } from './PlayerControls';
 import { PlayerStage } from './PlayerStage';
 import { usePlayerKeys } from './usePlayerKeys';
@@ -33,6 +33,15 @@ export type AudienceControl = {
   black: boolean;
   skipDeepDives: boolean;
   send(update: PresentationUpdate): void;
+  // The owner's live player only: the newest position asked for and not yet answered, so a move is computed from it
+  // and not from the last state (two presses inside one round trip are two moves), or null when there is none.
+  latest?(): PlayerPosition | null;
+  // The owner's live player only: the connection is down, so moves wait for it and nothing moves that the room can't see.
+  frozen?: boolean;
+  // The owner's live player only: the first join has taken a while, so a notice says the player is connecting.
+  connecting?: boolean;
+  // The owner's live player only: the connection dropped after the player had joined.
+  reconnecting?: boolean;
 };
 
 function noop() {}
@@ -62,37 +71,47 @@ export function Player({
     }),
     [deck.title, deck.author, deck.parts, deck.look, deck.slides],
   );
+  // The owner's player while live (SW-5 D18): one more presenter-role client of the presentation, so it follows the
+  // state like the audience window and publishes only the user's own moves.
+  const session = useLiveSessionContext();
+  const live = session.live;
+  const ownPosition = useRef<PlayerPosition>(FIRST_POSITION);
+  const liveDrive = useLiveDrive(deck.id, live && !audience, ownPosition, session.reportError);
+  const control = audience ?? liveDrive;
   const navigation = usePlayerNavigation(
     stepCounts,
-    audience?.position ? { position: audience.position, live: audience.live } : null,
+    control?.position ? { position: control.position, live: control.live } : null,
   );
   const { position } = navigation;
+  useEffect(() => {
+    ownPosition.current = position;
+  }, [position]);
   const deepDives = useMemo(
     () => new Set(slideDeck.deepDives.map((dive) => dive.number)),
     [slideDeck.deepDives],
   );
   // While live, every move is the presentation's: the keys and the control bar ask for it and render the answer.
   const moves = useMemo(() => {
-    if (!audience?.live) return navigation;
-    const { black, skipDeepDives, send } = audience;
+    if (control?.frozen) return { next: noop, previous: noop, first: noop, last: noop };
+    if (!control?.live) return navigation;
+    const { black, skipDeepDives, send, latest } = control;
+    // From the newest position asked for, so a press inside the last one's round trip goes on from it.
+    const from = () => latest?.() ?? position;
     const go = (to: PlayerPosition) => {
       // At the end of the deck, or with only skipped deep dives ahead, there is nothing to send.
-      if (to.slide === position.slide && to.step === position.step) return;
+      const now = from();
+      if (to.slide === now.slide && to.step === now.step) return;
       send({ ...to, black, skipDeepDives });
     };
     return {
-      next: () => go(nextPosition(position, stepCounts, deepDives, skipDeepDives)),
-      previous: () => go(previousPosition(position, stepCounts, deepDives, skipDeepDives)),
+      next: () => go(nextPosition(from(), stepCounts, deepDives, skipDeepDives)),
+      previous: () => go(previousPosition(from(), stepCounts, deepDives, skipDeepDives)),
       first: () => go({ slide: 1, step: 0 }),
       last: () => go({ slide: Math.max(stepCounts.length, 1), step: 0 }),
     };
-  }, [audience, navigation, position, stepCounts, deepDives]);
+  }, [control, navigation, position, stepCounts, deepDives]);
   const { next, previous, first, last } = moves;
   const driven = audience?.driven ?? false;
-
-  // The owner's player publishes its position to guests while the deck is live (SW-5 D18).
-  const session = useLiveSessionContext();
-  const live = session.live;
 
   const fullscreen = useSyncExternalStore(subscribeFullscreen, isFullscreen);
   const toggleFullscreen = useCallback(() => {
@@ -115,7 +134,7 @@ export function Player({
       ref={root}
       data-testid="player"
       aria-label={deck.title}
-      className="flex h-dvh w-full flex-col overflow-hidden bg-[#05070d]"
+      className="relative flex h-dvh w-full flex-col overflow-hidden bg-[#05070d]"
     >
       {audience ? (
         <div className="relative flex min-h-0 flex-1 flex-col">
@@ -152,13 +171,23 @@ export function Player({
           liveChip={!audience}
         />
       )}
-      {live && !audience && (
-        <LivePublisher
-          deckId={deck.id}
-          slide={position.slide}
-          step={position.step}
-          onError={session.reportError}
-        />
+      {control?.connecting && !audience && (
+        <p
+          data-testid="player-connecting"
+          role="status"
+          className="absolute inset-x-0 top-0 bg-[#b4580b] px-4 py-2 text-center text-sm text-white"
+        >
+          Connecting · the room won't follow your moves until it's done
+        </p>
+      )}
+      {control?.reconnecting && !audience && (
+        <p
+          data-testid="player-reconnecting"
+          role="status"
+          className="absolute inset-x-0 top-0 bg-[#b4580b] px-4 py-2 text-center text-sm text-white"
+        >
+          Reconnecting · the room won't follow your moves until it's back
+        </p>
       )}
       {notice}
     </section>

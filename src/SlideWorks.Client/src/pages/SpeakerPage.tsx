@@ -11,6 +11,8 @@ import {
 } from '../presentation/navigate';
 import type { PresentationState, PresentationUpdate } from '../presentation/types';
 import { usePresentation, type Presentation } from '../presentation/usePresentation';
+import { useDeckRealtime } from '../realtime/useDeckRealtime';
+import { JoinProvider } from '../slides/JoinContext';
 import { SlidesSheet } from '../remote/SlidesSheet';
 import { ActionRow } from '../remote/speaker/ActionRow';
 import { deviceLabel } from '../remote/speaker/deviceLabel';
@@ -29,6 +31,7 @@ type Load =
 
 const NOT_YOURS = "This presentation isn't yours, or it doesn't exist";
 const SEND_FAILED = "That didn't reach the talk, so nothing changed. Try again.";
+const REFRESH_FAILED = "Couldn't load the deck's latest changes.";
 
 const PAGE_CLASS = 'mx-auto flex h-dvh max-w-md flex-col bg-slate-950 text-slate-100';
 
@@ -44,6 +47,8 @@ export function SpeakerPage() {
   const [result, setResult] = useState<{ id: string; load: Load } | null>(null);
   const load: Load = result?.id === id ? result.load : { kind: 'loading' };
   const [attempt, setAttempt] = useState(0);
+  // The last re-read after the deck went live or ended failed: the talk stays on screen, with a message.
+  const [refreshFailed, setRefreshFailed] = useState(false);
 
   useEffect(() => {
     let gone = false;
@@ -67,6 +72,19 @@ export function SpeakerPage() {
       gone = true;
     };
   }, [id, attempt]);
+
+  // The deck going live or ending elsewhere (the presenter window's chip) changes its join slide's state, so the view
+  // is read again. A failed re-read keeps the talk on screen and says so; the next one that works clears the message.
+  useDeckRealtime(id, (event) => {
+    if (event.type !== 'liveChanged') return;
+    getPresenterView(id).then(
+      (view) => {
+        setRefreshFailed(false);
+        setResult({ id, load: { kind: 'loaded', view } });
+      },
+      () => setRefreshFailed(true),
+    );
+  });
 
   useWakeLock(presentation.status === 'live');
 
@@ -111,8 +129,17 @@ export function SpeakerPage() {
       </main>
     );
   }
+  // The phone is the owner's too, so a join slide on it shows the code and whether the deck is live (SW-5 D19).
   return (
-    <SpeakerMode id={id} view={load.view} state={presentation.state} presentation={presentation} />
+    <JoinProvider deckId={load.view.id} join={load.view.join} owner>
+      <SpeakerMode
+        id={id}
+        view={load.view}
+        state={presentation.state}
+        presentation={presentation}
+        refreshFailed={refreshFailed}
+      />
+    </JoinProvider>
   );
 }
 
@@ -121,11 +148,13 @@ function SpeakerMode({
   view,
   state,
   presentation,
+  refreshFailed,
 }: {
   id: string;
   view: PresenterView;
   state: PresentationState;
   presentation: Presentation;
+  refreshFailed: boolean;
 }) {
   const { status, elapsedMs } = presentation;
   const live = status === 'live';
@@ -297,9 +326,9 @@ function SpeakerMode({
           <div className="mt-3 flex min-h-0 flex-1 flex-col">
             <SpeakerNotes view={view} slide={state.slide} step={state.step} lastKnown={!live} />
           </div>
-          {error && (
+          {(error || refreshFailed) && (
             <p data-testid="speaker-error" role="alert" className="mx-4 mt-2 text-sm text-red-300">
-              {error}
+              {error || REFRESH_FAILED}
             </p>
           )}
           <NavButtons

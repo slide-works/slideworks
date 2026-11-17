@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Decks;
+using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Presenting.Views;
 using SlideWorks.WebApi.Features.Sharing;
@@ -21,6 +22,7 @@ public class PresenterQueries(
     ICurrentActor actor,
     IDeckAccess access,
     IPublicUrls urls,
+    JoinViews joinViews,
     ITemplateCatalogue templates,
     IPaletteCatalogue palettes,
     IPresentations presentations)
@@ -36,7 +38,7 @@ public class PresenterQueries(
             .Where(s => s.DeckId == deckId && s.DeletedAt == null)
             .OrderBy(s => s.Position)
             .ToListAsync();
-        return PresenterView.From(deck, slides, LookViews.From(deck, templates, palettes), urls);
+        return PresenterView.From(deck, slides, LookViews.From(deck, templates, palettes), await joinViews.ForAsync(deck), urls);
     }
 
     public Task<LivePresentationsView> LiveAsync()

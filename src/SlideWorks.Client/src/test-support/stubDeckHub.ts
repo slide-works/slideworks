@@ -29,6 +29,8 @@ export interface StubPresentationOptions {
   refuse?: boolean;
   // Leave each JoinPresentation unanswered until releasePresentationJoins(), as a slow join would be.
   holdJoin?: boolean;
+  // Leave each UpdatePresentation unanswered (recorded, not applied) until releaseUpdates(), as a slow round trip would be.
+  holdUpdates?: boolean;
 }
 
 // The hub's transports (SW-5 D7), in the order the real server's negotiate answer lists them.
@@ -108,6 +110,7 @@ export async function stubDeckHub(
   const held: (() => void)[] = [];
   const presentationJoins: StubPresentationJoin[] = [];
   const heldPresentationJoins: (() => void)[] = [];
+  const heldUpdates: (() => void)[] = [];
   const updates: PresentationUpdate[] = [];
   const timers: TimerCommand[] = [];
   const leaves: unknown[] = [];
@@ -176,14 +179,18 @@ export async function stubDeckHub(
       record: (args) => updates.push(args[1] as PresentationUpdate),
       answer: (args, reply) => {
         const update = args[1] as PresentationUpdate;
-        const state = change({
-          slide: update.slide,
-          step: update.step,
-          black: update.black,
-          skipDeepDives: update.skipDeepDives,
-        });
-        reply.result(state);
-        broadcast(state);
+        const apply = () => {
+          const state = change({
+            slide: update.slide,
+            step: update.step,
+            black: update.black,
+            skipDeepDives: update.skipDeepDives,
+          });
+          reply.result(state);
+          broadcast(state);
+        };
+        if (presentation?.holdUpdates) heldUpdates.push(apply);
+        else apply();
       },
     }),
     SetTimer: presenting({
@@ -437,6 +444,10 @@ export async function stubDeckHub(
     // Answers every JoinPresentation held so far, each with the state as it was when that join arrived.
     releasePresentationJoins() {
       for (const answer of heldPresentationJoins.splice(0)) answer();
+    },
+    // Applies and answers every UpdatePresentation held so far, in the order they arrived.
+    releaseUpdates() {
+      for (const apply of heldUpdates.splice(0)) apply();
     },
     // Closes the newest connection the way a server going away does, letting
     // the client reconnect: SignalR's close message with allowReconnect.

@@ -32,6 +32,9 @@ public class AcceptanceApp
 
     public static string BaseUrl { get; private set; } = null!;
 
+    // The join host: the same server under localhost, which is a different origin from BaseUrl.
+    public static string JoinUrl { get; private set; } = null!;
+
     // The running app's container, for the seams an OAuth flow ends in (see AgentSeed). Never for the database.
     public static IServiceProvider Services { get; private set; } = null!;
 
@@ -42,6 +45,7 @@ public class AcceptanceApp
         _dataPath = Directory.CreateTempSubdirectory("slide-works-acceptance-data-").FullName;
         var port = FreePort();
         BaseUrl = $"http://127.0.0.1:{port}";
+        JoinUrl = $"http://localhost:{port}";
         _factory = new WebApplicationFactory<ApiMarker>().WithWebHostBuilder(builder =>
         {
             builder.ConfigureAppConfiguration((_, config) =>
@@ -51,7 +55,7 @@ public class AcceptanceApp
                     [ImageStore.DATA_PATH_SETTING] = _dataPath,
                     ["SLIDEWORKS_PUBLIC_URL"] = BaseUrl,
                     // The same server under a second host name, so the join host is a different origin from the app's.
-                    ["SLIDEWORKS_JOIN_URL"] = $"http://localhost:{port}",
+                    ["SLIDEWORKS_JOIN_URL"] = JoinUrl,
                     [IUserDirectory.ADMIN_EMAIL_SETTING] = TestUser.Ada.Email,
                 }));
             builder.ConfigureTestServices(TestAuthScheme.AddTo);

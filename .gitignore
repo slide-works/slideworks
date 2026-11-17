@@ -451,3 +451,6 @@ src/SlideWorks.WebApi/wwwroot/
 
 # pnpm puts its store beside the project when HOME is on another filesystem (a container run).
 .pnpm-store/
+
+# TypeScript incremental build output
+*.tsbuildinfo
