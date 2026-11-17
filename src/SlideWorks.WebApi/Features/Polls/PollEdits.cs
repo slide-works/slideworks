@@ -84,28 +84,30 @@ public class PollEdits(PollReader reader, PollRows rows, IAudienceRelay relay, I
     }
 
     // While a round is open the options are known by position, so what a position says can't move to another: the count can't
-    // shrink, and no position may take the text another position had (trimmed, ignoring case). That catches a swap, a shift
-    // (removing an option by moving the rest up) and a plain reorder, even when one more text is reworded at the same time;
-    // rewording an option in place and appending still pass. Rewording two options into each other's places at once can't
-    // be told from two rewords, and is allowed.
+    // shrink, and no position, appended ones included, may take the text a different position had (trimmed, ignoring case).
+    // That catches a swap, a shift (removing an option by moving the rest up), a reorder and an insert before the last option
+    // (which leaves the old last option as a new one with no answers), even when another text is reworded at the same time.
+    // Rewording an option in place and appending a text no option had still pass. Rewording two options into each other's
+    // places at once can't be told from two rewords, and is allowed.
     private static void CheckOptionsKeepTheirPlaces(IReadOnlyList<string> was, IReadOnlyList<string> now)
     {
         if (now.Count < was.Count)
         {
             throw new BadRequestException($"slots.options: a round is open, so the options can't shrink from {was.Count} to {now.Count}; close the poll first (close_poll)");
         }
-        for (var position = 0; position < was.Count; position++)
+        var before = was.Select(Normal).ToList();
+        for (var position = 0; position < now.Count; position++)
         {
             var text = Normal(now[position]);
-            if (text == Normal(was[position]))
+            if (position < was.Count && text == before[position])
             {
                 continue;
             }
-            var taken = was.Select(Normal).ToList().IndexOf(text);
+            var taken = before.IndexOf(text);
             if (taken >= 0)
             {
                 throw new BadRequestException(
-                    $"slots.options: a round is open, so option {position + 1} can't take option {taken + 1}'s text, which would move answers between options; reword options in place, or close the poll first (close_poll)");
+                    $"slots.options: a round is open, so option {position + 1} can't take option {taken + 1}'s text, which would move answers between options; add a new option at the end with add_poll_option, reword options in place, or close the poll first (close_poll)");
             }
         }
     }

@@ -181,7 +181,7 @@ public static class LayoutCatalogue
         [
             Req("question", new TextSlot(120)),
             Req("options", new ListSlot(new TextSlot(60), 2, 8), "Known by position: while a round is open they can be reworded or added to, not removed or reordered"),
-        ]),
+        ], rules: LayoutRules.Poll),
     ];
 
     public static IReadOnlyList<string> LayoutNames { get; } = Layouts.Select(l => l.Name).ToArray();

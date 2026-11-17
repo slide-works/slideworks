@@ -330,7 +330,9 @@ public class PollMcpTests : PollTestFixture
     [TestCase("""["50 to 200 lines", "Over 200 lines", "Under 50 lines"]""", 1, 2)]
     [TestCase("""["50 TO 200 LINES", "under 50 lines", "Over 200 lines"]""", 1, 2)]
     [TestCase("""["  50 to 200 lines ", "Under 50 lines", "Over 200 lines"]""", 1, 2)]
-    [TestCase("""["Under 50 lines", "50 to 200 lines", "Under 50 lines", "A fourth"]""", 3, 1)]
+    [TestCase("""["Under 50 lines", "50 to 200 lines", "200 to 1,000 lines", "Over 200 lines"]""", 4, 3)]
+    [TestCase("""["Under 50 lines", "New", "50 to 200 lines", "Over 200 lines"]""", 3, 2)]
+    [TestCase("""["New", "Under 50 lines", "50 to 200 lines", "Over 200 lines"]""", 2, 1)]
     public async Task UpdateSlide_WhenRoundIsOpenAndAnOptionTakesAnotherOnesText_ShouldRefuseAndWriteNothing(string optionsJson, int position, int taken)
     {
         var poll = await SeedPollAsync();
@@ -341,13 +343,101 @@ public class PollMcpTests : PollTestFixture
 
         var error = await SlideCalls.UpdateErrorAsync(agent, poll.DeckId, poll.Slide, before.GetProperty("revision").GetInt64(), $$"""{ "question": "How big?", "options": {{optionsJson}} }""");
 
-        error.ShouldBe($"slots.options: a round is open, so option {position} can't take option {taken}'s text, which would move answers between options; reword options in place, or close the poll first (close_poll)");
+        error.ShouldBe($"slots.options: a round is open, so option {position} can't take option {taken}'s text, which would move answers between options; add a new option at the end with add_poll_option, reword options in place, or close the poll first (close_poll)");
         var after = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1];
         after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64());
         after.GetProperty("slots").GetRawText().ShouldBe(before.GetProperty("slots").GetRawText());
         (await DeckSeed.ActivityAsync(Client, poll.DeckId)).Count.ShouldBe(entries);
         Relay.Refreshed.ShouldNotContain(poll.DeckId);
         Publisher.PublishedFor(poll.DeckId).ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task UpdateSlide_WhenRoundIsOpenAndAnOptionIsInsertedInTheMiddleOfFive_ShouldRefuseAndWriteNothing()
+    {
+        var poll = await SeedPollAsync(options: ["One", "Two", "Three", "Four", "Five"]);
+        await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var before = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1];
+
+        var error = await SlideCalls.UpdateErrorAsync(agent, poll.DeckId, poll.Slide, before.GetProperty("revision").GetInt64(), """{ "question": "How many?", "options": ["One", "Two", "Inserted", "Three", "Four", "Five"] }""");
+
+        error.ShouldBe("slots.options: a round is open, so option 4 can't take option 3's text, which would move answers between options; add a new option at the end with add_poll_option, reword options in place, or close the poll first (close_poll)");
+        var after = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1];
+        after.GetProperty("slots").GetRawText().ShouldBe(before.GetProperty("slots").GetRawText());
+        after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64());
+        Publisher.PublishedFor(poll.DeckId).ShouldBeEmpty();
+    }
+
+    // Two buttons with the same text help nobody, so the poll layout refuses them wherever its slots are written: the same
+    // rule and message for add_slide, update_slide and add_poll_option, in every phase.
+    [TestCase("none")]
+    [TestCase("open")]
+    [TestCase("closed")]
+    public async Task AddPollOption_WhenTextEqualsAnExistingOptionTrimmedIgnoringCase_ShouldRefuseAndWriteNothing(string phase)
+    {
+        var poll = await SeedPollAsync();
+        if (phase != "none")
+        {
+            var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+            if (phase == "closed")
+            {
+                await Rows.CloseAsync(round.Id, joinedAtClose: 1);
+            }
+        }
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var before = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1];
+
+        var error = await SlideCalls.ErrorAsync(agent, "add_poll_option", new { deck = poll.DeckId, slide = poll.Slide, text = "  UNDER 50 lines " });
+
+        error.ShouldBe("poll.options[3]: the same text as options[0]; each option needs its own text");
+        var after = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1];
+        after.GetProperty("slots").GetRawText().ShouldBe(before.GetProperty("slots").GetRawText());
+        after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64());
+        Publisher.PublishedFor(poll.DeckId).ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task AddSlide_WhenPollOptionsRepeatATextTrimmedIgnoringCase_ShouldRefuseNamingTheOption()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+
+        var error = await SlideCalls.ErrorAsync(agent, "add_slide", new { deck, layout = "poll", slots = JsonDocument.Parse("""{ "question": "Which?", "options": ["Red", "Blue", " red"] }""").RootElement });
+
+        error.ShouldBe("poll.options[2]: the same text as options[0]; each option needs its own text");
+    }
+
+    [Test]
+    public async Task UpdateSlide_WhenPollOptionsRepeatATextTrimmedIgnoringCase_ShouldRefuseNamingTheOption()
+    {
+        var poll = await SeedPollAsync();
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var revision = (await SlideCalls.SlidesAsync(agent, poll.DeckId))[poll.Slide - 1].GetProperty("revision").GetInt64();
+
+        var error = await SlideCalls.UpdateErrorAsync(agent, poll.DeckId, poll.Slide, revision, """{ "question": "Which?", "options": ["Red", "Blue", "BLUE "] }""");
+
+        error.ShouldBe("poll.options[2]: the same text as options[1]; each option needs its own text");
+    }
+
+    // Guests who answered and then left can leave more answers than joined; the rate stays at most 1, the counts stay raw.
+    [Test]
+    public async Task GetPollResults_WhenMoreAnsweredThanJoinedAtClose_ShouldCapTheRateAtOneAndKeepTheRawNumbers()
+    {
+        var poll = await SeedPollAsync();
+        var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await Rows.AnswerAsync(round.Id, "cap-guest-1", 0);
+        await Rows.AnswerAsync(round.Id, "cap-guest-2", 1);
+        await Rows.AnswerAsync(round.Id, "cap-guest-3", 1);
+        await Rows.CloseAsync(round.Id, joinedAtClose: 2);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        var result = await SlideCalls.OkAsync(agent, "get_poll_results", new { deck = poll.DeckId, slide = poll.Slide });
+
+        var capped = result.GetProperty("sessions")[0].GetProperty("rounds")[0];
+        capped.GetProperty("rate").GetDouble().ShouldBe(1);
+        capped.GetProperty("answered").GetInt32().ShouldBe(3);
+        capped.GetProperty("joined").GetInt32().ShouldBe(2);
     }
 
     [Test]

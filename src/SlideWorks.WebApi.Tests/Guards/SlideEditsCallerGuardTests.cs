@@ -9,14 +9,15 @@ namespace SlideWorks.WebApi.Tests.Guards;
 [TestFixture]
 public class SlideEditsCallerGuardTests
 {
-    private static readonly Regex _calls = new(@"\.EditAsync\s*\(", RegexOptions.CultureInvariant);
+    // A call, a call with a type argument, or a method group (passed on without being called).
+    private static readonly Regex _calls = new(@"\.EditAsync\b(?!\w)", RegexOptions.CultureInvariant);
 
     private static readonly string[] _mayCall = ["PollSettingsCommands.cs"];
 
     [Test]
     public void EditAsync_ShouldBeCalledOnlyByTheFilesThatAreKnownNotToDeleteOrRetypeASlide()
     {
-        var callers = ProductionSource.Files("Features")
+        var callers = ProductionSource.Files(string.Empty)
             .Where(file => _calls.IsMatch(File.ReadAllText(file)))
             .Select(Path.GetFileName)
             .ToList();

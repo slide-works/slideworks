@@ -198,6 +198,22 @@ internal static class LayoutRules
         }
     }
 
+    // A poll's options are told apart by their text on the phones, so two can't read the same (trimmed, ignoring case).
+    public static void Poll(JsonElement slots, string path, SlotValidation validation)
+    {
+        var seen = new List<string>();
+        foreach (var (option, index) in slots.GetProperty("options").EnumerateArray().Select((o, i) => (o.GetString()!, i)))
+        {
+            var text = option.Trim().ToLowerInvariant();
+            if (seen.IndexOf(text) is var first and >= 0)
+            {
+                validation.Fail($"{path}.options[{index}]", $"the same text as options[{first}]; each option needs its own text");
+                return;
+            }
+            seen.Add(text);
+        }
+    }
+
     // .callout: 28 px/1.35 bold text in 28/36 px padding, plus the 22–30 px gap above it.
     private static double CalloutHeight(JsonElement callout, double width) =>
         30 + 56 + (SlideFit.Lines(callout.GetProperty("text").GetString()!, width - 72, 28, SlideFit.HEAD_EM) * 37.8);
