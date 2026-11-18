@@ -283,7 +283,7 @@ test('a different round replacing an open poll while Questions is showing switch
 
   await component.update(
     guest(
-      { ...OPEN_POLL, round: (OPEN_POLL.round ?? 0) + 1, number: OPEN_POLL.number + 1 },
+      { ...OPEN_POLL, round: `${OPEN_POLL.round ?? 0}-next`, number: OPEN_POLL.number + 1 },
       qaRoom('open'),
       2,
     ),
@@ -299,7 +299,7 @@ test('a round change alone, with the same poll number, also switches', async ({ 
   await questionsTab(page).click();
 
   await component.update(
-    guest({ ...OPEN_POLL, round: (OPEN_POLL.round ?? 0) + 1 }, qaRoom('open'), 2),
+    guest({ ...OPEN_POLL, round: `${OPEN_POLL.round ?? 0}-next` }, qaRoom('open'), 2),
   );
 
   await expect(slideTab(page)).toHaveAttribute('aria-selected', 'true');
