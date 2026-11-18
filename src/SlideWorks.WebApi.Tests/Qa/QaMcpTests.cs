@@ -175,7 +175,7 @@ public class QaMcpTests : QaTestFixture
         await QaRowSeed.QuestionAsync(qa.RoundId, "Why is this talk so long?", hidden: true);
         await QaRowSeed.QuestionAsync(qa.RoundId, "What is the smallest slice you have shipped?");
         await QaRowSeed.VoteAsync(qa.RoundId, "voter-1", 1, 2, 5);
-        await QaRowSeed.VoteAsync(qa.RoundId, "voter-2", 1, 5);
+        await QaRowSeed.VoteAsync(qa.RoundId, "voter-2", 1);
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
 
         var report = await SlideCalls.OkAsync(agent, "get_questions", new { deck = qa.DeckId, state = "open" });
@@ -186,7 +186,7 @@ public class QaMcpTests : QaTestFixture
         session.GetProperty("hidden").GetInt32().ShouldBe(1);
         var questions = session.GetProperty("questions").EnumerateArray().ToList();
         questions.Select(q => q.GetProperty("text").GetString()).ShouldBe(["How do you split a big change?", "What is the smallest slice you have shipped?"]);
-        questions.Select(q => q.GetProperty("votes").GetInt32()).ShouldBe([2, 2]);
+        questions.Select(q => q.GetProperty("votes").GetInt32()).ShouldBe([2, 1]);
         questions.Select(q => q.GetProperty("state").GetString()).ShouldBe(["open", "open"]);
         questions[0].GetProperty("name").GetString().ShouldBe("Priya");
         questions[1].GetProperty("name").ValueKind.ShouldBe(JsonValueKind.Null);
