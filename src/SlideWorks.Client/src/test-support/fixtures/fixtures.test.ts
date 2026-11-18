@@ -278,6 +278,7 @@ const CONTRAST_PAIRS = keys<Record<ContrastPair, true>>({
   'card-bold': true,
   'headline-accent': true,
   'on-accent': true,
+  'on-accent-2': true,
   'deep-dive-pill': true,
   'panel-accent': true,
   'panel-positive': true,

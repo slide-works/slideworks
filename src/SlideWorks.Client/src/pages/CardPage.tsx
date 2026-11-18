@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import type { CardView } from '../api/types';
 import { lookStyle } from '../look/lookStyle';
+import { WAVE_PATHS } from '../slides/art/waves';
 import styles from './CardPage.module.css';
 
 // /card/:id and /card/generic: the 1200×630 share card the server screenshots
@@ -198,16 +199,6 @@ function slidesLabel(count: number): string {
 }
 
 // The waves title art (mockups section 09), stroked with the palette's glow.
-const WAVE_PATHS = Array.from({ length: 15 }, (_, i) => {
-  const y0 = 600 + i * 30;
-  const amp = 16 + i * 2.4;
-  let d = `M0 ${y0}`;
-  for (let x = 24; x <= 1920; x += 24) {
-    d += ` L${x} ${(y0 + Math.sin((x / 960) * 2 * Math.PI + i * 0.38) * amp).toFixed(1)}`;
-  }
-  return { d, opacity: 0.06 + i * 0.022 };
-});
-
 function Waves() {
   return (
     <svg

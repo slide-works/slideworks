@@ -276,6 +276,7 @@ export type ContrastPair =
   | 'card-bold'
   | 'headline-accent'
   | 'on-accent'
+  | 'on-accent-2'
   | 'deep-dive-pill'
   | 'panel-accent'
   | 'panel-positive'
