@@ -40,7 +40,10 @@ describe('deepDivesOf', () => {
         part: null,
         deepDive: true,
         layout: 'flow' as const,
-        slots: { headline: 'From idea to production' },
+        slots: {
+          headline: 'From idea to production',
+          nodes: [{ title: 'Idea' }, { title: 'Production' }],
+        },
       },
     ];
     expect(deepDivesOf(slides)).toEqual([
