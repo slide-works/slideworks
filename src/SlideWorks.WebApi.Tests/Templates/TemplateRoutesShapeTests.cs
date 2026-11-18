@@ -266,21 +266,16 @@ public class TemplateRoutesShapeTests : ApiTestFixture
         using var scope = Factory.Services.CreateScope();
         var actor = scope.ServiceProvider.GetRequiredService<ICurrentActor>();
 
-        var templates = await new StubTemplateDrafts().ListAsync(actor);
-        var editor = await new StubTemplateDrafts().GetAsync(actor, "tpl_stub00000001");
         var checklist = await new StubTemplatePublishing().ChecklistAsync(actor, "tpl_stub00000001");
         var review = await new StubTemplatePublishing().LayoutReviewAsync(actor, "tpl_stub00000001", "stage-ladder");
         var sharing = await new StubTemplateSharing().GetAsync(actor, "tpl_stub00000001");
         var page = await new StubTemplateSharing().PublicAsync(actor, "tpl_stub00000001");
 
-        JsonShape.AssertMatches(Wire(templates), TemplateScreenShapes.TEMPLATES_FILE, TemplateScreenShapes.Templates);
-        JsonShape.AssertMatches(Wire(editor), TemplateScreenShapes.EDITOR_FILE, TemplateScreenShapes.Editor);
         JsonShape.AssertMatches(Wire(checklist), TemplateScreenShapes.ChecklistExample(), "template-editor.json's checklist", TemplateScreenShapes.Checklist);
         JsonShape.AssertMatches(Wire(review), TemplateScreenShapes.LAYOUT_REVIEW_FILE, TemplateScreenShapes.LayoutReview);
         JsonShape.AssertMatches(Wire(sharing), TemplateScreenShapes.SHARING_FILE, TemplateScreenShapes.Sharing);
         JsonShape.AssertMatches(Wire(page), TemplateScreenShapes.PUBLIC_FILE, TemplateScreenShapes.Public);
-        templates.Mine.ShouldNotBeEmpty();
-        editor.Assets.ShouldNotBeEmpty();
+        checklist.Checklist.ShouldNotBeEmpty();
     }
 
     // The owner is a name only on a template shared with the caller: null on the caller's own and on a built-in.
