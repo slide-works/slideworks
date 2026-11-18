@@ -94,6 +94,35 @@ test('a refused save keeps the draft and reports the code', async ({ mount, page
   await expect(page.getByTestId('draft-purpose')).toHaveText(templateEditor.manifest.purpose);
 });
 
+test('a refused save stays reported when a queued save after it succeeds', async ({
+  mount,
+  page,
+}) => {
+  const refusal = {
+    status: 400,
+    json: { error: 'manifest_invalid', message: 'The template manifest is not valid: purpose.' },
+  };
+  const requests = await stubTemplatesApi(page, {
+    save: [refusal, { json: { ...saved, manifest: templateEditor.manifest } }, { json: saved }],
+  });
+  await mount(<TemplateDraftHarness id={id} />);
+  await expect(page.getByTestId('draft-revision')).toHaveText('7');
+
+  await page.getByRole('button', { name: 'Change twice' }).click();
+
+  // The second save went through, and the first one's refusal is still on screen.
+  await expect(page.getByTestId('draft-revision')).toHaveText('8');
+  await expect(page.getByTestId('draft-saving')).toHaveText('false');
+  await expect(page.getByTestId('draft-save-code')).toHaveText('manifest_invalid');
+  await expect(page.getByTestId('draft-purpose')).toHaveText(templateEditor.manifest.purpose);
+  expect(requests).toHaveLength(3);
+
+  // Changing that field again takes the message away.
+  await page.getByRole('button', { name: 'Change purpose' }).click();
+  await expect(page.getByTestId('draft-purpose')).toHaveText('A new purpose.');
+  await expect(page.getByTestId('draft-save-code')).toHaveText('');
+});
+
 test('a save that cannot reach the server reports it without a code', async ({ mount, page }) => {
   await stubTemplatesApi(page, { save: 'network-down' });
   await mount(<TemplateDraftHarness id={id} />);

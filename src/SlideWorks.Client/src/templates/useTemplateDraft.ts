@@ -68,6 +68,9 @@ export function useTemplateDraft(id: string): TemplateDraft {
 
   const change = useCallback(
     (patch: Partial<TemplateManifest>) => {
+      // A failure stays on screen until the person changes something again: a queued save that
+      // succeeds after it must not take the message away.
+      setSaveError(null);
       setPending((count) => count + 1);
       return enqueue(async () => {
         try {
@@ -75,7 +78,6 @@ export function useTemplateDraft(id: string): TemplateDraft {
           if (current?.forId !== id) return;
           const manifest = { ...current.draft.manifest, ...patch };
           accept(await templatesApi.save(id, manifest, current.draft.revision));
-          setSaveError(null);
         } catch (error) {
           setSaveError({ code: templateErrorCode(error), message: templateErrorMessage(error) });
         } finally {

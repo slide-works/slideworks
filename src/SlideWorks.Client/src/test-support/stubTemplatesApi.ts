@@ -9,6 +9,8 @@ import {
 } from './fixtures/templates';
 
 type StubbedResponse = { status?: number; json?: unknown } | 'network-down';
+// One answer for every request of a call, or a list answered in order (the last one repeats).
+type StubbedResponses = StubbedResponse | readonly StubbedResponse[];
 
 // Every call of src/templates/api.ts, by the name it has on templatesApi.
 export type TemplateCall =
@@ -81,13 +83,15 @@ const DEFAULTS: { [C in TemplateCall]: { status: number; json?: unknown } } = {
 
 // Answers every Templates call at the network boundary in component tests, so the page under
 // test makes its real requests. Each call answers its sample unless `responses` names it; a
-// refusal is `{ status: 400, json: { error: code, message: text } }`. The returned list fills
-// with the requests the page made, in order.
+// refusal is `{ status: 400, json: { error: code, message: text } }`, and a list answers the
+// call's first request with its first entry, the next with the second, and so on. The returned
+// list fills with the requests the page made, in order.
 export async function stubTemplatesApi(
   page: Page,
-  responses: { [C in TemplateCall]?: StubbedResponse } = {},
+  responses: { [C in TemplateCall]?: StubbedResponses } = {},
 ): Promise<TemplateRequest[]> {
   const requests: TemplateRequest[] = [];
+  const asked = new Map<TemplateCall, number>();
   await page.route(/\/api\/templates(\/|\?|$)/, (route) => {
     const request = route.request();
     const { pathname } = new URL(request.url());
@@ -103,7 +107,10 @@ export async function stubTemplatesApi(
       body: request.postDataJSON() as unknown,
     });
 
-    const response = responses[found.call] ?? DEFAULTS[found.call];
+    const nth = asked.get(found.call) ?? 0;
+    asked.set(found.call, nth + 1);
+    const answers = responses[found.call] ?? DEFAULTS[found.call];
+    const response = isList(answers) ? answers[Math.min(nth, answers.length - 1)] : answers;
     if (response === 'network-down') return route.abort('connectionrefused');
     const status = response.status ?? 200;
     return response.json === undefined
@@ -112,3 +119,6 @@ export async function stubTemplatesApi(
   });
   return requests;
 }
+
+const isList = (answers: StubbedResponses): answers is readonly StubbedResponse[] =>
+  Array.isArray(answers);
