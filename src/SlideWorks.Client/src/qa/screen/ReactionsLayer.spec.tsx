@@ -230,12 +230,23 @@ test('a change of the reduced-motion setting mid-session applies to the next tap
   await expect(page.getByTestId(IDS.float)).toHaveCount(2);
 });
 
+// animations: 'disabled' would finish each rise, leaving every float faded out at the top. Instead the paused clock holds
+// the retire timers, and each float's rise is paused at its own point so the shot shows a spread up the lanes.
 test('screenshot the floating reactions', async ({ mount, page }) => {
-  await mountWith(mount, page, bursts(12, 'thumbsUp'));
+  const component = await mountClocked(mount, page, false);
+  await component.update(player(bursts(12, 'thumbsUp')));
 
   await expect(page.getByTestId(IDS.float)).toHaveCount(12);
+  await page.getByTestId(IDS.float).evaluateAll((els) =>
+    els.forEach((el, i) =>
+      el.getAnimations().forEach((animation) => {
+        animation.pause();
+        animation.currentTime = 100 + i * 90;
+      }),
+    ),
+  );
   await expect(page.getByTestId('player-canvas')).toHaveScreenshot('reactions-float.png', {
     maxDiffPixels: 4000,
-    animations: 'disabled',
+    animations: 'allow',
   });
 });
