@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using Agoda.IoC.Core;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -133,16 +134,53 @@ public class DeckCommands(
         return text.Length <= maxLength ? text : throw new BadRequestException($"{field}: at most {maxLength} characters");
     }
 
-    private static IReadOnlyList<string> Parts(IReadOnlyList<string>? parts)
+    private static IReadOnlyList<DeckPart> Parts(IReadOnlyList<JsonElement>? items)
     {
-        if (parts == null)
+        if (items == null)
         {
             return [];
         }
-        if (parts.Count > DeckParts.MAX_PARTS)
+        if (items.Count > DeckParts.MAX_PARTS)
         {
             throw new BadRequestException($"parts: at most {DeckParts.MAX_PARTS} items");
         }
-        return parts.Select((part, index) => Required($"parts[{index}]", part, DeckParts.MAX_NAME_LENGTH)).ToList();
+        var parts = items.Select((item, index) => Part($"parts[{index}]", item)).ToList();
+        var firstMarked = parts.FindIndex(part => part.Mark is not null);
+        if (firstMarked >= 0 && parts.Skip(firstMarked).Any(part => part.Mark is null))
+        {
+            throw new BadRequestException($"parts[{firstMarked}]: a part with a mark must come after every numbered part");
+        }
+        return parts;
+    }
+
+    private static DeckPart Part(string path, JsonElement item)
+    {
+        if (item.ValueKind == JsonValueKind.String)
+        {
+            return new DeckPart(Required(path, item.GetString(), DeckParts.MAX_NAME_LENGTH));
+        }
+        if (item.ValueKind != JsonValueKind.Object)
+        {
+            throw new BadRequestException($"{path}: must be a name or {{name, short, caption, mark}}");
+        }
+        var unknown = item.EnumerateObject().Select(property => property.Name).FirstOrDefault(name => name is not ("name" or "short" or "caption" or "mark"));
+        if (unknown is not null)
+        {
+            throw new BadRequestException($"{path}.{unknown}: unknown field");
+        }
+        return new DeckPart(
+            Optional($"{path}.name", Field(path, item, "name"), DeckParts.MAX_NAME_LENGTH) ?? throw new BadRequestException($"{path}: required"),
+            Optional($"{path}.short", Field(path, item, "short"), DeckParts.MAX_SHORT_LENGTH),
+            Optional($"{path}.caption", Field(path, item, "caption"), DeckParts.MAX_CAPTION_LENGTH),
+            Optional($"{path}.mark", Field(path, item, "mark"), DeckParts.MAX_MARK_LENGTH));
+    }
+
+    private static string? Field(string path, JsonElement item, string name)
+    {
+        if (!item.TryGetProperty(name, out var value) || value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        return value.ValueKind == JsonValueKind.String ? value.GetString() : throw new BadRequestException($"{path}.{name}: must be text");
     }
 }

@@ -26,7 +26,7 @@ public static class ScreenShapes
     {
         NullablePaths =
         [
-            "author", "slides[].part", "slides[].headline", "slides[].notes", "activity[].tool",
+            "author", "parts[].caption", "parts[].mark", "slides[].part", "slides[].headline", "slides[].notes", "activity[].tool",
             "look.template.titleArt", "look.logo", "look.chromeOverrides.tracker", "look.chromeOverrides.footer", "look.chromeOverrides.progress",
             .. LookNullablePaths,
         ],
@@ -38,7 +38,7 @@ public static class ScreenShapes
     {
         NullablePaths =
         [
-            "author", "slides[].part", "look.template.titleArt", "look.logo",
+            "author", "parts[].caption", "parts[].mark", "slides[].part", "look.template.titleArt", "look.logo",
             .. LookNullablePaths,
         ],
         OpaquePaths = ["slides[].slots"],
@@ -67,7 +67,7 @@ public static class ScreenShapes
     {
         NullablePaths =
         [
-            "author", "slides[].part", "slides[].notes", "slides[].headline", "talkMinutes", "look.template.titleArt", "look.logo",
+            "author", "parts[].caption", "parts[].mark", "slides[].part", "slides[].notes", "slides[].headline", "talkMinutes", "look.template.titleArt", "look.logo",
             .. LookNullablePaths,
         ],
         OpaquePaths = ["slides[].slots"],

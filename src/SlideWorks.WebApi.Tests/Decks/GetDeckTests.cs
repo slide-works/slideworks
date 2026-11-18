@@ -21,7 +21,7 @@ public class GetDeckTests : ApiTestFixture
         json.GetProperty("id").GetString().ShouldBe(deck);
         json.GetProperty("title").GetString().ShouldBe("Ship smaller");
         json.GetProperty("author").GetString().ShouldBe("Sam Rivera");
-        json.GetProperty("parts").EnumerateArray().Select(p => p.GetString()).ShouldBe(DeckSeed.SAMPLE_PARTS);
+        json.GetProperty("parts").EnumerateArray().Select(p => p.GetProperty("name").GetString()).ShouldBe(DeckSeed.SAMPLE_PARTS);
         json.GetProperty("sharing").GetString().ShouldBe("private");
         json.GetProperty("url").GetString().ShouldBe($"{TestAppFactory.PUBLIC_URL}/d/{deck}/ship-smaller");
         var slides = json.GetProperty("slides").EnumerateArray().ToList();
