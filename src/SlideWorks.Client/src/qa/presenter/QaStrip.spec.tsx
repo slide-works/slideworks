@@ -698,6 +698,65 @@ test('QaStrip_WhenTheQuestionsCannotBeReadOrWatched_ShouldShowThatFailure', asyn
   await expect(page.getByTestId(IDS.sheetError)).toHaveText(read);
 });
 
+test('QaStrip_WhenSameVoteQuestionsComeInAnyOrder_ShouldListTheOlderFirstInTheSheet', async ({
+  mount,
+  page,
+}) => {
+  const view = live();
+  view.questions = view.questions.map((q) => (q.number === 6 ? { ...q, votes: 14 } : q)).reverse();
+  await mount(strip(view));
+  await page.getByTestId(IDS.all).click();
+  expect(await rowNumbers(page)).toEqual([4, 1, 6, 2]);
+});
+
+test('QaStrip_WhenTheLastQuestionLeavesWhileTheSheetIsOpenAndItIsClosed_ShouldReturnFocusToTheStrip', async ({
+  mount,
+  page,
+}) => {
+  const view = await mount(strip(live()));
+  await page.getByTestId(IDS.all).click();
+  // Another window answered and approved everything: the sheet is open with nothing left, and All is gone.
+  const empty = live();
+  empty.questions = [];
+  empty.counts = { open: 0, waiting: 0, answered: 0, hidden: 0 };
+  empty.onScreen = null;
+  await view.update(strip(empty));
+  await expect(page.getByTestId(IDS.all)).toHaveCount(0);
+  await page.getByTestId(IDS.sheetClose).press('Enter');
+  await expect(page.getByTestId(IDS.sheet)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.strip)).toBeFocused();
+});
+
+test('QaStrip_WhenTheLastOpenQuestionIsAnsweredWhileOthersWaitForReview_ShouldFocusAll', async ({
+  mount,
+  page,
+}) => {
+  const only = offScreen();
+  only.questions = only.questions.filter((q) => q.number === 1 || q.number === 4);
+  only.counts = { open: 1, waiting: 1, answered: 0, hidden: 0 };
+  await liveStrip(mount, page, { control: only });
+  await page.getByTestId(IDS.answer).focus();
+  await page.getByTestId(IDS.answer).press('Enter');
+  await expect(page.getByTestId(IDS.empty)).toBeVisible();
+  await expect(page.getByTestId(IDS.all)).toBeFocused();
+});
+
+test('QaStrip_WhenTheStripGoesAwayAndComesBack_ShouldNotShowTheEarlierMessage', async ({
+  mount,
+  page,
+}) => {
+  const view = await mount(
+    scripted(live(), () => Promise.resolve('That question had already changed.')),
+  );
+  await page.getByTestId(IDS.answer).click();
+  await expect(page.getByTestId(IDS.error)).toBeVisible();
+  await view.update(scripted(qaControlView('notLive'), () => Promise.resolve(null)));
+  await expect(page.getByTestId(IDS.strip)).toHaveCount(0);
+  await view.update(scripted(live(), () => Promise.resolve(null)));
+  await expect(page.getByTestId(IDS.strip)).toBeVisible();
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+});
+
 test('screenshot QaStrip on screen', async ({ mount, page }) => {
   await mount(strip(live()));
   await expect(page.getByTestId(IDS.strip)).toHaveScreenshot('qa-strip-on-screen.png');
