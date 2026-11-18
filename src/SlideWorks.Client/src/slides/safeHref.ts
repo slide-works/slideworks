@@ -37,6 +37,9 @@ export function safeHref(value: string | undefined): string | undefined {
   // 5 and 6. No user info and no percent sign before the path starts.
   const authority = value.slice(scheme.length).split(/[/?#]/, 1)[0];
   if (authority.includes('@') || authority.includes('%')) return undefined;
+  // 7. What is left there is a host and at most a port, nothing that could
+  //    end the attribute the link is drawn in.
+  if (!isHostAndPort(authority)) return undefined;
   // The parser has the last word: an http or https address with a host and no
   // user name or password.
   let url: URL;
@@ -48,4 +51,48 @@ export function safeHref(value: string | undefined): string | undefined {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined;
   if (url.hostname === '' || url.username !== '' || url.password !== '') return undefined;
   return value;
+}
+
+const isDigit = (c: number) => c >= 0x30 && c <= 0x39;
+const isLetter = (c: number) => (c >= 0x41 && c <= 0x5a) || (c >= 0x61 && c <= 0x7a);
+const isHex = (c: number) => isDigit(c) || (c >= 0x41 && c <= 0x46) || (c >= 0x61 && c <= 0x66);
+const DOT = 0x2e;
+const HYPHEN = 0x2d;
+const COLON = 0x3a;
+const MAX_PORT_DIGITS = 5;
+
+// Letters, digits, dots and hyphens that neither start nor end with a dot or
+// a hyphen, or an IPv6 literal in square brackets; then at most a colon and a
+// port of 1 to 5 digits. One pass over the text, no pattern.
+function isHostAndPort(authority: string): boolean {
+  let i = 0;
+  if (authority.charAt(0) === '[') {
+    i = 1;
+    while (i < authority.length && authority.charAt(i) !== ']') {
+      const c = authority.charCodeAt(i);
+      if (!isHex(c) && c !== COLON && c !== DOT) return false;
+      i++;
+    }
+    if (i === authority.length) return false;
+    i++;
+  } else {
+    while (i < authority.length && authority.charCodeAt(i) !== COLON) {
+      const c = authority.charCodeAt(i);
+      if (!isLetter(c) && !isDigit(c) && c !== DOT && c !== HYPHEN) return false;
+      i++;
+    }
+    if (i === 0) return false;
+    const first = authority.charCodeAt(0);
+    const last = authority.charCodeAt(i - 1);
+    if (first === DOT || first === HYPHEN || last === DOT || last === HYPHEN) return false;
+  }
+  if (i === authority.length) return true;
+  // What follows the host is a colon and the port.
+  if (authority.charCodeAt(i) !== COLON) return false;
+  const digits = authority.length - i - 1;
+  if (digits < 1 || digits > MAX_PORT_DIGITS) return false;
+  for (let j = i + 1; j < authority.length; j++) {
+    if (!isDigit(authority.charCodeAt(j))) return false;
+  }
+  return true;
 }

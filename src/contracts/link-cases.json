@@ -5,6 +5,7 @@
     "It starts with http:// or https://, compared without case, and the character after // is not /, \\, @ or :.",
     "No @ before the first /, ? or # after the host starts: no user info, with or without a password.",
     "No % before the first /, ? or # after the host starts: no percent sign in the host, the port or anything else before the path. After the path starts a percent sign is fine.",
+    "Before the first /, ? or # after the host starts there is only a host and at most a port: ASCII letters, digits, . and -, not starting or ending with . or -, or an IPv6 literal of hex digits, : and . inside [ and ]; then at most a : and 1 to 5 digits. No quote, bracket, underscore, semicolon or other punctuation there. After the path starts punctuation is fine.",
     "At most 500 characters. A slot may set a lower limit of its own; its own tests cover that.",
     "These checks run on the raw string before any URL parser sees it, because the browser's URL parser and the .NET one disagree on the cases below. The parser then still has to find a host."
   ],
@@ -307,6 +308,62 @@
     },
     {
       "value": "https://example.org/a%20b?c=%2F#d%41",
+      "ok": true
+    },
+    {
+      "value": "http://example.org\"onclick=\"alert(1)",
+      "ok": false
+    },
+    {
+      "value": "https://example.org'x/",
+      "ok": false
+    },
+    {
+      "value": "https://exa<mple.org/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org(1)/",
+      "ok": false
+    },
+    {
+      "value": "https://exam_ple.org/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org;x/",
+      "ok": false
+    },
+    {
+      "value": "https://.example.org/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org-/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org:port/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org:123456/",
+      "ok": false
+    },
+    {
+      "value": "https://[::1/",
+      "ok": false
+    },
+    {
+      "value": "https://[::g]/",
+      "ok": false
+    },
+    {
+      "value": "https://[::1]:8080/",
+      "ok": true
+    },
+    {
+      "value": "https://a-b.example.org/path?q=\"x\"#'y'",
       "ok": true
     }
   ]

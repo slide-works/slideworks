@@ -72,6 +72,24 @@ public class LinkSlotTests
         Errors(value).ShouldBe([PATH + ": must not hold a percent sign before the path; write the host and port as they are"]);
     }
 
+    // Rule 7. What sits before the path is a host and at most a port: a quote or a bracket there could end the href.
+    [TestCase("http://example.org\"onclick=\"alert(1)")]
+    [TestCase("https://example.org'x/")]
+    [TestCase("https://exa<mple.org/")]
+    [TestCase("https://example.org(1)/")]
+    [TestCase("https://exam_ple.org/")]
+    [TestCase("https://example.org;x/")]
+    [TestCase("https://.example.org/")]
+    [TestCase("https://example.org-/")]
+    [TestCase("https://example.org:port/")]
+    [TestCase("https://example.org:123456/")]
+    [TestCase("https://[::1/")]
+    [TestCase("https://[::g]/")]
+    public void Validate_WhenTheAuthorityHoldsPunctuation_ShouldRefuse(string value)
+    {
+        Errors(value).ShouldBe([PATH + ": must hold only letters, digits, dots and hyphens in the host, then at most a colon and a port number"]);
+    }
+
     [TestCase("https://@example.org/")]
     [TestCase("https://:pw@example.org/")]
     [TestCase("https://example.org:99999/")]

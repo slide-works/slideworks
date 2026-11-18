@@ -15,6 +15,8 @@ public sealed class LinkSlot(int max = LinkSlot.MAX_LENGTH) : ISlotType
     private const string NOT_AN_ADDRESS = "must be an http or https address, such as https://example.com/page";
     private const string USER_INFO = "must not hold a user name or password";
     private const string PERCENT_IN_AUTHORITY = "must not hold a percent sign before the path; write the host and port as they are";
+    private const string NOT_A_HOST = "must hold only letters, digits, dots and hyphens in the host, then at most a colon and a port number";
+    private const int MAX_PORT_DIGITS = 5;
 
     private static readonly string[] _schemes = ["http://", "https://"];
 
@@ -87,6 +89,18 @@ public sealed class LinkSlot(int max = LinkSlot.MAX_LENGTH) : ISlotType
             return PERCENT_IN_AUTHORITY;
         }
 
+        // What is left before the path is a host name, an IPv4 address or an IPv6 literal, and at most a
+        // port. Anything else (a quote, a bracket, a semicolon) could end the attribute the link is drawn in.
+        if (authority.Length == 0)
+        {
+            return NOT_AN_ADDRESS;
+        }
+
+        if (!IsHostAndPort(authority))
+        {
+            return NOT_A_HOST;
+        }
+
         // The parser has the last word: it must agree that this is an http or https address with a host.
         if (!Uri.TryCreate(text, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
@@ -97,4 +111,29 @@ public sealed class LinkSlot(int max = LinkSlot.MAX_LENGTH) : ISlotType
 
         return uri.UserInfo.Length == 0 ? null : USER_INFO;
     }
+
+    // Letters, digits, dots and hyphens that neither start nor end with a dot or a hyphen, or an IPv6
+    // literal in square brackets; then at most a colon and a port. One pass over the text, no pattern.
+    private static bool IsHostAndPort(string authority)
+    {
+        if (authority[0] == '[')
+        {
+            var close = authority.IndexOf(']');
+            return close >= 0
+                && authority[1..close].All(c => char.IsAsciiHexDigit(c) || c is ':' or '.')
+                && IsPortOrNothing(authority[(close + 1)..]);
+        }
+
+        var colon = authority.IndexOf(':');
+        var host = colon < 0 ? authority : authority[..colon];
+        return host.Length > 0
+            && host.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-')
+            && host[0] is not ('.' or '-')
+            && host[^1] is not ('.' or '-')
+            && IsPortOrNothing(authority[host.Length..]);
+    }
+
+    private static bool IsPortOrNothing(string rest) =>
+        rest.Length == 0
+        || (rest[0] == ':' && rest.Length is >= 2 and <= MAX_PORT_DIGITS + 1 && rest.Skip(1).All(char.IsAsciiDigit));
 }

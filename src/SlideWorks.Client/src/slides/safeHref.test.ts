@@ -63,6 +63,25 @@ describe('safeHref', () => {
     expect(safeHref('https://example.org#a@b%20c')).toBe('https://example.org#a@b%20c');
   });
 
+  it('refuses punctuation in the authority: only a host and a port sit before the path', () => {
+    for (const value of [
+      'http://example.org"onclick="alert(1)',
+      "https://example.org'x/",
+      'https://exa<mple.org/',
+      'https://example.org(1)/',
+      'https://exam_ple.org/',
+      'https://example.org;x/',
+      'https://.example.org/',
+      'https://example.org-/',
+      'https://example.org:port/',
+      'https://example.org:123456/',
+      'https://[::1/',
+      'https://[::g]/',
+    ]) {
+      expect(safeHref(value)).toBeUndefined();
+    }
+  });
+
   it('refuses an address with no host', () => {
     for (const value of [
       'http://',
