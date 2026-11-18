@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using SlideWorks.WebApi.Features.Templates.Assets;
 using SlideWorks.WebApi.Infrastructure.Rendering;
 
 namespace SlideWorks.WebApi.Tests.Support;
@@ -27,6 +28,22 @@ public sealed class FakeRenderEngine : IRenderEngine
 
     // When set, every render throws this instead of returning the PNG.
     public Exception? ThrowOnRender { get; set; }
+
+    // The raw width MeasureFontAsync answers: by default the built-in body font's, so a test font reads 0.56 em.
+    public double MeasuredRaw { get; set; } = FontMeasure.REFERENCE;
+
+    // When set, every font measure throws this instead of answering MeasuredRaw.
+    public Exception? ThrowOnMeasure { get; set; }
+
+    private int _measureCalls;
+
+    public int MeasureCalls => Volatile.Read(ref _measureCalls);
+
+    public Task<double> MeasureFontAsync(byte[] woff2, CancellationToken ct)
+    {
+        Interlocked.Increment(ref _measureCalls);
+        return ThrowOnMeasure == null ? Task.FromResult(MeasuredRaw) : Task.FromException<double>(ThrowOnMeasure);
+    }
 
     public void ThrowUnavailable() => ThrowOnRender = new RendererUnavailableException("Card rendering isn't available");
 
