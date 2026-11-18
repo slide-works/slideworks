@@ -213,6 +213,7 @@
   left: 0;
   height: var(--sw-progress-bar);
   background: var(--sw-accent);
+  background-image: linear-gradient(to right, var(--sw-accent), var(--sw-accent-2));
 }
 
 /* On a dark slide the bar is the accent's glow, softened, as the night

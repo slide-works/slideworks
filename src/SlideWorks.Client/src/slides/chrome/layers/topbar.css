@@ -1,0 +1,19 @@
+/* The template's top accent bar (D13): 8 px across the full slide, where
+   today's top strip sits. */
+.sw-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: var(--sw-accent);
+}
+
+/* The chromeless slides have no top strip, and a deep dive's own strip wins. */
+.sw-frame[data-layout='title'] .sw-top-bar,
+.sw-frame[data-layout='divider'] .sw-top-bar,
+.sw-frame[data-layout='close'] .sw-top-bar,
+.sw-frame[data-layout='join'] .sw-top-bar,
+.sw-frame[data-deep-dive='true'] .sw-top-bar {
+  display: none;
+}
