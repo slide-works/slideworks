@@ -525,7 +525,7 @@ test('the sheet follows the visual viewport so the keyboard does not cover Send'
   await expect
     .poll(async () => {
       const box = await send.boundingBox();
-      return box !== null && box.y >= 100 && box.y + box.height <= 450;
+      return box !== null && box.y >= 100 && box.y + box.height > 350 && box.y + box.height <= 450;
     })
     .toBe(true);
 });
