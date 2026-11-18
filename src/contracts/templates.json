@@ -15,6 +15,16 @@
         "quote",
         "image",
         "chart",
+        "cards",
+        "numbered-cards",
+        "rules",
+        "table",
+        "statement",
+        "links",
+        "stack",
+        "bars",
+        "flow",
+        "levels",
         "close"
       ],
       "chrome": {
@@ -77,6 +87,12 @@
         "numbered-cards",
         "rules",
         "cards",
+        "statement",
+        "links",
+        "stack",
+        "bars",
+        "flow",
+        "levels",
         "close"
       ],
       "chrome": {
@@ -136,6 +152,10 @@
         "gantt",
         "numbered-cards",
         "cards",
+        "stack",
+        "bars",
+        "flow",
+        "levels",
         "close"
       ],
       "chrome": {
