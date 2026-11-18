@@ -123,7 +123,7 @@ public class TemplateRoutesShapeTests : ApiTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var view = await response.Content.ReadFromJsonAsync<JsonElement>();
         JsonShape.AssertMatches(view, TemplateScreenShapes.LAYOUT_REVIEW_FILE, TemplateScreenShapes.LayoutReview);
-        view.GetProperty("layout").GetProperty("slots").GetArrayLength().ShouldBe(1);
+        view.GetProperty("layout").GetProperty("slots").EnumerateObject().Count().ShouldBe(3);
         Publishing.Calls().ShouldContain("LayoutReview tpl_review000001 stage-ladder");
     }
 

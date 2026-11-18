@@ -1,6 +1,5 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
-using SlideWorks.Core.Look;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
@@ -9,6 +8,7 @@ using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Sharing;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Realtime;
@@ -25,7 +25,7 @@ public class SlideCommands(
     IActivityLog activity,
     IDeckEvents events,
     IPublicUrls urls,
-    ITemplateCatalogue templates,
+    ITemplates templates,
     PollRows pollRows,
     TimeProvider clock)
 {
@@ -38,14 +38,10 @@ public class SlideCommands(
             throw new NotFoundException(DeckReader.NOT_FOUND);
         }
         var slots = request.Slots;
-        await SlideChecks.ValidateAsync(images, request.Deck, request.Layout, slots);
-        if (request.Notes is { Length: > SlideChecks.NOTES_MAX_LENGTH })
-        {
-            throw new BadRequestException($"notes: at most {SlideChecks.NOTES_MAX_LENGTH} characters");
-        }
 
         Slide slide;
         Deck deck;
+        ResolvedTemplate template;
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
             // EF opens a SQLite transaction with BEGIN IMMEDIATE, which takes the database's write lock at once, so writes run
@@ -53,6 +49,14 @@ public class SlideCommands(
             await db.Decks.Where(d => d.Id == request.Deck)
                 .ExecuteUpdateAsync(set => set.SetProperty(d => d.Revision, d => d.Revision + 1).SetProperty(d => d.UpdatedAt, clock.GetUtcNow()));
             deck = await db.Decks.AsNoTracking().SingleAsync(d => d.Id == request.Deck);
+
+            // Checked inside the transaction, against the template the deck has now. A refusal rolls the revision back.
+            template = await templates.ForDeckAsync(deck, CancellationToken.None);
+            var definition = await SlideChecks.ValidateAsync(images, deck.Id, template, request.Layout, slots, request.Surface);
+            if (request.Notes is { Length: > SlideChecks.NOTES_MAX_LENGTH })
+            {
+                throw new BadRequestException($"notes: at most {SlideChecks.NOTES_MAX_LENGTH} characters");
+            }
             SlideChecks.CheckPart(request.Part, DeckParts.Read(deck).Count);
             var count = await db.Slides.CountAsync(s => s.DeckId == deck.Id && s.DeletedAt == null);
             var position = Position(request.Position, count);
@@ -70,9 +74,10 @@ public class SlideCommands(
                 Part = request.Part,
                 SlotsJson = SlideJson.ForStorage(slots),
                 Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes,
-                Steps = SlideSteps.Count(request.Layout, slots),
+                Steps = SlideSteps.Count(definition, slots),
                 Revision = deck.Revision,
                 DeepDive = request.DeepDive ?? false,
+                Surface = request.Surface,
             };
             db.Slides.Add(slide);
             await db.SaveChangesAsync();
@@ -86,7 +91,7 @@ public class SlideCommands(
 
         await events.PublishAsync(new DeckChanged(deck.Id));
         var number = slide.Position + 1;
-        var warnings = LayoutWarnings.For(LookViews.TemplateOf(deck, templates), number, slide.Layout);
+        var warnings = LayoutWarnings.For(template.Template, number, slide.Layout);
         return new AddSlideResult(number, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, number), warnings);
     }
 
