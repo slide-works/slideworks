@@ -165,14 +165,14 @@ export function FontsTab({ draft, change, reload }: EditorTabProps) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         {FAMILIES.map(({ field, label }) => (
-          <div key={field} className="grid gap-1">
+          <div key={field} className="grid min-w-0 content-start gap-1">
             <label htmlFor={`${id}-${field}`} className="text-meta font-semibold text-ink-muted">
               {label}
             </label>
             <input
               id={`${id}-${field}`}
               type="text"
-              className="field"
+              className="field min-w-0"
               value={typed[field] ?? manifest.type[field]}
               aria-invalid={familyErrors[field] === undefined ? undefined : true}
               aria-describedby={

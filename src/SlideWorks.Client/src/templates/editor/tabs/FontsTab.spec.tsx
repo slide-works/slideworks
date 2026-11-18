@@ -269,5 +269,7 @@ test('screenshot: fonts tab with a refused file', async ({ mount, page }) => {
   await tab.getByRole('checkbox', { name: /right to serve/ }).check();
   await tab.locator('input[type=file]').setInputFiles(woff2('northwind-serif.woff2'));
   await expect(tab.getByRole('alert')).toBeVisible();
+  // Tall enough that the whole tab fits: scrolled, the app's sticky top bar would sit over the top of the shot.
+  await page.setViewportSize({ width: page.viewportSize()!.width, height: 1400 });
   await expect(tab).toHaveScreenshot('fonts-tab-refused.png');
 });

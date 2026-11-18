@@ -187,15 +187,18 @@ export function BasicsTab({ draft, change }: EditorTabProps) {
       </p>
     );
 
+  // content-start: in the two-column row the shorter cell (no hint) would otherwise stretch its rows to the taller
+  // cell's height, growing its input and pushing it down. min-w-0: an input's intrinsic width would hold its column
+  // wider than the card.
   const textInput = (field: 'label' | 'name' | 'purpose', title: string, hint?: ReactNode) => (
-    <div className="grid gap-1">
+    <div className="grid min-w-0 content-start gap-1">
       <label htmlFor={`${id}-${field}`} className="text-meta font-semibold text-ink-muted">
         {title}
       </label>
       <input
         id={`${id}-${field}`}
         type="text"
-        className="field"
+        className="field min-w-0"
         value={textOf(field)}
         aria-invalid={invalid(field)}
         aria-describedby={described(field, hint ? `${id}-${field}-hint` : '')}

@@ -14,6 +14,9 @@
   color: transparent;
   font: 800 240px/0.9 var(--sw-font-head);
   letter-spacing: -0.05em;
+  /* background-clip: text paints only inside the box, and the negative tracking ends the box before the last glyph's
+     ink (the right leg of an A, the bowl of a 5). The padding gives that ink its gradient back. */
+  padding-inline-end: 0.1em;
 }
 
 .heading {

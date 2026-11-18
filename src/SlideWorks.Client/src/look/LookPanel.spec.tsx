@@ -352,7 +352,15 @@ test('draws a template name as text, never markup', async ({ mount, page }) => {
 test('screenshot: look panel with a version offer', async ({ mount, page }) => {
   await page.setViewportSize({ width: 480, height: 900 });
   await stubUpdate(page, { status: 200, json: lookChangeResult });
+  await page.route(`**/api/cards/${deckPage.id}.png*`, (route) =>
+    route.fulfill({ path: 'src/test-support/fixtures/sample-image.png', contentType: 'image/png' }),
+  );
   const panel = await mount(<LookPanel deck={deckBehind()} onSaved={() => {}} />);
   await expect(panel.getByTestId('look-version-offer')).toBeVisible();
+  await expect
+    .poll(() =>
+      panel.getByTestId('look-card').evaluate((img: HTMLImageElement) => img.naturalWidth),
+    )
+    .toBeGreaterThan(0);
   await expect(panel).toHaveScreenshot('look-panel-version-offer.png');
 });
