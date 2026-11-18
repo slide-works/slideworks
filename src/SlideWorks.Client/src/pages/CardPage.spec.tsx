@@ -9,11 +9,11 @@ import { stubApi } from '../test-support/stubApi';
 const DECK = 'deck123';
 const TOKEN = 'card-token';
 const cardPath = `/api/render/${DECK}/card`;
-// The card sample is a built-in deck's, with no title art. The page draws its waves from the template's title art, so
-// the cards mounted here name it themselves.
+// The card sample is a built-in deck's, with no title art. The page draws the look's art, so the cards mounted here
+// name the waves themselves.
 const card: CardView = {
   ...sampleCard,
-  look: { ...sampleCard.look, template: { ...sampleCard.look.template, titleArt: 'waves' } },
+  look: { ...sampleCard.look, art: { kind: 'generator', generator: 'waves', url: null } },
 };
 const linkCard: CardView = {
   ...card,
@@ -176,6 +176,65 @@ test('generic card says only SlideWorks and makes no request', async ({ mount, p
   await expect(shareCard).toHaveAttribute('data-generic', 'true');
   await expect(shareCard).toHaveText('SlideWorks');
   expect(requests).toEqual([]);
+});
+
+test("card page draws the look's waves in accent-2", async ({ mount, page }) => {
+  await stubCard(page, linkCard);
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  const shareCard = page.getByTestId('share-card');
+  await expect(shareCard).toHaveAttribute('data-ready', 'true');
+  const waves = shareCard.locator('svg path').first();
+  await expect(waves).toBeVisible();
+  const [stroke, accent] = await Promise.all([
+    waves.evaluate((el) => getComputedStyle(el).stroke),
+    shareCard.evaluate((el) => {
+      const probe = document.createElement('i');
+      probe.style.color = 'var(--sw-accent-2)';
+      el.appendChild(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    }),
+  ]);
+  expect(stroke).toBe(accent);
+});
+
+test('card page draws an uploaded art image', async ({ mount, page }) => {
+  const url = '/api/templates/tpl_t/assets/art';
+  await page.route(`**${url}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      body: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+        'base64',
+      ),
+    }),
+  );
+  await stubCard(page, {
+    ...linkCard,
+    look: { ...linkCard.look, art: { kind: 'image', generator: null, url } },
+  });
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  const shareCard = page.getByTestId('share-card');
+  await expect(shareCard).toHaveAttribute('data-ready', 'true');
+  await expect(shareCard.locator(`img[src='${url}']`)).toHaveCount(1);
+  await expect(shareCard.locator('svg')).toHaveCount(0);
+});
+
+test('card page draws no art when the look has none', async ({ mount, page }) => {
+  await stubCard(page, {
+    ...linkCard,
+    look: { ...linkCard.look, art: { kind: 'none', generator: null, url: null } },
+  });
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  const shareCard = page.getByTestId('share-card');
+  await expect(shareCard).toHaveAttribute('data-ready', 'true');
+  await expect(shareCard.locator('svg')).toHaveCount(0);
+  await expect(shareCard.locator('img')).toHaveCount(0);
 });
 
 // Baselines come from CI's playwright job (ct-new-baselines), never this host.

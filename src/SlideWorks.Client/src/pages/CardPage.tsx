@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
+import type { LookArt } from '../api/look';
 import type { CardView } from '../api/types';
 import { fontsSettled } from '../look/fontsSettled';
 import { lookStyle } from '../look/lookStyle';
@@ -152,9 +153,8 @@ function ShareCard({ deckId, card, logo, error, loading = false }: ShareCardProp
       className={styles.card}
       style={card && !card.generic ? lookStyle(card.look) : undefined}
     >
-      {shown && (card === undefined || card.generic || card.look.template.titleArt === 'waves') && (
-        <Waves />
-      )}
+      {shown && (card === undefined || card.generic) && <Waves />}
+      {shown && card !== undefined && !card.generic && <CardArt art={card.look.art} />}
       {shown && generic && <h1 className={styles.title}>SlideWorks</h1>}
       {shown && !generic && card && (
         <>
@@ -199,11 +199,22 @@ function slidesLabel(count: number): string {
   return count === 1 ? '1 slide' : `${count} slides`;
 }
 
-// The waves title art (mockups section 09), stroked with the palette's glow.
-function Waves() {
+// A deck card's art from its look: the waves generator in accent-2, an uploaded
+// image, or nothing. A generator it does not know draws nothing.
+function CardArt({ art }: { art: LookArt }) {
+  if (art.kind === 'generator' && art.generator === 'waves') return <Waves tone="deck" />;
+  if (art.kind === 'image' && art.url !== null) {
+    return <img className={`${styles.art} ${styles.artImage}`} src={art.url} alt="" />;
+  }
+  return null;
+}
+
+// The waves title art (mockups section 09), stroked with the palette's glow, or
+// with accent-2 on a deck card.
+function Waves({ tone = 'glow' }: { tone?: 'glow' | 'deck' }) {
   return (
     <svg
-      className={styles.art}
+      className={tone === 'deck' ? `${styles.art} ${styles.artDeck}` : styles.art}
       viewBox="0 0 1920 1080"
       preserveAspectRatio="none"
       aria-hidden="true"
