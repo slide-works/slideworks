@@ -386,9 +386,10 @@ function nullPaths(value: unknown, path = '$'): string[] {
 }
 
 // What a built-in template leaves null in a look (T7), in the order the look holds them; the server's
-// ScreenShapes.LookNullablePaths declares the same six. The deck samples show a built-in deck as the server sends it, so
+// ScreenShapes.BuiltInLookNullablePaths declares the same seven: a built-in has no title art either. The deck samples show a built-in deck as the server sends it, so
 // these are their only nulls; template-public.json is the sample of an uploaded template, with every one filled.
 const LOOK_NULLABLE = [
+  'template.titleArt',
   'logos.light',
   'logos.dark',
   'art.generator',

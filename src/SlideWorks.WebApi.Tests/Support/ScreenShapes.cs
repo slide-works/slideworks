@@ -13,6 +13,10 @@ public static class ScreenShapes
         "look.logos.light", "look.logos.dark", "look.art.generator", "look.art.url", "look.templateVersion", "look.latestVersion",
     ];
 
+    // What a built-in deck's look leaves null in a sample: the six above and its template's title art, which no built-in
+    // has. The art above is derived from it, so a sample with a title art beside art "none" is one the server cannot send.
+    public static readonly IReadOnlyList<string> BuiltInLookNullablePaths = ["look.template.titleArt", .. LookNullablePaths];
+
     public static readonly JsonShapeOptions DecksLibrary = new()
     {
         NullablePaths = ["decks[].subtitle", "decks[].lastChange", "sharedWithMe[].subtitle", "sharedWithMe[].lastChange"],
@@ -99,7 +103,7 @@ public static class ScreenShapes
         [
             "live.state.activity", "lobby.deckUrl", "lobby.state.current", "lobby.state.activity", "lobby.state.room",
             "ended.state.current", "ended.state.activity", "ended.state.room",
-            .. LookNullablePathsUnder("live."), .. LookNullablePathsUnder("lobby."), .. LookNullablePathsUnder("ended."),
+            .. BuiltInLookNullablePathsUnder("live."), .. BuiltInLookNullablePathsUnder("lobby."), .. BuiltInLookNullablePathsUnder("ended."),
         ],
         OpaquePaths = ["live.state.current.slots"],
     };
@@ -227,11 +231,11 @@ public static class ScreenShapes
     // may be null (T7), under the look's place in the file.
     private static JsonShapeOptions BuiltInLookFile(string under = "") => new()
     {
-        NullablePaths = LookNullablePathsUnder(under),
+        NullablePaths = BuiltInLookNullablePathsUnder(under),
         OpaquePaths = ["slides[].slots"],
     };
 
-    private static IReadOnlyList<string> LookNullablePathsUnder(string prefix) => LookNullablePaths.Select(path => prefix + path).ToList();
+    private static IReadOnlyList<string> BuiltInLookNullablePathsUnder(string prefix) => BuiltInLookNullablePaths.Select(path => prefix + path).ToList();
 
     // The nullable and opaque paths for each screen file when JsonShapeTests checks a sample against itself. A file with
     // no entry is checked with slides[].slots opaque, which is every play-shaped screen. The six deck samples show a

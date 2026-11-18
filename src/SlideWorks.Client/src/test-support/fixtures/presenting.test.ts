@@ -150,6 +150,7 @@ function nullPaths(value: unknown, path = '$'): string[] {
 // What a built-in template leaves null in a look (T7): the presenter sample shows a built-in deck as the server sends
 // it, so these are its only nulls.
 const BUILT_IN_LOOK_NULLS = [
+  '$.look.template.titleArt',
   '$.look.logos.light',
   '$.look.logos.dark',
   '$.look.art.generator',

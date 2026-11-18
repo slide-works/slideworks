@@ -7,8 +7,9 @@ namespace SlideWorks.WebApi.Tests.Look;
 
 // The six deck samples in src/contracts/screens show a built-in deck exactly as the server sends it (T7): they are the
 // client's fixtures, so a made-up logo url or version in one would be drawn by every fixture deck. Each sample's look is
-// held against the play view of a real deck on the sample's template: the same members null, the same art kind, the
-// same empty lists. template-public.json is the sample of an uploaded template, and is not checked here.
+// held against the play view of a real deck on the sample's template: the same members null (the template's title art
+// among them), the same art kind, the same empty lists. template-public.json is the sample of an uploaded template, and
+// is not checked here.
 [TestFixture]
 public class BuiltInLookSamplesTests : ApiTestFixture
 {
@@ -34,14 +35,14 @@ public class BuiltInLookSamplesTests : ApiTestFixture
         var real = (await Client.GetFromJsonAsync<JsonElement>($"/api/play/{deck}")).GetProperty("look");
 
         WhatTheTemplateBrings(sample).ShouldBe(WhatTheTemplateBrings(real), $"{file} {lookPath}");
-        ScreenShapes.LookNullablePaths.Where(path => At(real, path).ValueKind != JsonValueKind.Null).ShouldBeEmpty();
+        ScreenShapes.BuiltInLookNullablePaths.Where(path => At(real, path).ValueKind != JsonValueKind.Null).ShouldBeEmpty();
     }
 
     // The part of a look that comes from the template's files: which nullable members are null, and every value a
     // built-in sends the same for every deck.
     private static string WhatTheTemplateBrings(JsonElement look)
     {
-        var nulls = ScreenShapes.LookNullablePaths.Select(path => $"{path}: {(At(look, path).ValueKind == JsonValueKind.Null ? "null" : "set")}");
+        var nulls = ScreenShapes.BuiltInLookNullablePaths.Select(path => $"{path}: {(At(look, path).ValueKind == JsonValueKind.Null ? "null" : "set")}");
         var lists = _emptyForABuiltIn.Select(name => $"{name}: {look.GetProperty(name).GetArrayLength()}");
         string[] values =
         [
@@ -54,7 +55,7 @@ public class BuiltInLookSamplesTests : ApiTestFixture
         return string.Join("; ", [.. nulls, .. lists, .. values]);
     }
 
-    // The member of a look at one of ScreenShapes.LookNullablePaths, which are written from the screen ("look.art.url").
+    // The member of a look at one of ScreenShapes.BuiltInLookNullablePaths, which are written from the screen ("look.art.url").
     private static JsonElement At(JsonElement look, string path)
         => path.Split('.').Skip(1).Aggregate(look, (element, name) => element.GetProperty(name));
 }
