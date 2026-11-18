@@ -8,12 +8,42 @@ public sealed record DeckLookView(
     LookTemplateView Template,
     LookPaletteView Palette,
     LookLogoView? Logo,
+    IReadOnlyList<LookFontView> Fonts,
+    LookLogosView Logos,
+    LookArtView Art,
+    LookOrnamentView Ornament,
+    string TopBar,
+    string TemplateRef,
+    int? TemplateVersion,
+    int? LatestVersion,
+    IReadOnlyList<LookExtraView> Extras,
+    IReadOnlyList<LookCustomLayoutView> CustomLayouts,
     bool Draft,
     string FooterDateLabel,
     bool JoinBar,
+    bool TemplateMissing,
     ChromeOverridesView ChromeOverrides,
     ContrastView Contrast)
 {
     public static DeckLookView From(LookView look, ChromeOverridesView overrides, Palette palette)
-        => new(look.Template, look.Palette, look.Logo, look.Draft, look.FooterDateLabel, look.JoinBar, overrides, ContrastView.From(palette));
+        => new(
+            look.Template,
+            look.Palette,
+            look.Logo,
+            look.Fonts,
+            look.Logos,
+            look.Art,
+            look.Ornament,
+            look.TopBar,
+            look.TemplateRef,
+            look.TemplateVersion,
+            look.LatestVersion,
+            look.Extras,
+            look.CustomLayouts,
+            look.Draft,
+            look.FooterDateLabel,
+            look.JoinBar,
+            look.TemplateMissing,
+            overrides,
+            ContrastView.From(palette));
 }

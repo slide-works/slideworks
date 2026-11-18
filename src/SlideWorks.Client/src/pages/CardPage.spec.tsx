@@ -2,13 +2,19 @@ import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page, Request } from 'playwright/test';
 import type { CardView } from '../api/types';
 import { AppRoutes } from '../AppRoutes';
-import { card } from '../test-support/fixtures/screens';
+import { card as sampleCard } from '../test-support/fixtures/screens';
 import { SAMPLE_IMAGE_ID } from '../test-support/fixtures/layoutSlots';
 import { stubApi } from '../test-support/stubApi';
 
 const DECK = 'deck123';
 const TOKEN = 'card-token';
 const cardPath = `/api/render/${DECK}/card`;
+// The card sample is a built-in deck's, with no title art. The page draws its waves from the template's title art, so
+// the cards mounted here name it themselves.
+const card: CardView = {
+  ...sampleCard,
+  look: { ...sampleCard.look, template: { ...sampleCard.look.template, titleArt: 'waves' } },
+};
 const linkCard: CardView = {
   ...card,
   look: { ...card.look, logo: null },

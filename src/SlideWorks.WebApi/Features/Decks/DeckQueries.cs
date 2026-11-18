@@ -62,7 +62,7 @@ public class DeckQueries(
             await joinViews.ForAsync(deck),
             SharingSummary.From(deck.Sharing, viewerCount),
             DeckParts.Read(deck),
-            await looks.ForPageAsync(deck, CancellationToken.None),
+            looks.PageOf(deck, template),
             slides.Select(slide => DeckPageSlide.From(deck, slide, template)).ToList(),
             entries.Select(entry => ActivityRow.From(entry, DisplayDate.Ago(entry.At, now))).ToList());
     }

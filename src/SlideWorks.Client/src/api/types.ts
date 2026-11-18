@@ -2,7 +2,9 @@
 // are src/contracts/screens/*.json at the repo's src/ level. Dates arrive
 // pre-formatted (`updatedLabel`, `atLabel`), never as ISO strings for the browser
 // to parse — see .claude/skills/no-browser-datetime.
+import type { CustomLayoutView } from '../slides/custom/layoutTree';
 import type { LayoutName, Slots } from '../slides/slots';
+import type { LookArt, LookExtra, LookFont, LookLogos, LookOrnament, TopBar } from './look';
 
 export type ActorKind = 'agent' | 'person';
 export type Via = 'mcp' | 'web';
@@ -255,11 +257,28 @@ export type LookTemplate = {
 
 export type LookPalette = { name: string; label: string; tokens: PaletteTokens };
 
-// Image URLs are root-relative (/api/images/{id}).
+// Image URLs are root-relative (/api/images/{id}). logo is the deck's own; fonts,
+// logos, art, ornament, extras and customLayouts are what its template brings
+// (SW-50 T7), all empty for a built-in.
 export type LookView = {
   template: LookTemplate;
   palette: LookPalette;
   logo: { url: string } | null;
+  fonts: LookFont[];
+  logos: LookLogos;
+  art: LookArt;
+  ornament: LookOrnament;
+  // The deck's override, else the template's.
+  topBar: TopBar;
+  // What the deck stores: a built-in's name or an uploaded template's tpl_… id,
+  // the version the deck is pinned to and the template's latest (null on a built-in).
+  templateRef: string;
+  templateVersion: number | null;
+  latestVersion: number | null;
+  extras: LookExtra[];
+  customLayouts: CustomLayoutView[];
+  // True when the deck's template could not be resolved and the default look stands in.
+  templateMissing: boolean;
   draft: boolean;
   footerDateLabel: string;
   // Whether the join bar (the small QR and code on every slide while live) is on (SW-5 J6).
@@ -274,6 +293,7 @@ export type ChromeOverrides = {
   progress?: boolean | null;
   // Plain boolean, off by default (SW-5 D5): not an override of a template value.
   joinBar?: boolean;
+  topBar?: TopBar | null;
 };
 
 export type ContrastPair =
@@ -308,7 +328,8 @@ export type DeckPageLook = LookView & {
   contrast: ContrastSummary;
 };
 
-// GET /api/looks: the built-in templates and palettes, the same for everyone (D20).
+// GET /api/looks: the templates the caller may pick (the built-ins, their own
+// and the ones shared with them) and the palettes (D20, SW-50 T4).
 export type LooksTemplate = {
   name: string;
   label: string;
@@ -323,6 +344,13 @@ export type LooksTemplate = {
   titleArt: string | null;
   // The palette a locking template forces, or null.
   lockedPalette: string | null;
+  // What a deck stores: a built-in's name or an uploaded template's tpl_… id.
+  ref: string;
+  // The latest published version; null on a built-in.
+  version: number | null;
+  builtIn: boolean;
+  // Who uploaded it; null on a built-in and on the caller's own.
+  owner: string | null;
 };
 
 export type LooksPalette = {
@@ -340,6 +368,7 @@ export type LooksView = { templates: LooksTemplate[]; palettes: LooksPalette[] }
 // logo removes it, and a null chrome key resets it to the template's default.
 export type LookChangeRequest = {
   template?: string;
+  templateVersion?: number | 'latest';
   palette?: string;
   logo?: string | null;
   draft?: boolean;

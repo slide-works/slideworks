@@ -39,7 +39,8 @@ public class PresenterQueries(
             .Where(s => s.DeckId == deckId && s.DeletedAt == null)
             .OrderBy(s => s.Position)
             .ToListAsync();
-        return PresenterView.From(deck, slides, await templates.ForDeckAsync(deck, CancellationToken.None), await looks.ForAsync(deck, CancellationToken.None), await joinViews.ForAsync(deck), urls);
+        var template = await templates.ForDeckAsync(deck, CancellationToken.None);
+        return PresenterView.From(deck, slides, template, looks.Of(deck, template), await joinViews.ForAsync(deck), urls);
     }
 
     public Task<LivePresentationsView> LiveAsync()

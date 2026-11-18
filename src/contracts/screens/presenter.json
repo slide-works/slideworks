@@ -46,7 +46,7 @@
         "shadow": "0 1px 2px rgb(15 23 42 / 0.06), 0 14px 36px rgb(15 23 42 / 0.09)"
       },
       "ornament": "dots",
-      "titleArt": "waves"
+      "titleArt": null
     },
     "palette": {
       "name": "cobalt",
@@ -99,9 +99,30 @@
     "logo": {
       "url": "/api/images/img_logo0001"
     },
+    "fonts": [],
+    "logos": {
+      "light": null,
+      "dark": null,
+      "showOnDark": false
+    },
+    "art": {
+      "kind": "none",
+      "generator": null,
+      "url": null
+    },
+    "ornament": {
+      "colours": []
+    },
+    "topBar": "none",
+    "templateRef": "workshop",
+    "templateVersion": null,
+    "latestVersion": null,
+    "extras": [],
+    "customLayouts": [],
     "draft": true,
     "footerDateLabel": "16 Nov 2026",
-    "joinBar": false
+    "joinBar": false,
+    "templateMissing": false
   },
   "join": {
     "code": "482913",

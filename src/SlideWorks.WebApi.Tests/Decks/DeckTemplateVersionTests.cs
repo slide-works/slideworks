@@ -117,6 +117,61 @@ public class DeckTemplateVersionTests : ApiTestFixture
         byDefault.GetProperty("look").GetProperty("templateVersion").ValueKind.ShouldBe(JsonValueKind.Null);
     }
 
+    // The real service answers a pinned version with the template's latest published version; the fake answers what was
+    // added last, so version 1 is added again once version 2 is out.
+    [Test]
+    public async Task GetDeck_WhenTheTemplateHasANewerPublishedVersion_ShouldSayAnUpdateIsAvailable()
+    {
+        Templates.Add(Uploaded("tpl_getbehind001", version: 1, latest: 1));
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = (await CreateOnTheWireAsync(agent, """{"title":"Behind","template":"tpl_getbehind001"}""")).GetProperty("deck").GetString()!;
+        var before = await GetLookOnTheWireAsync(agent, deck);
+        Templates.Add(Uploaded("tpl_getbehind001", version: 2, latest: 2));
+        Templates.Add(Uploaded("tpl_getbehind001", version: 1, latest: 2));
+
+        var after = await GetLookOnTheWireAsync(agent, deck);
+
+        before.GetProperty("templateVersion").GetInt32().ShouldBe(1);
+        before.GetProperty("updateAvailable").GetBoolean().ShouldBeFalse();
+        after.GetProperty("template").GetString().ShouldBe("tpl_getbehind001");
+        after.GetProperty("templateVersion").GetInt32().ShouldBe(1);
+        after.GetProperty("updateAvailable").GetBoolean().ShouldBeTrue();
+        after.EnumerateObject().Select(p => p.Name).ShouldBe(["template", "palette", "logo", "draft", "chrome", "templateVersion", "updateAvailable"], ignoreOrder: true);
+    }
+
+    [Test]
+    public async Task GetDeck_WhenBuiltIn_ShouldSayNoUpdateAndNoVersion()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = (await CreateOnTheWireAsync(agent, """{"title":"Built in","template":"workshop"}""")).GetProperty("deck").GetString()!;
+
+        var look = await GetLookOnTheWireAsync(agent, deck);
+
+        look.GetProperty("templateVersion").ValueKind.ShouldBe(JsonValueKind.Null);
+        look.GetProperty("updateAvailable").GetBoolean().ShouldBeFalse();
+    }
+
+    // set_look answers in get_deck's terms: a move pins the latest version, so nothing newer is waiting.
+    [Test]
+    public async Task SetLook_WhenMovedToAnUploadedTemplate_ShouldAnswerItsVersionAndNoUpdate()
+    {
+        Templates.Add(Uploaded("tpl_setanswer001", version: 1, latest: 2));
+        Templates.Add(Uploaded("tpl_setanswer001", version: 2, latest: 2));
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = (await CreateOnTheWireAsync(agent, """{"title":"Moved"}""")).GetProperty("deck").GetString()!;
+
+        var set = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "set_look", $$"""{"deck":"{{deck}}","template":"tpl_setanswer001"}""");
+
+        var look = set.GetProperty("structuredContent").GetProperty("look");
+        look.GetProperty("templateVersion").GetInt32().ShouldBe(2);
+        look.GetProperty("updateAvailable").GetBoolean().ShouldBeFalse();
+        (await GetLookOnTheWireAsync(agent, deck)).GetRawText().ShouldBe(look.GetRawText());
+    }
+
+    // get_deck's look on the raw JSON-RPC wire.
+    private async Task<JsonElement> GetLookOnTheWireAsync(McpTestClient agent, string deck)
+        => (await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "get_deck", $$"""{"deck":"{{deck}}"}""")).GetProperty("structuredContent").GetProperty("look");
+
     // create_deck on the raw JSON-RPC wire: the structured result as an agent's client reads it.
     private async Task<JsonElement> CreateOnTheWireAsync(McpTestClient agent, string argumentsJson)
         => (await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "create_deck", argumentsJson)).GetProperty("structuredContent");

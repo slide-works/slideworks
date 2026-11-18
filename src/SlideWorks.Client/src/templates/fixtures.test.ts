@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LookView } from '../api/types';
 import type { CustomLayoutView } from '../slides/custom/layoutTree';
+import { uploadedLook } from '../test-support/fixtures/lookViewOf';
 import {
   layoutReview,
   templateChecklist,
@@ -26,6 +27,14 @@ import type {
   TemplateVersion,
   TemplatesView,
 } from './types';
+
+function nullPaths(value: unknown, path = '$'): string[] {
+  if (value === null) return [path];
+  if (Array.isArray(value)) return value.flatMap((item, i) => nullPaths(item, `${path}[${i}]`));
+  if (typeof value === 'object')
+    return Object.entries(value).flatMap(([key, item]) => nullPaths(item, `${path}.${key}`));
+  return [];
+}
 
 // The run-time half of the tie between the Templates screen samples (src/contracts/screens) and
 // the client's types: `satisfies` in fixtures/templates.ts checks field names and value kinds but
@@ -238,12 +247,35 @@ describe('the template sharing and public samples', () => {
         template: true,
         palette: true,
         logo: true,
+        fonts: true,
+        logos: true,
+        art: true,
+        ornament: true,
+        topBar: true,
+        templateRef: true,
+        templateVersion: true,
+        latestVersion: true,
+        extras: true,
+        customLayouts: true,
+        templateMissing: true,
         joinBar: true,
         footerDateLabel: true,
         draft: true,
       },
       'public.look',
     );
+  });
+
+  // The sample of an uploaded template: every member a template can bring is filled, so the full shape stays pinned
+  // (the deck samples show a built-in, with nulls). An art has a generator or a file, never both: the one null.
+  it('fills every member of the look but the art generator an image art cannot have', () => {
+    expect(nullPaths(templatePublic.look)).toEqual(['$.art.generator']);
+    expect(templatePublic.look.art.kind).toBe('image');
+    expect(templatePublic.look.fonts.length).toBeGreaterThan(0);
+    expect(templatePublic.look.extras.length).toBeGreaterThan(0);
+    expect(templatePublic.look.ornament.colours.length).toBeGreaterThan(0);
+    expect(templatePublic.look.topBar).toBe('accent');
+    expect(uploadedLook).toEqual(templatePublic.look);
   });
 });
 

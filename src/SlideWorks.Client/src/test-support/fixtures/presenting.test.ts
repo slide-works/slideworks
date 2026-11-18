@@ -139,9 +139,29 @@ function hasNull(value: unknown): boolean {
   return typeof value === 'object' && Object.values(value).some(hasNull);
 }
 
+function nullPaths(value: unknown, path = '$'): string[] {
+  if (value === null) return [path];
+  if (Array.isArray(value)) return value.flatMap((item, i) => nullPaths(item, `${path}[${i}]`));
+  if (typeof value === 'object')
+    return Object.entries(value).flatMap(([key, item]) => nullPaths(item, `${path}.${key}`));
+  return [];
+}
+
+// What a built-in template leaves null in a look (T7): the presenter sample shows a built-in deck as the server sends
+// it, so these are its only nulls.
+const BUILT_IN_LOOK_NULLS = [
+  '$.look.template.titleArt',
+  '$.look.logos.light',
+  '$.look.logos.dark',
+  '$.look.art.generator',
+  '$.look.art.url',
+  '$.look.templateVersion',
+  '$.look.latestVersion',
+];
+
 describe('the presenting samples', () => {
   it('give every nullable field a non-null value', () => {
-    expect(hasNull(presenterView())).toBe(false);
+    expect(nullPaths(presenterView())).toEqual(BUILT_IN_LOOK_NULLS);
     expect(hasNull(presentationState())).toBe(false);
     expect(hasNull(livePresentations())).toBe(false);
   });

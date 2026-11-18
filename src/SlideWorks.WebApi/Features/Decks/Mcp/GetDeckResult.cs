@@ -29,7 +29,7 @@ public sealed record GetDeckResult(
             DeckParts.Read(deck),
             deck.Sharing,
             url,
-            GetDeckLook.From(deck),
+            GetDeckLook.From(deck, template),
             deck.TalkMinutes,
             slides.Select(slide => GetDeckSlide.From(slide, template)).ToList());
 }
