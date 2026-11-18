@@ -398,6 +398,8 @@ const LOOK_NULLABLE = [
   'latestVersion',
 ];
 const builtInLookNulls = LOOK_NULLABLE.map((member) => `$.look.${member}`);
+// The deck samples' four parts have no caption and no mark (K19), so those are null too, ahead of the look.
+const partNulls = [0, 1, 2, 3].flatMap((i) => [`$.parts[${i}].caption`, `$.parts[${i}].mark`]);
 
 function expectSlots(layout: string, slots: object) {
   expect(LAYOUT_NAMES).toContain(layout);
@@ -472,7 +474,8 @@ describe('screen JSON examples', () => {
   it('give every nullable field a non-null value', () => {
     for (const screen of [me, adminUsers, decksLibrary, sharing])
       expect(nullPaths(screen)).toEqual([]);
-    for (const screen of [deckPage, deckPlay]) expect(nullPaths(screen)).toEqual(builtInLookNulls);
+    for (const screen of [deckPage, deckPlay])
+      expect(nullPaths(screen)).toEqual([...partNulls, ...builtInLookNulls]);
   });
 
   it('me.json matches MeView', () => {
