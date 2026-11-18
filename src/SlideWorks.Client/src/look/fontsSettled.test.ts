@@ -44,6 +44,20 @@ describe('fontsSettled', () => {
     expect(added).toEqual([]);
   });
 
+  it('tries a failed face again on the next call', async () => {
+    const loads: string[] = [];
+    stubFonts((family) => {
+      loads.push(family);
+      return Promise.reject(new Error('404'));
+    });
+    const look = { fonts: [font('Retry')] };
+
+    await expect(fontsSettled(look)).resolves.toBeUndefined();
+    await expect(fontsSettled(look)).resolves.toBeUndefined();
+    expect(loads).toEqual(['Retry', 'Retry']);
+    expect(added).toEqual([]);
+  });
+
   it('settles at once for a built-in look', async () => {
     stubFonts(() => new Promise(() => undefined));
 

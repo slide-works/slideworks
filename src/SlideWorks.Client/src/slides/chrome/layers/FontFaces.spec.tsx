@@ -100,12 +100,15 @@ test('adds nothing for a built-in look', async ({ mount, page }) => {
 });
 
 test('keeps drawing when a file fails to load', async ({ mount, page }) => {
-  await page.route('**/api/templates/tpl_h/assets/*', (route) =>
-    route.fulfill({ status: 404, json: { error: 'File not found' } }),
-  );
+  let requests = 0;
+  await page.route('**/api/templates/tpl_h/assets/*', (route) => {
+    requests++;
+    return route.fulfill({ status: 404, json: { error: 'File not found' } });
+  });
 
   await mount(frames(lookWith(fonts), 1));
 
+  await expect.poll(() => requests).toBeGreaterThan(0);
   await expect.poll(() => facesOf(page)).toEqual([]);
   await expect(page.getByTestId('slide-2')).toBeVisible();
   await expect(page.getByTestId('slide-2').getByRole('heading').first()).toBeVisible();

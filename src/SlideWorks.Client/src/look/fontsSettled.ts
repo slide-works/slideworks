@@ -2,8 +2,8 @@ import type { LookFont } from '../api/look';
 
 // The faces a page has added to document.fonts, keyed by family, weight, style and url, each with the promise that
 // settles when its file has loaded or failed. A page of forty frames adds each file once. A face that failed is
-// dropped from document.fonts, so the text falls back to the built-in stack, and its key stays here so the file
-// is not fetched again.
+// dropped from document.fonts, so the text falls back to the built-in stack, and its key is dropped here too, so a
+// later mount or fontsSettled call may try the file again.
 const faces = new Map<string, Promise<void>>();
 
 const keyOf = (font: LookFont) => `${font.family}|${font.weight}|${font.style}|${font.url}`;
@@ -23,6 +23,7 @@ function addFace(font: LookFont): Promise<void> {
       () => undefined,
       () => {
         document.fonts.delete(face);
+        faces.delete(key);
       },
     );
   } catch {
