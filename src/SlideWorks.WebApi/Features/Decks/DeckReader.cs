@@ -57,7 +57,10 @@ public class DeckReader(
     }
 
     private async Task<DeckPlayView> PlayAsync(Deck deck, bool isOwner)
-        => DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), await templates.ForDeckAsync(deck, CancellationToken.None), await looks.ForAsync(deck, CancellationToken.None), await joinViews.ForAsync(deck), isOwner);
+    {
+        var template = await templates.ForDeckAsync(deck, CancellationToken.None);
+        return DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), template, looks.Of(deck, template), await joinViews.ForAsync(deck), isOwner);
+    }
 
     private Task<Deck> LoadDeckAsync(string deckId) => db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);
 

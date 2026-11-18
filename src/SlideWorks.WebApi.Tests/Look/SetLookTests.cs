@@ -231,7 +231,7 @@ public class SetLookTests : ApiTestFixture
         var result = await PutOkAsync(deck, new { template = "workshop", palette = "ember", chrome = new { tracker = false, footer = "date" } });
 
         using var contract = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "look-change.json")));
-        var options = new JsonShapeOptions { NullablePaths = ["look.template.titleArt", "look.logo", "look.chromeOverrides.progress"] };
+        var options = new JsonShapeOptions { NullablePaths = ["look.template.titleArt", "look.logo", "look.chromeOverrides.progress", .. ScreenShapes.LookNullablePaths] };
         Should.NotThrow(() => JsonShape.AssertMatches(result, contract.RootElement.GetProperty("response"), "look-change.json response", options));
     }
 

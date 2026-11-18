@@ -6,6 +6,13 @@ namespace SlideWorks.WebApi.Tests.Support;
 // lowercase enums such as "link" and "agent").
 public static class ScreenShapes
 {
+    // What a template may leave out of a look (T7): a built-in has no logo pair and no versions, and an art has a generator
+    // or a file, never both. Declared first: the options below are built from it.
+    public static readonly IReadOnlyList<string> LookNullablePaths =
+    [
+        "look.logos.light", "look.logos.dark", "look.art.generator", "look.art.url", "look.templateVersion", "look.latestVersion",
+    ];
+
     public static readonly JsonShapeOptions DecksLibrary = new()
     {
         NullablePaths = ["decks[].subtitle", "decks[].lastChange", "sharedWithMe[].subtitle", "sharedWithMe[].lastChange"],
@@ -17,6 +24,7 @@ public static class ScreenShapes
         [
             "author", "slides[].part", "slides[].headline", "slides[].notes", "activity[].tool",
             "look.template.titleArt", "look.logo", "look.chromeOverrides.tracker", "look.chromeOverrides.footer", "look.chromeOverrides.progress",
+            .. LookNullablePaths,
         ],
         OpaquePaths = ["slides[].slots"],
     };
@@ -24,13 +32,24 @@ public static class ScreenShapes
     // The play view (deck-play.json), also returned by the render API.
     public static readonly JsonShapeOptions DeckPlay = new()
     {
-        NullablePaths = ["author", "slides[].part", "look.template.titleArt", "look.logo"],
+        NullablePaths =
+        [
+            "author", "slides[].part", "look.template.titleArt", "look.logo",
+            .. LookNullablePaths,
+        ],
         OpaquePaths = ["slides[].slots"],
     };
 
-    public static readonly JsonShapeOptions Looks = new() { NullablePaths = ["templates[].titleArt", "templates[].lockedPalette"] };
+    public static readonly JsonShapeOptions Looks = new() { NullablePaths = ["templates[].titleArt", "templates[].lockedPalette", "templates[].version", "templates[].owner"] };
 
-    public static readonly JsonShapeOptions Card = new() { NullablePaths = ["title", "subtitle", "author", "look.template.titleArt", "look.logo"] };
+    public static readonly JsonShapeOptions Card = new()
+    {
+        NullablePaths =
+        [
+            "title", "subtitle", "author", "look.template.titleArt", "look.logo",
+            .. LookNullablePaths,
+        ],
+    };
 
     public static readonly JsonShapeOptions Sharing = new() { NullablePaths = ["lastChange"] };
 
@@ -42,7 +61,11 @@ public static class ScreenShapes
     // deck's talk length.
     public static readonly JsonShapeOptions Presenter = new()
     {
-        NullablePaths = ["author", "slides[].part", "slides[].notes", "slides[].headline", "talkMinutes", "look.template.titleArt", "look.logo"],
+        NullablePaths =
+        [
+            "author", "slides[].part", "slides[].notes", "slides[].headline", "talkMinutes", "look.template.titleArt", "look.logo",
+            .. LookNullablePaths,
+        ],
         OpaquePaths = ["slides[].slots"],
     };
 
@@ -61,7 +84,11 @@ public static class ScreenShapes
     // samples are null where a live guest has a slide, so they are checked as the same shape with these paths nullable.
     public static readonly JsonShapeOptions Guest = new()
     {
-        NullablePaths = ["deckUrl", "state.current", "state.activity", "state.room", "state.room.round", "look.logo", "look.template.titleArt"],
+        NullablePaths =
+        [
+            "deckUrl", "state.current", "state.activity", "state.room", "state.room.round", "look.logo", "look.template.titleArt",
+            .. LookNullablePaths,
+        ],
         OpaquePaths = ["state.current.slots"],
     };
 

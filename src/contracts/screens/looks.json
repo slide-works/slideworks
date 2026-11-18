@@ -47,7 +47,11 @@
       },
       "ornament": "dots",
       "titleArt": "waves",
-      "lockedPalette": "cobalt"
+      "lockedPalette": "cobalt",
+      "ref": "tpl_Zk3fWy8Jn5Ts",
+      "version": 4,
+      "builtIn": false,
+      "owner": "Mira Okafor"
     }
   ],
   "palettes": [

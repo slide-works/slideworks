@@ -1,8 +1,11 @@
+import type { TopBar } from '../../api/look';
 import type { ChromeOverrides, FooterMode, TemplateChrome } from '../../api/types';
 
 export type ChromeRowProps = {
   // The effective chrome, after the deck's overrides.
   chrome: TemplateChrome;
+  // The look's top bar (SW-50 D13). Nothing is drawn for it yet.
+  topBar?: TopBar;
   disabled: boolean;
   onChange(chrome: ChromeOverrides): void;
 };

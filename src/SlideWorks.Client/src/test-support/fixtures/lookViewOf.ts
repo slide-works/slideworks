@@ -95,6 +95,10 @@ export function looksTemplateOf(template: CatalogueTemplate): LooksTemplate {
     ornament: template.ornament,
     titleArt: template.titleArt,
     lockedPalette: template.lockPalette ? template.palette : null,
+    ref: template.name,
+    version: null,
+    builtIn: true,
+    owner: null,
   };
 }
 
@@ -112,12 +116,16 @@ export function looksPaletteOf(palette: CataloguePalette): LooksPalette {
 
 // The look of a deck on this template (a name, or an entry such as
 // lockingTemplate) and palette, with the template's own chrome and draft
-// setting, no logo, and any field overridden.
+// setting, no logo, a built-in's values for everything a template can bring
+// (no fonts, logos, top bar, extras or custom layouts), and any field overridden.
 export function lookViewOf(
   template: string | CatalogueTemplate,
   palette: string,
   overrides: Partial<LookView> = {},
 ): LookView {
   const entry = typeof template === 'string' ? templateNamed(template) : template;
-  return { ...lookOf(entry, paletteNamed(palette), FOOTER_DATE_LABEL), ...overrides };
+  return {
+    ...lookOf(looksTemplateOf(entry), paletteNamed(palette), FOOTER_DATE_LABEL),
+    ...overrides,
+  };
 }

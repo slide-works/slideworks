@@ -82,6 +82,7 @@ export function LookPanel({ deck, onSaved }: LookPanelProps) {
       />
       <ChromeRow
         chrome={look.template.chrome}
+        topBar={look.topBar}
         disabled={saving}
         onChange={(chrome) => change({ chrome })}
       />

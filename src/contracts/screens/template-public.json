@@ -98,8 +98,43 @@
     "logo": {
       "url": "/api/images/img_logo0001"
     },
+    "fonts": [
+      {
+        "family": "Northwind Sans",
+        "role": "head",
+        "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/8ff223d8922a55e32af314efafccf350",
+        "weight": 800,
+        "style": "normal"
+      }
+    ],
+    "logos": {
+      "light": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/d00cf13ae19e49cf841ea758a9b84460",
+      "dark": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/ee2e8795ed476090d166cdac72ca2ae9",
+      "showOnDark": true
+    },
+    "art": {
+      "kind": "image",
+      "generator": null,
+      "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/7fcef0f7c16a0ee4ecd9098d9b4ecc8c"
+    },
+    "ornament": {
+      "colours": ["accent", "accent-2"]
+    },
+    "topBar": "accent",
+    "templateRef": "tpl_Nw4kT8pQz2Lm",
+    "templateVersion": 2,
+    "latestVersion": 2,
+    "extras": [
+      {
+        "name": "extra-1",
+        "colour": "#101820",
+        "ink": "#ffffff"
+      }
+    ],
+    "customLayouts": [],
     "draft": true,
     "footerDateLabel": "16 Nov 2026",
-    "joinBar": false
+    "joinBar": false,
+    "templateMissing": false
   }
 }

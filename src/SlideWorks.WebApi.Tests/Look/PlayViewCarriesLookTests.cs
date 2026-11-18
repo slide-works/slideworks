@@ -5,6 +5,7 @@ using SlideWorks.Core;
 using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Look;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Support;
@@ -80,7 +81,7 @@ public class PlayViewCarriesLookTests : ApiTestFixture
     {
         var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "s", Title = "T", PartsJson = "[]", Template = "talk", Palette = "cobalt", LogoImageId = "img_logo0001" };
 
-        var look = LookViews.From(deck, Factory.Services.GetRequiredService<ITemplateCatalogue>(), Factory.Services.GetRequiredService<IPaletteCatalogue>());
+        var look = LookViews.From(deck, BuiltInTemplates.Resolve(new TemplateCatalogue().Find("talk")!), Factory.Services.GetRequiredService<IPaletteCatalogue>());
 
         look.Logo!.Url.ShouldBe("/api/images/img_logo0001");
     }

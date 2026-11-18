@@ -22,6 +22,9 @@ namespace SlideWorks.WebApi.Features.Look;
 // (K11). Chrome overrides merge into the deck's own, and a key set to null goes back to the template's default (D17).
 // One call is one transaction that takes the deck's next revision, records one activity entry (K7) and then publishes one
 // DeckChanged (K9). Slides whose layout is outside the template still render; the result warns about each one (L7).
+// The template comes through ITemplates (T4): a change may move the deck only to a template the caller may pick, and a
+// template they may not pick is refused in the same words as one that does not exist, before anything is written. A
+// move pins the template's version on the deck (null for a built-in); naming the deck's own template again moves nothing.
 [RegisterPerRequest]
 public class LookCommands(
     AppDbContext db,
@@ -31,7 +34,7 @@ public class LookCommands(
     IActivityLog activity,
     IDeckEvents events,
     TimeProvider clock,
-    ITemplateCatalogue templates,
+    ITemplates templates,
     IPaletteCatalogue palettes,
     IDeckLooks looks)
 {
@@ -41,20 +44,20 @@ public class LookCommands(
     // tool is the MCP tool's name when an agent calls, for the change log, and null from the web.
     public async Task<LookChangeResult> SetAsync(string deckId, LookChange change, string? tool)
     {
-        var (deck, warnings) = await ChangeAsync(deckId, change, tool);
-        return new LookChangeResult(await looks.ForPageAsync(deck, CancellationToken.None), warnings);
+        var (deck, template, warnings) = await ChangeAsync(deckId, change, tool);
+        return new LookChangeResult(looks.PageOf(deck, template), warnings);
     }
 
     // set_look: the same change, with the look in get_deck's terms.
     public async Task<SetLookResult> SetFromAgentAsync(string deckId, LookChange change)
     {
-        var (deck, warnings) = await ChangeAsync(deckId, change, TOOL);
+        var (deck, _, warnings) = await ChangeAsync(deckId, change, TOOL);
         return new SetLookResult(GetDeckLook.From(deck), warnings);
     }
 
     public static string UnknownLogo(string imageId) => $"logo.image: unknown image {imageId}";
 
-    private async Task<(Deck Deck, IReadOnlyList<string> Warnings)> ChangeAsync(string deckId, LookChange change, string? tool)
+    private async Task<(Deck Deck, ResolvedTemplate Template, IReadOnlyList<string> Warnings)> ChangeAsync(string deckId, LookChange change, string? tool)
     {
         if (!await access.CanEditAsync(deckId, actor))
         {
@@ -66,12 +69,17 @@ public class LookCommands(
         }
 
         Deck deck;
+        ResolvedTemplate template;
         IReadOnlyList<string> warnings;
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
             deck = await db.Decks.SingleAsync(d => d.Id == deckId);
-            var current = templates.Find(deck.Template) ?? throw new InvalidOperationException($"Deck {deck.Id} has an unknown template '{deck.Template}'.");
-            var error = new LookRules(templates, palettes).CheckChange(current, change);
+            var current = await templates.ForDeckAsync(deck, CancellationToken.None);
+            var moves = change.Template is not null && !string.Equals(change.Template, current.Ref, StringComparison.Ordinal);
+            template = moves ? await PickAsync(change.Template!) : current;
+            // The rules see the template the deck will be on, so the reserved palette name answers to that template's own.
+            var catalogues = ResolvedCatalogues.For(palettes, template);
+            var error = new LookRules(catalogues.Templates, catalogues.Palettes).CheckChange(template.Template, change with { Template = null });
             if (error is not null)
             {
                 throw new BadRequestException(error);
@@ -81,24 +89,47 @@ public class LookCommands(
                 throw new BadRequestException(UnknownLogo(imageId));
             }
 
-            var template = change.Template is null ? current : templates.Find(change.Template)!;
-            var palette = palettes.Find(LookRules.PaletteAfter(template, deck.Palette, change))!;
-            var summary = LookSummary.Of(change, template, palette, palette.Name != deck.Palette);
-            Apply(deck, change, template, palette);
+            // A change that neither moves the deck nor names a palette leaves the stored palette alone, even one that
+            // cannot be found while the deck's template is missing.
+            var keepsPalette = !moves && change.Palette is null && !template.Template.LockPalette;
+            var palette = PaletteAfter(catalogues.Palettes, template, deck.Palette, change);
+            var summary = LookSummary.Of(change, template.Template, palette, !keepsPalette && palette.Name != deck.Palette);
+            if (moves)
+            {
+                deck.Template = template.Ref;
+                deck.TemplateVersion = template.Version;
+            }
+            if (!keepsPalette)
+            {
+                deck.Palette = palette.Name;
+            }
+            Apply(deck, change);
             await db.SaveChangesAsync();
             await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, summary));
-            warnings = await WarningsAsync(deck.Id, template);
+            warnings = await WarningsAsync(deck.Id, template.Template);
             await transaction.CommitAsync();
         }
 
         await events.PublishAsync(new DeckChanged(deckId));
-        return (deck, warnings);
+        return (deck, template, warnings);
     }
 
-    private void Apply(Deck deck, LookChange change, Template template, Palette palette)
+    // The template a change moves the deck to: only one the caller may pick is found (T4), so one that exists but is not
+    // theirs is refused as unknown.
+    private async Task<ResolvedTemplate> PickAsync(string name)
+        => (await templates.ListForAsync(actor, CancellationToken.None)).FirstOrDefault(t => string.Equals(t.Ref, name, StringComparison.Ordinal))
+            ?? throw new BadRequestException(LookRules.UnknownTemplate(name));
+
+    // The palette the deck has after the change. A deck that leaves a template whose own palette it wore cannot keep it:
+    // it takes the new template's palette, else the default one.
+    private static Palette PaletteAfter(IPaletteCatalogue known, ResolvedTemplate template, string currentPalette, LookChange change)
     {
-        deck.Template = template.Name;
-        deck.Palette = palette.Name;
+        var name = LookRules.PaletteAfter(template.Template, currentPalette, change);
+        return known.Find(name) ?? known.Find(template.Template.Palette ?? known.Default.Name) ?? known.Default;
+    }
+
+    private void Apply(Deck deck, LookChange change)
+    {
         if (change.Logo is not null)
         {
             deck.LogoImageId = change.Logo.ImageId;
@@ -110,11 +141,13 @@ public class LookCommands(
         if (change.Chrome is { } chrome)
         {
             var overrides = ChromeOverridesView.From(deck.ChromeJson);
-            deck.ChromeJson = new ChromeOverridesView(
-                chrome.Tracker is null ? overrides.Tracker : chrome.Tracker.Value,
-                chrome.Footer is null ? overrides.Footer : chrome.Footer.Value,
-                chrome.Progress is null ? overrides.Progress : chrome.Progress.Value,
-                chrome.JoinBar ?? overrides.JoinBar).ToJson();
+            deck.ChromeJson = (overrides with
+            {
+                Tracker = chrome.Tracker is null ? overrides.Tracker : chrome.Tracker.Value,
+                Footer = chrome.Footer is null ? overrides.Footer : chrome.Footer.Value,
+                Progress = chrome.Progress is null ? overrides.Progress : chrome.Progress.Value,
+                JoinBar = chrome.JoinBar ?? overrides.JoinBar,
+            }).ToJson();
         }
         deck.Revision += 1;
         deck.UpdatedAt = clock.GetUtcNow();

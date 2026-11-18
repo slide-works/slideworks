@@ -23,7 +23,7 @@ public static class TemplateScreenShapes
 
     public static readonly JsonShapeOptions Sharing = new();
 
-    public static readonly JsonShapeOptions Public = new() { NullablePaths = ["look.template.titleArt", "look.logo"] };
+    public static readonly JsonShapeOptions Public = new() { NullablePaths = ["look.template.titleArt", "look.logo", .. ScreenShapes.LookNullablePaths] };
 
     // The compiled tree, the slots and the two sample slides vary by layout.
     public static readonly JsonShapeOptions LayoutReview = new() { OpaquePaths = ["layout.tree", "layout.slots", "sample", "maximum"] };
