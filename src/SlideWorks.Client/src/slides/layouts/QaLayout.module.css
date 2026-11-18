@@ -1,0 +1,177 @@
+/* The Q&A slide (light, mockup section 04 at 2x), in canvas px. The root (.sw-layout) fills the content box
+   (x 120-1800, y 150-960). Five one-line rows of 76 with 18 between come to 452 under a kicker and a two-line
+   headline, and the footer is 48. The join pill is ink on paper, as the poll slide's, so it stands out on a dark
+   palette's paper too. */
+
+.qa {
+  position: relative;
+}
+
+.join {
+  position: absolute;
+  top: -66px;
+  right: 0;
+  max-width: 900px;
+  margin: 0;
+  padding: 12px 26px;
+  overflow: hidden;
+  border-radius: var(--sw-radius-pill);
+  background: var(--sw-ink);
+  color: var(--sw-paper);
+  font: 500 24px/1.1 var(--sw-font-body);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.join b {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  margin-top: var(--sw-space-4);
+}
+
+.rows {
+  display: grid;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 32px;
+  padding: 16px 36px 16px 16px;
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-card);
+}
+
+.votes {
+  display: grid;
+  place-items: center;
+  height: 64px;
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-accent-light);
+  color: var(--sw-accent-dark);
+  font: 800 40px/1 var(--sw-font-head);
+  font-variant-numeric: tabular-nums;
+}
+
+.first .votes {
+  background: var(--sw-accent);
+  color: var(--sw-on-accent);
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  font: 600 36px/1.25 var(--sw-font-body);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.empty {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  align-content: center;
+  gap: 20px;
+  border: 4px dashed var(--sw-grid);
+  border-radius: var(--sw-radius-xl);
+  text-align: center;
+}
+
+.empty b {
+  font: 800 60px/1.2 var(--sw-font-head);
+}
+
+.empty span {
+  max-width: 1040px;
+  color: var(--sw-muted);
+  font: 500 34px/1.3 var(--sw-font-body);
+}
+
+.oneUp {
+  display: grid;
+  flex: 1;
+  align-content: center;
+  gap: 32px;
+  padding: 0 40px;
+}
+
+.oneUpLabel {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin: 0;
+  color: var(--sw-muted);
+  font: 600 30px/1 var(--sw-font-body);
+}
+
+.oneUpLabel em {
+  padding: 14px 22px;
+  border-radius: var(--sw-radius-pill);
+  background: var(--sw-accent);
+  color: var(--sw-on-accent);
+  font: 800 30px/1 var(--sw-font-head);
+  font-style: normal;
+}
+
+.oneUpText {
+  max-width: 1600px;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 800 64px/1.15 var(--sw-font-head);
+  letter-spacing: -0.015em;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  min-height: 48px;
+  margin-top: var(--sw-space-3);
+  color: var(--sw-muted);
+  font: 500 26px/1.2 var(--sw-font-body);
+}
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-weight: 600;
+}
+
+.state::before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.state[data-phase='open'] {
+  color: var(--sw-good);
+}
+
+.state[data-phase='closed'] {
+  color: var(--sw-ink);
+}
+
+.total b {
+  color: var(--sw-ink);
+  font: 800 40px/1 var(--sw-font-head);
+}
+
+.note {
+  margin-left: auto;
+  font-size: 24px;
+}
