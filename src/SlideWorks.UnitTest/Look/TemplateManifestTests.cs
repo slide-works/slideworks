@@ -197,6 +197,48 @@ public class TemplateManifestTests
             .Select(key => key.GetString()).ShouldBe(ManifestPalette.Keys);
     }
 
+    // The schema carries the rules ManifestJson.Parse holds a CSS-bound value to: a value Parse refuses fails the
+    // schema at the same place, and the sample passes both.
+    [TestCase("type/head", "url(x)")]
+    [TestCase("type/body", "Northwind Sans, serif")]
+    [TestCase("fonts/0/family", " Sans")]
+    [TestCase("type/headTracking", "1px")]
+    [TestCase("type/headTracking", "-0.0000000025em")]
+    [TestCase("customLayouts/0/name", "Stage")]
+    [TestCase("customLayouts/0/name", "a")]
+    [TestCase("titleArt/generator", "url(x)")]
+    [TestCase("titleArt/generator", "a-generator-name-that-is-forty-character")]
+    [TestCase("ornament/dots/0", "var(--x)")]
+    [TestCase("ornament/dots", null)]
+    public void Schema_WhenAValueBreaksAParserRule_ShouldFailWhereParseDoes(string pointer, string? value)
+    {
+        using var schema = JsonDocument.Parse(File.ReadAllText(ContractFiles.PathOf("template-manifest.schema.json")));
+        var parts = pointer.Split('/');
+        var changed = JsonNode.Parse(Sample())!;
+        var parent = parts[..^1].Aggregate(changed, (node, part) => int.TryParse(part, out var index) ? node[index]! : node[part]!);
+
+        // null stands for one dot more than the limit.
+        JsonNode replacement = value is null
+            ? new JsonArray(Enumerable.Repeat("accent", TemplateLimits.MAX_ORNAMENT_DOTS + 1).Select(dot => (JsonNode)dot).ToArray())
+            : value;
+        if (int.TryParse(parts[^1], out var at))
+        {
+            parent[at] = replacement;
+        }
+        else
+        {
+            parent[parts[^1]] = replacement;
+        }
+
+        var problems = new List<string>();
+        using var document = JsonDocument.Parse(changed.ToJsonString());
+        Check(schema.RootElement, schema.RootElement, document.RootElement, "", problems);
+
+        problems.Count.ShouldBe(1);
+        problems[0].ShouldStartWith("/" + pointer + ":");
+        ManifestJson.Parse(changed.ToJsonString()).Errors.Select(error => error.Path.Replace("[", ".").Replace("]", "").Replace('.', '/')).ShouldBe([pointer]);
+    }
+
     [Test]
     public void Sample_WhenAFieldIsAddedAnywhere_ShouldFailTheSchema()
     {
@@ -344,6 +386,13 @@ public class TemplateManifestTests
                     if (!Regex.IsMatch(value.GetString()!, keyword.Value.GetString()!))
                     {
                         problems.Add($"{path}: does not match {keyword.Value.GetString()}");
+                    }
+
+                    break;
+                case "maxItems":
+                    if (value.GetArrayLength() > keyword.Value.GetInt32())
+                    {
+                        problems.Add($"{path}: too many items");
                     }
 
                     break;

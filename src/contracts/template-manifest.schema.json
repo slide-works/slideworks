@@ -115,13 +115,11 @@
       ],
       "properties": {
         "head": {
-          "type": "string",
-          "minLength": 1,
+          "$ref": "#/$defs/family",
           "description": "The heading font family name."
         },
         "body": {
-          "type": "string",
-          "minLength": 1,
+          "$ref": "#/$defs/family",
           "description": "The body font family name."
         },
         "headWeight": {
@@ -131,7 +129,9 @@
         },
         "headTracking": {
           "type": "string",
-          "description": "The heading letter spacing, such as -0.025em."
+          "pattern": "^(0|-?[0-9]+(\\.[0-9]+)?em)$",
+          "maxLength": 12,
+          "description": "The heading letter spacing: 0, or a length in em from -0.1em to 0.2em, such as -0.025em."
         }
       }
     },
@@ -203,8 +203,7 @@
             "description": "mono is the monospace font of custom layouts; it has no other key in the manifest."
           },
           "family": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/$defs/family"
           },
           "file": {
             "$ref": "#/$defs/file"
@@ -260,8 +259,8 @@
         },
         "generator": {
           "type": "string",
-          "minLength": 1,
-          "description": "The name of a built-in generator, when kind is generator."
+          "pattern": "^[a-z][a-z0-9-]{0,30}$",
+          "description": "The name of a built-in generator, when kind is generator. A name that is no built-in generator is drawn as none."
         },
         "file": {
           "$ref": "#/$defs/file"
@@ -278,9 +277,21 @@
         "dots": {
           "type": "array",
           "description": "Palette token names, one per dot.",
+          "maxItems": 6,
           "items": {
             "type": "string",
-            "minLength": 1
+            "enum": [
+              "accent",
+              "accent-2",
+              "accent-glow",
+              "good",
+              "warn",
+              "bad",
+              "extra-1",
+              "extra-2",
+              "extra-3",
+              "extra-4"
+            ]
           }
         }
       }
@@ -509,7 +520,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "minLength": 1
+            "pattern": "^[a-z][a-z0-9-]{1,30}$"
           },
           "file": {
             "$ref": "#/$defs/file"
@@ -524,6 +535,11 @@
       "minLength": 1,
       "maxLength": 200,
       "description": "An asset id, or inside a bundle a relative path in the zip: no .. segment, no leading /, no backslash, no drive letter."
+    },
+    "family": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9]([A-Za-z0-9 -]{0,58}[A-Za-z0-9])?$",
+      "description": "A font family name: 1 to 60 letters, digits, spaces and hyphens, starting and ending with a letter or digit."
     },
     "hex": {
       "type": "string",
