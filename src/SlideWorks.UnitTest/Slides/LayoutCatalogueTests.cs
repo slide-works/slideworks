@@ -33,12 +33,11 @@ public class LayoutCatalogueTests
         LayoutCatalogue.Layouts.Where(l => l.Surface == LayoutSurface.Either).Select(l => l.Name).ShouldBe(["bullets", "big-number", "statement"]);
         LayoutCatalogue.Layouts.Where(l => !l.Tracker).Select(l => l.Name).ShouldBe(["statement"]);
         LayoutCatalogue.Layouts.Where(l => l.Steps is not null).Select(l => (l.Name, l.StepsFrom))
-            .ShouldBe([("bullets", "items"), ("two-column", null), ("big-number", null), ("image", "points"), ("table", "rows"), ("numbered-cards", "cards"), ("rules", "rules"), ("cards", "cards")]);
+            .ShouldBe([("bullets", "items"), ("two-column", null), ("big-number", null), ("image", "points"), ("table", "rows"), ("numbered-cards", "cards"), ("rules", "rules"), ("cards", "cards"), ("stack", "segments")]);
     }
 
     [TestCase("statement", "kicker,statement")]
     [TestCase("links", "kicker,headline")]
-    [TestCase("stack", "kicker,headline")]
     [TestCase("bars", "kicker,headline")]
     [TestCase("flow", "kicker,headline")]
     [TestCase("levels", "kicker,headline")]

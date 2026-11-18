@@ -1,0 +1,112 @@
+{
+  "stackSeven": {
+    "layout": "stack",
+    "estimate": 486.8,
+    "grow": [
+      "/segments/0/label",
+      "/points/2/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "How we are built",
+      "headline": "Every layer rests on the one under it",
+      "segments": [
+        {
+          "label": "Customer Facing Experience Lay",
+          "note": "Everything a customer can see and touche"
+        },
+        {
+          "label": "Public Interface Gateway Layer",
+          "note": "Routes every request to the right teamee"
+        },
+        {
+          "label": "Service Orchestration Layer Co",
+          "note": "Coordinates the calls between servicesee"
+        },
+        {
+          "label": "Domain Rules And Logic Layer I",
+          "note": "The rules that make the business tickeee",
+          "tone": "accent"
+        },
+        {
+          "label": "Shared Data Access Layer Tiere",
+          "note": "One way to read and write our dataeeeeee"
+        },
+        {
+          "label": "Storage And Persistence Layere",
+          "note": "Disks backups and replicas by regioneeee"
+        },
+        {
+          "label": "Hardware Foundatio",
+          "tag": "Fixed Cost"
+        }
+      ],
+      "total": "One platform, seven layerseeee",
+      "caption": "Each layer only calls the layer below it, never aboveeeeeeee",
+      "points": [
+        {
+          "lead": "Speed",
+          "text": "Incrementalincrementa Latnemercnilatnemercn Incrementalinincreme"
+        },
+        {
+          "lead": "Safety",
+          "text": "Regressionregressionr Noissergernoissergern Regressionreregressi"
+        },
+        {
+          "lead": "Cost",
+          "text": "Storagestoragestoragestoragesto Capacitycapacitycapacitycapacity"
+        }
+      ],
+      "callout": {
+        "tone": "accent",
+        "text": "Fix the lowest layer that is wrong, because everything above it will inherit that faulteeeeeeeee"
+      },
+      "reveal": "one-by-one"
+    }
+  },
+  "stackEight": {
+    "layout": "stack",
+    "estimate": 483.2,
+    "grow": [
+      "/segments/0/label"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "The path to prod",
+      "headline": "Eight steps from an idea to production",
+      "segments": [
+        {
+          "label": "Idea Intake And Triage Queueee"
+        },
+        {
+          "label": "Step 2",
+          "note": "Backlog Refinement With Whole Teameeeeee"
+        },
+        {
+          "label": "Step 3",
+          "note": "Design Review And Sign Off Stepeeeeeeeee"
+        },
+        {
+          "label": "Step 4",
+          "note": "Implementation Behind A Flag Gateeeeeeee"
+        },
+        {
+          "label": "Step 5",
+          "note": "Code Review By A Second Engineereeeeeeee"
+        },
+        {
+          "label": "Staging Checks"
+        },
+        {
+          "label": "Canary Release"
+        },
+        {
+          "label": "Full Rollout"
+        }
+      ],
+      "total": "Idea to prod: eight steps",
+      "caption": "Every step has an owner and an exit rule",
+      "reveal": "one-by-one"
+    }
+  }
+}
