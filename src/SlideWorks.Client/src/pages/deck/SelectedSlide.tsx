@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { DeckPageSlide } from '../../api/types';
+import { NotesText } from '../../presentation/NotesText';
 
 // The selected slide's details: layout, steps, the link that opens the player
 // at it, and its speaker notes (only ever shown here, never to viewers).
@@ -30,12 +31,12 @@ export function SelectedSlide({ slide }: { slide: DeckPageSlide }) {
           No speaker notes.
         </p>
       ) : (
-        <p
+        <div
           data-testid="selected-notes"
-          className="rounded-md border border-warn/25 bg-warn-soft px-3 py-2 text-meta whitespace-pre-line text-ink"
+          className="grid gap-1.5 rounded-md border border-warn/25 bg-warn-soft px-3 py-2 text-meta text-ink"
         >
-          {slide.notes}
-        </p>
+          <NotesText text={slide.notes} />
+        </div>
       )}
     </section>
   );
