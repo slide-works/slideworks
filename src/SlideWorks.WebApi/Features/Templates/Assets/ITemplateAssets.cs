@@ -21,8 +21,10 @@ public interface ITemplateAssets
     Task<StoredAsset> CompleteAsync(string token, Stream content, CancellationToken ct);
 
     // The file, for the template's owner, a person the template is shared with, and anyone who may view a deck on the
-    // template. NotFoundException otherwise, and always for a layout, which is never served.
-    Task<AssetFile> OpenAsync(string templateId, string assetId);
+    // template. A guest (guestId, the sw_guest cookie's value) may read it while a deck on the template has a live
+    // session, as a guest may read that deck's images. NotFoundException otherwise, and always for a layout, which is
+    // never served.
+    Task<AssetFile> OpenAsync(string templateId, string assetId, string? guestId = null);
 
     // The owner's word, as a person, that they may serve every font the template holds. Answers how many fonts that is.
     // Anyone but the owner gets NotFoundException; an agent gets ForbiddenException, because only a person can confirm.

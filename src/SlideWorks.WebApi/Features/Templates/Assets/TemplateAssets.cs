@@ -10,6 +10,7 @@ using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Templates.Data;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
+using SlideWorks.WebApi.Realtime;
 
 namespace SlideWorks.WebApi.Features.Templates.Assets;
 
@@ -34,6 +35,7 @@ public class TemplateAssets(
     TemplateAssetStore store,
     AssetChecks checks,
     RenderSessions renderSessions,
+    IAudienceSessions audienceSessions,
     TimeProvider clock) : ITemplateAssets
 {
     public const string TEMPLATE_NOT_FOUND = "Template not found";
@@ -105,14 +107,14 @@ public class TemplateAssets(
         return await CheckAndStoreAsync(templateId, kind, CheckFileName(fileName), rightsConfirmed: false, content, ct);
     }
 
-    public async Task<AssetFile> OpenAsync(string templateId, string assetId)
+    public async Task<AssetFile> OpenAsync(string templateId, string assetId, string? guestId = null)
     {
         var asset = await db.TemplateAssets.AsNoTracking()
             .Where(a => a.TemplateId == templateId && a.Id == assetId)
             .Select(a => new { a.Kind, a.ContentType })
             .SingleOrDefaultAsync();
         // A layout is read by the server only; the row's ids are now known to be ours, so they may name a path.
-        if (asset == null || asset.Kind == TemplateAssetKind.Layout || !await MayReadAsync(templateId) || !store.Exists(templateId, assetId))
+        if (asset == null || asset.Kind == TemplateAssetKind.Layout || !await MayReadAsync(templateId, guestId) || !store.Exists(templateId, assetId))
         {
             throw new NotFoundException(ASSET_NOT_FOUND);
         }
@@ -263,7 +265,7 @@ public class TemplateAssets(
         }
     }
 
-    private async Task<bool> MayReadAsync(string templateId)
+    private async Task<bool> MayReadAsync(string templateId, string? guestId)
     {
         var template = await db.Templates.AsNoTracking()
             .Where(t => t.Id == templateId)
@@ -282,13 +284,14 @@ public class TemplateAssets(
         {
             return true;
         }
-        return await MayViewADeckOnAsync(templateId, email);
+        return await MayViewADeckOnAsync(templateId, email, guestId);
     }
 
     // A deck on the template always renders (D3): whoever may view such a deck may read the template's files. That is
     // the deck's owner, anyone for a deck shared by link, a named viewer, and a headless render page holding a render
-    // token for the deck.
-    private async Task<bool> MayViewADeckOnAsync(string templateId, string? email)
+    // token for the deck. A guest (guestId, from the sw_guest cookie) may read them too while a deck on the template
+    // has a live session, exactly as a guest may read that deck's images: the files are on the slides they follow.
+    private async Task<bool> MayViewADeckOnAsync(string templateId, string? email, string? guestId)
     {
         var presenterId = currentActor.PresenterId;
         var decks = db.Decks.AsNoTracking().Where(d => d.Template == templateId);
@@ -296,7 +299,24 @@ public class TemplateAssets(
             d.Sharing == DeckSharing.Link
             || (presenterId != null && d.OwnerId == presenterId)
             || (email != null && d.Sharing == DeckSharing.Named && db.DeckViewers.Any(v => v.DeckId == d.Id && v.Email == email)));
-        return shared || (await decks.Select(d => d.Id).ToListAsync()).Exists(renderSessions.AllowsImagesOf);
+        if (shared)
+        {
+            return true;
+        }
+        var deckIds = await decks.Select(d => d.Id).ToListAsync();
+        return deckIds.Exists(renderSessions.AllowsImagesOf) || (guestId is not null && await AnyIsLiveAsync(deckIds));
+    }
+
+    private async Task<bool> AnyIsLiveAsync(List<string> deckIds)
+    {
+        foreach (var deckId in deckIds)
+        {
+            if ((await audienceSessions.ForDeckAsync(deckId))?.Phase == AudiencePhase.Live)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static StoredAsset ViewOf(TemplateAsset asset)
