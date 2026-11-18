@@ -8,7 +8,7 @@ One number that carries the slide, with a caption, a detail and a source. The de
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
 | `headline` | text | yes | up to 80 chars |  |
-| `emphasis` | emphasis | no |  | Phrases of the slide's display text drawn in a tone. Each must occur exactly once in the text it is in |
+| `emphasis` | emphasis | no | 1–3 entries, each `text` (up to 60 chars; the phrase must occur exactly once in its target), `tone` and optional `in`; targets `headline`, `caption` | Phrases of the slide's display text drawn in a tone. Each must occur exactly once in the text it is in |
 | `value` | text | yes | up to 10 chars | The number with a short unit, such as '11 wks' or '42%'; the layout sets a unit smaller than the number. The number part, up to and including its last digit, is at most 6 characters |
 | `caption` | text | yes | up to 120 chars |  |
 | `detail` | text | no | up to 200 chars |  |
