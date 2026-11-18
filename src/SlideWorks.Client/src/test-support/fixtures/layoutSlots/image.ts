@@ -11,8 +11,13 @@ export const SLOTS: ImageSlots = {
   kicker: 'Slice it',
   headline: 'The story map',
   image: { image: SAMPLE_IMAGE_ID, alt: 'A story map' },
+  frame: 'card',
+  position: 'below',
   points: ['One row is one release.'],
   caption: 'The first row shipped in a week.',
+  reveal: 'all',
+  callout: { tone: 'info', text: 'Read it left to right.' },
+  emphasis: [{ text: 'story map', tone: 'accent' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is
