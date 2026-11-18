@@ -92,7 +92,7 @@ test('starts the tick on when every font is already confirmed', async ({ mount, 
 
 test('uploads a font after the rights tick', async ({ mount, page }) => {
   const added = [...notFont, storedAsset(id, 'new-tok0', 'font', 'brand.woff2', true)];
-  const { tab, log } = await open(page, mount, [noFonts, view({ fonts: [] }, added)]);
+  const { tab, log } = await open(page, mount, [noFonts, noFonts, view({ fonts: [] }, added)]);
   await tab.getByRole('checkbox', { name: /right to serve/ }).check();
   await tab.locator('input[type=file]').setInputFiles(woff2('brand.woff2'));
 
@@ -142,7 +142,7 @@ test('uploads the rest when one file is refused', async ({ mount, page }) => {
   const { tab, log } = await open(
     page,
     mount,
-    [noFonts, view({ fonts: [] }, added)],
+    [noFonts, noFonts, view({ fonts: [] }, added)],
     {},
     {
       put: (name) =>

@@ -156,7 +156,7 @@ export function FontsTab({ draft, change, reload }: EditorTabProps) {
     <section
       ref={section}
       data-testid={editorTabTestId('fonts')}
-      aria-labelledby={`${id}-heading`}
+      aria-label={`Fonts of ${draft.name}`}
       className="panel grid gap-4 p-4"
     >
       <h2 id={`${id}-heading`} className="text-sm font-semibold text-ink">

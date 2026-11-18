@@ -162,7 +162,7 @@ export function LogoArtTab({ draft, change, reload }: EditorTabProps) {
   return (
     <section
       data-testid={editorTabTestId('logo-art')}
-      aria-labelledby={`${id}-heading`}
+      aria-label={`Logo and art of ${draft.name}`}
       className="panel grid gap-4 p-4"
     >
       <h2 id={`${id}-heading`} className="text-sm font-semibold text-ink">
