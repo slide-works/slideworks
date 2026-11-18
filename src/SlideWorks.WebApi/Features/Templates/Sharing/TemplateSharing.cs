@@ -79,6 +79,11 @@ public sealed class TemplateSharing(
         {
             throw NotFound(id);
         }
+        // Nothing is published yet: there is no page to use, as PublicAsync answers, and no viewer row is written.
+        if (!await db.TemplateVersions.AnyAsync(v => v.TemplateId == id && v.Version > TemplateVersion.DRAFT))
+        {
+            throw NotFound(id);
+        }
 
         var listed = (await db.TemplateViewers.AsNoTracking().Where(v => v.TemplateId == id).Select(v => v.Email).ToListAsync())
             .Any(e => ViewerEmails.Normalize(e) == email);
@@ -113,9 +118,10 @@ public sealed class TemplateSharing(
         record.Access = level;
         if (next != null)
         {
-            var kept = current.Where(v => next.Contains(ViewerEmails.Normalize(v.Email), StringComparer.Ordinal)).ToList();
-            var removed = current.Except(kept).ToList();
-            var added = next.Where(email => kept.All(v => ViewerEmails.Normalize(v.Email) != email)).ToList();
+            // A kept row stored in mixed case (a legacy one) is rewritten in lower case: the email is part of the key, so
+            // the old row goes and the lower-case one comes.
+            var removed = current.Where(v => !next.Contains(ViewerEmails.Normalize(v.Email), StringComparer.Ordinal) || v.Email != ViewerEmails.Normalize(v.Email)).ToList();
+            var added = next.Where(email => current.All(v => v.Email != email)).ToList();
             db.TemplateViewers.RemoveRange(removed);
             db.TemplateViewers.AddRange(added.Select(email => new TemplateViewer { TemplateId = id, Email = email }));
             changed |= removed.Count > 0 || added.Count > 0;
