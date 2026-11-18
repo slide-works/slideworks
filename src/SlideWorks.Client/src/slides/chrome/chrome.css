@@ -117,7 +117,9 @@
   color: var(--sw-accent-glow);
 }
 
-.sw-frame[data-surface='dark']:not([data-dark='true'])[data-deep-dive='true'] .sw-tracker li[data-state='on'] {
+.sw-frame[data-surface='dark']:not([data-dark='true'])[data-deep-dive='true']
+  .sw-tracker
+  li[data-state='on'] {
   border-top-color: var(--sw-dd);
 }
 
