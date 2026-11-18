@@ -170,10 +170,12 @@ get to it, or the poll wasn't worth answering.
 
 **Where it reads from:**
 
-- `PollRounds` has one row for each round of a poll slide in one audience session. A round is closed when `ClosedAt` is
-  set and `OpenedAt` is set. In the same transaction, closing writes `JoinedAtClose`, the number of guests in the
-  session's roster at that moment, and `Final`, a JSON snapshot of the result. `Final.answered` is how many guests had
-  an answer in the round.
+- `PollRounds` has one row for each round of a poll slide in one audience session, and one for each of the session's Q&A
+  rounds (SW-9). `Kind` tells them apart: it is stored as the enum's name, `Slide` or `Qa`, and a check constraint holds it
+  to those. This measure is about poll slides, so the query keeps `Kind = 'Slide'` only; a Q&A round's `Final` counts
+  upvotes, not answers. A round is closed when `ClosedAt` is set and `OpenedAt` is set. In the same transaction, closing
+  writes `JoinedAtClose`, the number of guests in the session's roster at that moment, and `Final`, a JSON snapshot of
+  the result. `Final.answered` is how many guests had an answer in the round.
 - A round with `ClosedAt` set and `OpenedAt` null is a draft that was discarded, never a round that ran, and has no
   `Final`. A round with `ClosedAt` null is still draft or open. The query leaves out both.
 - `AudienceSessions` gives each round's session its deck.
@@ -207,13 +209,14 @@ SELECT r.SessionId AS session_id,
        END AS rate
 FROM PollRounds r
 JOIN AudienceSessions s ON s.Id = r.SessionId, bounds b
-WHERE r.OpenedAt IS NOT NULL
+WHERE r.Kind = 'Slide'
+  AND r.OpenedAt IS NOT NULL
   AND r.ClosedAt IS NOT NULL
   AND r.Final IS NOT NULL
   AND r.ClosedAt >= b.lo AND r.ClosedAt < b.hi
 ORDER BY r.ClosedAt DESC, r.SessionId, r.Number;
 ```
 
-**Keep in step:** the query reads these columns, so a change to them changes the query. From `PollRounds`: `SessionId`,
-`SlideId`, `Number`, `OpenedAt`, `ClosedAt`, `JoinedAtClose` and `Final` (JSON with an `answered` key). From
-`AudienceSessions`: `Id` and `DeckId`. `PollResponseRateQueryTests` runs this query as written and fails when they drift.
+**Keep in step:** the query reads these columns, so a change to them changes the query. From `PollRounds`: `Kind` (stored as
+the enum's name, `Slide` or `Qa`), `SessionId`, `SlideId`, `Number`, `OpenedAt`, `ClosedAt`, `JoinedAtClose` and `Final`
+(JSON with an `answered` key). From `AudienceSessions`: `Id` and `DeckId`. `PollResponseRateQueryTests` runs this query as written and fails when they drift.

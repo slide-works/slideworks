@@ -17,6 +17,10 @@ namespace SlideWorks.WebApi.Tests.Polls;
 [TestFixture]
 public class PollKindDataTests : PollTestFixture
 {
+    // These tests seed the session's Q&A round themselves through PollRowSeed, so Go live must not open one: IQaRounds is
+    // the recording fake.
+    protected override void ConfigurePollServices(IServiceCollection services) => FakeQaRounds.AddTo(services);
+
     [Test]
     public async Task PollRound_WhenSlideAndQaRoundsOpenInOneSession_ShouldBothBeAllowed()
     {

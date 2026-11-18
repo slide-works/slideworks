@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.Core.Polls;
 using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Polls;
@@ -82,6 +83,25 @@ public partial class PollResponseRateQueryTests : PollTestFixture
     }
 
     [Test]
+    public async Task PollResponseRate_WhenTheSessionHasAClosedQaRound_ShouldLeaveItOut()
+    {
+        var poll = await SeedPollAsync();
+        var from = Clock.GetUtcNow();
+        await CloseRoundAsync(poll, number: 1, joined: 4, answers: 2);
+        var qaRound = await OpenQaRoundIdAsync(poll.SessionId);
+        for (var guest = 0; guest < 3; guest++)
+        {
+            await Rows.AnswerAsync(qaRound, $"guest-qa-{guest}", 0);
+        }
+        await Rows.CloseAsync(qaRound, joinedAtClose: 4);
+        Clock.Advance(TimeSpan.FromMinutes(1));
+
+        var rows = await RunAsync(from, Clock.GetUtcNow());
+
+        rows.ShouldBe([Row(poll, number: 1, answered: 2, joined: 4, rate: 0.5)]);
+    }
+
+    [Test]
     public async Task PollResponseRate_WhenARoundClosedOutsideTheWindow_ShouldLeaveItOut()
     {
         var poll = await SeedPollAsync();
@@ -108,6 +128,15 @@ public partial class PollResponseRateQueryTests : PollTestFixture
             await Rows.AnswerAsync(round.Id, $"guest-{number}-{guest}", guest % 3);
         }
         await Rows.CloseAsync(round.Id, joined);
+    }
+
+    // The session's Q&A round, which Go live opened.
+    private async Task<Guid> OpenQaRoundIdAsync(Guid sessionId)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var round = await scope.ServiceProvider.GetRequiredService<PollRows>().OpenQaRoundAsync(sessionId);
+        round.ShouldNotBeNull("Go live opens the session's Q&A round");
+        return round.Id;
     }
 
     private async Task<Guid> GoLiveAsync(string deckId)
