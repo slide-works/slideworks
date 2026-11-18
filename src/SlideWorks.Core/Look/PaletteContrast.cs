@@ -33,12 +33,14 @@ public static class PaletteContrast
         ("dark-soft-accent", "night-ink", "accent", TEXT, "night", 0.24),
         ("dark-soft-positive", "night-ink", "good", TEXT, "night", 0.22),
         ("dark-soft-negative", "night-ink", "bad", TEXT, "night", 0.22),
-        // The pin on a solid accent panel: the panel's ink on night at 30% over the panel (Pin.module.css).
-        ("pin-solid-accent", "panel-accent-ink", "night", TEXT, "panel-accent", 0.3),
+        // The pin on a solid panel: the panel's ink on night at 25% over the panel (Pin.module.css).
+        ("pin-solid-accent", "panel-accent-ink", "night", TEXT, "panel-accent", 0.25),
+        ("pin-solid-positive", "panel-positive-ink", "night", TEXT, "panel-positive", 0.25),
+        ("pin-solid-negative", "panel-negative-ink", "night", TEXT, "panel-negative", 0.25),
     ];
 
     // The table for src/contracts/contrast-pairs.json, in order. Over and Share are set on a mixed-ground pair only:
-    // the ground is then Back mixed at Share over Over. The dark soft pairs and the pin's are mixed.
+    // the ground is then Back mixed at Share over Over. The dark soft pairs and the solid pin pairs are mixed.
     public static IReadOnlyList<(string Name, string Fore, string Back, double Needed, string? Over, double? Share)> Pairs { get; } =
         _pairs.ToList();
 

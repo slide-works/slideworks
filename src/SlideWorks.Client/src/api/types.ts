@@ -320,7 +320,9 @@ export type ContrastPair =
   | 'dark-soft-accent'
   | 'dark-soft-positive'
   | 'dark-soft-negative'
-  | 'pin-solid-accent';
+  | 'pin-solid-accent'
+  | 'pin-solid-positive'
+  | 'pin-solid-negative';
 
 // A palette's contrast check: whether every pair meets its bar, and the pair
 // closest to (or furthest below) its bar.

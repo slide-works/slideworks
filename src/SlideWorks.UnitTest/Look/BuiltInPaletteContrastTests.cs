@@ -10,7 +10,7 @@ public class BuiltInPaletteContrastTests
         "body", "secondary", "card-bold", "headline-accent", "on-accent", "on-accent-2", "deep-dive-pill", "panel-accent",
         "panel-positive", "panel-negative", "panel-inverse", "badge-positive", "badge-negative", "dark-subtitle",
         "soft-accent", "soft-inverse", "deep-dive-list", "dark-kicker", "dark-chrome", "dark-soft-accent", "dark-soft-positive",
-        "dark-soft-negative", "pin-solid-accent",
+        "dark-soft-negative", "pin-solid-accent", "pin-solid-positive", "pin-solid-negative",
     ];
 
     private static IEnumerable<string> PaletteNames() => new PaletteCatalogue().All.Select(p => p.Name);
@@ -58,6 +58,15 @@ public class BuiltInPaletteContrastTests
 
         dark.Select(c => c.Pair).ShouldBe(["dark-kicker", "dark-chrome", "dark-soft-accent", "dark-soft-positive", "dark-soft-negative"]);
         dark.Where(c => !c.Pass).Select(c => $"{c.Pair}: {c.Fg} on {c.Bg} is {c.Ratio:0.00}:1").ShouldBeEmpty();
+    }
+
+    [TestCaseSource(nameof(PaletteNames))]
+    public void Palettes_WhenBuiltIn_ShouldPassTheThreeSolidPinPairs(string name)
+    {
+        var pins = PaletteContrast.Check(new PaletteCatalogue().Find(name)!).Where(c => c.Pair.StartsWith("pin-solid-", StringComparison.Ordinal)).ToList();
+
+        pins.Select(c => c.Pair).ShouldBe(["pin-solid-accent", "pin-solid-positive", "pin-solid-negative"]);
+        pins.Where(c => !c.Pass).Select(c => $"{c.Pair}: {c.Fg} on {c.Bg} is {c.Ratio:0.00}:1").ShouldBeEmpty();
     }
 
     [Test]

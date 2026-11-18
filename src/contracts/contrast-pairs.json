@@ -21,5 +21,7 @@
   {"name": "dark-soft-accent", "fore": "night-ink", "back": "accent", "needed": 4.5, "over": "night", "share": 0.24},
   {"name": "dark-soft-positive", "fore": "night-ink", "back": "good", "needed": 4.5, "over": "night", "share": 0.22},
   {"name": "dark-soft-negative", "fore": "night-ink", "back": "bad", "needed": 4.5, "over": "night", "share": 0.22},
-  {"name": "pin-solid-accent", "fore": "panel-accent-ink", "back": "night", "needed": 4.5, "over": "panel-accent", "share": 0.3}
+  {"name": "pin-solid-accent", "fore": "panel-accent-ink", "back": "night", "needed": 4.5, "over": "panel-accent", "share": 0.25},
+  {"name": "pin-solid-positive", "fore": "panel-positive-ink", "back": "night", "needed": 4.5, "over": "panel-positive", "share": 0.25},
+  {"name": "pin-solid-negative", "fore": "panel-negative-ink", "back": "night", "needed": 4.5, "over": "panel-negative", "share": 0.25}
 ]

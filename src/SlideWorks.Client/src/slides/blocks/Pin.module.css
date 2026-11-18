@@ -13,11 +13,11 @@
   text-transform: uppercase;
 }
 
-/* On a solid panel (tone.ts sets --panel-surface and --panel-ink): the panel's ink under a night pill, night at 30% over
+/* On a solid panel (tone.ts sets --panel-surface and --panel-ink): the panel's ink under a night pill, night at 25% over
    the surface, with a faint ring in the ink so the pill shows on a night panel too. The ink on that pill is at least
    6.3:1 on every built-in palette (the pin-solid-accent contrast pair). */
 [data-fill='solid'] .pin {
-  background: color-mix(in srgb, var(--sw-night) 30%, var(--panel-surface));
+  background: color-mix(in srgb, var(--sw-night) 25%, var(--panel-surface));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--panel-ink) 30%, var(--panel-surface));
   color: var(--panel-ink);
 }
