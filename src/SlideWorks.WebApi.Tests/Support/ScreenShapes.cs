@@ -229,9 +229,9 @@ public static class ScreenShapes
 
     // A sample that carries a built-in deck's look, checked against itself: only what a built-in leaves null in a look
     // may be null (T7), under the look's place in the file.
-    private static JsonShapeOptions BuiltInLookFile(string under = "") => new()
+    private static JsonShapeOptions BuiltInLookFile(string under = "", params string[] extra) => new()
     {
-        NullablePaths = BuiltInLookNullablePathsUnder(under),
+        NullablePaths = [.. BuiltInLookNullablePathsUnder(under), .. extra],
         OpaquePaths = ["slides[].slots"],
     };
 
@@ -242,7 +242,8 @@ public static class ScreenShapes
     // built-in deck as the server sends it, so their looks hold a built-in's nulls.
     public static JsonShapeOptions SelfCheckOf(string file) => file switch
     {
-        "deck-play.json" or "deck-page.json" or "presenter.json" or "card.json" => BuiltInLookFile(),
+        "deck-play.json" or "deck-page.json" or "presenter.json" => BuiltInLookFile("", "parts[].caption", "parts[].mark"),
+        "card.json" => BuiltInLookFile(),
         "look-change.json" => BuiltInLookFile("response."),
         "guest.json" => GuestFile,
         "audience-events.json" => AudienceEvents,
