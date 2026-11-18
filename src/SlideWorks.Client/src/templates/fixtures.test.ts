@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { LookView } from '../api/types';
+import type { CustomLayoutView } from '../slides/custom/layoutTree';
 import {
+  layoutReview,
   templateChecklist,
   templateEditor,
   templatePublic,
@@ -8,6 +10,7 @@ import {
   templates,
 } from '../test-support/fixtures/templates';
 import type {
+  LayoutReviewView,
   TemplateAsset,
   TemplateAssetMeta,
   TemplateChecklistRow,
@@ -28,7 +31,6 @@ import type {
 // the client's types: `satisfies` in fixtures/templates.ts checks field names and value kinds but
 // lets an extra key in a sample pass and checks no literal value. Each table is a Record over the
 // type's keys, so it can't miss or invent a key; `false` marks a key the type makes optional.
-// The layoutReview fixture is left out: its tree is still written by hand there.
 type Keys<T> = { [K in keyof Required<T>]: undefined extends T[K] ? false : true };
 
 function expectKeys<T extends object>(value: T, table: Keys<T>, where: string) {
@@ -242,5 +244,51 @@ describe('the template sharing and public samples', () => {
       },
       'public.look',
     );
+  });
+});
+
+describe('the layout review sample', () => {
+  it('has exactly the keys of LayoutReviewView and its compiled layout', () => {
+    expectKeys<LayoutReviewView>(
+      layoutReview,
+      {
+        name: true,
+        asset: true,
+        approved: true,
+        surface: true,
+        steps: true,
+        layout: true,
+        sample: true,
+        maximum: true,
+        safeArea: true,
+        contrast: true,
+      },
+      'layout review',
+    );
+    expectKeys<CustomLayoutView>(
+      layoutReview.layout,
+      { name: true, surface: true, tree: true, css: true, slots: true },
+      'layout review layout',
+    );
+    expectKeys<CustomLayoutView['tree']>(
+      layoutReview.layout.tree,
+      { version: true, scope: false, root: true },
+      'layout review tree',
+    );
+    expectKeys<LayoutReviewView['safeArea']>(
+      layoutReview.safeArea,
+      { ok: true, overflow: true },
+      'safeArea',
+    );
+    expectKeys<LayoutReviewView['contrast']>(
+      layoutReview.contrast,
+      { ok: true, failures: true },
+      'contrast',
+    );
+    expect(['light', 'dark', 'either']).toContain(layoutReview.surface);
+    expect(layoutReview.layout.surface).toBe(layoutReview.surface);
+    expect(layoutReview.layout.name).toBe(layoutReview.name);
+    expect(layoutReview.layout.tree.version).toBe(1);
+    expect(layoutReview.layout.tree.root.length).toBeGreaterThan(0);
   });
 });
