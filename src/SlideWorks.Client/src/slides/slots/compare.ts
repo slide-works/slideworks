@@ -1,15 +1,25 @@
 // The compare layout's slots (K5). Field names are frozen; the server sets the limits.
 import type { AssertTrue, ListsEveryKey } from './keyChecks';
-import type { Fill, Tone } from './shared';
+import type { CalloutBlock, Emphasis, PanelFill } from './blocks';
+import type { Reveal, Tone } from './shared';
 
-// failure defaults to the negative tone and success to the positive one.
+export type CompareRow = { label: string; value: string };
+
+// failure defaults to the negative tone and success to the positive one. Exactly
+// one of points, rows and line is set; the server checks it. `icon` is a name
+// from icons.json; `stamp` is a short word stamped in the panel.
 export type CompareSide = {
   label: string;
   title: string;
   sub?: string;
-  points: string[];
+  points?: string[];
+  rows?: CompareRow[];
+  line?: string;
+  stamp?: string;
+  footer?: string;
   tone?: Tone;
-  fill?: Fill;
+  fill?: PanelFill;
+  icon?: string;
 };
 
 export type CompareSlots = {
@@ -17,6 +27,9 @@ export type CompareSlots = {
   headline: string;
   failure: CompareSide;
   success: CompareSide;
+  reveal?: Reveal;
+  callout?: CalloutBlock;
+  emphasis?: Emphasis[];
 };
 
 // Every top-level slot key, at runtime. `satisfies` stops a key that isn't in
@@ -26,5 +39,8 @@ export const KEYS = [
   'headline',
   'failure',
   'success',
+  'reveal',
+  'callout',
+  'emphasis',
 ] as const satisfies readonly (keyof CompareSlots)[];
 export type KeysComplete = AssertTrue<ListsEveryKey<CompareSlots, typeof KEYS>>;
