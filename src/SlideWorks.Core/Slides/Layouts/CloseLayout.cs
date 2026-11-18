@@ -12,13 +12,15 @@ public static class CloseLayout
 
     public static LayoutDefinition Definition { get; } = new("close", "Closing slide (dark): a short headline of up to three written lines, with an optional sub and author.", LayoutSurface.Dark,
     [
-        Req("headline", new TextSlot(80, lineBreaks: true), "Set at 112 px, about 22 characters a line: use \\n for a line break, at most 3 written and 4 shown lines; it shrinks to 60 px to keep 4 lines"),
+        Req("headline", new TextSlot(80, lineBreaks: true), "Set at 112 px, about 22 characters a line: use \\n for a line break, at most 3 written and 4 shown lines; it shrinks to 60 px to keep 4 lines. An emphasised phrase sits within one written line: a phrase that spans a line break is refused"),
+        Emphasis("headline", "sub"),
         Opt("sub", new TextSlot(110)),
         Opt("author", new TextSlot(60)),
     ], rules: Rule);
 
     private static void Rule(JsonElement slots, string path, SlotValidation validation)
     {
+        EmphasisRules.Check(slots, path, validation, "headline", "sub");
         var written = slots.GetProperty("headline").GetString()!.Split('\n');
         if (written.Length > CLOSE_HEADLINE_MAX_LINES)
         {

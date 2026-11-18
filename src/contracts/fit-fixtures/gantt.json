@@ -118,5 +118,135 @@
       ],
       "caption": "Quarters so the risk shows up early while it is still cheap to change course and nobody has to guess how far along the work really is theeee"
     }
+  },
+  "ganttCallout": {
+    "layout": "gantt",
+    "grow": [
+      "/caption",
+      "/callout/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Small Slice Of Work To Customers Everyee",
+      "headline": "Week And The Feedback Arrives In Days Rather Than Quarters So The Risk Shows Upe",
+      "columns": [
+        "Early While Itee",
+        "Is Still Cheapee",
+        "To Change Course",
+        "And Nobody Hasee",
+        "To Guess How Far",
+        "Along The Workee",
+        "Really Is Theeee",
+        "Team Ships Aeeee"
+      ],
+      "rows": [
+        {
+          "label": "Small Slice Of Work Toeeeeeeee",
+          "start": 1,
+          "end": 1,
+          "status": "done",
+          "note": "Customers Every Week And The Feedbackeee"
+        },
+        {
+          "label": "Arrives In Days Rather Thaneee",
+          "start": 2,
+          "end": 4,
+          "status": "done",
+          "note": "Quarters So The Risk Shows Up Earlyeeeee"
+        },
+        {
+          "label": "While It Is Still Cheap Toeeee",
+          "start": 3,
+          "end": 6,
+          "status": "slips",
+          "note": "Change Course And Nobody Has To Guesseee"
+        },
+        {
+          "label": "How Far Along The Work Reallye",
+          "start": 5,
+          "end": 7,
+          "status": "stopped",
+          "note": "Is The Team Ships A Small Slice Of Worke"
+        },
+        {
+          "label": "To Customers Every Week Andeee",
+          "start": 8,
+          "end": 8,
+          "status": "ship",
+          "note": "The Feedback Arrives In Days Rather Than"
+        }
+      ],
+      "caption": "Quarters So The Risk Shows Up Early While It Is Still Cheap To Change Course And Nobody Has To Guess How Far Along The Work Really Is Theeee",
+      "callout": {
+        "tone": "accent",
+        "text": "Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Sho",
+        "reveal": "last"
+      }
+    }
+  },
+  "ganttCalloutWide": {
+    "layout": "gantt",
+    "grow": [
+      "/caption",
+      "/callout/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Many Women Who Wander Wide Meadows Mow M",
+      "headline": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMB",
+      "columns": [
+        "ws Mow Moss With",
+        "ws Mow Moss With",
+        "ws Mow Moss With",
+        "ws Mow Moss With",
+        "ws Mow Moss With",
+        "ws Mow Moss With",
+        "ws Mow Moss With",
+        "ws Mow Moss With"
+      ],
+      "rows": [
+        {
+          "label": "MWho Wander Wide Meadows Mow M",
+          "start": 1,
+          "end": 1,
+          "status": "done",
+          "note": "Many Women Who Wander Wide Meadows Mow M"
+        },
+        {
+          "label": "MWho Wander Wide Meadows Mow M",
+          "start": 2,
+          "end": 4,
+          "status": "done",
+          "note": "Many Women Who Wander Wide Meadows Mow M"
+        },
+        {
+          "label": "MWho Wander Wide Meadows Mow M",
+          "start": 3,
+          "end": 6,
+          "status": "slips",
+          "note": "Many Women Who Wander Wide Meadows Mow M"
+        },
+        {
+          "label": "MWho Wander Wide Meadows Mow M",
+          "start": 5,
+          "end": 7,
+          "status": "stopped",
+          "note": "Many Women Who Wander Wide Meadows Mow M"
+        },
+        {
+          "label": "MWho Wander Wide Meadows Mow M",
+          "start": 8,
+          "end": 8,
+          "status": "ship",
+          "note": "Many Women Who Wander Wide Meadows Mow M"
+        }
+      ],
+      "caption": "r Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Women Who Wander WideW",
+      "callout": {
+        "tone": "accent",
+        "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Women Who Wander WideW",
+        "reveal": "last"
+      }
+    }
   }
 }

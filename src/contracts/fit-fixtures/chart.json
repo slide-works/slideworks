@@ -172,5 +172,187 @@
         "label": "Is the team ships ae"
       }
     }
+  },
+  "chartCallout": {
+    "layout": "chart",
+    "grow": [
+      "/caption",
+      "/callout/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Really Is The Team Ships A Small Sliceee",
+      "headline": "Of Work To Customers Every Week And The Feedback Arrives In Days Rather Thaneeee",
+      "kind": "bar",
+      "xLabels": [
+        "Quarters Soe",
+        "The Riskeeee",
+        "Shows Upeeee",
+        "Early Whilee",
+        "It Is Stille",
+        "Cheap Toeeee",
+        "Changeeeeeee",
+        "Course Andee",
+        "Nobody Hasee",
+        "To Guess How",
+        "Far Alongeee",
+        "The Workeeee"
+      ],
+      "series": [
+        {
+          "name": "Really Is The Team Ships Aeeee",
+          "values": [
+            500,
+            37500,
+            74500,
+            21500,
+            58500,
+            5500,
+            42500,
+            79500,
+            26500,
+            63500,
+            10500,
+            47500
+          ]
+        },
+        {
+          "name": "Small Slice Of Work Toeeeeeeee",
+          "values": [
+            11500,
+            48500,
+            85500,
+            32500,
+            69500,
+            16500,
+            53500,
+            500,
+            37500,
+            74500,
+            21500,
+            58500
+          ]
+        },
+        {
+          "name": "Customers Every Week And Theee",
+          "values": [
+            22500,
+            59500,
+            6500,
+            43500,
+            80500,
+            27500,
+            64500,
+            11500,
+            48500,
+            85500,
+            32500,
+            69500
+          ]
+        }
+      ],
+      "yUnit": "Feedback",
+      "caption": "Arrives In Days Rather Than Quarters So The Risk Shows Up Early While It Is Still Cheap To Change Course And Nobody Has To Guess How Far Along The Work Reallyee",
+      "marker": {
+        "x": 6.5,
+        "label": "Is The Team Ships Ae"
+      },
+      "callout": {
+        "tone": "accent",
+        "text": "Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Sho",
+        "reveal": "last"
+      }
+    }
+  },
+  "chartCalloutWide": {
+    "layout": "chart",
+    "grow": [
+      "/caption",
+      "/callout/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Many Women Who Wander Wide Meadows Mow M",
+      "headline": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMB",
+      "kind": "bar",
+      "xLabels": [
+        "MWomen Who W",
+        "MWomen Who W",
+        "MWomen Who W",
+        "MWomen Who W",
+        "MWomen Who W",
+        "MWomen Who W",
+        "MWomen Who W",
+        "MWomen Who W",
+        "MWomen Who W",
+        "MWomen Who W",
+        "MWomen Who W",
+        "MWomen Who W"
+      ],
+      "series": [
+        {
+          "name": "MWho Wander Wide Meadows Mow M",
+          "values": [
+            500,
+            37500,
+            74500,
+            21500,
+            58500,
+            5500,
+            42500,
+            79500,
+            26500,
+            63500,
+            10500,
+            47500
+          ]
+        },
+        {
+          "name": "MWho Wander Wide Meadows Mow M",
+          "values": [
+            11500,
+            48500,
+            85500,
+            32500,
+            69500,
+            16500,
+            53500,
+            500,
+            37500,
+            74500,
+            21500,
+            58500
+          ]
+        },
+        {
+          "name": "MWho Wander Wide Meadows Mow M",
+          "values": [
+            22500,
+            59500,
+            6500,
+            43500,
+            80500,
+            27500,
+            64500,
+            11500,
+            48500,
+            85500,
+            32500,
+            69500
+          ]
+        }
+      ],
+      "yUnit": "ander Wi",
+      "caption": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Women Who Wander WideW",
+      "marker": {
+        "x": 6.5,
+        "label": "r Wide Meadows Mow M"
+      },
+      "callout": {
+        "tone": "accent",
+        "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Women Who Wander WideW",
+        "reveal": "last"
+      }
+    }
   }
 }
