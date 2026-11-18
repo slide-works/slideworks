@@ -10,6 +10,7 @@ import {
   qaStripSheetRowTestId,
 } from '../testIds';
 import type { QaControlView } from '../types';
+import { QaControlContext, type QaControlValue } from './useQaControl';
 import { QaControlFixture, type QaControlCall } from './QaControlFixture';
 import { QaControlLive } from './QaControlLive';
 import { QaStrip } from './QaStrip';
@@ -37,11 +38,50 @@ function strip(
   { error = null, onAction }: { error?: string | null; onAction?: (c: QaControlCall) => void } = {},
 ) {
   return (
-    <QaControlFixture deckId={DECK} control={control} error={error} onAction={onAction}>
-      <QaStrip deckId={DECK} />
-    </QaControlFixture>
+    <div style={PAGE}>
+      <QaControlFixture deckId={DECK} control={control} error={error} onAction={onAction}>
+        <QaStrip deckId={DECK} />
+      </QaControlFixture>
+    </div>
   );
 }
+
+// The remote's real page background and text colour (SpeakerPage's slate-950 and slate-100), so the screenshots show
+// what the phone shows: the strip sets no text colour of its own on the votes number.
+const PAGE = { background: '#020617', color: '#f1f5f9', minHeight: '100vh' };
+
+// A provider whose actions settle as the test says: `run` is called with the action and the question number and
+// answers with the message of that call, or null.
+function scripted(
+  control: QaControlView,
+  run: (action: string, number: number) => Promise<string | null>,
+  error: string | null = null,
+) {
+  const act = (action: string) => (number: number) => run(action, number);
+  const none = () => Promise.resolve<string | null>(null);
+  const value: QaControlValue = {
+    control,
+    approve: act('approve'),
+    hide: act('hide'),
+    restore: act('restore'),
+    answer: act('answer'),
+    reopen: act('reopen'),
+    show: act('show'),
+    unshow: act('unshow'),
+    setSettings: none,
+    setSlide: none,
+    error,
+  };
+  return (
+    <div style={PAGE}>
+      <QaControlContext value={{ deckId: DECK, slide: null, value }}>
+        <QaStrip deckId={DECK} />
+      </QaControlContext>
+    </div>
+  );
+}
+
+const textOf = (number: number) => live().questions.find((q) => q.number === number)!.text;
 
 const rowNumbers = (page: Page) =>
   page
@@ -161,14 +201,6 @@ test('QaStrip_WhenAButtonIsPressed_ShouldCallItsActionOnTheShownQuestion', async
   ]);
 });
 
-test('QaStrip_WhenACallWasRefused_ShouldShowItsMessageAsAnAlert', async ({ mount, page }) => {
-  const view = await mount(strip(live()));
-  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
-  await view.update(strip(live(), { error: 'That question had already changed.' }));
-  await expect(page.getByTestId(IDS.error)).toHaveText('That question had already changed.');
-  await expect(page.getByTestId(IDS.error)).toHaveAttribute('role', 'alert');
-});
-
 test('QaStrip_WhenAllIsPressed_ShouldListTheOpenAndToReviewQuestionsOnly', async ({
   mount,
   page,
@@ -205,18 +237,6 @@ test('QaStrip_WhenTheSheetRowsArePressed_ShouldCallEachRowsAction', async ({ mou
   await expect(page.getByTestId(qaStripSheetActionTestId('show', 4))).toHaveCount(0);
   await expect(page.getByTestId(qaStripSheetActionTestId('answer', 4))).toHaveCount(0);
   await expect(page.getByTestId(qaStripSheetActionTestId('approve', 1))).toHaveCount(0);
-});
-
-test('QaStrip_WhenTheSheetIsOpenAndACallWasRefused_ShouldShowTheMessageInTheSheetOnly', async ({
-  mount,
-  page,
-}) => {
-  const view = await mount(strip(live()));
-  await page.getByTestId(IDS.all).click();
-  await view.update(strip(live(), { error: 'That question had already changed.' }));
-  await expect(page.getByTestId(IDS.sheetError)).toHaveText('That question had already changed.');
-  await expect(page.getByTestId(IDS.sheetError)).toHaveAttribute('role', 'alert');
-  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
 });
 
 test('QaStrip_WhenTheSheetIsClosed_ShouldReturnFocusToAll', async ({ mount, page }) => {
@@ -299,29 +319,15 @@ async function liveStrip(
   await stubDeckHub(page, { audience: { state: guestView('live').state } });
   const api = await stubQaControlApi(page, DECK, { control: offScreen(), ...options });
   await mount(
-    <QaControlLive deckId={DECK} slide={1}>
-      <QaStrip deckId={DECK} />
-    </QaControlLive>,
+    <div style={PAGE}>
+      <QaControlLive deckId={DECK} slide={1}>
+        <QaStrip deckId={DECK} />
+      </QaControlLive>
+    </div>,
   );
   await expect(page.getByTestId(IDS.strip)).toBeVisible();
   return api;
 }
-
-test('QaStrip_WhenShowSettlesAndTheButtonBecomesTakeOff_ShouldKeepFocusInTheStrip', async ({
-  mount,
-  page,
-}) => {
-  const api = await liveStrip(mount, page);
-  await page.getByTestId(IDS.show).focus();
-  await page.getByTestId(IDS.show).press('Enter');
-  await expect(page.getByTestId(IDS.onScreen)).toBeVisible();
-  expect(api.calls.filter((c) => c.call === 'show')).toEqual([{ call: 'show', number: 1 }]);
-  await expect(page.getByTestId(IDS.show)).toHaveCount(0);
-  // The same button now reads Answered: focus stayed in the strip, on a button.
-  expect(
-    await page.evaluate(() => document.activeElement?.closest('[data-testid="qa-strip"]') !== null),
-  ).toBe(true);
-});
 
 test('QaStrip_WhenAnsweringTheLastOpenQuestionRemovesTheButtons_ShouldMoveFocusToTheStrip', async ({
   mount,
@@ -350,23 +356,346 @@ test('QaStrip_WhenTheServerRefusesAnAction_ShouldShowTheProvidersMessageAndChang
   await expect(page.getByTestId(IDS.show)).toBeVisible();
 });
 
-test('QaStrip_WhenASheetActionSettlesAndItsRowGoes_ShouldKeepFocusInTheSheet', async ({
+const sheetButton = (
+  page: Page,
+  action: 'approve' | 'hide' | 'show' | 'unshow' | 'answer',
+  n: number,
+) => page.getByTestId(qaStripSheetActionTestId(action, n));
+
+test('QaStrip_WhenTheStripIsRead_ShouldNameEachButtonByItsActionAndQuestion', async ({
+  mount,
+  page,
+}) => {
+  const view = await mount(strip(live()));
+  const named = (name: string) => page.getByRole('button', { name, exact: true });
+  await expect(named(`Answered: ${textOf(2)}`)).toHaveAttribute('data-testid', IDS.answer);
+  await expect(named(`Take off: ${textOf(2)}`)).toHaveAttribute('data-testid', IDS.takeOff);
+  await view.update(strip(offScreen()));
+  await expect(named(`Show: ${textOf(1)}`)).toHaveAttribute('data-testid', IDS.show);
+  await expect(named(`Answered: ${textOf(1)}`)).toHaveAttribute('data-testid', IDS.answer);
+});
+
+test('QaStrip_WhenTheSheetIsRead_ShouldNameEachRowButtonByItsActionAndQuestion', async ({
+  mount,
+  page,
+}) => {
+  await mount(strip(live()));
+  await page.getByTestId(IDS.all).click();
+  const named = (name: string) =>
+    page.getByTestId(IDS.sheet).getByRole('button', { name, exact: true });
+  await expect(named(`Approve: ${textOf(4)}`)).toHaveAttribute(
+    'data-testid',
+    qaStripSheetActionTestId('approve', 4),
+  );
+  await expect(named(`Hide: ${textOf(4)}`)).toHaveAttribute(
+    'data-testid',
+    qaStripSheetActionTestId('hide', 4),
+  );
+  await expect(named(`Show: ${textOf(1)}`)).toHaveAttribute(
+    'data-testid',
+    qaStripSheetActionTestId('show', 1),
+  );
+  await expect(named(`Answered: ${textOf(1)}`)).toHaveAttribute(
+    'data-testid',
+    qaStripSheetActionTestId('answer', 1),
+  );
+  await expect(named(`Take off: ${textOf(2)}`)).toHaveAttribute(
+    'data-testid',
+    qaStripSheetActionTestId('unshow', 2),
+  );
+  await expect(named('Close the list of questions')).toHaveAttribute('data-testid', IDS.sheetClose);
+  await expect(sheetButton(page, 'answer', 1)).toHaveText('Answered');
+  await expect(sheetButton(page, 'unshow', 2)).toHaveText('Take off');
+  await expect(sheetButton(page, 'approve', 4)).toHaveText('Approve');
+});
+
+test('QaStrip_WhenTheCountsChange_ShouldAnnounceThemInAPoliteStatusRegion', async ({
+  mount,
+  page,
+}) => {
+  const view = await mount(strip(live()));
+  const region = page.getByRole('status');
+  await expect(region).toHaveText('3 open, 1 to review');
+  await expect(region).toHaveAttribute('aria-live', 'polite');
+  const next = live();
+  next.counts = { ...next.counts, open: 2, waiting: 0 };
+  await view.update(strip(next));
+  await expect(region).toHaveText('2 open, 0 to review');
+});
+
+test('QaStrip_WhenTheSheetListsQuestions_ShouldShowVotesWithTheirPluralAndEachQuestionsState', async ({
+  mount,
+  page,
+}) => {
+  const view = live();
+  view.questions = view.questions.map((q) => (q.number === 6 ? { ...q, votes: 1 } : q));
+  await mount(strip(view));
+  await page.getByTestId(IDS.all).click();
+  const meta = (n: number) => page.getByTestId(qaStripSheetRowTestId(n)).locator('p').nth(1);
+  await expect(meta(6)).toHaveText('1 vote');
+  await expect(meta(1)).toHaveText('14 votes');
+  await expect(meta(2)).toHaveText('9 votes · On screen now');
+  await expect(meta(4)).toContainText('· To review');
+});
+
+test('QaStrip_WhenTwoQuestionsHaveTheSameVotes_ShouldListTheOlderFirstInTheSheet', async ({
+  mount,
+  page,
+}) => {
+  const view = live();
+  view.questions = view.questions.map((q) => (q.number === 6 ? { ...q, votes: 14 } : q));
+  await mount(strip(view));
+  await page.getByTestId(IDS.all).click();
+  expect(await rowNumbers(page)).toEqual([4, 1, 6, 2]);
+});
+
+test('QaStrip_WhenTheQuestionOnScreenIsHidden_ShouldShowTheTopOpenQuestionInstead', async ({
+  mount,
+  page,
+}) => {
+  const view = live();
+  view.questions = view.questions.map((q) => (q.number === 2 ? { ...q, hidden: true } : q));
+  await mount(strip(view));
+  await expect(page.getByTestId(IDS.text)).toHaveText(textOf(1));
+  await expect(page.getByTestId(IDS.onScreen)).toHaveCount(0);
+});
+
+test('QaStrip_WhenTheSheetIsOpenAndTheDeckGoesNotLiveAndLiveAgain_ShouldStayClosed', async ({
+  mount,
+  page,
+}) => {
+  const view = await mount(strip(live()));
+  await page.getByTestId(IDS.all).click();
+  await expect(page.getByTestId(IDS.sheet)).toBeVisible();
+  await view.update(strip(qaControlView('notLive')));
+  await expect(page.getByTestId(IDS.strip)).toHaveCount(0);
+  await view.update(strip(live()));
+  await expect(page.getByTestId(IDS.strip)).toBeVisible();
+  await expect(page.getByTestId(IDS.sheet)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.all)).toBeVisible();
+});
+
+test('QaStrip_WhenTheSheetClosesAfterItsLastQuestionWentThroughIt_ShouldReturnFocusToTheStrip', async ({
+  mount,
+  page,
+}) => {
+  const only = offScreen();
+  only.questions = only.questions.filter((q) => q.number === 1);
+  only.counts = { open: 1, waiting: 0, answered: 0, hidden: 0 };
+  await liveStrip(mount, page, { control: only });
+  await page.getByTestId(IDS.all).click();
+  await sheetButton(page, 'answer', 1).focus();
+  await sheetButton(page, 'answer', 1).press('Enter');
+  await expect(page.getByTestId(qaStripSheetRowTestId(1))).toHaveCount(0);
+  await expect(page.getByTestId(IDS.sheetClose)).toBeFocused();
+  await page.getByTestId(IDS.sheetClose).press('Enter');
+  await expect(page.getByTestId(IDS.sheet)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.all)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.strip)).toBeFocused();
+});
+
+test('QaStrip_WhenTheSheetClosesAfterEscapeWithAllGone_ShouldReturnFocusToTheStripToo', async ({
+  mount,
+  page,
+}) => {
+  const only = offScreen();
+  only.questions = only.questions.filter((q) => q.number === 1);
+  only.counts = { open: 1, waiting: 0, answered: 0, hidden: 0 };
+  await liveStrip(mount, page, { control: only });
+  await page.getByTestId(IDS.all).click();
+  await sheetButton(page, 'hide', 1).focus();
+  await sheetButton(page, 'hide', 1).press('Enter');
+  await expect(page.getByTestId(qaStripSheetRowTestId(1))).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId(IDS.sheet)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.strip)).toBeFocused();
+});
+
+test('QaStrip_WhenARowGoesFromTheSheet_ShouldFocusTheFirstButtonOfTheRowThatTookItsPlace', async ({
   mount,
   page,
 }) => {
   await liveStrip(mount, page);
   await page.getByTestId(IDS.all).click();
-  await page.getByTestId(qaStripSheetActionTestId('approve', 4)).focus();
-  await page.getByTestId(qaStripSheetActionTestId('approve', 4)).press('Enter');
-  // 4 is open now: its buttons are Show, Answered, Hide, and focus is on one of them.
-  await expect(page.getByTestId(qaStripSheetActionTestId('show', 4))).toBeVisible();
-  await page.getByTestId(qaStripSheetActionTestId('hide', 4)).press('Enter');
+  expect(await rowNumbers(page)).toEqual([4, 1, 2, 6]);
+  await sheetButton(page, 'hide', 4).focus();
+  await sheetButton(page, 'hide', 4).press('Enter');
   await expect(page.getByTestId(qaStripSheetRowTestId(4))).toHaveCount(0);
-  expect(
-    await page.evaluate(
-      () => document.activeElement?.closest('[data-testid="qa-strip-sheet"]') !== null,
-    ),
-  ).toBe(true);
+  // Row 1 took row 4's place; it is not on screen, so its first button is Show.
+  await expect(sheetButton(page, 'show', 1)).toBeFocused();
+});
+
+test('QaStrip_WhenTheLastRowGoesFromTheSheet_ShouldFocusTheRowNowLast', async ({ mount, page }) => {
+  await liveStrip(mount, page);
+  await page.getByTestId(IDS.all).click();
+  await sheetButton(page, 'answer', 6).focus();
+  await sheetButton(page, 'answer', 6).press('Enter');
+  await expect(page.getByTestId(qaStripSheetRowTestId(6))).toHaveCount(0);
+  expect(await rowNumbers(page)).toEqual([4, 1, 2]);
+  await expect(sheetButton(page, 'show', 2)).toBeFocused();
+});
+
+test('QaStrip_WhenNoRowIsLeftInTheSheet_ShouldFocusClose', async ({ mount, page }) => {
+  const only = offScreen();
+  only.questions = only.questions.filter((q) => q.number === 1);
+  only.counts = { open: 1, waiting: 0, answered: 0, hidden: 0 };
+  await liveStrip(mount, page, { control: only });
+  await page.getByTestId(IDS.all).click();
+  await sheetButton(page, 'answer', 1).focus();
+  await sheetButton(page, 'answer', 1).press('Enter');
+  await expect(page.getByTestId(IDS.sheetRows)).toContainText('No open or waiting questions.');
+  await expect(page.getByTestId(IDS.sheetClose)).toBeFocused();
+});
+
+test('QaStrip_WhenASheetActionIsRefusedAndItsButtonStays_ShouldKeepFocusOnThatButton', async ({
+  mount,
+  page,
+}) => {
+  await liveStrip(mount, page, {
+    routes: { hide: { status: 409, json: { error: 'wrong_state' } } },
+  });
+  await page.getByTestId(IDS.all).click();
+  await sheetButton(page, 'hide', 2).focus();
+  await sheetButton(page, 'hide', 2).press('Enter');
+  await expect(page.getByTestId(IDS.sheetError)).toContainText(
+    'That question had already changed.',
+  );
+  await expect(sheetButton(page, 'hide', 2)).toBeFocused();
+});
+
+test('QaStrip_WhenAnOpenQuestionIsAnsweredFromTheStripAndOthersRemain_ShouldKeepFocusOnTheButton', async ({
+  mount,
+  page,
+}) => {
+  await liveStrip(mount, page);
+  await page.getByTestId(IDS.answer).focus();
+  await page.getByTestId(IDS.answer).press('Enter');
+  // Question 1 is answered; the next top question is 2, and the strip is not the focus target: the button is.
+  await expect(page.getByTestId(IDS.text)).toHaveText(textOf(2));
+  await expect(page.getByTestId(IDS.answer)).toBeFocused();
+});
+
+test('QaStrip_WhenShowSettlesAndTheButtonBecomesAnswered_ShouldMoveFocusToTakeOff', async ({
+  mount,
+  page,
+}) => {
+  const api = await liveStrip(mount, page);
+  await page.getByTestId(IDS.show).focus();
+  await page.getByTestId(IDS.show).press('Enter');
+  await expect(page.getByTestId(IDS.onScreen)).toBeVisible();
+  expect(api.calls.filter((c) => c.call === 'show')).toEqual([{ call: 'show', number: 1 }]);
+  // The focused element would read "Answered": a late second tap would mark the question answered.
+  await expect(page.getByTestId(IDS.takeOff)).toBeFocused();
+  await page.keyboard.press('Enter');
+  expect(api.calls.filter((c) => c.call === 'answer')).toEqual([]);
+});
+
+test('QaStrip_WhenTakeOffSettlesAndTheButtonBecomesShow_ShouldMoveFocusToShow', async ({
+  mount,
+  page,
+}) => {
+  await liveStrip(mount, page, { control: live() });
+  await page.getByTestId(IDS.takeOff).focus();
+  await page.getByTestId(IDS.takeOff).press('Enter');
+  await expect(page.getByTestId(IDS.onScreen)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.show)).toBeFocused();
+});
+
+test('QaStrip_WhenATapIsStillInFlight_ShouldIgnoreASecondTapAndMarkTheButtonBusy', async ({
+  mount,
+  page,
+}) => {
+  const calls: string[] = [];
+  const release: Array<(message: string | null) => void> = [];
+  await mount(
+    scripted(offScreen(), (action, number) => {
+      calls.push(`${action} ${number}`);
+      return new Promise((resolve) => release.push(resolve));
+    }),
+  );
+  await page.getByTestId(IDS.show).click();
+  await expect(page.getByTestId(IDS.show)).toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByTestId(IDS.show)).toHaveAttribute('aria-disabled', 'true');
+  await page.getByTestId(IDS.answer).evaluate((el) => (el as HTMLElement).click());
+  await page.getByTestId(IDS.show).evaluate((el) => (el as HTMLElement).click());
+  expect(calls).toEqual(['show 1']);
+  release[0](null);
+  await expect(page.getByTestId(IDS.show)).not.toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByTestId(IDS.show)).not.toHaveAttribute('aria-disabled', 'true');
+  await page.getByTestId(IDS.answer).click();
+  expect(calls).toEqual(['show 1', 'answer 1']);
+});
+
+test('QaStrip_WhenASheetTapIsStillInFlight_ShouldIgnoreASecondTap', async ({ mount, page }) => {
+  const calls: string[] = [];
+  await mount(
+    scripted(live(), (action, number) => {
+      calls.push(`${action} ${number}`);
+      return new Promise(() => undefined);
+    }),
+  );
+  await page.getByTestId(IDS.all).click();
+  await sheetButton(page, 'hide', 2).evaluate((el) => (el as HTMLElement).click());
+  await sheetButton(page, 'hide', 2).evaluate((el) => (el as HTMLElement).click());
+  await sheetButton(page, 'answer', 2).evaluate((el) => (el as HTMLElement).click());
+  expect(calls).toEqual(['hide 2']);
+});
+
+test('QaStrip_WhenItsOwnCallIsRefused_ShouldShowThatCallsMessageUnderTheStrip', async ({
+  mount,
+  page,
+}) => {
+  const answers = ['That question had already changed.', null];
+  await mount(scripted(live(), () => Promise.resolve(answers.shift() ?? null)));
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+  await page.getByTestId(IDS.answer).click();
+  await expect(page.getByTestId(IDS.error)).toHaveText('That question had already changed.');
+  await expect(page.getByTestId(IDS.error)).toHaveAttribute('role', 'alert');
+  // The next call clears it when it succeeds.
+  await page.getByTestId(IDS.takeOff).click();
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+});
+
+test('QaStrip_WhenASheetCallIsRefused_ShouldShowThatCallsMessageInTheSheetOnly', async ({
+  mount,
+  page,
+}) => {
+  await mount(scripted(live(), () => Promise.resolve('That question had already changed.')));
+  await page.getByTestId(IDS.all).click();
+  await sheetButton(page, 'hide', 2).click();
+  await expect(page.getByTestId(IDS.sheetError)).toHaveText('That question had already changed.');
+  await expect(page.getByTestId(IDS.sheetError)).toHaveAttribute('role', 'alert');
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+});
+
+test('QaStrip_WhenAnotherPartsSettingsChangeFailed_ShouldNotShowItsMessageUnderThePhoneStrip', async ({
+  mount,
+  page,
+}) => {
+  const settings = "Couldn't change the question settings. Check your connection and try again.";
+  await mount(scripted(live(), () => Promise.resolve(null), settings));
+  await expect(page.getByTestId(IDS.strip)).toBeVisible();
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+  await expect(page.getByText(settings)).toHaveCount(0);
+  await page.getByTestId(IDS.all).click();
+  await expect(page.getByTestId(IDS.sheetError)).toHaveCount(0);
+  await expect(page.getByText(settings)).toHaveCount(0);
+});
+
+test('QaStrip_WhenTheQuestionsCannotBeReadOrWatched_ShouldShowThatFailure', async ({
+  mount,
+  page,
+}) => {
+  const watch =
+    "Live question updates aren't reaching this window, so this list may be out of date. It keeps trying, and tries again when you change slides.";
+  const view = await mount(scripted(live(), () => Promise.resolve(null), watch));
+  await expect(page.getByTestId(IDS.error)).toHaveText(watch);
+  const read =
+    "Couldn't load the questions. Check your connection; they load again when you move or reconnect.";
+  await view.update(scripted(live(), () => Promise.resolve(null), read));
+  await expect(page.getByTestId(IDS.error)).toHaveText(read);
+  await page.getByTestId(IDS.all).click();
+  await expect(page.getByTestId(IDS.sheetError)).toHaveText(read);
 });
 
 test('screenshot QaStrip on screen', async ({ mount, page }) => {
