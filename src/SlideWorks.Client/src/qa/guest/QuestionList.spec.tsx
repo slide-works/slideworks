@@ -177,8 +177,8 @@ test('answered questions sit in their own section by votes, with a tick and no u
     guestQuestion(1, {
       number: 8,
       state: 'answered',
-      votes: 2,
-      text: 'A later answer with fewer votes',
+      votes: 7,
+      text: 'A later answer with more votes',
     }),
   ];
   await mount(list({ questions: answered }));
@@ -189,7 +189,7 @@ test('answered questions sit in their own section by votes, with a tick and no u
     await section
       .getByRole('listitem')
       .evaluateAll((rows) => rows.map((r) => r.getAttribute('data-testid'))),
-  ).toEqual([questionRowTestId(3), questionRowTestId(8)]);
+  ).toEqual([questionRowTestId(8), questionRowTestId(3)]);
   await expect(section.getByRole('button')).toHaveCount(0);
   await expect(upvote(page, 3)).toHaveCount(0);
   await expect(page.getByTestId(questionAnsweredTestId(3))).toHaveText('✓');
