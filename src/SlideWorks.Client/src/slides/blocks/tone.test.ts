@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Fill, Tone } from '../slots';
-import { panelTone, tonePair, toneStyle } from './tone';
+import { panelTone, tonePair, toneRule, toneStyle } from './tone';
 
 describe('tonePair', () => {
   it.each<[Tone, Fill, string, string]>([
@@ -26,6 +26,13 @@ describe('tonePair', () => {
     expect(tonePair(alias, 'solid')).toEqual(tonePair(tone, 'solid'));
   });
 
+  it.each<Tone>(['accent', 'positive', 'negative', 'inverse', 'good', 'bad', 'info'])(
+    'plain keeps the card surface for %s',
+    (tone) => {
+      expect(tonePair(tone, 'plain')).toEqual({ surface: 'card', ink: 'ink' });
+    },
+  );
+
   it('defaults the fill to soft', () => {
     expect(tonePair('negative')).toEqual(tonePair('negative', 'soft'));
     expect(tonePair('info')).toEqual({ surface: 'accent-light', ink: 'accent-dark' });
@@ -42,5 +49,26 @@ describe('toneStyle', () => {
       '--panel-surface': 'var(--sw-accent-light)',
       '--panel-ink': 'var(--sw-accent-dark)',
     });
+  });
+
+  it('plain keeps the card surface', () => {
+    expect(toneStyle('negative', 'plain')).toEqual({
+      '--panel-surface': 'var(--sw-card)',
+      '--panel-ink': 'var(--sw-ink)',
+    });
+  });
+});
+
+describe('toneRule', () => {
+  it.each<[Tone, string]>([
+    ['accent', 'accent'],
+    ['positive', 'good'],
+    ['negative', 'bad'],
+    ['inverse', 'night'],
+    ['info', 'accent'],
+    ['good', 'good'],
+    ['bad', 'bad'],
+  ])("%s's rule is %s", (tone, token) => {
+    expect(toneRule(tone)).toBe(token);
   });
 });

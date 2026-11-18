@@ -1,15 +1,19 @@
 // The cards layout's slots (K5). Field names are frozen; the server sets the limits.
 import type { AssertTrue, ListsEveryKey } from './keyChecks';
-import type { Fill, Reveal, Tone } from './shared';
+import type { PanelFill } from './blocks';
+import type { Reveal, Tone } from './shared';
 
-// A card with no tone is the plain card.
+// A card with no tone is the plain card. `icon` is a name from icons.json and
+// `pin` a short label in the card's corner; a fill without a tone is ignored.
 export type Card = {
   badge?: string;
+  icon?: string;
   title: string;
   text: string;
   chips: string[];
   tone?: Tone;
-  fill?: Fill;
+  fill?: PanelFill;
+  pin?: string;
 };
 
 export type CardsSlots = { kicker?: string; headline: string; cards: Card[]; reveal?: Reveal };
