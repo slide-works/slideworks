@@ -1,4 +1,3 @@
-using Agoda.IoC.Core;
 using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -7,8 +6,7 @@ namespace SlideWorks.WebApi.Features.Templates;
 
 // ITemplates over the built-in catalogue (T4): every built-in can be found and picked by anyone, none has a version, an
 // owner or a palette of its own.
-// TODO: temporary as the registered ITemplates; the database-backed templates service replaces it and keeps the built-ins.
-[RegisterPerRequest(For = typeof(ITemplates))]
+// Not registered: Templates composes it with the uploaded ones.
 public sealed class BuiltInTemplates(ITemplateCatalogue catalogue) : ITemplates
 {
     public static ResolvedTemplate Resolve(Template template)

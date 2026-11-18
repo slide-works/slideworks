@@ -17,7 +17,7 @@ public class TemplateSeamHostTests : ApiTestFixture
         var templates = scope.ServiceProvider.GetRequiredService<ITemplates>();
         var talk = await templates.FindAsync("talk", null, CancellationToken.None);
 
-        templates.ShouldBeOfType<BuiltInTemplates>();
+        templates.ShouldBeOfType<SlideWorks.WebApi.Features.Templates.Templates>();
         scope.ServiceProvider.GetRequiredService<ITemplates>().ShouldBeSameAs(templates);
         talk.ShouldNotBeNull();
         talk.BuiltIn.ShouldBeTrue();
