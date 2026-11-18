@@ -22,6 +22,8 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
     public const string FAILED = "Rendering failed: ";
 
     private const int MAX_PAGES = 2;
+    private const string MEASURE_TIMED_OUT = "Measuring the font timed out";
+    private static readonly TimeSpan MEASURE_TIMEOUT = TimeSpan.FromSeconds(15);
     private const string CARD_TEST_ID = "share-card";
     private const string SETTLED = "() => { const card = document.querySelector('[data-testid=share-card]'); return !!card && (card.dataset.ready === 'true' || card.hasAttribute('data-error')); }";
     private const string IMAGE = "image";
@@ -33,6 +35,57 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
     public Task<byte[]> RenderCardAsync(string deckId, CancellationToken ct) => RenderAsync(deckId, ct);
 
     public Task<byte[]> RenderGenericCardAsync(CancellationToken ct) => RenderAsync(null, ct);
+
+    // Measures an uploaded font in a context of its own: no network, a CSP that allows only data: fonts, and a deadline
+    // (MEASURE_TIMEOUT, covering the slot, the browser start and the page) after which it is a TimeoutException.
+    public async Task<double> MeasureFontAsync(byte[] woff2, CancellationToken ct)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(MEASURE_TIMEOUT);
+        try
+        {
+            await _pages.WaitAsync(deadline.Token);
+            try
+            {
+                var chromium = await browser.GetAsync(deadline.Token);
+                try
+                {
+                    return await MeasurePageAsync(chromium, woff2, deadline.Token);
+                }
+                catch (PlaywrightException) when (!chromium.IsConnected && !deadline.IsCancellationRequested)
+                {
+                    return await MeasurePageAsync(await browser.GetAsync(deadline.Token), woff2, deadline.Token);
+                }
+            }
+            finally
+            {
+                ReleaseSlot();
+            }
+        }
+        catch (Exception e) when (e is OperationCanceledException or PlaywrightException && !ct.IsCancellationRequested && deadline.IsCancellationRequested)
+        {
+            throw new System.TimeoutException(MEASURE_TIMED_OUT);
+        }
+        catch (PlaywrightException e) when (e.Message.Contains("font not loaded", StringComparison.Ordinal))
+        {
+            throw new InvalidDataException("The font could not be decoded");
+        }
+        catch (PlaywrightException)
+        {
+            throw new RendererUnavailableException("The font could not be measured");
+        }
+    }
+
+    private static async Task<double> MeasurePageAsync(IBrowser chromium, byte[] woff2, CancellationToken ct)
+    {
+        await using var context = await chromium.NewContextAsync(new BrowserNewContextOptions { ViewportSize = new ViewportSize { Width = 1200, Height = 400 }, Offline = true, ServiceWorkers = ServiceWorkerPolicy.Block });
+        await using var closeOnDeadline = ct.Register(() => _ = context.CloseAsync());
+        await context.RouteAsync("**/*", route => route.AbortAsync());
+        var page = await context.NewPageAsync();
+        await page.SetContentAsync(FontMeasurePage.Html(woff2));
+        var width = await page.EvaluateAsync<double>(FontMeasurePage.MEASURE);
+        return FontMeasurePage.Raw(width);
+    }
 
     public void Dispose() => _pages.Dispose();
 
