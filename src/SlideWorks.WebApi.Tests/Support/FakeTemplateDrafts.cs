@@ -13,6 +13,7 @@ public sealed class FakeTemplateDrafts : ITemplateDrafts
     private readonly Lock _gate = new();
     private readonly List<string> _calls = [];
     private Exception? _refusal;
+    private Exception? _updateRefusal;
 
     public TemplatesView Templates { get; set; } = TemplateScreenShapes.Sample<TemplatesView>(TemplateScreenShapes.TEMPLATES_FILE);
 
@@ -35,6 +36,15 @@ public sealed class FakeTemplateDrafts : ITemplateDrafts
         }
     }
 
+    // UpdateAsync alone throws error, after recording the call; the other methods answer as usual. null accepts updates again.
+    public void RefuseUpdate(Exception? error)
+    {
+        lock (_gate)
+        {
+            _updateRefusal = error;
+        }
+    }
+
     // The calls answered so far, in order.
     public IReadOnlyList<string> Calls()
     {
@@ -54,6 +64,15 @@ public sealed class FakeTemplateDrafts : ITemplateDrafts
     public Task<TemplateEditorView> UpdateAsync(ICurrentActor actor, string id, string manifestJson, int revision)
     {
         var answer = Answer($"Update {id} {revision}", Editor);
+        Exception? updateRefusal;
+        lock (_gate)
+        {
+            updateRefusal = _updateRefusal;
+        }
+        if (updateRefusal != null)
+        {
+            throw updateRefusal;
+        }
         LastManifestJson = manifestJson;
         return Task.FromResult(answer);
     }
