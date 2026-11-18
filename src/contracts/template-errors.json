@@ -23,5 +23,7 @@
   "custom_layouts_unavailable": "Custom layouts are not available yet.",
   "renderer_unavailable": "This file can't be checked right now because the renderer is not available. Try again in a minute.",
   "upload_used": "This upload has already been used. Upload the file again.",
-  "not_published": "This template has not been published yet."
+  "not_published": "This template has not been published yet.",
+  "template_storage_full": "This template has stored too many files. Start a new template, or ask for unused files to be removed.",
+  "too_many_uploads": "Too many uploads are in progress for this template. Finish or wait for them to expire."
 }

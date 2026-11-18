@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -73,6 +75,52 @@ public class TemplateBundleRoutesTests : ApiTestFixture
         Bundles.Calls().ShouldBeEmpty();
     }
 
+    // The body is a raw stream, so the server finds a chunked body over the action's limit in the middle of the seam's
+    // read and throws there. The test host has no body limit of its own, so the fake throws what Kestrel throws.
+    [Test]
+    public async Task Import_WhenTheBodyIsOverTheLimit_ShouldBe413()
+    {
+        Bundles.Refuse(new BadHttpRequestException("Request body too large.", StatusCodes.Status413PayloadTooLarge));
+
+        var response = await Client.PostAsync("/api/templates/import", Zip(BUNDLE));
+        var body = await JsonAsync(response);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.RequestEntityTooLarge);
+        body.GetProperty("error").GetString().ShouldBe(TemplateErrorCodes.FILE_TOO_LARGE);
+        body.GetProperty("message").GetString().ShouldBe("This file is too large. The limit is 60 MB.");
+        body.GetProperty("errors").GetArrayLength().ShouldBe(0);
+        Bundles.Calls().ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task Import_WhenTheSeamRefusesTheBundle_ShouldAnswer400WithTheTemplateErrorBody()
+    {
+        Bundles.Refuse(TemplateRefusal.Of(TemplateErrorCodes.BUNDLE_TOO_LARGE));
+
+        var response = await Client.PostAsync("/api/templates/import", Zip(BUNDLE));
+        var body = await JsonAsync(response);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        body.GetProperty("error").GetString().ShouldBe(TemplateErrorCodes.BUNDLE_TOO_LARGE);
+        body.GetProperty("errors").ValueKind.ShouldBe(JsonValueKind.Array);
+    }
+
+    [TestCase("application/json")]
+    [TestCase("application/octet-stream")]
+    [TestCase("application/zipped")]
+    [TestCase(null)]
+    public async Task Import_WhenTheContentTypeIsNotAZip_ShouldBe415(string? contentType)
+    {
+        using var content = new ByteArrayContent(BUNDLE);
+        content.Headers.ContentType = contentType == null ? null : new MediaTypeHeaderValue(contentType);
+
+        var response = await Client.PostAsync("/api/templates/import", content);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnsupportedMediaType, await response.Content.ReadAsStringAsync());
+        (await JsonAsync(response)).GetProperty("error").GetString().ShouldBe(BundleBodyAttribute.NOT_A_ZIP);
+        Bundles.Calls().ShouldBeEmpty();
+    }
+
     [Test]
     public async Task Export_WhenAsked_ShouldAnswerAZipAttachment()
     {
@@ -82,10 +130,10 @@ public class TemplateBundleRoutesTests : ApiTestFixture
         var bytes = await response.Content.ReadAsByteArrayAsync();
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        response.Content.Headers.ContentType?.MediaType.ShouldBe(ZIP);
+        response.Content.Headers.ContentType.ShouldNotBeNull().MediaType.ShouldBe(ZIP);
         var disposition = response.Content.Headers.ContentDisposition.ShouldNotBeNull();
         disposition.DispositionType.ShouldBe("attachment");
-        disposition.FileName?.Trim('"').ShouldBe("northwind.zip");
+        disposition.FileName.ShouldNotBeNull().Trim('"').ShouldBe("northwind.zip");
         bytes.ShouldBe(BUNDLE);
         Bundles.Calls().ShouldBe([$"Export {TEMPLATE} {TestUser.Sam.Email}"]);
     }
@@ -109,7 +157,18 @@ public class TemplateBundleRoutesTests : ApiTestFixture
         var response = await Client.GetAsync($"/api/templates/{TEMPLATE}/bundle");
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
+        response.Content.Headers.ContentType.ShouldNotBeNull().MediaType.ShouldBe("application/json");
+    }
+
+    [Test]
+    public async Task Export_WhenPending_ShouldBe403()
+    {
+        using var pat = ClientFor(TestUser.NewPending());
+
+        var response = await pat.GetAsync($"/api/templates/{TEMPLATE}/bundle");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        Bundles.Calls().ShouldBeEmpty();
     }
 
     private static ByteArrayContent Zip(byte[] bytes)

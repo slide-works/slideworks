@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -57,6 +58,21 @@ public class UpdateMyDecksRouteTests : ApiTestFixture
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         Decks.Calls().ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task Update_WhenTheSeamRefusesTheTemplate_ShouldAnswer400WithTheTemplateErrorBody()
+    {
+        Decks.Refuse(TemplateRefusal.Of(TemplateErrorCodes.NOT_PUBLISHED));
+
+        var response = await Client.PostAsync(ROUTE, content: null);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var body = document.RootElement;
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        body.GetProperty("error").GetString().ShouldBe(TemplateErrorCodes.NOT_PUBLISHED);
+        body.GetProperty("message").GetString().ShouldBe("This template has not been published yet.");
+        body.GetProperty("errors").GetArrayLength().ShouldBe(0);
     }
 
     [Test]

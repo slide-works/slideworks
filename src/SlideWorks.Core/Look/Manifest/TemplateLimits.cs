@@ -24,4 +24,9 @@ public static class TemplateLimits
     // A bundle once unpacked, and the number of files in it.
     public const int MAX_BUNDLE_BYTES = 60 * 1024 * 1024;
     public const int MAX_BUNDLE_ENTRIES = 64;
+
+    // Everything one template has ever stored. A stored file is never removed, because a published version's files must
+    // stay, so the room is four bundles' worth: an owner can replace fonts and logos across versions before it runs out.
+    public const int MAX_STORED_ASSETS = 256;
+    public const long MAX_STORED_BYTES = 240_000_000;
 }

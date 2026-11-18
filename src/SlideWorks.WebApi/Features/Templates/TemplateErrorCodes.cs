@@ -28,4 +28,6 @@ public static class TemplateErrorCodes
     public const string RENDERER_UNAVAILABLE = "renderer_unavailable";
     public const string UPLOAD_USED = "upload_used";
     public const string NOT_PUBLISHED = "not_published";
+    public const string TEMPLATE_STORAGE_FULL = "template_storage_full";
+    public const string TOO_MANY_UPLOADS = "too_many_uploads";
 }
