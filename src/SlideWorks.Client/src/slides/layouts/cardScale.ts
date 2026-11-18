@@ -8,12 +8,28 @@ export type ScaleCard = { title: string; text: string; chips?: readonly string[]
 const LARGE_TITLE = 32;
 const LARGE_TEXT = 70;
 
-const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+// Made on first use, not at import: a browser without Intl.Segmenter must
+// still load every layout that imports this module. null when there is none.
+let graphemes: Intl.Segmenter | null | undefined;
 
-// Characters as the server counts them: a letter with its combining marks is one.
+function segmenter(): Intl.Segmenter | null {
+  if (graphemes === undefined) {
+    try {
+      graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+    } catch {
+      graphemes = null;
+    }
+  }
+  return graphemes;
+}
+
+// Characters as the server counts them: a letter with its combining marks is
+// one. Without a segmenter the count is in code points, the nearest there is.
 function length(text: string): number {
+  const segments = segmenter();
+  if (segments === null) return Array.from(text).length;
   let count = 0;
-  for (const segment of graphemes.segment(text)) {
+  for (const segment of segments.segment(text)) {
     void segment;
     count++;
   }
