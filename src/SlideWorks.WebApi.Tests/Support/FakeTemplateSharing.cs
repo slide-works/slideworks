@@ -43,7 +43,7 @@ public sealed class FakeTemplateSharing : ITemplateSharing
 
     // Records "Set id level a@x,b@y".
     public Task<TemplateSharingView> SetAsync(ICurrentActor actor, string id, TemplateSharingUpdate update)
-        => Task.FromResult(Answer($"Set {id} {update.Level} {string.Join(',', update.Viewers)}", Sharing));
+        => Task.FromResult(Answer($"Set {id} {update.Level} {string.Join(',', update.Viewers ?? [])}", Sharing));
 
     // Records "Public id signedIn" or "Public id signedOut".
     public Task<TemplatePublicView> PublicAsync(ICurrentActor actor, string id)
