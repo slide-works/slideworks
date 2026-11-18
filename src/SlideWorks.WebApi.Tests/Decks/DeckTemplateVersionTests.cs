@@ -62,6 +62,47 @@ public class DeckTemplateVersionTests : ApiTestFixture
         (await DeckCountAsync(agent)).ShouldBe(before);
     }
 
+    // D81: archiving hides a template from every picker, its owner included.
+    [Test]
+    public async Task CreateDeck_WhenTheTemplateIsArchived_ShouldRefuseAsUnknown()
+    {
+        Templates.Add(Uploaded("tpl_archived0001", version: 1, latest: 1) with { Archived = true });
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var before = await DeckCountAsync(agent);
+
+        var (isError, refused) = await agent.CallToolAsync("create_deck", new { title = "Archived", template = "tpl_archived0001" });
+        var posted = await Client.PostAsJsonAsync("/api/decks", new { title = "Archived", template = "tpl_archived0001" });
+
+        isError.ShouldBeTrue();
+        refused.GetString().ShouldBe("Unknown template 'tpl_archived0001'");
+        posted.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await posted.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString().ShouldBe("Unknown template 'tpl_archived0001'");
+        (await DeckCountAsync(agent)).ShouldBe(before);
+    }
+
+    // list_layouts follows create_deck's may-pick rule: a template the caller may not pick, or an archived one, answers
+    // exactly as one that does not exist, apart from the name the caller sent.
+    [Test]
+    public async Task ListLayouts_WhenTheTemplateIsNotPickable_ShouldAnswerAsForAnUnknownTemplate()
+    {
+        Templates.Add(Uploaded("tpl_layoutsnot01", version: 1, latest: 1), TestUser.Alex.Email);
+        Templates.Add(Uploaded("tpl_layoutsarc01", version: 1, latest: 1) with { Archived = true });
+        Templates.Add(Uploaded("tpl_layoutsmine1", version: 1, latest: 1), TestUser.Sam.Email);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        var notMine = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "list_layouts", """{"template":"tpl_layoutsnot01"}""");
+        var archived = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "list_layouts", """{"template":"tpl_layoutsarc01"}""");
+        var unknown = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "list_layouts", """{"template":"tpl_layoutsnone1"}""");
+        var (mineIsError, mine) = await agent.CallToolAsync("list_layouts", new { template = "tpl_layoutsmine1" });
+
+        unknown.GetProperty("isError").GetBoolean().ShouldBeTrue();
+        McpWire.TextOf(unknown).ShouldContain("Unknown template 'tpl_layoutsnone1'");
+        notMine.GetRawText().Replace("tpl_layoutsnot01", "tpl_layoutsnone1", StringComparison.Ordinal).ShouldBe(unknown.GetRawText());
+        archived.GetRawText().Replace("tpl_layoutsarc01", "tpl_layoutsnone1", StringComparison.Ordinal).ShouldBe(unknown.GetRawText());
+        mineIsError.ShouldBeFalse(mine.ToString());
+        mine.GetProperty("layouts").GetArrayLength().ShouldBeGreaterThan(0);
+    }
+
     [Test]
     public async Task CreateDeck_WhenBuiltIn_ShouldLeaveTheVersionNull()
     {
