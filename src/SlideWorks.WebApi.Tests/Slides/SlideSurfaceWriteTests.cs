@@ -19,6 +19,7 @@ public class SlideSurfaceWriteTests : ApiTestFixture
 {
     private const string TITLE = """{ "title": "Ship smaller" }""";
     private const string QUOTE = """{ "quote": "Ship it.", "attribution": "Sam Rivera" }""";
+    private const string PRACTICE = """{ "headline": "Ship smaller", "do": [{ "lead": "Cut", "text": "Slice the work thinner." }], "comes_back": [], "avoid": [] }""";
     private const string NOT_A_WORD = "surface: use 'light' or 'dark'";
 
     [Test]
@@ -158,9 +159,9 @@ public class SlideSurfaceWriteTests : ApiTestFixture
         await AddAsync(agent, deck, "title", TITLE, "dark");
         var before = await DeckTextAsync(agent, deck);
 
-        var error = await ErrorAsync(agent, "update_slide", new { deck, slide = 1, revision = 1, slots = Slots(QUOTE), layout = "quote" });
+        var error = await ErrorAsync(agent, "update_slide", new { deck, slide = 1, revision = 1, slots = Slots(PRACTICE), layout = "practice" });
 
-        error.ShouldBe("quote.surface: this layout is light only");
+        error.ShouldBe("practice.surface: this layout is light only");
         (await DeckTextAsync(agent, deck)).ShouldBe(before);
         (await StoredSurfacesAsync(deck)).ShouldBe(["dark"]);
     }
