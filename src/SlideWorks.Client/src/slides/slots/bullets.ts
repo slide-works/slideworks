@@ -1,5 +1,5 @@
 // The bullets layout's slots (K5). Field names are frozen; the server sets the limits.
-import type { BulletItem, CalloutBlock } from './blocks';
+import type { BulletItem, CalloutBlock, Emphasis } from './blocks';
 import type { AssertTrue, ListsEveryKey } from './keyChecks';
 import type { Reveal } from './shared';
 
@@ -9,6 +9,7 @@ export type BulletsSlots = {
   items: BulletItem[];
   reveal?: Reveal;
   callout?: CalloutBlock;
+  emphasis?: Emphasis[];
 };
 
 // Every top-level slot key, at runtime. `satisfies` stops a key that isn't in
@@ -19,5 +20,6 @@ export const KEYS = [
   'items',
   'reveal',
   'callout',
+  'emphasis',
 ] as const satisfies readonly (keyof BulletsSlots)[];
 export type KeysComplete = AssertTrue<ListsEveryKey<BulletsSlots, typeof KEYS>>;

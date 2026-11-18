@@ -9,9 +9,14 @@ import type { BulletsSlots } from '../../../slides/slots/bullets';
 export const SLOTS: BulletsSlots = {
   kicker: 'The cost',
   headline: 'Every slip we had last year started as a big batch',
-  items: ['Risk shows up late.', { lead: 'Merges get scary.', text: 'Long branches collide.' }],
+  items: [
+    'Risk shows up late.',
+    { lead: 'Merges get scary.', text: 'Long branches collide.' },
+    { icon: 'bolt', text: 'Small slices ship fast.' },
+  ],
   reveal: 'one-by-one',
-  callout: { tone: 'info', text: 'Nobody can say no to a slice.' },
+  callout: { tone: 'info', text: 'Nobody can say no to a slice.', reveal: 'last' },
+  emphasis: [{ text: 'big batch', tone: 'negative' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is
