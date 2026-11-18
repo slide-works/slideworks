@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import type { CardView } from '../api/types';
+import { fontsSettled } from '../look/fontsSettled';
 import { lookStyle } from '../look/lookStyle';
 import { WAVE_PATHS } from '../slides/art/waves';
 import styles from './CardPage.module.css';
@@ -127,13 +128,13 @@ function ShareCard({ deckId, card, logo, error, loading = false }: ShareCardProp
     // One frame first, so the card's fonts have started loading before
     // document.fonts.ready is read.
     const frame = requestAnimationFrame(() => {
-      void document.fonts.ready.then(() => live && setFontsReady(true));
+      void fontsSettled(card?.look).then(() => live && setFontsReady(true));
     });
     return () => {
       live = false;
       cancelAnimationFrame(frame);
     };
-  }, [shown]);
+  }, [shown, card]);
 
   const failure =
     error ??
