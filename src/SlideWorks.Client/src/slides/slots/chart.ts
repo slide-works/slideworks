@@ -1,4 +1,5 @@
 // The chart layout's slots (K5). Field names are frozen; the server sets the limits.
+import type { CalloutBlock, Emphasis } from './blocks';
 import type { AssertTrue, ListsEveryKey } from './keyChecks';
 
 export type ChartSeries = { name: string; values: number[] };
@@ -13,6 +14,8 @@ export type ChartSlots = {
   caption?: string;
   // x is 1-based on xLabels: 1 is the first label, 3.5 sits between the third and fourth.
   marker?: { x: number; label: string };
+  callout?: CalloutBlock;
+  emphasis?: Emphasis[];
 };
 
 // Every top-level slot key, at runtime. `satisfies` stops a key that isn't in
@@ -26,5 +29,7 @@ export const KEYS = [
   'yUnit',
   'caption',
   'marker',
+  'callout',
+  'emphasis',
 ] as const satisfies readonly (keyof ChartSlots)[];
 export type KeysComplete = AssertTrue<ListsEveryKey<ChartSlots, typeof KEYS>>;

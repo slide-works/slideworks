@@ -9,6 +9,7 @@ public static class GanttLayout
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),
+        Emphasis("headline"),
         Req("columns", new ListSlot(new TextSlot(16), 2, 8)),
         Req("rows", new ListSlot(Obj(
             Req("label", new TextSlot(30)),
@@ -17,10 +18,12 @@ public static class GanttLayout
             Req("status", new EnumSlot("done", "slips", "stopped", "ship"), "'ship' draws a ship marker instead of a bar"),
             Opt("note", new TextSlot(40), "Text on the bar; defaults to the status")), 1, 5)),
         Opt("caption", new TextSlot(140)),
+        Opt("callout", new BlockSlot(InlineBlocks.Callout), "Under the timeline; the rows shrink to make room"),
     ], rules: Rule);
 
     private static void Rule(JsonElement slots, string path, SlotValidation validation)
     {
+        EmphasisRules.Check(slots, path, validation, "headline");
         var columns = slots.GetProperty("columns").GetArrayLength();
         var index = 0;
         foreach (var row in slots.GetProperty("rows").EnumerateArray())

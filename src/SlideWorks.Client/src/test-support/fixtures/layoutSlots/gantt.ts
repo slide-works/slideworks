@@ -15,6 +15,8 @@ export const SLOTS: GanttSlots = {
     { label: 'Checkout UI', start: 2, end: 4, status: 'slips', note: 'Waited on the API' },
   ],
   caption: 'Everything is green until it isn’t.',
+  callout: { tone: 'bad', text: 'The UI waited on the API for two sprints.' },
+  emphasis: [{ text: 'One milestone', tone: 'accent' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is

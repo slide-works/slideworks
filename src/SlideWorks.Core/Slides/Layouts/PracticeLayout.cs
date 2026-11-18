@@ -5,10 +5,11 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class PracticeLayout
 {
-    public static LayoutDefinition Definition { get; } = new("practice", "A practice: what to do, what comes back and what to avoid, with an optional callout.", LayoutSurface.Light,
+    public static LayoutDefinition Definition { get; } = new("practice", "A practice: what to do, what comes back and what to avoid, with an optional callout that can arrive on the last step.", LayoutSurface.Light,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),
+        Emphasis("headline"),
         Req("do", new ListSlot(Obj(Req("lead", new TextSlot(50)), Req("text", new TextSlot(120))), 1, 5)),
         Req("comes_back", new ListSlot(new TextSlot(100), 0, 4), "What the team gets back; may be empty"),
         Req("avoid", new ListSlot(new TextSlot(100), 0, 4), "What to avoid; may be empty"),
@@ -17,6 +18,8 @@ public static class PracticeLayout
 
     private static void Rule(JsonElement slots, string path, SlotValidation validation)
     {
+        EmphasisRules.Check(slots, path, validation, "headline");
+
         // .practice: 1.15fr 1fr with a 48 px gap (873 and 759 px). Each column has an 18 px header
         // (34 px with its margin); an .it card is 44 px of padding plus 25 px/1.4 text, 14 px apart.
         var doCards = slots.GetProperty("do").EnumerateArray()

@@ -13,6 +13,7 @@ export const SLOTS: PracticeSlots = {
   comes_back: ['Feedback in days, not quarters.'],
   avoid: ['"API first, UI later."'],
   callout: { tone: 'bad', text: "If a slice can't be demoed, it isn't a slice yet." },
+  emphasis: [{ text: 'what a customer can do', tone: 'accent' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is

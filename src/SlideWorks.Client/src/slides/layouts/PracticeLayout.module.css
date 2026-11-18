@@ -89,3 +89,8 @@
 .callout {
   margin-top: 36px;
 }
+
+/* The shared callout block brings its own 30 px; the practice column keeps its 36. */
+.callout > :global([data-testid='body-callout']) {
+  margin-top: 0;
+}

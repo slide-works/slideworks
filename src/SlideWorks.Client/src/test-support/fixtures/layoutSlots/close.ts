@@ -10,6 +10,10 @@ export const SLOTS: CloseSlots = {
   headline: 'Pick one story.\nShip half of it by Friday.',
   sub: 'Then tell us what you learned at the next demo.',
   author: 'Sam Rivera · Product Engineering',
+  emphasis: [
+    { text: 'half of it', tone: 'accent' },
+    { text: 'learned', tone: 'positive', in: 'sub' },
+  ],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is

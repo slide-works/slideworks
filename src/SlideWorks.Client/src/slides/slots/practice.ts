@@ -1,5 +1,5 @@
 // The practice layout's slots (K5). Field names are frozen; the server sets the limits.
-import type { CalloutBlock, LeadText } from './blocks';
+import type { CalloutBlock, Emphasis, LeadText } from './blocks';
 import type { AssertTrue, ListsEveryKey } from './keyChecks';
 
 export type PracticeSlots = {
@@ -9,6 +9,7 @@ export type PracticeSlots = {
   comes_back: string[];
   avoid: string[];
   callout?: CalloutBlock;
+  emphasis?: Emphasis[];
 };
 
 // Every top-level slot key, at runtime. `satisfies` stops a key that isn't in
@@ -20,5 +21,6 @@ export const KEYS = [
   'comes_back',
   'avoid',
   'callout',
+  'emphasis',
 ] as const satisfies readonly (keyof PracticeSlots)[];
 export type KeysComplete = AssertTrue<ListsEveryKey<PracticeSlots, typeof KEYS>>;
