@@ -1,11 +1,13 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.Core.Look;
+using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Decks.Mcp;
 using SlideWorks.WebApi.Features.Decks.Views;
 using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.Look;
+using SlideWorks.WebApi.Features.Qa.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Slides;
 using SlideWorks.WebApi.Infrastructure;
@@ -23,7 +25,8 @@ public class DeckReader(
     IPublicUrls urls,
     JoinViews joinViews,
     ITemplateCatalogue templates,
-    IPaletteCatalogue palettes)
+    IPaletteCatalogue palettes,
+    QaRows qa)
 {
     public const string NOT_FOUND = "Deck not found";
 
@@ -52,7 +55,28 @@ public class DeckReader(
             throw new NotFoundException(NOT_FOUND);
         }
         var deck = await LoadDeckAsync(deckId);
-        return GetDeckResult.From(deck, await LiveSlidesAsync(deckId), urls.Deck(deck.Id, deck.Slug));
+        var slides = await LiveSlidesAsync(deckId);
+        return GetDeckResult.From(deck, slides, urls.Deck(deck.Id, deck.Slug), await qa.SettingsAsync(deckId), await ReactionsAsync(slides));
+    }
+
+    // Each session's reaction totals per slide of this deck, newest session first. The totals are rows of the Q&A feature,
+    // read here as counts only.
+    private async Task<IReadOnlyList<GetDeckReactionSession>> ReactionsAsync(IReadOnlyList<Slide> slides)
+    {
+        var numbers = slides.ToDictionary(s => s.Id, s => s.Position + 1);
+        var ids = numbers.Keys.ToList();
+        var totals = await db.ReactionTotals.AsNoTracking().Where(t => ids.Contains(t.SlideId)).ToListAsync();
+        var sessionIds = totals.Select(t => t.SessionId).Distinct().ToList();
+        var starts = await db.AudienceSessions.AsNoTracking().Where(s => sessionIds.Contains(s.Id)).Select(s => new { s.Id, s.StartedAt }).ToListAsync();
+        return [.. starts.OrderByDescending(s => s.StartedAt).Select(session => new GetDeckReactionSession(
+            session.StartedAt,
+            [.. totals.Where(t => t.SessionId == session.Id).GroupBy(t => numbers[t.SlideId]).OrderBy(g => g.Key).Select(g => new GetDeckReactionSlide(g.Key, CountsOf(g)))]))];
+    }
+
+    private static ReactionCounts CountsOf(IEnumerable<ReactionTotal> totals)
+    {
+        var count = (ReactionEmoji emoji) => totals.Where(t => t.Emoji == emoji).Sum(t => t.Count);
+        return new ReactionCounts(count(ReactionEmoji.ThumbsUp), count(ReactionEmoji.Heart), count(ReactionEmoji.Laugh), count(ReactionEmoji.Wow), count(ReactionEmoji.Clap));
     }
 
     private async Task<DeckPlayView> PlayAsync(Deck deck, bool isOwner)

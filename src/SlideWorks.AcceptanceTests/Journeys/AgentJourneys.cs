@@ -12,9 +12,9 @@ public class AgentJourneys : AcceptanceTest
 {
     private static readonly string[] TOOLS =
     [
-        "add_poll_option", "add_slide", "close_poll", "create_deck", "delete_slide", "get_deck", "get_deck_url", "get_poll_results",
+        "add_poll_option", "add_slide", "close_poll", "create_deck", "delete_slide", "get_deck", "get_deck_url", "get_poll_results", "get_questions",
         "list_blocks", "list_decks", "list_layouts", "list_palettes", "list_templates", "move_slide", "open_poll", "preview_deck",
-        "set_look", "set_notes", "set_sharing", "set_talk_length", "update_poll", "update_slide", "upload_image",
+        "set_look", "set_notes", "set_sharing", "set_talk_length", "update_poll", "update_qa", "update_slide", "upload_image",
     ];
 
     private AgentOAuthClient _oauth = null!;
