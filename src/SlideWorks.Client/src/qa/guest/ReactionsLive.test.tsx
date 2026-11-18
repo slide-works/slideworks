@@ -1,9 +1,10 @@
-import { act, createElement, useEffect } from 'react';
+import { Activity, act, createElement, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../api/client';
 import { qaRoom } from '../../test-support/fixtures/qaStates';
 import type { QaRoom } from '../types';
+import { QA_NETWORK_ERROR } from './QuestionsLive';
 import { ReactionsLive } from './ReactionsLive';
 import { usePhoneReactions, type PhoneReactions } from './usePhoneReactions';
 
@@ -31,14 +32,18 @@ function Probe() {
   return null;
 }
 
-const render = (room: QaRoom | null) =>
+// mode 'hidden' hides the provider in an <Activity>, which runs its effects' cleanups; 'visible' runs them again.
+const render = (room: QaRoom | null, mode: 'visible' | 'hidden' = 'visible') =>
   act(async () =>
     root.render(
-      createElement(ReactionsLive, {
-        code: CODE,
-        room,
-        status: 'live',
-        children: createElement(Probe),
+      createElement(Activity, {
+        mode,
+        children: createElement(ReactionsLive, {
+          code: CODE,
+          room,
+          status: 'live',
+          children: createElement(Probe),
+        }),
       }),
     ),
   );
@@ -123,5 +128,26 @@ describe('ReactionsLive', () => {
     expect(latest().error).toBe(
       'Your phone couldn’t reach the talk. Check your connection, then try again.',
     );
+  });
+
+  it('cooling ends when the effects run again, since its window stopped', async () => {
+    api.postReaction.mockResolvedValueOnce({ type: 'limited' });
+    await render(qaRoom('open'));
+    await tap();
+    expect(latest().cooling).toBe(true);
+
+    await render(qaRoom('open'), 'hidden');
+    await render(qaRoom('open'), 'visible');
+
+    expect(latest().cooling).toBe(false);
+  });
+
+  it('a call that never reached the server gives the shared network text', async () => {
+    api.postReaction.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await render(qaRoom('open'));
+
+    await tap();
+
+    expect(latest().error).toBe(QA_NETWORK_ERROR);
   });
 });

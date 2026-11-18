@@ -69,7 +69,11 @@ test('an upvote counts at once and is sent, and taking it back sends that', asyn
 
   await page.getByTestId('probe-vote-2').click();
   await expect(question(page, 2)).toContainText('2 open 10 ');
-  await expect.poll(() => api.view.mine).toEqual({ picks: [1, 2, 4], revision: 4 });
+  // The phone has the PUT's answer before the take-back, so this test is about the two calls, not their race.
+  await expect(page.getByTestId('probe-mine')).toHaveText(
+    JSON.stringify({ picks: [1, 2, 4], revision: 4 }),
+  );
+  expect(api.view.mine).toEqual({ picks: [1, 2, 4], revision: 4 });
 
   await page.getByTestId('probe-vote-2').click();
 

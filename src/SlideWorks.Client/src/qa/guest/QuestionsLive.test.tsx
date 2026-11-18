@@ -1,4 +1,4 @@
-import { act, createElement, useEffect } from 'react';
+import { Activity, act, createElement, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../api/client';
@@ -55,17 +55,26 @@ function Probe() {
 const view = guestQuestions('view');
 const ROUND = view.room.round!;
 
-const render = (room: QaRoom | null, status: AudienceStatus = 'live', showing = false) =>
+// mode 'hidden' hides the provider in an <Activity>, which runs its effects' cleanups; 'visible' runs them again.
+const render = (
+  room: QaRoom | null,
+  status: AudienceStatus = 'live',
+  showing = false,
+  mode: 'visible' | 'hidden' = 'visible',
+) =>
   act(async () =>
     root.render(
-      createElement(AudienceQuestionsContext, {
-        value: hub.channel,
-        children: createElement(QuestionsLive, {
-          code: CODE,
-          room,
-          status,
-          showing,
-          children: createElement(Probe),
+      createElement(Activity, {
+        mode,
+        children: createElement(AudienceQuestionsContext, {
+          value: hub.channel,
+          children: createElement(QuestionsLive, {
+            code: CODE,
+            room,
+            status,
+            showing,
+            children: createElement(Probe),
+          }),
         }),
       }),
     ),
@@ -399,5 +408,215 @@ describe('QuestionsLive votes', () => {
 
     expect(latest().mine).toEqual(view.mine);
     expect(latest().error).toBe('picks: unknown question 2');
+  });
+});
+
+describe('QuestionsLive after review round 1', () => {
+  const asked7: AskOutcome = {
+    type: 'asked',
+    asked: {
+      question: {
+        number: 7,
+        text: 'Why?',
+        name: null,
+        age: 'now',
+        state: 'open',
+        votes: 1,
+        onScreen: false,
+        yours: true,
+      },
+      mine: { picks: [1, 4, 7], revision: 4 },
+    },
+  };
+  const nextRoom = { ...view.room, round: OTHER_ROUND, listRevision: 1 };
+
+  it('an upvote taken back while its PUT is out is sent again once the PUT answers', async () => {
+    let answer!: (outcome: VoteOutcome) => void;
+    api.putVotes.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    await render(view.room);
+
+    await act(async () => latest().toggleVote(2));
+    await act(async () => latest().toggleVote(2));
+    expect(latest().mine.picks).toEqual([1, 4]);
+    await act(async () => answer({ type: 'accepted', mine: { picks: [1, 2, 4], revision: 4 } }));
+
+    expect(votes()).toEqual([
+      { round: ROUND, picks: [1, 2, 4], revision: 3 },
+      { round: ROUND, picks: [1, 4], revision: 4 },
+    ]);
+    expect(latest().mine).toEqual({ picks: [1, 4], revision: 5 });
+    expect(votesOf(2)).toBe(9);
+  });
+
+  it('an upvote taken back while its PUT is out survives a read that already holds that PUT', async () => {
+    let answer!: (outcome: VoteOutcome) => void;
+    api.putVotes.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    await render(view.room);
+    await act(async () => latest().toggleVote(2));
+    await act(async () => latest().toggleVote(2));
+    const applied = guestQuestions('view', { mine: { picks: [1, 2, 4], revision: 4 } });
+    api.getQuestions.mockResolvedValueOnce({
+      ...applied,
+      room: { ...applied.room, listRevision: view.room.listRevision + 1 },
+      questions: applied.questions.map((q) => (q.number === 2 ? { ...q, votes: 10 } : q)),
+    });
+
+    await render({ ...view.room, listRevision: view.room.listRevision + 1 });
+    expect(latest().mine.picks).toEqual([1, 4]);
+    expect(votesOf(2)).toBe(9);
+    await act(async () => answer({ type: 'accepted', mine: { picks: [1, 2, 4], revision: 4 } }));
+
+    expect(votes()[1]).toEqual({ round: ROUND, picks: [1, 4], revision: 4 });
+  });
+
+  it('a tally that already counts the vote out is not counted twice, and the list is read once it answers', async () => {
+    let answer!: (outcome: VoteOutcome) => void;
+    api.putVotes.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    await render(view.room);
+    await act(async () => latest().toggleVote(2));
+    expect(votesOf(2)).toBe(10);
+
+    await hub.push({
+      type: 'questionTally',
+      round: ROUND,
+      listRevision: view.room.listRevision,
+      votes: [
+        { number: 2, votes: 10 },
+        { number: 6, votes: 5 },
+      ],
+    });
+    expect(votesOf(2)).toBe(10);
+    expect(votesOf(6)).toBe(5);
+    api.getQuestions.mockResolvedValueOnce(
+      guestQuestions('view', {
+        mine: { picks: [1, 2, 4], revision: 4 },
+        questions: view.questions.map((q) => (q.number === 2 ? { ...q, votes: 10 } : q)),
+      }),
+    );
+    await act(async () => answer({ type: 'accepted', mine: { picks: [1, 2, 4], revision: 4 } }));
+
+    expect(votesOf(2)).toBe(10);
+    expect(api.getQuestions).toHaveBeenCalledTimes(2);
+  });
+
+  it('a question queued in one round is not sent into the next, and says so', async () => {
+    api.postQuestion.mockResolvedValue(asked7);
+    await render(view.room);
+    await render(view.room, 'reconnecting');
+    await act(() => latest().ask('Why?', null));
+    api.getQuestions.mockResolvedValue({ ...guestQuestions('view'), room: nextRoom });
+
+    await render(nextRoom, 'live');
+
+    expect(api.postQuestion).not.toHaveBeenCalled();
+    expect(latest().asking).toBe('failed');
+    expect(latest().error).toBe('new_round');
+  });
+
+  it('a 201 for the old round that lands after the new round is read is not added to it', async () => {
+    let answer!: (outcome: AskOutcome) => void;
+    api.postQuestion.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    await render(view.room);
+    const asking = act(() => latest().ask('Why?', null));
+    api.getQuestions.mockResolvedValue({
+      ...guestQuestions('view'),
+      room: nextRoom,
+      mine: { picks: [], revision: 0 },
+    });
+    await render(nextRoom, 'live');
+
+    await act(async () => answer(asked7));
+    await asking;
+
+    expect(latest().mine).toEqual({ picks: [], revision: 0 });
+    expect(latest().questions.map((q) => q.number)).not.toContain(7);
+    expect(latest().asking).toBe('idle');
+  });
+
+  it('a stale whose current already holds the toggled pick sends nothing more', async () => {
+    let answer!: (outcome: VoteOutcome) => void;
+    api.putVotes.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    await render(view.room);
+    await act(async () => latest().toggleVote(6));
+
+    const current = guestQuestions('view', { mine: { picks: [1, 4, 6], revision: 5 } });
+    await act(async () => answer({ type: 'stale', current }));
+
+    expect(votes()).toHaveLength(1);
+    expect(latest().mine).toEqual({ picks: [1, 4, 6], revision: 5 });
+  });
+
+  it('a queued question is sent once, even when a later read lands', async () => {
+    api.postQuestion.mockResolvedValue(asked7);
+    await render(view.room, 'reconnecting');
+    await act(() => latest().ask('Why?', null));
+    await render(view.room, 'live');
+
+    await render({ ...view.room, listRevision: view.room.listRevision + 1 }, 'live');
+
+    // The first read, the reconnect's and the later one.
+    expect(api.getQuestions).toHaveBeenCalledTimes(3);
+    expect(api.postQuestion).toHaveBeenCalledTimes(1);
+  });
+
+  it('a read with an older revision of mine does not move mine back', async () => {
+    await render(view.room);
+    await act(async () => latest().toggleVote(2));
+    expect(latest().mine).toEqual({ picks: [1, 2, 4], revision: 4 });
+
+    await render({ ...view.room, listRevision: view.room.listRevision + 1 });
+
+    expect(api.getQuestions).toHaveBeenCalledTimes(2);
+    expect(latest().mine).toEqual({ picks: [1, 2, 4], revision: 4 });
+    expect(votesOf(2)).toBe(10);
+  });
+
+  it('an older read that lands after a newer one is ignored', async () => {
+    let first!: (value: GuestQuestionsView) => void;
+    let second!: (value: GuestQuestionsView) => void;
+    api.getQuestions
+      .mockReturnValueOnce(new Promise((resolve) => (first = resolve)))
+      .mockReturnValueOnce(new Promise((resolve) => (second = resolve)));
+    await render(view.room);
+    const newer = { ...view.room, listRevision: view.room.listRevision + 1 };
+    await render(newer);
+
+    await act(async () =>
+      second({ ...guestQuestions('view'), room: newer, questions: view.questions.slice(0, 2) }),
+    );
+    await act(async () => first(guestQuestions('view')));
+
+    expect(latest().questions.map((q) => q.number)).toEqual([1, 2]);
+  });
+
+  it('a re-read that fails records no revision, so the next tally at that revision reads again', async () => {
+    await render(view.room);
+    api.getQuestions.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    const higher = {
+      type: 'questionTally',
+      round: ROUND,
+      listRevision: view.room.listRevision + 1,
+      votes: [],
+    } as const;
+    await hub.push({ ...higher, votes: [] });
+    expect(api.getQuestions).toHaveBeenCalledTimes(2);
+    expect(latest().state).toBe('ready');
+
+    await hub.push({ ...higher, votes: [] });
+
+    expect(api.getQuestions).toHaveBeenCalledTimes(3);
+  });
+
+  it('a limited ask is idle again when the effects run again, since its countdown stopped', async () => {
+    api.postQuestion.mockResolvedValueOnce({ type: 'limited', retryAfter: 30 });
+    await render(view.room);
+    await act(() => latest().ask('Why?', null));
+    expect(latest().asking).toBe('limited');
+
+    await render(view.room, 'live', false, 'hidden');
+    await render(view.room, 'live', false, 'visible');
+
+    expect(latest().asking).toBe('idle');
+    expect(latest().retryIn).toBe(0);
   });
 });

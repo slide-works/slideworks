@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } fr
 import { ApiError } from '../../api/client';
 import type { AudienceStatus } from '../../guest/useAudience';
 import type { QaRoom, ReactionEmoji } from '../types';
+import { QA_NETWORK_ERROR } from './QuestionsLive';
 import { postReaction } from './questionsApi';
 import { PhoneReactionsContext, type PhoneReactions } from './usePhoneReactions';
 
@@ -16,9 +17,6 @@ export type ReactionsLiveProps = {
 
 // The server's limit window for taps (Q7: 10 taps in 5 seconds per guest).
 const WINDOW_MS = 5000;
-
-// The text for a call that never reached the server (SW-322 D1).
-const NETWORK = 'Your phone couldn’t reach the talk. Check your connection, then try again.';
 
 type Held = { cooling: boolean; error: string | null };
 
@@ -45,6 +43,8 @@ class TapSession {
       this.active = false;
       clearTimeout(this.window);
       this.window = undefined;
+      // The window's timer is gone, so cooling would never end if the effects run again (StrictMode, <Activity>).
+      if (this.held.cooling) this.set({ cooling: false });
     };
   }
 
@@ -61,7 +61,8 @@ class TapSession {
         this.set({ cooling: true });
       }
     } catch (error) {
-      if (this.active) this.set({ error: error instanceof ApiError ? error.message : NETWORK });
+      if (this.active)
+        this.set({ error: error instanceof ApiError ? error.message : QA_NETWORK_ERROR });
     }
   };
 

@@ -37,8 +37,13 @@ export type QuestionsLiveProps = {
 // How often the list is read again while the Questions tab is showing, so the server's age labels move (D22).
 const AGE_REREAD_MS = 60_000;
 
-// The text for a call that never reached the server (SW-322 D1). Every other failure is the server's code or rule.
-const NETWORK = 'Your phone couldn’t reach the talk. Check your connection, then try again.';
+// The error text for a question, vote or reaction call that never reached the server (SW-322 D1), shared with
+// ReactionsLive. Every other failure is the server's code or rule; questionErrorText passes this one through as is.
+export const QA_NETWORK_ERROR =
+  'Your phone couldn’t reach the talk. Check your connection, then try again.';
+
+// The error of a question queued in one round when the connection comes back to a new round: it is not sent (SW-322 D2).
+const NEW_ROUND = 'new_round';
 
 // Why a queued question isn't sent when the connection comes back: the room's questions as the server's 409 would say.
 const REFUSAL_OF: Record<Exclude<QaRoom['questions'], 'open'>, AskRefusalCode> = {
@@ -48,6 +53,8 @@ const REFUSAL_OF: Record<Exclude<QaRoom['questions'], 'open'>, AskRefusalCode> =
 };
 
 type ErrorFrom = 'read' | 'ask' | 'vote';
+
+type Revision = { round: string | null; revision: number };
 
 type Held = {
   // The room the list was read with; null before the first read.
@@ -84,19 +91,25 @@ const moved = (base: GuestQuestion[], from: number[], to: number[]) =>
     return change === 0 ? q : { ...q, votes: q.votes + change };
   });
 
-const messageOf = (error: unknown) => (error instanceof ApiError ? error.message : NETWORK);
+const messageOf = (error: unknown) =>
+  error instanceof ApiError ? error.message : QA_NETWORK_ERROR;
 
 // One guest's questions in one round, kept outside React so its rules read top to bottom. QuestionsLive starts it,
 // tells it each room, status and whether the tab is showing, and renders its snapshot.
 //
 // - Reads (GET): on start, when room.round changes, when the room or a questionTally carries a listRevision higher than
-//   the one held or asked for, after a reconnect, once a minute while the tab is showing, and on retry(). Never while
-//   the room is null or its questions are off. Only the newest read is applied; within a round mine never moves back.
+//   the one a read has landed or is in flight for, after a reconnect, once a minute while the tab is showing, and on
+//   retry(). Never while the room is null or its questions are off. Only the newest read is applied; within a round
+//   mine never moves back. A failed read records nothing, so the next tally or room at that revision reads again.
 // - Tallies: only for the held list's round; one with a higher listRevision reads again instead of applying its votes.
+//   While a PUT is out, a tally leaves the questions that PUT changes at their held count (it may already count the
+//   vote), and the list is read again once the PUT has answered.
 // - Asks (POST): one at a time. While not live the question is queued, and after the reconnect's read it is sent if the
-//   room still allows asking (else failed with the room's refusal). A 429 counts retryIn down by whole seconds.
-// - Votes (PUT): at most one out; toggles made meanwhile wait and the latest picks go when it returns. While not live
-//   they wait for the reconnect's read. A stale 409 takes `current` and applies the toggles again once.
+//   room still allows asking (else failed with the room's refusal); a new round drops it (failed, new_round). A 201
+//   for a round the phone no longer holds is not added.
+// - Votes (PUT): at most one out; toggles made meanwhile wait and the picks the guest wants go when it returns, a
+//   take-back of what the PUT out sent included. While not live they wait for the reconnect's read. A stale 409 takes
+//   `current` and applies the toggles again once.
 class QuestionsSession {
   private held: Held = {
     room: null,
@@ -114,11 +127,16 @@ class QuestionsSession {
   private active = false;
   private stopTallies: (() => void) | null = null;
   private reads = 0;
-  // The round and listRevision the newest read was asked for, so the same change doesn't read twice.
-  private target: { round: string | null; revision: number } = { round: null, revision: 0 };
+  // The round and listRevision the last read that landed covers, and the read in flight's, so the same change doesn't
+  // read twice. A failed read leaves `landedFor` as it was.
+  private landedFor: Revision = { round: null, revision: 0 };
+  private inFlight: Revision | null = null;
   private queuedAsk: AskRequest | null = null;
-  // The PUT out, by its token: a response whose token isn't this one's is ignored.
+  // The PUT out, by its token: a response whose token isn't this one's is ignored. `sent` is its picks.
   private voteOut: number | null = null;
+  private sent: number[] | null = null;
+  // Whether a tally came, while the PUT was out, for a question that PUT changes.
+  private tallyTouched = false;
   private puts = 0;
   private staleRetried = false;
   private countdown: ReturnType<typeof setInterval> | undefined;
@@ -150,11 +168,13 @@ class QuestionsSession {
       this.stopTallies?.();
       this.stopTallies = null;
       this.reads += 1;
-      this.voteOut = null;
-      this.queuedAsk = null;
+      this.inFlight = null;
       clearInterval(this.countdown);
       clearInterval(this.ageTimer);
       this.ageTimer = undefined;
+      // The countdown is gone, so limited would never end if the effects run again (StrictMode, <Activity>).
+      if (this.held.asking === 'limited')
+        this.set({ asking: 'idle', retryIn: 0, ...this.cleared('ask') });
     };
   }
 
@@ -168,8 +188,7 @@ class QuestionsSession {
     if (!roomOn(room)) return;
     const waiting = this.queuedAsk !== null || this.held.toggles.length > 0;
     const back = status === 'live' && was !== 'live' && (was !== 'connecting' || waiting);
-    if (back || room.round !== this.target.round || room.listRevision > this.target.revision)
-      this.read();
+    if (back || !this.known(room.round, room.listRevision)) this.read();
   }
 
   readonly retry = () => {
@@ -204,18 +223,35 @@ class QuestionsSession {
     const { room, base } = this.held;
     if (!this.active || room === null || tally.round !== room.round) return;
     if (tally.listRevision > room.listRevision) {
-      if (tally.round !== this.target.round || tally.listRevision > this.target.revision)
-        this.read(tally.listRevision);
+      if (!this.known(tally.round, tally.listRevision)) this.read(tally.listRevision);
       return;
     }
     const votes = new Map(tally.votes.map((v) => [v.number, v.votes]));
+    const changing = this.changing();
     this.set({
       base: base.map((q) => {
         const count = votes.get(q.number);
-        return count === undefined || count === q.votes ? q : { ...q, votes: count };
+        if (count === undefined || count === q.votes) return q;
+        if (changing.includes(q.number)) {
+          this.tallyTouched = true;
+          return q;
+        }
+        return { ...q, votes: count };
       }),
     });
   };
+
+  // Whether a read has landed, or is in flight, for this round at this listRevision or later.
+  private known(round: string, revision: number): boolean {
+    const covers = (r: Revision | null) =>
+      r !== null && r.round === round && revision <= r.revision;
+    return covers(this.landedFor) || covers(this.inFlight);
+  }
+
+  // The questions the PUT out changes: where its picks differ from the stored ones.
+  private changing(): number[] {
+    return this.sent === null ? [] : flip(this.sent, this.held.stored.picks);
+  }
 
   // mine as the phone shows it: the stored picks with the unsent toggles applied.
   private mine(): number[] {
@@ -223,9 +259,11 @@ class QuestionsSession {
   }
 
   // The toggles still needed for the picks the guest wants, against picks the server now holds, on open questions only.
+  // The candidates are the unsent toggles and what the PUT out changes, so a take-back made while it was out survives.
   private stillToggled(wanted: number[], stored: number[], base: GuestQuestion[]): number[] {
     const open = (n: number) => base.find((q) => q.number === n)?.state === 'open';
-    return this.held.toggles.filter((n) => open(n) && wanted.includes(n) !== stored.includes(n));
+    const candidates = [...new Set([...this.held.toggles, ...this.changing()])];
+    return candidates.filter((n) => open(n) && wanted.includes(n) !== stored.includes(n));
   }
 
   // Clears the error when it came from the same kind of call that just succeeded.
@@ -237,18 +275,28 @@ class QuestionsSession {
     const room = this.room;
     if (!roomOn(room)) return;
     const read = ++this.reads;
-    const sameRound = this.target.round === room.round;
-    this.target = {
+    const asked = this.inFlight?.round === room.round ? this.inFlight.revision : 0;
+    const wanted = {
       round: room.round,
-      revision: Math.max(sameRound ? this.target.revision : 0, room.listRevision, revision ?? 0),
+      revision: Math.max(asked, room.listRevision, revision ?? 0),
     };
+    this.inFlight = wanted;
     getQuestions(this.code).then(
       (view) => {
-        if (this.active && read === this.reads) this.landed(view);
+        if (!this.active || read !== this.reads) return;
+        this.inFlight = null;
+        const revision = view.room.listRevision;
+        this.landedFor = {
+          round: view.room.round,
+          revision:
+            view.room.round === wanted.round ? Math.max(revision, wanted.revision) : revision,
+        };
+        this.landed(view);
       },
       (error: unknown) => {
         if (!this.active || read !== this.reads) return;
-        // A failed re-read keeps the list it holds; the next trigger reads again.
+        // A failed re-read keeps the list it holds and records no revision; the next trigger reads again.
+        this.inFlight = null;
         const state = this.held.state === 'ready' ? 'ready' : 'failed';
         this.set({ state, error: messageOf(error), errorFrom: 'read' });
       },
@@ -259,11 +307,6 @@ class QuestionsSession {
   // the view alone. Then whatever waited for the connection goes.
   private landed(view: GuestQuestionsView) {
     const held = this.held;
-    if (view.room.round === this.target.round)
-      this.target = {
-        round: this.target.round,
-        revision: Math.max(this.target.revision, view.room.listRevision),
-      };
     const sameRound = held.room !== null && held.room.round === view.room.round;
     if (sameRound) {
       const stored = view.mine.revision < held.stored.revision ? held.stored : view.mine;
@@ -271,10 +314,16 @@ class QuestionsSession {
       const toggles = this.stillToggled(this.mine(), stored.picks, base);
       this.set({ room: view.room, base, stored, toggles });
     } else {
-      // Nothing crosses a round: the PUT out and the toggles belong to the old one.
+      // Nothing crosses a round: the PUT out, the toggles and a queued question belong to the old one.
       this.voteOut = null;
+      this.sent = null;
+      this.tallyTouched = false;
       this.staleRetried = false;
       this.set({ room: view.room, base: view.questions, stored: view.mine, toggles: [] });
+      if (held.room !== null && this.queuedAsk !== null) {
+        this.queuedAsk = null;
+        this.set({ asking: 'failed', error: NEW_ROUND, errorFrom: 'ask' });
+      }
     }
     this.set({ state: 'ready', ...this.cleared('read') });
 
@@ -292,11 +341,15 @@ class QuestionsSession {
   }
 
   private async post(request: AskRequest) {
+    const round = this.held.room?.round ?? null;
     this.set({ asking: 'sending', ...this.cleared('ask') });
     try {
       const outcome = await postQuestion(this.code, request);
       if (!this.active) return;
-      if (outcome.type === 'asked') this.asked(outcome.asked);
+      // A 201 for a round the phone no longer holds belongs to that round's list, not this one.
+      if (outcome.type === 'asked' && this.held.room?.round !== round)
+        this.set({ asking: 'idle', ...this.cleared('ask') });
+      else if (outcome.type === 'asked') this.asked(outcome.asked);
       else if (outcome.type === 'refused')
         this.set({ asking: 'failed', error: outcome.error, errorFrom: 'ask' });
       else this.limit(outcome.retryAfter);
@@ -354,23 +407,36 @@ class QuestionsSession {
     if (room?.round == null) return;
     const round = room.round;
     const token = ++this.puts;
+    const picks = this.mine();
     this.voteOut = token;
-    putVotes(this.code, { round, picks: this.mine(), revision: stored.revision }).then(
+    this.sent = picks;
+    this.tallyTouched = false;
+    putVotes(this.code, { round, picks, revision: stored.revision }).then(
       (outcome) => {
         if (!this.active || this.voteOut !== token) return;
         this.voteOut = null;
+        const touched = this.tallyTouched;
         if (outcome.type === 'accepted') this.accepted(outcome.mine);
         else if (outcome.type === 'stale') this.stale(outcome.current);
-        else this.set({ toggles: [], error: 'too_many_votes', errorFrom: 'vote' });
+        else this.dropToggles('too_many_votes');
+        // A tally held back for this PUT's questions may have counted it: read the list, whose counts and mine agree.
+        if (touched && outcome.type !== 'stale') this.read();
       },
       (error: unknown) => {
         if (!this.active || this.voteOut !== token) return;
         this.voteOut = null;
+        const touched = this.tallyTouched;
         // The call never reached the server because the connection went: the toggles wait for the reconnect's read.
-        if (!(error instanceof ApiError) && this.status !== 'live') return;
-        this.set({ toggles: [], error: messageOf(error), errorFrom: 'vote' });
+        if (!(error instanceof ApiError) && this.status !== 'live') this.sent = null;
+        else this.dropToggles(messageOf(error));
+        if (touched) this.read();
       },
     );
+  }
+
+  private dropToggles(error: string) {
+    this.sent = null;
+    this.set({ toggles: [], error, errorFrom: 'vote' });
   }
 
   private accepted(answer: MyVotes) {
@@ -379,6 +445,7 @@ class QuestionsSession {
     const stored = answer.revision < held.stored.revision ? held.stored : answer;
     const base = moved(held.base, held.stored.picks, stored.picks);
     const toggles = this.stillToggled(wanted, stored.picks, base);
+    this.sent = null;
     this.staleRetried = false;
     this.set({ base, stored, toggles, ...this.cleared('vote') });
     this.flushVotes();
@@ -391,12 +458,16 @@ class QuestionsSession {
     const sameRound = held.room?.round === current.room.round;
     const retry = sameRound && !this.staleRetried;
     this.staleRetried = retry;
-    if (current.room.round === this.target.round)
-      this.target = {
-        round: this.target.round,
-        revision: Math.max(this.target.revision, current.room.listRevision),
-      };
+    const { round, listRevision } = current.room;
+    this.landedFor = {
+      round,
+      revision:
+        round === this.landedFor.round
+          ? Math.max(listRevision, this.landedFor.revision)
+          : listRevision,
+    };
     const toggles = retry ? this.stillToggled(wanted, current.mine.picks, current.questions) : [];
+    this.sent = null;
     this.set({
       room: current.room,
       base: current.questions,
