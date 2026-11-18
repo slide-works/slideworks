@@ -39,11 +39,6 @@ public static class LookViews
     // True when the template resolved for the deck is not the one the deck names: its ref did not resolve.
     public static bool IsMissing(Deck deck, ResolvedTemplate template) => !string.Equals(template.Ref, deck.Template, StringComparison.Ordinal);
 
-    // TODO: temporary, for the two slide-write callers that still look the template up in the catalogue; it goes when they
-    // ask ITemplates, and Features/Look/LookViews.cs then comes off the seam guard's allow-list.
-    public static Template TemplateOf(Deck deck, ITemplateCatalogue templates)
-        => templates.Find(deck.Template) ?? throw new InvalidOperationException($"Deck {deck.Id} has an unknown template '{deck.Template}'.");
-
     private static LookView Build(
         ResolvedTemplate template,
         ChromeOverridesView overrides,
