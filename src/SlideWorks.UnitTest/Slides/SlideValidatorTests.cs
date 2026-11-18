@@ -101,7 +101,7 @@ public class SlideValidatorTests
     {
         var result = Validate("big-number", """{ "headline": "Lead time", "value": "eleven weeks", "caption": "Median" }""");
 
-        result.Error.ShouldBe("big-number.value: at most 6 characters (got 12)");
+        result.Error.ShouldBe("big-number.value: at most 10 characters (got 12)");
     }
 
     [Test]

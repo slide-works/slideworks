@@ -30,10 +30,10 @@ public class LayoutCatalogueTests
     [Test]
     public void Layouts_WhenSurfaceTrackerAndSteps_ShouldSayThemOnEveryDefinition()
     {
-        LayoutCatalogue.Layouts.Where(l => l.Surface == LayoutSurface.Either).Select(l => l.Name).ShouldBe(["bullets", "statement"]);
+        LayoutCatalogue.Layouts.Where(l => l.Surface == LayoutSurface.Either).Select(l => l.Name).ShouldBe(["bullets", "big-number", "statement"]);
         LayoutCatalogue.Layouts.Where(l => !l.Tracker).Select(l => l.Name).ShouldBe(["statement"]);
         LayoutCatalogue.Layouts.Where(l => l.Steps is not null).Select(l => (l.Name, l.StepsFrom))
-            .ShouldBe([("bullets", "items"), ("two-column", null), ("image", "points"), ("table", "rows"), ("numbered-cards", "cards"), ("rules", "rules"), ("cards", "cards")]);
+            .ShouldBe([("bullets", "items"), ("two-column", null), ("big-number", null), ("image", "points"), ("table", "rows"), ("numbered-cards", "cards"), ("rules", "rules"), ("cards", "cards")]);
     }
 
     [TestCase("statement", "kicker,statement")]
