@@ -142,6 +142,23 @@ public class LookCommands(
         => (await templates.ListForAsync(actor, CancellationToken.None)).FirstOrDefault(t => string.Equals(t.Ref, name, StringComparison.Ordinal))
             ?? throw new BadRequestException(LookRules.UnknownTemplate(name));
 
+    // The deck's own template, for a version change that moves the deck nowhere. The caller may pick it (T4), or owns it: an
+    // archived template leaves ListForAsync but its owner's decks keep rendering and may still move between versions (D7, the
+    // rule UpdateMyDecks uses). Anyone else gets the unknown-template words, as for a revoked share.
+    private async Task<ResolvedTemplate> PickCurrentAsync(string deckTemplate)
+    {
+        var listed = (await templates.ListForAsync(actor, CancellationToken.None)).FirstOrDefault(t => string.Equals(t.Ref, deckTemplate, StringComparison.Ordinal));
+        if (listed is not null)
+        {
+            return listed;
+        }
+        if (actor.PresenterId is { } me && await db.Templates.AnyAsync(t => t.Id == deckTemplate && t.OwnerId == me))
+        {
+            return await templates.FindAsync(deckTemplate, null, CancellationToken.None) ?? throw new BadRequestException(LookRules.UnknownTemplate(deckTemplate));
+        }
+        throw new BadRequestException(LookRules.UnknownTemplate(deckTemplate));
+    }
+
     // The template at the version a change names, for a deck that will be on an uploaded template. A template the caller may
     // not pick is refused as an unknown one first, even when it is the deck's own (T4: FindAsync is never the access check).
     private async Task<ResolvedTemplate> VersionAsync(ResolvedTemplate target, bool moves, string deckTemplate, TemplateVersionChange wanted)
@@ -150,7 +167,7 @@ public class LookCommands(
         {
             throw new BadRequestException("templateVersion: built-in templates have no versions");
         }
-        var pickable = moves ? target : await PickAsync(deckTemplate);
+        var pickable = moves ? target : await PickCurrentAsync(deckTemplate);
         if (wanted.Version is not { } number)
         {
             return pickable;

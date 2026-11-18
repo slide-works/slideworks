@@ -290,3 +290,113 @@ public class SetLookVersionDatabaseTests : ApiTestFixture
         activity.Count.ShouldBe(2);
     }
 }
+
+// An archived template leaves the pick list, but its owner's decks keep moving between its versions (D7).
+[TestFixture]
+public class SetLookArchivedTemplateTests : ApiTestFixture
+{
+    private async Task<string> CreateDeckAsync()
+    {
+        var response = await Client.PostAsJsonAsync("/api/decks", new { title = "Versions" });
+        response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
+        return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+    }
+
+    private async Task<string> PutErrorAsync<T>(string deck, T body)
+        => await ErrorOfAsync(await Client.PutAsJsonAsync($"/api/decks/{deck}/look", body));
+
+    private async Task<Deck> RowAsync(string deck)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().Decks.AsNoTracking().SingleAsync(d => d.Id == deck);
+    }
+
+    private async Task<(string Template, string Manifest)> ArchivedWithThreeVersionsAsync(DeckSharing access = DeckSharing.Private)
+    {
+        var manifest = await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "..", "template-manifest.sample.json"));
+        var template = await TemplateRowSeed.PublishedAsync(Factory, TestUser.Sam, manifest, access: access);
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var now = scope.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow();
+        foreach (var version in new[] { 2, 3 })
+        {
+            db.TemplateVersions.Add(new Features.Templates.Data.TemplateVersion { TemplateId = template, Version = version, ManifestJson = manifest, PublishedAt = now });
+        }
+        await db.SaveChangesAsync();
+        await db.Templates.Where(t => t.Id == template).ExecuteUpdateAsync(s => s.SetProperty(t => t.ArchivedAt, now));
+        return (template, manifest);
+    }
+
+    private async Task<string> DeckOnAsync(HttpClient owner, string template, int? version)
+    {
+        var created = await owner.PostAsJsonAsync("/api/decks", new { title = "Archived" });
+        created.StatusCode.ShouldBe(HttpStatusCode.Created, await created.Content.ReadAsStringAsync());
+        var deck = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        (await db.Decks.Where(d => d.Id == deck).ExecuteUpdateAsync(s => s
+            .SetProperty(d => d.Template, template).SetProperty(d => d.TemplateVersion, version))).ShouldBe(1);
+        return deck;
+    }
+
+    private static async Task<string> ErrorOfAsync(HttpResponseMessage response)
+    {
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest, await response.Content.ReadAsStringAsync());
+        return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString()!;
+    }
+
+    // The template's owner keeps moving a deck between versions after archiving (D7): the update offer and the undo.
+    [Test]
+    public async Task SetLook_WhenTheOwnerOfAnArchivedTemplateNamesLatest_ShouldMoveTheDeckAndLogIt()
+    {
+        var (template, _) = await ArchivedWithThreeVersionsAsync();
+        var deck = await DeckOnAsync(Client, template, 1);
+        using var body = new StringContent("""{"templateVersion":"latest"}""", System.Text.Encoding.UTF8, "application/json");
+
+        using var response = await Client.PutAsync($"/api/decks/{deck}/look", body);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        (await RowAsync(deck)).TemplateVersion.ShouldBe(3);
+        var summaries = (await DeckSeed.ActivityAsync(Client, deck)).Select(e => e.GetProperty("summary").GetString()!).ToList();
+        summaries[0].ShouldStartWith("Look: Northwind kickoff version 1 to 3");
+        summaries.Count.ShouldBe(2);
+
+        // The undo.
+        var undo = await Client.PutAsJsonAsync($"/api/decks/{deck}/look", new { templateVersion = 2 });
+        undo.StatusCode.ShouldBe(HttpStatusCode.OK, await undo.Content.ReadAsStringAsync());
+        (await RowAsync(deck)).TemplateVersion.ShouldBe(2);
+    }
+
+    [Test]
+    public async Task SetLook_WhenTheTemplateIsArchivedAndSharedWithMe_ShouldRefuseAsUnknown()
+    {
+        var (template, _) = await ArchivedWithThreeVersionsAsync(DeckSharing.Named);
+        await TemplateRowSeed.ViewerAsync(Factory, template, TestUser.Alex.Email);
+        using var alex = ClientFor(TestUser.Alex);
+        var deck = await DeckOnAsync(alex, template, 1);
+        var before = await alex.GetFromJsonAsync<JsonElement>($"/api/decks/{deck}");
+
+        var error = await ErrorOfAsync(await alex.PutAsync($"/api/decks/{deck}/look",
+            new StringContent("""{"templateVersion":"latest"}""", System.Text.Encoding.UTF8, "application/json")));
+
+        error.ShouldBe($"Unknown template '{template}'");
+        var after = await alex.GetFromJsonAsync<JsonElement>($"/api/decks/{deck}");
+        after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64());
+        after.GetProperty("activity").GetArrayLength().ShouldBe(before.GetProperty("activity").GetArrayLength());
+        (await RowAsync(deck)).TemplateVersion.ShouldBe(1);
+    }
+
+    [Test]
+    public async Task SetLook_WhenTheOwnerSwitchesADeckToTheirArchivedTemplate_ShouldRefuseAsUnknown()
+    {
+        var (template, _) = await ArchivedWithThreeVersionsAsync();
+        var deck = await CreateDeckAsync();
+
+        (await PutErrorAsync(deck, new { template })).ShouldBe($"Unknown template '{template}'");
+        (await PutErrorAsync(deck, new { template, templateVersion = 2 })).ShouldBe($"Unknown template '{template}'");
+
+        var row = await RowAsync(deck);
+        row.Template.ShouldNotBe(template);
+        row.TemplateVersion.ShouldBeNull();
+    }
+}
