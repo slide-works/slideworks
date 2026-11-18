@@ -159,6 +159,31 @@ test('a stale revision reads the draft again once and reports it', async ({ moun
   expect(requests).toHaveLength(4);
 });
 
+test('a change queued behind a stale revision is dropped, not saved on the re-read draft', async ({
+  mount,
+  page,
+}) => {
+  const theirs = {
+    ...templateEditor,
+    revision: 9,
+    manifest: { ...templateEditor.manifest, purpose: 'Changed somewhere else.' },
+  };
+  const requests = await stubTemplatesApi(page, {
+    get: [{ json: templateEditor }, { json: theirs }],
+    save: { status: 409, json: { error: 'stale_revision', message: 'Read it again.' } },
+  });
+  await mount(<TemplateDraftHarness id={id} />);
+  await expect(page.getByTestId('draft-revision')).toHaveText('7');
+
+  await page.getByRole('button', { name: 'Change twice' }).click();
+
+  // The second change resolved last: it was dropped and says so.
+  await expect.poll(() => outcome(page)).toMatchObject({ ok: false, code: 'stale_revision' });
+  await expect(page.getByTestId('draft-saving')).toHaveText('false');
+  await expect(page.getByTestId('draft-revision')).toHaveText('9');
+  expect(requests.map((request) => request.call)).toEqual(['get', 'save', 'get']);
+});
+
 test('a stale revision that cannot be read again says so', async ({ mount, page }) => {
   await stubTemplatesApi(page, {
     get: [{ json: templateEditor }, 'network-down'],
