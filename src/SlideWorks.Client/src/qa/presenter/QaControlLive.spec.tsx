@@ -558,7 +558,7 @@ test('QaControlLive_WhenTheWatchFailsBeforeAnyViewIsRead_ShouldNotSayLiveUpdates
   await expect(page.getByTestId(IDS.error)).toContainText("Live question updates aren't reaching");
 });
 
-test('QaControlLive_WhenAnActionIsCalledFromOutsideThePanel_ShouldNotMoveFocusIntoIt', async ({
+test('QaControlLive_WhenAPanelButtonIsPressedWithFocusOutsideThePanel_ShouldNotMoveFocusIntoIt', async ({
   mount,
   page,
 }) => {
@@ -566,9 +566,11 @@ test('QaControlLive_WhenAnActionIsCalledFromOutsideThePanel_ShouldNotMoveFocusIn
   await mount(presenter(5));
   await expect(page.getByTestId(qaPanelRowTestId(1))).toBeVisible();
 
-  const probe = page.getByTestId('probe-qa-answer');
+  // A click that doesn't take focus (a script, or assistive tech): focus stays on the probe button.
+  const probe = page.getByTestId('probe-qa-settings');
   await probe.focus();
-  await page.keyboard.press('Enter');
+  await page.getByTestId(qaPanelActionTestId('answer', 1)).evaluate((button) => button.click());
   await expect(page.getByTestId(qaPanelRowTestId(1))).toHaveCount(0);
+  await settle(page);
   await expect(probe).toBeFocused();
 });
