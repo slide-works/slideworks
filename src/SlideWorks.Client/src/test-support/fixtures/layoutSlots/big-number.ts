@@ -13,6 +13,9 @@ export const SLOTS: BigNumberSlots = {
   caption: 'Median from first commit to the first customer using it',
   detail: 'Eight of our 12 epics.',
   source: 'Source: delivery dashboard, Jan–Dec',
+  reveal: 'one-by-one',
+  callout: { tone: 'info', text: 'Cut the batch, not the scope.', reveal: 'last' },
+  emphasis: [{ text: 'eleven weeks', tone: 'negative' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is
