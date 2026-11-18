@@ -40,7 +40,10 @@ export function ComparePanel({
       ? ({
           ...toneStyle(tone, fill),
           '--panel-edge': `var(--sw-${toneRule(tone)})`,
-          '--panel-tag': `var(--sw-${tonePair(tone, 'soft').ink})`,
+          '--panel-tag':
+            panelTone(tone) === 'inverse'
+              ? 'var(--sw-ink)'
+              : `var(--sw-${tonePair(tone, 'soft').ink})`,
         } as CSSProperties)
       : toneStyle(tone, fill);
   const label = (

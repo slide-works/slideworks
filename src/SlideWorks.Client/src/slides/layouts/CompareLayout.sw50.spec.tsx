@@ -295,7 +295,7 @@ test('footer sits at the bottom of the shorter panel', async ({ mount, page }) =
 });
 
 test('plain and solid fills', async ({ mount, page }) => {
-  await mount(
+  const component = await mount(
     render(
       compareSlide({
         headline: 'Fills',
@@ -339,6 +339,29 @@ test('plain and solid fills', async ({ mount, page }) => {
   expect(colours.plainTag).toBe(colours.goodInk);
   expect(colours.plainStamp).toBe(colours.good);
   expect(colours.solidStamp).toBe(colours.solidInk);
+
+  await component.update(
+    render(
+      compareSlide({
+        headline: 'Inverse',
+        failure: failure({ tone: 'inverse', fill: 'plain' }),
+        success: success(),
+      }),
+    ),
+  );
+  const inverse = await page.evaluate(() => {
+    const probe = document.createElement('div');
+    probe.style.color = 'var(--sw-ink)';
+    document.body.append(probe);
+    const ink = getComputedStyle(probe).color;
+    probe.remove();
+    const panel = document.querySelector('[data-testid="compare-failure"]')!;
+    return {
+      ink,
+      tag: getComputedStyle(panel.querySelector('[data-testid="compare-label"]')!).color,
+    };
+  });
+  expect(inverse.tag).toBe(inverse.ink);
 });
 
 test('icon beside the label', async ({ mount, page }) => {

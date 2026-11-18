@@ -12,7 +12,7 @@ export function Stamp({ text, placement = 'corner' }: StampProps) {
   return (
     <span
       data-testid="block-stamp"
-      data-placement={placement}
+      data-placement={placement === 'inline' ? 'inline' : undefined}
       className={placement === 'inline' ? `${styles.stamp} ${styles.inline}` : styles.stamp}
     >
       {text}
