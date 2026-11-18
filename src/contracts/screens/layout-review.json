@@ -1,9 +1,9 @@
 {
   "name": "bar-chart",
-  "asset": "a5c2b551af63022db28da61ae35baf09",
+  "asset": "0a1b2c3d4e5f60718293a4b5c6d7e8f9",
   "approved": false,
   "surface": "light",
-  "steps": 1,
+  "steps": 0,
   "layout": {
     "name": "bar-chart",
     "surface": "light",

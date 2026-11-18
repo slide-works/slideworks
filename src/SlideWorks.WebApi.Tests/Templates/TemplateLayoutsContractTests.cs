@@ -163,6 +163,23 @@ public class TemplateLayoutsContractTests : ApiTestFixture
         JsonElement.DeepEquals(review.RootElement.GetProperty("maximum"), sample.GetProperty("maximum")).ShouldBeTrue();
     }
 
+    // The rule every reader of a stored layout checks: the tree's scope is the first 8 characters of the layout asset's
+    // id. The review sample obeys it, and its steps are the compiled sample's own count.
+    [Test]
+    public void ReviewSample_WhenCompared_ShouldHaveAnAssetIdThatStartsWithItsTreesScope()
+    {
+        using var compiled = JsonDocument.Parse(CompiledSample());
+        using var review = JsonDocument.Parse(File.ReadAllText(Path.Combine(JsonShape.ScreensDirectory(), TemplateScreenShapes.LAYOUT_REVIEW_FILE)));
+        var asset = review.RootElement.GetProperty("asset").GetString()!;
+        var scope = review.RootElement.GetProperty("layout").GetProperty("tree").GetProperty("scope").GetString()!;
+
+        LayoutScope.IsValid(scope).ShouldBeTrue();
+        asset.Length.ShouldBe(32);
+        asset.All(c => c is (>= '0' and <= '9') or (>= 'a' and <= 'f')).ShouldBeTrue();
+        asset[..LayoutScope.LENGTH].ShouldBe(scope);
+        review.RootElement.GetProperty("steps").GetInt32().ShouldBe(compiled.RootElement.GetProperty("steps").GetProperty("count").GetInt32());
+    }
+
     [Test]
     public void Fake_WhenCompileIsCalled_ShouldRecordTheScope()
     {
