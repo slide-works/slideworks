@@ -426,6 +426,80 @@ test('a change that failed is sent again with the next one, and the alert stays 
   expect(body.manifest.purpose).toBe('Both.');
 });
 
+test('a refused merged save also puts the failed tick back to the saved value', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { '/api/me': { json: me } });
+  const requests = await stubTemplatesApi(page, {
+    save: ['network-down', refusal(400, 'manifest_invalid', 'Not valid.', 'name')],
+  });
+  await mount(<AppRoutes />, at());
+  const tracker = page.getByRole('checkbox', { name: 'Part tracker' });
+  const was = await tracker.isChecked();
+  await tracker.click();
+  await expect(page.getByTestId(TEMPLATES_TEST_IDS.editorSaveError)).toContainText(
+    'Could not save.',
+  );
+
+  const short = page.getByLabel('Short name');
+  await short.fill('Not Valid');
+  await short.press('Tab');
+  await expect(page.getByTestId(TEMPLATES_TEST_IDS.editorSaveError)).toHaveText('Not valid.');
+  await expect(tracker).toBeChecked({ checked: was });
+
+  // The next save does not carry the tick.
+  await page.getByRole('checkbox', { name: 'Progress bar' }).click();
+  await expect.poll(() => requests.filter(({ call }) => call === 'save').length).toBe(3);
+  const sent = (requests[3].body as { manifest: typeof templateEditor.manifest }).manifest;
+  expect(sent.chrome.tracker).toBe(was);
+});
+
+test('a change saved inside the same round trip does not drop a failed tick', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { '/api/me': { json: me } });
+  await stubTemplatesApi(page);
+  const chrome = templateEditor.manifest.chrome;
+  const bodies: { manifest: typeof templateEditor.manifest }[] = [];
+  // The first save is held until the second change has been made, then it fails.
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  let puts = 0;
+  await page.route(/\/api\/templates\/[^/]+$/, async (route) => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    puts += 1;
+    bodies.push(route.request().postDataJSON() as (typeof bodies)[number]);
+    if (puts === 1) {
+      await held;
+      return route.abort('connectionrefused');
+    }
+    return route.fulfill({
+      status: 200,
+      json: savedWith({ shape: { ...templateEditor.manifest.shape } }),
+    });
+  });
+  await mount(<AppRoutes />, at());
+  await page.getByRole('checkbox', { name: 'Part tracker' }).click();
+  // Another key, so it is built without the tick that is still in flight.
+  await page.getByRole('radio', { name: '16 px' }).click();
+  release();
+  const alert = page.getByTestId(TEMPLATES_TEST_IDS.editorSaveError);
+  await expect.poll(() => puts).toBe(2);
+  await expect(alert).toContainText('Could not save. Your change is still here.');
+  await expect(page.getByRole('checkbox', { name: 'Part tracker' })).toBeChecked({
+    checked: !chrome.tracker,
+  });
+
+  // The next save carries the failed tick.
+  await page.getByLabel('What it is for').fill('Next.');
+  await page.getByLabel('What it is for').press('Tab');
+  await expect.poll(() => puts).toBe(3);
+  const sent = bodies[2];
+  expect(sent.manifest.chrome.tracker).toBe(!chrome.tracker);
+});
+
 test('a refused text field is not sent again until it changes, and focus can leave it', async ({
   mount,
   page,

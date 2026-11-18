@@ -50,6 +50,8 @@ export function BasicsTab({ draft, change }: EditorTabProps) {
   const sent = useRef<Partial<Record<string, string>>>({});
   // The last value the server refused for a text field: not sent again until the text changes.
   const refused = useRef<Partial<Record<string, string>>>({});
+  // Structured values whose save got no answer: the frame sends them again under the next change.
+  const failedKeys = useRef<Pending>({});
 
   const chrome = pending.chrome ?? manifest.chrome;
   const layouts = pending.layouts ?? manifest.layouts;
@@ -73,45 +75,65 @@ export function BasicsTab({ draft, change }: EditorTabProps) {
   };
 
   // What came of a save: forget what was on screen ahead of the server, or say why not.
-  const settle = (key: keyof TemplateManifest, value: unknown) => (outcome: ChangeOutcome) => {
-    delete sent.current[key];
-    if (outcome.ok) {
-      if (key === 'chrome' || key === 'layouts' || key === 'shape') {
-        if (same(pendingRef.current[key], value)) {
-          setPend(omit(pendingRef.current, key));
+  const settle =
+    (key: keyof TemplateManifest, value: unknown, carried: Pending) => (outcome: ChangeOutcome) => {
+      delete sent.current[key];
+      // The held-over values this save carried: it answered, so they are saved or refused with it.
+      const forgetCarried = () => {
+        let next = pendingRef.current;
+        for (const name of Object.keys(carried) as (keyof Pending)[]) {
+          if (same(next[name], carried[name])) next = omit(next, name);
+          failedKeys.current = omit(failedKeys.current, name);
         }
-      } else {
-        const text = key as TextField;
-        setTyped((current) => {
-          const raw = current[text];
-          if (raw === undefined || !same(isList(text) ? linesOf(raw) : raw, value)) return current;
-          return omit(current, text);
-        });
+        if (next !== pendingRef.current) setPend(next);
+      };
+      if (outcome.ok) {
+        forgetCarried();
+        if (key === 'chrome' || key === 'layouts' || key === 'shape') {
+          if (same(pendingRef.current[key], value)) {
+            setPend(omit(pendingRef.current, key));
+          }
+        } else {
+          const text = key as TextField;
+          setTyped((current) => {
+            const raw = current[text];
+            if (raw === undefined || !same(isList(text) ? linesOf(raw) : raw, value))
+              return current;
+            return omit(current, text);
+          });
+        }
+        return;
       }
-      return;
-    }
-    if (outcome.code === 'stale_revision') {
-      // Typed text stays until the person has reloaded: it is theirs, not the server's.
-      setPend({});
-      setErrors({});
-      return;
-    }
-    if (outcome.code !== null && (key === 'chrome' || key === 'layouts' || key === 'shape')) {
-      // Refused: the frame draws the saved value again, so this tab does too.
-      if (same(pendingRef.current[key], value)) setPend(omit(pendingRef.current, key));
-    } else if (outcome.code !== null) refused.current[key] = JSON.stringify(value);
-    const at = fieldOfPath(outcome.path);
-    if (at !== null) {
-      setErrors((current) => ({ ...current, [at]: outcome.message }));
-      document.getElementById(`${id}-${at}`)?.focus();
-    }
-  };
+      if (outcome.code === 'stale_revision') {
+        // Typed text stays until the person has reloaded: it is theirs, not the server's.
+        setPend({});
+        setErrors({});
+        return;
+      }
+      if (outcome.code === null) {
+        if (key === 'chrome' || key === 'layouts' || key === 'shape') {
+          failedKeys.current = { ...failedKeys.current, [key]: value };
+        }
+        return;
+      }
+      forgetCarried();
+      if (outcome.code !== null && (key === 'chrome' || key === 'layouts' || key === 'shape')) {
+        // Refused: the frame draws the saved value again, so this tab does too.
+        if (same(pendingRef.current[key], value)) setPend(omit(pendingRef.current, key));
+      } else if (outcome.code !== null) refused.current[key] = JSON.stringify(value);
+      const at = fieldOfPath(outcome.path);
+      if (at !== null) {
+        setErrors((current) => ({ ...current, [at]: outcome.message }));
+        document.getElementById(`${id}-${at}`)?.focus();
+      }
+    };
 
   const save = (field: BasicsField, key: keyof TemplateManifest, value: unknown) => {
     clearError(field);
     sent.current[key] = JSON.stringify(value);
     delete refused.current[key];
-    void change({ [key]: value } as Partial<TemplateManifest>).then(settle(key, value));
+    const carried = { ...failedKeys.current };
+    void change({ [key]: value } as Partial<TemplateManifest>).then(settle(key, value, carried));
   };
 
   // Text: sent when the field loses focus and the text is not what the draft already holds.

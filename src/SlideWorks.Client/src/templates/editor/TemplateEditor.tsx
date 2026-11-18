@@ -105,8 +105,12 @@ function OpenEditor({ id }: { id: string }) {
         });
       const outcome = await change(patch);
       if (outcome.ok) {
-        failed.current = null;
-        setFailure(null);
+        // A change made inside the same round trip was built without the failed patch: when this
+        // save did not carry all of it, it and its alert stay until a save does.
+        if (failed.current === null || Object.keys(failed.current).every((k) => keys.includes(k))) {
+          failed.current = null;
+          setFailure(null);
+        }
         forget(false);
       } else if (outcome.code === 'stale_revision') {
         failed.current = null;
