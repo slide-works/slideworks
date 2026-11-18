@@ -308,3 +308,34 @@ test('decks library screenshot', async ({ mount, page }) => {
   await expect(page.getByTestId('deck-row')).toHaveCount(2);
   await expect(component).toHaveScreenshot('decks-library.png');
 });
+
+test('opens the New deck dialog on the template the address names', async ({ mount, page }) => {
+  const mine = { ...looks.templates[1], ref: 'tpl_Mine00000001', name: 'tpl_Mine00000001' };
+  await stubApi(page, {
+    '/api/decks': { json: decksLibrary },
+    '/api/looks': { json: { ...looks, templates: [...looks.templates, mine] } },
+  });
+  await mount(
+    <LocationProbe>
+      <DecksPage />
+    </LocationProbe>,
+    { hooksConfig: { route: '/decks?template=tpl_Mine00000001' } },
+  );
+
+  await expect(page.getByTestId('new-deck-dialog')).toBeVisible();
+  await expect(page.getByTestId('new-deck-template-tpl_Mine00000001')).toBeChecked();
+  await expect(page.getByTestId('location')).toHaveText('/decks');
+});
+
+test('an address naming a template the person cannot pick opens on the default', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { '/api/decks': { json: decksLibrary }, '/api/looks': { json: looks } });
+  await mount(<DecksPage />, { hooksConfig: { route: '/decks?template=tpl_Nobody000009' } });
+
+  await expect(page.getByRole('radio', { name: /^Talk/ })).toBeChecked();
+  await expect(page.getByTestId('new-deck-template-unavailable')).toHaveText(
+    'That template is not available to you.',
+  );
+});
