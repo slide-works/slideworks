@@ -363,6 +363,92 @@ test('stops saving after a stale revision', async ({ mount, page }) => {
   await expect.poll(saves).toBe(2);
 });
 
+const firstFrameRadius = (page: Page) =>
+  page
+    .getByTestId('look-preview-slide')
+    .first()
+    .evaluate((el) => getComputedStyle(el).getPropertyValue('--sw-radius-md').trim());
+
+test('a refused tick and a refused shape go back to the saved value in the tab and the preview', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { '/api/me': { json: me } });
+  const requests = await stubTemplatesApi(page, {
+    save: refusal(400, 'asset_not_found', 'No such file.', 'fonts[0].file'),
+  });
+  await mount(<AppRoutes />, at());
+  const tracker = page.getByRole('checkbox', { name: 'Part tracker' });
+  const was = await tracker.isChecked();
+  await tracker.click();
+  await expect(page.getByTestId(TEMPLATES_TEST_IDS.editorSaveError)).toHaveText('No such file.');
+  await expect(tracker).toBeChecked({ checked: was });
+
+  const before = await firstFrameRadius(page);
+  await page.getByRole('radio', { name: '16 px' }).click();
+  await expect.poll(() => requests.filter(({ call }) => call === 'save').length).toBe(2);
+  await expect(page.getByRole('radio', { name: '16 px' })).not.toBeChecked();
+  await expect.poll(() => firstFrameRadius(page)).toBe(before);
+
+  // The next change does not send the refused tick again.
+  await page.getByRole('checkbox', { name: 'Progress bar' }).click();
+  await expect.poll(() => requests.filter(({ call }) => call === 'save').length).toBe(3);
+  const sent = (requests[3].body as { manifest: typeof templateEditor.manifest }).manifest;
+  expect(sent.chrome.tracker).toBe(was);
+});
+
+test('a change that failed is sent again with the next one, and the alert stays until then', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { '/api/me': { json: me } });
+  const chrome = templateEditor.manifest.chrome;
+  const merged = savedWith({
+    chrome: { ...chrome, tracker: !chrome.tracker },
+    purpose: 'Both.',
+  });
+  const requests = await stubTemplatesApi(page, {
+    save: ['network-down', { json: merged }],
+  });
+  await mount(<AppRoutes />, at());
+  const alert = page.getByTestId(TEMPLATES_TEST_IDS.editorSaveError);
+  await page.getByRole('checkbox', { name: 'Part tracker' }).click();
+  await expect(alert).toContainText('Could not save. Your change is still here.');
+
+  const purpose = page.getByLabel('What it is for');
+  await purpose.fill('Both.');
+  await purpose.press('Tab');
+  await expect.poll(() => requests.filter(({ call }) => call === 'save').length).toBe(2);
+  await expect(alert).toHaveCount(0);
+  await expect(page.getByTestId('template-editor-save-state')).toHaveText('Saved');
+  const body = requests[2].body as { manifest: typeof templateEditor.manifest };
+  expect(body.manifest.chrome.tracker).toBe(!chrome.tracker);
+  expect(body.manifest.purpose).toBe('Both.');
+});
+
+test('a refused text field is not sent again until it changes, and focus can leave it', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { '/api/me': { json: me } });
+  const requests = await stubTemplatesApi(page, {
+    save: refusal(400, 'manifest_invalid', 'Not valid.', 'name'),
+  });
+  await mount(<AppRoutes />, at());
+  const short = page.getByLabel('Short name');
+  await short.fill('Not Valid');
+  await short.press('Tab');
+  await expect(short).toBeFocused();
+  const saves = () => requests.filter(({ call }) => call === 'save').length;
+  expect(saves()).toBe(1);
+
+  await short.press('Tab');
+  await expect(page.getByLabel('What it is for')).toBeFocused();
+  await page.getByLabel('What it is for').press('Tab');
+  await expect(page.getByTestId('template-layout-chip-title')).toBeFocused();
+  expect(saves()).toBe(1);
+});
+
 test('the tab bar ignores a key pressed with Alt', async ({ mount, page }) => {
   await stubApi(page, { '/api/me': { json: me } });
   await stubTemplatesApi(page);

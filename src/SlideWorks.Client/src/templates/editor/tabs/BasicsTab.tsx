@@ -48,6 +48,8 @@ export function BasicsTab({ draft, change }: EditorTabProps) {
   const [errors, setErrors] = useState<Partial<Record<BasicsField, string>>>({});
   const pendingRef = useRef<Pending>({});
   const sent = useRef<Partial<Record<string, string>>>({});
+  // The last value the server refused for a text field: not sent again until the text changes.
+  const refused = useRef<Partial<Record<string, string>>>({});
 
   const chrome = pending.chrome ?? manifest.chrome;
   const layouts = pending.layouts ?? manifest.layouts;
@@ -89,11 +91,15 @@ export function BasicsTab({ draft, change }: EditorTabProps) {
       return;
     }
     if (outcome.code === 'stale_revision') {
-      setTyped({});
+      // Typed text stays until the person has reloaded: it is theirs, not the server's.
       setPend({});
       setErrors({});
       return;
     }
+    if (outcome.code !== null && (key === 'chrome' || key === 'layouts' || key === 'shape')) {
+      // Refused: the frame draws the saved value again, so this tab does too.
+      if (same(pendingRef.current[key], value)) setPend(omit(pendingRef.current, key));
+    } else if (outcome.code !== null) refused.current[key] = JSON.stringify(value);
     const at = fieldOfPath(outcome.path);
     if (at !== null) {
       setErrors((current) => ({ ...current, [at]: outcome.message }));
@@ -104,6 +110,7 @@ export function BasicsTab({ draft, change }: EditorTabProps) {
   const save = (field: BasicsField, key: keyof TemplateManifest, value: unknown) => {
     clearError(field);
     sent.current[key] = JSON.stringify(value);
+    delete refused.current[key];
     void change({ [key]: value } as Partial<TemplateManifest>).then(settle(key, value));
   };
 
@@ -117,6 +124,7 @@ export function BasicsTab({ draft, change }: EditorTabProps) {
       return;
     }
     if (sent.current[field] === JSON.stringify(value)) return;
+    if (refused.current[field] === JSON.stringify(value)) return;
     save(field, field, value);
   };
 
@@ -249,33 +257,41 @@ export function BasicsTab({ draft, change }: EditorTabProps) {
       <fieldset className="grid gap-1 text-meta">
         <legend className="font-semibold text-ink-muted">Chrome defaults</legend>
         {CHROME_TICKS.map(({ field, key, label }) => (
-          <label key={key}>
-            <input
-              id={`${id}-${field}`}
-              type="checkbox"
-              checked={chrome[key] === true}
-              aria-invalid={invalid(field)}
-              aria-describedby={described(field)}
-              onChange={(event) => tick(field, key, event.target.checked)}
-            />{' '}
-            {label}
+          <div key={key}>
+            <label>
+              <input
+                id={`${id}-${field}`}
+                type="checkbox"
+                checked={chrome[key] === true}
+                aria-invalid={invalid(field)}
+                aria-describedby={described(field)}
+                onChange={(event) => tick(field, key, event.target.checked)}
+              />{' '}
+              {label}
+            </label>
             {errorOf(field)}
-          </label>
+          </div>
         ))}
-        <label>
-          <input
-            id={`${id}-topBar`}
-            type="checkbox"
-            checked={chrome.topBar === 'accent'}
-            aria-invalid={invalid('topBar')}
-            aria-describedby={described('topBar')}
-            onChange={(event) => tick('topBar', 'topBar', event.target.checked ? 'accent' : 'none')}
-          />{' '}
-          Accent bar across the top
+        <div>
+          <label>
+            <input
+              id={`${id}-topBar`}
+              type="checkbox"
+              checked={chrome.topBar === 'accent'}
+              aria-invalid={invalid('topBar')}
+              aria-describedby={described('topBar')}
+              onChange={(event) =>
+                tick('topBar', 'topBar', event.target.checked ? 'accent' : 'none')
+              }
+            />{' '}
+            Accent bar across the top
+          </label>
           {errorOf('topBar')}
-        </label>
-        <label className="grid gap-1">
-          <span className="sr-only">Footer</span>
+        </div>
+        <div className="grid gap-1">
+          <label htmlFor={`${id}-footer`} className="sr-only">
+            Footer
+          </label>
           <select
             id={`${id}-footer`}
             className="field"
@@ -291,7 +307,7 @@ export function BasicsTab({ draft, change }: EditorTabProps) {
             ))}
           </select>
           {errorOf('footer')}
-        </label>
+        </div>
       </fieldset>
 
       {textArea('outline', 'Outline', 'One line each. Agents get these back from create_deck.')}
@@ -313,9 +329,16 @@ export function BasicsTab({ draft, change }: EditorTabProps) {
               {label}
             </label>
           ))}
+          {choice === null && (
+            <label>
+              <input type="radio" name={`${id}-shape`} checked disabled readOnly /> Custom (
+              {shape.radius.md} px)
+            </label>
+          )}
         </div>
         <p className="text-meta text-ink-muted">
-          Corner radius of cards and panels. The slide scale is fixed for every template.
+          Corner radius of cards and panels. Choosing a size sets all four corners. The slide scale
+          is fixed for every template.
         </p>
         {errorOf('shape')}
       </fieldset>

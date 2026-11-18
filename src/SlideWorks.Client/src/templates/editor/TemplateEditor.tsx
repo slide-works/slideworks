@@ -77,6 +77,8 @@ function OpenEditor({ id }: { id: string }) {
   const [optimistic, setOptimistic] = useState<Partial<TemplateManifest>>({});
   const [sharing, setSharing] = useState(false);
   const stale = useRef(false);
+  // A change that failed with no answer from the server: sent again under the next change.
+  const failed = useRef<Partial<TemplateManifest> | null>(null);
   const counter = useRef(0);
   const newest = useRef<Partial<Record<string, number>>>({});
   const shareButton = useRef<HTMLButtonElement>(null);
@@ -86,13 +88,14 @@ function OpenEditor({ id }: { id: string }) {
 
   // Every tab saves through this. After a stale revision nothing more is sent until Reload.
   const save = useCallback(
-    async (patch: Partial<TemplateManifest>): Promise<ChangeOutcome> => {
+    async (asked: Partial<TemplateManifest>): Promise<ChangeOutcome> => {
       if (stale.current) return { ok: false, code: 'stale_revision', message: STALE };
+      const patch = failed.current === null ? asked : { ...failed.current, ...asked };
       counter.current += 1;
       const mine = counter.current;
       const keys = Object.keys(patch);
       for (const key of keys) newest.current[key] = mine;
-      setFailure(null);
+      if (failed.current === null) setFailure(null);
       setOptimistic((current) => ({ ...current, ...patch }));
       const forget = (all: boolean) =>
         setOptimistic((current) => {
@@ -101,13 +104,20 @@ function OpenEditor({ id }: { id: string }) {
           return next as Partial<TemplateManifest>;
         });
       const outcome = await change(patch);
-      if (outcome.ok) forget(false);
-      else if (outcome.code === 'stale_revision') {
+      if (outcome.ok) {
+        failed.current = null;
+        setFailure(null);
+        forget(false);
+      } else if (outcome.code === 'stale_revision') {
+        failed.current = null;
         stale.current = true;
         setFailure({ kind: 'stale' });
         forget(true);
-      } else if (outcome.code === null) setFailure({ kind: 'retry', patch });
-      else {
+      } else if (outcome.code === null) {
+        failed.current = patch;
+        setFailure({ kind: 'retry', patch });
+      } else {
+        failed.current = null;
         setFailure({ kind: 'refused', message: outcome.message });
         forget(false);
       }
@@ -236,7 +246,6 @@ function OpenEditor({ id }: { id: string }) {
       <div className="grid items-start gap-5 lg:grid-cols-[11rem_minmax(0,1fr)_minmax(0,1fr)]">
         <div
           role="tablist"
-          aria-orientation="vertical"
           aria-label={`Sections of ${draft.name}`}
           data-testid={TEMPLATES_TEST_IDS.editorTabs}
           className="flex gap-1 lg:flex-col"
@@ -248,7 +257,7 @@ function OpenEditor({ id }: { id: string }) {
               role="tab"
               id={tabId(tab)}
               aria-selected={tab === open}
-              aria-controls={panelId(tab)}
+              aria-controls={tab === open ? panelId(tab) : undefined}
               tabIndex={tab === open ? 0 : -1}
               onKeyDown={(event) => onTabKey(event, tab)}
               data-testid={editorTabButtonTestId(tab)}
