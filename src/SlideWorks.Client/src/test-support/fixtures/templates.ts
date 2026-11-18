@@ -31,21 +31,9 @@ export const templateChecklist: TemplateChecklistView = {
   canPublish: templateEditor.canPublish,
 };
 
-// TODO: a later wave 0.1 task replaces the hand-written tree and slots below with the contract
-// sample itself, once layout-review.json holds the compiled layout.
-// layout-review.json, with its `layout` in the compiled shape the client draws (layoutTree.ts):
-// the sample file writes the tree and the slots in short, so those two are spelled out here.
-const { layout: reviewedLayout, ...review } = layoutReviewJson;
-export const layoutReview: LayoutReviewView = {
-  ...(review satisfies Widen<Omit<LayoutReviewView, 'layout'>> as Omit<LayoutReviewView, 'layout'>),
-  layout: {
-    name: reviewedLayout.name,
-    surface: 'light',
-    tree: { version: 1, root: [] },
-    css: reviewedLayout.css,
-    slots: { headline: { type: 'text', max: 80 } },
-  },
-};
+// layout-review.json itself: its `layout` is the compiled sample's tree, CSS and slots, so the
+// fixture cannot drift from the contract.
+export const layoutReview = layoutReviewJson satisfies Widen<LayoutReviewView> as LayoutReviewView;
 
 // The props one editor tab (or the publish checklist) is mounted with on its own: the sample
 // draft, a change that reports it saved, and a reload that does nothing. A spec passes its own to watch the calls.

@@ -165,7 +165,9 @@ export type TemplatePublicView = {
 
 // GET /api/templates/{id}/layouts/{name}/review (layout-review.json): what the owner looks at
 // before approving a custom layout. `asset` is the layout file under review. `sample` and
-// `maximum` are slots: a typical slide and the fullest one the layout allows.
+// `maximum` are slots: a typical slide and the fullest one the layout allows. `steps` is the
+// number of steps the sample slide reveals (what the owner clicks through on the review page),
+// not the count the layout declares.
 export type LayoutReviewView = {
   name: string;
   asset: string;
