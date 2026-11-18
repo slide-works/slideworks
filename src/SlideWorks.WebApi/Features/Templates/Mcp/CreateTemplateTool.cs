@@ -18,6 +18,7 @@ public sealed class CreateTemplateTool
     [Description("Start a new draft template for the person you act for, copied from a built-in template (its layouts, chrome, outline and house style). Give an optional manifest of the fields to change over the copy. Files (fonts, logos, art) go up with upload_asset and are then named in the manifest by the asset id the upload answers; a person must confirm the rights of every font before it can be published. Returns the template's id (tpl_…), its status, its revision, the editor's url and the publish checklist. Next: refine it with update_template, then publish_template.")]
     public Task<CallToolResult> CreateTemplate(
         ITemplateDrafts drafts,
+        ITemplatePublishing publishing,
         ICurrentActor actor,
         IPublicUrls urls,
         [Description("The new template's name, shown to people (up to 60 characters). It is a label, never an address: use the returned `tpl_…` id to name the template in other tools.")] string name,
@@ -30,13 +31,35 @@ public sealed class CreateTemplateTool
                 TemplateManifestPatch.Check(patch);
             }
             var created = await CreateAsync(drafts, actor, from, name);
-            var view = await drafts.GetAsync(actor, created.Id);
-            if (manifest is { } change)
+            TemplateEditorView view;
+            try
             {
-                view = await drafts.UpdateAsync(actor, created.Id, TemplateManifestPatch.Apply(view.Manifest, change), view.Revision);
+                view = await drafts.GetAsync(actor, created.Id);
+                if (manifest is { } change)
+                {
+                    view = await drafts.UpdateAsync(actor, created.Id, TemplateManifestPatch.Apply(view.Manifest, change), view.Revision);
+                }
+            }
+            catch
+            {
+                // A refused create changes nothing: the draft already made is archived, so it does not count toward the person's cap.
+                await ArchiveQuietlyAsync(publishing, actor, created.Id);
+                throw;
             }
             return new CreateTemplateResult(view.Id, "draft", view.Revision, TemplateUrls.Editor(urls, view.Id), TemplateChecks.Of(view));
         });
+
+    private static async Task ArchiveQuietlyAsync(ITemplatePublishing publishing, ICurrentActor actor, string id)
+    {
+        try
+        {
+            await publishing.ArchiveAsync(actor, id);
+        }
+        catch
+        {
+            // The refusal the agent is about to read matters more than a failed clean-up.
+        }
+    }
 
     private static async Task<TemplateCreated> CreateAsync(ITemplateDrafts drafts, ICurrentActor actor, string from, string name)
     {

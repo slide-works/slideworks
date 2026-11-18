@@ -1,4 +1,7 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Mcp;
@@ -167,6 +170,30 @@ public class TemplateDraftToolsRealTests : ApiTestFixture
         isError.ShouldBeTrue();
         message.GetString().ShouldBe($"No template '{id}'.");
         after.ToString().ShouldBe(before.ToString());
+    }
+
+    [Test]
+    public async Task CreateTemplate_WhenTheManifestIsRefused_ShouldLeaveNoLiveDraftBehind()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var before = await LiveCountAsync();
+
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var (isError, message) = await agent.CallToolAsync("create_template", new { name = "Kickoff", from = "workshop", manifest = new { label = new string('x', 80) } });
+
+            isError.ShouldBeTrue();
+            message.GetString()!.ShouldStartWith("label: ");
+            message.GetString()!.ShouldContain("60");
+            (await LiveCountAsync()).ShouldBe(before);
+        }
+    }
+
+    // The rows the 50-template cap counts: every template that is not archived.
+    private async Task<int> LiveCountAsync()
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().Templates.CountAsync(t => t.ArchivedAt == null);
     }
 
     private static async Task<JsonElement> CreateAsync(McpTestClient agent, string name, string? manifestJson = null)

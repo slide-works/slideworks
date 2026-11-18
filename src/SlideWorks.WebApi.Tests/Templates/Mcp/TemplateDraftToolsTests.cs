@@ -25,13 +25,19 @@ public class TemplateDraftToolsTests : ApiTestFixture
         FakeTemplateSharing.Register(services);
     };
 
+    private FakeTemplatePublishing Publishing => Factory.Services.GetRequiredService<FakeTemplatePublishing>();
+
     private FakeTemplateDrafts Drafts => Factory.Services.GetRequiredService<FakeTemplateDrafts>();
 
     // The calls the fake has answered since a test began: it is shared by the fixture, so earlier tests left theirs.
     private List<string> CallsSince(int before) => [.. Drafts.Calls().Skip(before)];
 
     [TearDown]
-    public void AcceptCallsAgain() => Drafts.Refuse(null);
+    public void AcceptCallsAgain()
+    {
+        Drafts.Refuse(null);
+        Drafts.RefuseUpdate(null);
+    }
 
     [Test]
     public async Task CreateTemplate_WhenCalledOnTheWire_ShouldReturnAnObject()
@@ -70,6 +76,22 @@ public class TemplateDraftToolsTests : ApiTestFixture
         sent.GetProperty("purpose").GetString().ShouldBe("Only mine.");
         sent.GetProperty("label").GetString().ShouldBe(Drafts.Editor.Manifest.GetProperty("label").GetString());
         JsonNode.DeepEquals(JsonNode.Parse(sent.GetProperty("layouts").GetRawText()), JsonNode.Parse(Drafts.Editor.Manifest.GetProperty("layouts").GetRawText())).ShouldBeTrue();
+    }
+
+    [Test]
+    public async Task CreateTemplate_WhenTheManifestIsRefused_ShouldArchiveTheDraftItMade()
+    {
+        Drafts.RefuseUpdate(TemplateRefusal.Of(TemplateErrorCodes.TOO_MANY_EXTRAS, "palette.extras"));
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var before = Drafts.Calls().Count;
+        var archivedBefore = Publishing.Calls().Count;
+
+        var (isError, message) = await agent.CallToolAsync("create_template", new { name = "Kickoff", from = "workshop", manifest = new { palette = new { } } });
+
+        isError.ShouldBeTrue();
+        message.GetString().ShouldBe($"palette.extras: {TemplateRefusal.Of(TemplateErrorCodes.TOO_MANY_EXTRAS).Message}");
+        CallsSince(before).ShouldBe(["Create workshop Kickoff", $"Get {TEMPLATE}", $"Update {TEMPLATE} 7"]);
+        Publishing.Calls().Skip(archivedBefore).ToList().ShouldBe([$"Archive {TEMPLATE}"]);
     }
 
     [Test]
