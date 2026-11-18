@@ -1,13 +1,19 @@
-/* The mockup's .rcard: 34/36 px padding round an optional badge, a 34 px/1.15
-   title (18 px above, 12 px below), 24 px/1.4 muted text and its chips, 10 px
-   apart and 22 px under the text. The list item holds the card, which fills
-   it so the cards of a row stay one height. */
+/* One card (K21), in canvas px. Row regular: 34/36 padding, a 34 px/1.15 title
+   and 24 px/1.4 text; row large: 40 padding, an 800 50 px/1.12 title and
+   30 px/1.4 text. 2x2 regular keeps the type with 28/36 padding; 2x2 large is
+   32/40 padding, 44 px/1.12 and 28 px/1.4. The icon row is 78 px (a 44 px icon
+   and its 34 px gap), the badge row 48 (its 30 px and 18 px under it), the pin
+   row 44 and the plain fill's top rule 8. The list item holds the card, which
+   fills it so the cards stay as tall as the list gives them. */
 .item {
   display: flex;
 }
 
 .card {
+  position: relative;
+  display: flex;
   flex: 1;
+  flex-direction: column;
   min-width: 0;
   padding: 34px 36px;
   border-radius: var(--sw-radius-lg);
@@ -15,15 +21,37 @@
   box-shadow: var(--sw-lift);
 }
 
-.title {
-  margin: 18px 0 12px;
-  overflow-wrap: anywhere;
-  font: 700 34px/1.15 var(--sw-font-head);
+[data-scale='large'] .card {
+  padding: 40px;
 }
 
-/* Without a badge the title starts at the card's padding. */
-.title:first-child {
-  margin-top: 0;
+[data-count='4'] .card {
+  padding: 28px 36px;
+}
+
+[data-count='4'][data-scale='large'] .card {
+  padding: 32px 40px;
+}
+
+.card[data-fill='plain'] {
+  border-top: 8px solid var(--card-rule);
+}
+
+.icon {
+  flex: none;
+  height: 44px;
+  margin-bottom: 34px;
+}
+
+.card > [data-testid='block-badge'] {
+  align-self: flex-start;
+  margin-bottom: 18px;
+}
+
+.title {
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+  font: 700 34px/1.15 var(--sw-font-head);
 }
 
 .text {
@@ -31,6 +59,24 @@
   overflow-wrap: anywhere;
   color: var(--sw-muted);
   font: 400 24px/1.4 var(--sw-font-body);
+}
+
+[data-scale='large'] .title {
+  margin-bottom: 16px;
+  font: 800 50px/1.12 var(--sw-font-head);
+}
+
+[data-scale='large'] .text {
+  font: 400 30px/1.4 var(--sw-font-body);
+}
+
+[data-count='4'][data-scale='large'] .title {
+  margin-bottom: 12px;
+  font: 800 44px/1.12 var(--sw-font-head);
+}
+
+[data-count='4'][data-scale='large'] .text {
+  font: 400 28px/1.4 var(--sw-font-body);
 }
 
 /* A toned card (SW-2 L4): its tone's surface and ink from tone.ts, with the
@@ -49,4 +95,17 @@
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 22px;
+}
+
+/* The pin's row keeps 44 px under the content; the pin sits at the card's
+   bottom right, 28 px in. */
+.pinRow {
+  flex: none;
+  height: 44px;
+}
+
+.pinRow > * {
+  position: absolute;
+  right: 28px;
+  bottom: 28px;
 }
