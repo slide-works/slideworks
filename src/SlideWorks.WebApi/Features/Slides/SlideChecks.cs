@@ -12,20 +12,29 @@ public static class SlideChecks
 {
     public const int NOTES_MAX_LENGTH = 4000;
 
-    // The layout's schema with the built-in fonts' widths and the layout's own surface, then the images.
-    public static Task ValidateAsync(IDeckImages images, string deckId, string layout, JsonElement slots)
-        => ValidateAsync(images, deckId, layout, slots, SlideValidator.Validate(layout, slots));
+    // The surface as a tool got it, as the word the validator checks. A JSON value that is not text goes in as its raw
+    // JSON, which is never a surface, so the validator refuses it with the text it has for any other wrong word.
+    public static string? SurfaceWord(JsonElement? given) => given?.ValueKind switch
+    {
+        null or JsonValueKind.Undefined or JsonValueKind.Null => null,
+        JsonValueKind.String => given.Value.GetString(),
+        _ => given.Value.GetRawText(),
+    };
 
-    // The same for a slide of a deck on this template: the layout is the template's, the text is wrapped with the widths
-    // of the template's fonts, and surface is the one the slide will have ("light", "dark" or null for the layout's
-    // own). Returns the layout's definition, which the caller counts the steps with.
+    // The check for a slide of a deck on this template: the layout is the template's, the text is wrapped with the
+    // widths of the template's fonts, and surface is the one the slide will have ("light", "dark" or null for the
+    // layout's own), then the images. Returns the layout's definition, which the caller counts the steps with.
     public static async Task<LayoutDefinition> ValidateAsync(IDeckImages images, string deckId, ResolvedTemplate template, string layout, JsonElement slots, string? surface)
     {
         var definition = template.FindLayout(layout);
         if (definition is null)
         {
-            // A name the template does not have: Core words the refusal, with the names it knows.
-            throw new BadRequestException(SlideValidator.Validate(layout, slots).Error);
+            // A name the template does not have. Core words the refusal for a name it does not know either, with the
+            // names it knows; a built-in name gets no layout failure from Core, so it is worded here.
+            var builtIn = SlideValidator.Validate(layout, slots).Errors;
+            throw new BadRequestException(builtIn.FirstOrDefault(error => error.StartsWith("layout: ", StringComparison.Ordinal))
+                ?? builtIn.FirstOrDefault(error => error.StartsWith("slots: ", StringComparison.Ordinal))
+                ?? $"layout: \"{layout}\" is not a layout of this deck's template; call list_layouts for the ones it has");
         }
         await ValidateAsync(images, deckId, layout, slots, SlideValidator.Validate(definition, slots, template.FitWidths, surface));
         return definition;

@@ -1,7 +1,5 @@
 using System.Text.Json;
 using SlideWorks.Core.Look;
-using SlideWorks.Core.Slides;
-using SlideWorks.WebApi.Infrastructure;
 
 namespace SlideWorks.WebApi.Features.Slides;
 
@@ -10,12 +8,12 @@ namespace SlideWorks.WebApi.Features.Slides;
 // as "slots: required". A null Surface keeps the slide's own; a Change holding null clears it, back to the layout's own.
 public sealed record UpdateSlideRequest(string Deck, int Slide, long Revision, JsonElement Slots, string? Layout, int? Part, bool? DeepDive = null, Change<string?>? Surface = null)
 {
-    // The surface as the tool got it: left out keeps the slide's own, a JSON null clears it, and a word sets it.
+    // The surface as the tool got it: left out keeps the slide's own, a JSON null clears it, and a word sets it
+    // (SlideChecks.SurfaceWord: a value that is not text is refused by the validator as a wrong word).
     public static Change<string?>? SurfaceOf(JsonElement? given) => given?.ValueKind switch
     {
         null or JsonValueKind.Undefined => null,
         JsonValueKind.Null => new Change<string?>(null),
-        JsonValueKind.String => new Change<string?>(given.Value.GetString()),
-        _ => throw new BadRequestException($"surface: use '{SlideSurface.LIGHT}' or '{SlideSurface.DARK}'"),
+        _ => new Change<string?>(SlideChecks.SurfaceWord(given)),
     };
 }

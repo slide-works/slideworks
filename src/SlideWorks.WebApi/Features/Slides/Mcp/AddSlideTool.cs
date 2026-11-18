@@ -7,6 +7,7 @@ using SlideWorks.WebApi.Infrastructure.Mcp;
 
 namespace SlideWorks.WebApi.Features.Slides.Mcp;
 
+// surface comes in as raw JSON so that a value that is not text gets the validator's refusal, as update_slide's does.
 [McpServerToolType]
 public sealed class AddSlideTool
 {
@@ -21,6 +22,6 @@ public sealed class AddSlideTool
         [Description("The 1-based number the new slide takes; later slides move down. Leave it out to add the slide at the end.")] int? position = null,
         [Description("Speaker notes. Viewers never see them.")] string? notes = null,
         [Description("true marks the slide as a deep dive: it shows the deep-dive mark, a divider that lists its part's deep dives lists it, and its notes read with a prefix telling the speaker to skip it if short of time. Leave it out for an ordinary slide.")] bool? deep_dive = null,
-        [Description("\"light\" or \"dark\", for a layout that can be drawn on either. Leave it out for the layout's own surface. A surface the layout cannot take is refused.")] string? surface = null)
-        => McpToolErrors.Run(() => commands.AddAsync(new AddSlideRequest(deck, layout, JsonSerializer.SerializeToElement(slots), part, position, notes, deep_dive, surface)));
+        [Description("\"light\" or \"dark\", for a layout that can be drawn on either. Leave it out for the layout's own surface. A surface the layout cannot take is refused.")] JsonElement? surface = null)
+        => McpToolErrors.Run(() => commands.AddAsync(new AddSlideRequest(deck, layout, JsonSerializer.SerializeToElement(slots), part, position, notes, deep_dive, SlideChecks.SurfaceWord(surface))));
 }

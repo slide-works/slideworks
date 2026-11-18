@@ -68,6 +68,50 @@ public class SlideTemplateWidthsTests : ApiTestFixture
         refused.ShouldBe("only-here.headline: required");
     }
 
+    // A built-in layout the deck's template leaves out is refused as not the template's, on add and on a change to it,
+    // whatever the slots: never an empty error and never slot errors for a layout the template does not have.
+    [Test]
+    public async Task AddSlide_WhenTheTemplateLeavesOutABuiltInLayout_ShouldRefuseNamingTheLayout()
+    {
+        const string expected = "layout: \"title\" is not a layout of this deck's template; call list_layouts for the ones it has";
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        await DeckSeed.AddQuoteAsync(agent, deck, "Already here.");
+        var before = await OkAsync(agent, "get_deck", new { deck });
+        var talk = new TemplateCatalogue().Default;
+        Factory.Services.GetRequiredService<FakeTemplates>()
+            .Add(BuiltInTemplates.Resolve(talk) with { Layouts = name => name == "title" ? null : LayoutCatalogue.Find(name) });
+
+        var added = await McpWire.CallToolAsync(
+            Factory,
+            agent.Tokens.AccessToken,
+            "add_slide",
+            $$$"""{"deck":"{{{deck}}}","layout":"title","slots":{"title":"Ship smaller"}}""");
+        var addedWithBadSlots = await McpWire.CallToolAsync(
+            Factory,
+            agent.Tokens.AccessToken,
+            "add_slide",
+            $$$"""{"deck":"{{{deck}}}","layout":"title","slots":{"nope":"Ship smaller"}}""");
+        var updated = await McpWire.CallToolAsync(
+            Factory,
+            agent.Tokens.AccessToken,
+            "update_slide",
+            $$$"""{"deck":"{{{deck}}}","slide":1,"revision":1,"layout":"title","slots":{"title":"Ship smaller"}}""");
+
+        foreach (var result in new[] { added, addedWithBadSlots, updated })
+        {
+            result.GetProperty("isError").GetBoolean().ShouldBeTrue(result.GetRawText());
+            McpWire.TextOf(result).ShouldNotBeNullOrWhiteSpace();
+            McpWire.TextOf(result).ShouldBe(expected);
+        }
+        var after = await OkAsync(agent, "get_deck", new { deck });
+        var slides = after.GetProperty("slides").EnumerateArray().ToList();
+        slides.Count.ShouldBe(1);
+        slides[0].GetProperty("revision").GetInt64().ShouldBe(1);
+        slides[0].GetProperty("layout").GetString().ShouldBe("quote");
+        after.GetRawText().ShouldBe(before.GetRawText());
+    }
+
     private static JsonElement Slots(string json)
     {
         using var slots = JsonDocument.Parse(json);

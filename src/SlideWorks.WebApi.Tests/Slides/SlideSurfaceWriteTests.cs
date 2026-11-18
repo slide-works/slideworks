@@ -54,6 +54,8 @@ public class SlideSurfaceWriteTests : ApiTestFixture
     [TestCase("\"blue\"", NOT_A_WORD)]
     [TestCase("\"Dark\"", NOT_A_WORD)]
     [TestCase("\"\"", NOT_A_WORD)]
+    [TestCase("5", NOT_A_WORD)]
+    [TestCase("{\"surface\":\"dark\"}", NOT_A_WORD)]
     [TestCase("\"light\"", "title.surface: this layout is dark only")]
     public async Task AddSlide_WhenSurfaceIsNotAWord_ShouldRefuse(string surfaceJson, string expected)
     {
@@ -214,6 +216,7 @@ public class SlideSurfaceWriteTests : ApiTestFixture
         => (await OkAsync(agent, "get_deck", new { deck })).GetRawText();
 
     // The stored surface of each live slide, in order.
+    // TODO: read this through get_deck once slide reads carry the surface.
     private async Task<IReadOnlyList<string?>> StoredSurfacesAsync(string deck)
     {
         using var scope = Factory.Services.CreateScope();

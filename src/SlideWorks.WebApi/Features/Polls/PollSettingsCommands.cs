@@ -8,6 +8,7 @@ using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Slides;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 
 namespace SlideWorks.WebApi.Features.Polls;
@@ -20,10 +21,11 @@ namespace SlideWorks.WebApi.Features.Polls;
 //   has answered it, and a closed round keeps its Final. The phones and the presenter read the settings, so a change on a live
 //   deck is announced.
 // - Add option: appended at the end, so no position moves, and allowed while a round is open (D13). The slide's slots are
-//   checked by the layout's own validator (at most 8 options, each up to 60 characters). Announced on a live deck.
+//   checked as update_slide checks them: the poll layout of the deck's template, its fonts' widths and the slide's stored
+//   surface (for the built-in: at most 8 options, each up to 60 characters). Announced on a live deck.
 // Per request.
 [RegisterPerRequest]
-public class PollSettingsCommands(SlideEdits edits, AppDbContext db, PollReader reader, PollEdits pollEdits, IDeckImages images)
+public class PollSettingsCommands(SlideEdits edits, AppDbContext db, PollReader reader, PollEdits pollEdits, IDeckImages images, ITemplates templates)
 {
     public const string UPDATE_TOOL = "update_poll";
     public const string ADD_OPTION_TOOL = "add_poll_option";
@@ -60,7 +62,8 @@ public class PollSettingsCommands(SlideEdits edits, AppDbContext db, PollReader 
             var list = slots["options"]!.AsArray();
             list.Add(text);
             var element = JsonSerializer.SerializeToElement(slots);
-            await SlideChecks.ValidateAsync(images, deck.Id, PollRows.LAYOUT, element);
+            var template = await templates.ForDeckAsync(deck, CancellationToken.None);
+            await SlideChecks.ValidateAsync(images, deck.Id, template, PollRows.LAYOUT, element, poll.Surface);
 
             var tracked = await db.Slides.SingleAsync(s => s.Id == poll.Id);
             tracked.SlotsJson = SlideJson.ForStorage(element);
