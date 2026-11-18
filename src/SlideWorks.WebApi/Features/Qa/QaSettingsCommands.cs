@@ -70,7 +70,7 @@ public sealed class QaSettingsCommands(
             await RecordAsync(deckId, Summary(before, after));
             await transaction.CommitAsync();
         }
-        if (before.Questions == QaQuestions.Off)
+        if (before.Questions == QaQuestions.Off && after.Questions != QaQuestions.Off)
         {
             await rounds.EnsureAsync(deckId);
         }

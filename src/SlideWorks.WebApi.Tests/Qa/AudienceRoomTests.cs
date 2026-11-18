@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Qa;
+using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Realtime;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -50,6 +51,23 @@ public class AudienceRoomTests : QaTestFixture
         await QaRowSeed.SwitchAsync(qa.QaSlideId, new QaSlideSwitch(true, false));
 
         Presentations.Set(SettablePresentations.At(qa.DeckId, qa.QaSlide + 3));
+        var room = await RoomAsync(qa.DeckId);
+
+        room!.Reactions.ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task ForDeckAsync_WhenTheLastSlideIsDeletedWhileLive_ShouldUseTheNewLastSlidesSwitch()
+    {
+        var qa = await SeedQaAsync();
+        await QaRowSeed.SwitchAsync(qa.QuoteSlideId, new QaSlideSwitch(true, false));
+        Presentations.Set(SettablePresentations.At(qa.DeckId, qa.QaSlide));
+
+        await using (var agent = await McpTestClient.ConnectAsAsync(Factory, SignedInAs))
+        {
+            var (isError, json) = await agent.CallToolAsync("delete_slide", new { deck = qa.DeckId, slide = qa.QaSlide });
+            isError.ShouldBeFalse(json.ToString());
+        }
         var room = await RoomAsync(qa.DeckId);
 
         room!.Reactions.ShouldBeFalse();

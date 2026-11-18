@@ -17,7 +17,7 @@ namespace SlideWorks.WebApi.Tests.Qa;
 
 // The real IQaSettings (Q1, Q6): the deck's settings row, the slide switch rows, the activity entry, and what it calls after
 // the change. IQaRounds is FakeQaRounds (what Go live opened and what a change ensured), the relay is FakeAudienceRelay
-// and the publisher FakeQuestionPublisher, each wrapped to note the order of the refresh and the publish per deck. The
+// and the publisher FakeQuestionPublisher, each wrapped to note the order of the ensure, the refresh and the publish per deck. The
 // room a change leaves is read from the real IAudienceRoom. Each test seeds a live deck of its own (QaSeed).
 [TestFixture]
 [CancelAfter(30000)]
@@ -25,6 +25,7 @@ public class QaSettingsTests : QaTestFixture
 {
     private const string REFRESH = "refresh";
     private const string PUBLISH = "publish";
+    private const string ENSURE = "ensure";
 
     private FakeQaRounds Rounds => Factory.Services.GetRequiredService<FakeQaRounds>();
 
@@ -38,6 +39,7 @@ public class QaSettingsTests : QaTestFixture
         FakeAudienceRelay.AddTo(services);
         FakeQuestionPublisher.AddTo(services);
         services.AddSingleton<CallOrder>();
+        services.AddSingleton<IQaRounds>(provider => new OrderedRounds(provider.GetRequiredService<FakeQaRounds>(), provider.GetRequiredService<CallOrder>()));
         services.AddSingleton<IAudienceRelay>(provider => new OrderedRelay(
             provider.GetRequiredService<FakeAudienceRelay>(), provider.GetRequiredService<CallOrder>(), provider.GetRequiredService<IServiceScopeFactory>()));
         services.AddSingleton<IQuestionPublisher>(provider => new OrderedPublisher(provider.GetRequiredService<FakeQuestionPublisher>(), provider.GetRequiredService<CallOrder>()));
@@ -75,11 +77,28 @@ public class QaSettingsTests : QaTestFixture
         var qa = await SeedQaAsync();
         await QaRowSeed.SettingsAsync(qa.DeckId, QaSettings.Default with { Questions = QaQuestions.Off });
 
+        var entries = await ActivityCountAsync(qa.DeckId);
+
         await UpdateAsync(qa.DeckId, new QaSettingsPatch(QaQuestions.Closed, null, null, null, null));
         await UpdateAsync(qa.DeckId, new QaSettingsPatch(QaQuestions.Open, null, null, null, null));
 
         Rounds.CallsFor(qa.DeckId).Count(c => c == "Ensure").ShouldBe(1);
+        Order.For(qa.DeckId).ShouldBe([ENSURE, $"{REFRESH} after {entries + 1} entries", PUBLISH, $"{REFRESH} after {entries + 2} entries", PUBLISH]);
         (await GetAsync(qa.DeckId)).Questions.ShouldBe(QaQuestions.Open);
+    }
+
+    [Test]
+    public async Task UpdateAsync_WhenQuestionsStayOff_ShouldNotEnsureARound()
+    {
+        var qa = await SeedQaAsync();
+        await QaRowSeed.SettingsAsync(qa.DeckId, QaSettings.Default with { Questions = QaQuestions.Off });
+        var entries = await ActivityCountAsync(qa.DeckId);
+
+        var updated = await UpdateAsync(qa.DeckId, new QaSettingsPatch(null, true, null, null, null));
+
+        updated.ShouldBe(QaSettings.Default with { Questions = QaQuestions.Off, Review = true });
+        Rounds.CallsFor(qa.DeckId).ShouldNotContain("Ensure");
+        Order.For(qa.DeckId).ShouldBe([$"{REFRESH} after {entries + 1} entries", PUBLISH]);
     }
 
     [Test]
@@ -285,6 +304,19 @@ public class QaSettingsTests : QaTestFixture
         {
             order.Add(deckId, $"{REFRESH} after {await ActivityCountAsync(scopes, deckId)} entries");
             await inner.RefreshAsync(deckId);
+        }
+    }
+
+    private sealed class OrderedRounds(FakeQaRounds inner, CallOrder order) : IQaRounds
+    {
+        public Task OpenAsync(string deckId, Guid sessionId) => inner.OpenAsync(deckId, sessionId);
+
+        public Task CloseAsync(string deckId, Guid sessionId) => inner.CloseAsync(deckId, sessionId);
+
+        public Task EnsureAsync(string deckId)
+        {
+            order.Add(deckId, ENSURE);
+            return inner.EnsureAsync(deckId);
         }
     }
 

@@ -1,8 +1,8 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
+using SlideWorks.Core.Polls;
 using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Data;
-using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Qa.Data;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Realtime.Presenting;
@@ -23,7 +23,6 @@ public sealed class AudienceRoom(
     IAudienceSessions sessions,
     IPresentations presentations,
     QaRows rows,
-    PollRows polls,
     QaRevisions revisions) : IAudienceRoom
 {
     public async Task<QaRoom?> ForDeckAsync(string deckId)
@@ -34,7 +33,7 @@ public sealed class AudienceRoom(
         }
         var settings = await rows.SettingsAsync(deckId);
         var slideSwitch = await SwitchOnScreenAsync(deckId);
-        var round = (await polls.OpenQaRoundAsync(Guid.Parse(session)))?.Id.ToString();
+        var round = await OpenRoundAsync(Guid.Parse(session));
         return QaRoomRules.For(settings, slideSwitch, new QaRoundState(round, round is null ? 0 : revisions.Current(round)));
     }
 
@@ -45,16 +44,23 @@ public sealed class AudienceRoom(
         {
             return QaSlideSwitch.On;
         }
-        var count = await db.Slides.AsNoTracking().CountAsync(s => s.DeckId == deckId && s.DeletedAt == null);
-        if (count == 0)
+        // One read of the deck's slide ids, so a slide deleted while live can't fall between a count and a lookup.
+        var ids = await db.Slides.AsNoTracking()
+            .Where(s => s.DeckId == deckId && s.DeletedAt == null)
+            .OrderBy(s => s.Position)
+            .Select(s => s.Id)
+            .ToListAsync();
+        if (ids.Count == 0)
         {
             return QaSlideSwitch.On;
         }
-        var shown = Math.Clamp(presentation.Slide, 1, count);
-        var slideId = await db.Slides.AsNoTracking()
-            .Where(s => s.DeckId == deckId && s.DeletedAt == null && s.Position == shown - 1)
-            .Select(s => s.Id)
-            .SingleAsync();
-        return await rows.SwitchAsync(slideId);
+        return await rows.SwitchAsync(ids[Math.Clamp(presentation.Slide, 1, ids.Count) - 1]);
     }
+
+    // The session's open Q&A round's id, or null when it has none. Untracked: this path only reads.
+    private async Task<string?> OpenRoundAsync(Guid sessionId)
+        => (await db.PollRounds.AsNoTracking()
+            .Where(r => r.SessionId == sessionId && r.Kind == PollKind.Qa && r.ClosedAt == null)
+            .Select(r => (Guid?)r.Id)
+            .SingleOrDefaultAsync())?.ToString();
 }
