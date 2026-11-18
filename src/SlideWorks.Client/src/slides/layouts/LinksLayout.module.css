@@ -90,6 +90,7 @@
 .caption {
   display: -webkit-box;
   overflow: hidden;
+  text-overflow: ellipsis;
   font: 500 20px/1.3 var(--sw-font-mono);
   text-align: center;
   overflow-wrap: anywhere;

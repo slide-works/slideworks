@@ -99,6 +99,13 @@ test('an unsafe QR address draws no code', async ({ mount, page }) => {
   await expect(page.getByTestId('qr-code')).toHaveCount(0);
 });
 
+test('a clamped caption ends with an ellipsis', async ({ mount, page }) => {
+  await mount(
+    render(links({ ...base, qr: { url: 'https://example.com/a', caption: 'x'.repeat(200) } })),
+  );
+  await expect(page.getByTestId('links-qr-caption')).toHaveCSS('text-overflow', 'ellipsis');
+});
+
 test('caption defaults to the address without its scheme', async ({ mount, page }) => {
   await mount(render(links({ ...base, qr: { url: 'https://example.com/small-batches' } })));
   await expect(page.getByTestId('links-qr-caption')).toHaveText('example.com/small-batches');
