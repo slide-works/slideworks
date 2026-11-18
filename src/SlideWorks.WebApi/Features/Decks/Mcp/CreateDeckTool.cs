@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using SlideWorks.Core.Look;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Infrastructure.Mcp;
 
@@ -17,7 +17,7 @@ public sealed class CreateDeckTool
     public Task<CallToolResult> CreateDeck(
         DeckCommands commands,
         IPublicUrls urls,
-        ITemplateCatalogue templates,
+        ITemplates templates,
         [Description("The deck's title, up to 120 characters.")] string title,
         [Description("An optional subtitle, up to 200 characters.")] string? subtitle = null,
         [Description("The presenter's name for the footer, up to 80 characters.")] string? author = null,
@@ -27,6 +27,6 @@ public sealed class CreateDeckTool
         => McpToolErrors.Run(async () =>
         {
             var deck = await commands.CreateAsync(new CreateDeckRequest(title, subtitle, author, parts, template, palette), NAME);
-            return CreateDeckToolResult.From(deck, urls.Deck(deck.Id, deck.Slug), templates.Find(deck.Template)!);
+            return CreateDeckToolResult.From(deck, urls.Deck(deck.Id, deck.Slug), await templates.ForDeckAsync(deck, CancellationToken.None));
         });
 }
