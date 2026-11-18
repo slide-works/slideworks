@@ -36,7 +36,7 @@ test('the label is plain text, never markup', async ({ mount, page }) => {
   await expect(page.getByTestId('pin').locator('*')).toHaveCount(0);
 });
 
-test('on a solid panel it is the ink at 22% over the surface, with the ink as text', async ({
+test('on a solid panel it is night at 30% over the surface, with the ink as text', async ({
   mount,
   page,
 }) => {
@@ -52,8 +52,13 @@ test('on a solid panel it is the ink at 22% over the surface, with the ink as te
   const background = await pin.evaluate((element) => getComputedStyle(element).backgroundColor);
   const channels = (background.match(/-?\d*\.?\d+/g) ?? []).slice(0, 3).map(Number);
   const scale = background.startsWith('color(') ? 255 : 1;
-  const mixed = [47, 91, 234].map((channel) => Math.round(255 * 0.22 + channel * 0.78));
-  expect(channels.map((channel) => Math.round(channel * scale))).toEqual(mixed);
+  const mixed = [47, 91, 234].map((channel, i) =>
+    Math.round([11, 16, 32][i]! * 0.3 + channel * 0.7),
+  );
+  // The browser may round a .5 either way.
+  channels.forEach((channel, i) =>
+    expect(Math.abs(channel * scale - mixed[i]!)).toBeLessThanOrEqual(1),
+  );
 });
 
 test('a long label stays inside the box that places it', async ({ mount, page }) => {
