@@ -304,11 +304,18 @@ describe('QuestionsLive asks', () => {
 
 describe('QuestionsLive votes', () => {
   it('a toggle shows at once in mine and the votes, and sends the picks with the revision', async () => {
+    let answer!: (outcome: VoteOutcome) => void;
+    api.putVotes.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
     await render(view.room);
 
     await act(async () => latest().toggleVote(2));
 
     expect(votes()).toEqual([{ round: ROUND, picks: [1, 2, 4], revision: 3 }]);
+    expect(latest().mine).toEqual({ picks: [1, 2, 4], revision: 3 });
+    expect(votesOf(2)).toBe(10);
+
+    await act(async () => answer({ type: 'accepted', mine: { picks: [1, 2, 4], revision: 4 } }));
+
     expect(latest().mine).toEqual({ picks: [1, 2, 4], revision: 4 });
     expect(votesOf(2)).toBe(10);
   });
