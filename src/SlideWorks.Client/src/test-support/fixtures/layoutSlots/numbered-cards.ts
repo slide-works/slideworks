@@ -10,10 +10,18 @@ export const SLOTS: NumberedCardsSlots = {
   kicker: 'Make it stick',
   headline: 'Four questions, in this order',
   cards: [
-    { title: 'Who notices?', text: 'Name the customer.' },
+    {
+      title: 'Who notices?',
+      text: 'Name the customer.',
+      tone: 'accent',
+      fill: 'plain',
+      pin: 'Start here',
+    },
     { title: 'What can they do?', text: 'One sentence.' },
   ],
   reveal: 'one-by-one',
+  callout: { tone: 'info', text: 'Answer them in this order.', reveal: 'last' },
+  emphasis: [{ text: 'in this order', tone: 'accent' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is

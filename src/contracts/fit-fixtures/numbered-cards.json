@@ -91,5 +91,118 @@
       ],
       "reveal": "one-by-one"
     }
+  },
+  "numberedCardsFourMax": {
+    "layout": "numbered-cards",
+    "estimate": 589.6,
+    "grow": [
+      "/cards/3/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Make Every Merge Small And Reviewable",
+      "headline": "Every Merge Small And Reviewable Matters",
+      "cards": [
+        {
+          "title": "Experiment Throughput Compliance",
+          "text": "Responsibility Accountability Representatives Characterisation Professionalism Experimentation Infrastructure Counterrevolutionaries",
+          "tone": "accent",
+          "fill": "plain",
+          "pin": "Hold this"
+        },
+        {
+          "title": "Experiment Throughput Compliance",
+          "text": "Responsibility Accountability Representatives Characterisation Professionalism Experimentation Infrastructure Counterrevolutionaries",
+          "fill": "plain",
+          "pin": "Hold this"
+        },
+        {
+          "title": "Experiment Throughput Compliance",
+          "text": "Responsibility Accountability Representatives Characterisation Professionalism Experimentation Infrastructure Counterrevolutionaries",
+          "fill": "plain",
+          "pin": "Hold this"
+        },
+        {
+          "title": "Experiment Throughput Compliance",
+          "text": "Responsibility Accountability Representatives Characterisation Professionalism Experimentation Infrastructure Counterrevolutionaries",
+          "fill": "plain",
+          "pin": "Hold this"
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "numberedCardsLargeThree": {
+    "layout": "numbered-cards",
+    "estimate": 601.4,
+    "grow": [
+      "/callout/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Make Every Merge Small And Reviewable",
+      "headline": "Every Merge Small And Reviewable Matters",
+      "cards": [
+        {
+          "title": "Responsibility Accountability",
+          "text": "Telecommunications Telecommunications Telecommunications",
+          "fill": "plain",
+          "pin": "Hold on to this one",
+          "tone": "accent"
+        },
+        {
+          "title": "Responsibility Accountability",
+          "text": "Telecommunications Telecommunications Telecommunications",
+          "fill": "plain",
+          "pin": "Hold on to this one"
+        },
+        {
+          "title": "Responsibility Accountability",
+          "text": "Telecommunications Telecommunications Telecommunications",
+          "fill": "plain",
+          "pin": "Hold on to this one"
+        }
+      ],
+      "reveal": "one-by-one",
+      "callout": {
+        "tone": "info",
+        "text": "Small steps keep every release easy to review, so the team learns from real customers every single."
+      }
+    }
+  },
+  "numberedCardsCallout": {
+    "layout": "numbered-cards",
+    "estimate": 605.0,
+    "grow": [
+      "/callout/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Make Every Merge Small And Reviewable",
+      "headline": "Every Merge Small And Reviewable Matters",
+      "cards": [
+        {
+          "title": "Responsibility Accountability",
+          "text": "Internationalisation Telecommunications Internationalisation Telecommunications Internationalisation Telecommunications",
+          "pin": "Hold on to this one",
+          "tone": "accent"
+        },
+        {
+          "title": "Responsibility Accountability",
+          "text": "Internationalisation Telecommunications Internationalisation Telecommunications Internationalisation Telecommunications",
+          "pin": "Hold on to this one"
+        },
+        {
+          "title": "Responsibility Accountability",
+          "text": "Internationalisation Telecommunications Internationalisation Telecommunications Internationalisation Telecommunications",
+          "pin": "Hold on to this one"
+        }
+      ],
+      "reveal": "one-by-one",
+      "callout": {
+        "tone": "info",
+        "text": "Small steps keep every release easy to review, so the team learns from real customers every single."
+      }
+    }
   }
 }
