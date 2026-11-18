@@ -177,6 +177,26 @@ test('a viewer who cannot present gets null and makes no call', async ({ mount, 
   expect(qa.calls).toEqual([]);
 });
 
+test('the owner flag alone keeps the screen null, even when the live session confirms the viewer', async ({
+  mount,
+  page,
+}) => {
+  const { hub, qa } = await stubLive(page);
+  await mount(
+    <JoinProvider deckId={deckId} join={liveJoin} owner>
+      <QaScreenLive deckId={deckId} owner={false}>
+        <QaScreenProbe />
+      </QaScreenLive>
+    </JoinProvider>,
+  );
+  // The live session's own watch is in, so the session is confirmed; the screen provider still makes no call.
+  await expect.poll(() => hub.watches.length).toBeGreaterThanOrEqual(1);
+  await settle(page);
+  expect(await read(page)).toBeNull();
+  expect(qa.calls).toEqual([]);
+  expect(hub.watches).toHaveLength(1);
+});
+
 test('a deck that is not live gets null and makes no call, then reads once it goes live', async ({
   mount,
   page,
