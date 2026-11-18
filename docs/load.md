@@ -253,3 +253,51 @@ as the audience window, the player's first join. "Guest" is a fresh guest's star
 
 The results p95 against the real tally publisher (SW-287) is the figure in every row above: the "answered includes my
 answer" rule saw every voter's tally in every run, with no timeout.
+
+## Q&A and reactions
+
+`--scenario qa` plays an audience against the deck's Q&A round (SW-9, Q10) instead of a poll. `--scenario poll` is the
+default and is the run described above, unchanged. The qa scenario needs a live deck with questions on; it does not need
+`--owner-cookie`, `--deck`, `--slide` or `--close-at`, and refuses them (exit 2), as it refuses `--pick`. `--guests` is
+`--voters` under its other name.
+
+Each guest is a phone, as a voter is (cookie, hub connection, `JoinAudience`, joins at most 50 in flight). It then:
+
+1. reads the questions (`GET /api/join/{code}/questions`) and picks up to three open questions that are not its own,
+2. waits a random time inside `--seconds`, counted from when every guest has joined,
+3. upvotes the three, one `PUT /api/join/{code}/questions/votes` each, carrying every pick so far and the revision the last
+   200 returned,
+4. taps ten reactions (`POST /api/join/{code}/reactions`), spread evenly over what is left of the window (the app refuses an
+   eleventh tap within 5 s), and
+5. waits, up to `--results-timeout` seconds from each upvote's 200, for a `questionTally` on its own connection whose `votes`
+   for that question include it.
+
+Before the run the harness asks `--questions` (default 5; 0 to use what the round already holds) questions of its own, each
+from a guest that is not one of the run's, and reads the votes each open question has. A `questionTally` includes a guest's
+upvote on question n once its `votes` for n reach the votes n had before the run plus the upvotes on n acknowledged up to and
+including this one, the same rule as the poll's. The run stops with exit 1, before joining anyone, when there is no open Q&A
+round, the deck's reactions are off, or there is no open question.
+
+- **Write** is the time from sending a `PUT` or a tap to reading its response, for those that got a 200 or 204. It is one
+  p95 over upvotes and taps together.
+- **Tally** is the time from an upvote's 200 to the first matching `questionTally`. `--no-results` skips it, as it skips the
+  poll's results time, for a run where tallies are not expected.
+- **Errors** are as the poll's: one per guest at most, listed by kind (`vote: 429 too_many_votes`, `tap: 409 reactions_off`,
+  `results: timed out`), and a guest that is refused stops acting.
+- **Served** lists what each route answered and how often (`vote 200 x3000`). During SW-9's build the app served stubs or
+  real services depending on what had landed; the run only has to complete, and this line says which it met.
+
+The gate is the poll's, at 1,000 guests in 30 s: write p95 under 1 s, tally p95 under 2 s, errors under 1%. Run it by hand
+against the load host (`HUB_URLS` as above):
+
+```bash
+dotnet src/SlideWorks.LoadTest/bin/Release/net10.0/SlideWorks.LoadTest.dll \
+  --scenario qa --url $URL --hub-urls $HUB_URLS --code $CODE --guests 1000 --seconds 30
+```
+
+Run it on a round nobody else is using: another guest upvoting during the run makes the tally times read low.
+
+### Results
+
+| Date (UTC) | Build | Guests | Window (s) | Joined in (s) | Write p50 (ms) | Write p95 (ms) | Write p99 (ms) | Tally p95 (ms) | Errors | Load avg start / end | Gate |
+|---|---|---|---|---|---|---|---|---|---|---|---|
