@@ -13,7 +13,7 @@ public class LayoutCatalogueTests
     private static readonly HashSet<string> _keywords =
     [
         "$schema", "title", "description", "type", "properties", "required", "additionalProperties", "items",
-        "minItems", "maxItems", "minLength", "maxLength", "pattern", "minimum", "maximum", "enum", "oneOf", "not",
+        "minItems", "maxItems", "minLength", "maxLength", "pattern", "minimum", "maximum", "enum", "oneOf", "not", "format",
     ];
 
     private static readonly HashSet<string> _types = ["string", "number", "integer", "object", "array", "boolean", "null"];
