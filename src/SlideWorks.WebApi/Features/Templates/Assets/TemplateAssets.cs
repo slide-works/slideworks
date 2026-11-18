@@ -182,6 +182,10 @@ public class TemplateAssets(
     // One transaction (EF opens it with SQLite's BEGIN IMMEDIATE, so no other write runs beside it): the same bytes
     // already in the template answer the asset that is there, and otherwise the file is moved into place and its row
     // written. If the row fails, a file this call put there goes too, so no file is left without a row by a refusal.
+    //
+    // A template's files are never removed, so what it may store is capped here, counting every row it has. The count
+    // and the new row are in the one write transaction, so two uploads cannot both take the last place. Bytes the
+    // template already has are answered before the cap is looked at: they store nothing new.
     private async Task<StoredAsset> SaveAsync(
         string templateId, TemplateAssetKind kind, string fileName, bool rightsConfirmed, TempAsset temp, string contentType, string? metaJson, CancellationToken ct)
     {
@@ -201,6 +205,7 @@ public class TemplateAssets(
             store.Commit(temp.Path, templateId, assetId);
             return ViewOf(existing);
         }
+        await CheckRoomAsync(templateId, temp.Size, ct);
 
         var asset = new TemplateAsset
         {
@@ -231,6 +236,16 @@ public class TemplateAssets(
             throw;
         }
         return ViewOf(asset);
+    }
+
+    private async Task CheckRoomAsync(string templateId, long newBytes, CancellationToken ct)
+    {
+        var stored = db.TemplateAssets.Where(a => a.TemplateId == templateId);
+        if (await stored.CountAsync(ct) >= TemplateLimits.MAX_STORED_ASSETS
+            || await stored.SumAsync(a => a.Bytes, ct) + newBytes > TemplateLimits.MAX_STORED_BYTES)
+        {
+            throw TemplateRefusal.Of(TemplateErrorCodes.TEMPLATE_STORAGE_FULL);
+        }
     }
 
     private async Task<bool> MayReadAsync(string templateId)

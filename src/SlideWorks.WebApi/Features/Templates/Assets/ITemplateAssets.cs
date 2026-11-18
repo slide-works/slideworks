@@ -15,6 +15,8 @@ public interface ITemplateAssets
     // The bytes of a started upload. The token is used up by the first call that presents it while it is live, whether
     // the file is then stored or refused. An unknown or expired token is NotFoundException; a used one is refused with
     // upload_used; a file over its kind's limit with file_too_large; a file its check refuses with the check's code.
+    // A file that would take the template past TemplateLimits.MAX_STORED_ASSETS or MAX_STORED_BYTES is refused with
+    // template_storage_full; bytes the template already holds are never refused for that.
     Task<StoredAsset> CompleteAsync(string token, Stream content, CancellationToken ct);
 
     // The file, for the template's owner, a person the template is shared with, and anyone who may view a deck on the

@@ -13,7 +13,7 @@ public class TemplateErrorTextsTests
         "svg_malformed", "not_an_image", "palette_contrast", "layout_not_approved", "layout_refused", "too_many_fonts",
         "too_many_layouts", "too_many_extras", "too_many_templates", "file_too_large", "rights_not_confirmed",
         "stale_revision", "manifest_invalid", "asset_not_found", "bundle_invalid", "bundle_too_large",
-        "custom_layouts_unavailable", "renderer_unavailable", "upload_used", "not_published",
+        "custom_layouts_unavailable", "renderer_unavailable", "upload_used", "not_published", "template_storage_full",
     ];
 
     [Test]
