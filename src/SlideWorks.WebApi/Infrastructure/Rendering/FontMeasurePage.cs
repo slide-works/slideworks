@@ -17,7 +17,8 @@ public static class FontMeasurePage
     public const string SAMPLE_ID = "sample";
 
     // Loads the face (rejecting when the browser cannot decode it) and answers the line's width in pixels.
-    public const string MEASURE = "async () => { await document.fonts.load('16px SwMeasure', document.getElementById('sample').textContent); "
+    public const string MEASURE = "async () => { try { await document.fonts.load('16px SwMeasure', document.getElementById('sample').textContent); } "
+        + "catch (e) { throw new Error('font not loaded'); } "
         + "if (!document.fonts.check('16px SwMeasure')) { throw new Error('font not loaded'); } "
         + "return document.getElementById('sample').getBoundingClientRect().width; }";
 
