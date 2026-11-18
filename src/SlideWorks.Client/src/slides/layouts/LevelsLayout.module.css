@@ -1,0 +1,39 @@
+/* The heading is SlideHeading's; the root (.sw-layout) and body (.sw-body)
+   rules are the frame's. The body is the 1144 px main column, a 56 px gap and
+   the 480 px ladder at the top; side left swaps them. */
+.body {
+  display: grid;
+  grid-template-columns: 1144px 480px;
+  grid-template-rows: minmax(0, 1fr);
+  column-gap: 56px;
+}
+
+.body[data-side='left'] {
+  grid-template-columns: 480px 1144px;
+}
+
+.ladder {
+  align-self: start;
+  min-width: 0;
+}
+
+/* The main column: its content takes the height the tiles and the callout
+   leave (an image shrinks into it), and the tiles sit at the foot. */
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.content {
+  display: grid;
+  flex: 1;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.tiles {
+  flex: none;
+  margin-top: 24px;
+}
