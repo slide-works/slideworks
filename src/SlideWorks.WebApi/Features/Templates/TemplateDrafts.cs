@@ -21,7 +21,8 @@ public sealed class TemplateDrafts(
     ITemplates templates,
     ITemplatePublishing publishing,
     IPaletteCatalogue palettes,
-    TimeProvider clock) : ITemplateDrafts
+    TimeProvider clock,
+    ILogger<TemplateDrafts> logger) : ITemplateDrafts
 {
     public async Task<TemplatesView> ListAsync(ICurrentActor actor)
     {
@@ -37,11 +38,17 @@ public sealed class TemplateDrafts(
         var versions = await VersionsOfAsync([.. records.Select(r => r.Id)]);
         var counts = await DeckCountsAsync([.. records.Select(r => r.Id), .. otherIds, .. builtIns.Select(t => t.Ref)]);
 
-        var mine = records.Select(record =>
+        var mine = new List<TemplateRowView>();
+        foreach (var record in records)
         {
             var own = versions[record.Id];
-            return TemplateRows.OfManifest(record, Parsed(own.Current.ManifestJson), own.Published, counts.GetValueOrDefault(record.Id), now);
-        }).ToList();
+            if (ManifestJson.Parse(own.Current.ManifestJson).Manifest is not { } manifest)
+            {
+                logger.LogWarning("Template {TemplateId} has a stored manifest that no longer parses; it is left out of the list", record.Id);
+                continue;
+            }
+            mine.Add(TemplateRows.OfManifest(record, manifest, own.Published, counts.GetValueOrDefault(record.Id), now));
+        }
         var shared = others
             .Where(t => sharedRecords.ContainsKey(t.Ref))
             .Select(t => TemplateRows.OfResolved(sharedRecords[t.Ref], t, palettes, counts.GetValueOrDefault(t.Ref), now))
@@ -192,9 +199,6 @@ public sealed class TemplateDrafts(
 
     private static Guid Me(ICurrentActor actor)
         => actor.PresenterId ?? throw new InvalidOperationException("Templates need a signed-in caller.");
-
-    private static TemplateManifest Parsed(string json)
-        => ManifestJson.Parse(json).Manifest ?? throw new InvalidOperationException("A stored template manifest no longer parses.");
 
     private async Task<Dictionary<string, VersionSet>> VersionsOfAsync(IReadOnlyList<string> ids)
     {

@@ -206,6 +206,21 @@ public class TemplateDraftsTests : ApiTestFixture
     }
 
     [Test]
+    public async Task List_WhenAStoredManifestDoesNotParse_ShouldSkipItAndListTheRest()
+    {
+        var good = await CreateAsync("workshop", "Fine one");
+        var broken = await TemplateRowSeed.DraftAsync(Factory, TestUser.Sam, "{ not a manifest");
+
+        var response = await Client.GetAsync("/api/templates");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var ids = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("mine").EnumerateArray()
+            .Select(r => r.GetProperty("id").GetString()).ToList();
+        ids.ShouldContain(good);
+        ids.ShouldNotContain(broken);
+    }
+
+    [Test]
     public async Task List_WhenOneIsSharedWithMe_ShouldPutItUnderShared()
     {
         var mine = await CreateAsync("talk", "Mine");

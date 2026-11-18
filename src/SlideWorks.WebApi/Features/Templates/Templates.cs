@@ -13,7 +13,7 @@ namespace SlideWorks.WebApi.Features.Templates;
 // file read, because decks resolve inside write transactions. Finding never asks who is calling: a viewer of a deck gets
 // the deck's template. Only the list is by caller.
 [RegisterPerRequest(For = typeof(ITemplates))]
-public sealed class Templates(ITemplateCatalogue catalogue, AppDbContext db) : ITemplates
+public sealed class Templates(ITemplateCatalogue catalogue, AppDbContext db, ILogger<Templates> logger) : ITemplates
 {
     public async Task<ResolvedTemplate?> FindAsync(string templateRef, int? version, CancellationToken ct)
     {
@@ -31,8 +31,13 @@ public sealed class Templates(ITemplateCatalogue catalogue, AppDbContext db) : I
             .Where(v => v.TemplateId == templateRef && v.Version > TemplateVersion.DRAFT)
             .OrderByDescending(v => v.Version).ToListAsync(ct);
         var row = version is null ? published.FirstOrDefault() : published.FirstOrDefault(v => v.Version == version);
-        if (row is null || ManifestJson.Parse(row.ManifestJson).Manifest is not { } manifest)
+        if (row is null)
         {
+            return null;
+        }
+        if (ManifestJson.Parse(row.ManifestJson).Manifest is not { } manifest)
+        {
+            logger.LogWarning("Template {TemplateId} version {Version} has a stored manifest that no longer parses; it is treated as missing", templateRef, row.Version);
             return null;
         }
         var owner = await db.Users.AsNoTracking().Where(u => u.Id == record.OwnerId).Select(u => u.Name).SingleOrDefaultAsync(ct);
@@ -66,9 +71,17 @@ public sealed class Templates(ITemplateCatalogue catalogue, AppDbContext db) : I
         foreach (var record in records.OrderByDescending(r => r.OwnerId == me).ThenBy(r => r.CreatedAt).ThenBy(r => r.Id, StringComparer.Ordinal))
         {
             var mine = versions.Where(v => v.TemplateId == record.Id).OrderByDescending(v => v.Version).ToList();
-            if (mine.Count > 0 && ManifestJson.Parse(mine[0].ManifestJson).Manifest is { } manifest)
+            if (mine.Count == 0)
+            {
+                continue;
+            }
+            if (ManifestJson.Parse(mine[0].ManifestJson).Manifest is { } manifest)
             {
                 uploaded.Add(ManifestTemplates.Resolve(record, mine[0], manifest, mine[0].Version, names.GetValueOrDefault(record.OwnerId)));
+            }
+            else
+            {
+                logger.LogWarning("Template {TemplateId} version {Version} has a stored manifest that no longer parses; it is left out of the list", record.Id, mine[0].Version);
             }
         }
         return [.. builtIns, .. uploaded];
