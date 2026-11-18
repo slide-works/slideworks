@@ -281,6 +281,83 @@ public class LookTemplateFilesTests : ApiTestFixture
         (await ReadDeckRowAsync(deck, d => d.Palette)).ShouldBe(ResolvedCatalogues.OWN_PALETTE);
     }
 
+    // The Look panel shows the default as the current template of such a deck, so picking it is the repair: the move is
+    // judged against the ref the deck stores, not the stand-in.
+    [Test]
+    public async Task SetLook_WhenTheDecksTemplateIsMissing_ShouldMoveItToTheRequestedTemplate()
+    {
+        var standIn = new TemplateCatalogue().Default.Name;
+        var deck = await CreateDeckAsync();
+        await WriteDeckRowAsync(deck, d =>
+        {
+            d.Template = "tpl_gonemissing9";
+            d.TemplateVersion = 3;
+        });
+
+        var moved = await MoveAsync(deck, standIn);
+        var look = await PlayLookAsync(deck);
+
+        (await ReadDeckRowAsync(deck, d => d.Template)).ShouldBe(standIn);
+        (await ReadDeckRowAsync(deck, d => d.TemplateVersion)).ShouldBeNull();
+        moved.GetProperty("look").GetProperty("templateRef").GetString().ShouldBe(standIn);
+        moved.GetProperty("look").GetProperty("templateMissing").GetBoolean().ShouldBeFalse();
+        look.GetProperty("templateMissing").GetBoolean().ShouldBeFalse();
+    }
+
+    // The keep rule: "may pick" guards a move, not a deck that is already there. No route puts a deck on a template its
+    // owner cannot pick, so the row is written.
+    [Test]
+    public async Task SetLook_WhenTheDecksOwnTemplateIsNoLongerPickable_ShouldStillChangeThePalette()
+    {
+        Templates.Add(Uploaded("tpl_keptnotmine1", 2), TestUser.Alex.Email);
+        var deck = await CreateDeckAsync();
+        await WriteDeckRowAsync(deck, d =>
+        {
+            d.Template = "tpl_keptnotmine1";
+            d.TemplateVersion = 2;
+        });
+        var palette = new PaletteCatalogue().All.First(p => p.Name != new PaletteCatalogue().Default.Name).Name;
+        await WriteDeckRowAsync(deck, d => d.Palette = new PaletteCatalogue().Default.Name);
+
+        var response = await Client.PutAsJsonAsync($"/api/decks/{deck}/look", new { template = "tpl_keptnotmine1", palette, chrome = new { tracker = false } });
+        var changed = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, changed.GetRawText());
+        changed.GetProperty("look").GetProperty("templateRef").GetString().ShouldBe("tpl_keptnotmine1");
+        changed.GetProperty("look").GetProperty("templateVersion").GetInt32().ShouldBe(2);
+        changed.GetProperty("look").GetProperty("templateMissing").GetBoolean().ShouldBeFalse();
+        changed.GetProperty("look").GetProperty("palette").GetProperty("name").GetString().ShouldBe(palette);
+        changed.GetProperty("look").GetProperty("chromeOverrides").GetProperty("tracker").GetBoolean().ShouldBeFalse();
+        (await ReadDeckRowAsync(deck, d => d.Template)).ShouldBe("tpl_keptnotmine1");
+        (await ReadDeckRowAsync(deck, d => d.TemplateVersion)).ShouldBe(2);
+        (await ReadDeckRowAsync(deck, d => d.Palette)).ShouldBe(palette);
+    }
+
+    [Test]
+    public async Task SetLook_WhenMovingToATemplateTheActorCannotPick_ShouldChangeNothing()
+    {
+        Templates.Add(Uploaded("tpl_keptnotmine2", 1), TestUser.Alex.Email);
+        Templates.Add(Uploaded("tpl_othernotmine", 1), TestUser.Alex.Email);
+        var deck = await CreateDeckAsync();
+        await WriteDeckRowAsync(deck, d =>
+        {
+            d.Template = "tpl_keptnotmine2";
+            d.TemplateVersion = 1;
+        });
+        var before = await Client.GetFromJsonAsync<JsonElement>($"/api/decks/{deck}");
+
+        var refused = await Client.PutAsJsonAsync($"/api/decks/{deck}/look", new { template = "tpl_othernotmine", draft = true });
+
+        refused.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString().ShouldBe("Unknown template 'tpl_othernotmine'");
+        var after = await Client.GetFromJsonAsync<JsonElement>($"/api/decks/{deck}");
+        after.GetProperty("revision").GetInt64().ShouldBe(before.GetProperty("revision").GetInt64());
+        after.GetProperty("look").GetRawText().ShouldBe(before.GetProperty("look").GetRawText());
+        after.GetProperty("activity").GetArrayLength().ShouldBe(before.GetProperty("activity").GetArrayLength());
+        (await ReadDeckRowAsync(deck, d => d.Template)).ShouldBe("tpl_keptnotmine2");
+        (await ReadDeckRowAsync(deck, d => d.TemplateVersion)).ShouldBe(1);
+    }
+
     private async Task<string> CreateDeckAsync()
     {
         var response = await Client.PostAsJsonAsync("/api/decks", new { title = "Look files", template = "talk" });

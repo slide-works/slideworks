@@ -75,7 +75,9 @@ public class LookCommands(
         {
             deck = await db.Decks.SingleAsync(d => d.Id == deckId);
             var current = await templates.ForDeckAsync(deck, CancellationToken.None);
-            var moves = change.Template is not null && !string.Equals(change.Template, current.Ref, StringComparison.Ordinal);
+            // Judged against the ref the deck stores, not the resolved one: a deck whose template is missing resolves to
+            // the default, and naming the default must still move it there.
+            var moves = change.Template is not null && !string.Equals(change.Template, deck.Template, StringComparison.Ordinal);
             template = moves ? await PickAsync(change.Template!) : current;
             // The rules see the template the deck will be on, so the reserved palette name answers to that template's own.
             var catalogues = ResolvedCatalogues.For(palettes, template);
