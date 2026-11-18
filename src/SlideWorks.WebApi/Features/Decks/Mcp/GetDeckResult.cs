@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using SlideWorks.WebApi.Features.Slides;
+using SlideWorks.WebApi.Features.Templates;
 
 namespace SlideWorks.WebApi.Features.Decks.Mcp;
 
@@ -18,7 +19,7 @@ public sealed record GetDeckResult(
     [property: JsonPropertyName("talk_minutes")] int? TalkMinutes,
     IReadOnlyList<GetDeckSlide> Slides)
 {
-    public static GetDeckResult From(Deck deck, IEnumerable<Slide> slides, string url)
+    public static GetDeckResult From(Deck deck, IEnumerable<Slide> slides, ResolvedTemplate template, string url)
         => new(
             deck.Id,
             deck.Slug,
@@ -30,5 +31,5 @@ public sealed record GetDeckResult(
             url,
             GetDeckLook.From(deck),
             deck.TalkMinutes,
-            slides.Select(GetDeckSlide.From).ToList());
+            slides.Select(slide => GetDeckSlide.From(slide, template)).ToList());
 }

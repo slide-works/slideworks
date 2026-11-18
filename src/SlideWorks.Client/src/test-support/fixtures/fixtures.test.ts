@@ -136,6 +136,7 @@ const DECK_PAGE_SLIDE = keys<DeckPageSlide>({
   layout: true,
   part: true,
   deepDive: true,
+  surface: true,
   headline: true,
   steps: true,
   notes: true,
@@ -173,6 +174,7 @@ const DECK_PLAY_SLIDE = keys<DeckPlaySlide>({
   layout: true,
   part: true,
   deepDive: true,
+  surface: true,
   steps: true,
   slots: true,
 });

@@ -6,6 +6,7 @@ using SlideWorks.Core.Join;
 using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Realtime;
@@ -14,7 +15,8 @@ namespace SlideWorks.WebApi.Features.Decks;
 
 // Creates decks (K5), for POST /api/decks and the create_deck tool. A new deck is private to the person creating it, or
 // for an agent, to the presenter it acts for. Its look comes from LookRules (L3): the named or default template and
-// palette, and Draft from the template's chrome.
+// palette, and Draft from the template's chrome. The template comes from ITemplates (T4): only one the caller may pick,
+// pinned at its latest published version (null on a built-in).
 [RegisterPerRequest]
 public class DeckCommands(
     AppDbContext db,
@@ -22,7 +24,7 @@ public class DeckCommands(
     IActivityLog activity,
     IDeckEvents events,
     TimeProvider clock,
-    ITemplateCatalogue templates,
+    ITemplates templates,
     IPaletteCatalogue palettes,
     ILogger<DeckCommands> logger)
 {
@@ -37,34 +39,40 @@ public class DeckCommands(
     {
         var title = Required("title", request.Title, TITLE_MAX_LENGTH);
         var parts = Parts(request.Parts);
-        var look = new LookRules(templates, palettes).Resolve(request.Template, request.Palette);
-        if (look.Error is not null)
-        {
-            throw new BadRequestException(look.Error);
-        }
-        var template = look.Template!;
-        var palette = look.Palette!;
-        var now = clock.GetUtcNow();
-        var deck = new Deck
-        {
-            Id = DeckIds.New(),
-            Slug = DeckIds.Slugify(title),
-            Title = title,
-            Subtitle = Optional("subtitle", request.Subtitle, SUBTITLE_MAX_LENGTH),
-            Author = Optional("author", request.Author, AUTHOR_MAX_LENGTH),
-            PartsJson = DeckParts.Write(parts),
-            OwnerId = actor.PresenterId ?? throw new InvalidOperationException("Creating a deck needs a signed-in caller."),
-            Sharing = DeckSharing.Private,
-            Revision = 0,
-            Template = template.Name,
-            Palette = palette.Name,
-            Draft = template.Chrome.Draft,
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
+        Deck deck;
 
+        // The may-pick check, the look and the write are one unit: the transaction opens before the template is picked. A
+        // refusal throws before anything is written, and leaving the block rolls back.
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
+            var target = await PickAsync(request.Template);
+            var catalogues = ResolvedCatalogues.For(palettes, target);
+            var look = new LookRules(catalogues.Templates, catalogues.Palettes).Resolve(target.Ref, request.Palette);
+            if (look.Error is not null)
+            {
+                throw new BadRequestException(look.Error);
+            }
+            var template = look.Template!;
+            var palette = look.Palette!;
+            var now = clock.GetUtcNow();
+            deck = new Deck
+            {
+                Id = DeckIds.New(),
+                Slug = DeckIds.Slugify(title),
+                Title = title,
+                Subtitle = Optional("subtitle", request.Subtitle, SUBTITLE_MAX_LENGTH),
+                Author = Optional("author", request.Author, AUTHOR_MAX_LENGTH),
+                PartsJson = DeckParts.Write(parts),
+                OwnerId = actor.PresenterId ?? throw new InvalidOperationException("Creating a deck needs a signed-in caller."),
+                Sharing = DeckSharing.Private,
+                Revision = 0,
+                Template = target.Ref,
+                TemplateVersion = target.Version,
+                Palette = palette.Name,
+                Draft = template.Chrome.Draft,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
             await SaveWithJoinCodeAsync(deck);
             await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, $"created the deck from the {template.Name} template with the {palette.Label} palette"));
             await transaction.CommitAsync();
@@ -72,6 +80,19 @@ public class DeckCommands(
 
         await events.PublishAsync(new DeckChanged(deck.Id));
         return deck;
+    }
+
+    // The template a new deck goes on: the named one, or the default built-in. Only a template the caller may pick is
+    // found, so one that exists but is not theirs is refused in the same words as one that does not exist.
+    private async Task<ResolvedTemplate> PickAsync(string? name)
+    {
+        var pickable = await templates.ListForAsync(actor, CancellationToken.None);
+        if (name is null)
+        {
+            return pickable.Where(t => t.Template.IsDefault).OrderByDescending(t => t.BuiltIn).First();
+        }
+        return pickable.FirstOrDefault(t => string.Equals(t.Ref, name, StringComparison.Ordinal))
+            ?? throw new BadRequestException(LookRules.UnknownTemplate(name));
     }
 
     // Assigns the standing join code (J1). A unique-index conflict on the code draws a new one, at most JOIN_CODE_TRIES in all.

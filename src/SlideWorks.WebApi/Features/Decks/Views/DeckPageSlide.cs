@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SlideWorks.WebApi.Features.Slides;
+using SlideWorks.WebApi.Features.Templates;
 
 namespace SlideWorks.WebApi.Features.Decks.Views;
 
@@ -7,12 +8,14 @@ namespace SlideWorks.WebApi.Features.Decks.Views;
 // one-line name in the list: its headline slot where the layout has one, title.title, divider.title, or the first 80
 // characters of quote.quote; null only when the layout has no text that fits. Link is root-relative:
 // /d/{id}/{slug}#{number}. Slots are the stored slots, whose shape depends on the layout. Notes read with the deep-dive
-// prefix while DeepDive is set (D16).
+// prefix while DeepDive is set (D16). Surface is the surface the slide is drawn on, "light" or "dark" (K6).
+// Template is the deck's resolved template, which finds the layout.
 public sealed record DeckPageSlide(
     int Number,
     string Layout,
     int? Part,
     bool DeepDive,
+    string Surface,
     string? Headline,
     int Steps,
     string? Notes,
@@ -21,7 +24,7 @@ public sealed record DeckPageSlide(
 {
     private const int QUOTE_HEADLINE_LENGTH = 80;
 
-    public static DeckPageSlide From(Deck deck, Slide slide)
+    public static DeckPageSlide From(Deck deck, Slide slide, ResolvedTemplate template)
     {
         var number = slide.Position + 1;
         var slots = SlideJson.Slots(slide);
@@ -30,6 +33,7 @@ public sealed record DeckPageSlide(
             slide.Layout,
             slide.Part,
             slide.DeepDive,
+            DeckPlaySlide.SurfaceOf(slide, template),
             HeadlineOf(slide.Layout, slots),
             slide.Steps,
             DeckNotes.Of(slide),

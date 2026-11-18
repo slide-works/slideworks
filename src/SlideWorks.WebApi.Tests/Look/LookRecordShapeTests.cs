@@ -10,6 +10,7 @@ using SlideWorks.WebApi.Features.Join.Views;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Look.Views;
 using SlideWorks.WebApi.Features.Slides;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Look;
@@ -43,7 +44,7 @@ public class LookRecordShapeTests : ApiTestFixture
             DeepDive = slide.GetProperty("deepDive").GetBoolean(),
         });
 
-        var json = Serialise(DeckPlayView.From(deck, slides, example.GetProperty("look").Deserialize<LookView>(AppJsonOptions())!, example.GetProperty("join").Deserialize<JoinView>(AppJsonOptions())!, example.GetProperty("isOwner").GetBoolean()));
+        var json = Serialise(DeckPlayView.From(deck, slides, BuiltInTemplates.Resolve(new TemplateCatalogue().Find("workshop")!), example.GetProperty("look").Deserialize<LookView>(AppJsonOptions())!, example.GetProperty("join").Deserialize<JoinView>(AppJsonOptions())!, example.GetProperty("isOwner").GetBoolean()));
 
         JsonShape.AssertMatches(json, "deck-play.json", ScreenShapes.DeckPlay);
         SameJson(json, example).ShouldBeTrue(Differs(json, example));

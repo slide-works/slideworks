@@ -25,6 +25,7 @@ public class PresenterQueries(
     IPublicUrls urls,
     JoinViews joinViews,
     IDeckLooks looks,
+    ITemplates templates,
     IPresentations presentations)
 {
     public async Task<PresenterView> PresenterAsync(string deckId)
@@ -38,7 +39,7 @@ public class PresenterQueries(
             .Where(s => s.DeckId == deckId && s.DeletedAt == null)
             .OrderBy(s => s.Position)
             .ToListAsync();
-        return PresenterView.From(deck, slides, await looks.ForAsync(deck, CancellationToken.None), await joinViews.ForAsync(deck), urls);
+        return PresenterView.From(deck, slides, await templates.ForDeckAsync(deck, CancellationToken.None), await looks.ForAsync(deck, CancellationToken.None), await joinViews.ForAsync(deck), urls);
     }
 
     public Task<LivePresentationsView> LiveAsync()
