@@ -8,7 +8,7 @@ A table of 2–6 columns and 1–6 rows. A cell can carry a tone, and one row ca
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
 | `headline` | text | yes | up to 80 chars |  |
-| `emphasis` | emphasis | no |  | Phrases of the slide's display text drawn in a tone. Each must occur exactly once in the text it is in |
+| `emphasis` | emphasis | no | 1–3 entries, each `text` (up to 60 chars; the phrase must occur exactly once in its target), `tone` and optional `in`; targets `headline` | Phrases of the slide's display text drawn in a tone. Each must occur exactly once in the text it is in |
 | `columns` | list of text | yes | 2–6 items; each up to 30 chars |  |
 | `rows` | list of list of text or object | yes | 1–6 items; each 2–6 items; each text up to 80 chars | Each row has one cell per column |
 | `rows[][].text` | text | yes | up to 80 chars |  |
