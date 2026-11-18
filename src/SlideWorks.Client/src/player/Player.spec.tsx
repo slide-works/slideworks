@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
+import { LAYOUT_SLOTS } from '../test-support/fixtures/layoutSlots';
 import { sampleDeck } from '../test-support/fixtures/screens';
 import { mountPlayer } from '../test-support/mountPlayer';
 import { stubApi } from '../test-support/stubApi';
@@ -498,4 +499,37 @@ test('reduced motion disables transitions', async ({ mount, page }) => {
   await expect(page.getByTestId('player-slide-1')).toHaveCSS('transition-duration', '0s');
   await expect(page.getByTestId('player-slide-2')).toHaveCSS('transition-duration', '0s');
   await expect(page.getByTestId('player-progress')).toHaveCSS('transition-duration', '0s');
+});
+
+test('link opens in a new tab and does not advance the slide', async ({ mount, page }) => {
+  const title =
+    'Small batches show where work waits, so every merge stays small and reviewable'.slice(0, 80);
+  const slots = {
+    headline: LAYOUT_SLOTS.links.headline,
+    links: [{ title, url: 'https://example.com/the-link' }],
+  };
+  const deck = structuredClone(sampleDeck);
+  deck.slides = deck.slides.map((slide) =>
+    slide.number === 2 ? { ...slide, layout: 'links', steps: 0, slots } : slide,
+  );
+  await page
+    .context()
+    .route('https://example.com/**', (route) =>
+      route.fulfill({ contentType: 'text/html', body: '<p>linked</p>' }),
+    );
+  await openAt(page, '#2');
+  await mountPlayer(mount, page, <Player deck={deck} />);
+  await expectOnSlide(page, 2);
+
+  const anchor = page.getByTestId('links-title');
+  const stage = (await page.getByTestId('player-stage').boundingBox())!;
+  const box = (await anchor.boundingBox())!;
+  const clickX = box.x + box.width - 20;
+  expect((clickX - stage.x) / stage.width).toBeGreaterThan(2 / 3);
+
+  const popup = page.waitForEvent('popup');
+  await anchor.click({ position: { x: box.width - 20, y: box.height / 2 } });
+  expect((await popup).url()).toBe('https://example.com/the-link');
+  await expectHash(page, '#2');
+  await expectOnSlide(page, 2);
 });
