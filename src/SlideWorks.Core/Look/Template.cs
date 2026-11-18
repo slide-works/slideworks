@@ -24,7 +24,7 @@ public sealed record Template
     public string? Palette { get; init; }
     public required bool LockPalette { get; init; }
 
-    // The layouts of the live room, which belong to a talk whatever its template: the join slide, the poll and the questions slide. A template
+    // The layouts of the live room, which belong to a talk whatever its template: the join slide, the poll, the questions slide and the open responses. A template
     // lists the layouts it is about, so these are in none of them, and Allows is the one place that lets them through (the
     // layout warning and list_layouts both ask it).
     private static readonly string[] EveryTemplate = [JoinLayout.NAME, "poll", "qa", "word-cloud", "open-text"];

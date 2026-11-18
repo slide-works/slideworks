@@ -24,6 +24,9 @@ public sealed record DeckPageSlide(
 {
     private const int QUOTE_HEADLINE_LENGTH = 80;
 
+    // What a qa slide with no title shows (the client draws the same words).
+    private const string QA_TITLE = "Questions from the room";
+
     public static DeckPageSlide From(Deck deck, Slide slide, ResolvedTemplate template)
     {
         var number = slide.Position + 1;
@@ -47,6 +50,7 @@ public sealed record DeckPageSlide(
         "title" or "divider" => Text(slots, "title"),
         "quote" => Shorten(Text(slots, "quote")),
         "poll" => Text(slots, "question"),
+        "qa" => Text(slots, "title") is { Length: > 0 } title ? title : QA_TITLE,
         _ => Text(slots, "headline"),
     };
 

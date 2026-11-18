@@ -1,11 +1,13 @@
 using System.Text.Json.Serialization;
+using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Slides;
 using SlideWorks.WebApi.Features.Templates;
 
 namespace SlideWorks.WebApi.Features.Decks.Mcp;
 
 // get_deck: the whole deck for the agent that owns it (K6, L7), with its look, its talk length in minutes (P7, or null)
-// and the live slides in order. url is absolute.
+// and the live slides in order. url is absolute. Qa is the deck's Q&A settings (Q1; the defaults when none were changed) and
+// Reactions the reaction totals of each audience session that has any, newest first (Q10).
 public sealed record GetDeckResult(
     string Id,
     string Slug,
@@ -17,9 +19,11 @@ public sealed record GetDeckResult(
     string Url,
     GetDeckLook Look,
     [property: JsonPropertyName("talk_minutes")] int? TalkMinutes,
-    IReadOnlyList<GetDeckSlide> Slides)
+    IReadOnlyList<GetDeckSlide> Slides,
+    QaSettings Qa,
+    IReadOnlyList<GetDeckReactionSession> Reactions)
 {
-    public static GetDeckResult From(Deck deck, IEnumerable<Slide> slides, ResolvedTemplate template, string url)
+    public static GetDeckResult From(Deck deck, IEnumerable<Slide> slides, ResolvedTemplate template, string url, QaSettings qa, IReadOnlyList<GetDeckReactionSession> reactions)
         => new(
             deck.Id,
             deck.Slug,
@@ -31,5 +35,7 @@ public sealed record GetDeckResult(
             url,
             GetDeckLook.From(deck, template),
             deck.TalkMinutes,
-            slides.Select(slide => GetDeckSlide.From(slide, template)).ToList());
+            slides.Select(slide => GetDeckSlide.From(slide, template)).ToList(),
+            qa,
+            reactions);
 }
