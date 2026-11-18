@@ -1,5 +1,6 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
+using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Qa;
@@ -258,7 +259,10 @@ public sealed class AudienceFeed : IDisposable
         var index = Math.Clamp(presentation.Slide, 1, slides.Count);
         var slide = slides[index - 1];
         var step = Math.Clamp(presentation.Step, 0, slide.Steps);
-        return new AudienceSlide(index, slides.Count, slide.Layout, SlideJson.Slots(slide), slide.Steps, step, presentation.Black);
+        // The surface is the slide's stored one, else the layout's own. TODO: a custom layout (wave 2) is not in the built-in
+        // catalogue, so it reads "light" unless the slide stores a surface. No template lookup here: the feed is a singleton.
+        var surface = slide.Surface ?? (LayoutCatalogue.Find(slide.Layout)?.Dark == true ? SlideSurface.DARK : SlideSurface.LIGHT);
+        return new AudienceSlide(index, slides.Count, slide.Layout, SlideJson.Slots(slide), slide.Steps, step, presentation.Black, surface);
     }
 
     // J8: the first time the live state lands on a join slide. A conditional update, so a repeat (or a second process)
