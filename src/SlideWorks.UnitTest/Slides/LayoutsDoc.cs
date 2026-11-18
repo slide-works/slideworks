@@ -140,8 +140,14 @@ public static class LayoutsDoc
         TextOrObjectSlot either => ("text or object", $"text up to {either.Text.MaxLength} chars"),
         BlockSlot block => ($"block `{block.Block.Name}`", block.Block.Type is null ? "" : Describe(block.Block.Type).Limits),
         ListSlot list => ($"list of {Describe(list.Item).Kind}", Join($"{list.MinItems}–{list.MaxItems} items", Describe(list.Item).Limits)),
+        IconSlot => ("icon", $"one of the {IconCatalogue.Names.Count} icon names in icons.json (list_blocks returns them)"),
+        LinkSlot link => ("link", $"http or https address, printable ASCII, no user info, never trimmed; up to {link.MaxLength} chars"),
+        EmphasisSlot emphasis => ("emphasis", EmphasisLimits(emphasis)),
         _ => (type.Kind, ""),
     };
+
+    private static string EmphasisLimits(EmphasisSlot emphasis)
+        => $"{EmphasisSlot.MIN_ENTRIES}–{EmphasisSlot.MAX_ENTRIES} entries, each `text` (up to {EmphasisSlot.MAX_PHRASE} chars; the phrase must occur exactly once in its target), `tone` and optional `in`; targets {string.Join(", ", emphasis.Targets.Select(t => $"`{t}`"))}";
 
     private static string EnumLimits(EnumSlot choice)
     {
