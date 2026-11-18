@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   endWidth,
+  formatValue,
   MIN_BAR,
   NOTE_FONT,
   NOTE_GAP,
@@ -74,5 +75,9 @@ describe('barsGeometry', () => {
   it('sizes bars and rows by count', () => {
     expect([2, 3, 4, 5, 6].map(barHeight)).toEqual([96, 96, 80, 64, 56]);
     expect([2, 4, 5, 6].map(rowGap)).toEqual([28, 28, 20, 20]);
+  });
+
+  it('rounds a float sum to 15 fraction digits, as the server does', () => {
+    expect(formatValue(0.1 + 0.2)).toBe('0.3');
   });
 });

@@ -41,6 +41,11 @@ const base: StackSlots = {
 const segments = (page: Page) => page.getByTestId('stack-segment');
 const box = (page: Page, testId: string) => page.getByTestId(testId).boundingBox();
 
+test('the figure box clips its overflow', async ({ mount, page }) => {
+  await mount(render(stackSlide(base)));
+  await expect(page.getByTestId('stack-figure')).toHaveCSS('overflow', 'hidden');
+});
+
 test('reveals from the bottom up', async ({ mount, page }) => {
   const slots: StackSlots = { ...base, reveal: 'one-by-one' };
   const component = await mount(render(stackSlide(slots), 1));

@@ -59,13 +59,15 @@
   margin-top: auto;
 }
 
-/* The figure: the 500 px stack over the total and the caption. */
+/* The figure: clipped like bars, flow and levels, so a too-wide font never
+   draws past it. The 500 px stack over the total and the caption. */
 .figure {
   display: flex;
   flex-direction: column;
   width: 820px;
   min-width: 0;
   margin: 0;
+  overflow: hidden;
 }
 
 .body[data-alone='true'] .figure {

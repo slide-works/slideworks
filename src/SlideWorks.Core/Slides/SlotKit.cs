@@ -64,14 +64,6 @@ public static class SlotKit
     // The optional pin of a card.
     public static SlotField Pin() => Opt("pin", new TextSlot(24), PIN);
 
-    public static ObjectSlot ComparePanel(string defaultTone) => Obj(
-        Req("label", new TextSlot(24), "The panel's tag, such as 'Failure mode'"),
-        Req("title", new TextSlot(50)),
-        Opt("sub", new TextSlot(100)),
-        Req("points", new ListSlot(new TextSlot(90), 1, 4)),
-        Opt("tone", Tone(defaultTone), $"{TONE}; defaults to '{defaultTone}'"),
-        Opt("fill", Fill(), FILL));
-
     // Callout, card and compare-panel tones (L4). Table cell tones are a separate, unchanged set.
     public static EnumSlot Tone(string? defaultTone) => new("accent", "positive", "negative", "inverse")
     {
