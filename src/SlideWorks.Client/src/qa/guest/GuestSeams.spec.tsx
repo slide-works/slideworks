@@ -236,9 +236,11 @@ test('the fixtures record every call and follow a toggle and a sort', async ({ m
 
 test('the ask sheet fixture opens the sheet from a prop', async ({ mount, page }) => {
   await mount(
-    <AskSheetFixture open>
-      <AskSheet presenter="Sam Rivera" />
-    </AskSheetFixture>,
+    <QuestionsFixture>
+      <AskSheetFixture open>
+        <AskSheet presenter="Sam Rivera" />
+      </AskSheetFixture>
+    </QuestionsFixture>,
   );
   await expect(page.getByTestId(QA_ASK_SHEET_TEST_IDS.sheet)).toBeAttached();
 });

@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/experimental-ct-react';
-import { qaRoom } from '../../test-support/fixtures/qaStates';
+import { guestQuestion, qaRoom } from '../../test-support/fixtures/qaStates';
 import {
   QA_ASK_SHEET_TEST_IDS,
   QA_LIST_TEST_IDS,
   QA_POLL_OPENED_TEST_IDS,
   QA_TABS_TEST_IDS,
+  questionRowTestId,
 } from '../testIds';
 import { AskBar } from './AskBar';
 import { AskSheet } from './AskSheet';
@@ -25,8 +26,9 @@ function sheet({
   onShow,
   onClose,
   onGoToPoll,
+  rows = [],
   ...questions
-}: SheetProps = {}) {
+}: SheetProps & { rows?: number[] } = {}) {
   return (
     <QuestionsFixture {...questions}>
       <AskSheetFixture
@@ -38,6 +40,13 @@ function sheet({
       >
         <div style={{ height: 700, padding: 16, background: 'var(--sw-night)', display: 'flex' }}>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'end' }}>
+            <ul>
+              {rows.map((number) => (
+                <li key={number} tabIndex={-1} data-testid={questionRowTestId(number)}>
+                  Question {number}
+                </li>
+              ))}
+            </ul>
             <AskBar />
             <button type="button" data-testid={QA_TABS_TEST_IDS.questionsTab}>
               Questions
@@ -63,7 +72,7 @@ test('the counter follows the text and Send is disabled while the trimmed text i
   await expect(send).toBeDisabled();
 
   await text.fill('   ');
-  await expect(page.getByTestId(ID.counter)).toHaveText('3 / 200');
+  await expect(page.getByTestId(ID.counter)).toHaveText('0 / 200');
   await expect(send).toBeDisabled();
 
   await text.fill('How do you split a big change?');
@@ -153,12 +162,12 @@ test('the draft and the typed name survive closing and reopening the sheet', asy
 
 test('names off: no name row, and the question goes anonymously', async ({ mount, page }) => {
   const asked: Array<[string, string | null]> = [];
-  await mount(
-    sheet({
-      room: qaRoom('open', { names: false }),
-      onAsk: (text, name) => asked.push([text, name]),
-    }),
-  );
+  const onAsk = (text: string, name: string | null) => asked.push([text, name]);
+  const component = await mount(sheet({ onAsk }));
+  // The name is on and typed before the room turns names off: it must not leak.
+  await page.getByTestId(ID.nameSwitch).click();
+  await page.getByTestId(ID.name).fill('Noor');
+  await component.update(sheet({ onAsk, room: qaRoom('open', { names: false }) }));
   await expect(page.getByTestId(ID.nameRow)).toHaveCount(0);
   await expect(page.getByTestId(ID.nameSwitch)).toHaveCount(0);
   await page.getByTestId(ID.text).fill('Anyone there?');
@@ -378,4 +387,145 @@ test('failed with an error from an upvote or the list is not the sheet’s to sh
   await mount(sheet({ asking: 'failed', errorFrom: 'vote', error: 'too_many_votes' }));
   await expect(page.getByTestId(ID.failed)).toHaveCount(0);
   await expect(page.getByTestId(ID.sheet)).not.toContainText('upvotes');
+});
+
+test('the counter counts the way the server does: trimmed, runs of whitespace as one space', async ({
+  mount,
+  page,
+}) => {
+  await mount(sheet());
+  const text = page.getByTestId(ID.text);
+  const send = page.getByTestId(ID.send);
+  await text.fill('a  b ');
+  await expect(page.getByTestId(ID.counter)).toHaveText('3 / 200');
+
+  // 200 characters and a trailing space (autocomplete adds one) still fit.
+  await text.fill(`${'a'.repeat(200)} `);
+  await expect(page.getByTestId(ID.counter)).toHaveText('200 / 200');
+  await expect(send).toBeEnabled();
+  await expect(text).toHaveAttribute('aria-invalid', 'false');
+
+  // Doubled spaces inside collapse: 101 + 1 + 98 = 200, though the raw text is 202 long.
+  await text.fill(`${'a'.repeat(101)}   ${'b'.repeat(98)}`);
+  await expect(page.getByTestId(ID.counter)).toHaveText('200 / 200');
+  await expect(send).toBeEnabled();
+
+  await text.fill(`${'a'.repeat(101)}   ${'b'.repeat(99)}`);
+  await expect(page.getByTestId(ID.counter)).toHaveText('201 / 200');
+  await expect(send).toBeDisabled();
+  await expect(text).toHaveAttribute('aria-invalid', 'true');
+});
+
+test('the status region says the count near the limit and when it is over', async ({
+  mount,
+  page,
+}) => {
+  await mount(sheet());
+  const status = page.getByRole('status');
+  await expect(status).toHaveText('');
+  await page.getByTestId(ID.text).fill('a'.repeat(185));
+  await expect(status).toHaveText('185 of 200 characters');
+  await page.getByTestId(ID.text).fill('a'.repeat(204));
+  // The calm region holds a change for its quiet period, so the over-limit text may take a few seconds.
+  await expect(status).toHaveText('4 characters over 200', { timeout: 8000 });
+});
+
+test('the poll banner message is also in the status region', async ({ mount, page }) => {
+  await mount(sheet({ pollJustOpened: true }));
+  await expect(page.getByRole('status')).toHaveText('A poll just opened. It is on the Slide tab.');
+});
+
+test('Enter or a submit while Send is disabled does not ask', async ({ mount, page }) => {
+  const asked: string[] = [];
+  const onAsk = (text: string) => asked.push(text);
+  const component = await mount(sheet({ onAsk }));
+  const text = page.getByTestId(ID.text);
+  const submit = () => text.evaluate((el: HTMLInputElement) => el.form?.requestSubmit());
+
+  // Empty.
+  await text.press('Enter');
+  await submit();
+  // Over 200.
+  await text.fill('a'.repeat(201));
+  await text.press('Enter');
+  await submit();
+  // Sending.
+  await text.fill('Fine');
+  await component.update(sheet({ onAsk, asking: 'sending' }));
+  await text.press('Enter');
+  await submit();
+  // Limited.
+  await component.update(
+    sheet({ onAsk, asking: 'limited', retryIn: 9, error: 'too_many_questions' }),
+  );
+  await text.press('Enter');
+  await submit();
+  expect(asked).toEqual([]);
+});
+
+test('after a send, focus goes to the guest’s new question row, else to Ask', async ({
+  mount,
+  page,
+}) => {
+  const mine = guestQuestion(1, { number: 7, yours: true });
+  const theirs = guestQuestion(2, { number: 9, yours: false });
+  const component = await mount(sheet({ open: false, rows: [7, 9] }));
+  await page.getByTestId(QA_LIST_TEST_IDS.ask).click();
+  await component.update(sheet({ open: true, rows: [7, 9] }));
+  await page.getByTestId(ID.text).fill('Going out');
+  await page.getByTestId(ID.send).click();
+  await component.update(sheet({ rows: [7, 9], asking: 'sending' }));
+  await component.update(sheet({ rows: [7, 9], asking: 'idle', questions: [theirs, mine] }));
+  await component.update(sheet({ open: false, rows: [7, 9], questions: [theirs, mine] }));
+  await expect(page.getByTestId(questionRowTestId(7))).toBeFocused();
+
+  // The row is not on the page: the chain falls back to Ask.
+  await component.update(sheet({ open: true, rows: [9] }));
+  await page.getByTestId(ID.text).fill('Again');
+  await component.update(sheet({ rows: [9], asking: 'sending' }));
+  await component.update(sheet({ rows: [9], asking: 'idle', questions: [mine] }));
+  await component.update(sheet({ open: false, rows: [9], questions: [mine] }));
+  await expect(page.getByTestId(QA_LIST_TEST_IDS.ask)).toBeFocused();
+});
+
+test('the sheet follows the visual viewport so the keyboard does not cover Send', async ({
+  mount,
+  page,
+}) => {
+  // A phone keyboard shrinks the visual viewport and leaves the layout viewport alone: stand in for it, before the sheet
+  // mounts and reads window.visualViewport.
+  await page.evaluate(() => {
+    const viewport = Object.assign(new EventTarget(), { height: 740, offsetTop: 0, width: 360 });
+    Object.defineProperty(window, 'visualViewport', { value: viewport, configurable: true });
+  });
+  await mount(sheet());
+  await page.getByTestId(ID.text).focus();
+  await page.evaluate(() => {
+    const viewport = window.visualViewport as unknown as EventTarget & { height: number };
+    viewport.height = 350;
+    viewport.dispatchEvent(new Event('resize'));
+  });
+  const send = page.getByTestId(ID.send);
+  await expect
+    .poll(async () => {
+      const box = await send.boundingBox();
+      return box !== null && box.y >= 0 && box.y + box.height <= 350;
+    })
+    .toBe(true);
+
+  // The visual viewport scrolled down by 100: the sheet moves with it.
+  await page.evaluate(() => {
+    const viewport = window.visualViewport as unknown as EventTarget & {
+      height: number;
+      offsetTop: number;
+    };
+    viewport.offsetTop = 100;
+    viewport.dispatchEvent(new Event('scroll'));
+  });
+  await expect
+    .poll(async () => {
+      const box = await send.boundingBox();
+      return box !== null && box.y >= 100 && box.y + box.height <= 450;
+    })
+    .toBe(true);
 });

@@ -5,11 +5,17 @@ import {
   useState,
   type FormEvent,
   type KeyboardEvent,
+  type RefObject,
 } from 'react';
 import { useCalmAnnouncement } from '../../polls/guest/useCalmAnnouncement';
-import { QA_ASK_SHEET_TEST_IDS, QA_LIST_TEST_IDS, QA_TABS_TEST_IDS } from '../testIds';
+import {
+  QA_ASK_SHEET_TEST_IDS,
+  QA_LIST_TEST_IDS,
+  QA_TABS_TEST_IDS,
+  questionRowTestId,
+} from '../testIds';
 import { useAskSheet } from './AskSheetContext';
-import { PollOpenedBanner } from './PollOpenedBanner';
+import { POLL_OPENED_TEXT, PollOpenedBanner } from './PollOpenedBanner';
 import { questionErrorText } from './questionErrorText';
 import { useQuestions } from './useQuestions';
 
@@ -19,6 +25,13 @@ export type AskSheetProps = {
 
 const MAX_TEXT = 200;
 const MAX_NAME = 30;
+// How close to the limit the count is said aloud.
+const NEAR_LIMIT = 20;
+
+// The length the server counts: trimmed, with each run of whitespace as one space (QuestionText.Collapse).
+function countOf(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).join(' ').length;
+}
 
 const FIELD =
   'box-border min-h-[46px] w-full rounded-xl border-[1.5px] border-(--sw-accent-glow) bg-white/[0.08] px-3.5 text-[15px] text-white placeholder:text-(--sw-night-muted) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--sw-accent-glow)';
@@ -38,6 +51,8 @@ export function AskSheet({ presenter }: AskSheetProps) {
   // The trimmed text of the question handed to ask, until it is known to have gone.
   const submitted = useRef<string | null>(null);
   const was = useRef(asking);
+  // True once a question has gone, so the sheet's closing sends focus to its row.
+  const sent = useRef(false);
 
   // A question has gone when asking ends in idle from sending or queued. Limited then idle is the countdown running
   // out: nothing was sent, the draft stays.
@@ -48,6 +63,7 @@ export function AskSheet({ presenter }: AskSheetProps) {
     if (submitted.current !== null)
       setText((held) => (held.trim() === submitted.current ? '' : held));
     submitted.current = null;
+    sent.current = true;
     close();
   }, [asking, close]);
 
@@ -68,6 +84,7 @@ export function AskSheet({ presenter }: AskSheetProps) {
       name={name}
       onName={setName}
       onSend={send}
+      sentRef={sent}
     />
   );
 }
@@ -81,12 +98,18 @@ type DialogProps = {
   name: string;
   onName(name: string): void;
   onSend(name: string | null): void;
+  sentRef: RefObject<boolean>;
 };
 
-// Where focus goes when the sheet closes: where it was when the sheet opened, or the Ask button when the browser did not
+// Where focus goes when the sheet closes: the guest's new question when one was just sent, else where it was when the sheet opened, or the Ask button when the browser did not
 // focus it on the tap (Safari does not focus a button when it is tapped), or the Questions tab when the room closed or
 // turned questions off here while the sheet was open and the Ask button is gone.
-function focusTarget(previous: HTMLElement | null): HTMLElement | null {
+function focusTarget(previous: HTMLElement | null, newQuestion: number | null): HTMLElement | null {
+  const row =
+    newQuestion === null
+      ? null
+      : document.querySelector<HTMLElement>(`[data-testid="${questionRowTestId(newQuestion)}"]`);
+  if (row) return row;
   if (previous?.isConnected && previous !== document.body) return previous;
   return (
     document.querySelector<HTMLElement>(`[data-testid="${QA_LIST_TEST_IDS.ask}"]`) ??
@@ -103,30 +126,60 @@ function AskSheetDialog({
   name,
   onName,
   onSend,
+  sentRef,
 }: DialogProps) {
   const { close, pollJustOpened } = useAskSheet();
-  const { room, asking, error, errorFrom, retryIn } = useQuestions();
+  const { room, questions, asking, error, errorFrom, retryIn } = useQuestions();
   const dialog = useRef<HTMLDialogElement>(null);
   const field = useRef<HTMLInputElement>(null);
+
+  // The number of the guest's newest question, for the cleanup below, which outlives the render it was made in.
+  const newest = useRef<number | null>(null);
+  useEffect(() => {
+    newest.current = questions.reduce<number | null>(
+      (best, q) => (q.yours && (best === null || q.number > best) ? q.number : best),
+      null,
+    );
+  });
+
+  // The keyboard shrinks only the visual viewport on iOS and on Chrome for Android, so the sheet follows it: its bottom
+  // edge sits on the visual viewport's and it is no taller than that, which keeps Send above the keyboard.
+  useEffect(() => {
+    const el = dialog.current;
+    const viewport = window.visualViewport;
+    if (!el || !viewport) return;
+    const follow = () => {
+      el.style.bottom = `${Math.max(0, window.innerHeight - (viewport.height + viewport.offsetTop))}px`;
+      el.style.maxHeight = `${viewport.height}px`;
+    };
+    follow();
+    viewport.addEventListener('resize', follow);
+    viewport.addEventListener('scroll', follow);
+    return () => {
+      viewport.removeEventListener('resize', follow);
+      viewport.removeEventListener('scroll', follow);
+    };
+  }, []);
 
   // A modal <dialog> makes the page behind it inert. Focus goes to the text box on opening and back to Ask on closing.
   useLayoutEffect(() => {
     const el = dialog.current;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    sentRef.current = false;
     el?.showModal();
     field.current?.focus({ preventScroll: true });
     return () => {
       if (el?.open) el.close();
-      focusTarget(previous)?.focus();
+      focusTarget(previous, sentRef.current ? newest.current : null)?.focus();
     };
-  }, []);
+  }, [sentRef]);
 
   const names = room?.names !== false;
   const trimmedName = name.trim();
   const named = names && showName && trimmedName !== '' ? trimmedName : null;
-  const trimmed = text.trim();
+  const count = countOf(text);
   const busy = asking === 'sending' || asking === 'limited';
-  const canSend = trimmed !== '' && trimmed.length <= MAX_TEXT && !busy;
+  const canSend = count > 0 && count <= MAX_TEXT && !busy;
 
   const limitedText =
     asking === 'limited' ? questionErrorText('too_many_questions', { presenter, retryIn }) : '';
@@ -134,8 +187,17 @@ function AskSheetDialog({
     asking === 'queued'
       ? 'Not sent yet. Your question is kept on this phone and sends by itself when the connection is back.'
       : '';
-  // The countdown changes every second; a screen reader hears it at most once every 5 seconds.
-  const said = useCalmAnnouncement(limitedText || queuedText);
+  const nearLimit =
+    count > MAX_TEXT
+      ? `${count - MAX_TEXT} characters over ${MAX_TEXT}`
+      : count >= MAX_TEXT - NEAR_LIMIT
+        ? `${count} of ${MAX_TEXT} characters`
+        : '';
+  // The countdown and the count change often; a screen reader hears the region at most once every 5 seconds. The poll
+  // banner's message goes through it too, because a live region that arrives holding its text is often not read.
+  const said = useCalmAnnouncement(
+    limitedText || queuedText || (pollJustOpened ? POLL_OPENED_TEXT : '') || nearLimit,
+  );
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -203,7 +265,7 @@ function AskSheetDialog({
           data-testid={QA_ASK_SHEET_TEST_IDS.text}
           aria-label="Your question"
           aria-describedby="qa-ask-sheet-hint qa-ask-sheet-counter"
-          aria-invalid={trimmed.length > MAX_TEXT}
+          aria-invalid={count > MAX_TEXT}
           readOnly={asking === 'sending'}
           placeholder={`What would you like ${presenter} to answer?`}
           value={text}
@@ -217,9 +279,9 @@ function AskSheetDialog({
           <span
             id="qa-ask-sheet-counter"
             data-testid={QA_ASK_SHEET_TEST_IDS.counter}
-            className={trimmed.length > MAX_TEXT ? 'font-bold text-[#fca5a5]' : undefined}
+            className={count > MAX_TEXT ? 'font-bold text-[#fca5a5]' : undefined}
           >
-            {text.length} / {MAX_TEXT}
+            {count} / {MAX_TEXT}
           </span>
         </div>
         {names && (
