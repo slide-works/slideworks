@@ -9,6 +9,7 @@ import { stubDeckHub } from '../../test-support/stubDeckHub';
 import { stubQaControlApi, type QaControlApiCall } from '../../test-support/stubQaControlApi';
 import { QA_SETTINGS_CARD_TEST_IDS as IDS } from '../testIds';
 import type { QaControlView, QaSettings } from '../types';
+import { QaControlProbe } from '../../test-support/QaControlProbe';
 import { QaControlFixture } from './QaControlFixture';
 import { QaControlLive } from './QaControlLive';
 import { QaSettingsCard } from './QaSettingsCard';
@@ -166,7 +167,8 @@ test('QaSettingsCard_WhenAChangeFails_ShouldShowTheMessageAndPutTheControlBack',
   });
   await mount(card(5));
   await page.getByTestId(IDS.names).click();
-  await expect(page.getByTestId(IDS.error)).toContainText("Couldn't change the question settings.");
+  await expect(page.getByRole('alert')).toContainText("Couldn't change the question settings.");
+  await expect(page.getByTestId(IDS.error)).toHaveAttribute('role', 'alert');
   await expect(page.getByTestId(IDS.names)).toBeChecked();
 
   await page.getByTestId(IDS.questionsClosed).click();
@@ -174,8 +176,107 @@ test('QaSettingsCard_WhenAChangeFails_ShouldShowTheMessageAndPutTheControlBack',
   await expect(page.getByTestId(IDS.questionsClosed)).not.toBeChecked();
 
   await page.getByTestId(IDS.slideReactions).click();
-  await expect(page.getByTestId(IDS.error)).toContainText("Couldn't change this slide's switch.");
+  await expect(page.getByRole('alert')).toContainText("Couldn't change this slide's switch.");
   await expect(page.getByTestId(IDS.slideReactions)).toBeChecked();
+});
+
+test('QaSettingsCard_WhenTheFirstReadFails_ShouldShowAMessageNotLoadingForever', async ({
+  mount,
+  page,
+}) => {
+  await stubs(page, DECK, qaControlView('live'), { read: { status: 500 } });
+  await mount(card(5));
+  await expect(page.getByRole('alert')).toContainText("Couldn't load the questions.");
+  await expect(page.getByTestId(IDS.card)).not.toContainText('Loading the settings.');
+  await expect(page.getByTestId(IDS.questions)).toHaveCount(0);
+});
+
+test('QaSettingsCard_WhenTheSlideSwitchIsDisabled_ShouldDescribeItByItsReason', async ({
+  mount,
+  page,
+}) => {
+  await mount(
+    <QaControlFixture deckId={DECK} control={withSettings({ questions: 'off', reactions: false })}>
+      <QaSettingsCard deckId={DECK} slide={5} />
+    </QaControlFixture>,
+  );
+  await expect(page.getByTestId(IDS.slideQuestions)).toHaveAccessibleDescription(
+    'Questions are off for the deck',
+  );
+  await expect(page.getByTestId(IDS.slideReactions)).toHaveAccessibleDescription(
+    'Reactions are off for the deck',
+  );
+});
+
+test('QaSettingsCard_WhenTheDeckHasQuestionsClosed_ShouldKeepTheSlidesQuestionSwitchEnabled', async ({
+  mount,
+  page,
+}) => {
+  await mount(
+    <QaControlFixture deckId={DECK} control={withSettings({ questions: 'closed' })}>
+      <QaSettingsCard deckId={DECK} slide={5} />
+    </QaControlFixture>,
+  );
+  await expect(page.getByTestId(IDS.slideQuestions)).toBeEnabled();
+  await expect(page.getByTestId(IDS.slideQuestionsReason)).toHaveCount(0);
+});
+
+const withProbe = (number: number) => (
+  <QaControlLive deckId={DECK} slide={null}>
+    <QaSettingsCard deckId={DECK} slide={5} />
+    <QaControlProbe deckId={DECK} number={number} />
+  </QaControlLive>
+);
+
+test('QaSettingsCard_WhenAnotherCallStartsBeforeAFailedChangesFollowUpReadEnds_ShouldStillShowTheFailure', async ({
+  mount,
+  page,
+}) => {
+  const api = await stubs(page, DECK, qaControlView('live'), { settings: { status: 500 } });
+  await mount(withProbe(1));
+  await expect(page.getByTestId(IDS.card)).toBeVisible();
+  await expect(page.getByTestId(IDS.review)).toBeVisible();
+  const held = api.hold('read');
+  await page.getByTestId(IDS.review).click();
+  await expect.poll(() => api.calls.filter((c) => c.call === 'read').length).toBe(2);
+  await page.getByTestId('probe-qa-show').click();
+  await expect.poll(() => api.calls.some((c) => c.call === 'show')).toBe(true);
+  held.release();
+  await expect(page.getByTestId(IDS.review)).toBeChecked();
+  await expect(page.getByRole('alert')).toContainText("Couldn't change the question settings.");
+});
+
+test('QaSettingsCard_WhenAModerationActionIsRefusedWhileAChangeIsInFlight_ShouldNotShowTheRefusalInTheCard', async ({
+  mount,
+  page,
+}) => {
+  const api = await stubs(page, DECK, qaControlView('live'));
+  await mount(withProbe(5));
+  await expect(page.getByTestId(IDS.review)).toBeVisible();
+  const held = api.hold('settings');
+  await page.getByTestId(IDS.review).click();
+  await expect.poll(() => api.calls.some((c) => c.call === 'settings')).toBe(true);
+  await page.getByTestId('probe-qa-hide').click();
+  await expect(page.getByTestId('probe-qa-error')).toContainText(
+    'That question had already changed',
+  );
+  held.release();
+  await expect(page.getByTestId(IDS.review)).not.toBeChecked();
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+});
+
+test('QaSettingsCard_WhenTheLiveWatchFailedAndAChangeWorks_ShouldNotShowTheWatchMessage', async ({
+  mount,
+  page,
+}) => {
+  const hub = await stubDeckHub(page, { audience: { state: guestView('live').state } });
+  hub.fail('WatchAudience', 'Server timeout.');
+  await stubQaControlApi(page, DECK, { control: qaControlView('live') });
+  await mount(withProbe(1));
+  await expect(page.getByTestId('probe-qa-error')).toContainText("aren't reaching this window");
+  await page.getByTestId(IDS.names).click();
+  await expect(page.getByTestId(IDS.names)).not.toBeChecked();
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
 });
 
 test('QaSettingsCard_WhenAnotherPartsCallFailed_ShouldNotShowItsMessage', async ({

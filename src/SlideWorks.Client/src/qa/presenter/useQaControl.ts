@@ -8,20 +8,23 @@ export type QaControlValue = {
   // The presenter's view of the deck's questions (Q6), or null before it has been read.
   control: QaControlView | null;
   // The seven moderation actions, each on a question by its number (1-based, as on the wire), and the two settings
-  // changes. Each sends its route and settles once the answer is in. A refused or failed call never rejects: it sets
-  // error.
-  approve(number: number): Promise<void>;
-  hide(number: number): Promise<void>;
-  restore(number: number): Promise<void>;
-  answer(number: number): Promise<void>;
-  reopen(number: number): Promise<void>;
-  show(number: number): Promise<void>;
-  unshow(number: number): Promise<void>;
+  // changes. Each sends its route and settles once the answer is in, with the message for that call's own refusal or
+  // failure, or null when it succeeded. It never rejects. A part that shows the outcome of its own call shows this
+  // value, never `error` read after the await: `error` is one value for the whole provider, and another call can
+  // clear it or set it meanwhile. A refused or failed call also sets `error`.
+  approve(number: number): Promise<string | null>;
+  hide(number: number): Promise<string | null>;
+  restore(number: number): Promise<string | null>;
+  answer(number: number): Promise<string | null>;
+  reopen(number: number): Promise<string | null>;
+  show(number: number): Promise<string | null>;
+  unshow(number: number): Promise<string | null>;
   // Any of the deck's five settings.
-  setSettings(patch: QaSettingsPatch): Promise<void>;
+  setSettings(patch: QaSettingsPatch): Promise<string | null>;
   // A slide's switch, by its 1-based number.
-  setSlide(slide: number, patch: QaSlidePatch): Promise<void>;
-  // The message for the last refused or failed call ("not_live" shown as words), or null. Cleared by the next call.
+  setSlide(slide: number, patch: QaSlidePatch): Promise<string | null>;
+  // The message for the last refused or failed call, or for a failed read or watch ("not_live" shown as words), or
+  // null. Cleared by the next call.
   error: string | null;
 };
 

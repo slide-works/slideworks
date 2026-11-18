@@ -95,7 +95,8 @@ const isDeckEventFor = (deckId: string, event: unknown) =>
 //
 // A watch that fails is retried on a short backoff and on every slide change; the questions are still read, with a
 // message that live updates aren't arriving. Each action and settings change sends its route once, takes the view it
-// answers and never rejects: a refusal or failure sets error to a sentence, never the raw code.
+// answers and never rejects: a refusal or failure sets error to a sentence, never the raw code, and is also the value
+// the call settles with (null on success).
 export function QaControlLive({ deckId, slide, children }: QaControlLiveProps) {
   const connection = useDeckConnection();
   const [held, setHeld] = useState<Held>({ view: null, bursts: NO_REACTIONS });
@@ -222,18 +223,21 @@ export function QaControlLive({ deckId, slide, children }: QaControlLiveProps) {
   }, [deckId]);
 
   const send = useCallback(
-    async (call: Call, request: () => Promise<QaControlView>) => {
+    async (call: Call, request: () => Promise<QaControlView>): Promise<string | null> => {
       setError(null);
       try {
         const view = await request();
         // An answer for a deck this window has moved on from is not the new deck's view.
         if (latestDeck.current === deckId) apply(view);
+        return null;
       } catch (failure) {
-        if (latestDeck.current !== deckId) return;
-        setError(failedMessage(call, failure));
+        const message = failedMessage(call, failure);
+        if (latestDeck.current !== deckId) return message;
+        setError(message);
         // After a refusal or a failure the questions may not be where this window thought they were: read them so the
         // buttons match.
         await read(() => latestDeck.current !== deckId);
+        return message;
       }
     },
     [deckId, apply, read],

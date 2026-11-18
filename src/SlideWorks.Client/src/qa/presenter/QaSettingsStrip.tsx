@@ -15,8 +15,8 @@ const TOGGLE =
 // off. Each change is one setSettings or setSlide call with just the changed field; the controls read the view, so a
 // change that fails goes back by itself and its message shows under the strip.
 export function QaSettingsStrip({ deckId }: Props) {
-  const { control, setSettings, setSlide, error } = useQaControl(deckId);
-  const { message, run } = useChangeError(error);
+  const { control, setSettings, setSlide } = useQaControl(deckId);
+  const { message: changeMessage, run } = useChangeError();
   if (control === null) return null;
   const { settings, here } = control;
   const questionsLabel =
@@ -96,9 +96,9 @@ export function QaSettingsStrip({ deckId }: Props) {
           />
         </>
       )}
-      {message !== null && (
+      {changeMessage !== null && (
         <p role="alert" data-testid={IDS.error} className="basis-full text-[11.5px] text-[#fca5a5]">
-          {message}
+          {changeMessage}
         </p>
       )}
     </div>

@@ -70,7 +70,7 @@ export function QaStrip({ deckId }: Props) {
   )
     return null;
 
-  const actions: Record<StripAction, (number: number) => Promise<void>> = {
+  const actions: Record<StripAction, (number: number) => Promise<unknown>> = {
     show,
     unshow,
     answer,

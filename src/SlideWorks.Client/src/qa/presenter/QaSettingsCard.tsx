@@ -27,8 +27,10 @@ const SHOW_ON: ReadonlyArray<{ value: QaSettings['showOn']; label: string; id: s
 // shows in the card. A slide not in the view's `slides` has both switches on.
 export function QaSettingsCard({ deckId, slide }: Props) {
   const { control, setSettings, setSlide, error } = useQaControl(deckId);
-  const { message, run } = useChangeError(error);
+  const { message: changeMessage, run } = useChangeError();
   const settings = control?.settings ?? null;
+  // Before the first read lands the only message is the provider's own (a failed read), not another part's change.
+  const message = control === null ? (error ?? changeMessage) : changeMessage;
   const switches =
     slide === null
       ? null
@@ -47,7 +49,9 @@ export function QaSettingsCard({ deckId, slide }: Props) {
         Q&amp;A and reactions
       </h2>
       {settings === null ? (
-        <p className="text-ink-muted">Loading the settings.</p>
+        <p className="text-ink-muted">
+          {error === null ? 'Loading the settings.' : 'The settings could not be loaded.'}
+        </p>
       ) : (
         <>
           <div
