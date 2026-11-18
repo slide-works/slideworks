@@ -16,8 +16,11 @@ namespace SlideWorks.WebApi.Features.Qa;
 // question of the session's open Q&A round in number order, its text from the round's PollOption rows and its votes from
 // IPollTallies (sized by the round's option count, so a question added since the last vote reads zero); Here from SW-4's
 // presentation state (null when the registry holds none for the deck) and that slide's switch; the session's reaction
-// totals from IReactions. Round is null with questions off, as Q6 says, but an open round's questions are still listed so
-// the presenter can tidy them up. Seq comes from QaSeq. Per request, because it uses the database.
+// totals from IReactions. Questions off reads as no open round (D3): round null, no questions, zero counts and nothing on
+// screen; the round and its questions stay stored and come back when questions leave off. Seq comes from QaSeq and is taken
+// before any read, so a view stamped later never holds older rows. The questions are read before their options: a question
+// and its option commit together, so every question read has its option, and a question asked between the two reads only
+// adds an option nobody lists. Per request, because it uses the database.
 [RegisterPerRequest]
 public class QaReader(
     AppDbContext db,
@@ -32,6 +35,7 @@ public class QaReader(
 {
     public async Task<QaControlView> ControlAsync(string deckId)
     {
+        var stamp = seq.Next();
         var current = await settings.GetAsync(deckId);
         var slides = (await rows.SwitchesAsync(deckId))
             .OrderBy(s => s.Key)
@@ -39,14 +43,14 @@ public class QaReader(
             .ToList();
         if (await LiveSessionAsync(deckId) is not { } session)
         {
-            return new QaControlView(seq.Next(), false, null, current, null, slides, new QaCounts(0, 0, 0, 0), null, [], ReactionCounts.Zero);
+            return new QaControlView(stamp, false, null, current, null, slides, new QaCounts(0, 0, 0, 0), null, [], ReactionCounts.Zero);
         }
-        var round = await OpenRoundAsync(session);
+        var round = current.Questions == QaQuestions.Off ? null : await OpenRoundAsync(session);
         var questions = round is { } id ? await QuestionsAsync(id) : [];
         return new QaControlView(
-            seq.Next(),
+            stamp,
             true,
-            current.Questions == QaQuestions.Off ? null : round?.ToString(),
+            round?.ToString(),
             current,
             await HereAsync(deckId),
             slides,
@@ -60,6 +64,11 @@ public class QaReader(
     public async Task<Guid?> LiveSessionAsync(string deckId)
         => await sessions.ForDeckAsync(deckId) is { Phase: AudiencePhase.Live, SessionId: { } id } ? Guid.Parse(id) : null;
 
+    // The session's open Q&A round as the presenter acts on it: null when the deck's questions are off, or when the session
+    // has no open Q&A round (questions were off at Go live).
+    public async Task<Guid?> ActiveRoundAsync(string deckId, Guid sessionId)
+        => (await settings.GetAsync(deckId)).Questions == QaQuestions.Off ? null : await OpenRoundAsync(sessionId);
+
     // The session's open Q&A round, or null when it has none (questions were off at Go live).
     public async Task<Guid?> OpenRoundAsync(Guid sessionId)
         => await db.PollRounds.AsNoTracking()
@@ -69,12 +78,13 @@ public class QaReader(
 
     private async Task<IReadOnlyList<QaQuestion>> QuestionsAsync(Guid roundId)
     {
+        var questions = await rows.QuestionsAsync(roundId);
         var texts = await db.PollOptions.AsNoTracking()
             .Where(o => o.RoundId == roundId)
             .ToDictionaryAsync(o => o.Position, o => o.Text);
         var tally = await tallies.ReadAsync(roundId.ToString(), texts.Count);
         var now = clock.GetUtcNow();
-        return (await rows.QuestionsAsync(roundId))
+        return questions
             .Select(q => new QaQuestion(
                 q.Position + 1,
                 texts[q.Position],

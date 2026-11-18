@@ -1,7 +1,11 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.Core.Qa;
+using SlideWorks.WebApi.Features.Polls;
+using SlideWorks.WebApi.Features.Polls.Contracts;
+using SlideWorks.WebApi.Features.Qa;
 using SlideWorks.WebApi.Tests.Realtime;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -10,8 +14,9 @@ namespace SlideWorks.WebApi.Tests.Qa;
 // The presenter's view of a deck's Q&A (Q6) through GET /api/decks/{id}/qa and the real IQuestionModeration.ControlAsync:
 // the questions of the open round with their votes from the tally, the counts, here and the switched-off slides, the
 // settings and the reaction totals, live and not. Questions, votes and switches come from QaRowSeed on QaSeed's live deck;
-// the settings and the reaction totals are the settable fakes. The app, and so the fakes, is shared by the fixture: each
-// test makes its own deck.
+// the settings and the reaction totals are the settable fakes. The tally is the real one behind HookedTallies, which can run
+// a test's step once inside the view's tally read, that is in the middle of the view's reads. The app, and so the fakes, is
+// shared by the fixture: each test makes its own deck.
 [TestFixture]
 public class QaControlViewTests : QaTestFixture
 {
@@ -19,10 +24,15 @@ public class QaControlViewTests : QaTestFixture
 
     private FakeReactions Reactions => Factory.Services.GetRequiredService<FakeReactions>();
 
+    private HookedTallies Tallies => Factory.Services.GetRequiredService<HookedTallies>();
+
     protected override void ConfigureQaServices(IServiceCollection services)
     {
         FakeQaSettings.AddTo(services);
         FakeReactions.AddTo(services);
+        services.AddSingleton<PollTallies>();
+        services.AddSingleton(provider => new HookedTallies(provider.GetRequiredService<PollTallies>()));
+        services.AddSingleton<IPollTallies>(provider => provider.GetRequiredService<HookedTallies>());
     }
 
     [Test]
@@ -106,16 +116,76 @@ public class QaControlViewTests : QaTestFixture
     }
 
     [Test]
-    public async Task ControlAsync_WhenQuestionsOff_ShouldHaveNoRound()
+    public async Task ControlAsync_WhenQuestionsOff_ShouldListNothing()
     {
         var qa = await SeedQaAsync();
+        await QaRowSeed.QuestionAsync(qa.RoundId, "How do you split a big change?", onScreen: true);
+        await QaRowSeed.QuestionAsync(qa.RoundId, "Who reviews the slices?", QuestionState.Waiting);
         Settings.Set(qa.DeckId, QaSettings.Default with { Questions = QaQuestions.Off });
 
         var view = await ViewAsync(qa.DeckId);
 
         view.GetProperty("live").GetBoolean().ShouldBeTrue();
         view.GetProperty("round").ValueKind.ShouldBe(JsonValueKind.Null);
+        view.GetProperty("onScreen").ValueKind.ShouldBe(JsonValueKind.Null);
+        view.GetProperty("questions").GetArrayLength().ShouldBe(0);
+        view.GetProperty("counts").EnumerateObject().ShouldAllBe(count => count.Value.GetInt32() == 0);
         view.GetProperty("settings").GetProperty("questions").GetString().ShouldBe("off");
+    }
+
+    [TestCase(QaQuestions.Open)]
+    [TestCase(QaQuestions.Closed)]
+    public async Task ControlAsync_WhenQuestionsComeBackFromOff_ShouldListTheSameQuestionsAgain(QaQuestions back)
+    {
+        var qa = await SeedQaAsync();
+        await QaRowSeed.QuestionAsync(qa.RoundId, "How do you split a big change?", onScreen: true);
+        await QaRowSeed.QuestionAsync(qa.RoundId, "Who reviews the slices?", QuestionState.Waiting);
+        await QaRowSeed.QuestionAsync(qa.RoundId, "Do feature flags count?", QuestionState.Answered);
+        await QaRowSeed.VoteAsync(qa.RoundId, "guest-a", 1, 3);
+        var before = await ViewAsync(qa.DeckId);
+        Settings.Set(qa.DeckId, QaSettings.Default with { Questions = QaQuestions.Off });
+        (await ViewAsync(qa.DeckId)).GetProperty("questions").GetArrayLength().ShouldBe(0);
+        Settings.Set(qa.DeckId, QaSettings.Default with { Questions = back });
+
+        var view = await ViewAsync(qa.DeckId);
+
+        view.GetProperty("round").GetString().ShouldBe(qa.RoundId.ToString());
+        view.GetProperty("onScreen").GetInt32().ShouldBe(1);
+        view.GetProperty("questions").GetRawText().ShouldBe(before.GetProperty("questions").GetRawText());
+        view.GetProperty("questions").EnumerateArray().Select(q => q.GetProperty("votes").GetInt32()).ShouldBe([1, 0, 1]);
+        view.GetProperty("counts").GetRawText().ShouldBe(before.GetProperty("counts").GetRawText());
+    }
+
+    [Test]
+    public async Task ControlAsync_WhenAQuestionIsAskedDuringTheRead_ShouldStillAnswer()
+    {
+        var qa = await SeedQaAsync();
+        await QaRowSeed.QuestionAsync(qa.RoundId, "How do you split a big change?");
+        Tallies.OnceInsideRead(qa.RoundId.ToString(), () => QaRowSeed.QuestionAsync(qa.RoundId, "Asked while the view was read"));
+
+        var response = await Client.GetAsync($"/api/decks/{qa.DeckId}/qa");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        Tallies.Pending(qa.RoundId.ToString()).ShouldBeFalse();
+        (await ViewAsync(qa.DeckId)).GetProperty("questions").GetArrayLength().ShouldBe(2);
+    }
+
+    [Test]
+    public async Task ControlAsync_WhenRead_ShouldTakeItsSeqBeforeReadingTheRows()
+    {
+        var qa = await SeedQaAsync();
+        var seq = Factory.Services.GetRequiredService<QaSeq>();
+        long during = 0;
+        Tallies.OnceInsideRead(qa.RoundId.ToString(), () =>
+        {
+            during = seq.Next();
+            return Task.CompletedTask;
+        });
+
+        var view = await ViewAsync(qa.DeckId);
+
+        during.ShouldBeGreaterThan(0);
+        view.GetProperty("seq").GetInt64().ShouldBeLessThan(during);
     }
 
     [Test]
@@ -151,6 +221,30 @@ public class QaControlViewTests : QaTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         return document.RootElement.Clone();
+    }
+
+    // The real tally with a hook: a test's step runs once at the start of the next ReadAsync of its round, before the read.
+    private sealed class HookedTallies(PollTallies inner) : IPollTallies
+    {
+        private readonly ConcurrentDictionary<string, Func<Task>> _hooks = new(StringComparer.Ordinal);
+
+        public void OnceInsideRead(string roundId, Func<Task> step) => _hooks[roundId] = step;
+
+        // Whether the round's step is still waiting for a read.
+        public bool Pending(string roundId) => _hooks.ContainsKey(roundId);
+
+        public Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks) => inner.ApplyAsync(round, oldPicks, newPicks);
+
+        public async Task<PollCounts> ReadAsync(string roundId, int optionCount)
+        {
+            if (_hooks.TryRemove(roundId, out var step))
+            {
+                await step();
+            }
+            return await inner.ReadAsync(roundId, optionCount);
+        }
+
+        public IDisposable Changed(Func<PollRoundRef, Task> handler) => inner.Changed(handler);
     }
 
     private static JsonElement Example()

@@ -10,6 +10,7 @@ public static class QaRefusals
     // The action isn't allowed in the question's state (waiting, open, answered, hidden, on screen).
     public const string WRONG_STATE = "wrong_state";
 
-    // The 404 message for a number the open Q&A round has no question at, or a live deck with no open Q&A round.
+    // The 404 message for a number the open Q&A round has no question at, a live deck with no open Q&A round, or a deck with
+    // questions off (D3).
     public const string NO_QUESTION = "The open Q&A round has no question with that number";
 }

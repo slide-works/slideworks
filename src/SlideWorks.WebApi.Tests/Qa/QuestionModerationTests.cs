@@ -10,7 +10,8 @@ using SlideWorks.WebApi.Tests.Support;
 namespace SlideWorks.WebApi.Tests.Qa;
 
 // The presenter's seven actions on a question (Q6, D13) through the Q&A routes and the real IQuestionModeration: each
-// action's state rule, that a refused action changes nothing (the view, the activity, the publishes and the refreshes), and
+// action's state rule, that a refused action changes nothing (the view, the round's list revision, the activity, the
+// publishes and the refreshes), and
 // what an accepted one records and calls. Questions come from QaRowSeed on QaSeed's live deck; the publisher and the audience
 // relay are the settable fakes, so a test counts their calls for its own deck. The app, and so the fakes, is shared by the
 // fixture: each test makes its own deck.
@@ -89,6 +90,36 @@ public class QuestionModerationTests : QaTestFixture
         refused.Status.ShouldBe(HttpStatusCode.NotFound);
         refused.Error.ShouldBe(QaRefusals.NO_QUESTION);
         refused.After.ShouldBe(refused.Before);
+    }
+
+    [Test]
+    public async Task ApproveAsync_WhenLiveWithNoOpenRound_ShouldBeNotFound()
+    {
+        var qa = await SeedQaAsync();
+        await QaRowSeed.QuestionAsync(qa.RoundId, FIRST, QuestionState.Waiting);
+        await Rows.CloseAsync(qa.RoundId, joinedAtClose: 0);
+
+        var refused = await RefuseAsync(qa, "approve", 1);
+
+        refused.Status.ShouldBe(HttpStatusCode.NotFound);
+        refused.Error.ShouldBe(QaRefusals.NO_QUESTION);
+        refused.After.ShouldBe(refused.Before);
+    }
+
+    [Test]
+    public async Task ApproveAsync_WhenQuestionsOff_ShouldBeNotFoundAndChangeNothing()
+    {
+        var qa = await SeedQaAsync();
+        await QaRowSeed.QuestionAsync(qa.RoundId, FIRST, QuestionState.Waiting);
+        await QaRowSeed.SettingsAsync(qa.DeckId, QaSettings.Default with { Questions = QaQuestions.Off });
+
+        var refused = await RefuseAsync(qa, "approve", 1);
+
+        refused.Status.ShouldBe(HttpStatusCode.NotFound);
+        refused.Error.ShouldBe(QaRefusals.NO_QUESTION);
+        refused.After.ShouldBe(refused.Before);
+        await QaRowSeed.SettingsAsync(qa.DeckId, QaSettings.Default);
+        (await ViewAsync(qa)).GetProperty("questions")[0].GetProperty("state").GetString().ShouldBe("waiting");
     }
 
     [Test]
@@ -319,16 +350,22 @@ public class QuestionModerationTests : QaTestFixture
         return new Refused(response.StatusCode, error, before, await SnapshotAsync(qa));
     }
 
-    // What a refused action must not change: the presenter's view (seq left out), the deck's activity, and the publishes
-    // and refreshes for the deck.
-    private async Task<Snapshot> SnapshotAsync(SeededQa qa)
+    private async Task<JsonElement> ViewAsync(SeededQa qa)
     {
         var response = await Client.GetAsync($"/api/decks/{qa.DeckId}/qa");
         response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
-        var view = JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsObject();
+        return await BodyAsync(response);
+    }
+
+    // What a refused action must not change: the presenter's view (seq left out), the round's list revision, the deck's
+    // activity, and the publishes and refreshes for the deck.
+    private async Task<Snapshot> SnapshotAsync(SeededQa qa)
+    {
+        var view = JsonNode.Parse((await ViewAsync(qa)).GetRawText())!.AsObject();
         view.Remove("seq");
         return new Snapshot(
             view.ToJsonString(),
+            Revisions.Current(qa.RoundId.ToString()),
             (await DeckSeed.ActivityAsync(Client, qa.DeckId)).Count,
             Publisher.PublishesOf(qa.DeckId),
             Relay.Refreshed.Count(deck => deck == qa.DeckId));
@@ -340,7 +377,7 @@ public class QuestionModerationTests : QaTestFixture
         return document.RootElement.Clone();
     }
 
-    private sealed record Snapshot(string View, int Activity, int Published, int Refreshed);
+    private sealed record Snapshot(string View, long Revision, int Activity, int Published, int Refreshed);
 
     private sealed record Refused(HttpStatusCode Status, string? Error, Snapshot Before, Snapshot After);
 }

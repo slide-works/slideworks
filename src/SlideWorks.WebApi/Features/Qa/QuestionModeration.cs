@@ -14,9 +14,9 @@ namespace SlideWorks.WebApi.Features.Qa;
 // The presenter's seven actions on a question of the live session's open Q&A round, and the view they return (Q6, D13).
 // Each action runs every check inside one write transaction before it writes anything (EF begins SQLite's transaction with
 // BEGIN IMMEDIATE, so a second action waits and re-reads the row under the lock): not live is not_live, a number the open
-// round has no question at (or no open round) is a 404, and a question in the wrong state is wrong_state. A refused action
-// changes nothing. An accepted one writes the question and its activity entry (the action only, never the text) in that
-// transaction; after the commit, and never inside it, it bumps the round's list revision, calls IAudienceRelay.RefreshAsync
+// round has no question at (or no open round, or the deck's questions are off, D3) is a 404, and a question in the wrong
+// state is wrong_state. A refused action changes nothing. An accepted one writes the question and its activity entry (the
+// action only, never the text) in that transaction; after the commit, and never inside it, it bumps the round's list revision, calls IAudienceRelay.RefreshAsync
 // and then IQuestionPublisher.PublishAsync, one after the other, and answers the view after them.
 //
 // Show takes any other question off screen and saves that before it puts this one on, so the partial unique index on
@@ -124,7 +124,7 @@ public class QuestionModeration(
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
             var session = await reader.LiveSessionAsync(deckId) ?? throw new ConflictException(QaRefusals.NOT_LIVE);
-            round = await reader.OpenRoundAsync(session) ?? throw new NotFoundException(QaRefusals.NO_QUESTION);
+            round = await reader.ActiveRoundAsync(deckId, session) ?? throw new NotFoundException(QaRefusals.NO_QUESTION);
             var question = await db.Questions.SingleOrDefaultAsync(q => q.RoundId == round && q.Position == number - 1)
                 ?? throw new NotFoundException(QaRefusals.NO_QUESTION);
             changed = await change(question);
