@@ -132,6 +132,20 @@ public class UpdateMyDecksTests : ApiTestFixture
         row.TemplateVersion.ShouldBe(2);
     }
 
+    // The wording is the one set_look uses, and it names the manifest's label, which is the name a person typed.
+    [Test]
+    public async Task Update_WhenTheManifestHasALabel_ShouldNameItInTheActivity()
+    {
+        var full = await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "..", "template-manifest.sample.json"));
+        var template = await TemplateRowSeed.PublishedAsync(Factory, TestUser.Sam, full);
+        await AddVersionAsync(template, 2, full);
+        var deck = await DeckOnAsync(Client, template, 1);
+
+        await RunAsync(Client, template);
+
+        (await SummariesAsync(Client, deck))[0].ShouldBe("Look: Northwind kickoff version 1 to 2");
+    }
+
     [Test]
     public async Task Update_WhenTheVersionDoesNotLockAPalette_ShouldKeepThePalette()
     {
