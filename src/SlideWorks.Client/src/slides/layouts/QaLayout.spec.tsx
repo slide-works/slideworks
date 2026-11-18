@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
-import fitFixturesJson from '@contracts/fit-fixtures.json' with { type: 'json' };
+import fitFixturesJson from '@contracts/fit-fixtures/qa.json' with { type: 'json' };
 import { QaScreenProvider } from '../../qa/screen/QaScreenContext';
 import { QaScreenFixture } from '../../qa/screen/QaScreenFixture';
 import {
@@ -323,7 +323,7 @@ test('a title slot replaces the default title', async ({ mount, page }) => {
   await expect(page.getByTestId(IDS.title)).toHaveText('Ask me anything');
 });
 
-// The shared max-content fixture (src/contracts/fit-fixtures.json): the longest title the server accepts. It must stay
+// The shared max-content fixture (src/contracts/fit-fixtures/qa.json): the longest title the server accepts. It must stay
 // inside the content box with the full list of five rows and the join pill up, in every palette.
 const QA_TITLE = fitFixturesJson.qaTitle.slots.title;
 
