@@ -15,12 +15,16 @@ export type CalloutBlock = {
 export type ImageRef = { image: string; alt: string };
 
 export type LeadText = { lead: string; text: string };
-export type BulletItem = string | LeadText;
+// A point: plain text, or its text with an optional bold lead and an optional
+// icon (a name from icons.json) in the mark's place.
+export type BulletItem = string | { icon?: string; lead?: string; text: string };
 export type TitleText = { title: string; text: string };
 
 // Exactly one of items, text or image is set.
+// `icon` (a name from icons.json) sits beside the title.
 export type ColumnSlot = {
   title?: string;
+  icon?: string;
   items?: BulletItem[];
   text?: string;
   image?: ImageRef;
