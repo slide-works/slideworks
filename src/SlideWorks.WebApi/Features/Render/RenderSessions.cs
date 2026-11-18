@@ -6,7 +6,7 @@ using SlideWorks.WebApi.Infrastructure;
 namespace SlideWorks.WebApi.Features.Render;
 
 // Render tokens on a request (L9). A headless page sends its token in the X-Render-Token header. An <img> can't send a
-// header, so the page first trades the header for the sw_render cookie (Start), which only /api/images ever receives.
+// header, so the page first trades the header for the sw_render cookie (Start), which only /api/images and /api/templates ever receive.
 // Either way the token opens only the one deck it was issued for, whatever its purpose: a token for another deck, an
 // expired one or a forged one opens nothing, and the caller sees the same 404 as for an unknown deck or image.
 [RegisterPerRequest]
@@ -14,7 +14,9 @@ public class RenderSessions
 {
     public const string HEADER = "X-Render-Token";
     public const string COOKIE = "sw_render";
-    public const string COOKIE_PATH = "/api/images";
+    // Images, and the files of a template (fonts, logos, art). Two narrow paths rather than /api, so the token reaches
+    // no other route.
+    public static readonly string[] COOKIE_PATHS = ["/api/images", "/api/templates"];
 
     private static readonly RenderPurpose[] PURPOSES = [RenderPurpose.Preview, RenderPurpose.Card];
 

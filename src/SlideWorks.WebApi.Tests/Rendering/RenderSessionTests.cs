@@ -10,7 +10,7 @@ using SlideWorks.WebApi.Tests.Support;
 namespace SlideWorks.WebApi.Tests.Rendering;
 
 // POST /api/render/{id}/session (L9): a valid render token in the X-Render-Token header becomes the sw_render cookie,
-// HttpOnly, SameSite=Strict, on /api/images only, expiring with the token. Anything else is 404 "Deck not found" with
+// HttpOnly, SameSite=Strict, on /api/images and on /api/templates, expiring with the token. Anything else is 404 "Deck not found" with
 // no cookie. Anonymous: the token is the only credential.
 [TestFixture]
 public class RenderSessionTests : ApiTestFixture
@@ -26,20 +26,23 @@ public class RenderSessionTests : ApiTestFixture
 
     [TestCase(RenderPurpose.Preview)]
     [TestCase(RenderPurpose.Card)]
-    public async Task Post_WhenTokenValid_ShouldSetTheRenderCookie(RenderPurpose purpose)
+    public async Task Post_WhenTokenValid_ShouldSetTheRenderCookieOnBothPaths(RenderPurpose purpose)
     {
         var token = Issue(_deck, purpose);
 
         using var response = await PostSessionAsync(_deck, token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
-        var cookie = SetCookies(response).ShouldHaveSingleItem();
-        cookie.Name.ToString().ShouldBe(RenderSessions.COOKIE);
-        cookie.Value.ToString().ShouldBe(token);
-        cookie.HttpOnly.ShouldBeTrue();
-        cookie.SameSite.ShouldBe(Microsoft.Net.Http.Headers.SameSiteMode.Strict);
-        cookie.Path.ToString().ShouldBe("/api/images");
-        cookie.Expires.ShouldBe(Clock.GetUtcNow().Add(RenderTokens.LifetimeOf(purpose)));
+        var cookies = SetCookies(response);
+        cookies.Select(c => c.Path.ToString()).ShouldBe(["/api/images", "/api/templates"], ignoreOrder: true);
+        foreach (var cookie in cookies)
+        {
+            cookie.Name.ToString().ShouldBe(RenderSessions.COOKIE);
+            cookie.Value.ToString().ShouldBe(token);
+            cookie.HttpOnly.ShouldBeTrue();
+            cookie.SameSite.ShouldBe(Microsoft.Net.Http.Headers.SameSiteMode.Strict);
+            cookie.Expires.ShouldBe(Clock.GetUtcNow().Add(RenderTokens.LifetimeOf(purpose)));
+        }
     }
 
     // No token, a token for another deck, a tampered token, and an expired one.
