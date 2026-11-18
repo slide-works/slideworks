@@ -97,7 +97,7 @@ export function PresenterPage() {
   useFocusOnReady(ready, mainRef);
   useFocusOnClose(overviewOpen, overviewButton);
   useFocusOnClose(phoneOpen, phoneButton);
-  useFocusOnClose(questionsOpen, questionsButton);
+  useFocusOnPanelClose(questionsOpen, questionsButton);
 
   if (load.kind === 'notFound' || status === 'refused') {
     return (
@@ -426,6 +426,17 @@ function useFocusOnReady(ready: boolean, target: RefObject<HTMLElement | null>) 
   useEffect(() => {
     if (ready) target.current?.focus({ preventScroll: true });
   }, [ready, target]);
+}
+
+// Puts focus on the Questions tool when the panel closes, only if focus was lost with it (it was inside the panel and
+// is now on the body). Focus on the page stays there, so Space still moves the talk instead of pressing the tool.
+function useFocusOnPanelClose(open: boolean, tool: RefObject<HTMLElement | null>) {
+  const wasOpen = useRef(open);
+  useEffect(() => {
+    const lost = document.activeElement === null || document.activeElement === document.body;
+    if (wasOpen.current && !open && lost) tool.current?.focus();
+    wasOpen.current = open;
+  }, [open, tool]);
 }
 
 // Puts focus back on the button that opened something, once it closes.

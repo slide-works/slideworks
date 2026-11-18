@@ -26,7 +26,7 @@ export type QaControlValue = {
 };
 
 // A provider's value, stamped with the deck it is for and the presenter's slide it follows (1-based, from SW-4's
-// presentation state; null on the deck page).
+// presentation state; null on the deck page). P1's real provider uses `slide` to re-read GET …/qa when the slide changes.
 export type QaControlSource = { deckId: string; slide: number | null; value: QaControlValue };
 
 export const QaControlContext = createContext<QaControlSource | null>(null);

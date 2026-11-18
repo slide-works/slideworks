@@ -256,8 +256,11 @@ test('PresenterPage_WhenQPressed_ShouldOpenAndCloseTheQuestionsPanel', async ({ 
   await page.keyboard.press('Q');
   await expect(panel).toHaveCount(0);
   await expect(tool).toHaveAttribute('aria-pressed', 'false');
-  // Closing gives focus back to the tool, as the overview and the phone dialog do, never to the page's body.
-  await expect(tool).toBeFocused();
+  // Focus was on the page, never in the panel, so it stays there and Space still moves the talk (SW-4 leaves Space to a
+  // focused button, so focus on the tool would reopen the panel instead).
+  await expect(page.getByTestId('presenter-page')).toBeFocused();
+  await page.keyboard.press(' ');
+  await expect(page.getByTestId('presenter-count')).toHaveText('9 / 16');
   // The stub provider has no view yet, so the tool shows no count.
   await expect(page.getByTestId(QUESTIONS_TOOL_COUNT_TEST_ID)).toHaveCount(0);
 
@@ -265,9 +268,29 @@ test('PresenterPage_WhenQPressed_ShouldOpenAndCloseTheQuestionsPanel', async ({ 
   await expect(panel).toHaveCount(1);
   await tool.click();
   await expect(panel).toHaveCount(0);
-  // Q drives nothing else: no move of the talk and no Q&A call.
+  // Q makes no Q&A call.
   await expect(page.getByTestId('presenter-now')).toBeVisible();
   expect(api.calls.filter((c) => c.call !== 'read')).toEqual([]);
+});
+
+test('PresenterPage_WhenQClosesThePanelWithFocusInside_ShouldGiveFocusToTheTool', async ({
+  mount,
+  page,
+}) => {
+  await openPresenter(page, mount);
+  await page.keyboard.press('q');
+  const panel = page.getByTestId(QA_PANEL_TEST_IDS.panel);
+  await expect(panel).toHaveCount(1);
+  // A button in the panel, as P1's rows will have.
+  await page.evaluate((id) => {
+    const button = document.createElement('button');
+    button.dataset.testid = 'probe-panel-button';
+    document.querySelector(`[data-testid="${id}"]`)!.append(button);
+  }, QA_PANEL_TEST_IDS.panel);
+  await page.getByTestId('probe-panel-button').focus();
+  await page.keyboard.press('q');
+  await expect(panel).toHaveCount(0);
+  await expect(page.getByTestId(QUESTIONS_TOOL_TEST_ID)).toBeFocused();
 });
 
 test('PresenterPage_WhenQPressedInATextBox_ShouldLeaveThePanelAlone', async ({ mount, page }) => {
