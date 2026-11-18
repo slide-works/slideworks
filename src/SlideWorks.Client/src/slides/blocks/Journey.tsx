@@ -1,3 +1,4 @@
+import { partsOf, type PartWire } from '../../api/parts';
 import styles from './Journey.module.css';
 
 export type JourneyState = 'past' | 'on' | 'next';
@@ -11,14 +12,14 @@ function stateOf(index: number, part: number | null): JourneyState {
 // The deck's parts as a timeline, with `part` (1-based) as the current one:
 // past parts filled, the current one glowing and future ones hollow.
 // Rendered from the deck, never set by an agent.
-export function Journey({ parts, part }: { parts: string[]; part: number | null }) {
+export function Journey({ parts, part }: { parts: PartWire[]; part: number | null }) {
   return (
     <ol
       data-testid="block-journey"
       className={styles.journey}
       style={{ gridTemplateColumns: `repeat(${parts.length}, minmax(0, 1fr))` }}
     >
-      {parts.map((name, index) => {
+      {partsOf(parts).map(({ name }, index) => {
         const state = stateOf(index, part);
         return (
           <li

@@ -1,5 +1,7 @@
+import { partsOf, type PartWire } from '../../api/parts';
+
 type PartTrackerProps = {
-  parts: string[];
+  parts: PartWire[];
   // The current slide's part (1-based), or null when it belongs to none.
   part: number | null;
 };
@@ -15,7 +17,7 @@ function stateOf(index: number, part: number | null) {
 export function PartTracker({ parts, part }: PartTrackerProps) {
   return (
     <ol className="sw-tracker" data-testid="part-tracker" aria-label="Parts">
-      {parts.map((name, index) => {
+      {partsOf(parts).map(({ name }, index) => {
         const state = stateOf(index, part);
         return (
           <li

@@ -21,6 +21,12 @@ import { KEYS as GANTT_KEYS, type GanttSlots } from './slots/gantt';
 import { KEYS as NUMBERED_CARDS_KEYS, type NumberedCardsSlots } from './slots/numbered-cards';
 import { KEYS as RULES_KEYS, type RulesSlots } from './slots/rules';
 import { KEYS as CARDS_KEYS, type CardsSlots } from './slots/cards';
+import { KEYS as STATEMENT_KEYS, type StatementSlots } from './slots/statement';
+import { KEYS as LINKS_KEYS, type LinksSlots } from './slots/links';
+import { KEYS as STACK_KEYS, type StackSlots } from './slots/stack';
+import { KEYS as BARS_KEYS, type BarsSlots } from './slots/bars';
+import { KEYS as FLOW_KEYS, type FlowSlots } from './slots/flow';
+import { KEYS as LEVELS_KEYS, type LevelsSlots } from './slots/levels';
 import { KEYS as CLOSE_KEYS, type CloseSlots } from './slots/close';
 import { KEYS as JOIN_KEYS, type JoinSlots } from './slots/join';
 import { KEYS as POLL_KEYS, type PollSlots } from './slots/poll';
@@ -55,6 +61,12 @@ export type { GanttRow, GanttSlots, GanttStatus } from './slots/gantt';
 export type { NumberedCardsSlots } from './slots/numbered-cards';
 export type { RulesSlots } from './slots/rules';
 export type { Card, CardsSlots } from './slots/cards';
+export type { StatementSlots } from './slots/statement';
+export type { LinksSlots } from './slots/links';
+export type { StackSlots } from './slots/stack';
+export type { BarsSlots } from './slots/bars';
+export type { FlowSlots } from './slots/flow';
+export type { LevelsSlots } from './slots/levels';
 export type { CloseSlots } from './slots/close';
 export type { JoinSlots } from './slots/join';
 export type { PollSlots } from './slots/poll';
@@ -76,6 +88,12 @@ export const LAYOUT_NAMES = [
   'numbered-cards',
   'rules',
   'cards',
+  'statement',
+  'links',
+  'stack',
+  'bars',
+  'flow',
+  'levels',
   'close',
   'join',
   'poll',
@@ -84,8 +102,44 @@ export const LAYOUT_NAMES = [
 
 export type LayoutName = (typeof LAYOUT_NAMES)[number];
 
-// Title, divider and close slides use the dark surface; every other layout is light.
-export const DARK_LAYOUTS: readonly LayoutName[] = ['title', 'divider', 'close', 'join'];
+// A slide's surface: the light one or the night one.
+export type Surface = 'light' | 'dark';
+
+// Each layout's surface (K6): always light, always dark, or either, where the
+// slide picks and light is what it gets when it doesn't.
+export const LAYOUT_SURFACE: Record<LayoutName, Surface | 'either'> = {
+  title: 'dark',
+  divider: 'dark',
+  bullets: 'either',
+  'two-column': 'light',
+  practice: 'light',
+  compare: 'light',
+  'big-number': 'either',
+  quote: 'either',
+  image: 'light',
+  table: 'light',
+  chart: 'light',
+  gantt: 'light',
+  'numbered-cards': 'light',
+  rules: 'light',
+  cards: 'light',
+  statement: 'either',
+  links: 'light',
+  stack: 'light',
+  bars: 'light',
+  flow: 'light',
+  levels: 'light',
+  close: 'dark',
+  join: 'dark',
+  poll: 'light',
+  qa: 'light',
+};
+
+// The layouts the frame draws without a tracker or a footer, whatever their surface.
+export const CHROMELESS_LAYOUTS: readonly LayoutName[] = ['title', 'divider', 'close', 'join'];
+
+// The layouts that keep the footer but draw no tracker (K16).
+export const NO_TRACKER_LAYOUTS: readonly LayoutName[] = ['statement'];
 
 export type Slots = {
   title: TitleSlots;
@@ -103,6 +157,12 @@ export type Slots = {
   'numbered-cards': NumberedCardsSlots;
   rules: RulesSlots;
   cards: CardsSlots;
+  statement: StatementSlots;
+  links: LinksSlots;
+  stack: StackSlots;
+  bars: BarsSlots;
+  flow: FlowSlots;
+  levels: LevelsSlots;
   close: CloseSlots;
   join: JoinSlots;
   poll: PollSlots;
@@ -128,6 +188,12 @@ export const SLOT_KEYS = {
   'numbered-cards': NUMBERED_CARDS_KEYS,
   rules: RULES_KEYS,
   cards: CARDS_KEYS,
+  statement: STATEMENT_KEYS,
+  links: LINKS_KEYS,
+  stack: STACK_KEYS,
+  bars: BARS_KEYS,
+  flow: FLOW_KEYS,
+  levels: LEVELS_KEYS,
   close: CLOSE_KEYS,
   join: JOIN_KEYS,
   poll: POLL_KEYS,

@@ -1,3 +1,5 @@
+import { TemplateLogo } from './layers/TemplateLogo';
+
 type SlideFooterProps = {
   number: number;
   total: number;
@@ -16,6 +18,8 @@ type SlideFooterProps = {
 // The row is one 17 px text line; the chip and logo are centred on it and
 // overflow it, so the text line stays at y = 1023 whatever they hold. A
 // line too long for the space left of them is cut short with an ellipsis.
+// The end span is always the footer's last child, empty when there is no chip
+// and no logo; the template's logo layer sits in it, after the deck's logo.
 export function SlideFooter({ number, total, deckTitle, meta, logoUrl, draft }: SlideFooterProps) {
   return (
     <div className="sw-footer" data-testid="slide-footer">
@@ -23,18 +27,17 @@ export function SlideFooter({ number, total, deckTitle, meta, logoUrl, draft }: 
         <b>{number}</b> / {total} · {deckTitle}
         {meta === null ? null : ` · ${meta}`}
       </span>
-      {draft || logoUrl !== null ? (
-        <span className="sw-footer-end">
-          {draft ? (
-            <span className="sw-draft-chip" data-testid="draft-chip">
-              Draft
-            </span>
-          ) : null}
-          {logoUrl !== null ? (
-            <img className="sw-logo" data-testid="slide-logo" src={logoUrl} alt="" />
-          ) : null}
-        </span>
-      ) : null}
+      <span className="sw-footer-end" data-testid="slide-footer-end">
+        {draft ? (
+          <span className="sw-draft-chip" data-testid="draft-chip">
+            Draft
+          </span>
+        ) : null}
+        {logoUrl !== null ? (
+          <img className="sw-logo" data-testid="slide-logo" src={logoUrl} alt="" />
+        ) : null}
+        <TemplateLogo placement="footer" />
+      </span>
     </div>
   );
 }

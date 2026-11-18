@@ -1,4 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { partsOf } from '../../api/parts';
 import { Journey } from '../blocks/Journey';
 import { useSlidePart } from '../slidePart';
 import type { LayoutProps } from '../slots';
@@ -54,7 +55,9 @@ export function DividerLayout({ slots, deck }: LayoutProps<'divider'>) {
   const stack = [
     slots.title,
     slots.sub ?? '',
-    deck.parts.join('\n'),
+    partsOf(deck.parts)
+      .map((part) => part.name)
+      .join('\n'),
     deepDives.map((deepDive) => deepDive.headline).join('\n'),
   ].join('\n\n');
   const [fit, setFit] = useState({ stack, shown: MOST_DEEP_DIVES });

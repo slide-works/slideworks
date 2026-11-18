@@ -17,6 +17,12 @@ import { GanttLayout } from './GanttLayout';
 import { NumberedCardsLayout } from './NumberedCardsLayout';
 import { RulesLayout } from './RulesLayout';
 import { CardsLayout } from './CardsLayout';
+import { StatementLayout } from './StatementLayout';
+import { LinksLayout } from './LinksLayout';
+import { StackLayout } from './StackLayout';
+import { BarsLayout } from './BarsLayout';
+import { FlowLayout } from './FlowLayout';
+import { LevelsLayout } from './LevelsLayout';
 import { CloseLayout } from './CloseLayout';
 import { JoinLayout } from './JoinLayout';
 import { PollLayout } from './PollLayout';
@@ -38,6 +44,12 @@ export const LAYOUTS: { [L in LayoutName]: ComponentType<LayoutProps<L>> } = {
   'numbered-cards': NumberedCardsLayout,
   rules: RulesLayout,
   cards: CardsLayout,
+  statement: StatementLayout,
+  links: LinksLayout,
+  stack: StackLayout,
+  bars: BarsLayout,
+  flow: FlowLayout,
+  levels: LevelsLayout,
   close: CloseLayout,
   join: JoinLayout,
   poll: PollLayout,

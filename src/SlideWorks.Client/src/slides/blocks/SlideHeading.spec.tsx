@@ -14,7 +14,7 @@ function slide(kicker: string | undefined, headline: string) {
   return (
     <SlideFrame
       layout="rules"
-      dark={false}
+      surface="light"
       part={1}
       parts={['One', 'Two']}
       number={2}
