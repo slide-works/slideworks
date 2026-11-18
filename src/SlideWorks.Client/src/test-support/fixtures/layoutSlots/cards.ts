@@ -18,6 +18,8 @@ export const SLOTS: CardsSlots = {
     },
   ],
   reveal: 'all',
+  callout: { tone: 'info', text: 'One habit at a time.' },
+  emphasis: [{ text: 'one habit', tone: 'positive' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is

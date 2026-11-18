@@ -1,16 +1,17 @@
-/* The badge block (the mockup's .badge), in canvas px: a 16 px/1 bold
-   uppercase pill in 7/14 px padding. With no tone it takes the accent (.acc);
+/* The badge block (the mockup's .badge), in canvas px: a 16 px/1.25 bold
+   uppercase pill in 5/14 px padding: one line is 30 px tall, and a second
+   line adds 20. With no tone it takes the accent (.acc);
    a table cell's tone picks the mockup's green, orange or red, and info is
    the accent. */
 .badge {
   display: inline-block;
   max-width: 100%;
-  padding: 7px 14px;
+  padding: 5px 14px;
   overflow-wrap: anywhere;
   border-radius: var(--sw-radius-pill);
   background: var(--sw-accent-light);
   color: var(--sw-accent-dark);
-  font: 700 16px/1 var(--sw-font-body);
+  font: 700 16px/1.25 var(--sw-font-body);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
