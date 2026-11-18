@@ -112,6 +112,10 @@ public sealed class TemplateDrafts(
         {
             var record = await db.Templates.SingleOrDefaultAsync(t => t.Id == id && t.OwnerId == me)
                 ?? throw new NotFoundException($"No template '{id}'.");
+            if (record.ArchivedAt is not null)
+            {
+                throw TemplateRefusal.Of(TemplateErrorCodes.TEMPLATE_ARCHIVED);
+            }
             if (record.Revision != revision)
             {
                 throw TemplateRefusal.Of(TemplateErrorCodes.STALE_REVISION);

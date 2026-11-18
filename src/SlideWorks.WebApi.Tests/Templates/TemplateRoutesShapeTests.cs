@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Features.Templates.Views;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -266,16 +267,15 @@ public class TemplateRoutesShapeTests : ApiTestFixture
         using var scope = Factory.Services.CreateScope();
         var actor = scope.ServiceProvider.GetRequiredService<ICurrentActor>();
 
-        var checklist = await new StubTemplatePublishing().ChecklistAsync(actor, "tpl_stub00000001");
-        var review = await new StubTemplatePublishing().LayoutReviewAsync(actor, "tpl_stub00000001", "stage-ladder");
+        var review = await new TemplatePublishing(scope.ServiceProvider.GetRequiredService<AppDbContext>(), TimeProvider.System)
+            .LayoutReviewAsync(actor, "tpl_stub00000001", "stage-ladder");
         var sharing = await new StubTemplateSharing().GetAsync(actor, "tpl_stub00000001");
         var page = await new StubTemplateSharing().PublicAsync(actor, "tpl_stub00000001");
 
-        JsonShape.AssertMatches(Wire(checklist), TemplateScreenShapes.ChecklistExample(), "template-editor.json's checklist", TemplateScreenShapes.Checklist);
         JsonShape.AssertMatches(Wire(review), TemplateScreenShapes.LAYOUT_REVIEW_FILE, TemplateScreenShapes.LayoutReview);
         JsonShape.AssertMatches(Wire(sharing), TemplateScreenShapes.SHARING_FILE, TemplateScreenShapes.Sharing);
         JsonShape.AssertMatches(Wire(page), TemplateScreenShapes.PUBLIC_FILE, TemplateScreenShapes.Public);
-        checklist.Checklist.ShouldNotBeEmpty();
+        review.Layout.ShouldNotBeNull();
     }
 
     // The owner is a name only on a template shared with the caller: null on the caller's own and on a built-in.

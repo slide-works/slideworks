@@ -25,5 +25,6 @@
   "upload_used": "This upload has already been used. Upload the file again.",
   "not_published": "This template has not been published yet.",
   "template_storage_full": "This template has stored too many files. Start a new template, or ask for unused files to be removed.",
-  "too_many_uploads": "Too many uploads are in progress for this template. Finish or wait for them to expire."
+  "too_many_uploads": "Too many uploads are in progress for this template. Finish or wait for them to expire.",
+  "template_archived": "This template is archived, so its draft can't be changed."
 }
