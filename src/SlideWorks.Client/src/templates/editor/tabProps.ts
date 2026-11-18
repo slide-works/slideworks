@@ -1,11 +1,14 @@
 import type { EditorTab, TemplateEditorView, TemplateManifest } from '../types';
+import type { ChangeOutcome } from '../useTemplateDraft';
 
 // What every editor tab and the publish checklist take (frozen: the tabs are filled against it).
-// `change` merges top-level manifest keys and saves through the editor's one useTemplateDraft;
-// `reload` reads the editor view again (after an upload or a publish).
+// `change` merges top-level manifest keys and saves through the editor's one useTemplateDraft, and
+// resolves to `{ ok: true }` or `{ ok: false, code, message, path? }`: a tab shows `message` next
+// to the field at `path` and moves focus there. After a `stale_revision` refusal the draft has
+// already been read again. `reload` reads the editor view again (after an upload or a publish).
 export type EditorTabProps = {
   draft: TemplateEditorView;
-  change(patch: Partial<TemplateManifest>): Promise<void>;
+  change(patch: Partial<TemplateManifest>): Promise<ChangeOutcome>;
   reload(): Promise<void>;
   saving: boolean;
 };

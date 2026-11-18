@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { templateErrorCode, templateErrorMessage, templatesApi } from './api';
+import { templateErrorCode, templateErrorMessage, templateErrorPath, templatesApi } from './api';
 import type { TemplateEditorView, TemplateManifest } from './types';
 
 export type DraftLoad =
@@ -7,16 +7,38 @@ export type DraftLoad =
   | { kind: 'loaded'; draft: TemplateEditorView }
   | { kind: 'failed'; message: string };
 
-// Why the last save failed: the refusal's code (null when it was not a refusal) and what to show.
-export type DraftSaveError = { code: string | null; message: string };
+// Why a save failed: the refusal's code (null when it was not a refusal), the sentence to show,
+// and the manifest field the refusal is about when it names one.
+export type DraftSaveError = { code: string | null; message: string; path?: string };
+
+// How one change went, for the tab that asked for it: saved, or why not.
+export type ChangeOutcome = { ok: true } | ({ ok: false } & DraftSaveError);
+
+const STALE_REVISION = 'stale_revision';
+const RELOADED =
+  'This template was changed somewhere else, so it has been read again. Check it, then make your change again.';
+const NOT_RELOADED =
+  'This template was changed somewhere else and could not be read again. Reload the page, then make your change again.';
+const NOT_LOADED = 'This template is not open yet. Try again in a moment.';
+
+function saveErrorOf(error: unknown): DraftSaveError {
+  const path = templateErrorPath(error);
+  return {
+    code: templateErrorCode(error),
+    message: templateErrorMessage(error),
+    ...(path === null ? {} : { path }),
+  };
+}
 
 export type TemplateDraft = {
   load: DraftLoad;
   saving: boolean;
   saveError: DraftSaveError | null;
-  // Merges top-level manifest keys into the draft and saves it with the revision last read. A
-  // refused or failed save leaves the draft as it was and sets saveError.
-  change(patch: Partial<TemplateManifest>): Promise<void>;
+  // Merges top-level manifest keys into the draft and saves it with the revision last read, and
+  // resolves to how that went. A refused or failed save leaves the draft as it was, sets saveError
+  // and resolves `ok: false` with the code, the sentence and the field. After a stale_revision
+  // refusal the draft has already been read again when this resolves.
+  change(patch: Partial<TemplateManifest>): Promise<ChangeOutcome>;
   // Reads the editor view again (after an upload or a publish).
   reload(): Promise<void>;
 };
@@ -60,9 +82,12 @@ export function useTemplateDraft(id: string): TemplateDraft {
     [id],
   );
 
-  const enqueue = useCallback((step: () => Promise<void>) => {
+  const enqueue = useCallback(<T>(step: () => Promise<T>): Promise<T> => {
     const run = queue.current.then(step);
-    queue.current = run;
+    queue.current = run.then(
+      () => undefined,
+      () => undefined,
+    );
     return run;
   }, []);
 
@@ -72,14 +97,26 @@ export function useTemplateDraft(id: string): TemplateDraft {
       // succeeds after it must not take the message away.
       setSaveError(null);
       setPending((count) => count + 1);
-      return enqueue(async () => {
+      return enqueue(async (): Promise<ChangeOutcome> => {
         try {
           const current = latest.current;
-          if (current?.forId !== id) return;
+          if (current?.forId !== id) return { ok: false, code: null, message: NOT_LOADED };
           const manifest = { ...current.draft.manifest, ...patch };
           accept(await templatesApi.save(id, manifest, current.draft.revision));
+          return { ok: true };
         } catch (error) {
-          setSaveError({ code: templateErrorCode(error), message: templateErrorMessage(error) });
+          let failed = saveErrorOf(error);
+          if (failed.code === STALE_REVISION) {
+            // Every later save would be refused too, so read the draft again here, inside the
+            // queue, before the next queued change saves on top of it.
+            const reloaded = await templatesApi.get(id).then(
+              (draft) => (accept(draft), true),
+              () => false,
+            );
+            failed = { code: STALE_REVISION, message: reloaded ? RELOADED : NOT_RELOADED };
+          }
+          setSaveError(failed);
+          return { ok: false, ...failed };
         } finally {
           setPending((count) => count - 1);
         }
@@ -94,7 +131,7 @@ export function useTemplateDraft(id: string): TemplateDraft {
         try {
           accept(await templatesApi.get(id));
         } catch (error) {
-          setSaveError({ code: templateErrorCode(error), message: templateErrorMessage(error) });
+          setSaveError(saveErrorOf(error));
         }
       }),
     [id, accept, enqueue],
