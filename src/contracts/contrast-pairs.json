@@ -15,5 +15,13 @@
   {"name": "dark-subtitle", "fore": "night-2", "back": "night", "needed": 4.5},
   {"name": "soft-accent", "fore": "accent-dark", "back": "accent-light", "needed": 4.5},
   {"name": "soft-inverse", "fore": "night-ink", "back": "night", "needed": 4.5},
-  {"name": "deep-dive-list", "fore": "dd-on-night", "back": "night", "needed": 4.5}
+  {"name": "deep-dive-list", "fore": "dd-on-night", "back": "night", "needed": 4.5},
+  {"name": "dark-kicker", "fore": "accent-glow", "back": "night", "needed": 4.5},
+  {"name": "dark-chrome", "fore": "night-muted", "back": "night", "needed": 4.5},
+  {"name": "dark-soft-accent", "fore": "night-ink", "back": "accent", "needed": 4.5, "over": "night", "share": 0.24},
+  {"name": "dark-soft-positive", "fore": "night-ink", "back": "good", "needed": 4.5, "over": "night", "share": 0.22},
+  {"name": "dark-soft-negative", "fore": "night-ink", "back": "bad", "needed": 4.5, "over": "night", "share": 0.22},
+  {"name": "pin-solid-accent", "fore": "panel-accent-ink", "back": "night", "needed": 4.5, "over": "panel-accent", "share": 0.25},
+  {"name": "pin-solid-positive", "fore": "panel-positive-ink", "back": "night", "needed": 4.5, "over": "panel-positive", "share": 0.25},
+  {"name": "pin-solid-negative", "fore": "panel-negative-ink", "back": "night", "needed": 4.5, "over": "panel-negative", "share": 0.25}
 ]

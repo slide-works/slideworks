@@ -13,6 +13,15 @@ public static partial class Contrast
         return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
     }
 
+    // fg mixed over bg in sRGB at share (0 to 1): share 0 is bg, share 1 is fg. Returns #rrggbb.
+    public static string Mix(string fg, string bg, double share)
+    {
+        var f = Parse(fg);
+        var b = Parse(bg);
+        int Channel(int from, int to) => (int)Math.Round((from * share) + (to * (1 - share)), MidpointRounding.AwayFromZero);
+        return string.Create(CultureInfo.InvariantCulture, $"#{Channel(f.R, b.R):x2}{Channel(f.G, b.G):x2}{Channel(f.B, b.B):x2}");
+    }
+
     public static bool IsColour(string value) => TryParse(value, out _);
 
     private static (int R, int G, int B) Parse(string colour) =>

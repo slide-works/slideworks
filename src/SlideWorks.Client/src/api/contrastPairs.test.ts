@@ -35,6 +35,14 @@ const UNION: Record<ContrastPair, true> = {
   'soft-accent': true,
   'soft-inverse': true,
   'deep-dive-list': true,
+  'dark-kicker': true,
+  'dark-chrome': true,
+  'dark-soft-accent': true,
+  'dark-soft-positive': true,
+  'dark-soft-negative': true,
+  'pin-solid-accent': true,
+  'pin-solid-positive': true,
+  'pin-solid-negative': true,
 };
 
 const MEMBERS = ['name', 'fore', 'back', 'needed', 'over', 'share'];

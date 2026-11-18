@@ -103,6 +103,25 @@
   opacity: 1;
 }
 
+/* A dark content slide (K6, SW-454): the tracker and footer read on night. Tokens and color-mix() only; the always-dark
+   layouts carry data-dark and are left as they were. */
+.sw-frame[data-surface='dark']:not([data-dark='true']) .sw-tracker li {
+  color: var(--sw-night-muted);
+  opacity: 1;
+}
+
+.sw-frame[data-surface='dark']:not([data-dark='true']) .sw-tracker li[data-state='past'] {
+  border-top-color: color-mix(in srgb, var(--sw-accent) 45%, var(--sw-night));
+}
+
+.sw-frame[data-surface='dark']:not([data-dark='true']) .sw-tracker li[data-state='on'] {
+  color: var(--sw-accent-glow);
+}
+
+.sw-frame[data-surface='dark']:not([data-dark='true']) .sw-footer {
+  color: var(--sw-night-muted);
+}
+
 .sw-footer {
   position: absolute;
   right: var(--sw-slide-pad-x);
@@ -198,7 +217,8 @@
 
 /* On a dark slide the bar is the accent's glow, softened, as the night
    surface needs. */
-.sw-frame[data-dark='true'] .sw-progress {
+.sw-frame[data-dark='true'] .sw-progress,
+.sw-frame[data-surface='dark'] .sw-progress {
   background: var(--sw-accent-glow);
   opacity: 0.7;
 }
@@ -227,7 +247,8 @@
   right: 440px;
 }
 
-.sw-frame[data-dark='true'] .sw-join-bar {
+.sw-frame[data-dark='true'] .sw-join-bar,
+.sw-frame[data-surface='dark'] .sw-join-bar {
   background: color-mix(in srgb, var(--sw-night-ink) 10%, transparent);
 }
 

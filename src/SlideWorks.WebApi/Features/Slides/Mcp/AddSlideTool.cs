@@ -20,8 +20,8 @@ public sealed class AddSlideTool
         [Description("The layout's slots as a JSON object.")] JsonObject slots,
         [Description("The 1-based part this slide belongs to, or leave it out for none.")] int? part = null,
         [Description("The 1-based number the new slide takes; later slides move down. Leave it out to add the slide at the end.")] int? position = null,
-        [Description("Speaker notes. Viewers never see them.")] string? notes = null,
+        [Description("Speaker notes. Viewers never see them. Notes are plain text with two marks: **bold** for cues such as **Say:**, and a line that starts with '- ' for a list item. Nothing else is formatted.")] string? notes = null,
         [Description("true marks the slide as a deep dive: it shows the deep-dive mark, a divider that lists its part's deep dives lists it, and its notes read with a prefix telling the speaker to skip it if short of time. Leave it out for an ordinary slide.")] bool? deep_dive = null,
-        [Description("\"light\" or \"dark\", for a layout that can be drawn on either. Leave it out for the layout's own surface. A surface the layout cannot take is refused.")] JsonElement? surface = null)
+        [Description("\"light\" or \"dark\", for a layout whose surface is 'either' (list_layouts says which). Leave it out for the layout's own surface. A surface the layout cannot take is refused.")] JsonElement? surface = null)
         => McpToolErrors.Run(() => commands.AddAsync(new AddSlideRequest(deck, layout, JsonSerializer.SerializeToElement(slots), part, position, notes, deep_dive, SlideChecks.SurfaceWord(surface))));
 }
