@@ -9,7 +9,8 @@ namespace SlideWorks.WebApi.Features.Templates.Assets;
 public interface ITemplateAssets
 {
     // A one-time URL to PUT the file's bytes to. For the template's owner only: anyone else, as for an unknown
-    // template, gets NotFoundException. rightsConfirmed is kept only for a font and only from a person.
+    // template, gets NotFoundException. rightsConfirmed is kept only for a font and only from a person. Removes the
+    // template's used and expired starts, and refuses with too_many_uploads when 20 are still open.
     Task<AssetUploadStarted> StartUploadAsync(ICurrentActor actor, string templateId, TemplateAssetKind kind, string? fileName, bool rightsConfirmed);
 
     // The bytes of a started upload. The token is used up by the first call that presents it while it is live, whether

@@ -18,7 +18,9 @@ namespace SlideWorks.WebApi.Features.Templates.Assets;
 //
 // The token is 256 random bits, kept only as its SHA-256 hash, and lives 10 minutes. It works only while the template's
 // owner is still approved. It is used up by one conditional update before a byte of the body is read, so of two PUTs
-// racing with it exactly one goes on, and a refused file still uses it up.
+// racing with it exactly one goes on, and a refused file still uses it up. Each start first removes the template's
+// used and expired ones, so the rows do not pile up, and a template has at most 20 starts open at once. A used token
+// answers upload_used until its template's next start removes it; after that it is unknown.
 //
 // Nothing a caller sends reaches the file system: a file's path is its template's id plus the hash of its bytes, and
 // the name it was uploaded with is a label on its row. The type a file is served as comes from its kind's check, never
@@ -43,6 +45,7 @@ public class TemplateAssets(
     private const string EXPIRES_LABEL = "in 10 minutes";
     private const string EMPTY_META = "{}";
     private const int TOKEN_MAX_LENGTH = 128;
+    private const int MAX_LIVE_UPLOADS = 20;
     private static readonly TimeSpan UPLOAD_LIFETIME = TimeSpan.FromMinutes(10);
 
     public async Task<AssetUploadStarted> StartUploadAsync(ICurrentActor actor, string templateId, TemplateAssetKind kind, string? fileName, bool rightsConfirmed)
@@ -54,6 +57,17 @@ public class TemplateAssets(
         }
         var label = CheckFileName(fileName);
 
+        // One write transaction (SQLite's BEGIN IMMEDIATE): the template's finished starts go, and the count of live
+        // ones and the new row are read and written with no other start between them.
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var now = clock.GetUtcNow();
+        var starts = db.TemplateUploads.Where(u => u.TemplateId == templateId);
+        await starts.Where(u => u.UsedAt != null || u.ExpiresAt <= now).ExecuteDeleteAsync();
+        if (await starts.CountAsync() >= MAX_LIVE_UPLOADS)
+        {
+            throw TemplateRefusal.Of(TemplateErrorCodes.TOO_MANY_UPLOADS);
+        }
+
         var token = SecretTokens.New();
         db.TemplateUploads.Add(new TemplateUpload
         {
@@ -63,9 +77,10 @@ public class TemplateAssets(
             FileName = label,
             // Only a person can say they may serve a font (D68), and the word is about fonts alone.
             RightsConfirmed = rightsConfirmed && kind == TemplateAssetKind.Font && actor.Kind == ActorKind.Person,
-            ExpiresAt = clock.GetUtcNow() + UPLOAD_LIFETIME,
+            ExpiresAt = now + UPLOAD_LIFETIME,
         });
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
         return new AssetUploadStarted($"{urls.Base}/{UPLOAD_ROUTE}/{token}", EXPIRES_LABEL);
     }
 

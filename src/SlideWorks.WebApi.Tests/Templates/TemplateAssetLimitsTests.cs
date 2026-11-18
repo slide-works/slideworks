@@ -15,12 +15,15 @@ using SlideWorks.WebApi.Tests.Support;
 namespace SlideWorks.WebApi.Tests.Templates;
 
 // What one template may hold (T6). Its files are never removed, so every stored row counts against a file limit and a
-// byte limit. The limits are reached with rows from TemplateStorageSeed, not with 240 MB of uploads.
+// byte limit; and its upload starts are cleaned up by the next start and capped while they are open. The storage
+// limits are reached with rows from TemplateStorageSeed, not with 240 MB of uploads.
 [TestFixture]
 public class TemplateAssetLimitsTests : ApiTestFixture
 {
     private const string MANIFEST = """{"name":"Northwind"}""";
     private const string STORAGE_FULL_TEXT = "This template has stored too many files. Start a new template, or ask for unused files to be removed.";
+    private const string TOO_MANY_UPLOADS_TEXT = "Too many uploads are in progress for this template. Finish or wait for them to expire.";
+    private const int LIVE_STARTS = 20;
 
     [Test]
     public async Task Upload_WhenTheTemplateIsAtItsFileLimit_ShouldStoreNothing()
@@ -99,6 +102,59 @@ public class TemplateAssetLimitsTests : ApiTestFixture
         FilesOf(template).ShouldHaveSingleItem().ShouldBe(Sha256Of(font)[..32]);
     }
 
+    [Test]
+    public async Task StartUpload_WhenOldStartsHaveExpired_ShouldRemoveThem()
+    {
+        var template = await DraftAsync();
+        var other = await DraftAsync();
+        var usedUrl = await StartAsync(template, "logo", "mark.svg");
+        using var used = await PutAsync(usedUrl, Svg(4));
+        await StartAsync(other, "font", "theirs.woff2");
+
+        await StartAsync(template, "font", "one.woff2");
+        var afterAUsedOne = await UploadsAsync(template);
+        using var usedAgain = await PutAsync(usedUrl, Svg(4));
+        await StartAsync(template, "font", "two.woff2");
+        Clock.Advance(TimeSpan.FromSeconds(601));
+        await StartAsync(template, "font", "three.woff2");
+
+        used.StatusCode.ShouldBe(HttpStatusCode.OK, await used.Content.ReadAsStringAsync());
+        afterAUsedOne.ShouldHaveSingleItem().FileName.ShouldBe("one.woff2");
+        usedAgain.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await UploadsAsync(template)).ShouldHaveSingleItem().FileName.ShouldBe("three.woff2");
+        // Another template's starts are not this start's to remove, expired or not.
+        (await UploadsAsync(other)).ShouldHaveSingleItem().FileName.ShouldBe("theirs.woff2");
+    }
+
+    [Test]
+    public async Task StartUpload_WhenTwentyAreLive_ShouldRefuse()
+    {
+        var template = await DraftAsync();
+        var other = await DraftAsync();
+        for (var i = 0; i < LIVE_STARTS; i++)
+        {
+            await StartAsync(template, "font", $"font-{i}.woff2");
+        }
+
+        using var refused = await PostStartAsync(template, "font", "one-more.woff2");
+        var body = await refused.Content.ReadFromJsonAsync<JsonElement>();
+        var whileFull = await UploadsAsync(template);
+        using var elsewhere = await PostStartAsync(other, "font", "elsewhere.woff2");
+        Clock.Advance(TimeSpan.FromSeconds(601));
+        using var later = await PostStartAsync(template, "font", "later.woff2");
+
+        refused.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        body.GetProperty("error").GetString().ShouldBe(TemplateErrorCodes.TOO_MANY_UPLOADS);
+        body.GetProperty("error").GetString().ShouldBe("too_many_uploads");
+        body.GetProperty("message").GetString().ShouldBe(TOO_MANY_UPLOADS_TEXT);
+        body.GetProperty("errors").GetArrayLength().ShouldBe(0);
+        whileFull.Count.ShouldBe(LIVE_STARTS);
+        whileFull.ShouldNotContain(u => u.FileName == "one-more.woff2");
+        elsewhere.StatusCode.ShouldBe(HttpStatusCode.Created);
+        later.StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await UploadsAsync(template)).ShouldHaveSingleItem().FileName.ShouldBe("later.woff2");
+    }
+
     private TemplateAssetStore Store => Factory.Services.GetRequiredService<TemplateAssetStore>();
 
     private Task<string> DraftAsync() => TemplateRowSeed.DraftAsync(Factory, TestUser.Sam, MANIFEST);
@@ -126,6 +182,12 @@ public class TemplateAssetLimitsTests : ApiTestFixture
     {
         await using var scope = Factory.Services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<AppDbContext>().TemplateAssets.AsNoTracking().Where(a => a.TemplateId == template).ToListAsync();
+    }
+
+    private async Task<IReadOnlyList<TemplateUpload>> UploadsAsync(string template)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().TemplateUploads.AsNoTracking().Where(u => u.TemplateId == template).ToListAsync();
     }
 
     // The names of the files stored for a template.
