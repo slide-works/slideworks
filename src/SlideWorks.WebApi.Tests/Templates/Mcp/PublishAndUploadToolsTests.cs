@@ -87,6 +87,32 @@ public class PublishAndUploadToolsTests : ApiTestFixture
         content.GetProperty("curl").GetString().ShouldBe($"curl -T 'hero layout.json' \"{RecordingAssets.URL}\"");
     }
 
+    [TestCase("-", "./-")]
+    [TestCase("-rf.woff2", "./-rf.woff2")]
+    [TestCase("-my font.woff2", "'-my font.woff2'")]
+    public async Task UploadAsset_WhenTheNameStartsWithADash_ShouldNotLetCurlReadItAsAnOption(string filename, string written)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        var (isError, content) = await agent.CallToolAsync("upload_asset", new { template = TEMPLATE, kind = "font", filename });
+
+        isError.ShouldBeFalse();
+        content.GetProperty("curl").GetString().ShouldBe($"curl -T {written} \"{RecordingAssets.URL}\"");
+    }
+
+    [Test]
+    public async Task UploadAsset_WhenRightsConfirmedIsSentOnTheWire_ShouldRefuseItAsUnknownAndStartNothing()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var before = _assets.Starts.Count;
+
+        var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "upload_asset", $$"""{"template":"{{TEMPLATE}}","kind":"font","filename":"brand-sans.woff2","rights_confirmed":true}""");
+
+        result.GetProperty("isError").GetBoolean().ShouldBeTrue(result.GetRawText());
+        McpWire.TextOf(result).ShouldContain("rights_confirmed: unknown argument");
+        _assets.Starts.Count.ShouldBe(before);
+    }
+
     [Test]
     public async Task UploadAsset_WhenKindIsUnknown_ShouldNameTheKinds()
     {

@@ -17,7 +17,7 @@ public sealed class UploadAssetTool
     private static readonly string[] KINDS = ["font", "logo", "art", "layout"];
 
     [McpServerTool(Name = "upload_asset")]
-    [Description("Start the upload of one file for a template draft you own: a font (WOFF2), a logo or art (SVG or PNG), or a custom layout. Returns upload_url, a curl line to run, the kind and when the address expires. Run the curl line, one file after another: the address works once, and the upload answers { assetId, kind, fileName, contentType, bytes, meta }. Put that assetId in the manifest with update_template. You cannot confirm font rights: a person ticks them in the template's editor before it can be published. A layout is one JSON document { markup, css, slots }; if the upload refuses it, the answer lists each finding with its path, code and message.")]
+    [Description("Start the upload of one file for a template draft you own: a font (WOFF2), a logo or art (SVG or PNG), or a custom layout. Returns upload_url, a curl line to run, the kind and when the address expires. Run the curl line, one file after another: the address works once, and the upload answers { assetId, kind, fileName, contentType, bytes, meta }. Put that assetId in the manifest with update_template. You cannot confirm font rights: a person ticks them in the template's editor before it can be published. A layout is one JSON document { markup, css, slots }; if the upload refuses it, the answer carries the error code and message, plus each finding's path, code and message when there are any.")]
     public Task<CallToolResult> UploadAsset(
         ITemplateAssets assets,
         ICurrentActor actor,
@@ -39,9 +39,15 @@ public sealed class UploadAssetTool
             : (TemplateAssetKind)index;
     }
 
-    // Left as it is when a shell would read it as one word, else in single quotes.
+    // Left as it is when a shell would read it as one word, else in single quotes. A name that starts with a dash would be
+    // read as an option, so it is written as ./name.
     private static string Quote(string name)
-        => name.Length > 0 && name.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-' or '/')
-            ? name
-            : $"'{name.Replace("'", "'\\''")}'";
+    {
+        var safe = name.Length > 0 && name.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-' or '/');
+        if (safe)
+        {
+            return name[0] == '-' ? $"./{name}" : name;
+        }
+        return $"'{name.Replace("'", "'\\''")}'";
+    }
 }
