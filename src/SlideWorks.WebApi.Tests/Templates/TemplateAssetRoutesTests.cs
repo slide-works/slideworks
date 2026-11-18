@@ -418,6 +418,58 @@ public class TemplateAssetRoutesTests : ApiTestFixture
         withAForgery.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
+    // A render token opens the files of its own deck's template and no other template's, even one of the same owner.
+    [Test]
+    public async Task Serve_WhenARenderTokenIsForADeckOnAnotherTemplate_ShouldBe404()
+    {
+        var templateA = await DraftAsync();
+        var templateB = await DraftAsync();
+        var fontA = await UploadAsync(templateA, "font", "inter-a.woff2", FontFixtures.Normal());
+        var fontB = await UploadAsync(templateB, "font", "wide-b.woff2", FontFixtures.Wide());
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        await PutDeckOnAsync(deck, templateA);
+        var token = Factory.Services.GetRequiredService<IRenderTokens>().Issue(deck, RenderPurpose.Preview);
+
+        using var own = await GetWithRenderTokenAsync($"/api/templates/{templateA}/assets/{fontA}", token);
+        using var other = await GetWithRenderTokenAsync($"/api/templates/{templateB}/assets/{fontB}", token);
+        using var crossed = await GetWithRenderTokenAsync($"/api/templates/{templateA}/assets/{fontB}", token);
+        using var unknown = await GetWithRenderTokenAsync($"/api/templates/{templateB}/assets/{new string('0', 32)}", token);
+
+        fontB.ShouldNotBe(fontA);
+        own.StatusCode.ShouldBe(HttpStatusCode.OK);
+        other.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        crossed.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await other.Content.ReadAsStringAsync()).ShouldBe(await unknown.Content.ReadAsStringAsync());
+    }
+
+    // The page's own path: it trades the header for the sw_render cookie, and a browser sends only the cookie after that.
+    [Test]
+    public async Task Serve_WhenTheRenderCookieIsSent_ShouldServeOnlyTheDecksTemplate()
+    {
+        var templateA = await DraftAsync();
+        var templateB = await DraftAsync();
+        var fontA = await UploadAsync(templateA, "font", "inter-a.woff2", FontFixtures.Normal());
+        var fontB = await UploadAsync(templateB, "font", "wide-b.woff2", FontFixtures.Wide());
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        await PutDeckOnAsync(deck, templateA);
+        var token = Factory.Services.GetRequiredService<IRenderTokens>().Issue(deck, RenderPurpose.Preview);
+        using var browser = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
+        using var before = await browser.GetAsync($"/api/templates/{templateA}/assets/{fontA}");
+        using var start = new HttpRequestMessage(HttpMethod.Post, $"/api/render/{deck}/session");
+        start.Headers.Add(RenderSessions.HEADER, token);
+        using var started = await browser.SendAsync(start);
+
+        using var withCookie = await browser.GetAsync($"/api/templates/{templateA}/assets/{fontA}");
+        using var otherTemplate = await browser.GetAsync($"/api/templates/{templateB}/assets/{fontB}");
+
+        before.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        started.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        started.Headers.GetValues("Set-Cookie").ShouldContain(cookie => cookie.StartsWith("sw_render=", StringComparison.Ordinal) && cookie.Contains("path=/api/templates", StringComparison.OrdinalIgnoreCase));
+        withCookie.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await withCookie.Content.ReadAsByteArrayAsync()).ShouldBe(FontFixtures.Normal());
+        otherTemplate.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
     [Test]
     public async Task ConfirmRights_WhenTheOwnerAsks_ShouldSetEveryFont()
     {

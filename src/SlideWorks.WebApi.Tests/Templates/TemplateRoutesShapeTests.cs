@@ -269,8 +269,8 @@ public class TemplateRoutesShapeTests : ApiTestFixture
 
         var review = await new TemplatePublishing(scope.ServiceProvider.GetRequiredService<AppDbContext>(), TimeProvider.System)
             .LayoutReviewAsync(actor, "tpl_stub00000001", "stage-ladder");
-        var sharing = await new StubTemplateSharing().GetAsync(actor, "tpl_stub00000001");
-        var page = await new StubTemplateSharing().PublicAsync(actor, "tpl_stub00000001");
+        var sharing = TemplateSamples.Read<TemplateSharingView>(TemplateSamples.SHARING);
+        var page = TemplateSamples.Read<TemplatePublicView>(TemplateSamples.PUBLIC);
 
         JsonShape.AssertMatches(Wire(review), TemplateScreenShapes.LAYOUT_REVIEW_FILE, TemplateScreenShapes.LayoutReview);
         JsonShape.AssertMatches(Wire(sharing), TemplateScreenShapes.SHARING_FILE, TemplateScreenShapes.Sharing);
