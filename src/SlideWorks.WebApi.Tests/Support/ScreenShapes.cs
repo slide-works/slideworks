@@ -92,13 +92,14 @@ public static class ScreenShapes
         OpaquePaths = ["state.current.slots"],
     };
 
-    // The same paths for the whole file, which JsonShape checks against itself.
+    // The same paths for the whole file, which JsonShape checks against itself. Each sample's look is a built-in's.
     public static readonly JsonShapeOptions GuestFile = new()
     {
         NullablePaths =
         [
             "live.state.activity", "lobby.deckUrl", "lobby.state.current", "lobby.state.activity", "lobby.state.room",
             "ended.state.current", "ended.state.activity", "ended.state.room",
+            .. LookNullablePathsUnder("live."), .. LookNullablePathsUnder("lobby."), .. LookNullablePathsUnder("ended."),
         ],
         OpaquePaths = ["live.state.current.slots"],
     };
@@ -222,10 +223,23 @@ public static class ScreenShapes
         NullablePaths = ["live.questions[].name", "notLive.round", "notLive.here", "notLive.onScreen"],
     };
 
+    // A sample that carries a built-in deck's look, checked against itself: only what a built-in leaves null in a look
+    // may be null (T7), under the look's place in the file.
+    private static JsonShapeOptions BuiltInLookFile(string under = "") => new()
+    {
+        NullablePaths = LookNullablePathsUnder(under),
+        OpaquePaths = ["slides[].slots"],
+    };
+
+    private static IReadOnlyList<string> LookNullablePathsUnder(string prefix) => LookNullablePaths.Select(path => prefix + path).ToList();
+
     // The nullable and opaque paths for each screen file when JsonShapeTests checks a sample against itself. A file with
-    // no entry is checked with slides[].slots opaque, which is every play-shaped screen.
+    // no entry is checked with slides[].slots opaque, which is every play-shaped screen. The six deck samples show a
+    // built-in deck as the server sends it, so their looks hold a built-in's nulls.
     public static JsonShapeOptions SelfCheckOf(string file) => file switch
     {
+        "deck-play.json" or "deck-page.json" or "presenter.json" or "card.json" => BuiltInLookFile(),
+        "look-change.json" => BuiltInLookFile("response."),
         "guest.json" => GuestFile,
         "audience-events.json" => AudienceEvents,
         "poll-activity.json" => _pollActivityFile,

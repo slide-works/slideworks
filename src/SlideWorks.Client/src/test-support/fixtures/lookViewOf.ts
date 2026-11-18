@@ -14,6 +14,7 @@ import type {
 } from '../../api/types';
 import { lookOf } from '../../look/lookOf';
 import type { LayoutName } from '../../slides/slots';
+import { templatePublic } from './templates';
 import type { Widen } from './widen';
 
 // One entry of templates.json: the catalogue's own shape, which GET /api/looks
@@ -129,3 +130,8 @@ export function lookViewOf(
     ...overrides,
   };
 }
+
+// The look of a deck on an uploaded template, from template-public.json: fonts, both logos, an image title art,
+// ornament colours, the accent top bar, versions and an extra colour. For whatever draws what a template brings;
+// every other fixture look is a built-in's, with none of it.
+export const uploadedLook: LookView = templatePublic.look;

@@ -385,6 +385,19 @@ function nullPaths(value: unknown, path = '$'): string[] {
   return [];
 }
 
+// What a built-in template leaves null in a look (T7), in the order the look holds them; the server's
+// ScreenShapes.LookNullablePaths declares the same six. The deck samples show a built-in deck as the server sends it, so
+// these are their only nulls; template-public.json is the sample of an uploaded template, with every one filled.
+const LOOK_NULLABLE = [
+  'logos.light',
+  'logos.dark',
+  'art.generator',
+  'art.url',
+  'templateVersion',
+  'latestVersion',
+];
+const builtInLookNulls = LOOK_NULLABLE.map((member) => `$.look.${member}`);
+
 function expectSlots(layout: string, slots: object) {
   expect(LAYOUT_NAMES).toContain(layout);
   const allowed: readonly string[] = SLOT_KEYS[layout as LayoutName];
@@ -456,8 +469,9 @@ function expectDeckRow(row: DeckRow, expected: string[]) {
 
 describe('screen JSON examples', () => {
   it('give every nullable field a non-null value', () => {
-    for (const screen of [me, adminUsers, decksLibrary, deckPage, deckPlay, sharing])
+    for (const screen of [me, adminUsers, decksLibrary, sharing])
       expect(nullPaths(screen)).toEqual([]);
+    for (const screen of [deckPage, deckPlay]) expect(nullPaths(screen)).toEqual(builtInLookNulls);
   });
 
   it('me.json matches MeView', () => {
@@ -559,7 +573,7 @@ describe('screen JSON examples', () => {
 
   it('look-change.json holds a LookChangeRequest and a LookChangeResult', () => {
     expect(nullPaths(lookChangeRequest)).toEqual([]);
-    expect(nullPaths(lookChangeResult)).toEqual([]);
+    expect(nullPaths(lookChangeResult)).toEqual(builtInLookNulls);
     expect(sorted(lookChangeRequest)).toEqual(LOOK_CHANGE_REQUEST);
     for (const key of Object.keys(lookChangeRequest.chrome!))
       expect(CHROME_OVERRIDES).toContain(key);
@@ -569,7 +583,7 @@ describe('screen JSON examples', () => {
   });
 
   it('card.json matches CardView', () => {
-    expect(nullPaths(card)).toEqual([]);
+    expect(nullPaths(card)).toEqual(builtInLookNulls);
     expect(sorted(card)).toEqual(CARD);
     expect(card.generic).toBe(false);
     expectLook(card.look);

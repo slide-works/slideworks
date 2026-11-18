@@ -115,22 +115,22 @@
     },
     "fonts": [],
     "logos": {
-      "light": "/api/templates/workshop/assets/d00cf13ae19e49cf841ea758a9b84460",
-      "dark": "/api/templates/workshop/assets/ee2e8795ed476090d166cdac72ca2ae9",
+      "light": null,
+      "dark": null,
       "showOnDark": false
     },
     "art": {
-      "kind": "generator",
-      "generator": "waves",
-      "url": "/api/templates/workshop/assets/7fcef0f7c16a0ee4ecd9098d9b4ecc8c"
+      "kind": "none",
+      "generator": null,
+      "url": null
     },
     "ornament": {
       "colours": []
     },
     "topBar": "none",
     "templateRef": "workshop",
-    "templateVersion": 2,
-    "latestVersion": 2,
+    "templateVersion": null,
+    "latestVersion": null,
     "extras": [],
     "customLayouts": [],
     "draft": true,
