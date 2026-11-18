@@ -121,17 +121,22 @@ public class DeckCommands(
     private static bool IsJoinCodeConflict(DbUpdateException ex)
         => ex.InnerException is SqliteException { SqliteErrorCode: SQLITE_CONSTRAINT } inner && inner.Message.Contains("Decks.JoinCode", StringComparison.Ordinal);
 
-    private static string Required(string field, string? value, int maxLength)
-        => Optional(field, value, maxLength) ?? throw new BadRequestException($"{field}: required");
+    private static string Required(string field, string? value, int maxLength, bool showLength = false)
+        => Optional(field, value, maxLength, showLength) ?? throw new BadRequestException($"{field}: required");
 
-    private static string? Optional(string field, string? value, int maxLength)
+    private static string? Optional(string field, string? value, int maxLength, bool showLength = false)
     {
         var text = value?.Trim();
         if (string.IsNullOrEmpty(text))
         {
             return null;
         }
-        return text.Length <= maxLength ? text : throw new BadRequestException($"{field}: at most {maxLength} characters");
+        if (text.Length <= maxLength)
+        {
+            return text;
+        }
+        var got = showLength ? $" (got {text.Length})" : "";
+        throw new BadRequestException($"{field}: at most {maxLength} characters{got}");
     }
 
     private static IReadOnlyList<DeckPart> Parts(IReadOnlyList<JsonElement>? items)
@@ -157,7 +162,7 @@ public class DeckCommands(
     {
         if (item.ValueKind == JsonValueKind.String)
         {
-            return new DeckPart(Required(path, item.GetString(), DeckParts.MAX_NAME_LENGTH));
+            return new DeckPart(Required(path, item.GetString(), DeckParts.MAX_NAME_LENGTH, showLength: true));
         }
         if (item.ValueKind != JsonValueKind.Object)
         {
@@ -169,10 +174,10 @@ public class DeckCommands(
             throw new BadRequestException($"{path}.{unknown}: unknown field");
         }
         return new DeckPart(
-            Optional($"{path}.name", Field(path, item, "name"), DeckParts.MAX_NAME_LENGTH) ?? throw new BadRequestException($"{path}: required"),
-            Optional($"{path}.short", Field(path, item, "short"), DeckParts.MAX_SHORT_LENGTH),
-            Optional($"{path}.caption", Field(path, item, "caption"), DeckParts.MAX_CAPTION_LENGTH),
-            Optional($"{path}.mark", Field(path, item, "mark"), DeckParts.MAX_MARK_LENGTH));
+            Optional($"{path}.name", Field(path, item, "name"), DeckParts.MAX_NAME_LENGTH, showLength: true) ?? throw new BadRequestException($"{path}: required"),
+            Optional($"{path}.short", Field(path, item, "short"), DeckParts.MAX_SHORT_LENGTH, showLength: true),
+            Optional($"{path}.caption", Field(path, item, "caption"), DeckParts.MAX_CAPTION_LENGTH, showLength: true),
+            Optional($"{path}.mark", Field(path, item, "mark"), DeckParts.MAX_MARK_LENGTH, showLength: true));
     }
 
     private static string? Field(string path, JsonElement item, string name)

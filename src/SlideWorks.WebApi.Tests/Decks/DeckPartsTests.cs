@@ -36,6 +36,34 @@ public class DeckPartsTests : ApiTestFixture
     }
 
     [Test]
+    public async Task CreateDeck_WhenAPartHasShortCaptionAndMark_ShouldReadThemBackUnchanged()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var parts = new object[] { "One", new { name = "Appendix", @short = "App", caption = "Extras", mark = "A" } };
+
+        var (isError, json) = await agent.CallToolAsync("create_deck", new { title = "Ship smaller", parts });
+
+        isError.ShouldBeFalse(json.ToString());
+        var (_, got) = await agent.CallToolAsync("get_deck", new { deck = json.GetProperty("deck").GetString() });
+        var part = got.GetProperty("parts")[1];
+        part.GetProperty("name").GetString().ShouldBe("Appendix");
+        part.GetProperty("short").GetString().ShouldBe("App");
+        part.GetProperty("caption").GetString().ShouldBe("Extras");
+        part.GetProperty("mark").GetString().ShouldBe("A");
+    }
+
+    [Test]
+    public async Task CreateDeck_WhenEveryPartIsMarked_ShouldAcceptIt()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var parts = new object[] { new { name = "Intro", mark = "I" }, new { name = "Appendix", mark = "A" } };
+
+        var (isError, json) = await agent.CallToolAsync("create_deck", new { title = "Ship smaller", parts });
+
+        isError.ShouldBeFalse(json.ToString());
+    }
+
+    [Test]
     public async Task CreateDeck_WhenPartsAreStrings_ShouldStillWork()
     {
         var response = await Client.PostAsJsonAsync("/api/decks", new { title = "Ship smaller", parts = new[] { "One", "Two" } });
@@ -62,7 +90,7 @@ public class DeckPartsTests : ApiTestFixture
     {
         var error = await RefusalAsync(new object[] { "One", new { name = "Two", @short = new string('s', 17) } });
 
-        error.ShouldContain("parts[1].short: at most 16 characters");
+        error.ShouldContain("parts[1].short: at most 16 characters (got 17)");
     }
 
     [Test]
@@ -74,8 +102,10 @@ public class DeckPartsTests : ApiTestFixture
     }
 
     [TestCase("""{"name":"Two","colour":"red"}""", "parts[1].colour: unknown field")]
-    [TestCase("""{"name":"Two","mark":"ABC"}""", "parts[1].mark: at most 2 characters")]
-    [TestCase("""{"name":"Two","caption":"0123456789012345678901234"}""", "parts[1].caption: at most 24 characters")]
+    [TestCase("""{"name":"Two","mark":"ABC"}""", "parts[1].mark: at most 2 characters (got 3)")]
+    [TestCase("""{"name":"Two","caption":"0123456789012345678901234"}""", "parts[1].caption: at most 24 characters (got 25)")]
+    [TestCase("""{"name":"01234567890123456789012345678901234567890"}""", "parts[1].name: at most 40 characters (got 41)")]
+    [TestCase("\"01234567890123456789012345678901234567890\"", "parts[1]: at most 40 characters (got 41)")]
     [TestCase("""{"name":""}""", "parts[1]: required")]
     [TestCase("3", "parts[1]: must be a name or {name, short, caption, mark}")]
     public async Task CreateDeck_WhenAPartIsMalformed_ShouldRefuse(string part, string error)
@@ -83,7 +113,7 @@ public class DeckPartsTests : ApiTestFixture
         var response = await Client.PostAsync("/api/decks", new StringContent($$"""{"title":"T","parts":["One",{{part}}]}""", System.Text.Encoding.UTF8, "application/json"));
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldStartWith(error);
+        (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe(error);
     }
 
     [Test]
