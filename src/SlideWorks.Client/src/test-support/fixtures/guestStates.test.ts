@@ -20,7 +20,16 @@ describe('guest.json', () => {
 
   it('carries the slide on screen only while live', () => {
     const current = guestView('live').state.current!;
-    expect(keys(current)).toEqual(['black', 'count', 'index', 'layout', 'slots', 'step', 'steps', 'surface']);
+    expect(keys(current)).toEqual([
+      'black',
+      'count',
+      'index',
+      'layout',
+      'slots',
+      'step',
+      'steps',
+      'surface',
+    ]);
     expect(LAYOUT_NAMES).toContain(current.layout);
     expect(guestView('lobby').state.current).toBeNull();
     expect(guestView('ended').state.current).toBeNull();
