@@ -68,7 +68,6 @@ public static class CompareLayout
             if (height > budget)
             {
                 SlideFit.Check(height, $"{path}.{side}", validation, budget);
-                return;
             }
         }
     }

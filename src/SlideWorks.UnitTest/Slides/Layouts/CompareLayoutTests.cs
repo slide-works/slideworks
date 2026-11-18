@@ -69,6 +69,18 @@ public class CompareLayoutTests
     }
 
     [Test]
+    public void Validate_WhenBothPanelsPassTheBody_ShouldNameBoth()
+    {
+        const string PANEL = "'points': ['p', 'p', 'p', 'p'], 'stamp': 'S', 'footer': 'f'";
+
+        Validate(Compare(PANEL, extra: CALLOUT, success: PANEL)).Errors.ShouldBe(
+        [
+            "compare.failure: too much text to fit on the slide (about 554 px of 496.2 px); use fewer or shorter items",
+            "compare.success: too much text to fit on the slide (about 554 px of 496.2 px); use fewer or shorter items",
+        ]);
+    }
+
+    [Test]
     public void Validate_WhenTheIconIsUnknown_ShouldRefuse()
     {
         Validate(Compare($"{POINTS}, 'icon': 'zzzzzzzzzz'")).Errors
