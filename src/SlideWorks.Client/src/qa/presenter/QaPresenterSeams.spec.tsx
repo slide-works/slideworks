@@ -261,8 +261,8 @@ test('PresenterPage_WhenQPressed_ShouldOpenAndCloseTheQuestionsPanel', async ({ 
   await expect(page.getByTestId('presenter-page')).toBeFocused();
   await page.keyboard.press(' ');
   await expect(page.getByTestId('presenter-count')).toHaveText('9 / 16');
-  // The stub provider has no view yet, so the tool shows no count.
-  await expect(page.getByTestId(QUESTIONS_TOOL_COUNT_TEST_ID)).toHaveCount(0);
+  // The real provider has read the live sample: 3 open plus 1 waiting.
+  await expect(page.getByTestId(QUESTIONS_TOOL_COUNT_TEST_ID)).toHaveText(/(^|\D)4(\D|$)/);
 
   await tool.click();
   await expect(panel).toHaveCount(1);
