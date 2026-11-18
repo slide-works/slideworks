@@ -221,11 +221,13 @@ describe('QuestionsLive reads', () => {
     await render(view.room);
     expect(latest().state).toBe('failed');
     expect(latest().error).toBe('no_session');
+    expect(latest().errorFrom).toBe('read');
 
     await act(async () => latest().retry());
 
     expect(latest().state).toBe('ready');
     expect(latest().error).toBeNull();
+    expect(latest().errorFrom).toBeNull();
   });
 });
 
@@ -295,6 +297,7 @@ describe('QuestionsLive asks', () => {
 
     expect(latest().asking).toBe('failed');
     expect(latest().error).toBe('questions_closed');
+    expect(latest().errorFrom).toBe('ask');
   });
 
   it('a 429 is limited, and retryIn counts down to 0 by whole seconds and returns to idle', async () => {
@@ -415,6 +418,20 @@ describe('QuestionsLive votes', () => {
 
     expect(latest().mine).toEqual(view.mine);
     expect(latest().error).toBe('picks: unknown question 2');
+    expect(latest().errorFrom).toBe('vote');
+  });
+
+  it('a failed upvote after a refused ask says it came from the vote, while asking stays failed', async () => {
+    api.postQuestion.mockResolvedValueOnce({ type: 'refused', error: 'questions_closed' });
+    api.putVotes.mockResolvedValueOnce({ type: 'limited' });
+    await render(view.room);
+
+    await act(() => latest().ask('Why?', null));
+    await act(async () => latest().toggleVote(2));
+
+    expect(latest().asking).toBe('failed');
+    expect(latest().error).toBe('too_many_votes');
+    expect(latest().errorFrom).toBe('vote');
   });
 });
 

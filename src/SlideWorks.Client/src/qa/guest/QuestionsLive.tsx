@@ -589,6 +589,7 @@ export function QuestionsLive({ code, room, status, showing, children }: Questio
       asking: held.asking,
       retryIn: held.retryIn,
       error: held.error,
+      errorFrom: held.errorFrom,
       toggleVote: session.toggleVote,
       retry: session.retry,
       sort: held.sort,

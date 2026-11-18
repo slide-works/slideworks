@@ -15,6 +15,10 @@ export type QuestionsState = 'loading' | 'ready' | 'failed';
 // - failed: a refusal (409 questions_closed, a 400 rule) or a failure; `error` says which, and the draft stays.
 export type AskingState = 'idle' | 'sending' | 'queued' | 'limited' | 'failed';
 
+// Which call the current error came from: the list's read, an ask or an upvote. The list shows a read's or an upvote's
+// error; the ask sheet shows an ask's.
+export type QuestionErrorFrom = 'read' | 'ask' | 'vote';
+
 // How the list is ordered: top by votes (ties to the older question), new with the newest first.
 export type QuestionSort = 'top' | 'new';
 
@@ -38,6 +42,8 @@ export type Questions = {
   // The latest failure's code or rule from the server ("questions_closed", "text: at most 200"), or the client's own
   // text for a call that never reached it. Null when nothing has failed since the last success.
   error: string | null;
+  // The call `error` came from (Q8, amended in wave 1): null exactly when error is null.
+  errorFrom: QuestionErrorFrom | null;
   // Adds or takes back this guest's upvote on question `number`.
   toggleVote(number: number): void;
   // Reads the list again: the failed state's "Try again".
