@@ -1,15 +1,38 @@
 // Single fetch wrapper for all API calls. The session is the browser's cookie, sent on same-origin requests only, and
 // the browser adds Origin and Sec-Fetch-Site itself, which the server's cross-site write guard checks. It parses the
-// API's { error } body on failure, and a 401 from any call mid-session (an expired cookie) goes to the registered
+// API's { error } body on failure (and keeps a refusal's message, path and errors on the ApiError), and a 401 from any call mid-session (an expired cookie) goes to the registered
 // handler, which by default sends the person to sign in and back. A 403 { error: 'pending_approval' } goes to its own
 // handler, which by default sends the person to /pending.
 
+// One entry of a refusal body's `errors`: the field it is about, its code and its text.
+export type ApiFieldError = { path: string; code: string; message: string };
+
+// What a failure body carried beyond the text ApiError.message holds. `code` is the body's `error`
+// as sent: a code on the routes that refuse with { error, message, path?, errors? }, the sentence
+// itself on the routes that answer { error: "<sentence>" }. `detail` is the body's `message`.
+export type ApiFailureBody = {
+  code?: string;
+  detail?: string;
+  path?: string;
+  errors?: ApiFieldError[];
+};
+
 export class ApiError extends Error {
+  public readonly code?: string;
+  public readonly detail?: string;
+  public readonly path?: string;
+  public readonly errors?: ApiFieldError[];
+
   constructor(
     message: string,
     public readonly status: number,
+    body: ApiFailureBody = {},
   ) {
     super(message);
+    if (body.code !== undefined) this.code = body.code;
+    if (body.detail !== undefined) this.detail = body.detail;
+    if (body.path !== undefined) this.path = body.path;
+    if (body.errors !== undefined) this.errors = body.errors;
   }
 }
 
@@ -59,29 +82,47 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   });
   if (response.status === 401) {
     if (path !== SESSION_CHECK_PATH) onUnauthorized();
-    throw new ApiError(await errorMessage(response), 401);
+    throw await failure(response);
   }
   if (!response.ok) {
-    const message = await errorMessage(response);
+    const error = await failure(response);
     if (
       response.status === 403 &&
-      message === PENDING_APPROVAL_ERROR &&
+      error.message === PENDING_APPROVAL_ERROR &&
       path !== SESSION_CHECK_PATH
     ) {
       onPendingApproval();
     }
-    throw new ApiError(message, response.status);
+    throw error;
   }
   return response.status === 204 ? (undefined as T) : response.json();
 }
 
-async function errorMessage(response: Response): Promise<string> {
+// A failed response as an ApiError. Its message is the body's `error`, or a generic sentence when
+// the body has none or is not JSON; the body's other members ride along for callers that show them.
+async function failure(response: Response): Promise<ApiError> {
+  const generic = `Request failed (${response.status})`;
+  let parsed: unknown;
   try {
-    const parsed = (await response.json()) as { error?: string };
-    return parsed.error ?? `Request failed (${response.status})`;
+    parsed = await response.json();
   } catch {
-    return `Request failed (${response.status})`;
+    return new ApiError(generic, response.status);
   }
+  if (typeof parsed !== 'object' || parsed === null) return new ApiError(generic, response.status);
+
+  const { error, message, path, errors } = parsed as Record<string, unknown>;
+  const body: ApiFailureBody = {};
+  if (typeof error === 'string') body.code = error;
+  if (typeof message === 'string') body.detail = message;
+  if (typeof path === 'string') body.path = path;
+  if (Array.isArray(errors)) body.errors = errors.filter(isFieldError);
+  return new ApiError(body.code ?? generic, response.status, body);
+}
+
+function isFieldError(value: unknown): value is ApiFieldError {
+  if (typeof value !== 'object' || value === null) return false;
+  const { path, code, message } = value as Record<string, unknown>;
+  return typeof path === 'string' && typeof code === 'string' && typeof message === 'string';
 }
 
 export const api = {

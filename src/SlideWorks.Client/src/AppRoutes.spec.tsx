@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import { AppRoutes } from './AppRoutes';
+import { GoTo } from './test-support/GoTo';
 import { LocationProbe } from './test-support/LocationProbe';
 import { adminUsers, card as cardView, me, sampleDeck } from './test-support/fixtures/screens';
 import { stubApi } from './test-support/stubApi';
+import { stubTemplatesApi } from './test-support/stubTemplatesApi';
+import { TEMPLATES_TEST_IDS } from './templates/testIds';
 
 test('signed out → /signin', async ({ mount, page }) => {
   await stubApi(page, { '/api/me': { status: 401, json: { error: 'Not signed in' } } });
@@ -210,4 +213,47 @@ test('pending person on /remote lands on /pending', async ({ mount, page }) => {
   );
   await expect(page.getByTestId('pending-page')).toBeAttached();
   await expect(page.getByTestId('location')).toHaveText('/pending');
+});
+
+test('templates routes resolve', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { json: me } });
+  await stubTemplatesApi(page);
+  await mount(
+    <GoTo>
+      <LocationProbe>
+        <AppRoutes />
+      </LocationProbe>
+    </GoTo>,
+    { hooksConfig: { route: '/decks' } },
+  );
+  await expect(page.getByTestId('app-shell')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Templates' }).click();
+  await expect(page.getByTestId(TEMPLATES_TEST_IDS.page)).toBeVisible();
+  await expect(page.getByTestId('location')).toHaveText('/templates');
+
+  for (const [path, testId] of [
+    ['/templates/tpl_Nw4kT8pQz2Lm/edit', TEMPLATES_TEST_IDS.editor],
+    ['/templates/tpl_Nw4kT8pQz2Lm/layouts/stage-ladder', TEMPLATES_TEST_IDS.layoutReviewPage],
+  ]) {
+    await page.getByTestId('goto-path').fill(path);
+    await page.getByTestId('goto').click();
+    await expect(page.getByTestId(testId)).toBeVisible();
+    await expect(page.getByTestId('app-shell')).toBeVisible();
+    await expect(page.getByTestId('location')).toHaveText(path);
+  }
+});
+
+test("a template's page renders without sign-in or the shell", async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { status: 401, json: { error: 'Not signed in' } } });
+  await stubTemplatesApi(page);
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    { hooksConfig: { route: '/t/tpl_Nw4kT8pQz2Lm' } },
+  );
+  await expect(page.getByTestId(TEMPLATES_TEST_IDS.publicPage)).toBeVisible();
+  await expect(page.getByTestId('app-shell')).toHaveCount(0);
+  await expect(page.getByTestId('location')).toHaveText('/t/tpl_Nw4kT8pQz2Lm');
 });
