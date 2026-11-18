@@ -59,7 +59,7 @@ function length(text: string): number {
   }
 }
 
-const NUMBER = new Intl.NumberFormat('en', { maximumFractionDigits: 20 });
+const NUMBER = new Intl.NumberFormat('en', { maximumFractionDigits: 15 });
 
 // A value as it is drawn, grouped in thousands.
 export function formatValue(value: number): string {
