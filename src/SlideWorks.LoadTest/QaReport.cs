@@ -19,6 +19,8 @@ public sealed record QaReport(
     double? WriteP50Ms,
     double? WriteP95Ms,
     double? WriteP99Ms,
+    double? VotePutP95Ms,
+    double? TapP95Ms,
     double? TallyP95Ms,
     int TalliesReceived,
     int TalliesTimedOut,
@@ -51,6 +53,8 @@ public sealed record QaReport(
             Percentile.Of(write, 50),
             writeP95,
             Percentile.Of(write, 99),
+            Percentile.Of(totals.VoteMs, 95),
+            Percentile.Of(totals.TapMs, 95),
             tallyP95,
             state.ResultsReceived,
             state.ResultsTimedOut,
@@ -88,6 +92,7 @@ public sealed record QaReport(
         text.AppendLine($"questions    {QuestionsAsked} asked by the harness, {OpenQuestions} open when the run started");
         text.AppendLine($"writes       {Votes} upvotes, {Reactions} reactions");
         text.AppendLine($"write ms     p50 {Ms(WriteP50Ms)}   p95 {Ms(WriteP95Ms)}   p99 {Ms(WriteP99Ms)}");
+        text.AppendLine($"  by kind    upvote PUT p95 {Ms(VotePutP95Ms)}   tap p95 {Ms(TapP95Ms)}");
         text.AppendLine($"tally ms     p95 {Ms(TallyP95Ms)}   ({TalliesReceived} received, {TalliesTimedOut} timed out; a timeout counts at its full wait)");
         text.AppendLine($"errors       {Errors} ({ErrorRate.ToString("P2", CultureInfo.InvariantCulture)}), of which {Dropped} dropped connections");
         foreach (var (kind, count) in ErrorsByKind.OrderByDescending(e => e.Value))

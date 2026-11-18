@@ -5,6 +5,8 @@ namespace SlideWorks.LoadTest;
 public sealed class QaTotals
 {
     private readonly object _lock = new();
+    private readonly List<double> _voteMs = [];
+    private readonly List<double> _tapMs = [];
     private readonly Dictionary<string, int> _outcomes = new(StringComparer.Ordinal);
 
     public int QuestionsAsked { get; set; }
@@ -15,9 +17,28 @@ public sealed class QaTotals
 
     public int Reactions { get; private set; }
 
-    public void RecordVote() { lock (_lock) { Votes++; } }
+    // The write time of each upvote PUT and of each tap, kept apart so the report can give each its own p95 beside the combined one.
+    public IReadOnlyList<double> VoteMs { get { lock (_lock) { return [.. _voteMs]; } } }
 
-    public void RecordReaction() { lock (_lock) { Reactions++; } }
+    public IReadOnlyList<double> TapMs { get { lock (_lock) { return [.. _tapMs]; } } }
+
+    public void RecordVote(double ms)
+    {
+        lock (_lock)
+        {
+            Votes++;
+            _voteMs.Add(ms);
+        }
+    }
+
+    public void RecordReaction(double ms)
+    {
+        lock (_lock)
+        {
+            Reactions++;
+            _tapMs.Add(ms);
+        }
+    }
 
     public void RecordOutcome(string route, int status)
     {

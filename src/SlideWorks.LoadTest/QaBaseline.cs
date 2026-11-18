@@ -19,7 +19,9 @@ public sealed class QaBaseline(string round, IReadOnlyDictionary<int, int> votes
         {
             var acknowledged = _acknowledged.GetValueOrDefault(number) + 1;
             _acknowledged[number] = acknowledged;
-            return votes[number] + acknowledged;
+            // A question asked after the baseline was read has no entry: its votes before this guest's are unknown, counted as 0, which
+            // can only make a tally match early, never late (the same bias the docs give for other guests' votes).
+            return votes.GetValueOrDefault(number) + acknowledged;
         }
     }
 }

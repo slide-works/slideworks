@@ -3,7 +3,7 @@
 `src/SlideWorks.LoadTest` is a console tool that plays an audience against a poll: it joins voters as guests, has each
 answer once, and reports how long the answer's write took and how long the results took to come back. It is run by hand
 against a running app. There is no CI workflow for it, and it is not a test project, so `dotnet test` builds it and runs
-nothing.
+nothing of its own; its option parsing, baseline arithmetic and tally matching are unit tested in `src/SlideWorks.UnitTest/LoadTest`.
 
 ## What it does
 
@@ -86,11 +86,13 @@ runs reuse the open round; each run's results are counted from the round's answe
 |---|---|---|
 | `--code` | required | The deck's join code. |
 | `--url` | `http://localhost:5510` | The app's origin. |
-| `--voters` | 100 | Guests to join and answer. |
+| `--scenario` | `poll` | `poll` (the run described above) or `qa` (see "Q&A and reactions" below). |
+| `--voters`, `--guests` | 100 | Guests to join and act. The two names are one option: give one. |
+| `--questions` | 5 | `qa` only: questions the harness asks before the run, so the guests have some to upvote; 0 uses what the round holds. `poll` refuses it. |
 | `--seconds` | 10 | The window the answers are spread over. |
 | `--pick` | `random` | `random` picks one option per voter; or 0-based positions such as `1` or `0,2`. |
 | `--results-timeout` | 10 | Seconds a voter waits for the tally that includes its answer. |
-| `--no-results` | off | Tallies are not expected (a poll whose results are not live): the results check is skipped. |
+| `--no-results` | off | Tallies are not expected (a poll whose results are not live, or a `qa` run that does not time them): the results check is skipped, in either scenario. |
 | `--owner-cookie` | none | A `Cookie` header value for someone who can present the deck. With `--deck` and `--slide`, the harness joins the presentation as the presenter window does, moves it to the poll slide (which opens the round on arrival), and probes during the run (below). |
 | `--deck`, `--slide` | none | The deck's id and the poll's 1-based slide number, with `--owner-cookie`. |
 | `--hub-urls` | `--url` | Comma-separated origins of the same app; the voters' hub connections are spread over them, round robin. On loopback the app still sees every connection from 127.0.0.1. The load host prints them as `HUB_URLS` (127.0.0.1 to 127.0.0.8), because one client gets only its ephemeral port range per destination address and port (4,096 on this WSL host). |
@@ -278,8 +280,10 @@ upvote on question n once its `votes` for n reach the votes n had before the run
 including this one, the same rule as the poll's. The run stops with exit 1, before joining anyone, when there is no open Q&A
 round, the deck's reactions are off, or there is no open question.
 
-- **Write** is the time from sending a `PUT` or a tap to reading its response, for those that got a 200 or 204. It is one
-  p95 over upvotes and taps together.
+- **Write** is the time from sending a `PUT` or a tap to reading its response, for those that got a 200 or 204. The gated
+  figure is one p95 over upvotes and taps together. Taps are 10 of a guest's 13 writes, so the table's `by kind` line and
+  the JSON (`votePutP95Ms`, `tapP95Ms`) give the upvote PUT and the tap each its own p95: read the PUT's figure when
+  diagnosing, as the combined one sits near the PUT's p79.
 - **Tally** is the time from an upvote's 200 to the first matching `questionTally`. `--no-results` skips it, as it skips the
   poll's results time, for a run where tallies are not expected.
 - **Errors** are as the poll's: one per guest at most, listed by kind (`vote: 429 too_many_votes`, `tap: 409 reactions_off`,
@@ -296,6 +300,12 @@ dotnet src/SlideWorks.LoadTest/bin/Release/net10.0/SlideWorks.LoadTest.dll \
 ```
 
 Run it on a round nobody else is using: another guest upvoting during the run makes the tally times read low.
+
+The tally rule matches counts, not the guest's own vote (the app does not say whose vote it is), so it can read early but
+never late: a tally published in the milliseconds between other guests' votes being applied and this guest's vote can
+satisfy it before the guest's vote is in. A question asked after the run started (by another guest, or a presenter) has no
+baseline, so its votes before the guest's count as 0: the same bias, and the run does not stop for it. The `tally ... received`
+count (not the `served` line) is the proof that the real publisher ran.
 
 ### Results
 

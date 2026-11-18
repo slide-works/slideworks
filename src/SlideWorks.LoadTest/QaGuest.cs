@@ -128,7 +128,7 @@ public sealed class QaGuest(LoadOptions options, Uri hubBase, HttpClient http, R
             var acknowledgedAt = Stopwatch.GetTimestamp();
             _revision = (await response.Content.ReadFromJsonAsync<QaWire.Votes>(JSON, ct))?.Revision ?? _revision;
             state.RecordWrite(writeMs);
-            totals.RecordVote();
+            totals.RecordVote(writeMs);
             if (!options.NoResults)
             {
                 Await(number, baseline.Acknowledge(number), acknowledgedAt);
@@ -165,7 +165,7 @@ public sealed class QaGuest(LoadOptions options, Uri hubBase, HttpClient http, R
                 return false;
             }
             state.RecordWrite(writeMs);
-            totals.RecordReaction();
+            totals.RecordReaction(writeMs);
         }
         return true;
     }
@@ -201,7 +201,7 @@ public sealed class QaGuest(LoadOptions options, Uri hubBase, HttpClient http, R
 
     // Registers an upvote's wait: it is over once a tally has shown at least `expected` votes on its question. A tally that
     // arrived before the 200 counts as zero.
-    private void Await(int number, int expected, long acknowledgedAt)
+    public void Await(int number, int expected, long acknowledgedAt)
     {
         lock (_lock)
         {
@@ -216,7 +216,7 @@ public sealed class QaGuest(LoadOptions options, Uri hubBase, HttpClient http, R
 
     // Each upvote's tally gets the results timeout from its own 200. A wait that ran out counts at the full timeout, and the
     // guest is one error for it.
-    private async Task WaitForTalliesAsync(CancellationToken ct)
+    public async Task WaitForTalliesAsync(CancellationToken ct)
     {
         List<Awaited> waits;
         lock (_lock)
@@ -301,7 +301,7 @@ public sealed class QaGuest(LoadOptions options, Uri hubBase, HttpClient http, R
 
     // Only a questionTally for the run's round counts; the harness reads leniently, so other events and unknown fields are
     // ignored. The latest count seen per question is kept, so an upvote registered later still finds a tally that came first.
-    private void OnAudienceEvent(JsonElement e)
+    public void OnAudienceEvent(JsonElement e)
     {
         if (!e.TryGetProperty("type", out var type) || type.GetString() != "questionTally"
             || (e.TryGetProperty("round", out var round) && round.GetString() != baseline.Round)
