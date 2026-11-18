@@ -1,6 +1,7 @@
 using System.Text.Json;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Features.Images;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 
 namespace SlideWorks.WebApi.Features.Slides;
@@ -11,10 +12,27 @@ public static class SlideChecks
 {
     public const int NOTES_MAX_LENGTH = 4000;
 
-    // The layout's schema, then every image slot's id against the deck's completed uploads.
-    public static async Task ValidateAsync(IDeckImages images, string deckId, string layout, JsonElement slots)
+    // The layout's schema with the built-in fonts' widths and the layout's own surface, then the images.
+    public static Task ValidateAsync(IDeckImages images, string deckId, string layout, JsonElement slots)
+        => ValidateAsync(images, deckId, layout, slots, SlideValidator.Validate(layout, slots));
+
+    // The same for a slide of a deck on this template: the layout is the template's, the text is wrapped with the widths
+    // of the template's fonts, and surface is the one the slide will have ("light", "dark" or null for the layout's
+    // own). Returns the layout's definition, which the caller counts the steps with.
+    public static async Task<LayoutDefinition> ValidateAsync(IDeckImages images, string deckId, ResolvedTemplate template, string layout, JsonElement slots, string? surface)
     {
-        var validation = SlideValidator.Validate(layout, slots);
+        var definition = template.FindLayout(layout);
+        if (definition is null)
+        {
+            // A name the template does not have: Core words the refusal, with the names it knows.
+            throw new BadRequestException(SlideValidator.Validate(layout, slots).Error);
+        }
+        await ValidateAsync(images, deckId, layout, slots, SlideValidator.Validate(definition, slots, template.FitWidths, surface));
+        return definition;
+    }
+
+    private static async Task ValidateAsync(IDeckImages images, string deckId, string layout, JsonElement slots, SlideValidationResult validation)
+    {
         if (!validation.IsValid)
         {
             throw new BadRequestException(validation.Error);

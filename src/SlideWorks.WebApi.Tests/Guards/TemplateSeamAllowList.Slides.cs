@@ -4,9 +4,5 @@ namespace SlideWorks.WebApi.Tests.Guards;
 // before ITemplates; a list only shrinks, and is empty once its folder asks ITemplates.
 public static partial class TemplateSeamAllowList
 {
-    public static IReadOnlyList<string> Slides { get; } =
-    [
-        "Features/Slides/SlideCommands.cs",
-        "Features/Slides/SlideEdits.cs",
-    ];
+    public static IReadOnlyList<string> Slides { get; } = [];
 }
