@@ -1,0 +1,32 @@
+/* A phrase in a tone, inside display text of 28 px or more. Only the colour
+   changes: the weight, size and style are the text's own. */
+.phrase {
+  font-style: inherit;
+  font-weight: inherit;
+}
+
+.phrase[data-tone='accent'] {
+  color: var(--sw-accent);
+}
+
+.phrase[data-tone='positive'] {
+  color: var(--sw-good);
+}
+
+.phrase[data-tone='negative'] {
+  color: var(--sw-bad);
+}
+
+/* On a dark surface the accent is its glow, and good and bad are lifted
+   towards the night ink so they stay readable on the night backdrop. */
+:global(.sw-frame[data-surface='dark']) .phrase[data-tone='accent'] {
+  color: var(--sw-accent-glow);
+}
+
+:global(.sw-frame[data-surface='dark']) .phrase[data-tone='positive'] {
+  color: color-mix(in srgb, var(--sw-good) 55%, var(--sw-night-ink));
+}
+
+:global(.sw-frame[data-surface='dark']) .phrase[data-tone='negative'] {
+  color: color-mix(in srgb, var(--sw-bad) 55%, var(--sw-night-ink));
+}

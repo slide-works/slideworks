@@ -15,6 +15,24 @@
   letter-spacing: -0.015em;
 }
 
+/* A title with an icon: the 34 px icon, 14 px, then the title. The icon sits
+   on the title's first line (a 40.8 px line box), in the accent. */
+.titleWithIcon {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.titleIcon {
+  flex: none;
+  margin-top: 3px;
+  color: var(--sw-accent);
+}
+
+.titleText {
+  min-width: 0;
+}
+
 .items {
   display: grid;
   gap: 30px;
@@ -39,6 +57,23 @@
   height: 18px;
   border-radius: 4px;
   background: var(--sw-accent);
+}
+
+/* An item with an icon: the 34 px icon stands where the bullet mark was, on
+   the first line (a 40.5 px line box), and the text is indented 68 px. */
+.itemWithIcon {
+  padding-left: 68px;
+}
+
+.itemWithIcon::before {
+  content: none;
+}
+
+.itemIcon {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  color: var(--sw-accent);
 }
 
 .text {

@@ -1,0 +1,21 @@
+/* The pin block: a pill of 15 px/1 bold capitals, spaced 0.14em, in the
+   accent's light shade on its dark shade. */
+.pin {
+  display: inline-block;
+  max-width: 100%;
+  padding: 8px 14px;
+  overflow-wrap: anywhere;
+  border-radius: 999px;
+  background: var(--sw-accent-dark);
+  color: var(--sw-accent-light);
+  font: 700 15px/1 var(--sw-font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* On a solid panel (tone.ts sets --panel-surface and --panel-ink): the
+   panel's ink, at 22% over its surface, under text in the ink. */
+[data-fill='solid'] .pin {
+  background: color-mix(in srgb, var(--panel-ink) 22%, var(--panel-surface));
+  color: var(--panel-ink);
+}
