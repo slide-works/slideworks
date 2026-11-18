@@ -4,6 +4,7 @@ using System.Text.Encodings.Web;
 using Agoda.IoC.Core;
 using Microsoft.Extensions.Options;
 using SlideWorks.WebApi.Features.Decks;
+using SlideWorks.WebApi.Features.Look.Views;
 using SlideWorks.WebApi.Infrastructure.Identity;
 
 namespace SlideWorks.WebApi.Features.Render;
@@ -53,7 +54,20 @@ public class PlayerPageHtml(
         var count = play.Slides.Count == 1 ? "1 slide" : string.Create(CultureInfo.InvariantCulture, $"{play.Slides.Count} slides");
         var byline = string.IsNullOrWhiteSpace(play.Author) ? count : $"{count} · {play.Author}";
         var description = string.IsNullOrWhiteSpace(deck.Subtitle) ? byline : $"{deck.Subtitle} · {byline}";
-        return Tags(play.Title, description, image, urls.Deck(play.Id, play.Slug));
+        return Tags(play.Title, description, image, urls.Deck(play.Id, play.Slug)) + Preloads(play.Look.Fonts);
+    }
+
+    // One preload per distinct font file of the deck's look, so the first slide does not flash. A url holds the template's
+    // id and an asset id, so this is called only for a link-shared deck: the page is anonymous. crossorigin is required for
+    // a font preload to be reused by the FontFace fetch.
+    private static string Preloads(IReadOnlyList<LookFontView> fonts)
+    {
+        var links = new StringBuilder();
+        foreach (var url in fonts.Select(font => font.Url).Distinct(StringComparer.Ordinal))
+        {
+            links.Append(CultureInfo.InvariantCulture, $"    <link rel=\"preload\" as=\"font\" type=\"font/woff2\" crossorigin href=\"{HtmlEncoder.Default.Encode(url)}\" />\n");
+        }
+        return links.ToString();
     }
 
     private static string Tags(string title, string description, string image, string? url)
