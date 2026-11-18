@@ -9,7 +9,7 @@ Surface: light. Steps: one per `cards` item when `reveal` is `one-by-one`.
 | `kicker` | text | no | up to 40 chars |  |
 | `headline` | text | yes | up to 80 chars |  |
 | `cards` | list of object | yes | 1–3 items |  |
-| `cards[].badge` | block `badge` | no | up to 20 chars |  |
+| `cards[].badge` | block `badge` | no | up to 36 chars |  |
 | `cards[].title` | text | yes | up to 50 chars |  |
 | `cards[].text` | text | yes | up to 140 chars |  |
 | `cards[].chips` | list of block `chip` | yes | 0–4 items; each up to 24 chars | May be empty |

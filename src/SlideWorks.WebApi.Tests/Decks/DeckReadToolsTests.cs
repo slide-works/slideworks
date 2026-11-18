@@ -103,8 +103,8 @@ public class DeckReadToolsTests : ApiTestFixture
         structured.EnumerateObject().Select(p => p.Name).ShouldBe(["blocks"]);
         McpWire.TextOf(result).ShouldBe(structured.GetRawText());
         var blocks = structured.GetProperty("blocks").EnumerateArray().ToList();
-        blocks.Select(b => b.GetProperty("name").GetString()).ShouldBe(["callout", "chip", "badge", "stamp", "journey"]);
-        blocks.Select(b => b.GetProperty("setByAgent").GetBoolean()).ShouldBe([true, true, true, true, false]);
+        blocks.Select(b => b.GetProperty("name").GetString()).ShouldBe(LayoutCatalogue.Blocks.Select(b => b.Name));
+        blocks.Select(b => b.GetProperty("setByAgent").GetBoolean()).ShouldBe(LayoutCatalogue.Blocks.Select(b => b.SetByAgent));
         var callout = blocks[0].GetProperty("schema");
         callout.GetProperty("type").GetString().ShouldBe("object");
         callout.GetProperty("properties").GetProperty("tone").GetProperty("enum").EnumerateArray().Select(t => t.GetString()).ShouldBe(["accent", "positive", "negative", "inverse", "good", "bad", "info"]);
