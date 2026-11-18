@@ -59,6 +59,54 @@ public class TemplateSharingTests : ApiTestFixture
         result.GetProperty("viewers").EnumerateArray().Select(v => v.GetString()).ShouldBe([TestUser.Alex.Email]);
     }
 
+    [TestCase("""{"level":"named"}""")]
+    [TestCase("""{"level":"named","viewers":null}""")]
+    public async Task Share_WhenOnlyTheLevelIsSent_ShouldKeepTheViewers(string body)
+    {
+        var id = await PublishedAsync(DeckSharing.Link);
+        await TemplateRowSeed.ViewerAsync(Factory, id, TestUser.Alex.Email);
+        await TemplateRowSeed.ViewerAsync(Factory, id, TestUser.Mira.Email);
+        using var content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+
+        using var response = await Client.PutAsync($"/api/templates/{id}/sharing", content);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("level").GetString().ShouldBe("named");
+        (await AccessAsync(id)).ShouldBe(DeckSharing.Named);
+        (await ViewersAsync(id)).Order().ToList().ShouldBe([TestUser.Alex.Email, TestUser.Mira.Email]);
+    }
+
+    [Test]
+    public async Task Share_WhenALinkTemplateHasMoreThanFiftyUsers_ShouldSwitchToNamedWithoutAList()
+    {
+        var id = await PublishedAsync(DeckSharing.Link);
+        var emails = Emails(ViewerEmails.MAX_VIEWERS + 1);
+        foreach (var email in emails)
+        {
+            await TemplateRowSeed.ViewerAsync(Factory, id, email);
+        }
+
+        using var response = await Client.PutAsJsonAsync($"/api/templates/{id}/sharing", new { level = "named" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        (await AccessAsync(id)).ShouldBe(DeckSharing.Named);
+        (await ViewersAsync(id)).Count.ShouldBe(emails.Length);
+    }
+
+    [Test]
+    public async Task Share_WhenAListIsSent_ShouldReplaceItAndStillEnforceTheCap()
+    {
+        var id = await PublishedAsync(DeckSharing.Named);
+        await TemplateRowSeed.ViewerAsync(Factory, id, TestUser.Alex.Email);
+
+        using var replaced = await Client.PutAsJsonAsync($"/api/templates/{id}/sharing", new { level = "named", viewers = new[] { TestUser.Mira.Email } });
+        using var tooMany = await Client.PutAsJsonAsync($"/api/templates/{id}/sharing", new { level = "named", viewers = Emails(ViewerEmails.MAX_VIEWERS + 1) });
+
+        replaced.StatusCode.ShouldBe(HttpStatusCode.OK);
+        tooMany.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await ViewersAsync(id)).ShouldBe([TestUser.Mira.Email]);
+    }
+
     [Test]
     public async Task Share_WhenNotTheOwner_ShouldChangeNothing()
     {
