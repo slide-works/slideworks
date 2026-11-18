@@ -1,4 +1,6 @@
 import { useRef } from 'react';
+import { Emphasised } from '../blocks/Emphasised';
+import { emphasisFor } from '../emphasis';
 import type { LayoutProps } from '../slots';
 import { useFitText, type FitBudget } from '../useFitText';
 import styles from './CloseLayout.module.css';
@@ -10,9 +12,12 @@ import styles from './CloseLayout.module.css';
 const HEADLINE_FIT: FitBudget = { start: 112, floor: 60, lines: 4, lineHeight: 1.02 };
 
 // The closing slide (dark): a short headline whose \n breaks start new lines,
-// an optional sub in a highlighted box, and an optional author.
+// an optional sub in a highlighted box, and an optional author. Emphasised
+// phrases are drawn within one written line; the server refuses one that spans
+// a break, and one that did would be drawn plain.
 export function CloseLayout({ slots }: LayoutProps<'close'>) {
   const lines = slots.headline.split('\n');
+  const headlineSpans = emphasisFor(slots, 'headline');
   const headlineRef = useRef<HTMLHeadingElement>(null);
   useFitText(headlineRef, HEADLINE_FIT, slots.headline);
   return (
@@ -20,13 +25,13 @@ export function CloseLayout({ slots }: LayoutProps<'close'>) {
       <h2 ref={headlineRef} data-testid="close-headline" className={styles.heading}>
         {lines.map((line, index) => (
           <span key={index} data-testid="close-line" className={styles.line}>
-            {line}
+            <Emphasised text={line} spans={headlineSpans} />
           </span>
         ))}
       </h2>
       {slots.sub !== undefined ? (
         <p data-testid="close-sub" className={styles.sub}>
-          {slots.sub}
+          <Emphasised text={slots.sub} spans={emphasisFor(slots, 'sub')} />
         </p>
       ) : null}
       {slots.author !== undefined ? (

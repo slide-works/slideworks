@@ -15,6 +15,8 @@ export const SLOTS: ChartSlots = {
   yUnit: 'days',
   caption: 'Median lead time per month.',
   marker: { x: 2.5, label: 'Flags on' },
+  callout: { tone: 'good', text: 'Smaller slices, faster feedback.' },
+  emphasis: [{ text: 'fell', tone: 'positive' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is
