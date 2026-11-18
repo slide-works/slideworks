@@ -145,5 +145,311 @@
       ],
       "reveal": "one-by-one"
     }
+  },
+  "cardsRowMax": {
+    "layout": "cards",
+    "grow": [
+      "/cards/0/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "The team ships a small slice of work to",
+      "headline": "The team ships a small slice of work to customers every week, and the feedback a",
+      "cards": [
+        {
+          "icon": "coins",
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of work to customer",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than quarters, so the r",
+          "chips": [
+            "The team ships a small s",
+            "The team ships a small s",
+            "The team ships a small s"
+          ]
+        },
+        {
+          "icon": "coins",
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of work to customer",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than quarters, so the r",
+          "chips": [
+            "The team ships a small s",
+            "The team ships a small s",
+            "The team ships a small s"
+          ]
+        },
+        {
+          "icon": "coins",
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of work to customer",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than quarters, so the r",
+          "chips": [
+            "The team ships a small s",
+            "The team ships a small s",
+            "The team ships a small s"
+          ]
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "cardsLargeRow": {
+    "layout": "cards",
+    "grow": [
+      "/callout/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "The team ships a small slice of work to",
+      "headline": "The team ships a small slice of work to customers every week, and the feedback a",
+      "cards": [
+        {
+          "icon": "coins",
+          "badge": "The team s",
+          "title": "The team ships a s",
+          "text": "The team ships a small slice o",
+          "chips": [],
+          "fill": "plain",
+          "pin": "Hold on"
+        },
+        {
+          "icon": "coins",
+          "badge": "The team s",
+          "title": "The team ships a s",
+          "text": "The team ships a small slice o",
+          "chips": [],
+          "fill": "plain",
+          "pin": "Hold on"
+        },
+        {
+          "icon": "coins",
+          "badge": "The team s",
+          "title": "The team ships a s",
+          "text": "The team ships a small slice o",
+          "chips": [],
+          "fill": "plain",
+          "pin": "Hold on"
+        }
+      ],
+      "reveal": "one-by-one",
+      "callout": {
+        "tone": "accent",
+        "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rat"
+      }
+    }
+  },
+  "cardsGridMax": {
+    "layout": "cards",
+    "grow": [
+      "/cards/0/title",
+      "/cards/0/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "The team ships a small slice of work to",
+      "headline": "The team ships a small slice of work to customers every week, and the feedback a",
+      "cards": [
+        {
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of wor",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than q",
+          "chips": [
+            "The team shi"
+          ]
+        },
+        {
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of wor",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than q",
+          "chips": [
+            "The team shi"
+          ]
+        },
+        {
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of wor",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than q",
+          "chips": [
+            "The team shi"
+          ]
+        },
+        {
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of wor",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than q",
+          "chips": [
+            "The team shi"
+          ]
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "cardsGridLarge": {
+    "layout": "cards",
+    "grow": [
+      "/cards/0/title",
+      "/cards/0/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "The team ships a small slice of work to",
+      "headline": "The team ships a small slice of work to customers every week, and the feedback a",
+      "cards": [
+        {
+          "icon": "coins",
+          "badge": "The team s",
+          "title": "The team ships a small sli",
+          "text": "The team ships a small slice of work to cus",
+          "chips": []
+        },
+        {
+          "icon": "coins",
+          "badge": "The team s",
+          "title": "The team ships a small sli",
+          "text": "The team ships a small slice of work to cus",
+          "chips": []
+        },
+        {
+          "icon": "coins",
+          "badge": "The team s",
+          "title": "The team ships a small sli",
+          "text": "The team ships a small slice of work to cus",
+          "chips": []
+        },
+        {
+          "icon": "coins",
+          "badge": "The team s",
+          "title": "The team ships a small sli",
+          "text": "The team ships a small slice of work to cus",
+          "chips": []
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "cardsCallout": {
+    "layout": "cards",
+    "grow": [
+      "/callout/text",
+      "/cards/0/title",
+      "/cards/0/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "The team ships a small slice of work to",
+      "headline": "The team ships a small slice of work to customers every week, and the feedback a",
+      "cards": [
+        {
+          "icon": "coins",
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of work to cus",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days r",
+          "chips": [
+            "The team ships a small s",
+            "The team ships a small s"
+          ]
+        },
+        {
+          "icon": "coins",
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of work to cus",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days r",
+          "chips": [
+            "The team ships a small s",
+            "The team ships a small s"
+          ]
+        },
+        {
+          "icon": "coins",
+          "badge": "The team ships a sma",
+          "title": "The team ships a small slice of work to cus",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days r",
+          "chips": [
+            "The team ships a small s",
+            "The team ships a small s"
+          ]
+        }
+      ],
+      "reveal": "one-by-one",
+      "callout": {
+        "tone": "accent",
+        "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rathe"
+      }
+    }
+  },
+  "cardsIcons": {
+    "layout": "cards",
+    "grow": [
+      "/cards/0/title",
+      "/cards/0/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "The team ships a small slice of work to",
+      "headline": "The team ships a small slice of work to customers every week, and the feedback a",
+      "cards": [
+        {
+          "icon": "coins",
+          "badge": "The team ships a small slice of wo",
+          "title": "The team ships a small slice of work to customers",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than quarters, so the risk shows up ea",
+          "chips": [],
+          "tone": "accent",
+          "fill": "plain",
+          "pin": "Hold on to this"
+        },
+        {
+          "title": "The team ships a sma",
+          "text": "The team ships a small slice of work to customers every week",
+          "chips": [
+            "The team s"
+          ]
+        },
+        {
+          "title": "The team ships a sma",
+          "text": "The team ships a small slice of work to customers every week",
+          "chips": []
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "cardsIconsWide": {
+    "layout": "cards",
+    "grow": [
+      "/cards/0/title",
+      "/cards/0/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Many Women Who Wander Wide Meadows Mow M",
+      "headline": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMB",
+      "cards": [
+        {
+          "icon": "coins",
+          "badge": "Many Women Who Wander Wide Meadows",
+          "title": "Many Women Who Wander Wide Meadows Mow Moss With M",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Wo",
+          "chips": [],
+          "tone": "accent",
+          "fill": "plain",
+          "pin": "Hold on to this"
+        },
+        {
+          "title": "Many Women Who Wande",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When War",
+          "chips": [
+            "Many Women"
+          ]
+        },
+        {
+          "title": "Many Women Who Wande",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When War",
+          "chips": []
+        }
+      ],
+      "reveal": "one-by-one"
+    }
   }
 }
