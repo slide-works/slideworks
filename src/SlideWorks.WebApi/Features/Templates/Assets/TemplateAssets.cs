@@ -291,10 +291,12 @@ public class TemplateAssets(
         return await MayViewADeckOnAsync(templateId, email, guestId);
     }
 
-    // Compared in lower case on both sides, so a legacy mixed-case row does not lock its viewer out.
+    // The exact match runs in SQL; only a miss falls back to comparing in lower case on both sides, so a legacy
+    // mixed-case row does not lock its viewer out.
     private async Task<bool> IsNamedViewerAsync(string templateId, string email)
-        => (await db.TemplateViewers.AsNoTracking().Where(v => v.TemplateId == templateId).Select(v => v.Email).ToListAsync())
-            .Exists(e => ViewerEmails.Normalize(e) == email);
+        => await db.TemplateViewers.AsNoTracking().AnyAsync(v => v.TemplateId == templateId && v.Email == email)
+            || (await db.TemplateViewers.AsNoTracking().Where(v => v.TemplateId == templateId).Select(v => v.Email).ToListAsync())
+                .Exists(e => ViewerEmails.Normalize(e) == email);
 
     // A deck on the template always renders (D3): whoever may view such a deck may read the template's files. That is
     // the deck's owner, anyone for a deck shared by link, a named viewer, and a headless render page holding a render
