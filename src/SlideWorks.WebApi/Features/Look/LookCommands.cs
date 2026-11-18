@@ -51,8 +51,8 @@ public class LookCommands(
     // set_look: the same change, with the look in get_deck's terms.
     public async Task<SetLookResult> SetFromAgentAsync(string deckId, LookChange change)
     {
-        var (deck, _, warnings) = await ChangeAsync(deckId, change, TOOL);
-        return new SetLookResult(GetDeckLook.From(deck), warnings);
+        var (deck, template, warnings) = await ChangeAsync(deckId, change, TOOL);
+        return new SetLookResult(GetDeckLook.From(deck, template), warnings);
     }
 
     public static string UnknownLogo(string imageId) => $"logo.image: unknown image {imageId}";

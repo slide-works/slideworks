@@ -37,6 +37,8 @@ public class SetLookToolTests : ApiTestFixture
         look.GetProperty("logo").ValueKind.ShouldBe(JsonValueKind.Null);
         look.GetProperty("chrome").GetProperty("tracker").GetBoolean().ShouldBeFalse();
         look.GetProperty("chrome").GetProperty("footer").ValueKind.ShouldBe(JsonValueKind.Null);
+        look.GetProperty("templateVersion").ValueKind.ShouldBe(JsonValueKind.Null);
+        look.GetProperty("updateAvailable").GetBoolean().ShouldBeFalse();
         result.GetProperty("warnings").GetArrayLength().ShouldBe(0);
         var (_, got) = await agent.CallToolAsync("get_deck", new { deck });
         got.GetProperty("look").ToString().ShouldBe(look.ToString());
