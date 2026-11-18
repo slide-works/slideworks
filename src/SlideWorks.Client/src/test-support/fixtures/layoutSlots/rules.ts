@@ -11,6 +11,8 @@ export const SLOTS: RulesSlots = {
   headline: 'Three rules for the first month',
   rules: [{ title: 'Merge to main every day', text: 'Behind a flag if it isn’t ready.' }],
   reveal: 'all',
+  callout: { tone: 'info', text: 'Rules bend; the habit should not.', reveal: 'last' },
+  emphasis: [{ text: 'first month', tone: 'accent' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is
