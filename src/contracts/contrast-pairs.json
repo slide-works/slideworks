@@ -1,0 +1,19 @@
+[
+  {"name": "body", "fore": "ink", "back": "paper", "needed": 4.5},
+  {"name": "secondary", "fore": "muted", "back": "paper", "needed": 4.5},
+  {"name": "card-bold", "fore": "accent-dark", "back": "card", "needed": 4.5},
+  {"name": "headline-accent", "fore": "accent", "back": "paper", "needed": 3.0},
+  {"name": "on-accent", "fore": "on-accent", "back": "accent", "needed": 4.5},
+  {"name": "on-accent-2", "fore": "on-accent", "back": "accent-2", "needed": 4.5},
+  {"name": "deep-dive-pill", "fore": "on-dd", "back": "dd", "needed": 4.5},
+  {"name": "panel-accent", "fore": "panel-accent-ink", "back": "panel-accent", "needed": 4.5},
+  {"name": "panel-positive", "fore": "panel-positive-ink", "back": "panel-positive", "needed": 4.5},
+  {"name": "panel-negative", "fore": "panel-negative-ink", "back": "panel-negative", "needed": 4.5},
+  {"name": "panel-inverse", "fore": "panel-inverse-ink", "back": "panel-inverse", "needed": 4.5},
+  {"name": "badge-positive", "fore": "good-ink", "back": "good-soft", "needed": 4.5},
+  {"name": "badge-negative", "fore": "bad-ink", "back": "bad-soft", "needed": 4.5},
+  {"name": "dark-subtitle", "fore": "night-2", "back": "night", "needed": 4.5},
+  {"name": "soft-accent", "fore": "accent-dark", "back": "accent-light", "needed": 4.5},
+  {"name": "soft-inverse", "fore": "night-ink", "back": "night", "needed": 4.5},
+  {"name": "deep-dive-list", "fore": "dd-on-night", "back": "night", "needed": 4.5}
+]

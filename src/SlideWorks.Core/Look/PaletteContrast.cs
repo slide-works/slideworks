@@ -30,6 +30,11 @@ public static class PaletteContrast
         ("deep-dive-list", "dd-on-night", "night", TEXT),
     ];
 
+    // The table for src/contracts/contrast-pairs.json, in order. Over and Share are set on a mixed-ground pair only:
+    // the ground is then Back mixed at Share over Over. Every pair today is plain.
+    public static IReadOnlyList<(string Name, string Fore, string Back, double Needed, string? Over, double? Share)> Pairs { get; } =
+        _pairs.Select(p => (p.Pair, p.Fg, p.Bg, p.Bar, (string?)null, (double?)null)).ToList();
+
     public static IReadOnlyList<ContrastCheck> Check(Palette palette) =>
         _pairs.Select(p =>
         {
