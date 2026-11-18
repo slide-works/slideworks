@@ -153,6 +153,14 @@ test('a marked divider shows its mark and no journey', async ({ mount, page }) =
   await expect(page.getByTestId('divider-deep-dives')).toHaveCount(0);
 });
 
+test('a divider in a deck where every part is marked draws no journey', async ({ mount, page }) => {
+  const parts = PARTS.map((part) => ({ ...part, mark: 'A' }));
+  await mount(render(slideOf('divider', 1), deckOf(parts)));
+
+  await expect(page.getByTestId('layout-divider')).toBeAttached();
+  await expect(page.getByTestId('block-journey')).toHaveCount(0);
+});
+
 test('17 capitals with eight stops do not break', async ({ mount, page }) => {
   const parts = eight(() => 'REALITYSTRESSTEST');
   await mount(render(slideOf('divider', 3), deckOf(parts)));

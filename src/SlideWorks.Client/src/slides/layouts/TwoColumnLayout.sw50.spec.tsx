@@ -23,7 +23,7 @@ const deck: SlideDeck = {
 };
 
 function twoColumn(slots: TwoColumnSlots, number = 3): RenderableSlide {
-  return { number, layout: 'two-column', part: null, deepDive: false, surface: undefined, slots };
+  return { number, layout: 'two-column', part: 1, deepDive: false, surface: undefined, slots };
 }
 
 // A plain function, not a component: CT can only mount components from source files.

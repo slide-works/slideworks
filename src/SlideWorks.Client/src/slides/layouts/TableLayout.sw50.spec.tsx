@@ -22,7 +22,7 @@ const deck: SlideDeck = {
 };
 
 function tableSlide(slots: TableSlots, number = 11): RenderableSlide {
-  return { number, layout: 'table', part: null, deepDive: false, surface: undefined, slots };
+  return { number, layout: 'table', part: 1, deepDive: false, surface: undefined, slots };
 }
 
 // A plain function, not a component: CT can only mount components from source files.

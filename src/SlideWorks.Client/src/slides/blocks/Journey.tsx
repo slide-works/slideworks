@@ -58,6 +58,8 @@ export function Journey({ parts, part }: { parts: PartWire[]; part: number | nul
     void document.fonts.ready.then(fit);
     return () => observer.disconnect();
   }, [names]);
+  // Every part marked (or no parts): nothing to number, so no empty list.
+  if (stops.length === 0) return null;
   return (
     <ol
       ref={listRef}
