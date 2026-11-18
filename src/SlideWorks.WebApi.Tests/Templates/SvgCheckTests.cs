@@ -64,6 +64,8 @@ public class SvgCheckTests
 
     [TestCase("animate-href")]
     [TestCase("animate-xlink-href")]
+    [TestCase("set-onclick")]
+    [TestCase("animate-onmouseover")]
     public async Task Check_WhenAnimateTargetsHref_ShouldRefuse(string fixture)
     {
         var result = await CheckAsync(Fixture(fixture));
@@ -92,6 +94,7 @@ public class SvgCheckTests
     [TestCase("style-element-split-by-comment")]
     [TestCase("style-element-image-set")]
     [TestCase("style-element-font-src")]
+    [TestCase("style-element-image-function")]
     public async Task Check_WhenAStyleElementLoadsAUrl_ShouldRefuse(string fixture)
     {
         var result = await CheckAsync(Fixture(fixture));
@@ -103,6 +106,7 @@ public class SvgCheckTests
 
     [TestCase("presentation-url")]
     [TestCase("presentation-escaped-url")]
+    [TestCase("presentation-src-function")]
     public async Task Check_WhenAPresentationAttributeLoadsAUrl_ShouldRefuse(string fixture)
     {
         var result = await CheckAsync(Fixture(fixture));
@@ -155,6 +159,11 @@ public class SvgCheckTests
     [TestCase("iframe")]
     [TestCase("object")]
     [TestCase("embed")]
+    [TestCase("xhtml-img")]
+    [TestCase("xhtml-meta-refresh")]
+    [TestCase("xhtml-form")]
+    [TestCase("xhtml-default-namespace")]
+    [TestCase("mathml-math")]
     public async Task Check_WhenItEmbedsAnIframeOrObject_ShouldRefuse(string fixture)
     {
         var result = await CheckAsync(Fixture(fixture));
@@ -162,6 +171,15 @@ public class SvgCheckTests
         result.Ok.ShouldBeFalse();
         result.ErrorCode.ShouldBe("svg_foreign_object");
         result.ContentType.ShouldBeNull();
+    }
+
+    [Test]
+    public async Task Check_WhenSvgHasEditorMetadata_ShouldPass()
+    {
+        var result = await CheckAsync(Fixture("inkscape-metadata"));
+
+        result.Ok.ShouldBeTrue();
+        result.ContentType.ShouldBe("image/svg+xml");
     }
 
     [Test]

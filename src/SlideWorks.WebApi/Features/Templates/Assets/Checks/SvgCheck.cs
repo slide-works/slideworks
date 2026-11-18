@@ -41,11 +41,13 @@ public sealed class ArtCheck : ImageCheck
 public static class SvgRules
 {
     public const string SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+    private const string XHTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
+    private const string MATHML_NAMESPACE = "http://www.w3.org/1998/Math/MathML";
 
     private static readonly string[] FOREIGN_ELEMENTS = ["foreignobject", "iframe", "embed", "object"];
     private static readonly string[] SCRIPT_ELEMENTS = ["script", "handler", "listener"];
     private static readonly string[] ANIMATIONS = ["set", "animate", "animatetransform", "animatemotion"];
-    private static readonly string[] STYLE_BANS = ["@import", "image-set(", "src:", "expression("];
+    private static readonly string[] STYLE_BANS = ["@import", "image-set(", "src:", "expression(", "src(", "image(", "cross-fade("];
 
     public static AssetCheckResult Check(byte[] bytes)
     {
@@ -171,7 +173,9 @@ public static class SvgRules
         {
             return TemplateErrorCodes.SVG_SCRIPT;
         }
-        if (FOREIGN_ELEMENTS.Any(n => IsNamed(name, n)))
+        // HTML and MathML elements load and navigate (img, meta refresh, form, video); no editor export puts them
+        // outside a foreignObject, so they are refused whatever their name. Other namespaces (Inkscape, RDF) pass.
+        if (reader.NamespaceURI is XHTML_NAMESPACE or MATHML_NAMESPACE || FOREIGN_ELEMENTS.Any(n => IsNamed(name, n)))
         {
             return TemplateErrorCodes.SVG_FOREIGN_OBJECT;
         }
@@ -207,7 +211,9 @@ public static class SvgRules
         {
             return TemplateErrorCodes.SVG_SCRIPT;
         }
-        if (onAnimation && IsNamed(local, "attributeName") && IsNamed(LocalPart(value.Trim()), "href"))
+        if (onAnimation && IsNamed(local, "attributeName")
+            && LocalPart(value.Trim()) is var target
+            && (IsNamed(target, "href") || target.StartsWith("on", StringComparison.OrdinalIgnoreCase)))
         {
             return TemplateErrorCodes.SVG_SCRIPT;
         }
