@@ -119,6 +119,9 @@ export async function stubDeckHub(
   const presentationJoins: StubPresentationJoin[] = [];
   const heldPresentationJoins: (() => void)[] = [];
   const heldUpdates: (() => void)[] = [];
+  // WatchAudience answers held per deck id, by holdWatches().
+  const heldWatchDecks = new Set<string>();
+  const heldWatches: { deckId: string; complete: () => void }[] = [];
   const updates: PresentationUpdate[] = [];
   const timers: TimerCommand[] = [];
   const leaves: unknown[] = [];
@@ -238,7 +241,12 @@ export async function stubDeckHub(
     }),
     WatchAudience: audienceMethod({
       record: ([deckId]) => watches.push(deckId as string),
-      answer: (_, reply) => reply.result(),
+      answer: ([deckId], reply) => {
+        const complete = () => reply.result();
+        if (heldWatchDecks.has(deckId as string))
+          heldWatches.push({ deckId: deckId as string, complete });
+        else complete();
+      },
     }),
     WatchPoll: audienceMethod({
       record: ([code]) => pollWatches.push(code as string),
@@ -495,6 +503,18 @@ export async function stubDeckHub(
     // or shared away mid-talk. Starts as the presentation option's refuse.
     refuseJoins(on: boolean) {
       refusing = on;
+    },
+    // Leaves each later WatchAudience for deckId unanswered until releaseWatches(deckId), as a slow hub would.
+    holdWatches(deckId: string) {
+      heldWatchDecks.add(deckId);
+    },
+    // Answers every WatchAudience held for deckId, and stops holding them.
+    releaseWatches(deckId: string) {
+      heldWatchDecks.delete(deckId);
+      for (const held of heldWatches.filter((w) => w.deckId === deckId)) {
+        heldWatches.splice(heldWatches.indexOf(held), 1);
+        held.complete();
+      }
     },
     // Completes every JoinDeck held so far.
     releaseJoins() {

@@ -1,0 +1,23 @@
+/* The emoji that pops up from a tapped reaction (mockup phone state 1). It stays in the button once the animation ends,
+   at no opacity, until the next tap starts it again; under reduced motion it is not displayed at all. */
+.pop {
+  position: absolute;
+  left: 50%;
+  bottom: 60%;
+  translate: -50% 0;
+  font-size: 18px;
+  line-height: 1;
+  pointer-events: none;
+  animation: reaction-pop 0.7s ease-out forwards;
+}
+
+@keyframes reaction-pop {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-34px) scale(1.5);
+  }
+}

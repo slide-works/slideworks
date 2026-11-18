@@ -15,7 +15,13 @@ public class PollArrivalKindTests : PollTestFixture
 {
     private FakePolls Polls => Factory.Services.GetRequiredService<FakePolls>();
 
-    protected override void ConfigurePollServices(IServiceCollection services) => FakePolls.AddTo(services);
+    // The test seeds the session's Q&A round itself through PollRowSeed, so Go live must not open one: IQaRounds is the
+    // recording fake.
+    protected override void ConfigurePollServices(IServiceCollection services)
+    {
+        FakePolls.AddTo(services);
+        FakeQaRounds.AddTo(services);
+    }
 
     [TearDown]
     public void AcceptAgain() => Polls.Reset();

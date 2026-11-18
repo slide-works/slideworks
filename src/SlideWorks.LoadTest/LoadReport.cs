@@ -21,7 +21,7 @@ public sealed record LoadReport(
     double ErrorRate,
     IReadOnlyDictionary<string, int> ErrorsByKind,
     bool GatePassed,
-    IReadOnlyList<string> GateFailures)
+    IReadOnlyList<string> GateFailures) : IRunReport
 {
     // The gate: write p95 under 1 s, results p95 under 2 s, errors under 1%. It is only a gate at 1,000 voters; the
     // larger runs are recorded, but the verdict is printed for every run. A results p95 of n/a fails unless tallies are not

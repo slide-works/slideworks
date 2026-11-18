@@ -5,6 +5,7 @@ import { stubApi } from '../test-support/stubApi';
 import { stubDeckHub } from '../test-support/stubDeckHub';
 import { GuestFollowing } from './GuestFollowing';
 import { GuestScreens } from './GuestScreens';
+import { QA_SLIDE_TEST_IDS as QA } from '../qa/testIds';
 import { GUEST_TEST_IDS } from './testIds';
 
 const view = guestView('live');
@@ -216,4 +217,46 @@ test('live with no current shows the waiting placeholder, then the slide when a 
 
   await expect(page.getByTestId(GUEST_TEST_IDS.slide)).toHaveAttribute('data-slide', '3');
   await expect(placeholder).toHaveCount(0);
+});
+
+// A guest's phone draws no question list: its Q&A slide is the title over a blank body while the room can ask, and says
+// "Questions are off" only when the room has no round.
+const qaState = (room: typeof view.state.room) => ({
+  ...view.state,
+  room,
+  current: { ...view.state.current!, layout: 'qa', slots: {}, steps: 0, step: 0 } as never,
+});
+const openRoom = {
+  round: 'r1',
+  questions: 'open' as const,
+  names: true,
+  reactions: true,
+  listRevision: 1,
+};
+
+test('a live qa slide with questions open does not say "Questions are off" or "Not live"', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mount(<GuestFollowing view={view} state={qaState(openRoom)} status="live" />);
+  const slide = page.getByTestId(GUEST_TEST_IDS.slide);
+  await expect(slide.getByTestId(QA.slide)).toHaveCount(1);
+  await expect(slide.getByTestId(QA.title)).toHaveText('Questions from the room');
+  await expect(slide.getByTestId(QA.off)).toHaveCount(0);
+  await expect(slide.getByTestId(QA.notLive)).toHaveCount(0);
+  await expect(slide.getByTestId(QA.notLivePill)).toHaveCount(0);
+  await expect(page.getByText('Questions are off')).toHaveCount(0);
+});
+
+test('a live qa slide whose room has no round says "Questions are off"', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const room = { ...openRoom, round: null, questions: 'off' as const, listRevision: 0 };
+  await mount(<GuestFollowing view={view} state={qaState(room)} status="live" />);
+  const slide = page.getByTestId(GUEST_TEST_IDS.slide);
+  await expect(slide.getByTestId(QA.off)).toContainText('Questions are off');
+  await expect(slide.getByTestId(QA.notLive)).toHaveCount(0);
 });

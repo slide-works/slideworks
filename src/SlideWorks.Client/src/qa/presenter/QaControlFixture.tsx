@@ -11,7 +11,7 @@ export type QaControlCall =
 // Tests only: provides the presenter's Q&A controls with a fixed view and error, as QaControlLive does once it has read
 // them. Build `control` from qaControlView() in test-support/fixtures/qaStates.ts ("live": review on, question 2 on
 // screen, question 4 waiting, question 5 hidden, slide 3's questions off; or "notLive"), with overrides; null is "not
-// read yet". Each action calls onAction with what it was asked and changes nothing: mount again (or update) for the
+// read yet". Each action calls onAction with what it was asked and changes nothing and answers null (success): mount again (or update) for the
 // next state. `slide` is the presenter's slide the provider follows (null by default, as on the deck page). Frozen after
 // wave 0.2.
 export function QaControlFixture({
@@ -32,7 +32,7 @@ export function QaControlFixture({
   const source = useMemo<QaControlSource>(() => {
     const record = (call: QaControlCall) => {
       onAction?.(call);
-      return Promise.resolve();
+      return Promise.resolve<string | null>(null);
     };
     const act = (action: QaAction) => (number: number) => record({ action, number });
     return {

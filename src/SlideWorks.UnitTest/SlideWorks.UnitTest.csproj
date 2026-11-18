@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SlideWorks.Core\SlideWorks.Core.csproj" />
+    <ProjectReference Include="..\SlideWorks.LoadTest\SlideWorks.LoadTest.csproj" />
   </ItemGroup>
 
 </Project>

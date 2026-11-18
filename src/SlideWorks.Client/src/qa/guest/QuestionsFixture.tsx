@@ -3,6 +3,7 @@ import type { GuestQuestion, MyVotes, QaRoom } from '../types';
 import {
   QuestionsContext,
   type AskingState,
+  type QuestionErrorFrom,
   type QuestionSort,
   type Questions,
   type QuestionsState,
@@ -17,6 +18,8 @@ export type QuestionsFixtureProps = {
   asking?: AskingState;
   retryIn?: number;
   error?: string | null;
+  // The call error came from. Defaults to null; a spec that sets error says which call failed.
+  errorFrom?: QuestionErrorFrom | null;
   sort?: QuestionSort;
   // Called with each ask, toggleVote, retry and setSort, so a spec sees what the parts asked for.
   onAsk?: (text: string, name: string | null) => void;
@@ -48,6 +51,7 @@ export function QuestionsFixture({
   asking = 'idle',
   retryIn = 0,
   error = null,
+  errorFrom = null,
   sort = 'top',
   onAsk,
   onToggleVote,
@@ -72,6 +76,7 @@ export function QuestionsFixture({
       asking,
       retryIn,
       error,
+      errorFrom,
       sort: heldSort,
       ask: async (text, name) => onAsk?.(text, name),
       toggleVote: (number) => {
@@ -100,6 +105,7 @@ export function QuestionsFixture({
       asking,
       retryIn,
       error,
+      errorFrom,
       heldSort,
       onAsk,
       onToggleVote,

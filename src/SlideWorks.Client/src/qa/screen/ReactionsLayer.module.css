@@ -1,0 +1,43 @@
+/* The floating reactions up the right edge of the canvas (mockup screen state 5), in canvas px. Each float rises about
+   2.5 seconds and is retired when its animation ends. Under reduced motion no float is drawn (the layer folds every
+   tap into the chip), so the animation needs no media query of its own. */
+.float {
+  position: absolute;
+  bottom: 40px;
+  font-size: 64px;
+  line-height: 1;
+  pointer-events: none;
+  animation: reaction-float 2.5s ease-out forwards;
+}
+
+.chips {
+  position: absolute;
+  right: 32px;
+  bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.chip {
+  padding: 10px 22px;
+  border-radius: var(--sw-radius-pill);
+  background: var(--sw-ink);
+  color: var(--sw-paper);
+  font: 700 32px/1.1 var(--sw-font-body);
+}
+
+@keyframes reaction-float {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(0.8);
+  }
+  15% {
+    transform: translateY(-60px) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-760px) scale(1.15);
+  }
+}
