@@ -14,13 +14,23 @@ export const SLOTS: CompareSlots = {
     title: 'Sliced by layer',
     sub: 'One launch',
     points: ['Nothing to show for 11 weeks.'],
+    stamp: 'Late',
+    footer: 'Nothing shipped.',
+    icon: 'coins',
   },
   success: {
     label: 'Search',
     title: 'Sliced by customer action',
     sub: 'Nine releases',
-    points: ['Something live every week.'],
+    rows: [{ label: 'Releases', value: 'Nine' }],
+    stamp: 'Live',
+    footer: 'Something shipped weekly.',
+    tone: 'positive',
+    fill: 'plain',
   },
+  reveal: 'one-by-one',
+  callout: { tone: 'info', text: 'Slice by what the customer does.', reveal: 'last' },
+  emphasis: [{ text: 'when the customer', tone: 'accent', in: 'headline' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is
