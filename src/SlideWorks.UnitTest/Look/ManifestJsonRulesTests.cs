@@ -235,4 +235,56 @@ public class ManifestJsonRulesTests
 
         ErrorsOf(manifest).Select(error => error.Path).ShouldBe(["shape.shadow"]);
     }
+
+    [TestCase("var(--x)")]
+    [TestCase("x, url(x)")]
+    [TestCase("ACCENT")]
+    [TestCase("")]
+    [TestCase(null)]
+    public void Parse_WhenAnOrnamentDotIsNotAKnownName_ShouldRefuse(string? dot)
+    {
+        // null stands for a 500-character name.
+        var manifest = SampleNode();
+        manifest["ornament"]!["dots"] = new JsonArray("accent", dot ?? new string('a', 500), "extra-4");
+
+        ErrorsOf(manifest).ShouldBe([new ManifestError("ornament.dots[1]", "must be one of: accent, accent-2, accent-glow, good, warn, bad, extra-1, extra-2, extra-3, extra-4")]);
+    }
+
+    [Test]
+    public void Parse_WhenThereAreMoreDotsThanTheLimit_ShouldRefuseWithoutNamingEach()
+    {
+        var manifest = SampleNode();
+        manifest["ornament"]!["dots"] = new JsonArray(Enumerable.Repeat("url(x)", TemplateLimits.MAX_ORNAMENT_DOTS + 1).Select(dot => (JsonNode)dot).ToArray());
+
+        ErrorsOf(manifest).ShouldBe([new ManifestError("ornament.dots", "can hold at most 6 dots")]);
+
+        manifest["ornament"]!["dots"] = new JsonArray(ManifestLimits.DotNames.Take(TemplateLimits.MAX_ORNAMENT_DOTS).Select(dot => (JsonNode)dot).ToArray());
+        ErrorsOf(manifest).ShouldBeEmpty();
+    }
+
+    [TestCase("url(x)")]
+    [TestCase("Waves")]
+    [TestCase("a b")]
+    [TestCase("\u0663waves")]
+    [TestCase("")]
+    [TestCase("a-generator-name-that-is-forty-character")]
+    public void Parse_WhenTheTitleArtGeneratorIsNotASlug_ShouldRefuse(string generator)
+    {
+        var manifest = SampleNode();
+        manifest["titleArt"] = new JsonObject { ["kind"] = "generator", ["generator"] = generator };
+
+        ErrorsOf(manifest).ShouldBe([new ManifestError("titleArt.generator", "must be 1 to 31 characters: a lower-case letter, then lower-case letters, digits and hyphens")]);
+    }
+
+    [TestCase("waves")]
+    [TestCase("w")]
+    [TestCase("not-a-built-in-2")]
+    [TestCase("a-generator-name-of-31-letters-")]
+    public void Parse_WhenTheTitleArtGeneratorIsASlug_ShouldPass(string generator)
+    {
+        var manifest = SampleNode();
+        manifest["titleArt"] = new JsonObject { ["kind"] = "generator", ["generator"] = generator };
+
+        ErrorsOf(manifest).ShouldBeEmpty();
+    }
 }

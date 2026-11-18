@@ -10,7 +10,8 @@ namespace SlideWorks.Core.Look.Manifest;
 // Reads and writes a template manifest (T3), the format of src/contracts/template-manifest.schema.json. Parse refuses
 // an unknown field, a field given twice and a file over MAX_BYTES, and checks every value that ends up in CSS or in a
 // path: a palette value is # plus 6 hex digits, shape.shadow passes ManifestShadow, a font family name is plain words,
-// type.headTracking is a small em length and a custom layout's name is a slug. Counts are ManifestLimits' and
+// type.headTracking is a small em length, a custom layout's name and titleArt.generator are slugs, and an ornament dot
+// is one of ManifestLimits.DotNames, at most MAX_ORNAMENT_DOTS of them. Other counts are ManifestLimits' and
 // ExtraColours' job; sizes (TemplateLimits) are checked where files are stored.
 public static partial class ManifestJson
 {
@@ -25,6 +26,9 @@ public static partial class ManifestJson
 
     // A custom layout's name.
     public const int MAX_LAYOUT_NAME = 31;
+
+    // titleArt.generator.
+    public const int MAX_GENERATOR = 31;
 
     // type.headTracking, in em.
     public const decimal MIN_TRACKING = -0.1m;
@@ -368,15 +372,50 @@ public static partial class ManifestJson
         return new ManifestTitleArt
         {
             Kind = reader.OneOf(art, "titleArt", "kind", ArtKinds),
-            Generator = reader.OptionalText(art, "titleArt", "generator", minLength: 1),
+            Generator = Generator(reader, art),
             File = reader.OptionalText(art, "titleArt", "file", minLength: 1, maxLength: MAX_FILE),
         };
     }
 
+    // titleArt.generator ends up in the page as a name, so it is a slug. One that names no built-in generator is
+    // drawn as none.
+    private static string? Generator(ManifestReader reader, JsonElement art)
+    {
+        var generator = reader.OptionalText(art, "titleArt", "generator");
+        if (generator is not null && !IsGenerator(generator))
+        {
+            reader.Add("titleArt.generator", $"must be 1 to {MAX_GENERATOR} characters: a lower-case letter, then lower-case letters, digits and hyphens");
+        }
+
+        return generator;
+    }
+
+    public static bool IsGenerator(string generator) => generator.Length <= MAX_GENERATOR && GeneratorName().IsMatch(generator);
+
+    // A dot's name ends up in CSS as var(--<name>), so it is one of the names a slide draws a dot in.
     private static ManifestOrnament ReadOrnament(ManifestReader outer, JsonElement root)
     {
         var (ornament, reader) = Section(outer, root, "ornament", ["dots"]);
-        return new ManifestOrnament { Dots = reader.Texts(ornament, "ornament", "dots", minLength: 1) };
+        var dots = reader.Items(ornament, "ornament", "dots");
+        if (dots.Count > TemplateLimits.MAX_ORNAMENT_DOTS)
+        {
+            // Over the limit the names are not looked at, so the answer stays small however long the list is.
+            reader.Add("ornament.dots", $"can hold at most {TemplateLimits.MAX_ORNAMENT_DOTS} dots");
+            return new ManifestOrnament { Dots = [] };
+        }
+
+        return new ManifestOrnament { Dots = dots.Select(entry => Dot(reader, entry.Item, entry.Path)).ToList() };
+    }
+
+    private static string Dot(ManifestReader reader, JsonElement dot, string path)
+    {
+        var name = dot.ValueKind == JsonValueKind.String ? dot.GetString()! : "";
+        if (!ManifestLimits.DotNames.Contains(name))
+        {
+            reader.Add(path, "must be one of: " + string.Join(", ", ManifestLimits.DotNames));
+        }
+
+        return name;
     }
 
     private static ManifestPalette? ReadPalette(ManifestReader outer, JsonElement root)
@@ -450,6 +489,9 @@ public static partial class ManifestJson
 
     [GeneratedRegex(@"\A[a-z][a-z0-9-]{1,30}\z")]
     private static partial Regex LayoutName();
+
+    [GeneratedRegex(@"\A[a-z][a-z0-9-]{0,30}\z")]
+    private static partial Regex GeneratorName();
 
     // An optional minus, digits, an optional fraction, then em. The length is capped before it is matched.
     [GeneratedRegex(@"\A-?[0-9]+(\.[0-9]+)?em\z")]
