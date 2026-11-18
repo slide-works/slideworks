@@ -152,7 +152,8 @@ export type DecksUpdated = { count: number };
 
 // GET and PUT /api/templates/{id}/sharing (template-sharing.json). `link` is the template's page.
 export type TemplateSharingView = { level: SharingLevel; viewers: string[]; link: string };
-export type TemplateSharingUpdate = { level: SharingLevel; viewers: string[] };
+// Without `viewers` the server keeps the list as it is: send it only when the owner edited it.
+export type TemplateSharingUpdate = { level: SharingLevel; viewers?: string[] };
 
 // GET /api/templates/{id}/public (template-public.json): the template's page at /t/{id}.
 export type TemplatePublicView = {
