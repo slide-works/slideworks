@@ -225,7 +225,9 @@ export function QaControlLive({ deckId, slide, children }: QaControlLiveProps) {
     async (call: Call, request: () => Promise<QaControlView>) => {
       setError(null);
       try {
-        apply(await request());
+        const view = await request();
+        // An answer for a deck this window has moved on from is not the new deck's view.
+        if (latestDeck.current === deckId) apply(view);
       } catch (failure) {
         if (latestDeck.current !== deckId) return;
         setError(failedMessage(call, failure));

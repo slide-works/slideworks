@@ -391,3 +391,184 @@ test('QaControlLive_WhenAButtonIsPressedTwiceBeforeTheAnswer_ShouldSendOneCall',
   await settle(page);
   expect(writes(api.calls)).toEqual([{ call: 'show', number: 1 }]);
 });
+
+const REACTION_KEYS = ['thumbsUp', 'heart', 'laugh', 'wow', 'clap'] as const;
+const EMOJI = { thumbsUp: '👍', heart: '❤️', laugh: '😂', wow: '😮', clap: '👏' } as const;
+
+// Every counter reads "{emoji} {total}" for the five emoji, in order.
+async function expectTotals(page: Page, totals: ReactionCounts) {
+  for (const key of REACTION_KEYS)
+    await expect(page.getByTestId(qaPanelReactionCountTestId(key))).toHaveText(
+      `${EMOJI[key]} ${totals[key]}`,
+    );
+}
+
+test('QaControlLive_WhenReactionsOfEveryEmojiArrive_ShouldFoldEachOnceAndReplaceThemWithANewerView', async ({
+  mount,
+  page,
+}) => {
+  const { hub } = await stubs(page);
+  await mount(presenter(5));
+  // The live sample: 41 / 12 / 7 / 3 / 28.
+  await expectTotals(page, { thumbsUp: 41, heart: 12, laugh: 7, wow: 3, clap: 28 });
+
+  // Different counts per emoji, so a swapped or dropped key shows.
+  const batch = { thumbsUp: 1, heart: 2, laugh: 3, wow: 4, clap: 5 };
+  hub.pushAudienceEvent(reactionsBurst({ counts: batch }));
+  await expectTotals(page, { thumbsUp: 42, heart: 14, laugh: 10, wow: 7, clap: 33 });
+  hub.pushAudienceEvent(reactionsBurst({ counts: batch }));
+  await expectTotals(page, { thumbsUp: 43, heart: 16, laugh: 13, wow: 11, clap: 38 });
+
+  // A newer view's totals already hold both batches: they replace the sum, every emoji.
+  const view = { ...qaControlView('live'), seq: 2000 };
+  const totals = { thumbsUp: 100, heart: 101, laugh: 102, wow: 103, clap: 104 };
+  pushQaControl(hub, { ...view, reactions: totals });
+  await expectTotals(page, totals);
+  await settle(page);
+  await expectTotals(page, totals);
+
+  hub.pushAudienceEvent(reactionsBurst({ counts: batch }));
+  await expectTotals(page, { thumbsUp: 101, heart: 103, laugh: 105, wow: 107, clap: 109 });
+});
+
+test('QaControlLive_WhenAnActionIsRefusedOrFailsInOtherWays_ShouldSayWhatToDoNotTheCode', async ({
+  mount,
+  page,
+}) => {
+  await stubs(page, {
+    routes: {
+      hide: { status: 403, json: { error: 'forbidden' } },
+      approve: { status: 409, json: { error: 'something_else' } },
+      show: { status: 500, json: {} },
+    },
+  });
+  await mount(presenter(5));
+  await expect(tab(page, IDS.tabOpen)).toBeVisible();
+  const error = page.getByTestId(IDS.error);
+
+  await page.getByTestId('probe-qa-hide').click();
+  await expect(error).toHaveText(
+    "Couldn't hide the question. Only people who can present this deck can moderate its questions.",
+  );
+  await page.getByTestId('probe-qa-approve').click();
+  await expect(error).toHaveText(
+    "Couldn't approve the question. The questions had changed. The list now shows them.",
+  );
+  await page.getByTestId('probe-qa-show').click();
+  await expect(error).toHaveText("Couldn't show the question. Try again in a moment.");
+});
+
+test('QaControlLive_WhenAnActionSucceedsAfterTheDeckChanged_ShouldNotShowTheOldDecksView', async ({
+  mount,
+  page,
+}) => {
+  const { api } = await stubs(page);
+  api.setControl({ ...qaControlView('live'), seq: 9000 });
+  await stubQaControlApi(page, OTHER_DECK, { control: qaControlView('notLive') });
+  const view = await mount(presenter(5));
+  await expect(tab(page, IDS.tabOpen)).toBeVisible();
+
+  const held = api.hold('hide');
+  await page.getByTestId('probe-qa-hide').click();
+  await expect.poll(() => writes(api.calls).length).toBe(1);
+  await view.update(presenter(5, OTHER_DECK));
+  await expect(page.getByTestId(IDS.notLive)).toBeVisible();
+
+  held.release();
+  await settle(page);
+  // The old deck's answer (seq 9001) is not the new deck's view.
+  await expect(page.getByTestId(IDS.notLive)).toBeVisible();
+  await expect(tab(page, IDS.tabOpen)).toHaveCount(0);
+});
+
+test('QaControlLive_WhenAnActionFailsAfterTheDeckChanged_ShouldShowNoMessageAndReadNothingOfTheOldDeck', async ({
+  mount,
+  page,
+}) => {
+  const { api } = await stubs(page, { routes: { hide: { status: 500, json: {} } } });
+  const other = await stubQaControlApi(page, OTHER_DECK, { control: qaControlView('notLive') });
+  const view = await mount(presenter(5));
+  await expect(tab(page, IDS.tabOpen)).toBeVisible();
+
+  const held = api.hold('hide');
+  await page.getByTestId('probe-qa-hide').click();
+  await expect.poll(() => writes(api.calls).length).toBe(1);
+  await view.update(presenter(5, OTHER_DECK));
+  await expect(page.getByTestId(IDS.notLive)).toBeVisible();
+
+  held.release();
+  await settle(page);
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+  // No re-read of the old deck after its failure; the new deck was read once.
+  expect(reads(api.calls)).toHaveLength(1);
+  expect(other.calls).toEqual([{ call: 'read' }]);
+});
+
+test('QaControlLive_WhenTheDeckChanges_ShouldStopListeningForTheOldDecksEvents', async ({
+  mount,
+  page,
+}) => {
+  const { hub } = await stubs(page);
+  const other = await stubQaControlApi(page, OTHER_DECK, { control: qaControlView('notLive') });
+  const view = await mount(presenter(5));
+  await expect(tab(page, IDS.tabOpen)).toBeVisible();
+  await view.update(presenter(5, OTHER_DECK));
+  await expect.poll(() => reads(other.calls).length).toBe(1);
+
+  // The old deck's event must not make the new deck read again.
+  hub.push({ type: 'liveChanged', deckId: DECK });
+  await settle(page);
+  expect(reads(other.calls)).toHaveLength(1);
+
+  hub.push({ type: 'liveChanged', deckId: OTHER_DECK });
+  await expect.poll(() => reads(other.calls).length).toBe(2);
+});
+
+test('QaControlLive_WhenTheReadFailsThenWorks_ShouldClearTheReadMessageOnly', async ({
+  mount,
+  page,
+}) => {
+  const routes: NonNullable<Parameters<typeof stubQaControlApi>[2]>['routes'] = {
+    read: 'network-down',
+  };
+  await stubs(page, { routes });
+  const view = await mount(presenter(5));
+  await expect(page.getByTestId(IDS.error)).toContainText("Couldn't load the questions");
+
+  delete routes.read;
+  await view.update(presenter(6));
+  await expect(tab(page, IDS.tabOpen)).toContainText('Open 3');
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+});
+
+test('QaControlLive_WhenTheWatchFailsBeforeAnyViewIsRead_ShouldNotSayLiveUpdatesAreMissingYet', async ({
+  mount,
+  page,
+}) => {
+  const { hub, api } = await stubs(page);
+  hub.fail('WatchAudience', 'Server timeout.');
+  const held = api.hold('read');
+  await mount(presenter(5));
+  await expect.poll(() => reads(api.calls).length).toBe(1);
+  await settle(page);
+  // Nothing to be out of date yet.
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+
+  held.release();
+  await expect(page.getByTestId(IDS.error)).toContainText("Live question updates aren't reaching");
+});
+
+test('QaControlLive_WhenAnActionIsCalledFromOutsideThePanel_ShouldNotMoveFocusIntoIt', async ({
+  mount,
+  page,
+}) => {
+  await stubs(page);
+  await mount(presenter(5));
+  await expect(page.getByTestId(qaPanelRowTestId(1))).toBeVisible();
+
+  const probe = page.getByTestId('probe-qa-answer');
+  await probe.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId(qaPanelRowTestId(1))).toHaveCount(0);
+  await expect(probe).toBeFocused();
+});

@@ -460,3 +460,123 @@ test('QaPanel not live screenshot', async ({ mount, page }) => {
   await expect(page.getByTestId(IDS.notLive)).toBeVisible();
   await expect(page).toHaveScreenshot();
 });
+
+const counter = (page: Page) => page.getByTestId(IDS.counter).getByRole('status');
+
+test('QaPanel_WhenTheCounterHasReactions_ShouldAnnounceThemInWords', async ({ mount, page }) => {
+  const base = live();
+  await mount(panel({ ...base, reactions: { thumbsUp: 3, heart: 1, laugh: 0, wow: 2, clap: 0 } }));
+  await expect(counter(page)).toHaveText('Reactions: 3 thumbs up, 1 heart, 2 wow');
+});
+
+test('QaPanel_WhenTheCounterHasNoReactions_ShouldAnnounceNoReactionsYet', async ({
+  mount,
+  page,
+}) => {
+  const base = live();
+  await mount(panel({ ...base, reactions: { thumbsUp: 0, heart: 0, laugh: 0, wow: 0, clap: 0 } }));
+  await expect(counter(page)).toHaveText('No reactions yet');
+});
+
+test('QaPanel_WhenReactionsAreOff_ShouldAnnounceReactionsOff', async ({ mount, page }) => {
+  const base = live();
+  await mount(panel({ ...base, settings: { ...base.settings, reactions: false } }));
+  await expect(counter(page)).toHaveText('Reactions off');
+});
+
+test('QaPanel_WhenTheCounterChangesTwiceQuickly_ShouldAnnounceTheFirstChangeAtOnceAndHoldTheNext', async ({
+  mount,
+  page,
+}) => {
+  const base = live();
+  const view = await mount(
+    panel({ ...base, reactions: { thumbsUp: 3, heart: 1, laugh: 0, wow: 0, clap: 0 } }),
+  );
+  await expect(counter(page)).toHaveText('Reactions: 3 thumbs up, 1 heart');
+
+  await view.update(
+    panel({ ...base, reactions: { thumbsUp: 0, heart: 0, laugh: 0, wow: 0, clap: 0 } }),
+  );
+  await expect(counter(page)).toHaveText('No reactions yet');
+  await view.update(panel({ ...base, settings: { ...base.settings, reactions: false } }));
+  await page.evaluate(() => new Promise((done) => setTimeout(done, 500)));
+  await expect(counter(page)).toHaveText('No reactions yet');
+});
+
+test('QaPanel_WhenTwoOpenQuestionsHaveTheSameVotes_ShouldPutTheOlderOneFirstInTop', async ({
+  mount,
+  page,
+}) => {
+  const base = live();
+  const byNumber = (n: number) => base.questions.find((q) => q.number === n)!;
+  // The newer question is listed first, so only the tie rule puts 1 before 6.
+  const questions = [{ ...byNumber(6), votes: 14 }, { ...byNumber(2), votes: 9 }, byNumber(1)];
+  await mount(
+    panel({
+      ...base,
+      questions: [...questions, ...base.questions.filter((q) => ![1, 2, 6].includes(q.number))],
+    }),
+  );
+  expect(await rowNumbers(page)).toEqual([1, 6, 2]);
+  await page.getByTestId(IDS.sort).click();
+  await page.getByTestId(IDS.sortNewest).click();
+  expect(await rowNumbers(page)).toEqual([6, 2, 1]);
+});
+
+test('QaPanel_WhenARowShowsVotes_ShouldGiveAScreenReaderTheWordVoteOrVotes', async ({
+  mount,
+  page,
+}) => {
+  const base = live();
+  await mount(
+    panel({
+      ...base,
+      questions: base.questions.map((q) => (q.number === 6 ? { ...q, votes: 1 } : q)),
+    }),
+  );
+  await expect(page.getByTestId(qaPanelRowVotesTestId(1))).toHaveText('▲14 votes');
+  await expect(page.getByTestId(qaPanelRowVotesTestId(6))).toHaveText('▲1 vote');
+});
+
+test('QaPanel_WhenATabIsChosen_ShouldMakeItTheOnlyTabStopAndNameThePanelAfterIt', async ({
+  mount,
+  page,
+}) => {
+  await mount(panel(live()));
+  const stops = () =>
+    page
+      .getByRole('tab')
+      .evaluateAll((tabs) => tabs.map((t) => `${t.textContent}:${t.getAttribute('tabindex')}`));
+  expect(await stops()).toEqual(['Open 3:0', 'To review 1:-1', 'Answered 1:-1', 'Hidden 1:-1']);
+  await expect(page.getByRole('tabpanel')).toHaveAccessibleName('Open 3');
+
+  await page.getByTestId(IDS.tabOpen).focus();
+  await page.keyboard.press('ArrowRight');
+  expect(await stops()).toEqual(['Open 3:-1', 'To review 1:0', 'Answered 1:-1', 'Hidden 1:-1']);
+  await expect(page.getByRole('tabpanel')).toHaveAccessibleName('To review 1');
+});
+
+test('QaPanel_WhenTheSortMenuIsOpen_ShouldMoveWithBothArrowsAndWrap', async ({ mount, page }) => {
+  await mount(panel(live()));
+  await page.getByTestId(IDS.sort).click();
+  await expect(page.getByTestId(IDS.sortTop)).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await expect(page.getByTestId(IDS.sortNewest)).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await expect(page.getByTestId(IDS.sortTop)).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(page.getByTestId(IDS.sortNewest)).toBeFocused();
+});
+
+test('QaPanel_WhenFocusLeavesTheSortMenu_ShouldCloseItAndLeaveFocusWhereItWent', async ({
+  mount,
+  page,
+}) => {
+  await mount(panel(live()));
+  await page.getByTestId(IDS.sort).click();
+  await expect(page.getByTestId(IDS.sortTop)).toBeVisible();
+  await page.getByTestId(IDS.tabAnswered).focus();
+  await expect(page.getByTestId(IDS.sortTop)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.tabAnswered)).toBeFocused();
+  await expect(page.getByTestId(IDS.sort)).toHaveText('Top ▾');
+});
