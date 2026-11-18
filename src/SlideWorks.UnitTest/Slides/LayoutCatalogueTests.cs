@@ -33,10 +33,9 @@ public class LayoutCatalogueTests
         LayoutCatalogue.Layouts.Where(l => l.Surface == LayoutSurface.Either).Select(l => l.Name).ShouldBe(["bullets", "big-number", "statement"]);
         LayoutCatalogue.Layouts.Where(l => !l.Tracker).Select(l => l.Name).ShouldBe(["statement"]);
         LayoutCatalogue.Layouts.Where(l => l.Steps is not null).Select(l => (l.Name, l.StepsFrom))
-            .ShouldBe([("bullets", "items"), ("two-column", null), ("big-number", null), ("image", "points"), ("table", "rows"), ("numbered-cards", "cards"), ("rules", "rules"), ("cards", "cards"), ("stack", "segments")]);
+            .ShouldBe([("bullets", "items"), ("two-column", null), ("big-number", null), ("image", "points"), ("table", "rows"), ("numbered-cards", "cards"), ("rules", "rules"), ("cards", "cards"), ("statement", null), ("stack", "segments")]);
     }
 
-    [TestCase("statement", "kicker,statement")]
     [TestCase("links", "kicker,headline")]
     [TestCase("bars", "kicker,headline")]
     [TestCase("flow", "kicker,headline")]
@@ -48,7 +47,7 @@ public class LayoutCatalogueTests
         stub.Slots.Fields.Select(f => f.Name).ShouldBe(fields.Split(','));
         stub.Description.ShouldNotBeNullOrWhiteSpace();
         stub.Slots.Fields[1].Required.ShouldBeTrue();
-        stub.Slots.Fields[1].Type.ShouldBeOfType<TextSlot>().MaxLength.ShouldBe(name == "statement" ? 120 : 80);
+        stub.Slots.Fields[1].Type.ShouldBeOfType<TextSlot>().MaxLength.ShouldBe(80);
     }
 
     [Test]
