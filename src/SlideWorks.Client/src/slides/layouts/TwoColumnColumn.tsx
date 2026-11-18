@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { Icon } from '../blocks/Icon';
+import { iconFor } from '../blocks/icons';
 import { LeadText } from '../blocks/LeadText';
 import type { ColumnSlot } from '../slots';
 import styles from './TwoColumnColumn.module.css';
@@ -14,7 +15,10 @@ const ICON_SIZE = 34;
 // beside it, and an item's icon takes the place of its bullet mark. The levels
 // layout places it as its main column too.
 export function TwoColumnColumn({ side, column }: TwoColumnColumnProps) {
-  const { title, icon, items, text, image } = column;
+  const { title, items, text, image } = column;
+  // An unknown icon name draws nothing and keeps the normal look (decide on iconFor, not on the slot).
+  const icon =
+    column.icon !== undefined && iconFor(column.icon) !== undefined ? column.icon : undefined;
   return (
     <div data-testid={`two-column-${side}`} className={styles.column}>
       {title !== undefined ? (
@@ -34,7 +38,12 @@ export function TwoColumnColumn({ side, column }: TwoColumnColumnProps) {
       {items !== undefined ? (
         <ul className={styles.items}>
           {items.map((item, i) => {
-            const itemIcon = typeof item === 'string' ? undefined : item.icon;
+            const itemIcon =
+              typeof item === 'string' ||
+              item.icon === undefined ||
+              iconFor(item.icon) === undefined
+                ? undefined
+                : item.icon;
             return itemIcon !== undefined ? (
               <li
                 key={i}

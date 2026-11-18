@@ -1,11 +1,29 @@
 /* The heading is SlideHeading's; the root (.sw-layout) and body (.sw-body)
    rules are the frame's, and .sw-body already fills the height that is left.
 
-   .two: 1fr 1.05fr with a 64 px gap, so the left column is 788 px. The one row
-   takes the body's height, so a column's image can shrink into what is left. */
+   The body stacks the columns over the callout; the columns take the height
+   the callout leaves. */
+.body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* .two: 1fr 1.05fr with a 64 px gap, so the left column is 788 px. The one row
+   takes the height that is left, so a column's image can shrink into it. */
 .columns {
   display: grid;
+  flex: 1;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
   grid-template-rows: minmax(0, 1fr);
   gap: 64px;
+  min-height: 0;
+}
+
+/* The right column's wrapper (a Reveal, so its space is kept while hidden):
+   a one-cell grid, so the column fills it as it filled its own grid cell. */
+.right {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
 }

@@ -10,8 +10,15 @@ import { SAMPLE_IMAGE_ID } from './sampleImage';
 export const SLOTS: TwoColumnSlots = {
   kicker: 'Slice it',
   headline: 'A story map shows the thinnest release',
-  left: { title: 'How to read it', items: ['One row is one release.'] },
+  left: {
+    title: 'How to read it',
+    icon: 'bolt',
+    items: ['One row is one release.', { icon: 'check', text: 'One column is one step.' }],
+  },
   right: { image: { image: SAMPLE_IMAGE_ID, alt: 'A story map' } },
+  reveal: 'one-by-one',
+  callout: { tone: 'info', text: 'Read it left to right.', reveal: 'last' },
+  emphasis: [{ text: 'thinnest release', tone: 'accent' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is
