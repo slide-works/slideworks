@@ -1,0 +1,53 @@
+/* The question card over any slide (mockup screen state 1), in canvas px. The slide dims slightly behind it: the ink
+   token at low opacity, so a deck's palette re-skins it. */
+.dim {
+  position: absolute;
+  inset: 0;
+  background: var(--sw-ink);
+  opacity: 0.22;
+}
+
+.card {
+  position: absolute;
+  left: 120px;
+  right: 240px;
+  bottom: 96px;
+  padding: 36px 44px 40px;
+  border-radius: var(--sw-radius-xl);
+  background: var(--sw-card);
+  color: var(--sw-ink);
+  border: 2px solid var(--sw-accent);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin: 0 0 18px;
+  font: 700 26px/1 var(--sw-font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sw-accent-dark);
+}
+
+.votes {
+  margin-left: auto;
+  padding: 8px 18px;
+  border-radius: var(--sw-radius-pill);
+  background: var(--sw-accent-light);
+  letter-spacing: 0;
+}
+
+.text {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 700 54px/1.18 var(--sw-font-head);
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.name {
+  margin: 22px 0 0;
+  font: 500 28px/1.1 var(--sw-font-body);
+  color: var(--sw-muted);
+}
