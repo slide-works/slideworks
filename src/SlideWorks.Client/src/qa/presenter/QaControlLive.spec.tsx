@@ -569,7 +569,9 @@ test('QaControlLive_WhenAPanelButtonIsPressedWithFocusOutsideThePanel_ShouldNotM
   // A click that doesn't take focus (a script, or assistive tech): focus stays on the probe button.
   const probe = page.getByTestId('probe-qa-settings');
   await probe.focus();
-  await page.getByTestId(qaPanelActionTestId('answer', 1)).evaluate((button) => button.click());
+  await page
+    .getByTestId(qaPanelActionTestId('answer', 1))
+    .evaluate((button) => (button as HTMLElement).click());
   await expect(page.getByTestId(qaPanelRowTestId(1))).toHaveCount(0);
   await settle(page);
   await expect(probe).toBeFocused();
