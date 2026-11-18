@@ -225,7 +225,7 @@ test('failed: the message is a sentence, not the code, and the draft stays', asy
 }) => {
   const component = await mount(sheet());
   await page.getByTestId(ID.text).fill('Still here');
-  await component.update(sheet({ asking: 'failed', error: 'questions_closed' }));
+  await component.update(sheet({ asking: 'failed', errorFrom: 'ask', error: 'questions_closed' }));
   await expect(page.getByTestId(ID.failed)).toHaveText(
     'Sam has closed questions. You can still upvote.',
   );
@@ -234,11 +234,13 @@ test('failed: the message is a sentence, not the code, and the draft stays', asy
   await expect(page.getByTestId(ID.sheet)).not.toContainText('questions_closed');
 
   // A 400 with no error member, and a code the copy does not know yet, read as a generic sentence.
-  await component.update(sheet({ asking: 'failed', error: 'Request failed (400)' }));
+  await component.update(
+    sheet({ asking: 'failed', errorFrom: 'ask', error: 'Request failed (400)' }),
+  );
   await expect(page.getByTestId(ID.failed)).toHaveText(
     'Something went wrong on our side. Try again in a moment.',
   );
-  await component.update(sheet({ asking: 'failed', error: 'new_round' }));
+  await component.update(sheet({ asking: 'failed', errorFrom: 'ask', error: 'new_round' }));
   await expect(page.getByTestId(ID.failed)).not.toContainText('new_round');
   await expect(page.getByTestId(ID.text)).toHaveValue('Still here');
 });
@@ -367,4 +369,13 @@ test('focus goes to the Questions tab when the Ask button is gone because the ro
   await component.update(sheet({ open: false, room: qaRoom('open', { questions: 'closed' }) }));
   await expect(page.getByTestId(QA_LIST_TEST_IDS.ask)).toHaveCount(0);
   await expect(page.getByTestId(QA_TABS_TEST_IDS.questionsTab)).toBeFocused();
+});
+
+test('failed with an error from an upvote or the list is not the sheet’s to show', async ({
+  mount,
+  page,
+}) => {
+  await mount(sheet({ asking: 'failed', errorFrom: 'vote', error: 'too_many_votes' }));
+  await expect(page.getByTestId(ID.failed)).toHaveCount(0);
+  await expect(page.getByTestId(ID.sheet)).not.toContainText('upvotes');
 });

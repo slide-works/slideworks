@@ -105,7 +105,7 @@ function AskSheetDialog({
   onSend,
 }: DialogProps) {
   const { close, pollJustOpened } = useAskSheet();
-  const { room, asking, error, retryIn } = useQuestions();
+  const { room, asking, error, errorFrom, retryIn } = useQuestions();
   const dialog = useRef<HTMLDialogElement>(null);
   const field = useRef<HTMLInputElement>(null);
 
@@ -300,7 +300,7 @@ function AskSheetDialog({
             {limitedText}
           </p>
         )}
-        {asking === 'failed' && (
+        {asking === 'failed' && errorFrom === 'ask' && (
           <p
             data-testid={QA_ASK_SHEET_TEST_IDS.failed}
             role="alert"
