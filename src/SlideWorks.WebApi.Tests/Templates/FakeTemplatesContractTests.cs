@@ -66,6 +66,23 @@ public class FakeTemplatesContractTests : TemplatesContractTests
         listed.Count(t => t.Ref == talk.Name).ShouldBe(1);
     }
 
+    // A deck on a built-in may store a version (none means anything there); the added template still answers.
+    [Test]
+    public async Task Find_WhenAnAddedBuiltInRefIsAskedWithAVersion_ShouldAnswerTheAddedOne()
+    {
+        var talk = BuiltIns.Default;
+        var wider = BuiltInTemplates.Resolve(talk) with { FitWidths = new FitWidths(0.62, 0.62, 0.62) };
+        var fake = new FakeTemplates();
+        fake.Add(wider);
+
+        var found = await fake.FindAsync(talk.Name, 3, CancellationToken.None);
+        var forDeck = await fake.ForDeckAsync(DeckOn(talk.Name, 3), CancellationToken.None);
+
+        found.ShouldBe(wider);
+        forDeck.ShouldBe(wider);
+        forDeck.FitWidths.Body.ShouldBe(0.62);
+    }
+
     [Test]
     public async Task FindLayout_WhenTheNameIsBuiltIn_ShouldAnswerItsDefinition()
     {

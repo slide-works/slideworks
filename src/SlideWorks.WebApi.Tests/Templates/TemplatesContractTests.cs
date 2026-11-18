@@ -31,6 +31,33 @@ public abstract class TemplatesContractTests
         found.Look.ShouldBe(TemplateLook.OfBuiltIn(workshop));
     }
 
+    // A built-in has no versions: whatever version is asked, and a deck stores none or a stale one, it is found.
+    [Test]
+    public async Task Find_WhenABuiltInIsAskedWithAVersion_ShouldIgnoreTheVersion()
+    {
+        var workshop = BuiltIns.All.First(t => !t.IsDefault);
+        var templates = Create();
+
+        var found = await templates.FindAsync(workshop.Name, 7, CancellationToken.None);
+        var forDeck = await templates.ForDeckAsync(DeckOn(workshop.Name, 7), CancellationToken.None);
+
+        found.ShouldNotBeNull();
+        found.Template.ShouldBe(workshop);
+        found.Version.ShouldBeNull();
+        found.BuiltIn.ShouldBeTrue();
+        forDeck.Template.ShouldBe(workshop);
+    }
+
+    // Only ForDeckAsync falls back to the default; FindAsync says there is no such template.
+    [TestCase(null)]
+    [TestCase(1)]
+    public async Task Find_WhenTheUploadedRefIsUnknown_ShouldAnswerNull(int? version)
+    {
+        var found = await Create().FindAsync("tpl_nosuchtemplate", version, CancellationToken.None);
+
+        found.ShouldBeNull();
+    }
+
     [Test]
     public async Task ForDeck_WhenTheRefIsUnknown_ShouldFallBackToTheDefault()
     {

@@ -7,8 +7,8 @@ using SlideWorks.WebApi.Infrastructure.Identity;
 namespace SlideWorks.WebApi.Tests.Support;
 
 // ITemplates for tests that need a template the built-ins do not have: the built-ins plus whatever a test adds with Add.
-// An added template is answered before a built-in of the same ref, so a test can widen "talk". FindAsync with no version
-// answers the highest version added (the last one added, among equals). ListForAsync leaves out an archived template and
+// An added template is answered before a built-in of the same ref, whatever version is asked, so a test can widen "talk".
+// FindAsync with no version answers the highest version added (the last one added, among equals). ListForAsync leaves out an archived template and
 // one the actor may not pick. Swap it in on a test host with FakeTemplates.Register. The app, and so this fake, is shared
 // by every test in a fixture: each test adds refs of its own.
 public sealed class FakeTemplates : ITemplates
@@ -38,7 +38,9 @@ public sealed class FakeTemplates : ITemplates
             {
                 return Task.FromResult(_builtIns.Find(templateRef) is { } builtIn ? BuiltInTemplates.Resolve(builtIn) : null);
             }
-            return Task.FromResult(version is null ? Latest(added) : added.LastOrDefault(t => t.Version == version));
+            // A built-in has no versions, so the version asked is not looked at for its ref, as with the real one.
+            var anyVersion = version is null || _builtIns.Find(templateRef) is not null;
+            return Task.FromResult(anyVersion ? Latest(added) : added.LastOrDefault(t => t.Version == version));
         }
     }
 
