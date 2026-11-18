@@ -1,9 +1,10 @@
 {
   "rule": [
-    "Every character of a link is printable ASCII, U+0021 to U+007E. Anything else is a refusal: any whitespace, any control character, NUL, DEL, U+00A0, U+0085, U+2028, U+FEFF, any non-ASCII letter. An international host is written in punycode. A link is never trimmed.",
+    "The length is checked first (the rule is further down); the other rules follow in the order given. Every character of a link is printable ASCII, U+0021 to U+007E. Anything else is a refusal: any whitespace, any control character, NUL, DEL, U+00A0, U+0085, U+2028, U+FEFF, any non-ASCII letter. An international host is written in punycode. A link is never trimmed.",
     "No backslash anywhere.",
     "It starts with http:// or https://, compared without case, and the character after // is not /, \\, @ or :.",
     "No @ before the first /, ? or # after the host starts: no user info, with or without a password.",
+    "No % before the first /, ? or # after the host starts: no percent sign in the host, the port or anything else before the path. After the path starts a percent sign is fine.",
     "At most 500 characters. A slot may set a lower limit of its own; its own tests cover that.",
     "These checks run on the raw string before any URL parser sees it, because the browser's URL parser and the .NET one disagree on the cases below. The parser then still has to find a host."
   ],
@@ -283,6 +284,30 @@
     {
       "value": "https://example.org/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "ok": false
+    },
+    {
+      "value": "https://exa%6dple.org/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org%2f@evil.example/",
+      "ok": false
+    },
+    {
+      "value": "https://[fe80::1%eth0]/",
+      "ok": false
+    },
+    {
+      "value": "https://[fe80::1%25eth0]/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org:80%31/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org/a%20b?c=%2F#d%41",
+      "ok": true
     }
   ]
 }
