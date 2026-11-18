@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PollActivity } from '../../polls/types';
 import { QA_TABS_TEST_IDS } from '../testIds';
 import type { QaRoom } from '../types';
@@ -7,6 +7,7 @@ import { AskSheet } from './AskSheet';
 import { AskSheetContext, type AskSheet as AskSheetValue } from './AskSheetContext';
 import { QuestionList } from './QuestionList';
 import { ReactionRow } from './ReactionRow';
+import { useQuestions } from './useQuestions';
 
 export type GuestTab = 'slide' | 'questions';
 
@@ -24,28 +25,68 @@ export type GuestTabsProps = {
 };
 
 const TAB_CLASS =
-  'min-h-11 flex-1 rounded-[10px] text-[13px] font-semibold aria-selected:bg-white aria-selected:text-(--sw-night) focus-visible:outline-2 focus-visible:outline-(--sw-accent-glow)';
+  'inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-[13px] font-semibold transition-colors aria-selected:bg-white aria-selected:text-(--sw-night) focus-visible:outline-2 focus-visible:outline-(--sw-accent-glow) motion-reduce:duration-0';
+
+// The open poll in the audience state's activity, as one value per round, or null when no poll is open.
+const openPollOf = (activity: PollActivity | null) =>
+  activity?.type === 'poll' && activity.phase === 'open'
+    ? `${activity.round ?? ''}/${activity.number}`
+    : null;
 
 // The guest page's two tabs at the bottom (Q8, D1): Slide, with the reaction row under the activity card, and Questions,
 // with the list, the Ask bar and the ask sheet. It provides useAskSheet. With questions off there is no tab bar and only
 // the Slide tab's content. In the landscape slide-only layout the Slide panel lays out as SW-5's page did (display:
-// contents), the Questions panel and the tab bar hide, as the header does.
-// TODO: a shell with two plain tabs that switch; the tabs' badge, poll dot and the poll switch (D7) replace it.
-export function GuestTabs({ tab, onTab, room, presenter, children }: GuestTabsProps) {
+// contents), the Questions panel, the tab bar and the reaction row hide, as the header does.
+// The Questions tab names its count of open questions; the Slide tab carries a dot while a poll is open and Questions
+// is showing. D7: a poll opening while Questions is showing switches to Slide, unless the ask sheet is open, when
+// pollJustOpened is set until the sheet closes. A poll already open when the guest chose Questions doesn't pull them back.
+export function GuestTabs({ tab, onTab, activity, room, presenter, children }: GuestTabsProps) {
+  const { questions } = useQuestions();
   const [open, setOpen] = useState(false);
+  const [pollJustOpened, setPollJustOpened] = useState(false);
+
+  // D7, worked out while rendering so the switch lands before the paint: a new open poll, seen with Questions showing.
+  const openPoll = openPollOf(activity);
+  const [seenPoll, setSeenPoll] = useState(openPoll);
+  const [switches, setSwitches] = useState(0);
+  if (seenPoll !== openPoll) {
+    setSeenPoll(openPoll);
+    if (openPoll !== null && tab === 'questions') {
+      if (open) setPollJustOpened(true);
+      else setSwitches((n) => n + 1);
+    }
+  }
+  // The tab is GuestQa's, so the switch is asked for once per poll opening, after this render and before the paint.
+  const switched = useRef(0);
+  useLayoutEffect(() => {
+    if (switches === switched.current) return;
+    switched.current = switches;
+    onTab('slide');
+  }, [switches, onTab]);
+
   const sheet = useMemo<AskSheetValue>(
     () => ({
       open,
-      show: () => setOpen(true),
-      close: () => setOpen(false),
+      show: () => {
+        setPollJustOpened(false);
+        setOpen(true);
+      },
+      close: () => {
+        setPollJustOpened(false);
+        setOpen(false);
+      },
       goToPoll: () => {
+        setPollJustOpened(false);
         setOpen(false);
         onTab('slide');
       },
-      pollJustOpened: false,
+      pollJustOpened,
     }),
-    [open, onTab],
+    [open, pollJustOpened, onTab],
   );
+
+  const openCount = questions.filter((q) => q.state === 'open').length;
+  const pollDot = openPoll !== null && tab === 'questions';
 
   const on = room !== null && room.questions !== 'off';
   // One tree whether questions are on or off, so SW-5's slide and SW-6's poll card (and a guest's unsent picks) are never
@@ -66,7 +107,7 @@ export function GuestTabs({ tab, onTab, room, presenter, children }: GuestTabsPr
     <AskSheetContext value={sheet}>
       <div {...slidePanel}>
         {children}
-        <ReactionRow />
+        <ReactionRow presenter={presenter} />
       </div>
       {on && (
         <div
@@ -99,6 +140,14 @@ export function GuestTabs({ tab, onTab, room, presenter, children }: GuestTabsPr
             onClick={() => onTab('slide')}
           >
             Slide
+            {pollDot && (
+              <span
+                role="img"
+                aria-label="A poll is open"
+                data-testid={QA_TABS_TEST_IDS.slideDot}
+                className="size-2 rounded-full bg-[#4ade80]"
+              />
+            )}
           </button>
           <button
             id="qa-tab-questions"
@@ -108,9 +157,19 @@ export function GuestTabs({ tab, onTab, room, presenter, children }: GuestTabsPr
             aria-controls="qa-panel-questions"
             data-testid={QA_TABS_TEST_IDS.questionsTab}
             className={TAB_CLASS}
+            aria-label={openCount > 0 ? `Questions, ${openCount} open` : 'Questions'}
             onClick={() => onTab('questions')}
           >
             Questions
+            {openCount > 0 && (
+              <span
+                aria-hidden
+                data-testid={QA_TABS_TEST_IDS.questionsBadge}
+                className="rounded-full bg-(--sw-accent) px-1.5 py-[3px] text-[10.5px] leading-none font-bold text-white tabular-nums"
+              >
+                {openCount}
+              </span>
+            )}
           </button>
         </div>
       )}
