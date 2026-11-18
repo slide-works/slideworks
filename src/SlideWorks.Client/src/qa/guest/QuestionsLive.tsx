@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { ApiError } from '../../api/client';
-import type { AudienceQuestions, AudienceStatus } from '../../guest/useAudience';
+import { NO_SESSION, TOO_MANY_ATTEMPTS } from '../../guest/guestView';
+import {
+  JITTER_MS,
+  REREAD_RETRY_MS,
+  SLOW_JITTER_MS,
+  THROTTLED_RETRY_MS,
+  type AudienceQuestions,
+  type AudienceStatus,
+} from '../../guest/useAudience';
 import type {
   AskRefusalCode,
   AskRequest,
@@ -41,6 +49,9 @@ const AGE_REREAD_MS = 60_000;
 // ReactionsLive. Every other failure is the server's code or rule; questionErrorText passes this one through as is.
 export const QA_NETWORK_ERROR =
   'Your phone couldn’t reach the talk. Check your connection, then try again.';
+
+// The GET's refusal for a phone the server doesn't know as a guest (no guest cookie): reading again won't change it.
+const NO_GUEST = 'no_guest';
 
 // The error of a question queued in one round when the connection comes back to a new round: it is not sent (SW-322 D2).
 const NEW_ROUND = 'new_round';
@@ -94,13 +105,25 @@ const moved = (base: GuestQuestion[], from: number[], to: number[]) =>
 const messageOf = (error: unknown) =>
   error instanceof ApiError ? error.message : QA_NETWORK_ERROR;
 
+// How long after a failed read the list is read again, as useAudience waits after a failed view re-read: a random extra
+// so a room of phones doesn't call together, the slower wait after a rate limit, and none after a refusal that reading
+// again won't change (no_session, no_guest), which waits for a reconnect, a new round, the minute timer or retry().
+function backoffAfter(error: unknown, random: () => number): number | null {
+  const code = error instanceof ApiError ? error.message : null;
+  if (code === NO_SESSION || code === NO_GUEST) return null;
+  if (code === TOO_MANY_ATTEMPTS) return THROTTLED_RETRY_MS + Math.floor(random() * SLOW_JITTER_MS);
+  return REREAD_RETRY_MS + Math.floor(random() * JITTER_MS);
+}
+
 // One guest's questions in one round, kept outside React so its rules read top to bottom. QuestionsLive starts it,
 // tells it each room, status and whether the tab is showing, and renders its snapshot.
 //
 // - Reads (GET): on start, when room.round changes, when the room or a questionTally carries a listRevision higher than
 //   the one a read has landed or is in flight for, after a reconnect, once a minute while the tab is showing, and on
 //   retry(). Never while the room is null or its questions are off. Only the newest read is applied; within a round
-//   mine never moves back. A failed read records nothing, so the next tally or room at that revision reads again.
+//   mine never moves back. After a failed read no tally or room starts a read (it notes the revision it carries); one
+//   timer reads again later if the list is still behind (none after no_session or no_guest). A reconnect, a new round,
+//   the minute timer and retry() read at once.
 // - Tallies: only for the held list's round; one with a higher listRevision reads again instead of applying its votes.
 //   While a PUT is out, a tally leaves the questions that PUT changes at their held count (it may already count the
 //   vote), and the list is read again once the PUT has answered.
@@ -109,7 +132,7 @@ const messageOf = (error: unknown) =>
 //   for a round the phone no longer holds is not added.
 // - Votes (PUT): at most one out; toggles made meanwhile wait and the picks the guest wants go when it returns, a
 //   take-back of what the PUT out sent included. While not live they wait for the reconnect's read. A stale 409 takes
-//   `current` and applies the toggles again once.
+//   `current` and applies the toggles again once; a 409 whose current is another round resets as a new round's read.
 class QuestionsSession {
   private held: Held = {
     room: null,
@@ -131,6 +154,10 @@ class QuestionsSession {
   // read twice. A failed read leaves `landedFor` as it was.
   private landedFor: Revision = { round: null, revision: 0 };
   private inFlight: Revision | null = null;
+  // After a failed read: its round and the highest listRevision seen since, which no tally or room reads for until
+  // `retryTimer` fires (or a reconnect, a new round, the minute timer or retry() reads). Null when no read has failed.
+  private failedFor: Revision | null = null;
+  private retryTimer: ReturnType<typeof setTimeout> | undefined;
   private queuedAsk: AskRequest | null = null;
   // The PUT out, by its token: a response whose token isn't this one's is ignored. `sent` is its picks.
   private voteOut: number | null = null;
@@ -169,6 +196,8 @@ class QuestionsSession {
       this.stopTallies = null;
       this.reads += 1;
       this.inFlight = null;
+      this.failedFor = null;
+      clearTimeout(this.retryTimer);
       clearInterval(this.countdown);
       clearInterval(this.ageTimer);
       this.ageTimer = undefined;
@@ -188,7 +217,7 @@ class QuestionsSession {
     if (!roomOn(room)) return;
     const waiting = this.queuedAsk !== null || this.held.toggles.length > 0;
     const back = status === 'live' && was !== 'live' && (was !== 'connecting' || waiting);
-    if (back || !this.known(room.round, room.listRevision)) this.read();
+    if (back || this.wants(room.round, room.listRevision)) this.read();
   }
 
   readonly retry = () => {
@@ -223,7 +252,7 @@ class QuestionsSession {
     const { room, base } = this.held;
     if (!this.active || room === null || tally.round !== room.round) return;
     if (tally.listRevision > room.listRevision) {
-      if (!this.known(tally.round, tally.listRevision)) this.read(tally.listRevision);
+      if (this.wants(tally.round, tally.listRevision)) this.read(tally.listRevision);
       return;
     }
     const votes = new Map(tally.votes.map((v) => [v.number, v.votes]));
@@ -246,6 +275,27 @@ class QuestionsSession {
     const covers = (r: Revision | null) =>
       r !== null && r.round === round && revision <= r.revision;
     return covers(this.landedFor) || covers(this.inFlight);
+  }
+
+  // Whether a room or tally at this round and listRevision should start a read: not when one covers it, and not after a
+  // failed read in the same round, which notes the revision for its retry instead. Another round reads at once.
+  private wants(round: string, revision: number): boolean {
+    if (this.known(round, revision)) return false;
+    const failed = this.failedFor;
+    if (failed === null || failed.round !== round) return true;
+    this.failedFor = { round, revision: Math.max(failed.revision, revision) };
+    return false;
+  }
+
+  // One read after the backoff, if the list is still behind what was seen since the failure.
+  private retryLater(wait: number) {
+    clearTimeout(this.retryTimer);
+    this.retryTimer = setTimeout(() => {
+      const failed = this.failedFor;
+      this.failedFor = null;
+      if (failed === null || failed.round === null || !this.active) return;
+      if (!this.known(failed.round, failed.revision)) this.read(failed.revision);
+    }, wait);
   }
 
   // The questions the PUT out changes: where its picks differ from the stored ones.
@@ -275,6 +325,9 @@ class QuestionsSession {
     const room = this.room;
     if (!roomOn(room)) return;
     const read = ++this.reads;
+    // A read now takes over from any wait after a failed one.
+    clearTimeout(this.retryTimer);
+    this.failedFor = null;
     const asked = this.inFlight?.round === room.round ? this.inFlight.revision : 0;
     const wanted = {
       round: room.round,
@@ -295,8 +348,12 @@ class QuestionsSession {
       },
       (error: unknown) => {
         if (!this.active || read !== this.reads) return;
-        // A failed re-read keeps the list it holds and records no revision; the next trigger reads again.
+        // A failed re-read keeps the list it holds and records no revision. Its revision counts as covered until the
+        // backoff's one read (if any), so a stream of tallies or room pushes doesn't send a GET each.
         this.inFlight = null;
+        this.failedFor = wanted;
+        const wait = backoffAfter(error, Math.random);
+        if (wait !== null) this.retryLater(wait);
         const state = this.held.state === 'ready' ? 'ready' : 'failed';
         this.set({ state, error: messageOf(error), errorFrom: 'read' });
       },
@@ -451,13 +508,11 @@ class QuestionsSession {
     this.flushVotes();
   }
 
-  // The server's view is current; the toggles are applied to it again once, then dropped with the error.
+  // The server's view is current; the toggles are applied to it again once, then dropped with the error. A current of
+  // another round is applied as that round's read, so the same reset applies (a queued question doesn't cross).
   private stale(current: GuestQuestionsView) {
     const held = this.held;
     const wanted = this.mine();
-    const sameRound = held.room?.round === current.room.round;
-    const retry = sameRound && !this.staleRetried;
-    this.staleRetried = retry;
     const { round, listRevision } = current.room;
     this.landedFor = {
       round,
@@ -466,6 +521,12 @@ class QuestionsSession {
           ? Math.max(listRevision, this.landedFor.revision)
           : listRevision,
     };
+    if (held.room?.round !== round) {
+      this.landed(current);
+      return;
+    }
+    const retry = !this.staleRetried;
+    this.staleRetried = retry;
     const toggles = retry ? this.stillToggled(wanted, current.mine.picks, current.questions) : [];
     this.sent = null;
     this.set({

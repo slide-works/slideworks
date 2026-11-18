@@ -1,8 +1,15 @@
 import { Activity, act, createElement, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { ApiError } from '../../api/client';
-import type { AudienceQuestions, AudienceStatus } from '../../guest/useAudience';
+import {
+  JITTER_MS,
+  REREAD_RETRY_MS,
+  SLOW_JITTER_MS,
+  THROTTLED_RETRY_MS,
+  type AudienceQuestions,
+  type AudienceStatus,
+} from '../../guest/useAudience';
 import { guestQuestions, qaRoom } from '../../test-support/fixtures/qaStates';
 import type { GuestQuestionsView, QaRoom, QuestionTally, VoteRequest } from '../types';
 import { AudienceQuestionsContext } from './AudienceQuestionsContext';
@@ -589,7 +596,9 @@ describe('QuestionsLive after review round 1', () => {
     expect(latest().questions.map((q) => q.number)).toEqual([1, 2]);
   });
 
-  it('a re-read that fails records no revision, so the next tally at that revision reads again', async () => {
+  it('a re-read that fails records no revision: the next tally waits, and the backoff reads it again', async () => {
+    vi.useFakeTimers();
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
     await render(view.room);
     api.getQuestions.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     const higher = {
@@ -603,8 +612,11 @@ describe('QuestionsLive after review round 1', () => {
     expect(latest().state).toBe('ready');
 
     await hub.push({ ...higher, votes: [] });
+    expect(api.getQuestions).toHaveBeenCalledTimes(2);
+    await tick(REREAD_RETRY_MS);
 
     expect(api.getQuestions).toHaveBeenCalledTimes(3);
+    random.mockRestore();
   });
 
   it('a limited ask is idle again when the effects run again, since its countdown stopped', async () => {
@@ -618,5 +630,201 @@ describe('QuestionsLive after review round 1', () => {
 
     expect(latest().asking).toBe('idle');
     expect(latest().retryIn).toBe(0);
+  });
+});
+
+describe('QuestionsLive after review round 2', () => {
+  const higherTally = (bump: number): QuestionTally => ({
+    type: 'questionTally',
+    round: ROUND,
+    listRevision: view.room.listRevision + bump,
+    votes: [],
+  });
+  const failure = new ApiError('Request failed (500)', 500);
+  let random: MockInstance<() => number>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    random = vi.spyOn(Math, 'random').mockReturnValue(0);
+  });
+
+  afterEach(() => random.mockRestore());
+
+  it('a failing GET under a stream of higher tallies and room pushes reads at most 4 times in 10 seconds', async () => {
+    await render(view.room);
+    api.getQuestions.mockClear();
+    api.getQuestions.mockRejectedValue(failure);
+
+    for (let step = 1; step <= 20; step += 1) {
+      await tick(500);
+      await hub.push(higherTally(1 + Math.floor(step / 4)));
+      if (step % 4 === 0)
+        await render({ ...view.room, listRevision: view.room.listRevision + 1 + step / 4 });
+    }
+
+    // The first failure at 0.5 s, then one read per REREAD_RETRY_MS: 3.5 s, 6.5 s and 9.5 s.
+    expect(api.getQuestions).toHaveBeenCalledTimes(4);
+    expect(latest().state).toBe('ready');
+    expect(latest().error).toBe('Request failed (500)');
+  });
+
+  it('the backoff waits REREAD_RETRY_MS plus up to JITTER_MS at random', async () => {
+    random.mockReturnValue(0.5);
+    await render(view.room);
+    api.getQuestions.mockRejectedValueOnce(failure);
+    await hub.push(higherTally(1));
+    expect(api.getQuestions).toHaveBeenCalledTimes(2);
+
+    await tick(REREAD_RETRY_MS + JITTER_MS / 2 - 1);
+    expect(api.getQuestions).toHaveBeenCalledTimes(2);
+    await tick(1);
+    expect(api.getQuestions).toHaveBeenCalledTimes(3);
+  });
+
+  it('a failed minute re-read of a list that is not behind reads nothing more until the next minute', async () => {
+    await render(view.room, 'live', true);
+    api.getQuestions.mockRejectedValueOnce(failure);
+    await tick(60_000);
+    expect(api.getQuestions).toHaveBeenCalledTimes(2);
+
+    await tick(59_999);
+    expect(api.getQuestions).toHaveBeenCalledTimes(2);
+    await tick(1);
+    expect(api.getQuestions).toHaveBeenCalledTimes(3);
+  });
+
+  it('cleanup clears the backoff timer', async () => {
+    await render(view.room);
+    api.getQuestions.mockRejectedValueOnce(failure);
+    await hub.push(higherTally(1));
+    expect(vi.getTimerCount()).toBe(1);
+
+    await render(view.room, 'live', false, 'hidden');
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('after a 429 too_many_attempts the backoff is THROTTLED_RETRY_MS plus up to SLOW_JITTER_MS', async () => {
+    random.mockReturnValue(0.5);
+    await render(view.room);
+    api.getQuestions.mockRejectedValueOnce(new ApiError('too_many_attempts', 429));
+    await hub.push(higherTally(1));
+    expect(api.getQuestions).toHaveBeenCalledTimes(2);
+
+    await tick(THROTTLED_RETRY_MS + SLOW_JITTER_MS / 2 - 1);
+    await hub.push(higherTally(1));
+    expect(api.getQuestions).toHaveBeenCalledTimes(2);
+    await tick(1);
+
+    expect(api.getQuestions).toHaveBeenCalledTimes(3);
+  });
+
+  it.each([
+    ['no_session', 404],
+    ['no_guest', 400],
+  ])(
+    'after a %s (%i) nothing reads again by itself; retry() reads at once',
+    async (code, status) => {
+      await render(view.room);
+      api.getQuestions.mockRejectedValue(new ApiError(code, status));
+      await hub.push(higherTally(1));
+      expect(api.getQuestions).toHaveBeenCalledTimes(2);
+
+      for (let step = 1; step <= 60; step += 1) {
+        await tick(500);
+        await hub.push(higherTally(1 + Math.floor(step / 10)));
+      }
+      await render({ ...view.room, listRevision: view.room.listRevision + 9 });
+      expect(api.getQuestions).toHaveBeenCalledTimes(2);
+      expect(latest().error).toBe(code);
+
+      api.getQuestions.mockResolvedValue(guestQuestions('view'));
+      await act(async () => latest().retry());
+
+      expect(api.getQuestions).toHaveBeenCalledTimes(3);
+      expect(latest().error).toBeNull();
+    },
+  );
+
+  it('after a failed read a reconnect reads at once, without waiting for the backoff', async () => {
+    await render(view.room);
+    api.getQuestions.mockRejectedValueOnce(failure);
+    await hub.push(higherTally(1));
+    expect(api.getQuestions).toHaveBeenCalledTimes(2);
+
+    await render(view.room, 'reconnecting');
+    await render(view.room, 'live');
+
+    expect(api.getQuestions).toHaveBeenCalledTimes(3);
+    await tick(REREAD_RETRY_MS + JITTER_MS);
+    expect(api.getQuestions).toHaveBeenCalledTimes(3);
+  });
+
+  it('after a failed read retry() reads at once', async () => {
+    await render(view.room);
+    api.getQuestions.mockRejectedValueOnce(failure);
+    await hub.push(higherTally(1));
+
+    await act(async () => latest().retry());
+
+    expect(api.getQuestions).toHaveBeenCalledTimes(3);
+    expect(latest().error).toBeNull();
+  });
+
+  it('a question queued before the first read is sent once the first read lands', async () => {
+    api.postQuestion.mockResolvedValue({
+      type: 'asked',
+      asked: {
+        question: {
+          number: 7,
+          text: 'Why?',
+          name: null,
+          age: 'now',
+          state: 'open',
+          votes: 1,
+          onScreen: false,
+          yours: true,
+        },
+        mine: { picks: [1, 4, 7], revision: 4 },
+      },
+    });
+    await render(null, 'connecting');
+    await act(() => latest().ask('Why?', null));
+    expect(latest().asking).toBe('queued');
+
+    await render(view.room, 'live');
+    await settle();
+
+    expect(api.postQuestion).toHaveBeenCalledTimes(1);
+    expect(latest().asking).toBe('idle');
+    expect(latest().error).toBeNull();
+  });
+
+  it('a stale 409 whose current is a new round drops a queued question, as a new round read does', async () => {
+    const nextRoom = { ...view.room, round: OTHER_ROUND, listRevision: 1 };
+    const nextView = {
+      ...guestQuestions('view'),
+      room: nextRoom,
+      mine: { picks: [], revision: 0 },
+    };
+    let answer!: (outcome: VoteOutcome) => void;
+    api.putVotes.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    await render(view.room);
+    await act(async () => latest().toggleVote(2));
+    await render(view.room, 'reconnecting');
+    await act(() => latest().ask('Why?', null));
+    expect(latest().asking).toBe('queued');
+
+    await act(async () => answer({ type: 'stale', current: nextView }));
+    expect(latest().asking).toBe('failed');
+    expect(latest().error).toBe('new_round');
+    expect(latest().mine).toEqual({ picks: [], revision: 0 });
+
+    api.getQuestions.mockResolvedValue(nextView);
+    await render(nextRoom, 'live');
+    await settle();
+
+    expect(api.postQuestion).not.toHaveBeenCalled();
+    expect(votes()).toHaveLength(1);
   });
 });
