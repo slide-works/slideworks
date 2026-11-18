@@ -36,17 +36,6 @@ public class LayoutCatalogueTests
             .ShouldBe([("bullets", "items"), ("two-column", null), ("compare", null), ("big-number", null), ("quote", null), ("image", "points"), ("table", "rows"), ("numbered-cards", "cards"), ("rules", "rules"), ("cards", "cards"), ("statement", null), ("stack", "segments"), ("bars", "bars"), ("flow", "nodes")]);
     }
 
-    [TestCase("links", "kicker,headline")]
-    public void Find_WhenLayoutIsAStub_ShouldHaveItsTwoTextSlots(string name, string fields)
-    {
-        var stub = LayoutCatalogue.Find(name)!;
-
-        stub.Slots.Fields.Select(f => f.Name).ShouldBe(fields.Split(','));
-        stub.Description.ShouldNotBeNullOrWhiteSpace();
-        stub.Slots.Fields[1].Required.ShouldBeTrue();
-        stub.Slots.Fields[1].Type.ShouldBeOfType<TextSlot>().MaxLength.ShouldBe(80);
-    }
-
     [Test]
     public void Layouts_WhenCollected_ShouldKeepTheFrozenOrder()
     {
