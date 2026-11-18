@@ -8,9 +8,9 @@ A headline over 1–8 points, each plain text or an optional icon, bold lead and
 |---|---|---|---|---|
 | `kicker` | text | no | up to 40 chars |  |
 | `headline` | text | yes | up to 80 chars |  |
-| `emphasis` | emphasis | no |  | Phrases of the slide's display text drawn in a tone. Each must occur exactly once in the text it is in |
+| `emphasis` | emphasis | no | 1–3 entries, each `text` (up to 60 chars; the phrase must occur exactly once in its target), `tone` and optional `in`; targets `headline` | Phrases of the slide's display text drawn in a tone. Each must occur exactly once in the text it is in |
 | `items` | list of text or object | yes | 1–8 items; each text up to 200 chars | Each point is a string, or {icon?, lead?, text} for an icon and a bold lead-in |
-| `items[].icon` | icon | no |  |  |
+| `items[].icon` | icon | no | one of the 48 icon names in icons.json (list_blocks returns them) |  |
 | `items[].lead` | text | no | up to 80 chars |  |
 | `items[].text` | text | yes | up to 160 chars |  |
 | `reveal` | `all` or `one-by-one` | no |  | 'one-by-one' shows one item per step; 'all' (the default) shows them all at once |
