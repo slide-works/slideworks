@@ -178,5 +178,96 @@
       ],
       "highlightRow": 4
     }
+  },
+  "tableCells80": {
+    "layout": "table",
+    "estimate": 602.1,
+    "grow": [
+      "/rows/4/0"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Claims and answers",
+      "headline": "Each claim is struck out as its answer arrives",
+      "columns": [
+        "Claim",
+        "Answer"
+      ],
+      "rows": [
+        [
+          "Slice 0 Small slices reach customers every week so the feedback arrives while th",
+          "Answer 0 teams learn faster when customers see real progress in days not quarter"
+        ],
+        [
+          "Slice 1 Small slices reach customers every week so the feedback arrives while th",
+          "Answer 1 teams learn faster when customers see real progress in days not quarter"
+        ],
+        [
+          "Slice 2 Small slices reach customers every week so the feedback arrives while th",
+          "Answer 2 teams learn faster when customers see real progress in days not quarter"
+        ],
+        [
+          "Slice 3 Small slices reach customers every week so the feedback arrives while th",
+          "Answer 3 teams learn faster when customers see real progress in days not quarter"
+        ],
+        [
+          "Short one-line cell near the limit Short one-li",
+          "Answer"
+        ]
+      ],
+      "reveal": "strike-and-answer"
+    }
+  },
+  "tableCallout": {
+    "layout": "table",
+    "estimate": 585.3,
+    "grow": [
+      "/rows/4/0",
+      "/callout/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "One row per step",
+      "headline": "Rows arrive one at a time with a closing line",
+      "columns": [
+        "Slice",
+        "Size",
+        "Status"
+      ],
+      "rows": [
+        [
+          "One short line 0 xx One short",
+          "Second column 0 Second column",
+          "Third"
+        ],
+        [
+          "One short line 1 One short li",
+          "Second column 1 Second column",
+          "Third"
+        ],
+        [
+          "One short line 2 One short li",
+          "Second column 2 Second column",
+          "Third"
+        ],
+        [
+          "One short line 3 One short li",
+          "Second column 3 Second column",
+          "Third"
+        ],
+        [
+          "One short line 4 One short li",
+          "Second column 4 Second column",
+          "Third"
+        ]
+      ],
+      "highlightRow": 2,
+      "reveal": "one-by-one",
+      "callout": {
+        "tone": "accent",
+        "text": "Ship the thinnest slice first and let every week of feedback decide what comes next in the plan Sh",
+        "reveal": "last"
+      }
+    }
   }
 }
