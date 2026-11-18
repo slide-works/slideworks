@@ -112,6 +112,65 @@ test('the card renders question text as text, not HTML', async ({ mount, page })
   await expect(page.getByTestId(IDS.card).locator('img')).toHaveCount(0);
 });
 
+// What a token resolves to, as the browser computes it inside the card layer.
+const tokenColour = (page: Parameters<typeof mountPlayer>[1], token: string) =>
+  page.evaluate((name) => {
+    const probe = document.createElement('div');
+    probe.style.background = `var(${name})`;
+    document.querySelector('[data-testid="qa-card-layer"]')!.appendChild(probe);
+    const colour = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return colour;
+  }, token);
+
+test('the slide dims behind the card: the ink token at 0.22', async ({ mount, page }) => {
+  await playerAt(mount, page, 1, live);
+
+  const dim = page.getByTestId(IDS.dim);
+  await expect(dim).toHaveCount(1);
+  const ink = await tokenColour(page, '--sw-ink');
+  expect(ink).not.toBe('rgba(0, 0, 0, 0)');
+  await expect(dim).toHaveCSS('background-color', ink);
+  await expect(dim).toHaveCSS('opacity', '0.22');
+  const box = await dim.boundingBox();
+  const layer = await page.getByTestId(IDS.layer).boundingBox();
+  expect(box).toEqual(layer);
+});
+
+test('no dim when no card shows', async ({ mount, page }) => {
+  await playerAt(mount, page, QA_SLIDE_NUMBER, live);
+
+  await expect(page.getByTestId(IDS.dim)).toHaveCount(0);
+});
+
+test('the card is dark, with the name at its top right', async ({ mount, page }) => {
+  await playerAt(mount, page, 1, live);
+
+  const card = page.getByTestId(IDS.card);
+  await expect(card).toHaveCSS('background-color', await tokenColour(page, '--sw-ink'));
+  const cardBox = (await card.boundingBox())!;
+  const nameBox = (await page.getByTestId(IDS.name).boundingBox())!;
+  const textBox = (await page.getByTestId(IDS.text).boundingBox())!;
+  expect(nameBox.x + nameBox.width).toBeGreaterThan(cardBox.x + cardBox.width - 80);
+  expect(nameBox.y).toBeLessThan(textBox.y);
+  expect(nameBox.y).toBeLessThan(cardBox.y + 80);
+});
+
+test('the question text and the name read in their own direction', async ({ mount, page }) => {
+  const arabic = {
+    ...live,
+    questions: live.questions.map((q) =>
+      q.number === live.onScreen ? { ...q, text: 'ما هي أصغر شريحة؟', name: 'سارة' } : q,
+    ),
+  };
+  await playerAt(mount, page, 1, arabic);
+
+  await expect(page.getByTestId(IDS.text)).toHaveAttribute('dir', 'auto');
+  await expect(page.getByTestId(IDS.name)).toHaveAttribute('dir', 'auto');
+  await expect(page.getByTestId(IDS.text)).toHaveCSS('direction', 'rtl');
+  await expect(page.getByTestId(IDS.name)).toHaveCSS('direction', 'rtl');
+});
+
 test('screenshot the card over a text slide', async ({ mount, page }) => {
   await playerAt(mount, page, 1, live);
 

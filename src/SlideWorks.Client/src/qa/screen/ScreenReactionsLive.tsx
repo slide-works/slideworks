@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AUDIENCE_EVENT_METHOD, isAudienceEvent } from '../../guest/audienceEvents';
 import { useLiveSessionContext } from '../../live/LiveSessionProvider';
 import { useDeckConnection } from '../../realtime/useDeckConnection';
 import { useJoin } from '../../slides/JoinContext';
 import { REACTION_EMOJI } from '../emoji';
 import { ScreenReactionsContext, type ScreenBurst } from './useScreenReactions';
+
+// The last burst id handed out. Module-wide, so it can't go backwards when the provider remounts or a new live session
+// starts: a layer that has drawn id N never meets a new burst with an id of N or less.
+let lastBurstId = 0;
 
 export type ScreenReactionsLiveProps = {
   deckId: string;
@@ -18,18 +22,18 @@ export type ScreenReactionsLiveProps = {
 const KEEP_MS = 5000;
 
 // The big screen's reactions in the player and the audience window (SW-9 Q7, Q9), inside JoinProvider. For a person who
-// can present the deck (the owner flag, confirmed by the deck's live session as PollScreenLive does) it watches the
+// can present the deck (the owner flag, confirmed by the deck's live session as QaScreenLive does) it watches the
 // deck's audience (WatchAudience, again after every reconnect) while the deck is live and turns each reactions event
-// into one burst per tap, in the order of the phone's row. Null for a viewer who can't present the deck and outside a
+// into one burst per tap, in the order of the phone's row. Null for a viewer the live session doesn't confirm and outside a
 // JoinProvider; an empty list while not live. Ids only increase, across sessions too, so a layer can tell a burst is new.
 export function ScreenReactionsLive({ deckId, owner, children }: ScreenReactionsLiveProps) {
   const inJoin = useJoin() !== null;
-  const listening = owner && deckId !== '' && inJoin;
   const session = useLiveSessionContext();
-  const active = listening && session.liveView !== null && session.live;
+  // The owner flag alone is not enough: the live session must confirm the viewer (GET /live answered), as QaScreenLive.
+  const confirmed = owner && deckId !== '' && inJoin && session.liveView !== null;
+  const active = confirmed && session.live;
   const connection = useDeckConnection();
   const [bursts, setBursts] = useState<ScreenBurst[]>([]);
-  const nextId = useRef(1);
 
   // A new deck or a live session ending starts from nothing.
   const scope = `${deckId}:${active}`;
@@ -46,7 +50,7 @@ export function ScreenReactionsLive({ deckId, owner, children }: ScreenReactions
       if (!isAudienceEvent(event) || event.type !== 'reactions') return;
       const added = REACTION_EMOJI.flatMap((emoji) =>
         Array.from({ length: Math.max(0, event.counts[emoji] ?? 0) }, () => emoji),
-      ).map((emoji): ScreenBurst => ({ id: nextId.current++, emoji }));
+      ).map((emoji): ScreenBurst => ({ id: ++lastBurstId, emoji }));
       if (added.length === 0) return;
       setBursts((held) => [...held, ...added]);
       const ids = new Set(added.map((burst) => burst.id));
@@ -68,6 +72,6 @@ export function ScreenReactionsLive({ deckId, owner, children }: ScreenReactions
     };
   }, [active, connection, deckId]);
 
-  const value = useMemo(() => (listening ? { bursts } : null), [listening, bursts]);
+  const value = useMemo(() => (confirmed ? { bursts } : null), [confirmed, bursts]);
   return <ScreenReactionsContext value={value}>{children}</ScreenReactionsContext>;
 }

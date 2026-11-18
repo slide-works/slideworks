@@ -98,6 +98,138 @@ test('nothing renders for a null screen', async ({ mount, page }) => {
   await expect(page.getByTestId(IDS.layer)).toHaveCount(0);
 });
 
+// A page whose clock the test drives: nothing moves until runFor. The first render holds no bursts, so no timer starts
+// before the clock is paused.
+async function mountClocked(
+  mount: Parameters<typeof mountPlayer>[0],
+  page: Parameters<typeof mountPlayer>[1],
+  reduced: boolean,
+) {
+  await page.emulateMedia({ reducedMotion: reduced ? 'reduce' : 'no-preference' });
+  await page.clock.install({ time: 0 });
+  const component = await mountPlayer(mount, page, player([]));
+  await page.clock.pauseAt(60_000);
+  return component;
+}
+
+test('a chip clears 2.5 s after its own last tap, and another emoji does not extend it', async ({
+  mount,
+  page,
+}) => {
+  const component = await mountClocked(mount, page, true);
+  await component.update(player(bursts(1, 'clap', 1)));
+  await expect(page.getByTestId(IDS.chip)).toHaveText('+1 👏');
+
+  await page.clock.runFor(1500);
+  await component.update(player([...bursts(1, 'clap', 1), ...bursts(1, 'heart', 2)]));
+  await expect(page.getByTestId(IDS.chip)).toHaveText(['+1 ❤️', '+1 👏']);
+
+  await page.clock.runFor(900);
+  await expect(page.getByTestId(IDS.chip)).toHaveText(['+1 ❤️', '+1 👏']);
+  await page.clock.runFor(150);
+  await expect(page.getByTestId(IDS.chip)).toHaveText('+1 ❤️');
+
+  await page.clock.runFor(1350);
+  await expect(page.getByTestId(IDS.chip)).toHaveText('+1 ❤️');
+  await page.clock.runFor(100);
+  await expect(page.getByTestId(IDS.chip)).toHaveCount(0);
+});
+
+test('a tap on a chip restarts that chip only', async ({ mount, page }) => {
+  const component = await mountClocked(mount, page, true);
+  await component.update(player(bursts(1, 'clap', 1)));
+  await page.clock.runFor(1000);
+  await component.update(player([...bursts(1, 'clap', 1), ...bursts(1, 'heart', 2)]));
+  await page.clock.runFor(1000);
+  await component.update(
+    player([...bursts(1, 'clap', 1), ...bursts(1, 'heart', 2), ...bursts(1, 'clap', 3)]),
+  );
+  await expect(page.getByTestId(IDS.chip)).toHaveText(['+1 ❤️', '+2 👏']);
+
+  // The heart goes at 3500 (2.5 s after 1000), the claps at 4500 (2.5 s after 2000).
+  await page.clock.runFor(1450);
+  await expect(page.getByTestId(IDS.chip)).toHaveText(['+1 ❤️', '+2 👏']);
+  await page.clock.runFor(100);
+  await expect(page.getByTestId(IDS.chip)).toHaveText('+2 👏');
+  await page.clock.runFor(900);
+  await expect(page.getByTestId(IDS.chip)).toHaveText('+2 👏');
+  await page.clock.runFor(100);
+  await expect(page.getByTestId(IDS.chip)).toHaveCount(0);
+});
+
+test('two chips show at once, one per emoji', async ({ mount, page }) => {
+  await mountWith(mount, page, [
+    ...bursts(31, 'clap', 1),
+    ...bursts(1, 'heart', 32),
+    ...bursts(1, 'wow', 33),
+  ]);
+
+  await expect(page.getByTestId(IDS.float)).toHaveCount(30);
+  await expect(page.getByTestId(IDS.chip)).toHaveText(['+1 ❤️', '+1 😮', '+1 👏']);
+});
+
+test('a float whose animation never ends is retired by its timer, and frees its slot', async ({
+  mount,
+  page,
+}) => {
+  const component = await mountClocked(mount, page, false);
+  // A background tab runs no animations: no animationend comes.
+  await page.addStyleTag({
+    content: `[data-testid="${IDS.float}"] { animation: none !important; }`,
+  });
+  await component.update(player(bursts(31)));
+  await expect(page.getByTestId(IDS.float)).toHaveCount(30);
+  await expect(page.getByTestId(IDS.chip)).toHaveText('+1 👏');
+
+  await page.clock.runFor(2900);
+  await expect(page.getByTestId(IDS.float)).toHaveCount(30);
+  await page.clock.runFor(200);
+  await expect(page.getByTestId(IDS.float)).toHaveCount(0);
+
+  await component.update(player([...bursts(31), ...bursts(1, 'wow', 32)]));
+  await expect(page.getByTestId(IDS.float)).toHaveText('😮');
+});
+
+test('bursts whose ids start again after the list emptied are drawn', async ({ mount, page }) => {
+  const component = await mountWith(mount, page, bursts(2));
+  await expect(page.getByTestId(IDS.float)).toHaveCount(2);
+
+  await component.update(player([]));
+  await component.update(player(bursts(1, 'wow', 1)));
+
+  await expect(page.getByTestId(IDS.float)).toHaveCount(3);
+  await expect(page.getByTestId(IDS.float).last()).toHaveText('😮');
+});
+
+test('a float rises in one of five lanes by its id', async ({ mount, page }) => {
+  await mountWith(mount, page, bursts(6));
+
+  await expect(page.getByTestId(IDS.float)).toHaveCount(6);
+  const rights = await page
+    .getByTestId(IDS.float)
+    .evaluateAll((els) => els.map((el) => getComputedStyle(el).right));
+  expect(rights).toEqual(['84px', '120px', '156px', '192px', '48px', '84px']);
+});
+
+test('a change of the reduced-motion setting mid-session applies to the next tap', async ({
+  mount,
+  page,
+}) => {
+  const component = await mountWith(mount, page, bursts(1, 'clap', 1));
+  await expect(page.getByTestId(IDS.float)).toHaveCount(1);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await component.update(player([...bursts(1, 'clap', 1), ...bursts(1, 'heart', 2)]));
+  await expect(page.getByTestId(IDS.chip)).toHaveText('+1 ❤️');
+  await expect(page.getByTestId(IDS.float)).toHaveCount(1);
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await component.update(
+    player([...bursts(1, 'clap', 1), ...bursts(1, 'heart', 2), ...bursts(1, 'wow', 3)]),
+  );
+  await expect(page.getByTestId(IDS.float)).toHaveCount(2);
+});
+
 test('screenshot the floating reactions', async ({ mount, page }) => {
   await mountWith(mount, page, bursts(12, 'thumbsUp'));
 

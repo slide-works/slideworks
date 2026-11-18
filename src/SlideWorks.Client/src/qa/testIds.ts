@@ -187,6 +187,8 @@ export const qaSlideRowVotesTestId = (number: number) => `qa-slide-row-votes-${n
 export const QA_CARD_TEST_IDS = {
   layer: 'qa-card-layer',
   card: 'qa-card',
+  // The dim over the slide behind the card
+  dim: 'qa-card-dim',
   // "Question from the room"
   label: 'qa-card-label',
   // "▲ 9"
