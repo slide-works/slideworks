@@ -7,7 +7,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { useCalmAnnouncement } from '../../polls/guest/useCalmAnnouncement';
-import { QA_ASK_SHEET_TEST_IDS, QA_LIST_TEST_IDS } from '../testIds';
+import { QA_ASK_SHEET_TEST_IDS, QA_LIST_TEST_IDS, QA_TABS_TEST_IDS } from '../testIds';
 import { useAskSheet } from './AskSheetContext';
 import { PollOpenedBanner } from './PollOpenedBanner';
 import { questionErrorText } from './questionErrorText';
@@ -83,11 +83,15 @@ type DialogProps = {
   onSend(name: string | null): void;
 };
 
-// The Ask button focus returns to: where focus was when the sheet opened, or the button itself when the browser did
-// not focus it on the tap (Safari does not focus a button when it is tapped).
+// Where focus goes when the sheet closes: where it was when the sheet opened, or the Ask button when the browser did not
+// focus it on the tap (Safari does not focus a button when it is tapped), or the Questions tab when the room closed or
+// turned questions off here while the sheet was open and the Ask button is gone.
 function focusTarget(previous: HTMLElement | null): HTMLElement | null {
   if (previous?.isConnected && previous !== document.body) return previous;
-  return document.querySelector<HTMLElement>(`[data-testid="${QA_LIST_TEST_IDS.ask}"]`);
+  return (
+    document.querySelector<HTMLElement>(`[data-testid="${QA_LIST_TEST_IDS.ask}"]`) ??
+    document.querySelector<HTMLElement>(`[data-testid="${QA_TABS_TEST_IDS.questionsTab}"]`)
+  );
 }
 
 function AskSheetDialog({

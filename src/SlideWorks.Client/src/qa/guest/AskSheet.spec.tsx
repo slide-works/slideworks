@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import { qaRoom } from '../../test-support/fixtures/qaStates';
-import { QA_ASK_SHEET_TEST_IDS, QA_LIST_TEST_IDS, QA_POLL_OPENED_TEST_IDS } from '../testIds';
+import {
+  QA_ASK_SHEET_TEST_IDS,
+  QA_LIST_TEST_IDS,
+  QA_POLL_OPENED_TEST_IDS,
+  QA_TABS_TEST_IDS,
+} from '../testIds';
 import { AskBar } from './AskBar';
 import { AskSheet } from './AskSheet';
 import { AskSheetFixture, type AskSheetFixtureProps } from './AskSheetFixture';
@@ -34,6 +39,9 @@ function sheet({
         <div style={{ height: 700, padding: 16, background: 'var(--sw-night)', display: 'flex' }}>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'end' }}>
             <AskBar />
+            <button type="button" data-testid={QA_TABS_TEST_IDS.questionsTab}>
+              Questions
+            </button>
           </div>
           <AskSheet presenter="Sam" />
         </div>
@@ -348,4 +356,15 @@ test('screenshot ask sheet queued and limited', async ({ mount, page }) => {
   await expect(page).toHaveScreenshot('ask-sheet-queued.png');
   await component.update(sheet({ asking: 'limited', retryIn: 42, error: 'too_many_questions' }));
   await expect(page).toHaveScreenshot('ask-sheet-limited.png');
+});
+
+test('focus goes to the Questions tab when the Ask button is gone because the room closed', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount(sheet({ open: true }));
+  await expect(page.getByTestId(ID.text)).toBeFocused();
+  await component.update(sheet({ open: false, room: qaRoom('open', { questions: 'closed' }) }));
+  await expect(page.getByTestId(QA_LIST_TEST_IDS.ask)).toHaveCount(0);
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.questionsTab)).toBeFocused();
 });
