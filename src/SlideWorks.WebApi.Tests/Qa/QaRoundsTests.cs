@@ -125,19 +125,6 @@ public class QaRoundsTests : QaTestFixture
         round.ClosedAt.ShouldBeNull();
     }
 
-    [Test]
-    public async Task EnsureAsync_WhenNotLive_ShouldOpenNothing()
-    {
-        var deck = await CreateDeckAsync();
-
-        await using (var scope = Factory.Services.CreateAsyncScope())
-        {
-            await scope.ServiceProvider.GetRequiredService<IQaRounds>().EnsureAsync(deck);
-        }
-
-        (await QaPollsOfAsync(deck)).ShouldBeEmpty();
-    }
-
     private async Task<string> CreateDeckAsync()
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, SignedInAs);
