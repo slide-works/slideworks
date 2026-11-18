@@ -125,11 +125,15 @@ public class QaMcpTests : QaTestFixture
         var showOn = await SlideCalls.ErrorAsync(agent, "update_qa", new { deck = qa.DeckId, show_on = "everywhere" });
         var closed = await SlideCalls.ErrorAsync(agent, "update_qa", new { deck = qa.DeckId, slide = qa.QaSlide, questions = "closed" });
         var outside = await SlideCalls.ErrorAsync(agent, "update_qa", new { deck = qa.DeckId, slide = 9, reactions = false });
+        var justPast = await SlideCalls.ErrorAsync(agent, "update_qa", new { deck = qa.DeckId, slide = 3, reactions = false });
+        var zero = await SlideCalls.ErrorAsync(agent, "update_qa", new { deck = qa.DeckId, slide = 0, reactions = false });
 
         questions.ShouldBe("questions: must be one of 'open', 'closed', 'off'");
         showOn.ShouldBe("show_on: must be one of 'anySlide', 'qaSlide'");
         closed.ShouldBe("questions: with slide, must be one of 'open', 'off'");
         outside.ShouldBe("slide: must be between 1 and 2");
+        justPast.ShouldBe("slide: must be between 1 and 2");
+        zero.ShouldBe("slide: must be between 1 and 2");
         Settings.CallsFor(qa.DeckId).ShouldBeEmpty();
     }
 
@@ -292,6 +296,30 @@ public class QaMcpTests : QaTestFixture
     }
 
     [Test]
+    public async Task GetDeck_WhenDeckWentLiveTwice_ShouldListNewestSessionFirstEachWithItsOwnTaps()
+    {
+        var qa = await SeedQaAsync();
+        await QaRowSeed.ReactionAsync(qa.SessionId, qa.QuoteSlideId, ReactionEmoji.Heart, 3);
+        (await Client.DeleteAsync($"/api/decks/{qa.DeckId}/live")).EnsureSuccessStatusCode();
+        Clock.Advance(TimeSpan.FromHours(1));
+        var second = await GoLiveAgainSessionAsync(qa.DeckId);
+        await QaRowSeed.ReactionAsync(second, qa.QuoteSlideId, ReactionEmoji.Laugh, 5);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        var deck = await SlideCalls.OkAsync(agent, "get_deck", new { deck = qa.DeckId });
+
+        var sessions = deck.GetProperty("reactions").EnumerateArray().ToList();
+        sessions.Count.ShouldBe(2);
+        sessions[0].GetProperty("startedAt").GetDateTimeOffset().ShouldBeGreaterThan(sessions[1].GetProperty("startedAt").GetDateTimeOffset());
+        var newest = sessions[0].GetProperty("slides").EnumerateArray().Single().GetProperty("counts");
+        newest.GetProperty("laugh").GetInt32().ShouldBe(5);
+        newest.GetProperty("heart").GetInt32().ShouldBe(0);
+        var oldest = sessions[1].GetProperty("slides").EnumerateArray().Single().GetProperty("counts");
+        oldest.GetProperty("heart").GetInt32().ShouldBe(3);
+        oldest.GetProperty("laugh").GetInt32().ShouldBe(0);
+    }
+
+    [Test]
     public async Task GetDeck_WhenDeckHasNoSettingsOrReactions_ShouldCarryTheDefaultsAndNoSessions()
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
@@ -354,11 +382,16 @@ public class QaMcpTests : QaTestFixture
     private static object OtherValue(string setting) => setting == "show_on" ? "qaSlide" : (object)true;
 
     // Go live again after the first session ended: a new session, and a Q&A round for it when Go live opened none.
-    private async Task<Guid> GoLiveAgainAsync(string deckId)
+    private async Task<Guid> GoLiveAgainSessionAsync(string deckId)
     {
         var response = await Client.PostAsync($"/api/decks/{deckId}/live", null);
         response.EnsureSuccessStatusCode();
-        var sessionId = Guid.Parse((await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sessionId").GetString()!);
+        return Guid.Parse((await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sessionId").GetString()!);
+    }
+
+    private async Task<Guid> GoLiveAgainAsync(string deckId)
+    {
+        var sessionId = await GoLiveAgainSessionAsync(deckId);
         await using var scope = Factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var open = await db.PollRounds.AsNoTracking()
