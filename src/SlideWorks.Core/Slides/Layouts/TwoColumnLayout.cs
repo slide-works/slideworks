@@ -9,17 +9,23 @@ public static class TwoColumnLayout
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),
-        Req("left", Column(), "Exactly one of items, text or image"),
-        Req("right", Column(), "Exactly one of items, text or image"),
-    ], rules: Rule);
+        Emphasis("headline"),
+        Req("left", Column(60, icons: true), "Exactly one of items, text or image; an icon needs a title"),
+        Req("right", Column(60, icons: true), "Exactly one of items, text or image; an icon needs a title"),
+        Opt("reveal", Reveal(), REVEAL),
+        Opt("callout", new BlockSlot(InlineBlocks.Callout)),
+    ], steps: StepPlan.Fixed(1, "the right column"), rules: Rule);
 
     private static void Rule(JsonElement slots, string path, SlotValidation validation)
     {
+        EmphasisRules.Check(slots, path, validation, "headline");
         // .two: 1fr 1.05fr with a 64 px gap, so the narrower column is 788 px. Images scale to fit.
+        var callout = ObjectSlot.IsPresent(slots, "callout", out var block) ? LayoutRules.CalloutHeight(block, 1680, validation.Widths) : 0;
         foreach (var side in new[] { "left", "right" })
         {
             var column = slots.GetProperty(side);
-            var height = 0.0;
+            ColumnIconNeedsTitle(column, $"{path}.{side}", validation);
+            var height = callout;
             if (ObjectSlot.IsPresent(column, "title", out var title))
             {
                 height += (SlideFit.Lines(title.GetString()!, 788, 34, validation.Widths.Head) * 40.8) + 16;

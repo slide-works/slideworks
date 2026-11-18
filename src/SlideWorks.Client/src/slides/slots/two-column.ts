@@ -1,12 +1,16 @@
 // The two-column layout's slots (K5). Field names are frozen; the server sets the limits.
-import type { ColumnSlot } from './blocks';
+import type { CalloutBlock, ColumnSlot, Emphasis } from './blocks';
 import type { AssertTrue, ListsEveryKey } from './keyChecks';
+import type { Reveal } from './shared';
 
 export type TwoColumnSlots = {
   kicker?: string;
   headline: string;
   left: ColumnSlot;
   right: ColumnSlot;
+  reveal?: Reveal;
+  callout?: CalloutBlock;
+  emphasis?: Emphasis[];
 };
 
 // Every top-level slot key, at runtime. `satisfies` stops a key that isn't in
@@ -16,5 +20,8 @@ export const KEYS = [
   'headline',
   'left',
   'right',
+  'reveal',
+  'callout',
+  'emphasis',
 ] as const satisfies readonly (keyof TwoColumnSlots)[];
 export type KeysComplete = AssertTrue<ListsEveryKey<TwoColumnSlots, typeof KEYS>>;
