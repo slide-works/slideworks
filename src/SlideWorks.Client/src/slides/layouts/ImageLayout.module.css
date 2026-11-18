@@ -16,6 +16,18 @@
   gap: 64px;
 }
 
+/* A callout takes a row of its own under both columns, 30 px under them (its
+   own margin), so the picture and the points keep the height that is left. */
+.columns[data-callout='true'] {
+  grid-template-rows: minmax(0, 1fr) auto;
+  row-gap: 0;
+}
+
+.under {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
 .figure {
   display: flex;
   flex-direction: column;
@@ -48,6 +60,13 @@
   border-radius: var(--sw-radius-lg);
   background: var(--sw-card);
   box-shadow: var(--sw-lift);
+}
+
+/* frame none: the image as it is, for a transparent one. */
+[data-frame='none'] .image {
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .caption {
@@ -84,4 +103,54 @@
   height: 16px;
   border-radius: 4px;
   background: var(--sw-accent);
+}
+
+/* An icon takes the bullet mark's place on its point. */
+.iconed::before {
+  content: none;
+}
+
+.icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 34px;
+  height: 34px;
+  color: var(--sw-accent);
+}
+
+/* position right: one grid of a 760 px left column and the picture's column,
+   64 px apart, running to y = 996 (36 px into the bottom padding, as .sw-body
+   may). The left column holds the heading, the points 46 px under the
+   headline and the callout at the foot; the picture is scaled whole into the
+   column, against its right edge and centred top to bottom. */
+.beside {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 760px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 64px;
+  min-height: 0;
+  margin-bottom: -36px;
+}
+
+.left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.beside .points {
+  margin-top: 46px;
+}
+
+.foot {
+  margin-top: auto;
+}
+
+.beside .frame {
+  justify-content: flex-end;
+  align-items: center;
 }

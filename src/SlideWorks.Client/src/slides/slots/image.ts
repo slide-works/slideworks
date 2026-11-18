@@ -1,13 +1,21 @@
 // The image layout's slots (K5). Field names are frozen; the server sets the limits.
-import type { ImageRef } from './blocks';
+import type { BulletItem, CalloutBlock, Emphasis, ImageRef } from './blocks';
 import type { AssertTrue, ListsEveryKey } from './keyChecks';
+import type { Reveal } from './shared';
 
 export type ImageSlots = {
   kicker?: string;
   headline: string;
   image: ImageRef;
-  points?: string[];
+  // 'card' (the default) puts the image on a white card; 'none' draws it as it is.
+  frame?: 'card' | 'none';
+  // 'below' (the default) puts the image under the headline; 'right' beside it.
+  position?: 'below' | 'right';
+  points?: BulletItem[];
   caption?: string;
+  reveal?: Reveal;
+  callout?: CalloutBlock;
+  emphasis?: Emphasis[];
 };
 
 // Every top-level slot key, at runtime. `satisfies` stops a key that isn't in
@@ -16,7 +24,12 @@ export const KEYS = [
   'kicker',
   'headline',
   'image',
+  'frame',
+  'position',
   'points',
   'caption',
+  'reveal',
+  'callout',
+  'emphasis',
 ] as const satisfies readonly (keyof ImageSlots)[];
 export type KeysComplete = AssertTrue<ListsEveryKey<ImageSlots, typeof KEYS>>;
