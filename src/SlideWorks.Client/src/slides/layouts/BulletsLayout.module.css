@@ -29,6 +29,22 @@
   background: var(--sw-accent);
 }
 
-.callout {
-  margin-top: 30px;
+/* A list with an icon on any point indents every point 68 px, so the text
+   stays in one column; an icon takes the bullet mark's place on its point. */
+.withIcon {
+  padding-left: 68px;
+}
+
+.iconed::before {
+  content: none;
+}
+
+.icon {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  display: block;
+  width: 40px;
+  height: 40px;
+  color: var(--sw-accent);
 }

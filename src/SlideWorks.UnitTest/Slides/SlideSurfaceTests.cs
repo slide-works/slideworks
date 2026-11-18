@@ -16,9 +16,9 @@ public class SlideSurfaceTests
     {
         var validation = new SlotValidation();
 
-        SlideSurface.Resolve(BulletsLayout.Definition, "dark", validation).ShouldBe("light");
+        SlideSurface.Resolve(QaLayout.Definition, "dark", validation).ShouldBe("light");
 
-        validation.Errors.ShouldBe(["bullets.surface: this layout is light only"]);
+        validation.Errors.ShouldBe(["qa.surface: this layout is light only"]);
     }
 
     [Test]
