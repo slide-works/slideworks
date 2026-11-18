@@ -57,6 +57,9 @@ public sealed class QaSlide(ILocator slide)
     // "Questions from the room appear here"
     public ILocator NotLive => slide.GetByTestId("qa-slide-not-live");
 
+    // "Questions are off": the title and this line, when the room has no round (questions off) on a live deck.
+    public ILocator Off => slide.GetByTestId("qa-slide-off");
+
     // "Not live"
     public ILocator NotLivePill => slide.GetByTestId("qa-slide-not-live-pill");
 

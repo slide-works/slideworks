@@ -4,7 +4,11 @@ import {
   qaSlideRowTextTestId,
   qaSlideRowVotesTestId,
 } from '../../qa/testIds';
-import { useQaScreen, type QaScreen } from '../../qa/screen/QaScreenContext';
+import {
+  useQaScreenState,
+  type QaScreen,
+  type QaScreenState,
+} from '../../qa/screen/QaScreenContext';
 import headingStyles from '../blocks/SlideHeading.module.css';
 import { Kicker } from '../blocks/Kicker';
 import { useJoin } from '../JoinContext';
@@ -26,15 +30,16 @@ function sizeOf(length: number): 'xl' | 'l' | 'm' | 's' {
   return 's';
 }
 
-function Body({ screen, off }: { screen: QaScreen | null; off: boolean }) {
-  if (screen === null && off) {
+function Body({ state }: { state: QaScreenState }) {
+  if (state.kind === 'pending') return null;
+  if (state.kind === 'off') {
     return (
       <div data-testid={IDS.off} className={styles.empty}>
         <b>Questions are off</b>
       </div>
     );
   }
-  if (screen === null) {
+  if (state.kind === 'none') {
     return (
       <div data-testid={IDS.notLive} className={styles.empty}>
         <b>Questions from the room appear here</b>
@@ -42,7 +47,7 @@ function Body({ screen, off }: { screen: QaScreen | null; off: boolean }) {
       </div>
     );
   }
-  const { onScreen, top, phase } = screen;
+  const { onScreen, top, phase } = state.screen;
   if (onScreen !== null) {
     return (
       <div data-testid={IDS.oneUp} className={styles.oneUp}>
@@ -99,13 +104,14 @@ function footerNote(screen: QaScreen): string | null {
 
 // The Q&A slide (light, SW-9 Q1, Q9): its title over the room's top five open questions, from useQaScreen(), or one
 // question at full size while the presenter has one on screen. It also draws the empty and closed states. With no live
-// data (the deck page, RenderPage, preview_deck, a viewer who can't present, a deck that isn't live, questions off) it
-// draws the "not live" state. The join pill shows while the deck is live.
+// data (the deck page, RenderPage, preview_deck, a viewer who can't present, a deck that isn't live) it draws the "not
+// live" state. The big-screen state (useQaScreenState) tells that from "off" (the room has no round: the title and
+// "Questions are off") and "pending" (not read yet, or a phone: the title and a blank body). The join pill shows while
+// the deck is live.
 export function QaLayout({ slots }: LayoutProps<'qa'>) {
-  const screen = useQaScreen();
+  const state = useQaScreenState();
   const joined = useJoin();
-  // Live with no screen: questions are off (a deck that isn't live has no join pill).
-  const off = screen === null && joined?.live === true;
+  const screen = state.kind === 'on' ? state.screen : null;
   const note = screen === null ? null : footerNote(screen);
 
   return (
@@ -121,15 +127,15 @@ export function QaLayout({ slots }: LayoutProps<'qa'>) {
           {slots.title ?? DEFAULT_QA_TITLE}
         </h2>
         <div className={`sw-body ${styles.body}`}>
-          <Body screen={screen} off={off} />
+          <Body state={state} />
         </div>
         <div data-testid={IDS.footer} className={styles.foot}>
           {screen === null ? (
-            off ? null : (
+            state.kind === 'none' ? (
               <span data-testid={IDS.notLivePill} className={styles.state} data-phase="notLive">
                 Not live
               </span>
-            )
+            ) : null
           ) : (
             <>
               <span data-testid={IDS.phase} className={styles.state} data-phase={screen.phase}>

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
 import fitFixturesJson from '@contracts/fit-fixtures.json' with { type: 'json' };
+import { QaScreenProvider } from '../../qa/screen/QaScreenContext';
 import { QaScreenFixture } from '../../qa/screen/QaScreenFixture';
 import {
   QA_SLIDE_TEST_IDS as IDS,
@@ -245,13 +246,49 @@ test('questions off while the deck is live says "Questions are off", never "Not 
   mount,
   page,
 }) => {
-  await mount(qaSlide({ control: null, join: live }));
+  await mount(qaSlide({ control: viewOf([], { round: null }), join: live }));
   await expect(page.getByTestId(IDS.title)).toHaveText('Questions from the room');
   await expect(page.getByTestId(IDS.off)).toContainText('Questions are off');
   await expect(page.getByTestId(IDS.notLive)).toHaveCount(0);
   await expect(page.getByTestId(IDS.notLivePill)).toHaveCount(0);
   await expect(page.getByText('Not live')).toHaveCount(0);
   await expect(page.getByTestId(IDS.rows)).toHaveCount(0);
+});
+
+test('a live join with no provider data is "Not live", never "Questions are off"', async ({
+  mount,
+  page,
+}) => {
+  await mount(qaSlide({ control: null, join: live }));
+  await expect(page.getByTestId(IDS.notLive)).toBeVisible();
+  await expect(page.getByTestId(IDS.notLivePill)).toHaveText('Not live');
+  await expect(page.getByTestId(IDS.off)).toHaveCount(0);
+});
+
+test('a pending screen draws the title and a blank body, with no copy and no pill', async ({
+  mount,
+  page,
+}) => {
+  await mount(
+    <JoinProvider deckId={deckPlay.id} join={live} owner={false}>
+      <QaScreenProvider state={{ kind: 'pending' }}>
+        <SlideRenderer
+          slide={{ number: 6, layout: 'qa', part: null, deepDive: false, slots: {} }}
+          deck={deckIn()}
+          total={6}
+          step={0}
+        />
+      </QaScreenProvider>
+    </JoinProvider>,
+  );
+  await expect(page.getByTestId(IDS.title)).toHaveText('Questions from the room');
+  await expect(page.getByTestId(IDS.off)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.notLive)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.notLivePill)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.rows)).toHaveCount(0);
+  await expect(page.getByText('Not live')).toHaveCount(0);
+  await expect(page.getByText('Questions are off')).toHaveCount(0);
+  await expect(page.getByTestId('layout-qa').locator('.sw-body')).toBeEmpty();
 });
 
 test('the phase pill text uses the readable good ink', async ({ mount, page }) => {
@@ -409,6 +446,29 @@ for (const [label, text, check] of [
       .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
     if (check === 'is80') expect(size).toBe(80);
     else expect(size).toBeLessThan(80);
+  });
+}
+
+// The size steps at their boundaries (D-B1a): 80px to 60 characters, 64 to 100, 52 to 140, then 40.
+for (const [length, px] of [
+  [60, 80],
+  [61, 64],
+  [100, 64],
+  [101, 52],
+  [140, 52],
+  [141, 40],
+] as const) {
+  test(`a ${length}-character one-up question is ${px}px`, async ({ mount, page }) => {
+    await mount(
+      qaSlide({
+        control: viewOf([question(1, { text: 'a'.repeat(length), onScreen: true })]),
+        join: live,
+      }),
+    );
+    const size = await page
+      .getByTestId(IDS.oneUpText)
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(size).toBe(px);
   });
 }
 

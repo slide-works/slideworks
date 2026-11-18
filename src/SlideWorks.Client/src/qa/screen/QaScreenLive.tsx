@@ -5,7 +5,12 @@ import { useDeckConnection } from '../../realtime/useDeckConnection';
 import { useJoin } from '../../slides/JoinContext';
 import { readQaControl } from '../presenter/qaControlApi';
 import type { QaControlView } from '../types';
-import { QaScreenProvider, qaScreenOf } from './QaScreenContext';
+import {
+  QA_SCREEN_PENDING,
+  QaScreenProvider,
+  qaScreenStateOf,
+  type QaScreenState,
+} from './QaScreenContext';
 
 export type QaScreenLiveProps = {
   deckId: string;
@@ -20,7 +25,8 @@ export type QaScreenLiveProps = {
 // confirms the viewer and the deck is live, it watches the deck's audience (WatchAudience, again after every
 // reconnect), reads GET /api/decks/{id}/qa on each successful watch (the first, and after a reconnect, since
 // questionControl events sent while offline are lost) and follows questionControl. A view with a lower or equal seq
-// than the one held is dropped. The screen is that view through qaScreenOf, so only what the room may see shows. A new
+// than the one held is dropped. The screen is that view through qaScreenOf, so only what the room may see shows; until the first read lands the state
+// is pending, and with no round it is off. A new
 // deck, or the deck going live or not, starts from nothing. Anyone else, a page outside a JoinProvider and a deck that
 // isn't live get null.
 export function QaScreenLive({ deckId, owner, children }: QaScreenLiveProps) {
@@ -83,9 +89,10 @@ export function QaScreenLive({ deckId, owner, children }: QaScreenLiveProps) {
     };
   }, [active, deckId, watched, apply]);
 
-  const screen = useMemo(
-    () => (active && control !== null ? qaScreenOf(control) : null),
-    [active, control],
-  );
-  return <QaScreenProvider screen={screen}>{children}</QaScreenProvider>;
+  // none when not active, pending until the first read lands, then off (no round) or on.
+  const state = useMemo<QaScreenState>(() => {
+    if (!active) return { kind: 'none' };
+    return control === null ? QA_SCREEN_PENDING : qaScreenStateOf(control);
+  }, [active, control]);
+  return <QaScreenProvider state={state}>{children}</QaScreenProvider>;
 }

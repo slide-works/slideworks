@@ -72,6 +72,8 @@ async function watching(hub: Awaited<ReturnType<typeof stubDeckHub>>) {
   await expect.poll(() => hub.watches.length).toBeGreaterThanOrEqual(2);
 }
 
+const stateOf = (page: Page) => page.getByTestId('probe-qa-state').textContent();
+
 const votesOf = (screen: QaScreen | null) => screen?.top.map((row) => [row.number, row.votes]);
 
 test('a presenter gets the room as the screen shows it from the GET on watch', async ({
@@ -222,6 +224,7 @@ test('a deck that is not live gets null and makes no call, then reads once it go
   await expect.poll(() => hub.watches.length).toBeGreaterThanOrEqual(1);
   await settle(page);
   expect(await read(page)).toBeNull();
+  expect(await stateOf(page)).toBe('none');
   expect(qa.calls).toEqual([]);
 
   live.setLive(true);
@@ -339,4 +342,38 @@ test('a watch held across a deck change does not start a read for the new deck w
   hub.releaseWatches(deckId);
   await settle(page);
   expect(reads).toHaveLength(1);
+});
+
+test('with a held read the state is pending, not off, until the read lands, then on', async ({
+  mount,
+  page,
+}) => {
+  const { hub, qa } = await stubLive(page);
+  const slow = qa.hold('read');
+  await mount(screen(true));
+  await watching(hub);
+  await expect.poll(() => qa.calls.length).toBe(1);
+  await settle(page);
+  expect(await stateOf(page)).toBe('pending');
+  expect(await read(page)).toBeNull();
+
+  slow.release();
+  await expect.poll(() => stateOf(page)).toBe('on');
+  expect(await read(page)).toMatchObject({ total: 3 });
+});
+
+test('a read with no round is off, not pending', async ({ mount, page }) => {
+  const off = view({ round: null, onScreen: null, questions: [] });
+  off.counts = { open: 0, waiting: 0, answered: 0, hidden: 0 };
+  const { hub } = await stubLive(page, off);
+  await mount(screen(true));
+  await watching(hub);
+  await expect.poll(() => stateOf(page)).toBe('off');
+});
+
+test('a viewer who cannot present is none, not pending or off', async ({ mount, page }) => {
+  await stubLive(page);
+  await mount(screen(false));
+  await settle(page);
+  expect(await stateOf(page)).toBe('none');
 });

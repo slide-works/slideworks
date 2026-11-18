@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import type { JoinView } from '../api/types';
 import { CANVAS_HEIGHT, CANVAS_WIDTH, useCanvasScale } from '../player/useCanvasScale';
 import { JoinProvider } from '../slides/JoinContext';
+import { QA_SCREEN_OFF, QA_SCREEN_PENDING, QaScreenProvider } from '../qa/screen/QaScreenContext';
 import { GuestQa } from '../qa/guest/GuestQa';
 import { SlideRenderer } from '../slides/SlideRenderer';
 import type { SlideDeck } from '../slides/slots';
@@ -17,10 +18,12 @@ import type { AudienceStatus } from './useAudience';
 function MirroredSlide({
   view,
   current,
+  room,
   dimmed,
 }: {
   view: GuestView;
   current: AudienceCurrent;
+  room: AudienceState['room'];
   dimmed: boolean;
 }) {
   const { code = '' } = useParams();
@@ -78,12 +81,17 @@ function MirroredSlide({
           }}
         >
           <JoinProvider deckId="" join={join} owner={false}>
-            <SlideRenderer
-              slide={{ ...slide, number: current.index, part: null, deepDive: false }}
-              deck={deck}
-              total={current.count}
-              step={current.step}
-            />
+            {/* The phone draws no question list: "off" when the room has no round, else a blank Q&A body. */}
+            <QaScreenProvider
+              state={room !== null && room.round === null ? QA_SCREEN_OFF : QA_SCREEN_PENDING}
+            >
+              <SlideRenderer
+                slide={{ ...slide, number: current.index, part: null, deepDive: false }}
+                deck={deck}
+                total={current.count}
+                step={current.step}
+              />
+            </QaScreenProvider>
           </JoinProvider>
         </div>
       )}
@@ -139,7 +147,7 @@ export function GuestFollowing({
       </header>
       <GuestQa code={code} state={state} status={status} presenter={view.presenterName}>
         {current ? (
-          <MirroredSlide view={view} current={current} dimmed={reconnecting} />
+          <MirroredSlide view={view} current={current} room={state.room} dimmed={reconnecting} />
         ) : (
           <div
             data-testid={GUEST_TEST_IDS.waitingForPresenter}
