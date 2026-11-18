@@ -63,7 +63,7 @@ public class LookCommands(
         {
             throw new NotFoundException(DeckReader.NOT_FOUND);
         }
-        if (change is { Template: null, Palette: null, Logo: null, Draft: null, Chrome: null })
+        if (change is { Template: null, Palette: null, Logo: null, Draft: null, Chrome: null, TemplateVersion: null })
         {
             throw new BadRequestException(NOTHING_TO_CHANGE);
         }
@@ -79,6 +79,13 @@ public class LookCommands(
             // the default, and naming the default must still move it there.
             var moves = change.Template is not null && !string.Equals(change.Template, deck.Template, StringComparison.Ordinal);
             template = moves ? await PickAsync(change.Template!) : current;
+            // The version the deck will be on, when the change names one. Every refusal comes before the first write.
+            var versionMoves = false;
+            if (change.TemplateVersion is { } wanted)
+            {
+                template = await VersionAsync(template, moves, deck.Template, wanted);
+                versionMoves = !moves && template.Version != (deck.TemplateVersion ?? current.Version);
+            }
             // The rules see the template the deck will be on, so the reserved palette name answers to that template's own.
             var catalogues = ResolvedCatalogues.For(palettes, template);
             var error = new LookRules(catalogues.Templates, catalogues.Palettes).CheckChange(template.Template, change with { Template = null });
@@ -91,12 +98,25 @@ public class LookCommands(
                 throw new BadRequestException(UnknownLogo(imageId));
             }
 
+            // Naming the version the deck is already on, and nothing else, changes nothing: no revision, no entry.
+            if (change is { Template: null, Palette: null, Logo: null, Draft: null, Chrome: null } && !versionMoves)
+            {
+                warnings = await WarningsAsync(deck.Id, template.Template);
+                await transaction.CommitAsync();
+                return (deck, template, warnings);
+            }
+
             // A change that neither moves the deck nor names a palette leaves the stored palette alone, even one that
             // cannot be found while the deck's template is missing.
-            var keepsPalette = !moves && change.Palette is null && !template.Template.LockPalette;
+            var keepsPalette = !moves && !versionMoves && change.Palette is null && !template.Template.LockPalette;
             var palette = PaletteAfter(catalogues.Palettes, template, deck.Palette, change);
             var summary = LookSummary.Of(change, template.Template, palette, !keepsPalette && palette.Name != deck.Palette);
-            if (moves)
+            if (versionMoves)
+            {
+                var wording = VersionMoveSummary.Of(template.Template.Label, deck.TemplateVersion ?? current.Version ?? template.Version!.Value, template.Version!.Value);
+                summary = summary.Length == 0 ? wording : $"{wording}; {summary}";
+            }
+            if (moves || versionMoves)
             {
                 deck.Template = template.Ref;
                 deck.TemplateVersion = template.Version;
@@ -121,6 +141,23 @@ public class LookCommands(
     private async Task<ResolvedTemplate> PickAsync(string name)
         => (await templates.ListForAsync(actor, CancellationToken.None)).FirstOrDefault(t => string.Equals(t.Ref, name, StringComparison.Ordinal))
             ?? throw new BadRequestException(LookRules.UnknownTemplate(name));
+
+    // The template at the version a change names, for a deck that will be on an uploaded template. A template the caller may
+    // not pick is refused as an unknown one first, even when it is the deck's own (T4: FindAsync is never the access check).
+    private async Task<ResolvedTemplate> VersionAsync(ResolvedTemplate target, bool moves, string deckTemplate, TemplateVersionChange wanted)
+    {
+        if (target.BuiltIn)
+        {
+            throw new BadRequestException("templateVersion: built-in templates have no versions");
+        }
+        var pickable = moves ? target : await PickAsync(deckTemplate);
+        if (wanted.Version is not { } number)
+        {
+            return pickable;
+        }
+        return await templates.FindAsync(pickable.Ref, number, CancellationToken.None)
+            ?? throw new BadRequestException($"templateVersion: {pickable.Template.Label} has no version {number}");
+    }
 
     // The palette the deck has after the change. A deck that leaves a template whose own palette it wore cannot keep it:
     // it takes the new template's palette, else the default one.
@@ -149,6 +186,7 @@ public class LookCommands(
                 Footer = chrome.Footer is null ? overrides.Footer : chrome.Footer.Value,
                 Progress = chrome.Progress is null ? overrides.Progress : chrome.Progress.Value,
                 JoinBar = chrome.JoinBar ?? overrides.JoinBar,
+                TopBar = chrome.TopBar is null ? overrides.TopBar : chrome.TopBar.Value,
             }).ToJson();
         }
         deck.Revision += 1;

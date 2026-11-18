@@ -27,6 +27,7 @@ public static class LookSummary
             AddChrome(changed, "the tracker", chrome.Tracker, OnOff);
             AddChrome(changed, "the footer", chrome.Footer, footer => footer!);
             AddChrome(changed, "the progress bar", chrome.Progress, OnOff);
+            AddChrome(changed, "the top bar", chrome.TopBar, bar => bar!);
             if (chrome.JoinBar is { } joinBar)
             {
                 changed.Add($"the join bar to {OnOff(joinBar)}");
@@ -57,5 +58,11 @@ public static class LookSummary
     private static string OnOff(bool? value) => value == true ? "on" : "off";
 
     private static string Join(IReadOnlyList<string> items)
-        => items.Count == 1 ? items[0] : $"{string.Join(", ", items.Take(items.Count - 1))} and {items[^1]}";
+    {
+        if (items.Count <= 1)
+        {
+            return items.Count == 0 ? string.Empty : items[0];
+        }
+        return $"{string.Join(", ", items.Take(items.Count - 1))} and {items[^1]}";
+    }
 }
