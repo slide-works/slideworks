@@ -190,9 +190,13 @@ test('limited: counts down in seconds, Send is disabled, and no code is shown', 
   mount,
   page,
 }) => {
-  const component = await mount(sheet());
+  let closed = 0;
+  const onClose = () => closed++;
+  const component = await mount(sheet({ onClose }));
   await page.getByTestId(ID.text).fill('Too keen');
-  await component.update(sheet({ asking: 'limited', retryIn: 42, error: 'too_many_questions' }));
+  await component.update(
+    sheet({ onClose, asking: 'limited', retryIn: 42, error: 'too_many_questions' }),
+  );
   await expect(page.getByTestId(ID.limited)).toHaveText('You can ask again in 42 s');
   await expect(page.getByTestId(ID.send)).toBeDisabled();
   await component.update(sheet({ asking: 'limited', retryIn: 41, error: 'too_many_questions' }));
@@ -201,9 +205,10 @@ test('limited: counts down in seconds, Send is disabled, and no code is shown', 
   await expect(page.getByTestId(ID.sheet)).not.toContainText('too_many_questions');
 
   // The countdown running out sends nothing: the sheet stays and the draft stays.
-  await component.update(sheet({ asking: 'idle' }));
+  await component.update(sheet({ onClose, asking: 'idle' }));
   await expect(page.getByTestId(ID.text)).toHaveValue('Too keen');
   await expect(page.getByTestId(ID.send)).toBeEnabled();
+  expect(closed).toBe(0);
 });
 
 test('failed: the message is a sentence, not the code, and the draft stays', async ({
@@ -271,6 +276,16 @@ test('focus enters the text box when the sheet opens and returns to Ask when it 
   await component.update(sheet({ open: true }));
   await expect(page.getByTestId(ID.text)).toBeFocused();
 
+  await component.update(sheet({ open: false }));
+  await expect(page.getByTestId(QA_LIST_TEST_IDS.ask)).toBeFocused();
+});
+
+test('focus returns to Ask even when the browser did not focus it on the tap', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount(sheet({ open: true }));
+  await expect(page.getByTestId(ID.text)).toBeFocused();
   await component.update(sheet({ open: false }));
   await expect(page.getByTestId(QA_LIST_TEST_IDS.ask)).toBeFocused();
 });
