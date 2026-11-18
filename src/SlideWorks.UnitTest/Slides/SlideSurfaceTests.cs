@@ -9,6 +9,10 @@ public class SlideSurfaceTests
 {
     private const string QUOTE = """{ "quote": "Small batches.", "attribution": "Sam" }""";
 
+    private const string PRACTICE = """{ "headline": "Ship smaller", "do": [{ "lead": "Cut", "text": "Slice the work thinner." }], "comes_back": [], "avoid": [] }""";
+
+    private const string PRACTICE_WITHOUT_HEADLINE = """{ "do": [{ "lead": "Cut", "text": "Slice the work thinner." }], "comes_back": [], "avoid": [] }""";
+
     private const string TITLE = """{ "title": "Ship smaller" }""";
 
     [Test]
@@ -80,9 +84,9 @@ public class SlideSurfaceTests
     [Test]
     public void Validate_WhenALightOnlyLayoutIsAskedDark_ShouldRefuse()
     {
-        var result = Validate(QuoteLayout.Definition, QUOTE, "dark");
+        var result = Validate(PracticeLayout.Definition, PRACTICE, "dark");
 
-        result.Errors.ShouldBe(["quote.surface: this layout is light only"]);
+        result.Errors.ShouldBe(["practice.surface: this layout is light only"]);
     }
 
     [Test]
@@ -104,9 +108,9 @@ public class SlideSurfaceTests
     [Test]
     public void Validate_WhenTheSurfaceAndASlotAreWrong_ShouldNameBoth()
     {
-        var result = Validate(QuoteLayout.Definition, "{}", "dark");
+        var result = Validate(PracticeLayout.Definition, PRACTICE_WITHOUT_HEADLINE, "dark");
 
-        result.Errors.ShouldBe(["quote.surface: this layout is light only", "quote.quote: required", "quote.attribution: required"]);
+        result.Errors.ShouldBe(["practice.surface: this layout is light only", "practice.headline: required"]);
     }
 
     private static SlideValidationResult Validate(LayoutDefinition definition, string slots, string? surface)
