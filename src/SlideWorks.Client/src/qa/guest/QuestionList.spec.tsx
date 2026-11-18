@@ -1,12 +1,26 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
 import { guestQuestion, guestQuestions, qaRoom } from '../../test-support/fixtures/qaStates';
-import { QA_LIST_TEST_IDS, questionRowTestId } from '../testIds';
+import {
+  QA_LIST_TEST_IDS,
+  questionAnsweredTestId,
+  questionHiddenTestId,
+  questionMetaTestId,
+  questionNoVoteTestId,
+  questionOnScreenTestId,
+  questionRowTestId,
+  questionTextTestId,
+  questionUpvoteTestId,
+  questionVotesTestId,
+  questionWaitingTestId,
+  questionYouTestId,
+} from '../testIds';
 import type { GuestQuestion } from '../types';
 import { AskBar } from './AskBar';
 import { AskSheetFixture } from './AskSheetFixture';
 import { QuestionList } from './QuestionList';
 import { QuestionsFixture, type QuestionsFixtureProps } from './QuestionsFixture';
+import { QA_NETWORK_ERROR } from './QuestionsLive';
 
 // The Questions tab's list (Q8; mockup phone states 2, 3, 6, 7, 8, 10, 12) over QuestionsFixture on a 360 px phone. The
 // view sample holds 1 (14 votes, upvoted), 2 (9, on screen), 3 (answered, 6), 4 (the guest's own, waiting) and 6 (3).
@@ -15,7 +29,6 @@ test.beforeEach(async ({ page }) => {
 });
 
 const VIEW = guestQuestions('view');
-const NETWORK = 'Your phone couldn’t reach the talk. Check your connection, then try again.';
 
 type ListProps = Omit<QuestionsFixtureProps, 'children'> & { onShow?: () => void };
 
@@ -48,19 +61,27 @@ const rowIds = (page: Page, testId: string) =>
     .locator(':scope > li')
     .evaluateAll((rows) => rows.map((r) => r.getAttribute('data-testid')));
 
-const upvote = (page: Page, number: number) =>
-  page.getByTestId(questionRowTestId(number)).getByRole('button');
+const upvote = (page: Page, number: number) => page.getByTestId(questionUpvoteTestId(number));
 
-test('Top sorts by votes with ties to the older question, the guest’s waiting one pinned on top', async ({
+// The list's polite live region, which says how many questions are open.
+const announced = (page: Page) =>
+  page.getByTestId(QA_LIST_TEST_IDS.list).locator('[aria-live="polite"]');
+
+test('Top sorts by votes with ties to the older question, the guest’s held ones pinned on top in number order', async ({
   mount,
   page,
 }) => {
-  const tied = [...VIEW.questions, guestQuestion(6, { number: 7, votes: 9, text: 'A later tie' })];
+  const tied = [
+    ...VIEW.questions,
+    guestQuestion(6, { number: 7, votes: 9, text: 'A later tie' }),
+    guestQuestion(4, { number: 9, state: 'hidden', text: 'A later held question' }),
+  ];
   await mount(list({ questions: tied }));
 
   await expect(page.getByTestId(QA_LIST_TEST_IDS.sortTop)).toHaveAttribute('aria-pressed', 'true');
   expect(await rowIds(page, QA_LIST_TEST_IDS.rows)).toEqual([
     questionRowTestId(4),
+    questionRowTestId(9),
     questionRowTestId(1),
     questionRowTestId(2),
     questionRowTestId(7),
@@ -100,7 +121,7 @@ test('an upvote toggles aria-pressed and the count in its name', async ({ mount,
 
   await expect(six).toHaveAttribute('aria-pressed', 'true');
   await expect(six).toHaveAccessibleName('Upvote, 4 votes: How do you handle database migrations?');
-  await expect(six).toHaveText(/4/);
+  await expect(page.getByTestId(questionVotesTestId(6))).toHaveText('4');
 
   await six.click();
 
@@ -114,13 +135,16 @@ test('a waiting question shows only its tag, with no upvote and no count', async
   page,
 }) => {
   await mount(list());
-  const four = page.getByTestId(questionRowTestId(4));
 
-  await expect(four.getByRole('button')).toHaveCount(0);
-  await expect(four).toContainText('Waiting for Sam');
-  await expect(four).toContainText('You');
-  await expect(four).toContainText('Anonymous · 2 min');
-  await expect(four).toHaveText('…Who reviews the slices?YouAnonymous · 2 minWaiting for Sam');
+  await expect(page.getByTestId(questionNoVoteTestId(4))).toHaveText('…');
+  await expect(upvote(page, 4)).toHaveCount(0);
+  await expect(page.getByTestId(questionVotesTestId(4))).toHaveCount(0);
+  await expect(page.getByTestId(questionTextTestId(4))).toHaveText('Who reviews the slices?');
+  await expect(page.getByTestId(questionYouTestId(4))).toHaveText('You');
+  await expect(page.getByTestId(questionMetaTestId(4))).toHaveText('Anonymous · 2 min');
+  await expect(page.getByTestId(questionWaitingTestId(4))).toHaveText('Waiting for Sam');
+  await expect(page.getByTestId(questionHiddenTestId(4))).toHaveCount(0);
+  await expect(page.getByTestId(questionOnScreenTestId(4))).toHaveCount(0);
 });
 
 test('the guest’s hidden question is pinned and says it is not shown to the room', async ({
@@ -129,19 +153,19 @@ test('the guest’s hidden question is pinned and says it is not shown to the ro
 }) => {
   const hidden = guestQuestions('ownHidden');
   await mount(list({ questions: hidden.questions, mine: hidden.mine }));
-  const four = page.getByTestId(questionRowTestId(4));
 
   expect((await rowIds(page, QA_LIST_TEST_IDS.rows))[0]).toBe(questionRowTestId(4));
-  await expect(four.getByRole('button')).toHaveCount(0);
-  await expect(four).toContainText('–');
-  await expect(four).toContainText('Not shown to the room');
+  await expect(upvote(page, 4)).toHaveCount(0);
+  await expect(page.getByTestId(questionNoVoteTestId(4))).toHaveText('–');
+  await expect(page.getByTestId(questionHiddenTestId(4))).toHaveText('Not shown to the room');
+  await expect(page.getByTestId(questionWaitingTestId(4))).toHaveCount(0);
 });
 
 test('the question on the big screen is tagged', async ({ mount, page }) => {
   await mount(list());
 
-  await expect(page.getByTestId(questionRowTestId(2))).toContainText('On screen now');
-  await expect(page.getByTestId(questionRowTestId(1))).not.toContainText('On screen now');
+  await expect(page.getByTestId(questionOnScreenTestId(2))).toHaveText('On screen now');
+  await expect(page.getByTestId(questionOnScreenTestId(1))).toHaveCount(0);
 });
 
 test('answered questions sit in their own section by votes, with a tick and no upvote', async ({
@@ -167,8 +191,10 @@ test('answered questions sit in their own section by votes, with a tick and no u
       .evaluateAll((rows) => rows.map((r) => r.getAttribute('data-testid'))),
   ).toEqual([questionRowTestId(3), questionRowTestId(8)]);
   await expect(section.getByRole('button')).toHaveCount(0);
-  await expect(page.getByTestId(questionRowTestId(3))).toContainText('✓');
-  await expect(page.getByTestId(questionRowTestId(3))).toContainText('Sam K · 8 min · 6 votes');
+  await expect(upvote(page, 3)).toHaveCount(0);
+  await expect(page.getByTestId(questionAnsweredTestId(3))).toHaveText('✓');
+  await expect(page.getByTestId(questionMetaTestId(3))).toHaveText('Sam K · 8 min');
+  await expect(page.getByTestId(questionVotesTestId(3))).toHaveText(' · 6 votes');
   await expect(
     page.getByTestId(QA_LIST_TEST_IDS.rows).getByTestId(questionRowTestId(3)),
   ).toHaveCount(0);
@@ -191,6 +217,24 @@ test('with no questions the empty state and the Ask button are all there is', as
 
   await expect(page.getByTestId(QA_LIST_TEST_IDS.ask)).toHaveText('Ask a question');
   await expect.poll(() => shown).toBe(1);
+});
+
+test('empty and closed shows no invitation to ask, only the title and the closed line', async ({
+  mount,
+  page,
+}) => {
+  await mount(
+    list({
+      room: qaRoom('open', { questions: 'closed' }),
+      questions: [],
+      mine: { picks: [], revision: 0 },
+    }),
+  );
+
+  await expect(page.getByTestId(QA_LIST_TEST_IDS.emptyTitle)).toHaveText('No questions yet');
+  await expect(page.getByTestId(QA_LIST_TEST_IDS.emptyText)).toHaveCount(0);
+  await expect(page.getByTestId(QA_LIST_TEST_IDS.closed)).toBeVisible();
+  await expect(page.getByTestId(QA_LIST_TEST_IDS.askBar)).toHaveCount(0);
 });
 
 test('closed keeps the list and upvotes and replaces asking with a line', async ({
@@ -220,35 +264,49 @@ test('off here keeps the list and upvotes and replaces asking with a line', asyn
   await expect(upvote(page, 6)).toBeEnabled();
 });
 
-test('loading shows nothing to tap until the first read lands', async ({ mount, page }) => {
-  await mount(list({ state: 'loading', questions: [] }));
+test('loading shows nothing to tap until the first read lands, not even Ask', async ({
+  mount,
+  page,
+}) => {
+  await mount(list({ state: 'loading', room: null, questions: [] }));
 
   await expect(page.getByTestId(QA_LIST_TEST_IDS.loading)).toBeVisible();
   await expect(page.getByTestId(QA_LIST_TEST_IDS.list)).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByTestId(QA_LIST_TEST_IDS.list).getByRole('button')).toHaveCount(0);
   await expect(page.getByTestId(QA_LIST_TEST_IDS.empty)).toHaveCount(0);
+  await expect(page.getByTestId(QA_LIST_TEST_IDS.askBar)).toHaveCount(0);
 });
 
 test('failed says why and Try again reads the list again', async ({ mount, page }) => {
   let retries = 0;
-  await mount(list({ state: 'failed', questions: [], error: NETWORK, onRetry: () => retries++ }));
+  await mount(
+    list({
+      state: 'failed',
+      room: null,
+      questions: [],
+      error: QA_NETWORK_ERROR,
+      errorFrom: 'read',
+      onRetry: () => retries++,
+    }),
+  );
 
   await expect(page.getByTestId(QA_LIST_TEST_IDS.failed)).toContainText(
     "Couldn't load the questions.",
   );
-  await expect(page.getByTestId(QA_LIST_TEST_IDS.failed)).toContainText(NETWORK);
+  await expect(page.getByTestId(QA_LIST_TEST_IDS.failed)).toContainText(QA_NETWORK_ERROR);
 
   await page.getByTestId(QA_LIST_TEST_IDS.failedRetry).click();
 
   await expect(page.getByTestId(QA_LIST_TEST_IDS.failedRetry)).toHaveText('Try again');
   await expect.poll(() => retries).toBe(1);
+  await expect(page.getByTestId(QA_LIST_TEST_IDS.askBar)).toHaveCount(0);
 });
 
 test('a failed upvote shows the hook’s error under the list, as a sentence', async ({
   mount,
   page,
 }) => {
-  await mount(list({ error: 'too_many_votes' }));
+  await mount(list({ error: 'too_many_votes', errorFrom: 'vote' }));
 
   await expect(page.getByTestId(QA_LIST_TEST_IDS.error)).toHaveText(
     'You’ve changed your upvotes a lot in the last minute. Wait a moment, then try again.',
@@ -260,10 +318,56 @@ test('an ask’s failure is left to the ask sheet, not shown under the list', as
   mount,
   page,
 }) => {
-  await mount(list({ asking: 'failed', error: 'questions_closed' }));
+  await mount(list({ asking: 'failed', error: 'questions_closed', errorFrom: 'ask' }));
 
   await expect(page.getByTestId(QA_LIST_TEST_IDS.list)).toBeVisible();
   await expect(page.getByTestId(QA_LIST_TEST_IDS.error)).toHaveCount(0);
+});
+
+test('after a failed ask, a failed upvote still shows its message under the list', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount(
+    list({ asking: 'failed', error: 'questions_closed', errorFrom: 'ask' }),
+  );
+  await expect(page.getByTestId(QA_LIST_TEST_IDS.error)).toHaveCount(0);
+
+  await component.update(list({ asking: 'failed', error: 'too_many_votes', errorFrom: 'vote' }));
+
+  await expect(page.getByTestId(QA_LIST_TEST_IDS.error)).toHaveText(
+    'You’ve changed your upvotes a lot in the last minute. Wait a moment, then try again.',
+  );
+});
+
+test('the live region says how many questions are open, and a tally that only moves votes says nothing new', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount(list());
+  await expect(announced(page)).toHaveText('3 open questions');
+
+  const tallied = VIEW.questions.map((q) => ({ ...q, votes: q.votes + 5 }));
+  await component.update(list({ questions: tallied }));
+  await expect(page.getByTestId(questionVotesTestId(6))).toHaveText('8');
+  await expect(announced(page)).toHaveText('3 open questions');
+
+  const asked = [...tallied, guestQuestion(6, { number: 7, text: 'A new question' })];
+  await component.update(list({ questions: asked }));
+  await expect(announced(page)).toHaveText('4 open questions');
+});
+
+test('a row can take focus from code, so focus can move to a new question', async ({
+  mount,
+  page,
+}) => {
+  await mount(list());
+  const row = page.getByTestId(questionRowTestId(6));
+
+  await row.focus();
+
+  await expect(row).toBeFocused();
+  await expect(row).toHaveAttribute('tabindex', '-1');
 });
 
 test('a long question and name wrap and nothing scrolls sideways', async ({ mount, page }) => {
@@ -302,6 +406,6 @@ test('screenshot no questions yet', async ({ mount, page }) => {
 });
 
 test('screenshot failed', async ({ mount, page }) => {
-  await mount(list({ state: 'failed', questions: [], error: NETWORK }));
+  await mount(list({ state: 'failed', questions: [], error: QA_NETWORK_ERROR }));
   await expect(page).toHaveScreenshot('qa-list-failed.png');
 });

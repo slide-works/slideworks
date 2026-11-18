@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { questionErrorText } from './questionErrorText';
+import { QA_NETWORK_ERROR } from './QuestionsLive';
 
 const SAM = { presenter: 'Sam' };
 const UNKNOWN = 'Something went wrong on our side. Try again in a moment.';
-const NETWORK = 'Your phone couldn’t reach the talk. Check your connection, then try again.';
 
 describe('questionErrorText', () => {
   it.each([
@@ -18,6 +18,10 @@ describe('questionErrorText', () => {
     [
       'stale',
       'The questions changed before your upvote was sent. Check the list and upvote again.',
+    ],
+    [
+      'new_round',
+      'Questions started again, so your question wasn’t sent. Ask it again if it still matters.',
     ],
     ['reactions_off', 'Reactions are off right now.'],
     ['too_many_reactions', 'That’s a lot of reactions. Wait a moment, then react again.'],
@@ -54,13 +58,14 @@ describe('questionErrorText', () => {
     );
   });
 
-  it('passes a sentence the client wrote through as it is', () => {
-    expect(questionErrorText(NETWORK, SAM)).toBe(NETWORK);
+  it('passes the client’s own network sentence through as it is', () => {
+    expect(questionErrorText(QA_NETWORK_ERROR, SAM)).toBe(QA_NETWORK_ERROR);
   });
 
   it.each([
     'Request failed (400)',
     'Request failed (413)',
+    'Some other sentence a provider might write.',
     'some_new_code',
     'picks: duplicate',
     'picks: at most 1000',

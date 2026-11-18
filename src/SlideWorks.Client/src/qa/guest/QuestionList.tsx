@@ -29,11 +29,16 @@ const SORTS: { sort: QuestionSort; label: string; testId: string }[] = [
 // questions pinned on top, the open ones, the answered section, and the loading, failed, empty, closed and off-here
 // states. It renders QuestionRow and QuestionsEmpty; AskBar sits under it.
 export function QuestionList({ presenter }: QuestionListProps) {
-  const { room, questions, state, asking, error, retry, sort, setSort } = useQuestions();
+  const { room, questions, state, error, errorFrom, retry, sort, setSort } = useQuestions();
 
   const open = questions.filter((q) => q.state === 'open');
-  // The open count changes as the room asks; a screen reader hears it at most once every 5 seconds.
-  const said = useCalmAnnouncement(`${open.length} open`);
+  // The open count changes only when the list does (a tally moves votes, not states); a screen reader hears it at most
+  // once every 5 seconds.
+  const said = useCalmAnnouncement(
+    open.length === 1 ? '1 open question' : `${open.length} open questions`,
+  );
+  // An ask's failure shows in the ask sheet; the list shows a read's or an upvote's.
+  const shownError = error !== null && errorFrom !== 'ask' ? error : null;
 
   if (state === 'loading')
     return (
@@ -63,9 +68,9 @@ export function QuestionList({ presenter }: QuestionListProps) {
           <p className="font-head text-[15px] leading-[1.3] font-bold">
             Couldn't load the questions.
           </p>
-          {error !== null && (
+          {shownError !== null && (
             <p className="text-[12.5px] leading-[1.45] text-(--sw-muted)">
-              {questionErrorText(error, { presenter })}
+              {questionErrorText(shownError, { presenter })}
             </p>
           )}
           <button
@@ -80,17 +85,17 @@ export function QuestionList({ presenter }: QuestionListProps) {
       </section>
     );
 
-  // The guest's own questions nobody else sees, newest first, then the open ones in the chosen sort.
+  // The guest's own questions nobody else sees, in number order, then the open ones in the chosen sort.
   const pinned = questions
     .filter((q) => q.yours && (q.state === 'waiting' || q.state === 'hidden'))
-    .sort(byNew);
+    .sort((a, b) => a.number - b.number);
   const shown = [...pinned, ...open.sort(sort === 'top' ? byTop : byNew)];
   const answered = questions.filter((q) => q.state === 'answered').sort(byTop);
-  // An ask's failure shows in the ask sheet; under the list is a failed upvote's (or a read's after the first).
-  const listError = error !== null && asking !== 'failed' && asking !== 'limited' ? error : null;
-
   return (
     <section data-testid={QA_LIST_TEST_IDS.list} aria-label="Questions" className={CARD}>
+      <p aria-live="polite" className="sr-only">
+        {said}
+      </p>
       {questions.length === 0 ? (
         <QuestionsEmpty presenter={presenter} />
       ) : (
@@ -109,9 +114,6 @@ export function QuestionList({ presenter }: QuestionListProps) {
               className="text-[12px] leading-none font-semibold whitespace-nowrap text-(--sw-muted)"
             >
               {`${open.length} open`}
-            </span>
-            <span aria-live="polite" className="sr-only">
-              {said}
             </span>
             <div
               role="group"
@@ -162,13 +164,13 @@ export function QuestionList({ presenter }: QuestionListProps) {
           </div>
         </>
       )}
-      {listError !== null && (
+      {shownError !== null && (
         <p
           data-testid={QA_LIST_TEST_IDS.error}
           role="alert"
           className="shrink-0 rounded-lg bg-(--sw-bad-soft) px-2.5 py-2 text-[12px] leading-[1.4] text-(--sw-bad-ink)"
         >
-          {questionErrorText(listError, { presenter })}
+          {questionErrorText(shownError, { presenter })}
         </p>
       )}
       {room?.questions === 'closed' && (

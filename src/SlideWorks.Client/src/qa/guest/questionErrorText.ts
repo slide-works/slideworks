@@ -1,3 +1,5 @@
+import { QA_NETWORK_ERROR } from './QuestionsLive';
+
 export type QuestionErrorTextOptions = {
   // The presenter's name, as the copy names them ("Sam has closed questions.").
   presenter: string;
@@ -20,6 +22,8 @@ const MESSAGES: Record<string, (options: QuestionErrorTextOptions) => string> = 
       : 'You’ve asked a lot in the last minute. Wait a moment, then ask again.',
   too_many_votes: () =>
     'You’ve changed your upvotes a lot in the last minute. Wait a moment, then try again.',
+  new_round: () =>
+    'Questions started again, so your question wasn’t sent. Ask it again if it still matters.',
   stale: () =>
     'The questions changed before your upvote was sent. Check the list and upvote again.',
   reactions_off: () => 'Reactions are off right now.',
@@ -37,14 +41,10 @@ const MESSAGES: Record<string, (options: QuestionErrorTextOptions) => string> = 
 const TEXT_AT_MOST = /^text: at most (\d+)$/;
 const NAME_AT_MOST = /^name: at most (\d+)$/;
 const UNKNOWN_QUESTION = /^picks: unknown question \d+$/;
-// api/client's and questionsApi's text for a refusal whose body had no error.
-const NO_ERROR_BODY = /^Request failed \(\d+\)$/;
-// A sentence the client wrote itself (a call that never reached the server) starts with a capital; a code or a rule
-// from the server never does.
-const SENTENCE = /^[A-Z]/;
 
 // What the guest reads for useQuestions().error or usePhoneReactions().error: a code or rule from the server becomes
-// a sentence, and a sentence the client wrote passes through as it is.
+// a sentence, and the client's own sentence for a call that never reached the server (QA_NETWORK_ERROR) passes through
+// as it is. Anything else becomes the generic sentence.
 export function questionErrorText(error: string, options: QuestionErrorTextOptions): string {
   const message = MESSAGES[error];
   if (message) return message(options);
@@ -54,6 +54,5 @@ export function questionErrorText(error: string, options: QuestionErrorTextOptio
   if (name) return `Keep your name to ${name[1]} characters.`;
   if (UNKNOWN_QUESTION.test(error))
     return 'That question isn’t on the list any more. Check the list and upvote again.';
-  if (NO_ERROR_BODY.test(error)) return UNKNOWN;
-  return SENTENCE.test(error) ? error : UNKNOWN;
+  return error === QA_NETWORK_ERROR ? error : UNKNOWN;
 }
