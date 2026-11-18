@@ -130,6 +130,16 @@ function textBox(page: Page) {
   });
 }
 
+// Bottom edge, in slide pixels, of the first box matching a test id (or the last, with `last`).
+function boxBottom(page: Page, testId: string, last = false) {
+  return page.getByTestId(testId).evaluateAll((els: Element[], pick: boolean) => {
+    if (els.length === 0) return null;
+    const el = pick ? els[els.length - 1] : els[0];
+    const slide = el.closest('[data-layout]')!.getBoundingClientRect();
+    return el.getBoundingClientRect().bottom - slide.top;
+  }, last);
+}
+
 test('rulesCallout stays inside the box', async ({ mount, page }) => {
   await stubApi(page, {});
   const slots = fitFixture('rulesCallout').slots as RulesSlots;
@@ -140,6 +150,14 @@ test('rulesCallout stays inside the box', async ({ mount, page }) => {
   expect(drawn.left).toBeGreaterThanOrEqual(120);
   expect(drawn.right).toBeLessThanOrEqual(1800);
   expect(drawn.bottom).toBeLessThanOrEqual(996);
+  const lastRule = await items(page)
+    .last()
+    .evaluate((el: Element) => {
+      const slide = el.closest('[data-layout]')!.getBoundingClientRect();
+      return el.getBoundingClientRect().bottom - slide.top;
+    });
+  expect(lastRule).toBeLessThanOrEqual(996);
+  expect(await boxBottom(page, 'body-callout')).toBeLessThanOrEqual(996);
   test.info().annotations.push({ type: 'bottom', description: `${drawn.bottom}` });
 });
 

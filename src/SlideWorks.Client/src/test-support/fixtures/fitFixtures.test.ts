@@ -18,6 +18,7 @@ describe('fitFixtures', () => {
 
   it('a layout gives its own fixtures, and an unknown layout none', () => {
     expect(Object.keys(fitFixturesOf('rules')).sort()).toEqual([
+      'rulesCallout',
       'rulesProse',
       'rulesTitleCase',
       'rulesWide',
