@@ -56,4 +56,29 @@ public class CustomLayoutErrorCodesTests
 
         error.ShouldBe(new CustomLayoutError("layout.css:3", "css_important", "!important is not allowed."));
     }
+
+    [TestCase("bars")]
+    [TestCase("data-each")]
+    [TestCase("flex_grow")]
+    [TestCase("h2")]
+    public void Of_WhenGivenACheckedIdentifier_ShouldAppendItToTheCodesText(string identifier)
+    {
+        var error = CustomLayoutError.Of("slots.bars", CustomLayoutErrorCodes.SLOT_UNUSED, identifier);
+
+        error.Code.ShouldBe("slot_unused");
+        error.Path.ShouldBe("slots.bars");
+        error.Message.ShouldBe($"{CustomLayoutErrorCodes.Text(CustomLayoutErrorCodes.SLOT_UNUSED)} ({identifier})");
+    }
+
+    [TestCase("")]
+    [TestCase("Bars")]
+    [TestCase("two words")]
+    [TestCase("<script>")]
+    [TestCase("a.b")]
+    [TestCase("url(x)")]
+    [TestCase("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    public void Of_WhenTheIdentifierIsNotChecked_ShouldThrow(string identifier)
+    {
+        Should.Throw<ArgumentException>(() => CustomLayoutError.Of("layout.html:1", CustomLayoutErrorCodes.MARKUP_TAG, identifier)).ParamName.ShouldBe("identifier");
+    }
 }

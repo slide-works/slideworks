@@ -42,9 +42,18 @@ public sealed class LayoutClassPrefix
         return Value + className;
     }
 
+    // Whether a class of a stored tree is this layout's: the prefix, then a class name. A class with
+    // another layout's prefix, or with none, is not.
+    public bool Owns(string? className) =>
+        className is not null
+        && className.StartsWith(Value, StringComparison.Ordinal)
+        && IsClassName(className[Value.Length..]);
+
     public override string ToString() => Value;
 
-    private static bool IsLayoutName(string? name) =>
+    // Whether a name can stand in a prefix. A reader of stored layouts asks this first, so a stored
+    // name that is not one is refused there and never reaches Of.
+    public static bool IsLayoutName(string? name) =>
         IsClassName(name)
         && name![0] is >= 'a' and <= 'z'
         && name[^1] != '-'

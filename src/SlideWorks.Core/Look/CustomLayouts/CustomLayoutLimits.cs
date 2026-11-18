@@ -14,6 +14,9 @@ public static class CustomLayoutLimits
     public const int MAX_DRAWN_NODES = 2_000;
     public const int MAX_CLASSES_PER_ELEMENT = 8;
 
+    // The highest numbered step an element may carry (data-step="1" to this).
+    public const int MAX_STEPS = 20;
+
     // CSS: rules, declarations in one rule, nested parentheses, comma-separated layers in one value
     // and arguments to one function.
     public const int MAX_CSS_RULES = 300;
@@ -24,4 +27,7 @@ public static class CustomLayoutLimits
 
     // Slots, counting the fields of a list slot.
     public const int MAX_SLOTS = 24;
+
+    // The longest value of an enum that a data-variant binds: each value becomes a class.
+    public const int MAX_ENUM_VALUE_CHARS = 40;
 }

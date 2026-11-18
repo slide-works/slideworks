@@ -1,8 +1,23 @@
 // The types of a custom layout as the server sends it (T10). The tree is the checked form of the
-// layout's markup: the client draws these nodes and never parses HTML. Types only.
+// layout's markup: the client draws these nodes and never parses HTML. Types, and the one lookup
+// a variant needs.
 
 // A CSS variable an element sets from a number slot.
 export type TreeVar = { name: string; slot: string };
+
+// An enum slot an element takes one class from. `classes` holds the finished class of every value
+// of the enum, written by the server with the layout's prefix (cl-<scope>-<layout name>__is-<value>).
+export type TreeVariant = { slot: string; classes: { [value: string]: string } };
+
+// The class a variant adds for a slide's value: the one the server wrote for it, or none. A value
+// the map does not hold adds nothing; a class name is never built here.
+export function variantClass(variant: TreeVariant, value: unknown): string | undefined {
+  if (typeof value !== 'string' || !Object.prototype.hasOwnProperty.call(variant.classes, value)) {
+    return undefined;
+  }
+  const name = variant.classes[value];
+  return typeof name === 'string' ? name : undefined;
+}
 
 // One element. `classes` are final: the server has already written each with the layout's prefix
 // (cl-<scope>-<layout name>__<class>), the same names its CSS uses. The client puts them on the element
@@ -16,7 +31,7 @@ export type TreeNode = {
   if?: string;
   step?: number;
   vars: TreeVar[];
-  variants: string[];
+  variants: TreeVariant[];
   children: TreeNode[];
 };
 
