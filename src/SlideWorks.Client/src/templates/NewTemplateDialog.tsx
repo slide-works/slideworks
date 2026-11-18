@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ModalDialog } from '../components/sharing/ModalDialog';
 import { templatesApi } from './api';
 import { refusalText } from './list/refusalText';
+import { TEMPLATES_TEST_IDS } from './testIds';
 import type { TemplateRow } from './types';
 
 export type NewTemplateDialogProps = {
@@ -50,7 +51,7 @@ export function NewTemplateDialog({ builtIn, initialBuiltIn, onClose }: NewTempl
     <ModalDialog
       labelledBy={titleId}
       describedBy={hintId}
-      testId="new-template-dialog"
+      testId={TEMPLATES_TEST_IDS.newDialog}
       widthClassName="max-w-lg"
       onClose={onClose}
     >
