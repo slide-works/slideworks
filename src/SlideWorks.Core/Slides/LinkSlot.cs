@@ -14,6 +14,7 @@ public sealed class LinkSlot(int max = LinkSlot.MAX_LENGTH) : ISlotType
 
     private const string NOT_AN_ADDRESS = "must be an http or https address, such as https://example.com/page";
     private const string USER_INFO = "must not hold a user name or password";
+    private const string PERCENT_IN_AUTHORITY = "must not hold a percent sign before the path; write the host and port as they are";
 
     private static readonly string[] _schemes = ["http://", "https://"];
 
@@ -77,6 +78,13 @@ public sealed class LinkSlot(int max = LinkSlot.MAX_LENGTH) : ISlotType
         if (authority.Contains('@'))
         {
             return USER_INFO;
+        }
+
+        // Parsers disagree on a percent sign here: a browser decodes one in a host name where .NET refuses
+        // it, and .NET takes an IPv6 zone where a browser refuses it. After the path starts it is fine.
+        if (authority.Contains('%'))
+        {
+            return PERCENT_IN_AUTHORITY;
         }
 
         // The parser has the last word: it must agree that this is an http or https address with a host.

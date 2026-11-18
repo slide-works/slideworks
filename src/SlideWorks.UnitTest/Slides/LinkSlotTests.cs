@@ -62,6 +62,16 @@ public class LinkSlotTests
         Errors(value).ShouldBe([PATH + ": must not hold a user name or password"]);
     }
 
+    // Rule 6. With a user-info @ as well (https://example.org%2f@evil.example/) the @ is reported; the case file holds that one.
+    [TestCase("https://exa%6dple.org/")]
+    [TestCase("https://[fe80::1%eth0]/")]
+    [TestCase("https://[fe80::1%25eth0]/")]
+    [TestCase("https://example.org:80%31/")]
+    public void Validate_WhenTheAuthorityHoldsAPercentSign_ShouldRefuse(string value)
+    {
+        Errors(value).ShouldBe([PATH + ": must not hold a percent sign before the path; write the host and port as they are"]);
+    }
+
     [TestCase("https://@example.org/")]
     [TestCase("https://:pw@example.org/")]
     [TestCase("https://example.org:99999/")]
