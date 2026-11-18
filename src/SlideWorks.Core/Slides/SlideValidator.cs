@@ -30,12 +30,11 @@ public static class SlideValidator
     }
 
     // The same check for a layout already found, with the glyph widths of the deck's fonts. The
-    // surface is the slide's own: "light", "dark" or null.
+    // surface is the slide's own: "light", "dark" or null. One the layout cannot take is refused.
     public static SlideValidationResult Validate(LayoutDefinition definition, JsonElement slots, FitWidths widths, string? surface = null)
     {
-        // TODO: the surface is not checked against the layout yet.
-        _ = surface;
         var validation = new SlotValidation { Widths = widths };
+        SlideSurface.Resolve(definition, surface, validation);
         if (!IsValidUtf16(slots))
         {
             // Reading a lone surrogate (half an emoji, such as an escaped "\ud83d") as a .NET string throws, so the

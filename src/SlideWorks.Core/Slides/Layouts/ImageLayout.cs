@@ -4,7 +4,7 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class ImageLayout
 {
-    public static LayoutDefinition Definition { get; } = new("image", "A headline over one large image, with optional points beside it and a caption.", false,
+    public static LayoutDefinition Definition { get; } = new("image", "A headline over one large image, with optional points beside it and a caption.", LayoutSurface.Light,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),

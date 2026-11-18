@@ -5,7 +5,7 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class TableLayout
 {
-    public static LayoutDefinition Definition { get; } = new("table", "A table of 2–6 columns and 1–6 rows. A cell can carry a tone, and one row can be highlighted.", false,
+    public static LayoutDefinition Definition { get; } = new("table", "A table of 2–6 columns and 1–6 rows. A cell can carry a tone, and one row can be highlighted.", LayoutSurface.Light,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),

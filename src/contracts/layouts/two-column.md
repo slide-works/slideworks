@@ -1,4 +1,4 @@
-Dark: no. Steps: none.
+Surface: light. Steps: none.
 
 ## two-column
 
@@ -16,7 +16,7 @@ A headline over two columns. Each column holds a list of points, a paragraph or 
 | `left.text` | text | no | up to 400 chars |  |
 | `left.image` | image `{image, alt}` | no |  |  |
 | `left.image.image` | text | yes | up to 64 chars | The image id that upload_image returned |
-| `left.image.alt` | text | yes | up to 200 chars | What the image shows, for screen readers |
+| `left.image.alt` | text | yes | up to 500 chars | What the image shows, for screen readers |
 | `right` | object | yes | exactly one of `items`, `text`, `image` | Exactly one of items, text or image |
 | `right.title` | text | no | up to 50 chars |  |
 | `right.items` | list of text or object | no | 1–6 items; each text up to 120 chars |  |
@@ -25,4 +25,4 @@ A headline over two columns. Each column holds a list of points, a paragraph or 
 | `right.text` | text | no | up to 400 chars |  |
 | `right.image` | image `{image, alt}` | no |  |  |
 | `right.image.image` | text | yes | up to 64 chars | The image id that upload_image returned |
-| `right.image.alt` | text | yes | up to 200 chars | What the image shows, for screen readers |
+| `right.image.alt` | text | yes | up to 500 chars | What the image shows, for screen readers |

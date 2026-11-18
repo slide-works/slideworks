@@ -5,7 +5,7 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class GanttLayout
 {
-    public static LayoutDefinition Definition { get; } = new("gantt", "A timeline of 1–5 rows across 2–8 columns. Each bar has a status: done, slips, stopped or ship.", false,
+    public static LayoutDefinition Definition { get; } = new("gantt", "A timeline of 1–5 rows across 2–8 columns. Each bar has a status: done, slips, stopped or ship.", LayoutSurface.Light,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),

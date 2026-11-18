@@ -41,6 +41,31 @@ public class SlideStepsTests
     }
 
     [Test]
+    public void Count_WhenALayoutWithNoPlanHasACalloutThatRevealsLast_ShouldBeOne()
+    {
+        LayoutCatalogue.Find("practice")!.Steps.ShouldBeNull();
+
+        Count("practice", """{ "headline": "h", "do": [], "callout": { "tone": "accent", "text": "t", "reveal": "last" } }""").ShouldBe(1);
+        Count("practice", """{ "headline": "h", "do": [], "callout": { "tone": "accent", "text": "t" } }""").ShouldBe(0);
+    }
+
+    [Test]
+    public void Count_WhenBuiltWithTheOlderConstructor_ShouldCountTheListAsBefore()
+    {
+        var definition = new LayoutDefinition("old", "d", true, [], stepsFrom: "items");
+        var plain = new LayoutDefinition("plain", "d", false, []);
+        using var slots = JsonDocument.Parse("""{ "items": ["a", "b"], "reveal": "one-by-one" }""");
+
+        SlideSteps.Count(definition, slots.RootElement).ShouldBe(2);
+        definition.StepsFrom.ShouldBe("items");
+        definition.Surface.ShouldBe(LayoutSurface.Dark);
+        definition.Tracker.ShouldBeTrue();
+        plain.Steps.ShouldBeNull();
+        plain.StepsFrom.ShouldBeNull();
+        plain.Surface.ShouldBe(LayoutSurface.Light);
+    }
+
+    [Test]
     public void Count_WhenSampleDeck_ShouldMatchEachSlidesSteps()
     {
         foreach (var slide in SampleDeck.Slides)

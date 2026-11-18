@@ -4,7 +4,7 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class TitleLayout
 {
-    public static LayoutDefinition Definition { get; } = new("title", "Opening slide (dark): the deck's title with a kicker, subtitle, tagline, byline and an optional stamp.", true,
+    public static LayoutDefinition Definition { get; } = new("title", "Opening slide (dark): the deck's title with a kicker, subtitle, tagline, byline and an optional stamp.", LayoutSurface.Dark,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("title", new TextSlot(34), "Set at 168 px: two lines at most, shrinking to 96 px to keep them"),

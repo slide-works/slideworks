@@ -4,7 +4,7 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class BigNumberLayout
 {
-    public static LayoutDefinition Definition { get; } = new("big-number", "One number that carries the slide, with a caption, a detail and a source.", false,
+    public static LayoutDefinition Definition { get; } = new("big-number", "One number that carries the slide, with a caption, a detail and a source.", LayoutSurface.Light,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),

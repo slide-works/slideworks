@@ -5,7 +5,7 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class CompareLayout
 {
-    public static LayoutDefinition Definition { get; } = new("compare", "Two panels side by side: the failure mode and the success mode.", false,
+    public static LayoutDefinition Definition { get; } = new("compare", "Two panels side by side: the failure mode and the success mode.", LayoutSurface.Light,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),

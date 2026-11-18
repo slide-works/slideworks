@@ -4,7 +4,7 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class CardsLayout
 {
-    public static LayoutDefinition Definition { get; } = new("cards", "1–3 cards, each with an optional badge, a title, text and chips. Can reveal one card per step.", false,
+    public static LayoutDefinition Definition { get; } = new("cards", "1–3 cards, each with an optional badge, a title, text and chips. Can reveal one card per step.", LayoutSurface.Light,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),
@@ -16,5 +16,5 @@ public static class CardsLayout
             Opt("tone", Tone(null), TONE + "; left out, the card is plain"),
             Opt("fill", Fill(), FILL)), 1, 3)),
         Opt("reveal", Reveal(), REVEAL),
-    ], stepsFrom: "cards");
+    ], steps: StepPlan.List("cards"));
 }

@@ -27,13 +27,13 @@ public class SlideFitTests
     [Test]
     public void Validate_WhenSurfaceIsGiven_ShouldStillValidateTheSlots()
     {
-        var good = Slots(new { headline = "One point", items = new[] { "A point" } });
-        var bad = Slots(new { items = new[] { "A point" } });
+        var good = Slots(new { title = "Ship smaller" });
+        var bad = Slots(new { subtitle = "No title" });
 
-        SlideValidator.Validate(BulletsLayout.Definition, good, FitWidths.Default, "dark").Errors.ShouldBeEmpty();
-        SlideValidator.Validate(BulletsLayout.Definition, bad, FitWidths.Default, "dark").Errors.ShouldNotBeEmpty();
-        SlideValidator.Validate(BulletsLayout.Definition, bad, FitWidths.Default, "dark").Errors
-            .ShouldBe(SlideValidator.Validate("bullets", bad).Errors);
+        SlideValidator.Validate(TitleLayout.Definition, good, FitWidths.Default, "dark").Errors.ShouldBeEmpty();
+        SlideValidator.Validate(TitleLayout.Definition, bad, FitWidths.Default, "dark").Errors.ShouldNotBeEmpty();
+        SlideValidator.Validate(TitleLayout.Definition, bad, FitWidths.Default, "dark").Errors
+            .ShouldBe(SlideValidator.Validate("title", bad).Errors);
     }
 
     private static JsonElement Slots(object slots) => JsonSerializer.SerializeToElement(slots);

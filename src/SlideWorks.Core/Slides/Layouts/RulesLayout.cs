@@ -5,13 +5,13 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class RulesLayout
 {
-    public static LayoutDefinition Definition { get; } = new("rules", "1–4 numbered rules, each a title and text. Can reveal one rule per step.", false,
+    public static LayoutDefinition Definition { get; } = new("rules", "1–4 numbered rules, each a title and text. Can reveal one rule per step.", LayoutSurface.Light,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),
         Req("rules", new ListSlot(Obj(Req("title", new TextSlot(60)), Req("text", new TextSlot(110))), 1, 4)),
         Opt("reveal", Reveal(), REVEAL),
-    ], stepsFrom: "rules", rules: Rule);
+    ], steps: StepPlan.List("rules"), rules: Rule);
 
     private static void Rule(JsonElement slots, string path, SlotValidation validation)
     {

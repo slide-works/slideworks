@@ -5,7 +5,7 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class PollLayout
 {
-    public static LayoutDefinition Definition { get; } = new("poll", "Poll slide: a question and 2 to 8 options that the room answers on their phones while the deck is live. The poll's settings (how many picks, when results show, the correct answer, when it opens) are set with update_poll, never in the slots.", false,
+    public static LayoutDefinition Definition { get; } = new("poll", "Poll slide: a question and 2 to 8 options that the room answers on their phones while the deck is live. The poll's settings (how many picks, when results show, the correct answer, when it opens) are set with update_poll, never in the slots.", LayoutSurface.Light,
     [
         Req("question", new TextSlot(120)),
         Req("options", new ListSlot(new TextSlot(60), 2, 8), "Known by position: while a round is open they can be reworded or added to, not removed or reordered. Each option needs its own text: two that match, ignoring case and spaces at the ends, are refused"),
