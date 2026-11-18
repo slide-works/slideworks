@@ -1,0 +1,99 @@
+/* One bar row: a 400 px label column, a 32 px gap and the 1248 px track, as
+   barsGeometry says. The row is at least the bar's height (--bars-height) and
+   grows with a label that wraps. */
+.slot {
+  display: flex;
+  min-width: 0;
+}
+
+.row {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 400px 1248px;
+  column-gap: 32px;
+  align-items: center;
+  min-height: var(--bars-height);
+}
+
+.labels {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.label {
+  overflow-wrap: anywhere;
+  font: 700 30px/1.2 var(--sw-font-head);
+}
+
+.sub {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: var(--sw-muted);
+  font: 400 20px/1.3 var(--sw-font-body);
+}
+
+.track {
+  position: relative;
+  height: var(--bars-height);
+}
+
+.fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--sw-radius-md);
+  background: var(--panel-surface);
+  color: var(--panel-ink);
+}
+
+.inside {
+  padding-left: 20px;
+  overflow: hidden;
+  font: 600 22px/1.2 var(--sw-font-body);
+  white-space: nowrap;
+}
+
+/* What the bar was: 3 px dashed, over the bar so it shows where the bar is
+   longer than it. */
+.was {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  height: 100%;
+  border: 3px dashed var(--sw-muted);
+  border-radius: var(--sw-radius-md);
+  pointer-events: none;
+}
+
+/* The note after a short bar, the value and the tag, after the bar or its
+   outline. */
+.end {
+  position: absolute;
+  top: 0;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  white-space: nowrap;
+}
+
+.after {
+  margin-right: 18px;
+  color: var(--sw-ink);
+  font: 600 22px/1.2 var(--sw-font-body);
+}
+
+.value {
+  font: 800 28px/1.2 var(--sw-font-head);
+}
+
+.tag {
+  margin-left: 14px;
+  color: var(--bars-tag);
+  font: 700 18px/1.2 var(--sw-font-body);
+}
