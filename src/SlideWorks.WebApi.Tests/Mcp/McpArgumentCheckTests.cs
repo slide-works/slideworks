@@ -220,7 +220,7 @@ public class McpArgumentCheckTests : ApiTestFixture
         Required(schemas["add_slide"]).ShouldBe(["deck", "layout", "slots"]);
         Required(schemas["update_slide"]).ShouldBe(["deck", "slide", "revision", "slots"]);
         Required(schemas["set_notes"]).ShouldBe(["deck", "notes"]);
-        Required(schemas["set_sharing"]).ShouldBe(["deck", "level"]);
+        Required(schemas["set_sharing"]).ShouldBe(["level"]);
         Required(schemas["create_deck"]).ShouldBe(["title"]);
         Property(schemas["add_slide"], "slots").TryGetProperty("default", out _).ShouldBeFalse();
         Property(schemas["update_slide"], "slots").TryGetProperty("default", out _).ShouldBeFalse();
