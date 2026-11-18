@@ -72,7 +72,7 @@ function tabs({
 }
 
 // The real GuestQa, which holds the tab, with the audience state's activity and room.
-const guest = (activity: PollActivity | null, room: QaRoom = qaRoom('open'), seq = 1) => (
+const guest = (activity: PollActivity | null, room: QaRoom | null = qaRoom('open'), seq = 1) => (
   <GuestQa
     code="482913"
     state={audienceState({ activity, room, seq })}
@@ -227,6 +227,145 @@ test('no tab bar and no poll switch when questions are off, and the reaction row
   await expect(dot(page)).toHaveCount(0);
   await expect(page.getByTestId('probe-sheet-open')).toBeVisible();
   await expect(page.getByTestId(QA_REACTION_ROW_TEST_IDS.row)).toBeVisible();
+});
+
+test('Slide is selected at first; choosing Questions and then Slide swaps the tabs, the panels and aria-selected', async ({
+  mount,
+  page,
+}) => {
+  await stubQuestionsApi(page, { view: VIEW });
+  await mount(guest(null));
+  const slidePanel = page.getByTestId(QA_TABS_TEST_IDS.slidePanel);
+  const questionsPanel = page.getByTestId(QA_TABS_TEST_IDS.questionsPanel);
+  await expect(slideTab(page)).toHaveAttribute('aria-selected', 'true');
+  await expect(questionsTab(page)).toHaveAttribute('aria-selected', 'false');
+  await expect(slidePanel).toBeVisible();
+  await expect(questionsPanel).toBeHidden();
+
+  await questionsTab(page).click();
+  await expect(questionsTab(page)).toHaveAttribute('aria-selected', 'true');
+  await expect(slideTab(page)).toHaveAttribute('aria-selected', 'false');
+  await expect(questionsPanel).toBeVisible();
+  await expect(slidePanel).toBeHidden();
+
+  await slideTab(page).click();
+  await expect(slideTab(page)).toHaveAttribute('aria-selected', 'true');
+  await expect(questionsTab(page)).toHaveAttribute('aria-selected', 'false');
+  await expect(slidePanel).toBeVisible();
+  await expect(questionsPanel).toBeHidden();
+});
+
+test('both tabs are at least 44 px tall', async ({ mount, page }) => {
+  await mount(tabs());
+  for (const tab of [slideTab(page), questionsTab(page)])
+    expect((await tab.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+});
+
+test('the count badge is hidden from assistive tech, so the name holds the count once', async ({
+  mount,
+  page,
+}) => {
+  await mount(tabs());
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.questionsBadge)).toHaveAttribute(
+    'aria-hidden',
+    'true',
+  );
+});
+
+test('a different round replacing an open poll while Questions is showing switches to Slide (D2)', async ({
+  mount,
+  page,
+}) => {
+  await stubQuestionsApi(page, { view: VIEW });
+  const component = await mount(guest(OPEN_POLL));
+  await questionsTab(page).click();
+  await expect(questionsTab(page)).toHaveAttribute('aria-selected', 'true');
+
+  await component.update(
+    guest(
+      { ...OPEN_POLL, round: (OPEN_POLL.round ?? 0) + 1, number: OPEN_POLL.number + 1 },
+      qaRoom('open'),
+      2,
+    ),
+  );
+
+  await expect(slideTab(page)).toHaveAttribute('aria-selected', 'true');
+  await expect(questionsTab(page)).toHaveAttribute('aria-selected', 'false');
+});
+
+test('a round change alone, with the same poll number, also switches', async ({ mount, page }) => {
+  await stubQuestionsApi(page, { view: VIEW });
+  const component = await mount(guest(OPEN_POLL));
+  await questionsTab(page).click();
+
+  await component.update(
+    guest({ ...OPEN_POLL, round: (OPEN_POLL.round ?? 0) + 1 }, qaRoom('open'), 2),
+  );
+
+  await expect(slideTab(page)).toHaveAttribute('aria-selected', 'true');
+});
+
+test('no tab bar and no switch when the room is null', async ({ mount, page }) => {
+  await stubQuestionsApi(page, { view: VIEW });
+  const component = await mount(guest(null, null));
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.bar)).toHaveCount(0);
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.questionsPanel)).toHaveCount(0);
+
+  await component.update(guest(OPEN_POLL, null, 2));
+
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.bar)).toHaveCount(0);
+  await expect(page.getByTestId('probe-sheet-open')).toBeVisible();
+});
+
+test('the switch is announced in a status region and focus inside Questions moves to the Slide tab', async ({
+  mount,
+  page,
+}) => {
+  await stubQuestionsApi(page, { view: VIEW });
+  const component = await mount(guest(null));
+  await questionsTab(page).click();
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.questionsPanel)).toBeVisible();
+  // The ask bar's button, or whatever comes first, is in the panel.
+  await page
+    .getByTestId(QA_TABS_TEST_IDS.questionsPanel)
+    .locator('button:not([disabled]), input, textarea, [tabindex="0"]')
+    .first()
+    .focus();
+  expect(await page.evaluate(() => !!document.activeElement?.closest('#qa-panel-questions'))).toBe(
+    true,
+  );
+  const status = page.getByRole('status').filter({ hasText: /poll/ });
+  await expect(status).toHaveCount(0);
+
+  await component.update(guest(OPEN_POLL, qaRoom('open'), 2));
+
+  await expect(slideTab(page)).toHaveAttribute('aria-selected', 'true');
+  await expect(slideTab(page)).toBeFocused();
+  await expect(status).toHaveText('A poll just opened. Showing the Slide tab.');
+});
+
+test('the switch leaves focus alone when it was not inside Questions', async ({ mount, page }) => {
+  await stubQuestionsApi(page, { view: VIEW });
+  const component = await mount(guest(null));
+  await questionsTab(page).click();
+  await expect(questionsTab(page)).toBeFocused();
+
+  await component.update(guest(OPEN_POLL, qaRoom('open'), 2));
+
+  await expect(slideTab(page)).toHaveAttribute('aria-selected', 'true');
+  await expect(slideTab(page)).not.toBeFocused();
+});
+
+test('in landscape with Questions chosen, the slide still shows and the Questions panel hides', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await mount(tabs({ tab: 'questions' }));
+
+  await expect(page.getByTestId('slide-content')).toBeVisible();
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.slidePanel)).toHaveCSS('display', 'contents');
+  await expect(page.getByTestId(QA_TABS_TEST_IDS.questionsPanel)).toBeHidden();
 });
 
 test('in landscape the reaction row hides with the tab bar', async ({ mount, page }) => {

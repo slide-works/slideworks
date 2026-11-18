@@ -52,6 +52,73 @@ test('five buttons in a group named Reactions, each named for its emoji, 44 px t
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
+test('the five buttons sit in one row', async ({ mount, page }) => {
+  await mount(row());
+  const tops = await Promise.all(
+    REACTION_EMOJI.map(
+      async (emoji) => (await page.getByTestId(reactionButtonTestId(emoji)).boundingBox())!.y,
+    ),
+  );
+  expect(new Set(tops.map(Math.round)).size).toBe(1);
+});
+
+test('a second tap on the same emoji starts the pop again', async ({ mount, page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await mount(row());
+  const clap = page.getByTestId(reactionButtonTestId('clap'));
+  const pop = page.getByTestId(QA_REACTION_ROW_TEST_IDS.pop);
+
+  await clap.click();
+  await expect(pop).toHaveCount(1);
+  await pop.evaluate((el) => el.setAttribute('data-first', 'true'));
+  await clap.click();
+
+  await expect(pop).toHaveCount(1);
+  await expect(pop).not.toHaveAttribute('data-first', 'true');
+});
+
+test('the pop never takes a tap', async ({ mount, page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await mount(row());
+  await page.getByTestId(reactionButtonTestId('wow')).click();
+
+  await expect(page.getByTestId(QA_REACTION_ROW_TEST_IDS.pop)).toHaveCSS('pointer-events', 'none');
+});
+
+test('a pressed button shrinks, except under reduced motion', async ({ mount, page }) => {
+  const pressedScale = async () => {
+    const box = (await page.getByTestId(reactionButtonTestId('heart')).boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    return () =>
+      page.getByTestId(reactionButtonTestId('heart')).evaluate((el) => getComputedStyle(el).scale);
+  };
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const component = await mount(row());
+  const scale = await pressedScale();
+  await expect.poll(scale).toBe('0.9');
+  await page.mouse.up();
+  await component.unmount();
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await mount(row());
+  const reduced = await pressedScale();
+  await expect(page.getByTestId(reactionButtonTestId('heart'))).toHaveCSS(
+    'transition-duration',
+    '0s',
+  );
+  expect(['none', '1']).toContain(await reduced());
+  await page.mouse.up();
+});
+
+test('in landscape the row hides on its own', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await mount(row());
+
+  await expect(page.getByTestId(QA_REACTION_ROW_TEST_IDS.row)).toBeHidden();
+});
+
 test('a tap calls tap once with its emoji', async ({ mount, page }) => {
   const taps: ReactionEmoji[] = [];
   await mount(row({ onTap: (emoji) => taps.push(emoji) }));

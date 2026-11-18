@@ -49,11 +49,19 @@ export function GuestTabs({ tab, onTab, activity, room, presenter, children }: G
   const openPoll = openPollOf(activity);
   const [seenPoll, setSeenPoll] = useState(openPoll);
   const [switches, setSwitches] = useState(0);
+  // What a screen reader hears when the switch happens: the hidden Questions panel can't say it. Cleared when the guest
+  // chooses Questions again, so the next switch changes the text and is heard.
+  const [switchNote, setSwitchNote] = useState('');
+  const questionsPanel = useRef<HTMLDivElement>(null);
+  const slideTabButton = useRef<HTMLButtonElement>(null);
   if (seenPoll !== openPoll) {
     setSeenPoll(openPoll);
     if (openPoll !== null && tab === 'questions') {
       if (open) setPollJustOpened(true);
-      else setSwitches((n) => n + 1);
+      else {
+        setSwitches((n) => n + 1);
+        setSwitchNote('A poll just opened. Showing the Slide tab.');
+      }
     }
   }
   // The tab is GuestQa's, so the switch is asked for once per poll opening, after this render and before the paint.
@@ -61,6 +69,8 @@ export function GuestTabs({ tab, onTab, activity, room, presenter, children }: G
   useLayoutEffect(() => {
     if (switches === switched.current) return;
     switched.current = switches;
+    // Focus inside the Questions panel would be lost to the page when the panel hides: move it to the Slide tab.
+    if (questionsPanel.current?.contains(document.activeElement)) slideTabButton.current?.focus();
     onTab('slide');
   }, [switches, onTab]);
 
@@ -109,8 +119,12 @@ export function GuestTabs({ tab, onTab, activity, room, presenter, children }: G
         {children}
         <ReactionRow presenter={presenter} />
       </div>
+      <p role="status" className="sr-only">
+        {switchNote}
+      </p>
       {on && (
         <div
+          ref={questionsPanel}
           id="qa-panel-questions"
           role="tabpanel"
           aria-labelledby="qa-tab-questions"
@@ -130,6 +144,7 @@ export function GuestTabs({ tab, onTab, activity, room, presenter, children }: G
           className="flex shrink-0 gap-1 rounded-[14px] bg-white/10 p-1 [@media(orientation:landscape)_and_(max-height:500px)]:hidden"
         >
           <button
+            ref={slideTabButton}
             id="qa-tab-slide"
             type="button"
             role="tab"
@@ -158,7 +173,10 @@ export function GuestTabs({ tab, onTab, activity, room, presenter, children }: G
             data-testid={QA_TABS_TEST_IDS.questionsTab}
             className={TAB_CLASS}
             aria-label={openCount > 0 ? `Questions, ${openCount} open` : 'Questions'}
-            onClick={() => onTab('questions')}
+            onClick={() => {
+              setSwitchNote('');
+              onTab('questions');
+            }}
           >
             Questions
             {openCount > 0 && (
