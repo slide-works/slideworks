@@ -6,8 +6,10 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.Core.Rendering;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Decks;
+using SlideWorks.WebApi.Features.Render;
 using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Features.Templates.Assets;
 using SlideWorks.WebApi.Features.Templates.Data;
@@ -395,6 +397,27 @@ public class TemplateAssetRoutesTests : ApiTestFixture
         after.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
+    // A headless render page reads the files of its own deck's template with its render token, whoever the deck is
+    // shared with; a token for another deck opens nothing.
+    [Test]
+    public async Task Serve_WhenARenderTokenIsForADeckOnTheTemplate_ShouldServe()
+    {
+        var template = await DraftAsync();
+        var font = await UploadAsync(template, "font", "inter.woff2", FontFixtures.Normal());
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        var other = await SharingApi.CreateDeckAsync(Client, "Another deck");
+        await PutDeckOnAsync(deck, template);
+        var tokens = Factory.Services.GetRequiredService<IRenderTokens>();
+
+        using var withToken = await GetWithRenderTokenAsync($"/api/templates/{template}/assets/{font}", tokens.Issue(deck, RenderPurpose.Preview));
+        using var withAnotherDecks = await GetWithRenderTokenAsync($"/api/templates/{template}/assets/{font}", tokens.Issue(other, RenderPurpose.Preview));
+        using var withAForgery = await GetWithRenderTokenAsync($"/api/templates/{template}/assets/{font}", "not-a-token");
+
+        withToken.StatusCode.ShouldBe(HttpStatusCode.OK);
+        withAnotherDecks.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        withAForgery.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
     [Test]
     public async Task ConfirmRights_WhenTheOwnerAsks_ShouldSetEveryFont()
     {
@@ -472,6 +495,14 @@ public class TemplateAssetRoutesTests : ApiTestFixture
             content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
         }
         return await http.PutAsync(uploadUrl, content);
+    }
+
+    private async Task<HttpResponseMessage> GetWithRenderTokenAsync(string path, string token)
+    {
+        using var http = Factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.Add(RenderSessions.HEADER, token);
+        return await http.SendAsync(request);
     }
 
     // Start plus the PUT; answers the asset's id.

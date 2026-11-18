@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SlideWorks.WebApi.Features.Join;
 using SlideWorks.WebApi.Features.Templates.Views;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -28,7 +27,7 @@ public class TemplateAssetsController(ITemplateAssets assets, ICurrentActor acto
     [ProducesResponseType<FileResult>(StatusCodes.Status200OK, AssetContentTypes.WOFF2, AssetContentTypes.SVG, AssetContentTypes.PNG, AssetContentTypes.WEBP, AssetContentTypes.UNKNOWN)]
     [ProducesResponseType(StatusCodes.Status304NotModified)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
-    public async Task<AssetFileResult> Get(string id, string assetId) => new(await assets.OpenAsync(id, assetId, GuestCookie.From(Request)));
+    public async Task<AssetFileResult> Get(string id, string assetId) => new(await assets.OpenAsync(id, assetId));
 
     [HttpPost("font-rights")]
     [ProducesResponseType<FontRightsConfirmed>(StatusCodes.Status200OK)]

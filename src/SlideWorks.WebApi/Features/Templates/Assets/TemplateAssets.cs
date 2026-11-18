@@ -90,14 +90,14 @@ public class TemplateAssets(
         return await CheckAndStoreAsync(templateId, kind, CheckFileName(fileName), rightsConfirmed: false, content, ct);
     }
 
-    public async Task<AssetFile> OpenAsync(string templateId, string assetId, string? guestId = null)
+    public async Task<AssetFile> OpenAsync(string templateId, string assetId)
     {
         var asset = await db.TemplateAssets.AsNoTracking()
             .Where(a => a.TemplateId == templateId && a.Id == assetId)
             .Select(a => new { a.Kind, a.ContentType })
             .SingleOrDefaultAsync();
         // A layout is read by the server only; the row's ids are now known to be ours, so they may name a path.
-        if (asset == null || asset.Kind == TemplateAssetKind.Layout || !await MayReadAsync(templateId, guestId) || !store.Exists(templateId, assetId))
+        if (asset == null || asset.Kind == TemplateAssetKind.Layout || !await MayReadAsync(templateId) || !store.Exists(templateId, assetId))
         {
             throw new NotFoundException(ASSET_NOT_FOUND);
         }
@@ -233,7 +233,7 @@ public class TemplateAssets(
         return ViewOf(asset);
     }
 
-    private async Task<bool> MayReadAsync(string templateId, string? guestId)
+    private async Task<bool> MayReadAsync(string templateId)
     {
         var template = await db.Templates.AsNoTracking()
             .Where(t => t.Id == templateId)
@@ -252,21 +252,20 @@ public class TemplateAssets(
         {
             return true;
         }
-        return await MayViewADeckOnAsync(templateId, email, guestId);
+        return await MayViewADeckOnAsync(templateId, email);
     }
 
     // A deck on the template always renders (D3): whoever may view such a deck may read the template's files. That is
-    // the deck's owner, anyone for a deck shared by link, a named viewer, a guest while the deck's session is open, and a
-    // headless render page holding a render token for the deck.
-    private async Task<bool> MayViewADeckOnAsync(string templateId, string? email, string? guestId)
+    // the deck's owner, anyone for a deck shared by link, a named viewer, and a headless render page holding a render
+    // token for the deck.
+    private async Task<bool> MayViewADeckOnAsync(string templateId, string? email)
     {
         var presenterId = currentActor.PresenterId;
         var decks = db.Decks.AsNoTracking().Where(d => d.Template == templateId);
         var shared = await decks.AnyAsync(d =>
             d.Sharing == DeckSharing.Link
             || (presenterId != null && d.OwnerId == presenterId)
-            || (email != null && d.Sharing == DeckSharing.Named && db.DeckViewers.Any(v => v.DeckId == d.Id && v.Email == email))
-            || (guestId != null && db.AudienceSessions.Any(s => s.DeckId == d.Id && s.EndedAt == null)));
+            || (email != null && d.Sharing == DeckSharing.Named && db.DeckViewers.Any(v => v.DeckId == d.Id && v.Email == email)));
         return shared || (await decks.Select(d => d.Id).ToListAsync()).Exists(renderSessions.AllowsImagesOf);
     }
 

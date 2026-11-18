@@ -19,7 +19,7 @@ public interface ITemplateAssets
 
     // The file, for the template's owner, a person the template is shared with, and anyone who may view a deck on the
     // template. NotFoundException otherwise, and always for a layout, which is never served.
-    Task<AssetFile> OpenAsync(string templateId, string assetId, string? guestId = null);
+    Task<AssetFile> OpenAsync(string templateId, string assetId);
 
     // The owner's word, as a person, that they may serve every font the template holds. Answers how many fonts that is.
     // Anyone but the owner gets NotFoundException; an agent gets ForbiddenException, because only a person can confirm.
