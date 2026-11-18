@@ -94,6 +94,26 @@ test("icon in the mark's place", async ({ mount, page }) => {
   expect(await plain.evaluate((el) => getComputedStyle(el, '::before').content)).not.toBe('none');
 });
 
+test('an unknown icon name draws no icon and keeps the square mark', async ({ mount, page }) => {
+  await mount(
+    render(
+      bullets({
+        headline: 'Unknown',
+        items: [{ icon: 'no-such-icon', text: 'Mystery' }, 'Plain'],
+      }),
+    ),
+  );
+  await expect(page.getByTestId('bullets-icon')).toHaveCount(0);
+  await expect(page.getByTestId('block-icon')).toHaveCount(0);
+  const items = page.getByTestId('bullets-body').locator('li');
+  for (const li of [items.first(), items.nth(1)]) {
+    expect(await li.evaluate((el) => getComputedStyle(el, '::before').content)).not.toBe('none');
+  }
+  const unknown = (await page.getByTestId('bullets-item').first().boundingBox())!;
+  const plain = (await page.getByTestId('bullets-item').nth(1).boundingBox())!;
+  expect(unknown.x).toBeCloseTo(plain.x, 0);
+});
+
 test('dark bullets use night ink', async ({ mount, page }) => {
   await mount(render(bullets({ headline: 'Night', items: ['Plain point'] }, 'dark')));
   const colour = await page
@@ -167,7 +187,6 @@ test('bulletsIcons and its wide twin stay inside the box', async ({ mount, page 
       }
       return { left, right, bottom };
     });
-    console.log(`bulletsIcons ${name}: x ${box.left}-${box.right}, bottom ${box.bottom}`);
     expect(box.left).toBeGreaterThanOrEqual(120);
     expect(box.right).toBeLessThanOrEqual(1800);
     if (name === 'fixture') expect(box.bottom).toBeLessThanOrEqual(996);
