@@ -1,0 +1,96 @@
+/* One segment row of the stack. The slot is the flex item of the 500 px stack:
+   it takes its share of the height (the inline flex-grow), never less than its
+   content (the row's own minimum, 44 px, or the text). The row is a 300 px
+   block, a 28 px gap and a 492 px text cell. */
+.slot {
+  --stack-block: var(--sw-accent-dark);
+  display: flex;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  flex: 1;
+  gap: 28px;
+  align-items: stretch;
+  min-height: 44px;
+}
+
+/* A toned segment: the row takes the tone's panel (inline --panel-surface and
+   --panel-ink), and its block shows in the panel's ink. */
+.slot[data-tone] .row {
+  border-radius: var(--sw-radius-md);
+  background: var(--panel-surface);
+  color: var(--panel-ink);
+}
+
+.slot[data-tone] {
+  --stack-block: color-mix(in srgb, var(--panel-ink) 38%, var(--panel-surface));
+}
+
+.block {
+  display: flex;
+  flex: 0 0 300px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--sw-radius-md);
+  background: var(--stack-block);
+  color: var(--sw-ink);
+}
+
+.block[data-dark='true'] {
+  color: var(--sw-on-accent);
+}
+
+.slot[data-tone] .block {
+  color: var(--panel-ink);
+}
+
+.value {
+  font: 800 30px/1 var(--sw-font-head);
+}
+
+.unit {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.text {
+  flex: 0 0 492px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 5px 0;
+}
+
+.slot[data-tone] .text {
+  padding-right: 16px;
+}
+
+.head {
+  overflow-wrap: anywhere;
+  font: 600 26px/1.3 var(--sw-font-body);
+}
+
+.tag {
+  display: inline-block;
+  margin-left: 12px;
+  padding: 0 10px;
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-accent);
+  color: var(--sw-on-accent);
+  font: 700 16px/1.6 var(--sw-font-body);
+  vertical-align: 3px;
+}
+
+.note {
+  overflow-wrap: anywhere;
+  color: var(--sw-muted);
+  font: 400 20px/1.3 var(--sw-font-body);
+}
+
+.slot[data-tone] .note {
+  color: var(--panel-ink);
+}
