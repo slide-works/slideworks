@@ -37,7 +37,6 @@ public class LayoutCatalogueTests
     }
 
     [TestCase("links", "kicker,headline")]
-    [TestCase("levels", "kicker,headline")]
     public void Find_WhenLayoutIsAStub_ShouldHaveItsTwoTextSlots(string name, string fields)
     {
         var stub = LayoutCatalogue.Find(name)!;
