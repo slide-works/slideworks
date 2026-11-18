@@ -117,6 +117,7 @@
       "layout": "title",
       "part": 1,
       "deepDive": false,
+      "surface": "dark",
       "steps": 0,
       "slots": {
         "kicker": "Team offsite · 2026",
@@ -133,6 +134,7 @@
       "layout": "practice",
       "part": 2,
       "deepDive": false,
+      "surface": "light",
       "steps": 0,
       "slots": {
         "kicker": "Slice it",
@@ -173,6 +175,7 @@
       "layout": "close",
       "part": 4,
       "deepDive": true,
+      "surface": "dark",
       "steps": 0,
       "slots": {
         "headline": "Pick one story.\nShip half of it by Friday.",

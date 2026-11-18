@@ -52,6 +52,7 @@ const PRESENTER_SLIDE = keys<PresenterSlide>({
   layout: true,
   part: true,
   deepDive: true,
+  surface: true,
   steps: true,
   slots: true,
   notes: true,

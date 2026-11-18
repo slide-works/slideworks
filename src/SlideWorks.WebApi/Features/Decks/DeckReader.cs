@@ -23,7 +23,8 @@ public class DeckReader(
     IDeckAccess access,
     IPublicUrls urls,
     JoinViews joinViews,
-    IDeckLooks looks)
+    IDeckLooks looks,
+    ITemplates templates)
 {
     public const string NOT_FOUND = "Deck not found";
 
@@ -52,11 +53,11 @@ public class DeckReader(
             throw new NotFoundException(NOT_FOUND);
         }
         var deck = await LoadDeckAsync(deckId);
-        return GetDeckResult.From(deck, await LiveSlidesAsync(deckId), urls.Deck(deck.Id, deck.Slug));
+        return GetDeckResult.From(deck, await LiveSlidesAsync(deckId), await templates.ForDeckAsync(deck, CancellationToken.None), urls.Deck(deck.Id, deck.Slug));
     }
 
     private async Task<DeckPlayView> PlayAsync(Deck deck, bool isOwner)
-        => DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), await looks.ForAsync(deck, CancellationToken.None), await joinViews.ForAsync(deck), isOwner);
+        => DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), await templates.ForDeckAsync(deck, CancellationToken.None), await looks.ForAsync(deck, CancellationToken.None), await joinViews.ForAsync(deck), isOwner);
 
     private Task<Deck> LoadDeckAsync(string deckId) => db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);
 

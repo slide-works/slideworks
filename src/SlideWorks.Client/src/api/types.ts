@@ -72,6 +72,9 @@ export type DeckPageSlide = WithSlots<{
   number: number;
   part: number | null;
   deepDive: boolean;
+  // The surface the slide is drawn on: the one it stores, else its layout's own. Optional so a slide built by hand
+  // can leave it out; the renderer then uses the layout's own surface.
+  surface?: 'light' | 'dark';
   headline: string | null;
   steps: number;
   notes: string | null;
@@ -109,6 +112,9 @@ export type DeckPlaySlide = WithSlots<{
   number: number;
   part: number | null;
   deepDive: boolean;
+  // The surface the slide is drawn on: the one it stores, else its layout's own. Optional so a slide built by hand
+  // can leave it out; the renderer then uses the layout's own surface.
+  surface?: 'light' | 'dark';
   steps: number;
 }>;
 
@@ -375,6 +381,9 @@ export type PresenterSlide = WithSlots<{
   number: number;
   part: number | null;
   deepDive: boolean;
+  // The surface the slide is drawn on: the one it stores, else its layout's own. Optional so a slide built by hand
+  // can leave it out; the renderer then uses the layout's own surface.
+  surface?: 'light' | 'dark';
   steps: number;
   notes: string | null;
   headline: string | null;
