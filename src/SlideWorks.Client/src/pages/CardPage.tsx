@@ -121,6 +121,11 @@ function ShareCard({ deckId, card, logo, error, loading = false }: ShareCardProp
   const generic = deckId === undefined || card?.generic === true;
   const [logoState, setLogoState] = useState<'pending' | 'loaded' | 'failed'>('pending');
   const [fontsReady, setFontsReady] = useState(false);
+  // The art image's load state, keyed by its url so a new url starts pending again.
+  const artUrl = card && !card.generic ? artImageUrl(card.look.art) : undefined;
+  const [artResult, setArtResult] = useState<{ url: string; state: 'loaded' | 'failed' }>();
+  const artState: ArtState =
+    artUrl === undefined ? 'loaded' : artResult?.url === artUrl ? artResult.state : 'pending';
   const shown = deckId === undefined || card !== undefined;
 
   useEffect(() => {
@@ -141,7 +146,12 @@ function ShareCard({ deckId, card, logo, error, loading = false }: ShareCardProp
     error ??
     (logoState === 'failed' && card?.look.logo ? imageFailed(card.look.logo.url) : undefined);
   const ready =
-    !loading && failure === undefined && shown && fontsReady && (!logo || logoState === 'loaded');
+    !loading &&
+    failure === undefined &&
+    shown &&
+    fontsReady &&
+    (!logo || logoState === 'loaded') &&
+    artState !== 'pending';
 
   return (
     <div
@@ -154,7 +164,13 @@ function ShareCard({ deckId, card, logo, error, loading = false }: ShareCardProp
       style={card && !card.generic ? lookStyle(card.look) : undefined}
     >
       {shown && (card === undefined || card.generic) && <Waves />}
-      {shown && card !== undefined && !card.generic && <CardArt art={card.look.art} />}
+      {shown && card !== undefined && !card.generic && (
+        <CardArt
+          art={card.look.art}
+          failed={artState === 'failed'}
+          onSettled={(state) => artUrl !== undefined && setArtResult({ url: artUrl, state })}
+        />
+      )}
       {shown && generic && <h1 className={styles.title}>SlideWorks</h1>}
       {shown && !generic && card && (
         <>
@@ -201,10 +217,38 @@ function slidesLabel(count: number): string {
 
 // A deck card's art from its look: the waves generator in accent-2, an uploaded
 // image, or nothing. A generator it does not know draws nothing.
-function CardArt({ art }: { art: LookArt }) {
+type ArtState = 'pending' | 'loaded' | 'failed';
+
+// An image art is drawn only from a template asset of this origin; any other url
+// draws nothing and does not hold the card back.
+const ART_PREFIX = '/api/templates/';
+function artImageUrl(art: LookArt): string | undefined {
+  return art.kind === 'image' && art.url !== null && art.url.startsWith(ART_PREFIX)
+    ? art.url
+    : undefined;
+}
+
+function CardArt({
+  art,
+  failed,
+  onSettled,
+}: {
+  art: LookArt;
+  failed: boolean;
+  onSettled: (state: 'loaded' | 'failed') => void;
+}) {
   if (art.kind === 'generator' && art.generator === 'waves') return <Waves tone="deck" />;
-  if (art.kind === 'image' && art.url !== null) {
-    return <img className={`${styles.art} ${styles.artImage}`} src={art.url} alt="" />;
+  const url = artImageUrl(art);
+  if (url !== undefined && !failed) {
+    return (
+      <img
+        className={`${styles.art} ${styles.artImage}`}
+        src={url}
+        alt=""
+        onLoad={() => onSettled('loaded')}
+        onError={() => onSettled('failed')}
+      />
+    );
   }
   return null;
 }

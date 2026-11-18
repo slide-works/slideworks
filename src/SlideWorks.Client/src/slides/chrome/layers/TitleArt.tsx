@@ -40,6 +40,8 @@ export function TitleArt() {
       </svg>
     );
   }
-  if (art.kind === 'image' && art.url !== null) return <ArtImage key={art.url} url={art.url} />;
+  // Only a template asset of this origin is drawn.
+  if (art.kind === 'image' && art.url?.startsWith('/api/templates/'))
+    return <ArtImage key={art.url} url={art.url} />;
   return null;
 }

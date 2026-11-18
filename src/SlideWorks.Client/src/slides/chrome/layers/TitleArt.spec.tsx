@@ -111,6 +111,12 @@ test('renders nothing for a generator it does not know', async ({ mount, page })
   await expect(page.getByTestId('title-art')).toHaveCount(0);
 });
 
+test('draws no image art from a url outside the template assets', async ({ mount, page }) => {
+  await mount(slide(look({ kind: 'image', generator: null, url: 'https://example.com/art.png' })));
+  await expect(page.getByTestId('heading')).toBeVisible();
+  await expect(page.getByTestId('title-art')).toHaveCount(0);
+});
+
 test('hides a broken image', async ({ mount, page }) => {
   await mount(slide(look({ kind: 'image', generator: null, url: BROKEN })));
 

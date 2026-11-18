@@ -224,6 +224,57 @@ test('card page draws an uploaded art image', async ({ mount, page }) => {
   await expect(shareCard.locator('svg')).toHaveCount(0);
 });
 
+const PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64',
+);
+const artCard = (url: string): CardView => ({
+  ...linkCard,
+  look: { ...linkCard.look, art: { kind: 'image', generator: null, url } },
+});
+
+test('card page is not ready until its art image has loaded', async ({ mount, page }) => {
+  const url = '/api/templates/tpl_t/assets/art';
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(`**${url}`, async (route) => {
+    await held;
+    await route.fulfill({ status: 200, contentType: 'image/png', body: PIXEL });
+  });
+  await stubCard(page, artCard(url));
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  const shareCard = page.getByTestId('share-card');
+  await expect(shareCard.getByTestId('share-card-title')).toBeVisible();
+  // Fonts settle well within this; the held image is the only thing left to wait for.
+  await page.waitForTimeout(500);
+  await expect(shareCard).not.toHaveAttribute('data-ready');
+  release();
+  await expect(shareCard).toHaveAttribute('data-ready', 'true');
+});
+
+test('card page hides a broken art image and is still ready', async ({ mount, page }) => {
+  const url = '/api/templates/tpl_t/assets/missing';
+  await page.route(`**${url}`, (route) => route.fulfill({ status: 404 }));
+  await stubCard(page, artCard(url));
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  const shareCard = page.getByTestId('share-card');
+  await expect(shareCard).toHaveAttribute('data-ready', 'true');
+  await expect(shareCard).not.toHaveAttribute('data-error');
+  await expect(shareCard.locator('img')).toHaveCount(0);
+});
+
+test('card page draws no art from a url outside the template assets', async ({ mount, page }) => {
+  await stubCard(page, artCard('https://example.com/art.png'));
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  const shareCard = page.getByTestId('share-card');
+  await expect(shareCard).toHaveAttribute('data-ready', 'true');
+  await expect(shareCard.locator('img')).toHaveCount(0);
+  await expect(shareCard.locator('svg')).toHaveCount(0);
+});
+
 test('card page draws no art when the look has none', async ({ mount, page }) => {
   await stubCard(page, {
     ...linkCard,
