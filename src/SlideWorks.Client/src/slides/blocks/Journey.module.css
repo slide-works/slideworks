@@ -54,17 +54,18 @@
 }
 
 /* A name runs to two lines at most and ends in an ellipsis past that; the
-   whole name is in the title attribute. Eight 40-character names of capital W
-   would otherwise run to seven lines each. */
+   whole name is in the title attribute. A word is broken only at the smallest
+   size: Journey.tsx steps --journey-name-size down from 18 px to 13 px first. */
 .name {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  hyphens: none;
   color: var(--sw-night-2);
-  font: 700 18px/1.25 var(--sw-font-body);
-  letter-spacing: 0.14em;
+  font: 700 var(--journey-name-size, 18px)/1.25 var(--sw-font-body);
+  letter-spacing: var(--journey-name-tracking, 0.14em);
   text-transform: uppercase;
 }
 

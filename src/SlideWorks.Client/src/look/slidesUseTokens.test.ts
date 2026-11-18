@@ -24,13 +24,14 @@ const SCANNED = ['slides/', 'qa/screen/'];
 // colour and font from a var(--sw-…) token, so a deck's template and palette
 // re-skin it. The tests and their fixtures may spell out the colours they
 // assert, so they are not scanned. Keys are paths under src/.
+// A *.helpers file is spec-only support and must never be imported by a component.
 const sources = Object.fromEntries(
   SCANNED.flatMap((folder) =>
     fs
       .readdirSync(new URL(folder, srcDir), { recursive: true, encoding: 'utf8' })
       .map((file) => folder + file.replaceAll('\\', '/'))
       .filter((file) => /\.(ts|tsx|css)$/.test(file))
-      .filter((file) => !/\.(spec|test|fixtures)\.[a-z]+$/.test(file))
+      .filter((file) => !/\.(spec|test|fixtures|helpers)\.[a-z]+$/.test(file))
       .map((file) => [file, fs.readFileSync(new URL(file, srcDir), 'utf8')]),
   ),
 );
@@ -67,6 +68,14 @@ function literalsIn(source: string): string[] {
   return found;
 }
 
+/** Every import of a *.helpers module in a source file, as "line: specifier". */
+function helperImportsIn(source: string): string[] {
+  const pattern = /\b(?:from|import)\s*\(?\s*['"]([^'"]*\.helpers(?:\.[a-z]+)?)['"]/g;
+  return [...source.matchAll(pattern)].map(
+    (match) => `${source.slice(0, match.index).split('\n').length}: ${match[1]}`,
+  );
+}
+
 const paletteKeys = Object.keys(palettesJson.palettes.find((palette) => palette.isDefault)!.tokens);
 
 describe('slides use tokens', () => {
@@ -83,10 +92,42 @@ describe('slides use tokens', () => {
     expect(literals).toEqual([]);
   });
 
+  it('has no component that imports a spec-only helpers file', () => {
+    const imports = Object.entries(sources).flatMap(([file, source]) =>
+      helperImportsIn(source).map((found) => `${file}:${found}`),
+    );
+    expect(imports).toEqual([]);
+  });
+
+  it.each([
+    ['a named import', "import { mountCards } from './CardLayouts.helpers';"],
+    ['an import with its extension', "import { mountCards } from './CardLayouts.helpers.tsx';"],
+    ['a side-effect import', "import '../layouts/CardLayouts.helpers';"],
+    ['a dynamic import', "const helpers = await import('./CardLayouts.helpers');"],
+    ['a re-export', "export * from './CardLayouts.helpers';"],
+  ])('finds %s of a helpers file', (_form, source) => {
+    expect(helperImportsIn(source)).not.toEqual([]);
+  });
+
+  it.each([
+    ['an import of a component', "import { CardsLayout } from './CardsLayout';"],
+    ['a file with helpers in its name', "import { fit } from './layoutHelpers';"],
+    ['a mention in a comment', '// see CardLayouts.helpers for the spec mounts'],
+  ])('does not count %s', (_form, source) => {
+    expect(helperImportsIn(source)).toEqual([]);
+  });
+
   it('declares every palette token in tokens.css', () => {
     const missing = paletteKeys.filter((key) => !new RegExp(`--sw-${key}\\s*:`).test(tokensCss));
-    expect(paletteKeys).toHaveLength(41);
+    expect(paletteKeys).toHaveLength(42);
     expect(missing).toEqual([]);
+  });
+
+  it('declares the second accent and the mono font, and leaves the extras to a look', () => {
+    const declared = [...tokensCss.matchAll(/^\s*(--sw-[a-z0-9-]+)\s*:/gm)].map(([, name]) => name);
+    expect(declared).toContain('--sw-accent-2');
+    expect(declared).toContain('--sw-font-mono');
+    expect(declared.filter((name) => name.startsWith('--sw-extra-'))).toEqual([]);
   });
 
   it('gives every palette token its default palette value in tokens.css', () => {
@@ -124,7 +165,13 @@ describe('slides use tokens', () => {
       'a colour mixed from tokens',
       '.x { color: color-mix(in srgb, var(--sw-warn) 75%, var(--sw-card)); }',
     ],
+    ['the second accent', '.x { background: var(--sw-accent-2); }'],
+    [
+      'an extra colour and its ink',
+      '.x { background: var(--sw-extra-1); color: var(--sw-extra-1-ink); }',
+    ],
     ['a font token', '.x { font-family: var(--sw-font-body); }'],
+    ['the mono font token', '.x { font: 500 20px/1.2 var(--sw-font-mono); }'],
     ['a font shorthand with a font token', '.x { font: 800 64px/1.08 var(--sw-font-head); }'],
     ['a fontFamily token', "const style = { fontFamily: 'var(--sw-font-head)' };"],
   ])('accepts %s', (_form, source) => {

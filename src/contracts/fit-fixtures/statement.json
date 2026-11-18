@@ -1,0 +1,26 @@
+{
+  "statementMax": {
+    "layout": "statement",
+    "grow": [
+      "/sub"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Make Every Merge Small And Reviewable Mo",
+      "statement": "Small Batches Show Us\nWhat Works Sooner And\nShip Half Every Week",
+      "sub": "Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster Wh"
+    }
+  },
+  "statementMaxWide": {
+    "layout": "statement",
+    "grow": [
+      "/sub"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Many Women Who Wander Wide Meadows Mow M",
+      "statement": "Many Women Who Wande\nMany Women Who Wande\nMany Women Who Wande",
+      "sub": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT Many Women Who Wa"
+    }
+  }
+}

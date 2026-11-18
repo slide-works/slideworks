@@ -1,12 +1,19 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using SlideWorks.Core.Look;
 
 namespace SlideWorks.WebApi.Features.Look.Views;
 
 // A deck's chrome overrides (L5, D17), stored as Deck.ChromeJson. A null field means the template's default; a deck
 // with no overrides stores null. JoinBar (J6) is the small QR and code on every slide while live; it is off by default (D5),
-// so it is a plain boolean, not an override of a template value.
-public sealed record ChromeOverridesView(bool? Tracker, string? Footer, bool? Progress, bool JoinBar)
+// so it is a plain boolean, not an override of a template value. TopBar (D13) is "none", "accent" or null for the
+// template's default; it is left out of the JSON when null, so a deck that never set it stores what it always stored.
+public sealed record ChromeOverridesView(
+    bool? Tracker,
+    string? Footer,
+    bool? Progress,
+    bool JoinBar,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? TopBar = null)
 {
     public static readonly ChromeOverridesView None = new(null, null, null, false);
 

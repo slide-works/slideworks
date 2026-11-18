@@ -4,6 +4,8 @@
   <ItemGroup>
     <EmbeddedResource Include="..\contracts\templates.json" LogicalName="SlideWorks.Core.Look.templates.json" />
     <EmbeddedResource Include="..\contracts\palettes.json" LogicalName="SlideWorks.Core.Look.palettes.json" />
+    <EmbeddedResource Include="..\contracts\template-errors.json" LogicalName="SlideWorks.Core.Look.template-errors.json" />
+    <EmbeddedResource Include="..\contracts\icons.json" LogicalName="SlideWorks.Core.Slides.icons.json" />
   </ItemGroup>
 
 </Project>

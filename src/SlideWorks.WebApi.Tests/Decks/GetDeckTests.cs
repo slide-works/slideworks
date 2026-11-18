@@ -21,12 +21,12 @@ public class GetDeckTests : ApiTestFixture
         json.GetProperty("id").GetString().ShouldBe(deck);
         json.GetProperty("title").GetString().ShouldBe("Ship smaller");
         json.GetProperty("author").GetString().ShouldBe("Sam Rivera");
-        json.GetProperty("parts").EnumerateArray().Select(p => p.GetString()).ShouldBe(DeckSeed.SAMPLE_PARTS);
+        json.GetProperty("parts").EnumerateArray().Select(p => p.GetProperty("name").GetString()).ShouldBe(DeckSeed.SAMPLE_PARTS);
         json.GetProperty("sharing").GetString().ShouldBe("private");
         json.GetProperty("url").GetString().ShouldBe($"{TestAppFactory.PUBLIC_URL}/d/{deck}/ship-smaller");
         var slides = json.GetProperty("slides").EnumerateArray().ToList();
         slides.Count.ShouldBe(2);
-        slides[0].EnumerateObject().Select(p => p.Name).ShouldBe(["number", "layout", "part", "deep_dive", "steps", "revision", "slots", "notes"], ignoreOrder: true);
+        slides[0].EnumerateObject().Select(p => p.Name).ShouldBe(["number", "layout", "part", "deep_dive", "surface", "steps", "revision", "slots", "notes"], ignoreOrder: true);
         slides[0].GetProperty("number").GetInt32().ShouldBe(1);
         slides[0].GetProperty("layout").GetString().ShouldBe("title");
         slides[0].GetProperty("part").ValueKind.ShouldBe(System.Text.Json.JsonValueKind.Null);

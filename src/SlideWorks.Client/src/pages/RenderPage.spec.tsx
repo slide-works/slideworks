@@ -122,3 +122,43 @@ test('render page without a token says so and calls nothing', async ({ mount, pa
   );
   expect(requests).toEqual([]);
 });
+
+const FONT_FILE = 'node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2';
+const fontUrl = '/api/templates/tpl_h/assets/head';
+const fontDeck = {
+  ...sampleDeck,
+  look: {
+    ...sampleDeck.look,
+    fonts: [{ family: 'Harbour Head', role: 'head', url: fontUrl, weight: 800, style: 'normal' }],
+  },
+};
+
+test('render page signals ready after fonts load', async ({ mount, page }) => {
+  await stubRender(page, { json: fontDeck });
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(`**${fontUrl}`, async (route) => {
+    await held;
+    await route.fulfill({ path: FONT_FILE, contentType: 'font/woff2' });
+  });
+
+  await mount(<AppRoutes />, { hooksConfig: { route: route(1) } });
+
+  const root = page.getByTestId('render-slide');
+  await expect(page.getByTestId('slide-1')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.fonts.size)).toBeGreaterThan(0);
+  await expect(root).not.toHaveAttribute('data-ready', /.*/);
+  release();
+  await expect(root).toHaveAttribute('data-ready', 'true');
+});
+
+test('render page signals ready when a font fails', async ({ mount, page }) => {
+  await stubRender(page, { json: fontDeck });
+  await page.route(`**${fontUrl}`, (r) => r.fulfill({ status: 404, json: { error: 'gone' } }));
+
+  await mount(<AppRoutes />, { hooksConfig: { route: route(1) } });
+
+  const root = page.getByTestId('render-slide');
+  await expect(root).toHaveAttribute('data-ready', 'true');
+  await expect(root).not.toHaveAttribute('data-error', /.*/);
+});

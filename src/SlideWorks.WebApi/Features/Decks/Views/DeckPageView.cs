@@ -16,7 +16,7 @@ public sealed record DeckPageView(
     string PlayUrl,
     JoinView Join,
     SharingSummary Sharing,
-    IReadOnlyList<string> Parts,
+    IReadOnlyList<DeckPart> Parts,
     DeckLookView Look,
     IReadOnlyList<DeckPageSlide> Slides,
     IReadOnlyList<ActivityRow> Activity);

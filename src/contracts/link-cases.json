@@ -1,0 +1,370 @@
+{
+  "rule": [
+    "The length is checked first (the rule is further down); the other rules follow in the order given. Every character of a link is printable ASCII, U+0021 to U+007E. Anything else is a refusal: any whitespace, any control character, NUL, DEL, U+00A0, U+0085, U+2028, U+FEFF, any non-ASCII letter. An international host is written in punycode. A link is never trimmed.",
+    "No backslash anywhere.",
+    "It starts with http:// or https://, compared without case, and the character after // is not /, \\, @ or :.",
+    "No @ before the first /, ? or # after the host starts: no user info, with or without a password.",
+    "No % before the first /, ? or # after the host starts: no percent sign in the host, the port or anything else before the path. After the path starts a percent sign is fine.",
+    "Before the first /, ? or # after the host starts there is only a host and at most a port: ASCII letters, digits, . and -, not starting or ending with . or -, or an IPv6 literal of hex digits, : and . inside [ and ]; then at most a : and 1 to 5 digits. No quote, bracket, underscore, semicolon or other punctuation there. After the path starts punctuation is fine.",
+    "At most 500 characters. A slot may set a lower limit of its own; its own tests cover that.",
+    "These checks run on the raw string before any URL parser sees it, because the browser's URL parser and the .NET one disagree on the cases below. The parser then still has to find a host."
+  ],
+  "cases": [
+    {
+      "value": "https://example.org/a",
+      "ok": true
+    },
+    {
+      "value": "http://example.org",
+      "ok": true
+    },
+    {
+      "value": "HTTPS://EXAMPLE.ORG/A",
+      "ok": true
+    },
+    {
+      "value": "http://example.org/",
+      "ok": true
+    },
+    {
+      "value": "https://example.org:8443/a",
+      "ok": true
+    },
+    {
+      "value": "https://example.org/a/b?x=1&y=2",
+      "ok": true
+    },
+    {
+      "value": "https://example.org/a#part",
+      "ok": true
+    },
+    {
+      "value": "https://example.org:8443/a/b?x=1#part",
+      "ok": true
+    },
+    {
+      "value": "http://example.org:8080/a?x=1",
+      "ok": true
+    },
+    {
+      "value": "javascript:alert(1)",
+      "ok": false
+    },
+    {
+      "value": "JaVaScRiPt:alert(1)",
+      "ok": false
+    },
+    {
+      "value": " javascript:alert(1)",
+      "ok": false
+    },
+    {
+      "value": "java\tscript:alert(1)",
+      "ok": false
+    },
+    {
+      "value": "java\nscript:alert(1)",
+      "ok": false
+    },
+    {
+      "value": "javascript://example.org/%0Aalert(1)",
+      "ok": false
+    },
+    {
+      "value": "vbscript:x",
+      "ok": false
+    },
+    {
+      "value": "data:text/html,x",
+      "ok": false
+    },
+    {
+      "value": "file:///etc/hosts",
+      "ok": false
+    },
+    {
+      "value": "mailto:a@example.org",
+      "ok": false
+    },
+    {
+      "value": "tel:+10000000000",
+      "ok": false
+    },
+    {
+      "value": "ftp://example.org",
+      "ok": false
+    },
+    {
+      "value": "blob:https://example.org/a",
+      "ok": false
+    },
+    {
+      "value": "//example.org",
+      "ok": false
+    },
+    {
+      "value": "http://user:pw@example.org",
+      "ok": false
+    },
+    {
+      "value": "https://user:pw@example.org/",
+      "ok": false
+    },
+    {
+      "value": "https://user@example.org/",
+      "ok": false
+    },
+    {
+      "value": "https://exa mple.org",
+      "ok": false
+    },
+    {
+      "value": "https://example.org/\ta",
+      "ok": false
+    },
+    {
+      "value": "https://",
+      "ok": false
+    },
+    {
+      "value": "",
+      "ok": false
+    },
+    {
+      "value": "/decks/a",
+      "ok": false
+    },
+    {
+      "value": "a/b.html",
+      "ok": false
+    },
+    {
+      "value": "example.org/a",
+      "ok": false
+    },
+    {
+      "value": " https://example.org",
+      "ok": false
+    },
+    {
+      "value": "https://example.org ",
+      "ok": false
+    },
+    {
+      "value": "\thttps://example.org",
+      "ok": false
+    },
+    {
+      "value": "https://xn--exmple-cua.org/",
+      "ok": true
+    },
+    {
+      "value": "https://[::1]/",
+      "ok": true
+    },
+    {
+      "value": "https://example.org:8443/a?b=c#d",
+      "ok": true
+    },
+    {
+      "value": "HtTp://example.org",
+      "ok": true
+    },
+    {
+      "value": "https://example.org/a%20b",
+      "ok": true
+    },
+    {
+      "value": "https://127.0.0.1/",
+      "ok": true
+    },
+    {
+      "value": "https://example.org/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "ok": true
+    },
+    {
+      "value": "https://example.org\r",
+      "ok": false
+    },
+    {
+      "value": "java\rscript:alert(1)",
+      "ok": false
+    },
+    {
+      "value": "https://example.org\n",
+      "ok": false
+    },
+    {
+      "value": "https://example.org\u0000",
+      "ok": false
+    },
+    {
+      "value": "\u0000javascript:alert(1)",
+      "ok": false
+    },
+    {
+      "value": "\u0000https://example.org",
+      "ok": false
+    },
+    {
+      "value": "\u0001https://example.org",
+      "ok": false
+    },
+    {
+      "value": "https://example.org/\u0000a",
+      "ok": false
+    },
+    {
+      "value": "https://example.org/a\u007f",
+      "ok": false
+    },
+    {
+      "value": "https://example.org\u007f",
+      "ok": false
+    },
+    {
+      "value": "https:\\\\example.org",
+      "ok": false
+    },
+    {
+      "value": "https:/example.org",
+      "ok": false
+    },
+    {
+      "value": "https:example.org",
+      "ok": false
+    },
+    {
+      "value": "https:///example.org",
+      "ok": false
+    },
+    {
+      "value": "https://example.org\\@other.example/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org/a\\b",
+      "ok": false
+    },
+    {
+      "value": "https://:pw@example.org/",
+      "ok": false
+    },
+    {
+      "value": "https://@example.org/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org\u0085",
+      "ok": false
+    },
+    {
+      "value": "\ufeffhttps://example.org",
+      "ok": false
+    },
+    {
+      "value": "https://example.org/\u00a0a",
+      "ok": false
+    },
+    {
+      "value": "https://example.org/\u2028a",
+      "ok": false
+    },
+    {
+      "value": "https://ex\u00e4mple.org",
+      "ok": false
+    },
+    {
+      "value": "blob:https://example.org/x",
+      "ok": false
+    },
+    {
+      "value": "tel:+123",
+      "ok": false
+    },
+    {
+      "value": "https://example.org/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "ok": false
+    },
+    {
+      "value": "https://exa%6dple.org/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org%2f@evil.example/",
+      "ok": false
+    },
+    {
+      "value": "https://[fe80::1%eth0]/",
+      "ok": false
+    },
+    {
+      "value": "https://[fe80::1%25eth0]/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org:80%31/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org/a%20b?c=%2F#d%41",
+      "ok": true
+    },
+    {
+      "value": "http://example.org\"onclick=\"alert(1)",
+      "ok": false
+    },
+    {
+      "value": "https://example.org'x/",
+      "ok": false
+    },
+    {
+      "value": "https://exa<mple.org/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org(1)/",
+      "ok": false
+    },
+    {
+      "value": "https://exam_ple.org/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org;x/",
+      "ok": false
+    },
+    {
+      "value": "https://.example.org/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org-/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org:port/",
+      "ok": false
+    },
+    {
+      "value": "https://example.org:123456/",
+      "ok": false
+    },
+    {
+      "value": "https://[::1/",
+      "ok": false
+    },
+    {
+      "value": "https://[::g]/",
+      "ok": false
+    },
+    {
+      "value": "https://[::1]:8080/",
+      "ok": true
+    },
+    {
+      "value": "https://a-b.example.org/path?q=\"x\"#'y'",
+      "ok": true
+    }
+  ]
+}

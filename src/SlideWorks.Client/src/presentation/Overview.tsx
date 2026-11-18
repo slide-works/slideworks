@@ -21,7 +21,7 @@ function groupByPart(view: PresenterView): Group[] {
     else
       groups.push({
         part: slide.part,
-        heading: slide.part === null ? null : (view.parts[slide.part - 1] ?? null),
+        heading: slide.part === null ? null : (view.parts[slide.part - 1]?.name ?? null),
         slides: [slide],
       });
   }

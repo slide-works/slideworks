@@ -1,0 +1,139 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace SlideWorks.Core.Slides;
+
+// An http or https address that the player draws as a link (K12). The text becomes an href, so the
+// checks run on the raw string before any URL parser sees it: the browser's parser and .NET's disagree
+// on odd inputs (a tab inside the scheme, a backslash for a slash, user info), and the rules below
+// leave only strings both read the same way. The cases are in src/contracts/link-cases.json, which the
+// client's check runs too. A link is never trimmed or rewritten: it is stored as it was sent or refused.
+public sealed class LinkSlot(int max = LinkSlot.MAX_LENGTH) : ISlotType
+{
+    public const int MAX_LENGTH = 500;
+
+    private const string NOT_AN_ADDRESS = "must be an http or https address, such as https://example.com/page";
+    private const string USER_INFO = "must not hold a user name or password";
+    private const string PERCENT_IN_AUTHORITY = "must not hold a percent sign before the path; write the host and port as they are";
+    private const string NOT_A_HOST = "must hold only letters, digits, dots and hyphens in the host, then at most a colon and a port number";
+    private const int MAX_PORT_DIGITS = 5;
+
+    private static readonly string[] _schemes = ["http://", "https://"];
+
+    public int MaxLength { get; } = max is >= 1 and <= MAX_LENGTH
+        ? max
+        : throw new ArgumentOutOfRangeException(nameof(max), max, $"A link's limit is 1 to {MAX_LENGTH} characters");
+
+    public string Expected => "a link";
+
+    public string Kind => "link";
+
+    public JsonObject ToJsonSchema() => new()
+    {
+        ["type"] = "string",
+        ["format"] = "uri",
+        ["maxLength"] = MaxLength,
+    };
+
+    public void Validate(JsonElement value, string path, SlotValidation validation)
+    {
+        if (value.ValueKind != JsonValueKind.String)
+        {
+            validation.Fail(path, $"expected {Expected}");
+            return;
+        }
+
+        var problem = Problem(value.GetString() ?? "", MaxLength);
+        if (problem is not null)
+        {
+            validation.Fail(path, problem);
+        }
+    }
+
+    // What is wrong with the text as a link, or null when it is one. The order is the contract's: the
+    // length first, so the size of the text never sets the cost of the other checks.
+    public static string? Problem(string text, int max = MAX_LENGTH)
+    {
+        if (text.Length > max)
+        {
+            return $"at most {max} characters (got {text.Length})";
+        }
+
+        if (text.Any(c => c is < '!' or > '~'))
+        {
+            return "must not hold spaces, control characters or characters outside ASCII; write an international host in punycode";
+        }
+
+        if (text.Contains('\\'))
+        {
+            return "must not hold a backslash";
+        }
+
+        var scheme = _schemes.FirstOrDefault(s => text.StartsWith(s, StringComparison.OrdinalIgnoreCase));
+        if (scheme is null || text.Length == scheme.Length || text[scheme.Length] is '/' or '@' or ':')
+        {
+            return NOT_AN_ADDRESS;
+        }
+
+        var hostEnd = text.IndexOfAny(['/', '?', '#'], scheme.Length);
+        var authority = hostEnd < 0 ? text[scheme.Length..] : text[scheme.Length..hostEnd];
+        if (authority.Contains('@'))
+        {
+            return USER_INFO;
+        }
+
+        // Parsers disagree on a percent sign here: a browser decodes one in a host name where .NET refuses
+        // it, and .NET takes an IPv6 zone where a browser refuses it. After the path starts it is fine.
+        if (authority.Contains('%'))
+        {
+            return PERCENT_IN_AUTHORITY;
+        }
+
+        // What is left before the path is a host name, an IPv4 address or an IPv6 literal, and at most a
+        // port. Anything else (a quote, a bracket, a semicolon) could end the attribute the link is drawn in.
+        if (authority.Length == 0)
+        {
+            return NOT_AN_ADDRESS;
+        }
+
+        if (!IsHostAndPort(authority))
+        {
+            return NOT_A_HOST;
+        }
+
+        // The parser has the last word: it must agree that this is an http or https address with a host.
+        if (!Uri.TryCreate(text, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            || uri.Host.Length == 0)
+        {
+            return NOT_AN_ADDRESS;
+        }
+
+        return uri.UserInfo.Length == 0 ? null : USER_INFO;
+    }
+
+    // Letters, digits, dots and hyphens that neither start nor end with a dot or a hyphen, or an IPv6
+    // literal in square brackets; then at most a colon and a port. One pass over the text, no pattern.
+    private static bool IsHostAndPort(string authority)
+    {
+        if (authority[0] == '[')
+        {
+            var close = authority.IndexOf(']');
+            return close >= 0
+                && authority[1..close].All(c => char.IsAsciiHexDigit(c) || c is ':' or '.')
+                && IsPortOrNothing(authority[(close + 1)..]);
+        }
+
+        var colon = authority.IndexOf(':');
+        var host = colon < 0 ? authority : authority[..colon];
+        return host.Length > 0
+            && host.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-')
+            && host[0] is not ('.' or '-')
+            && host[^1] is not ('.' or '-')
+            && IsPortOrNothing(authority[host.Length..]);
+    }
+
+    private static bool IsPortOrNothing(string rest) =>
+        rest.Length == 0
+        || (rest[0] == ':' && rest.Length is >= 2 and <= MAX_PORT_DIGITS + 1 && rest.Skip(1).All(char.IsAsciiDigit));
+}

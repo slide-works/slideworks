@@ -1,10 +1,24 @@
-/* .cards3: three equal columns 32 px apart (539 px each), whatever the number
-   of cards. Each card (Card.module.css) is the mockup's .rcard. */
+/* Up to three cards: three equal columns 32 px apart (539 px each). Four cards:
+   two columns of 824 px, 32 px apart, and two rows 28 px apart. The list fills
+   the body, or what the callout leaves of it, and its rows share that height. */
+.body {
+  display: flex;
+  flex-direction: column;
+}
+
 .cards {
   display: grid;
+  flex: 1;
+  grid-auto-rows: minmax(0, 1fr);
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 32px;
+  min-height: 0;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.cards[data-count='4'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 32px;
 }

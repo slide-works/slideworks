@@ -1,0 +1,202 @@
+{
+  "levelsSeven": {
+    "layout": "levels",
+    "estimate": 645.2,
+    "grow": [
+      "/levels/items/0/text",
+      "/main/items/2/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "How we grow people",
+      "headline": "Seven levels from first day to staff",
+      "levels": {
+        "title": "Engineering Career Ladder 7",
+        "items": [
+          {
+            "text": "BBBBBBBBBBBBBBBB ccccccccccccccccccccccccccc",
+            "mark": "L7"
+          },
+          {
+            "text": "DDDDDDDDDDDDDDDDDDDD eeeeeeeeeeeeeeeeeeeeeee",
+            "mark": "L6",
+            "state": "current"
+          },
+          {
+            "text": "Principal Engineer",
+            "mark": "L5"
+          },
+          {
+            "text": "Senior Engineer",
+            "mark": "L4",
+            "state": "current"
+          },
+          {
+            "text": "Engineer",
+            "mark": "L3"
+          },
+          {
+            "text": "Associate Engineer",
+            "mark": "L2"
+          },
+          {
+            "text": "Intern",
+            "mark": "L1"
+          }
+        ]
+      },
+      "main": {
+        "title": "MMMMMMMMMM aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "items": [
+          {
+            "lead": "Leadaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "text": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+          },
+          {
+            "lead": "Leadbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "text": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+          },
+          {
+            "lead": "Leadcccccccccccccccccccccccccccccccccccc",
+            "text": "FFFFFFFFFFFFFFFFFF GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"
+          }
+        ]
+      },
+      "facts": [
+        {
+          "label": "Time to promote",
+          "value": "Twelve Weeks Per Quarter",
+          "tone": "accent"
+        },
+        {
+          "label": "Review cycle",
+          "value": "Thirty Days Each Quarter"
+        },
+        {
+          "label": "On time rate",
+          "value": "Ninety Percent Delivered",
+          "tone": "positive"
+        },
+        {
+          "label": "Budget per head",
+          "value": "Eleven Hundred Per Month",
+          "tone": "negative"
+        }
+      ]
+    }
+  },
+  "levelsText": {
+    "layout": "levels",
+    "estimate": 0,
+    "grow": [
+      "/main/text",
+      "/levels/items/0/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Every Slip Starts As A Big Batch And End",
+      "headline": "Every Slip Starts As A Big Batch And Ends As A Late Release That Costs Real Mone",
+      "levels": {
+        "title": "Every Slip Starts As A Big Bat",
+        "items": [
+          {
+            "text": "Every Slip Starts As A Big Batch And Ends As A Lat",
+            "mark": "Eve",
+            "state": "plain"
+          },
+          {
+            "text": "Every Slip Starts As A Big Batch And Ends As A Lat",
+            "mark": "Eve",
+            "state": "plain"
+          },
+          {
+            "text": "Every Slip Starts As A Big Batch And Ends As A Lat",
+            "mark": "Eve",
+            "state": "current"
+          },
+          {
+            "text": "Every Slip Starts As A Big Batch And Ends As A Lat",
+            "mark": "Eve",
+            "state": "plain"
+          },
+          {
+            "text": "Every Slip Starts As A Big Batch And Ends As A Lat",
+            "mark": "Eve",
+            "state": "plain"
+          },
+          {
+            "text": "Every Slip Starts As A Big Batch And Ends As A Lat",
+            "mark": "Eve",
+            "state": "plain"
+          }
+        ]
+      },
+      "main": {
+        "title": "Every Slip Starts As A Big Batch And Ends As A Late Releasee",
+        "text": "Every Slip Starts As A Big Batch And Ends As A Late Release That Costs Real Money To Fix Later Every Slip Starts As A Big Batch And Ends As A Late Release That Costs Real Money To Fix Later Every Slip Starts As A Big Batch And Ends As A Late Release That Costs Real Money To Fix Later Every Slip Starts As A Big Batch And Ends As A Late Release That Costs Real Money To Fix Later Every Slip Starts As"
+      },
+      "callout": {
+        "tone": "accent",
+        "text": "Every Slip Starts As A Big Batch And Ends As A Late Release That Costs Real Money To Fix Later Every Slip Starts As A Big Batch And Ends As A Late Release Thate"
+      },
+      "side": "left"
+    }
+  },
+  "levelsTextWide": {
+    "layout": "levels",
+    "estimate": 0,
+    "grow": [
+      "/main/text",
+      "/levels/items/0/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Whom We Name WOMBAT MUMMY Mavens, Wow, M",
+      "headline": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Whom We Na",
+      "levels": {
+        "title": "Whom We Name WOMBAT MUMMY Mave",
+        "items": [
+          {
+            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi",
+            "mark": "Who",
+            "state": "plain"
+          },
+          {
+            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi",
+            "mark": "Who",
+            "state": "plain"
+          },
+          {
+            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi",
+            "mark": "Who",
+            "state": "current"
+          },
+          {
+            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi",
+            "mark": "Who",
+            "state": "plain"
+          },
+          {
+            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi",
+            "mark": "Who",
+            "state": "plain"
+          },
+          {
+            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi",
+            "mark": "Who",
+            "state": "plain"
+          }
+        ]
+      },
+      "main": {
+        "title": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most We",
+        "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi"
+      },
+      "callout": {
+        "tone": "accent",
+        "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Whom We Name WOMBATM"
+      },
+      "side": "left"
+    }
+  }
+}

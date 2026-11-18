@@ -20,10 +20,27 @@ describe('lookOf', () => {
       },
       palette: { name: palette.name, label: palette.label, tokens: palette.tokens },
       logo: null,
+      fonts: [],
+      logos: { light: null, dark: null, showOnDark: false },
+      art: { kind: 'generator', generator: template.titleArt, url: null },
+      ornament: { colours: [] },
+      topBar: 'none',
+      templateRef: template.ref,
+      templateVersion: template.version,
+      latestVersion: template.version,
+      extras: [],
+      customLayouts: [],
+      templateMissing: false,
       draft: template.chrome.draft,
       footerDateLabel: '16 Nov 2026',
       joinBar: false,
     });
+  });
+
+  it('has no title art when the template names none', () => {
+    const [template] = looks.templates;
+    const look = lookOf({ ...template, titleArt: null }, looks.palettes[0], 'x');
+    expect(look.art).toEqual({ kind: 'none', generator: null, url: null });
   });
 
   it("takes draft from the template's chrome", () => {

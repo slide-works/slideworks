@@ -1,27 +1,77 @@
-/* .ncards: four equal columns 28 px apart (399 px each), whatever the number
-   of cards. An .ncard is 34/32/38 px padding round a 64 px/1 accent numeral,
-   a 30 px/1.2 title (22 px above, 14 px below) and 23 px/1.4 muted text. */
+/* .ncards fills the body (flex: 1, rows of 1fr), so every card is the body's
+   height, less a callout and the 30 px above it. Two or three cards share
+   three columns 28 px apart (541 px each, the rest empty); four keep four
+   (399 px). An .ncard is 34/32/38 px padding round a 64 px/1 accent numeral, a
+   30 px/1.2 title (22 px above, 14 px below) and 23 px/1.4 muted text; the
+   large scale (data-scale, short cards) is 40 px padding round a 96 px
+   numeral, a 40 px/1.15 title and 28 px/1.4 text. A pin adds 44 px at the
+   foot, a plain fill 8 px at the top (NumberedCardsLayout.cs counts both). */
+/* The list grows to its tallest card when that is past the body (the fit
+   rule lets a card run 36 px into the bottom padding), so no min-height: 0. */
+.body {
+  display: flex;
+  flex-direction: column;
+}
+
 .cards {
+  flex: 1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
   gap: 28px;
-  align-content: start;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.cards[data-count='4'] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.item {
+  display: flex;
+  min-width: 0;
+}
+
 .card {
+  position: relative;
+  flex: 1;
+  min-width: 0;
   padding: 34px 32px 38px;
   border-radius: var(--sw-radius-lg);
   background: var(--sw-card);
   box-shadow: var(--sw-lift);
 }
 
+.card[data-tone] {
+  background: var(--panel-surface, var(--sw-card));
+  color: var(--panel-ink, inherit);
+}
+
+/* A plain card keeps the surface and takes its tone as an 8 px rule on top
+   (the colour is set inline, from toneRule). */
+.card[data-fill='plain'] {
+  border-top: 8px solid transparent;
+}
+
+.card[data-pinned='true'] {
+  padding-bottom: 82px;
+}
+
+.card > :global([data-testid='pin']) {
+  position: absolute;
+  right: 28px;
+  bottom: 28px;
+}
+
 .number {
   display: block;
   color: var(--sw-accent);
   font: 800 64px/1 var(--sw-font-head);
+}
+
+.card[data-tone]:not([data-fill='plain']) .number {
+  color: var(--panel-ink);
 }
 
 .title {
@@ -35,6 +85,31 @@
   overflow-wrap: anywhere;
   color: var(--sw-muted);
   font: 400 23px/1.4 var(--sw-font-body);
+}
+
+.card[data-tone]:not([data-fill='plain']) .text {
+  color: inherit;
+}
+
+.cards[data-scale='large'] .card {
+  padding: 40px 32px;
+}
+
+.cards[data-scale='large'] .card[data-pinned='true'] {
+  padding-bottom: 84px;
+}
+
+.cards[data-scale='large'] .number {
+  font-size: 96px;
+}
+
+.cards[data-scale='large'] .title {
+  margin: 26px 0 14px;
+  font: 800 40px/1.15 var(--sw-font-head);
+}
+
+.cards[data-scale='large'] .text {
+  font-size: 28px;
 }
 
 /* On a deep dive the numerals are in the deep-dive colour (mockup section 05),

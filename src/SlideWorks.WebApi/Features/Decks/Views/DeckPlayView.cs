@@ -1,6 +1,7 @@
 using SlideWorks.WebApi.Features.Join.Views;
 using SlideWorks.WebApi.Features.Look.Views;
 using SlideWorks.WebApi.Features.Slides;
+using SlideWorks.WebApi.Features.Templates;
 
 namespace SlideWorks.WebApi.Features.Decks.Views;
 
@@ -12,12 +13,12 @@ public sealed record DeckPlayView(
     string Slug,
     string Title,
     string? Author,
-    IReadOnlyList<string> Parts,
+    IReadOnlyList<DeckPart> Parts,
     LookView Look,
     JoinView Join,
     bool IsOwner,
     IReadOnlyList<DeckPlaySlide> Slides)
 {
-    public static DeckPlayView From(Deck deck, IEnumerable<Slide> slides, LookView look, JoinView join, bool isOwner)
-        => new(deck.Id, deck.Slug, deck.Title, deck.Author, DeckParts.Read(deck), look, join, isOwner, slides.Select(DeckPlaySlide.From).ToList());
+    public static DeckPlayView From(Deck deck, IEnumerable<Slide> slides, ResolvedTemplate template, LookView look, JoinView join, bool isOwner)
+        => new(deck.Id, deck.Slug, deck.Title, deck.Author, DeckParts.Read(deck), look, join, isOwner, slides.Select(slide => DeckPlaySlide.From(slide, template)).ToList());
 }

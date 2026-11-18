@@ -1,0 +1,102 @@
+{
+  "linksSixQr": {
+    "layout": "links",
+    "estimate": 588.0,
+    "grow": [
+      "/links/0/title"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Where Work Waits Make Every Merge Faster",
+      "headline": "Small Batches Show Where Work Waits Make Every Merge Reviewable Momentum Matters",
+      "links": [
+        {
+          "kind": "Talk",
+          "title": "Small Batches Show Where Work Waits Make Every Merge Planning",
+          "source": "Small Batches Show Where Work Waits Make Every Merge Reviewable Momentum Matters",
+          "url": "https://example.com/links/0"
+        },
+        {
+          "kind": "Talk",
+          "title": "Where Work Waits Make Every Merge Reviewable Momentum Matters",
+          "source": "Waits Make Every Merge Reviewable Momentum Matters More Than Maximum Throughputs",
+          "url": "https://example.com/links/1"
+        },
+        {
+          "kind": "Talk",
+          "title": "Make Every Merge Reviewable Momentum Matters More Than Faster",
+          "source": "Momentum Matters More Than Maximum Throughput Ship Working Software Weekly Teams",
+          "url": "https://example.com/links/2"
+        },
+        {
+          "kind": "Talk",
+          "title": "Reviewable Momentum Matters More Than Maximum Throughput Ship",
+          "source": "Throughput Ship Working Software Weekly Teams Learn Faster Customers See Real Go",
+          "url": "https://example.com/links/3"
+        },
+        {
+          "kind": "Talk",
+          "title": "More Than Maximum Throughput Ship Working Software Weekly Now",
+          "source": "Teams Learn Faster Customers See Real Progress Metrics Small Batches Show Wheres",
+          "url": "https://example.com/links/4"
+        },
+        {
+          "kind": "Talk",
+          "title": "Show Where Work Waits Make Every Merge Reviewable Momentumss",
+          "url": "https://example.com/links/5"
+        }
+      ],
+      "qr": {
+        "url": "https://example.com/small-batches",
+        "caption": "example.com/small-batches"
+      }
+    }
+  },
+  "linksWrapped": {
+    "layout": "links",
+    "estimate": 588.0,
+    "grow": [
+      "/links/3/title"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Where Work Waits Make Every Merge Faster",
+      "headline": "Small Batches Show Where Work Waits Make Every Merge Reviewable Momentum Matters",
+      "links": [
+        {
+          "kind": "Talk",
+          "title": "Batches Show Where Work Waits Make Every Merge Reviewable Momentum Matters Mores",
+          "source": "Work Waits Make Every Merge Reviewable Momentum Matters More Than Maximum Throughput",
+          "url": "https://example.com/links/0"
+        },
+        {
+          "kind": "Talk",
+          "title": "Make Every Merge Reviewable Momentum Matters More Than Maximum Throughput Ship Working",
+          "source": "Show Where Work Waits Make Every Merge Reviewable Momentum Matters More Than Maximum Now",
+          "url": "https://example.com/links/1"
+        },
+        {
+          "kind": "Talk",
+          "title": "Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software",
+          "source": "Where Work Waits Make Every Merge Reviewable Momentum Matters More Now",
+          "url": "https://example.com/links/2"
+        },
+        {
+          "kind": "Talk",
+          "title": "Waits Make Every Merge Reviewable Momentum Matters More Thanss",
+          "url": "https://example.com/links/3"
+        },
+        {
+          "kind": "Talk",
+          "title": "Every Merge Reviewable Momentum Matters More Than Maximum Now",
+          "source": "Batches Show Where Work Waits Make Every Merge Reviewable Go",
+          "url": "https://example.com/links/4"
+        }
+      ],
+      "qr": {
+        "url": "https://example.com/small-batches",
+        "caption": "example.com/small-batches"
+      }
+    }
+  }
+}

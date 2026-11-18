@@ -26,7 +26,8 @@ public class AudienceRecordShapeTests
                 current.GetProperty("slots").Clone(),
                 current.GetProperty("steps").GetInt32(),
                 current.GetProperty("step").GetInt32(),
-                current.GetProperty("black").GetBoolean()),
+                current.GetProperty("black").GetBoolean(),
+                current.GetProperty("surface").GetString()!),
             example.GetProperty("revision").GetInt64(),
             null,
             example.GetProperty("room").Clone());

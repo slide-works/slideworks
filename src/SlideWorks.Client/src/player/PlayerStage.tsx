@@ -20,13 +20,15 @@ type PlayerStageProps = {
 
 // The black stage with the 1920×1080 canvas scaled to fit and centred, every
 // slide stacked on it. A click on its left third goes back and on its right
-// third goes forward; a one-finger swipe goes the way the finger moved.
+// third goes forward, unless it lands on a link; a one-finger swipe goes the way the finger moved.
 export function PlayerStage({ deck, slideDeck, position, onNext, onPrevious }: PlayerStageProps) {
   const stage = useRef<HTMLDivElement>(null);
   const canvasFit = useCanvasScale(stage);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const onClick = (event: MouseEvent<HTMLDivElement>) => {
+    // A click on a link opens its tab and leaves the slide where it is.
+    if (event.target instanceof Element && event.target.closest('a[href]') !== null) return;
     const box = event.currentTarget.getBoundingClientRect();
     const x = (event.clientX - box.left) / box.width;
     if (x < 1 / 3) onPrevious();

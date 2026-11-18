@@ -8,7 +8,7 @@ namespace SlideWorks.AcceptanceTests.Render;
 
 // D21 end to end: an agent calls preview_deck over MCP, then follows the returned instructions in its own headless
 // Chromium. The shell steps run here as the equivalent Playwright calls: a fresh anonymous context at the viewport the
-// result names, wait for wait_for on each render URL, then screenshot the viewport.
+// result names, wait for wait_for on render_url with {slide} filled in for each number, then screenshot the viewport.
 public class AgentPreviewTests : AcceptanceTest
 {
     [Test]
@@ -20,8 +20,10 @@ public class AgentPreviewTests : AcceptanceTest
 
         var preview = await CallAsync(agent, "preview_deck", new() { ["deck"] = deck });
 
-        var slides = preview.GetProperty("slides").EnumerateArray().ToList();
-        slides.Select(s => s.GetProperty("number").GetInt32()).ShouldBe([1, 2]);
+        var slides = preview.GetProperty("slides").EnumerateArray().Select(s => s.GetInt32()).ToList();
+        slides.ShouldBe([1, 2]);
+        var template = preview.GetProperty("render_url").GetString()!;
+        template.ShouldContain("{slide}");
         var viewport = preview.GetProperty("viewport");
         var width = viewport.GetProperty("width").GetInt32();
         var height = viewport.GetProperty("height").GetInt32();
@@ -29,10 +31,10 @@ public class AgentPreviewTests : AcceptanceTest
         var instructions = preview.GetProperty("instructions").GetString()!;
         await using var context = await Browser.NewContextAsync(new() { ViewportSize = new() { Width = width, Height = height } });
         var pngs = new List<byte[]>();
+        instructions.ShouldContain($"\"{template.Replace("{slide}", "$n")}\"");
         foreach (var slide in slides)
         {
-            var url = slide.GetProperty("render_url").GetString()!;
-            instructions.ShouldContain($"\"{url}\"");
+            var url = template.Replace("{slide}", slide.ToString());
             var page = await context.NewPageAsync();
             await page.GotoAsync(url);
             await page.WaitForSelectorAsync(waitFor);

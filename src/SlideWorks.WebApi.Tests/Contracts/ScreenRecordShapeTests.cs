@@ -15,6 +15,7 @@ using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Look.Views;
 using SlideWorks.WebApi.Features.Sharing.Views;
 using SlideWorks.WebApi.Features.Slides;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -84,7 +85,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
                 Notes = StoredNotes(slide),
                 Steps = slide.GetProperty("steps").GetInt32(),
                 DeepDive = slide.GetProperty("deepDive").GetBoolean(),
-            }))
+            }, Workshop))
             .ToList();
         var view = new DeckPageView(
             deck.Id,
@@ -96,7 +97,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
             PlayUrl: "/d/7Kq2xYp9LmQa/ship-smaller",
             example.GetProperty("join").Deserialize<JoinView>(AppJsonOptions())!,
             SharingSummary.From(DeckSharing.Link, 0),
-            ["The cost", "Slice it", "Ship it", "Make it stick"],
+            [new DeckPart("The cost"), new DeckPart("Slice it"), new DeckPart("Ship it"), new DeckPart("Make it stick")],
             example.GetProperty("look").Deserialize<DeckLookView>(AppJsonOptions())!,
             slides,
             [
@@ -115,9 +116,9 @@ public class ScreenRecordShapeTests : ApiTestFixture
     public void DeckPage_WhenOptionalFieldsAreNull_ShouldMatchContract()
     {
         var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]", Template = "workshop", Palette = "cobalt" };
-        var slide = DeckPageSlide.From(deck, new Slide { DeckId = deck.Id, Layout = "bullets", SlotsJson = """{ "items": ["One"] }""" });
+        var slide = DeckPageSlide.From(deck, new Slide { DeckId = deck.Id, Layout = "bullets", SlotsJson = """{ "items": ["One"] }""" }, Workshop);
         var view = new DeckPageView(deck.Id, deck.Slug, deck.Title, null, 0, false, "/d/7Kq2xYp9LmQa/ship-smaller",
-            new JoinView("482913", "482 913", "https://slideworks.live/482913", "slideworks.live", false), SharingSummary.From(DeckSharing.Private, 0), [], LookViews.ForPage(deck, Templates, Palettes), [slide],
+            new JoinView("482913", "482 913", "https://slideworks.live/482913", "slideworks.live", false), SharingSummary.From(DeckSharing.Private, 0), [], LookViews.ForPage(deck, Workshop, Palettes), [slide],
             [ActivityRow.From(Entry("Sam Rivera", ActorKind.Person, ActorVia.Web, null, "created the deck"), "just now")]);
 
         var json = Serialise(view);
@@ -244,7 +245,11 @@ public class ScreenRecordShapeTests : ApiTestFixture
 
     private static DeckPageSlide Slide(string layout, string slots, int position = 0) => DeckPageSlide.From(
         new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]", Template = "workshop", Palette = "cobalt" },
-        new Slide { DeckId = "7Kq2xYp9LmQa", Position = position, Layout = layout, SlotsJson = slots });
+        new Slide { DeckId = "7Kq2xYp9LmQa", Position = position, Layout = layout, SlotsJson = slots },
+        Workshop);
+
+    // The template those decks are on, as ITemplates resolves it: it finds each slide's layout for the surface.
+    private static ResolvedTemplate Workshop => BuiltInTemplates.Resolve(new TemplateCatalogue().Find("workshop")!);
 
     private static ActivityEntryRow Entry(string actor, ActorKind kind, ActorVia via, string? tool, string summary) => new()
     {
@@ -255,8 +260,6 @@ public class ScreenRecordShapeTests : ApiTestFixture
         Tool = tool,
         Summary = summary,
     };
-
-    private ITemplateCatalogue Templates => Factory.Services.GetRequiredService<ITemplateCatalogue>();
 
     private IPaletteCatalogue Palettes => Factory.Services.GetRequiredService<IPaletteCatalogue>();
 

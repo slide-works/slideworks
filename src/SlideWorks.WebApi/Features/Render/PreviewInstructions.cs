@@ -1,11 +1,10 @@
 using System.Reflection;
 using Agoda.IoC.Core;
-using SlideWorks.WebApi.Features.Render.Mcp;
 
 namespace SlideWorks.WebApi.Features.Render;
 
 // Fills in preview_deck's instructions (L7, R2) from the embedded PreviewInstructions.md: how an agent with a shell
-// checks for and installs headless Chromium, then screenshots each render URL and looks at the PNGs (D21).
+// checks for and installs headless Chromium, then screenshots each slide's render URL and looks at the PNGs (D21).
 [RegisterSingleton]
 public class PreviewInstructions
 {
@@ -22,17 +21,25 @@ public class PreviewInstructions
 
     private readonly string _template = Read();
 
-    public string Fill(IReadOnlyList<PreviewSlide> slides, string playerUrl, TimeSpan expiresIn)
+    // renderUrl holds the literal {slide}; the loop puts $n there. 1..N is written as $(seq 1 N), anything else as a list.
+    public string Fill(string renderUrl, IReadOnlyList<int> slides, string playerUrl, TimeSpan expiresIn)
     {
-        var commands = slides.Select(s =>
-            $"npx -y playwright@{PLAYWRIGHT_VERSION} screenshot --viewport-size={WIDTH},{HEIGHT} --wait-for-selector=\"{WAIT_FOR}\" --timeout={TIMEOUT_MS} \"{s.RenderUrl}\" slide-{s.Number}.png");
+        var consecutive = slides.Count > 0 && slides.Select((n, i) => n == i + 1).All(x => x);
+        var numbers = consecutive ? $"$(seq 1 {slides.Count})" : string.Join(' ', slides);
+        var loop = slides.Count == 0
+            ? "# The deck has no slides yet."
+            : $"for n in {numbers}; do npx -y playwright@{PLAYWRIGHT_VERSION} screenshot --viewport-size={WIDTH},{HEIGHT} --wait-for-selector=\"{WAIT_FOR}\" --timeout={TIMEOUT_MS} \"{renderUrl.Replace("{slide}", "$n")}\" slide-$n.png; done";
         return _template
             .Replace("{{version}}", PLAYWRIGHT_VERSION)
             .Replace("{{minor}}", PLAYWRIGHT_VERSION[..PLAYWRIGHT_VERSION.LastIndexOf('.')])
             .Replace("{{timeout_seconds}}", (TIMEOUT_MS / 1000).ToString())
             .Replace("{{width}}", WIDTH.ToString())
             .Replace("{{height}}", HEIGHT.ToString())
-            .Replace("{{commands}}", slides.Count == 0 ? "# The deck has no slides yet." : string.Join("\n", commands))
+            .Replace("{{loop}}", loop)
+            .Replace("{{url}}", renderUrl)
+            .Replace("{{wait}}", WAIT_FOR)
+            .Replace("{{timeout_ms}}", TIMEOUT_MS.ToString())
+            .Replace("{{list}}", string.Join(", ", slides))
             .Replace("{{minutes}}", ((int)expiresIn.TotalMinutes).ToString())
             .Replace("{{player_url}}", playerUrl);
     }

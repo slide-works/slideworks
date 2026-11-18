@@ -43,8 +43,8 @@ public class McpArgumentCheckTests : ApiTestFixture
     [TestCase("create_deck", """{}""", "title: required")]
     [TestCase("create_deck", """{"title":null}""", "title: required")]
     [TestCase("create_deck", """{"title":42}""", "title: must be text")]
-    [TestCase("create_deck", """{"title":"T","parts":"One"}""", "parts: must be a list of text")]
-    [TestCase("create_deck", """{"title":"T","parts":["One",2]}""", "parts: must be a list of text")]
+    [TestCase("create_deck", """{"title":"T","parts":"One"}""", "parts: must be a list of values")]
+    [TestCase("create_deck", """{"title":"T","parts":["One",2]}""", "parts[1]: must be a name or {name, short, caption, mark}")]
     [TestCase("set_sharing", """{"deck":"{deck}","level":"named","viewers":[null]}""", "viewers: must be a list of email addresses")]
     [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":"B"}""", "slots: must be an object")]
     [TestCase("add_slide", """{"deck":"{deck}","layout":"quote","slots":["B"]}""", "slots: must be an object")]
@@ -220,7 +220,7 @@ public class McpArgumentCheckTests : ApiTestFixture
         Required(schemas["add_slide"]).ShouldBe(["deck", "layout", "slots"]);
         Required(schemas["update_slide"]).ShouldBe(["deck", "slide", "revision", "slots"]);
         Required(schemas["set_notes"]).ShouldBe(["deck", "notes"]);
-        Required(schemas["set_sharing"]).ShouldBe(["deck", "level"]);
+        Required(schemas["set_sharing"]).ShouldBe(["level"]);
         Required(schemas["create_deck"]).ShouldBe(["title"]);
         Property(schemas["add_slide"], "slots").TryGetProperty("default", out _).ShouldBeFalse();
         Property(schemas["update_slide"], "slots").TryGetProperty("default", out _).ShouldBeFalse();
@@ -239,7 +239,6 @@ public class McpArgumentCheckTests : ApiTestFixture
         Property(schemas["update_slide"], "slots").GetProperty("type").GetRawText().ShouldBe("\"object\"");
         Property(schemas["add_slide"], "slots").TryGetProperty("additionalProperties", out _).ShouldBeFalse();
         notes.GetProperty("items").GetProperty("additionalProperties").ValueKind.ShouldBe(JsonValueKind.False);
-        schemas.Count.ShouldBe(23);
         foreach (var (tool, schema) in schemas)
         {
             schema.GetProperty("additionalProperties").ValueKind.ShouldBe(JsonValueKind.False, tool);

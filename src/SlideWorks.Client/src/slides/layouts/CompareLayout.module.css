@@ -7,3 +7,24 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 40px;
 }
+
+/* The success panel's Reveal item fills its grid cell, and its panel the item. */
+.slot {
+  display: flex;
+  min-width: 0;
+}
+
+.slot > section {
+  flex: 1;
+}
+
+/* With a callout the body is a column: the panels take what the callout leaves. */
+.withCallout {
+  display: flex;
+  flex-direction: column;
+}
+
+.grow {
+  flex: 1;
+  min-height: 0;
+}

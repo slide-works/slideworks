@@ -18,6 +18,8 @@ export type NewDeckDialogProps = {
   open: boolean;
   onClose(): void;
   onCreated(result: CreateDeckResult): void;
+  // The ref of a template to start on (the address /decks?template=<ref>). One the person may not pick opens the dialog on the default.
+  initialTemplate?: string | null;
 };
 
 // The sample deck's title slide and one content slide, as in the mockup.
@@ -30,16 +32,41 @@ const NO_FOOTER_DATE = '';
 type Choice = { template: LooksTemplate; palette: LooksPalette };
 
 // The palette a template starts with: the one it locks, else the catalogue's default.
+// A template's own palette is listed under this reserved name, and GET /api/looks carries no tokens for it, so
+// its preview is drawn with the default palette's (TODO: draw it in the template's own palette once the row carries it).
 function paletteFor(looks: LooksView, template: LooksTemplate): LooksPalette | undefined {
-  return looks.palettes.find((palette) =>
-    template.lockedPalette === null ? palette.isDefault : palette.name === template.lockedPalette,
-  );
+  const fallback = looks.palettes.find((palette) => palette.isDefault);
+  if (template.lockedPalette === null) return fallback;
+  return looks.palettes.find((palette) => palette.name === template.lockedPalette) ?? fallback;
+}
+
+function choiceOf(looks: LooksView, template: LooksTemplate | undefined): Choice | null {
+  const palette = template && paletteFor(looks, template);
+  return template && palette ? { template, palette } : null;
 }
 
 function defaultChoice(looks: LooksView): Choice | null {
-  const template = looks.templates.find((entry) => entry.isDefault);
-  const palette = template && paletteFor(looks, template);
-  return template && palette ? { template, palette } : null;
+  return choiceOf(
+    looks,
+    looks.templates.find((entry) => entry.isDefault),
+  );
+}
+
+// The palette name a deck on this choice is created with: the one the template sets, as the server lists it.
+const paletteNameOf = (choice: Choice) => choice.template.lockedPalette ?? choice.palette.name;
+
+// The palette select's label for a locked palette: the template's own palette is named after the template.
+function lockedLabel(choice: Choice): string {
+  const name =
+    choice.template.lockedPalette === 'template' ? choice.template.label : choice.palette.label;
+  return `${name} (set by the template)`;
+}
+
+// The caller's own templates first, then those shared with them, then the built-ins; each keeps the server's order.
+function inGroups(templates: LooksTemplate[]): LooksTemplate[] {
+  const own = templates.filter((entry) => !entry.builtIn && entry.owner === null);
+  const shared = templates.filter((entry) => !entry.builtIn && entry.owner !== null);
+  return [...own, ...shared, ...templates.filter((entry) => entry.builtIn)];
 }
 
 const errorText = (error: unknown) =>
@@ -50,12 +77,12 @@ const errorText = (error: unknown) =>
 // chosen look. A template that locks its palette greys the palette out. Create
 // POSTs {title, template, palette} to /api/decks; a failed create shows the
 // server's error and keeps the dialog open.
-export function NewDeckDialog({ open, onClose, onCreated }: NewDeckDialogProps) {
+export function NewDeckDialog({ open, onClose, onCreated, initialTemplate }: NewDeckDialogProps) {
   if (!open) return null;
-  return <OpenDialog onClose={onClose} onCreated={onCreated} />;
+  return <OpenDialog onClose={onClose} onCreated={onCreated} initialTemplate={initialTemplate} />;
 }
 
-function OpenDialog({ onClose, onCreated }: Omit<NewDeckDialogProps, 'open'>) {
+function OpenDialog({ onClose, onCreated, initialTemplate }: Omit<NewDeckDialogProps, 'open'>) {
   const catalogue = useLooks();
   // The person's own pick; until they make one, the catalogue's defaults.
   const [picked, setPicked] = useState<Choice | null>(null);
@@ -65,7 +92,9 @@ function OpenDialog({ onClose, onCreated }: Omit<NewDeckDialogProps, 'open'>) {
   const titleRef = useRef<HTMLInputElement>(null);
 
   const looks = catalogue.kind === 'loaded' ? catalogue.looks : null;
-  const choice = picked ?? (looks ? defaultChoice(looks) : null);
+  const named = looks?.templates.find((entry) => entry.ref === initialTemplate);
+  const unavailable = Boolean(initialTemplate) && looks !== null && named === undefined;
+  const choice = picked ?? (looks ? (choiceOf(looks, named) ?? defaultChoice(looks)) : null);
   const locked = choice !== null && choice.template.lockedPalette !== null;
 
   const chooseTemplate = (template: LooksTemplate) => {
@@ -87,8 +116,8 @@ function OpenDialog({ onClose, onCreated }: Omit<NewDeckDialogProps, 'open'>) {
     try {
       const request: CreateDeckRequest = {
         title,
-        template: choice.template.name,
-        palette: choice.palette.name,
+        template: choice.template.ref,
+        palette: paletteNameOf(choice),
       };
       onCreated(await api.post<CreateDeckResult>('/api/decks', request));
     } catch (failure) {
@@ -157,28 +186,44 @@ function OpenDialog({ onClose, onCreated }: Omit<NewDeckDialogProps, 'open'>) {
                   <legend className="mb-1 text-xs font-semibold tracking-wider text-ink-muted uppercase">
                     Template
                   </legend>
-                  {looks.templates.map((template) => (
+                  {unavailable && (
+                    <p
+                      role="status"
+                      data-testid="new-deck-template-unavailable"
+                      className="text-meta text-ink-muted"
+                    >
+                      That template is not available to you.
+                    </p>
+                  )}
+                  {inGroups(looks.templates).map((template) => (
                     <label
-                      key={template.name}
+                      key={template.ref}
                       data-testid="new-deck-template"
-                      data-template={template.name}
+                      data-template={template.ref}
                       className={`grid cursor-pointer grid-cols-[16px_minmax(0,1fr)] gap-2.5 rounded-md border px-3 py-2 ${
-                        template.name === choice.template.name
+                        template.ref === choice.template.ref
                           ? 'border-accent bg-accent-soft'
                           : 'border-edge'
                       }`}
                     >
                       <input
                         type="radio"
-                        data-testid={`new-deck-template-${template.name}`}
+                        data-testid={`new-deck-template-${template.ref}`}
                         name="template"
-                        value={template.name}
-                        checked={template.name === choice.template.name}
+                        value={template.ref}
+                        checked={template.ref === choice.template.ref}
                         onChange={() => chooseTemplate(template)}
                         className="mt-1 accent-accent"
                       />
                       <span>
-                        <b className="font-semibold text-ink">{template.label}</b>
+                        <span className="flex flex-wrap items-center gap-x-2">
+                          <b className="font-semibold text-ink">{template.label}</b>
+                          {!template.builtIn && (
+                            <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent-dark">
+                              {template.owner === null ? 'yours' : `shared by ${template.owner}`}
+                            </span>
+                          )}
+                        </span>
                         <span className="block text-meta text-ink-muted">{template.purpose}</span>
                       </span>
                     </label>
@@ -197,11 +242,15 @@ function OpenDialog({ onClose, onCreated }: Omit<NewDeckDialogProps, 'open'>) {
                     aria-describedby="new-deck-palette-note"
                     onChange={(event) => choosePalette(event.target.value)}
                   >
-                    {looks.palettes.map((palette) => (
-                      <option key={palette.name} value={palette.name}>
-                        {palette.isDefault ? `${palette.label} (default)` : palette.label}
-                      </option>
-                    ))}
+                    {locked ? (
+                      <option value={paletteNameOf(choice)}>{lockedLabel(choice)}</option>
+                    ) : (
+                      looks.palettes.map((palette) => (
+                        <option key={palette.name} value={palette.name}>
+                          {palette.isDefault ? `${palette.label} (default)` : palette.label}
+                        </option>
+                      ))
+                    )}
                   </select>
                   <span aria-hidden className="flex h-4 overflow-hidden rounded">
                     {choice.palette.swatch.map((colour, index) => (

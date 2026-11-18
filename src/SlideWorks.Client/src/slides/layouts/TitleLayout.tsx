@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Stamp } from '../blocks/Stamp';
+import { OrnamentDots } from '../chrome/layers/Ornament';
 import type { LayoutProps } from '../slots';
 import { useFitText, type FitBudget } from '../useFitText';
 import styles from './TitleLayout.module.css';
@@ -70,9 +71,7 @@ export function TitleLayout({ slots }: LayoutProps<'title'>) {
     <div data-testid="layout-title" className={`sw-layout ${styles.title}`}>
       {stamp !== undefined ? <Stamp text={stamp} /> : null}
       <div className={styles.dots} aria-hidden="true">
-        <i />
-        <i />
-        <i />
+        <OrnamentDots />
       </div>
       {kicker !== undefined ? (
         <p data-testid="title-kicker" className={styles.kicker}>

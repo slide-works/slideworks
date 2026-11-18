@@ -1,0 +1,193 @@
+{
+  "compare": {
+    "layout": "compare",
+    "estimate": 607.2,
+    "grow": [
+      "/failure/sub",
+      "/success/sub"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Weekly Metrics Show Where Work Waits See",
+      "headline": "Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working",
+      "failure": {
+        "label": "Show Where Work Waits",
+        "title": "Make Every Merge Small And Reviewable Momentum See",
+        "sub": "Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster",
+        "points": [
+          "When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Real",
+          "Merge Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Working See",
+          "Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics"
+        ]
+      },
+      "success": {
+        "label": "Show Where Work Waits",
+        "title": "Make Every Merge Small And Reviewable Momentum See",
+        "sub": "Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster",
+        "points": [
+          "When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Real",
+          "Merge Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Working See",
+          "Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics"
+        ]
+      }
+    }
+  },
+  "compareRowsMax": {
+    "layout": "compare",
+    "estimate": 608.6,
+    "grow": [
+      "/failure/rows/0/value",
+      "/failure/footer",
+      "/failure/title"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "And Matters Maximum Working Faster Where",
+      "headline": "And Matters Maximum Working Teams When Real Show Waits Merge Reviewable Progress",
+      "failure": {
+        "label": "Every And More Faster",
+        "title": "Make Small Momentum Software",
+        "rows": [
+          {
+            "label": "Make Small And",
+            "value": "Make Small Momentum Software"
+          },
+          {
+            "label": "Every And Show",
+            "value": "Every And Matters Throughput"
+          },
+          {
+            "label": "Merge Momentum",
+            "value": "And Matters Maximum When And"
+          },
+          {
+            "label": "Small More See",
+            "value": "And Matters Maximum When And"
+          }
+        ],
+        "stamp": "Merge Momentum",
+        "footer": "Small Momentum Than Ship Week Faster See And Waits"
+      },
+      "success": {
+        "label": "Every And More Faster",
+        "title": "Make Small Momentum Software",
+        "rows": [
+          {
+            "label": "Make Small And",
+            "value": "Make Small Momentum Software"
+          },
+          {
+            "label": "Every And Show",
+            "value": "Every And Matters Throughput"
+          },
+          {
+            "label": "Merge Momentum",
+            "value": "And Matters Maximum When And"
+          },
+          {
+            "label": "Small More See",
+            "value": "And Matters Maximum When And"
+          }
+        ],
+        "stamp": "Merge Momentum",
+        "footer": "Small Momentum Than Ship Week Faster See And Waits"
+      }
+    }
+  },
+  "compareLineMax": {
+    "layout": "compare",
+    "estimate": 612.8,
+    "grow": [
+      "/failure/sub"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "And Matters Maximum Working Faster Where",
+      "headline": "And Matters Maximum Working Teams When Real Show Waits Merge Reviewable Progress",
+      "failure": {
+        "label": "Every And More Faster",
+        "title": "Make Small Momentum Than Ship Week Faster Make And",
+        "sub": "Every And Matters Maximum Working Faster More",
+        "line": "Momentum Than Ship Week Faster See Metrics Work Every And Matters Maximum Working Teams Progress See",
+        "footer": "Merge Reviewable More Throughput Software Learn Customers Progress Where Make Momentum See"
+      },
+      "success": {
+        "label": "Every And More Faster",
+        "title": "Make Small Momentum Than Ship Week Faster Make And",
+        "sub": "Every And Matters Maximum Working Faster More",
+        "line": "Momentum Than Ship Week Faster See Metrics Work Every And Matters Maximum Working Teams Progress See",
+        "footer": "Merge Reviewable More Throughput Software Learn Customers Progress Where Make Momentum See"
+      }
+    }
+  },
+  "comparePointsStampFooter": {
+    "layout": "compare",
+    "estimate": 609.6,
+    "grow": [
+      "/failure/points/1"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "And Matters Maximum Working Faster Where",
+      "headline": "And Matters Maximum Working Teams When Real Show Waits Merge Reviewable Progress",
+      "failure": {
+        "label": "Every And More Faster",
+        "title": "And Matters Maximum When And",
+        "points": [
+          "Merge Reviewable More Throughput Software Learn Customers Progress Where Make More Every",
+          "Every And Matters Maximum Working Progress",
+          "Merge Reviewable More Throughput See Teams"
+        ],
+        "stamp": "Merge Momentum",
+        "footer": "And Matters Maximum Working Teams When Real Show Waits Merge Reviewable Progress"
+      },
+      "success": {
+        "label": "Every And More Faster",
+        "title": "And Matters Maximum When And",
+        "points": [
+          "Merge Reviewable More Throughput Software Learn Customers Progress Where Make More Every",
+          "Every And Matters Maximum Working Progress",
+          "Merge Reviewable More Throughput See Teams"
+        ],
+        "stamp": "Merge Momentum",
+        "footer": "And Matters Maximum Working Teams When Real Show Waits Merge Reviewable Progress"
+      }
+    }
+  },
+  "compareCallout": {
+    "layout": "compare",
+    "estimate": 493.8,
+    "grow": [
+      "/failure/points/1"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "And Matters Maximum Working Faster Where",
+      "headline": "And Matters Maximum Working Teams When Real Show Waits Merge Reviewable Progress",
+      "failure": {
+        "label": "Every And More Faster",
+        "title": "Merge Reviewable More Throughput Software Show And",
+        "sub": "Every And Matters Maximum Working Progress",
+        "points": [
+          "Small Momentum Than Ship Week Faster See Metrics Work Every Than Merge",
+          "Every And Matters Maximum Working Progress",
+          "Merge Reviewable More Throughput See Teams"
+        ]
+      },
+      "success": {
+        "label": "Every And More Faster",
+        "title": "Merge Reviewable More Throughput Software Show And",
+        "sub": "Every And Matters Maximum Working Progress",
+        "points": [
+          "Small Momentum Than Ship Week Faster See Metrics Work Every Than Merge",
+          "Every And Matters Maximum Working Progress",
+          "Merge Reviewable More Throughput See Teams"
+        ]
+      },
+      "callout": {
+        "tone": "accent",
+        "text": "Every And Matters Maximum Working Teams When Real Make Every"
+      }
+    }
+  }
+}

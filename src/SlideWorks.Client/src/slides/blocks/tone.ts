@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { PaletteTokenKey } from '../../api/types';
-import type { Fill, Tone } from '../slots';
+import type { PanelFill, Tone } from '../slots';
 
 // The four tones a panel is drawn in (SW-2 L4).
 export type PanelTone = 'accent' | 'positive' | 'negative' | 'inverse';
@@ -34,6 +34,18 @@ const SOLID: Record<PanelTone, TonePair> = {
   inverse: { surface: 'panel-inverse', ink: 'panel-inverse-ink' },
 };
 
+// plain keeps the card's own surface and ink, whatever the tone; the tone
+// shows in a rule (toneRule).
+const PLAIN: TonePair = { surface: 'card', ink: 'ink' };
+
+// The colour of a tone's rule, as a palette token name.
+const RULE: Record<PanelTone, PaletteTokenKey> = {
+  accent: 'accent',
+  positive: 'good',
+  negative: 'bad',
+  inverse: 'night',
+};
+
 // The tone a panel draws in, with an alias resolved.
 export function panelTone(tone: Tone): PanelTone {
   return CANONICAL[tone];
@@ -41,13 +53,19 @@ export function panelTone(tone: Tone): PanelTone {
 
 // The surface and ink token names for a tone and fill; the fill is soft when
 // left out.
-export function tonePair(tone: Tone, fill: Fill = 'soft'): TonePair {
+export function tonePair(tone: Tone, fill: PanelFill = 'soft'): TonePair {
+  if (fill === 'plain') return PLAIN;
   return (fill === 'solid' ? SOLID : SOFT)[panelTone(tone)];
+}
+
+// The token name of the colour a tone's rule is drawn in, with an alias resolved.
+export function toneRule(tone: Tone): PaletteTokenKey {
+  return RULE[panelTone(tone)];
 }
 
 // The pair as the --panel-surface and --panel-ink custom properties that the
 // toned panels' CSS reads.
-export function toneStyle(tone: Tone, fill?: Fill): CSSProperties {
+export function toneStyle(tone: Tone, fill?: PanelFill): CSSProperties {
   const { surface, ink } = tonePair(tone, fill);
   return {
     '--panel-surface': `var(--sw-${surface})`,

@@ -5,6 +5,7 @@ using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Decks.Views;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Look.Views;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 
 namespace SlideWorks.WebApi.Features.Render;
@@ -13,7 +14,7 @@ namespace SlideWorks.WebApi.Features.Render;
 // The render token is the only key: it must be valid for this deck and this purpose (Preview for the play view, Card for
 // the card), or the deck is not found, so a private deck is readable only through its own token.
 [RegisterPerRequest]
-public class RenderViews(DeckReader reader, IRenderTokens tokens, ITemplateCatalogue templates, IPaletteCatalogue palettes, TimeProvider clock)
+public class RenderViews(DeckReader reader, IRenderTokens tokens, IDeckLooks looks, TimeProvider clock)
 {
     public async Task<DeckPlayView> PlayAsync(string deckId, string? token)
     {
@@ -28,7 +29,7 @@ public class RenderViews(DeckReader reader, IRenderTokens tokens, ITemplateCatal
         var deck = await reader.ReadForRenderAsync(deckId);
         return deck.Sharing == DeckSharing.Link
             ? CardView.ForDeck(deck.Play.Title, deck.Subtitle, deck.Play.Author, deck.Play.Slides.Count, deck.Play.Look)
-            : CardView.GenericWith(LookViews.Default(templates, palettes, clock.GetUtcNow()));
+            : CardView.GenericWith(await looks.DefaultAsync(clock.GetUtcNow(), CancellationToken.None));
     }
 
     private void Require(string? token, string deckId, RenderPurpose purpose)

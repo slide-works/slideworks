@@ -1,0 +1,140 @@
+{
+  "id": "tpl_Nw4kT8pQz2Lm",
+  "name": "Northwind kickoff",
+  "owner": "Sam Rivera",
+  "purpose": "Northwind project kickoffs: a talk plus exercises the room does.",
+  "look": {
+    "template": {
+      "name": "workshop",
+      "label": "Workshop",
+      "layouts": [
+        "title",
+        "divider",
+        "bullets",
+        "two-column",
+        "practice",
+        "compare",
+        "quote",
+        "image",
+        "table",
+        "numbered-cards",
+        "rules",
+        "cards",
+        "close"
+      ],
+      "chrome": {
+        "tracker": true,
+        "footer": "author",
+        "progress": true,
+        "deepDivesOnDivider": true,
+        "draft": true
+      },
+      "type": {
+        "head": "Plus Jakarta Sans",
+        "body": "Inter",
+        "headWeight": 800,
+        "headTracking": "-0.025em"
+      },
+      "shape": {
+        "radius": {
+          "sm": 10,
+          "md": 12,
+          "lg": 16,
+          "xl": 18
+        },
+        "shadow": "0 1px 2px rgb(15 23 42 / 0.06), 0 14px 36px rgb(15 23 42 / 0.09)"
+      },
+      "ornament": "dots",
+      "titleArt": "waves"
+    },
+    "palette": {
+      "name": "cobalt",
+      "label": "Cobalt",
+      "tokens": {
+        "paper": "#f7f8fa",
+        "card": "#ffffff",
+        "chip": "#eef1f6",
+        "grid": "#e3e6ec",
+        "ink": "#111827",
+        "muted": "#5b6474",
+        "accent": "#2f5bea",
+        "accent-2": "#2f5bea",
+        "accent-dark": "#1e3a8a",
+        "accent-light": "#e4eafd",
+        "accent-glow": "#a5b8ff",
+        "accent-past": "#b9c8f8",
+        "on-accent": "#ffffff",
+        "good": "#16a34a",
+        "good-soft": "#dcfce7",
+        "good-ink": "#166534",
+        "bad": "#dc2626",
+        "bad-soft": "#fdecec",
+        "bad-ink": "#991b1b",
+        "warn": "#ea580c",
+        "warn-soft": "#ffedd5",
+        "warn-ink": "#9a3412",
+        "dd": "#c2410c",
+        "on-dd": "#ffffff",
+        "dd-on-night": "#fdba74",
+        "night": "#0b1020",
+        "night-ink": "#ffffff",
+        "night-2": "#cbd5e1",
+        "night-muted": "#8c97ad",
+        "night-line": "#334155",
+        "night-glow": "rgb(47 91 234)",
+        "number-from": "#c3d0ff",
+        "number-to": "#5b7cff",
+        "stamp": "#fcd34d",
+        "panel-accent": "#2f5bea",
+        "panel-accent-ink": "#ffffff",
+        "panel-positive": "#15803d",
+        "panel-positive-ink": "#ffffff",
+        "panel-negative": "#b91c1c",
+        "panel-negative-ink": "#ffffff",
+        "panel-inverse": "#0b1020",
+        "panel-inverse-ink": "#ffffff"
+      }
+    },
+    "logo": {
+      "url": "/api/images/img_logo0001"
+    },
+    "fonts": [
+      {
+        "family": "Northwind Sans",
+        "role": "head",
+        "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/8ff223d8922a55e32af314efafccf350",
+        "weight": 800,
+        "style": "normal"
+      }
+    ],
+    "logos": {
+      "light": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/d00cf13ae19e49cf841ea758a9b84460",
+      "dark": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/ee2e8795ed476090d166cdac72ca2ae9",
+      "showOnDark": true
+    },
+    "art": {
+      "kind": "image",
+      "generator": null,
+      "url": "/api/templates/tpl_Nw4kT8pQz2Lm/assets/7fcef0f7c16a0ee4ecd9098d9b4ecc8c"
+    },
+    "ornament": {
+      "colours": ["accent", "accent-2"]
+    },
+    "topBar": "accent",
+    "templateRef": "tpl_Nw4kT8pQz2Lm",
+    "templateVersion": 2,
+    "latestVersion": 2,
+    "extras": [
+      {
+        "name": "extra-1",
+        "colour": "#101820",
+        "ink": "#ffffff"
+      }
+    ],
+    "customLayouts": [],
+    "draft": true,
+    "footerDateLabel": "16 Nov 2026",
+    "joinBar": false,
+    "templateMissing": false
+  }
+}

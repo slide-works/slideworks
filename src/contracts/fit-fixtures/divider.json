@@ -1,0 +1,24 @@
+{
+  "dividerSub": {
+    "layout": "divider",
+    "grow": [
+      "/sub"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "title": "Slice The Work Thin Enough To Ship Every Sin",
+      "sub": "How to cut work so each piece reaches a customer and the feedback arrives in days rather than quarters of wait"
+    }
+  },
+  "dividerSubWide": {
+    "layout": "divider",
+    "grow": [
+      "/sub"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "title": "Many Women Who Wander Wide Meadows Mow Mosss",
+      "sub": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm Whom We Name Wombat Mummy Mavens Wow Momentum Wi"
+    }
+  }
+}

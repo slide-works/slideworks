@@ -38,7 +38,7 @@ public class DeckPageTests : ApiTestFixture
         page.GetProperty("playUrl").GetString().ShouldBe($"/d/{deck}/ship-smaller");
         page.GetProperty("sharing").GetProperty("level").GetString().ShouldBe("private");
         page.GetProperty("sharing").GetProperty("viewerCount").GetInt32().ShouldBe(0);
-        page.GetProperty("parts").EnumerateArray().Select(p => p.GetString()).ShouldBe(DeckSeed.SAMPLE_PARTS);
+        page.GetProperty("parts").EnumerateArray().Select(p => p.GetProperty("name").GetString()).ShouldBe(DeckSeed.SAMPLE_PARTS);
 
         var slides = page.GetProperty("slides").EnumerateArray().ToList();
         slides.Select(s => s.GetProperty("number").GetInt32()).ShouldBe([1, 2, 3]);

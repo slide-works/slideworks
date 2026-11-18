@@ -14,6 +14,7 @@ import type {
 } from '../../api/types';
 import { lookOf } from '../../look/lookOf';
 import type { LayoutName } from '../../slides/slots';
+import { templatePublic } from './templates';
 import type { Widen } from './widen';
 
 // One entry of templates.json: the catalogue's own shape, which GET /api/looks
@@ -95,6 +96,10 @@ export function looksTemplateOf(template: CatalogueTemplate): LooksTemplate {
     ornament: template.ornament,
     titleArt: template.titleArt,
     lockedPalette: template.lockPalette ? template.palette : null,
+    ref: template.name,
+    version: null,
+    builtIn: true,
+    owner: null,
   };
 }
 
@@ -112,12 +117,21 @@ export function looksPaletteOf(palette: CataloguePalette): LooksPalette {
 
 // The look of a deck on this template (a name, or an entry such as
 // lockingTemplate) and palette, with the template's own chrome and draft
-// setting, no logo, and any field overridden.
+// setting, no logo, a built-in's values for everything a template can bring
+// (no fonts, logos, top bar, extras or custom layouts), and any field overridden.
 export function lookViewOf(
   template: string | CatalogueTemplate,
   palette: string,
   overrides: Partial<LookView> = {},
 ): LookView {
   const entry = typeof template === 'string' ? templateNamed(template) : template;
-  return { ...lookOf(entry, paletteNamed(palette), FOOTER_DATE_LABEL), ...overrides };
+  return {
+    ...lookOf(looksTemplateOf(entry), paletteNamed(palette), FOOTER_DATE_LABEL),
+    ...overrides,
+  };
 }
+
+// The look of a deck on an uploaded template, from template-public.json: fonts, both logos, an image title art,
+// ornament colours, the accent top bar, versions and an extra colour. For whatever draws what a template brings;
+// every other fixture look is a built-in's, with none of it.
+export const uploadedLook: LookView = templatePublic.look;

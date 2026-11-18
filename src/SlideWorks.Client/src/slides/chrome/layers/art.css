@@ -1,0 +1,32 @@
+/* The template's title art. Hidden until the rule below shows it for the title
+   slide, read from the frame's own attribute. */
+.sw-title-art {
+  display: none;
+  pointer-events: none;
+}
+
+/* The art sits in .sw-layers, which paints above in-flow content, so the frame
+   gets its own stacking context and the art a negative z-index to go behind the
+   slide's text. */
+.sw-frame[data-layout='title']:has(.sw-title-art) {
+  isolation: isolate;
+}
+
+.sw-frame[data-layout='title'] .sw-title-art {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+}
+
+img.sw-title-art {
+  object-fit: cover;
+}
+
+.sw-title-art path {
+  fill: none;
+  stroke: var(--sw-accent-2);
+  stroke-width: 2.4;
+}

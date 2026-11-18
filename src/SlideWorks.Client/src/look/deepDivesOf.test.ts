@@ -26,6 +26,32 @@ describe('deepDivesOf', () => {
     );
   });
 
+  it('lists a statement slide by its statement, and the other new layouts by their headline', () => {
+    const slides = [
+      {
+        number: 4,
+        part: 2,
+        deepDive: true,
+        layout: 'statement' as const,
+        slots: { kicker: 'The point', statement: 'Small batches are how we find out sooner.' },
+      },
+      {
+        number: 5,
+        part: null,
+        deepDive: true,
+        layout: 'flow' as const,
+        slots: {
+          headline: 'From idea to production',
+          nodes: [{ title: 'Idea' }, { title: 'Production' }],
+        },
+      },
+    ];
+    expect(deepDivesOf(slides)).toEqual([
+      { part: 2, number: 4, headline: 'Small batches are how we find out sooner.' },
+      { part: null, number: 5, headline: 'From idea to production' },
+    ]);
+  });
+
   it('is empty when no slide is flagged', () => {
     expect(deepDivesOf(sampleDeck.slides.map((slide) => ({ ...slide, deepDive: false })))).toEqual(
       [],

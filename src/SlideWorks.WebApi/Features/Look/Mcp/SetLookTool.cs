@@ -12,14 +12,15 @@ namespace SlideWorks.WebApi.Features.Look.Mcp;
 public sealed class SetLookTool
 {
     [McpServerTool(Name = LookCommands.TOOL)]
-    [Description("Change a deck's look: its template, palette, logo, draft mark or chrome. Give only what changes. A template that locks its palette refuses another palette, and switching to it switches the palette. Returns the look in get_deck's terms and a warning for each slide whose layout isn't in the template (it still renders; consider changing it). The change shows in the deck's activity.")]
+    [Description("Change a deck's look: its template, palette, logo, draft mark, chrome or the version of its template. Give only what changes. A template that locks its palette refuses another palette, and switching to it switches the palette. Returns the look in get_deck's terms and a warning for each slide whose layout isn't in the template (it still renders; consider changing it). The change shows in the deck's activity.")]
     public Task<CallToolResult> SetLook(
         LookCommands commands,
         [Description("The deck's id.")] string deck,
-        [Description("A template's name, as list_templates gives it.")] string? template = null,
+        [Description("A template's `tpl_…` id, or a built-in's name, as list_templates gives it; the short name of an uploaded template is never an address.")] string? template = null,
         [Description("A palette's name, as list_palettes gives it.")] string? palette = null,
         [Description("The logo: the id of a completed upload_image on this deck, or null to remove the logo.")] JsonElement? logo = null,
         [Description("true to mark the deck as a draft, false to clear the mark.")] bool? draft = null,
-        [Description("Chrome overrides, any of { \"tracker\": true|false, \"footer\": \"author\"|\"date\"|\"off\", \"progress\": true|false }. A key set to null goes back to the template's default; a key left out keeps its current value.")] JsonElement? chrome = null)
-        => McpToolErrors.Run(() => commands.SetFromAgentAsync(deck, new LookChangeRequest(template, palette, logo ?? default, draft, chrome ?? default).ToChange()));
+        [Description("Chrome overrides, any of { \"tracker\": true|false, \"footer\": \"author\"|\"date\"|\"off\", \"progress\": true|false, \"topBar\": \"accent\"|\"none\" }. A key set to null goes back to the template's default; a key left out keeps its current value.")] JsonElement? chrome = null,
+        [Description("A version of the deck's uploaded template to move the deck to: a whole number of 1 or more, or \"latest\". Moving back to an older version is allowed. A built-in template has no versions. Stored slides are not rewritten.")] JsonElement? template_version = null)
+        => McpToolErrors.Run(() => commands.SetFromAgentAsync(deck, new LookChangeRequest(template, palette, logo ?? default, draft, chrome ?? default, template_version ?? default).ToChange()));
 }

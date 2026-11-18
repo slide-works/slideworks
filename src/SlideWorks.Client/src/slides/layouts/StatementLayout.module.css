@@ -1,0 +1,31 @@
+/* The statement slide: one big sentence, in canvas px. */
+.statement {
+  align-items: flex-start;
+  /* Safe centring: content taller than the box overflows downwards, into the
+     room above the footer (to y 996), never up past the content top at y 150. */
+  justify-content: safe center;
+}
+
+.heading {
+  max-width: 1680px;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--sw-ink);
+  /* The size is set by the three-line fit in StatementLayout.tsx, from 210 px to 110 px. */
+  font: 800 210px/1 var(--sw-font-head);
+  letter-spacing: -0.035em;
+}
+
+/* Each written line starts on its own line; a long one still wraps. */
+.line {
+  display: block;
+  min-height: 1lh;
+}
+
+.sub {
+  max-width: 1680px;
+  margin: 44px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--sw-accent-dark);
+  font: 600 56px/1.25 var(--sw-font-head);
+}

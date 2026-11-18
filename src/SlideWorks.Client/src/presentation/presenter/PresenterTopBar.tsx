@@ -66,7 +66,7 @@ export function PresenterTopBar({
 }: Props) {
   const running = state.timer.state === 'running';
   const partNumber = view.slides[state.slide - 1]?.part ?? null;
-  const part = partNumber === null ? null : (view.parts[partNumber - 1] ?? null);
+  const part = partNumber === null ? null : (view.parts[partNumber - 1]?.name ?? null);
   const leftMs = state.talkMinutes === null ? null : state.talkMinutes * 60 * 1000 - elapsedMs;
   const tone = toneOf(leftMs);
   const audience = state.connected.filter((c) => c.role === 'audience');

@@ -1,0 +1,205 @@
+{
+  "compilerVersion": 1,
+  "name": "bar-chart",
+  "description": "A headline over 2 to 5 horizontal bars, each a share of 100. Can reveal one bar per step.",
+  "surface": "light",
+  "steps": {
+    "kind": "list",
+    "list": "bars",
+    "count": 0
+  },
+  "tree": {
+    "version": 1,
+    "scope": "0a1b2c3d",
+    "root": [
+      {
+        "tag": "div",
+        "classes": [
+          "cl-0a1b2c3d-bar-chart__chart"
+        ],
+        "vars": [],
+        "variants": [],
+        "children": [
+          {
+            "tag": "div",
+            "classes": [
+              "cl-0a1b2c3d-bar-chart__headline"
+            ],
+            "slot": "headline",
+            "vars": [],
+            "variants": [],
+            "children": []
+          },
+          {
+            "tag": "div",
+            "classes": [
+              "cl-0a1b2c3d-bar-chart__bars"
+            ],
+            "vars": [],
+            "variants": [],
+            "children": [
+              {
+                "tag": "div",
+                "classes": [
+                  "cl-0a1b2c3d-bar-chart__row"
+                ],
+                "each": "bars",
+                "step": 0,
+                "vars": [],
+                "variants": [],
+                "children": [
+                  {
+                    "tag": "span",
+                    "classes": [
+                      "cl-0a1b2c3d-bar-chart__label"
+                    ],
+                    "slot": "label",
+                    "vars": [],
+                    "variants": [],
+                    "children": []
+                  },
+                  {
+                    "tag": "div",
+                    "classes": [
+                      "cl-0a1b2c3d-bar-chart__track"
+                    ],
+                    "vars": [],
+                    "variants": [],
+                    "children": [
+                      {
+                        "tag": "div",
+                        "classes": [
+                          "cl-0a1b2c3d-bar-chart__bar"
+                        ],
+                        "vars": [
+                          {
+                            "name": "--v",
+                            "slot": "share"
+                          }
+                        ],
+                        "variants": [
+                          {
+                            "slot": "state",
+                            "classes": {
+                              "normal": "cl-0a1b2c3d-bar-chart__is-normal",
+                              "alert": "cl-0a1b2c3d-bar-chart__is-alert"
+                            }
+                          }
+                        ],
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "tag": "p",
+            "classes": [
+              "cl-0a1b2c3d-bar-chart__note"
+            ],
+            "slot": "note",
+            "if": "note",
+            "vars": [],
+            "variants": [],
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  "css": ".cl-0a1b2c3d-bar-chart__chart {\n  display: flex;\n  flex-direction: column;\n  gap: var(--sw-space-5);\n  color: var(--sw-ink);\n}\n.cl-0a1b2c3d-bar-chart__headline {\n  font-size: 64px;\n  font-weight: 700;\n}\n.cl-0a1b2c3d-bar-chart__bars {\n  display: flex;\n  flex-direction: column;\n  gap: var(--sw-space-4);\n}\n.cl-0a1b2c3d-bar-chart__row {\n  display: flex;\n  align-items: center;\n  gap: var(--sw-space-4);\n}\n.cl-0a1b2c3d-bar-chart__label {\n  width: 320px;\n  font-size: 32px;\n}\n.cl-0a1b2c3d-bar-chart__track {\n  flex-grow: 1;\n  height: 56px;\n  border-radius: var(--sw-radius-sm);\n  background: var(--sw-chip);\n}\n.cl-0a1b2c3d-bar-chart__bar {\n  width: calc(var(--v) * 1%);\n  height: 100%;\n  border-radius: var(--sw-radius-sm);\n  background: var(--sw-accent);\n}\n.cl-0a1b2c3d-bar-chart__bar.cl-0a1b2c3d-bar-chart__is-alert {\n  background: var(--sw-bad);\n}\n.cl-0a1b2c3d-bar-chart__note {\n  font-size: 28px;\n  color: var(--sw-muted);\n}\n",
+  "schema": {
+    "name": "bar-chart",
+    "description": "A headline over 2 to 5 horizontal bars, each a share of 100. Can reveal one bar per step.",
+    "surface": "light",
+    "steps": "bars",
+    "slots": {
+      "headline": {
+        "type": "text",
+        "max": 80
+      },
+      "bars": {
+        "type": "list",
+        "min": 2,
+        "max": 5,
+        "of": {
+          "label": {
+            "type": "text",
+            "max": 20
+          },
+          "share": {
+            "type": "number",
+            "min": 0,
+            "max": 100
+          },
+          "state": {
+            "type": "enum",
+            "values": [
+              "normal",
+              "alert"
+            ]
+          }
+        }
+      },
+      "note": {
+        "type": "text",
+        "max": 120,
+        "optional": true
+      }
+    }
+  },
+  "sample": {
+    "headline": "Where the week went",
+    "bars": [
+      {
+        "label": "Meetings",
+        "share": 46,
+        "state": "alert"
+      },
+      {
+        "label": "Building",
+        "share": 38,
+        "state": "normal"
+      },
+      {
+        "label": "Reviews",
+        "share": 16,
+        "state": "normal"
+      }
+    ],
+    "note": "Share of working hours, last sprint."
+  },
+  "maximum": {
+    "headline": "Where every hour of the working week went across the whole of the last quarter m",
+    "bars": [
+      {
+        "label": "Label number 1 mmmmm",
+        "share": 100,
+        "state": "alert"
+      },
+      {
+        "label": "Label number 2 mmmmm",
+        "share": 100,
+        "state": "normal"
+      },
+      {
+        "label": "Label number 3 mmmmm",
+        "share": 100,
+        "state": "alert"
+      },
+      {
+        "label": "Label number 4 mmmmm",
+        "share": 100,
+        "state": "normal"
+      },
+      {
+        "label": "Label number 5 mmmmm",
+        "share": 100,
+        "state": "alert"
+      }
+    ],
+    "note": "Share of working hours across the last quarter, counted from calendars and commits. mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+  }
+}

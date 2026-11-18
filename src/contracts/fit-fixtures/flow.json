@@ -1,0 +1,90 @@
+{
+  "flowFour": {
+    "layout": "flow",
+    "estimate": 592.0,
+    "grow": [
+      "/nodes/0/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "How a record travels",
+      "headline": "Four steps from the door to the archive",
+      "nodes": [
+        {
+          "title": "Validate and normalise records",
+          "label": "Step one: intake now",
+          "text": "Takes each inbound record, checks each field and parks bad rows aside for later."
+        },
+        {
+          "title": "Enrich every record with owner",
+          "label": "Step two: enrichment",
+          "text": "Looks up the owner of each record, adds the team name and flags missing owners."
+        },
+        {
+          "title": "Batch the records for workers",
+          "label": "Step three: batching",
+          "text": "Splits the records into batches of fifty and sends each batch to the next worker."
+        },
+        {
+          "title": "Archive, then clean up files",
+          "label": "Step four: archiving",
+          "text": "Writes each batch to the archive, checks the copy and then clears old files."
+        }
+      ],
+      "caption": "Every record takes the same four steps in the same order, and nothing moves on until the step before it is done. Always. Always. Always. Alw",
+      "chips": [
+        "Runs hourly, on the hour",
+        "Retries each run twice",
+        "Keeps copies ninety days",
+        "Pages the on-call staff"
+      ],
+      "callout": {
+        "tone": "accent",
+        "text": "Nothing skips a step."
+      }
+    }
+  },
+  "flowGroup": {
+    "layout": "flow",
+    "estimate": 613.8,
+    "grow": [
+      "/nodes/1/items/0"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Inside the pipeline",
+      "headline": "One step does four jobs on its own",
+      "nodes": [
+        {
+          "title": "Collect",
+          "text": "Gather what arrived today."
+        },
+        {
+          "title": "Clean each record in turn",
+          "text": "The busiest step in the whole flow, run once.",
+          "items": [
+            "Verify every signature",
+            "Strip any tracking ids",
+            "Resize the huge images",
+            "Queue each good record"
+          ]
+        },
+        {
+          "title": "Publish",
+          "text": "Send it out to every team."
+        }
+      ],
+      "caption": "Every record takes the same four steps in the same order, and nothing moves on until the step before it is done. Always. Always. Always. Alw",
+      "chips": [
+        "Runs hourly, on the hour",
+        "Retries each run twice",
+        "Keeps copies ninety days",
+        "Pages the on-call staff"
+      ],
+      "callout": {
+        "tone": "positive",
+        "text": "The middle step is where nearly all of the time goes, so we watch it more closely than the rest of the flow, every day."
+      }
+    }
+  }
+}

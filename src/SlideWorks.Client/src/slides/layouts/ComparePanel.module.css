@@ -6,6 +6,10 @@
    panel's top border takes the role colour. A solid panel is one colour. */
 .panel {
   --panel-edge: var(--panel-ink);
+  --panel-tag: var(--panel-ink);
+  --panel-stamp: var(--panel-edge);
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   padding: 44px 48px;
   border-top: 10px solid var(--panel-edge);
@@ -32,13 +36,14 @@
 }
 
 .panel[data-fill='solid'] {
+  --panel-stamp: var(--panel-ink);
   border-top-color: var(--panel-surface);
 }
 
 .tag {
   margin: 0;
   overflow-wrap: anywhere;
-  color: var(--panel-ink);
+  color: var(--panel-tag);
   font: 800 18px/1 var(--sw-font-body);
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -67,4 +72,76 @@
   list-style: disc;
   overflow-wrap: anywhere;
   font: 400 27px/1.4 var(--sw-font-body);
+}
+
+/* The tag row: an icon no taller than the 18 px tag, beside it. */
+.tagRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: var(--panel-tag);
+}
+
+.tagRow > .tag {
+  min-width: 0;
+}
+
+/* Label-and-value rows: a 180 px label column and the value, each row with 12 px
+   above and below and a line at 14% of the ink. */
+.rows {
+  margin: 26px 0 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  column-gap: 20px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid color-mix(in srgb, var(--panel-ink) 14%, transparent);
+}
+
+.rowLabel {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: color-mix(in srgb, var(--panel-ink) 62%, transparent);
+  font: 700 16px/1.2 var(--sw-font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.rowValue {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 700 32px/1.2 var(--sw-font-head);
+}
+
+/* One large line, such as a quoted sentence. */
+.line {
+  margin: 26px 0 0;
+  overflow-wrap: anywhere;
+  font: 700 40px/1.25 var(--sw-font-head);
+}
+
+/* The inline stamp's row is a flex box, so the stamp adds no line-box strut. */
+.stampSlot {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* The footer sits at the panel's foot: 20 px above its line, 14 px below. */
+.footerSlot {
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+.footer {
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--panel-ink) 14%, transparent);
+  overflow-wrap: anywhere;
+  color: color-mix(in srgb, var(--panel-ink) 80%, transparent);
+  font: 400 24px/1.4 var(--sw-font-body);
 }

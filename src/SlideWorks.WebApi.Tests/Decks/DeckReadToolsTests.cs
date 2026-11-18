@@ -1,4 +1,5 @@
 using System.Text.Json;
+using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -10,12 +11,6 @@ namespace SlideWorks.WebApi.Tests.Decks;
 [TestFixture]
 public class DeckReadToolsTests : ApiTestFixture
 {
-    private static readonly string[] LAYOUTS =
-    [
-        "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote",
-        "image", "table", "chart", "gantt", "numbered-cards", "rules", "cards", "close", "join", "poll", "qa",
-    ];
-
     [Test]
     public async Task GetDeckUrl_WhenSlideAndStep_ShouldReturnHashLink()
     {
@@ -78,10 +73,10 @@ public class DeckReadToolsTests : ApiTestFixture
         structured.EnumerateObject().Select(p => p.Name).ShouldBe(["layouts"]);
         McpWire.TextOf(result).ShouldBe(structured.GetRawText());
         var layouts = structured.GetProperty("layouts").EnumerateArray().ToList();
-        layouts.Select(l => l.GetProperty("name").GetString()).ShouldBe(LAYOUTS);
+        layouts.Select(l => l.GetProperty("name").GetString()).ShouldBe(LayoutCatalogue.LayoutNames);
         foreach (var layout in layouts)
         {
-            layout.EnumerateObject().Select(p => p.Name).ShouldBe(["name", "description", "dark", "stepsFrom", "schema"]);
+            layout.EnumerateObject().Select(p => p.Name).ShouldBe(["name", "description", "dark", "stepsFrom", "schema", "surface", "steps", "tracker"]);
             layout.GetProperty("description").GetString().ShouldNotBeNullOrWhiteSpace();
             var schema = layout.GetProperty("schema");
             schema.GetProperty("$schema").GetString().ShouldBe("https://json-schema.org/draft/2020-12/schema");
@@ -90,10 +85,89 @@ public class DeckReadToolsTests : ApiTestFixture
         }
         layouts.Where(l => l.GetProperty("dark").GetBoolean()).Select(l => l.GetProperty("name").GetString()).ShouldBe(["title", "divider", "close", "join"]);
         var practice = layouts.Single(l => l.GetProperty("name").GetString() == "practice").GetProperty("schema");
-        practice.GetProperty("properties").EnumerateObject().Select(p => p.Name).ShouldBe(["kicker", "headline", "do", "comes_back", "avoid", "callout"], ignoreOrder: true);
+        practice.GetProperty("properties").EnumerateObject().Select(p => p.Name).ShouldBe(LayoutCatalogue.Find("practice")!.Slots.Fields.Select(f => f.Name), ignoreOrder: true);
         practice.GetProperty("required").EnumerateArray().Select(r => r.GetString()).ShouldContain("do");
         layouts.Single(l => l.GetProperty("name").GetString() == "bullets").GetProperty("stepsFrom").GetString().ShouldBe("items");
         layouts.Single(l => l.GetProperty("name").GetString() == "quote").GetProperty("stepsFrom").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    [Test]
+    public async Task ListLayouts_WhenCalled_ShouldCarrySurfaceAndSteps()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "list_layouts", "{}");
+
+        var layouts = result.GetProperty("structuredContent").GetProperty("layouts").EnumerateArray().ToDictionary(l => l.GetProperty("name").GetString()!);
+        layouts["title"].GetProperty("surface").GetString().ShouldBe("dark");
+        layouts["title"].GetProperty("dark").GetBoolean().ShouldBeTrue();
+        layouts["statement"].GetProperty("surface").GetString().ShouldBe("either");
+        layouts["statement"].GetProperty("dark").GetBoolean().ShouldBeFalse();
+        layouts["gantt"].GetProperty("surface").GetString().ShouldBe("light");
+        var noPlan = LayoutCatalogue.Layouts.First(l => l.Steps is null && l.Name != "title");
+        layouts[noPlan.Name].GetProperty("steps").ValueKind.ShouldBe(JsonValueKind.Null);
+        layouts["bullets"].GetProperty("steps").GetString().ShouldBe(LayoutCatalogue.Find("bullets")!.Steps!.Phrase);
+        layouts["bullets"].GetProperty("steps").GetString().ShouldNotBeNullOrWhiteSpace();
+        layouts["bullets"].GetProperty("stepsFrom").GetString().ShouldBe("items");
+        foreach (var layout in LayoutCatalogue.Layouts)
+        {
+            layouts[layout.Name].GetProperty("tracker").GetBoolean().ShouldBe(layout.Tracker);
+        }
+    }
+
+    [Test]
+    public async Task ListLayouts_WhenCalledOnTheWire_ShouldReturnSurfaceAsAString()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "list_layouts", "{}");
+
+        foreach (var layout in result.GetProperty("structuredContent").GetProperty("layouts").EnumerateArray())
+        {
+            layout.GetProperty("surface").ValueKind.ShouldBe(JsonValueKind.String);
+            new[] { "light", "dark", "either" }.ShouldContain(layout.GetProperty("surface").GetString());
+        }
+        McpWire.TextOf(result).ShouldContain("\"surface\":\"either\"");
+    }
+
+    [Test]
+    public async Task ListLayouts_WhenDescribed_ShouldNameSurfaceAndSteps()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        var message = await McpWire.SendAsync(Factory, agent.Tokens.AccessToken, """{"jsonrpc":"2.0","id":7,"method":"tools/list","params":{}}""");
+
+        var tools = message.GetProperty("result").GetProperty("tools").EnumerateArray().ToDictionary(t => t.GetProperty("name").GetString()!, t => t.GetProperty("description").GetString()!);
+        tools["list_layouts"].ShouldContain("surface");
+        tools["list_layouts"].ShouldContain("steps");
+        tools["list_blocks"].ShouldContain("icon names");
+        tools["list_blocks"].ShouldContain("http or https");
+    }
+
+    [Test]
+    public async Task ListBlocks_WhenCalled_ShouldListTheIconNames()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "list_blocks", "{}");
+
+        var icons = result.GetProperty("structuredContent").GetProperty("icons").EnumerateArray().Select(i => i.GetString()!).ToList();
+        icons.Count.ShouldBe(48);
+        icons.ShouldContain("coins");
+        icons.Distinct().Count().ShouldBe(icons.Count);
+        icons.ShouldBe(IconCatalogue.Names);
+    }
+
+    [Test]
+    public async Task ListBlocks_WhenCalled_ShouldIncludeLevelsAndFacts()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+
+        var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "list_blocks", "{}");
+
+        var names = result.GetProperty("structuredContent").GetProperty("blocks").EnumerateArray().Select(b => b.GetProperty("name").GetString()).ToList();
+        names.ShouldContain("levels");
+        names.ShouldContain("facts");
     }
 
     [Test]
@@ -105,11 +179,11 @@ public class DeckReadToolsTests : ApiTestFixture
 
         var structured = result.GetProperty("structuredContent");
         structured.ValueKind.ShouldBe(JsonValueKind.Object);
-        structured.EnumerateObject().Select(p => p.Name).ShouldBe(["blocks"]);
+        structured.EnumerateObject().Select(p => p.Name).ShouldBe(["blocks", "icons"]);
         McpWire.TextOf(result).ShouldBe(structured.GetRawText());
         var blocks = structured.GetProperty("blocks").EnumerateArray().ToList();
-        blocks.Select(b => b.GetProperty("name").GetString()).ShouldBe(["callout", "chip", "badge", "stamp", "journey"]);
-        blocks.Select(b => b.GetProperty("setByAgent").GetBoolean()).ShouldBe([true, true, true, true, false]);
+        blocks.Select(b => b.GetProperty("name").GetString()).ShouldBe(LayoutCatalogue.Blocks.Select(b => b.Name));
+        blocks.Select(b => b.GetProperty("setByAgent").GetBoolean()).ShouldBe(LayoutCatalogue.Blocks.Select(b => b.SetByAgent));
         var callout = blocks[0].GetProperty("schema");
         callout.GetProperty("type").GetString().ShouldBe("object");
         callout.GetProperty("properties").GetProperty("tone").GetProperty("enum").EnumerateArray().Select(t => t.GetString()).ShouldBe(["accent", "positive", "negative", "inverse", "good", "bad", "info"]);

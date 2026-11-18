@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import type { DeckPlayView } from '../api/types';
 import { deepDivesOf } from '../look/deepDivesOf';
+import { fontsSettled } from '../look/fontsSettled';
 import { JoinProvider } from '../slides/JoinContext';
 import { SlideRenderer } from '../slides/SlideRenderer';
 import type { SlideDeck } from '../slides/slots';
@@ -122,7 +123,8 @@ export function RenderPage() {
     if (!slide || !element) return;
     let live = true;
     nextFrame()
-      .then(() => Promise.all([document.fonts.ready, imagesLoaded(element)]))
+      .then(() => fontsSettled(view?.look))
+      .then(() => imagesLoaded(element))
       .then(
         () => live && setReady({ ok: true }),
         (error: Error) => live && setReady({ ok: false, error: error.message }),
@@ -130,7 +132,7 @@ export function RenderPage() {
     return () => {
       live = false;
     };
-  }, [slide]);
+  }, [slide, view]);
 
   const error =
     load.state === 'failed'

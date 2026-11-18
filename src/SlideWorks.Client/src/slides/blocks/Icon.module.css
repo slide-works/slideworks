@@ -1,0 +1,6 @@
+/* The icon block: a square line drawing that keeps its size in a flex row.
+   Its stroke is the placing element's text colour (currentColor). */
+.icon {
+  display: block;
+  flex: none;
+}

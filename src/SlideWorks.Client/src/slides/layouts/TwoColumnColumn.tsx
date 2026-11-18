@@ -1,28 +1,66 @@
 import { useState, type CSSProperties } from 'react';
+import { Icon } from '../blocks/Icon';
+import { iconFor } from '../blocks/icons';
 import { LeadText } from '../blocks/LeadText';
 import type { ColumnSlot } from '../slots';
 import styles from './TwoColumnColumn.module.css';
 
 type TwoColumnColumnProps = { side: 'left' | 'right'; column: ColumnSlot };
 
+// The side of an icon beside the column title and in an item's mark place.
+const ICON_SIZE = 34;
+
 // One column of the two-column layout: an optional title over a list of
-// points, a paragraph or an uploaded image (K11).
+// points, a paragraph or an uploaded image (K11). The title may carry an icon
+// beside it, and an item's icon takes the place of its bullet mark. The levels
+// layout places it as its main column too.
 export function TwoColumnColumn({ side, column }: TwoColumnColumnProps) {
   const { title, items, text, image } = column;
+  // An unknown icon name draws nothing and keeps the normal look (decide on iconFor, not on the slot).
+  const icon =
+    column.icon !== undefined && iconFor(column.icon) !== undefined ? column.icon : undefined;
   return (
     <div data-testid={`two-column-${side}`} className={styles.column}>
       {title !== undefined ? (
-        <h3 data-testid="two-column-title" className={styles.title}>
-          {title}
-        </h3>
+        icon !== undefined ? (
+          <h3 data-testid="two-column-title" className={`${styles.title} ${styles.titleWithIcon}`}>
+            <span data-testid="two-column-title-icon" className={styles.titleIcon}>
+              <Icon name={icon} size={ICON_SIZE} />
+            </span>
+            <span className={styles.titleText}>{title}</span>
+          </h3>
+        ) : (
+          <h3 data-testid="two-column-title" className={styles.title}>
+            {title}
+          </h3>
+        )
       ) : null}
       {items !== undefined ? (
         <ul className={styles.items}>
-          {items.map((item, i) => (
-            <li key={i} data-testid="two-column-item" className={styles.item}>
-              <LeadText item={item} />
-            </li>
-          ))}
+          {items.map((item, i) => {
+            const itemIcon =
+              typeof item === 'string' ||
+              item.icon === undefined ||
+              iconFor(item.icon) === undefined
+                ? undefined
+                : item.icon;
+            return itemIcon !== undefined ? (
+              <li
+                key={i}
+                data-testid="two-column-item"
+                className={`${styles.item} ${styles.itemWithIcon}`}
+              >
+                <span data-testid="two-column-item-icon" className={styles.itemIcon}>
+                  <Icon name={itemIcon} size={ICON_SIZE} />
+                </span>
+                <LeadText item={item} />
+              </li>
+            ) : (
+              <li key={i} data-testid="two-column-item" className={styles.item}>
+                <LeadText item={item} />
+              </li>
+            );
+          })}
         </ul>
       ) : null}
       {text !== undefined ? (
