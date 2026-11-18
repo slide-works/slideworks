@@ -13,7 +13,9 @@ namespace SlideWorks.WebApi.Features.Qa;
 // room's round, or not the guest's stored revision); then the picks' rules (VoteRules). A vote that passes stores the
 // guest's old picks on questions that can't take a vote now plus the asked picks on ones that can, through the batching
 // writer (IRoundAnswerWriter), which checks the round and the revision again inside its commit: a vote it refuses comes back
-// stale with the guest's current view. Upvotes count while questions are closed or off on the slide on screen.
+// stale with the guest's current view. Upvotes count while questions are closed or off on the slide on screen. A vote can
+// land on a question hidden or answered a moment after the guest's list was read; the guest's pick there then stays as it
+// was (kept if it had one, not added if not), which Q4 allows.
 [RegisterPerRequest(For = typeof(IGuestQuestions))]
 public class GuestQuestions(
     GuestPollViews seats,

@@ -1,17 +1,21 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Join;
+using SlideWorks.WebApi.Features.Polls;
+using SlideWorks.WebApi.Features.Polls.Contracts;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Qa;
 
 // GET /api/join/{code}/questions on the real IGuestQuestions (Q4): which questions a guest sees (every open and answered one
 // that isn't hidden, plus its own in any state, hidden winning over the state under it), the votes from the tally, its own
-// upvotes, the age labels, the room and the roster. Questions and upvotes come from QaRowSeed on QaSeed's live deck; the room
-// is FakeAudienceRoom's. The app is shared by the fixture, so every test seeds a deck of its own, and each starts a new
+// upvotes, the age labels, the room and the roster, and a question asked while the view is read. Questions and upvotes come
+// from QaRowSeed on QaSeed's live deck; the room is FakeAudienceRoom's; the tally is the real one behind HookedTallies, which
+// can run a step inside a round's next read. The app is shared by the fixture, so every test seeds a deck of its own, and each starts a new
 // minute for the join-code limit.
 [TestFixture]
 [CancelAfter(60000)]
@@ -23,7 +27,15 @@ public class GuestQuestionsViewTests : QaTestFixture
 
     private FakeAudienceRoom Rooms => Factory.Services.GetRequiredService<FakeAudienceRoom>();
 
-    protected override void ConfigureQaServices(IServiceCollection services) => FakeAudienceRoom.AddTo(services);
+    private HookedTallies Tallies => Factory.Services.GetRequiredService<HookedTallies>();
+
+    protected override void ConfigureQaServices(IServiceCollection services)
+    {
+        FakeAudienceRoom.AddTo(services);
+        services.AddSingleton<PollTallies>();
+        services.AddSingleton(provider => new HookedTallies(provider.GetRequiredService<PollTallies>()));
+        services.AddSingleton<IPollTallies>(provider => provider.GetRequiredService<HookedTallies>());
+    }
 
     [SetUp]
     public void NewMinute() => Clock.Advance(TimeSpan.FromMinutes(2));
@@ -111,6 +123,23 @@ public class GuestQuestionsViewTests : QaTestFixture
     }
 
     [Test]
+    public async Task ViewAsync_WhenAQuestionIsAskedDuringTheRead_ShouldStillAnswer()
+    {
+        var qa = await LiveAsync();
+        await using var guest = await JoinAsync(qa);
+        await QaRowSeed.QuestionAsync(qa.RoundId, FIRST);
+        Tallies.OnceInsideRead(qa.RoundId.ToString(), () => QaRowSeed.QuestionAsync(qa.RoundId, SECOND));
+
+        var response = await guest.GetQuestionsAsync(qa.Code);
+        var body = await response.Content.ReadAsStringAsync();
+        var after = await BodyAsync(await guest.GetQuestionsAsync(qa.Code));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
+        Tallies.Pending(qa.RoundId.ToString()).ShouldBeFalse();
+        Numbers(after).ShouldBe([1, 2]);
+    }
+
+    [Test]
     public async Task ViewAsync_WhenQuestionsOff_ShouldHaveTheRoomAndNoQuestions()
     {
         var qa = await SeedQaAsync();
@@ -176,6 +205,30 @@ public class GuestQuestionsViewTests : QaTestFixture
     {
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         return document.RootElement.Clone();
+    }
+
+    // The app's tally with a step that runs once inside a round's next read, before the read itself.
+    private sealed class HookedTallies(PollTallies inner) : IPollTallies
+    {
+        private readonly ConcurrentDictionary<string, Func<Task>> _hooks = new(StringComparer.Ordinal);
+
+        public void OnceInsideRead(string roundId, Func<Task> step) => _hooks[roundId] = step;
+
+        // Whether the round's step is still waiting for a read.
+        public bool Pending(string roundId) => _hooks.ContainsKey(roundId);
+
+        public Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks) => inner.ApplyAsync(round, oldPicks, newPicks);
+
+        public async Task<PollCounts> ReadAsync(string roundId, int optionCount)
+        {
+            if (_hooks.TryRemove(roundId, out var step))
+            {
+                await step();
+            }
+            return await inner.ReadAsync(roundId, optionCount);
+        }
+
+        public IDisposable Changed(Func<PollRoundRef, Task> handler) => inner.Changed(handler);
     }
 
     private static JsonElement Example(string file)

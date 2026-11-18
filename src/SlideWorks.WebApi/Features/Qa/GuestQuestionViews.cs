@@ -32,12 +32,15 @@ public class GuestQuestionViews(AppDbContext db, QaRows rows, IAudienceRoom room
         {
             return new GuestQuestionsView(room, [], _noVotes);
         }
+        // The questions first, then their options: a question is committed with its option, so every question read has its
+        // text, and the tally is sized by options read after the questions, so a question asked meanwhile can't fall outside it.
+        var stored = await rows.QuestionsAsync(roundId);
         var texts = await db.PollOptions.AsNoTracking()
             .Where(o => o.RoundId == roundId)
             .ToDictionaryAsync(o => o.Position, o => o.Text);
         var tally = await tallies.ReadAsync(roundId.ToString(), texts.Count);
         var now = clock.GetUtcNow();
-        var questions = (await rows.QuestionsAsync(roundId))
+        var questions = stored
             .Where(q => q.GuestId == guestId || (q.HiddenAt is null && q.State != QuestionState.Waiting))
             .Select(q => new GuestQuestion(
                 q.Position + 1,

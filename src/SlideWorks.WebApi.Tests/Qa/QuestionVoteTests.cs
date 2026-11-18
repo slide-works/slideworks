@@ -267,6 +267,46 @@ public class QuestionVoteTests : QaTestFixture
     }
 
     [Test]
+    public async Task VoteAsync_WhenStaleOrInvalidVotesFillTheMinute_ShouldBeLimited()
+    {
+        var qa = await LiveAsync();
+        await QaRowSeed.QuestionAsync(qa.RoundId, FIRST);
+        await using var guest = await JoinAsync(qa);
+        for (var vote = 0; vote < VoteLimiter.PER_MINUTE; vote++)
+        {
+            var refused = vote % 2 == 0
+                ? await guest.VoteAsync(qa.Code, new VoteRequest(qa.RoundId.ToString(), [1], 9))
+                : await guest.VoteAsync(qa.Code, new VoteRequest(qa.RoundId.ToString(), [9], 0));
+            refused.StatusCode.ShouldBe(vote % 2 == 0 ? HttpStatusCode.Conflict : HttpStatusCode.BadRequest);
+        }
+
+        var limited = await guest.VoteAsync(qa.Code, new VoteRequest(qa.RoundId.ToString(), [1], 0));
+        var body = await BodyAsync(limited);
+
+        limited.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        body.GetProperty("error").GetString().ShouldBe(GuestQaErrors.TOO_MANY_VOTES);
+    }
+
+    [Test]
+    public async Task VoteAsync_WhenTakingBackTheUpvoteOnItsOwnQuestion_ShouldRemoveIt()
+    {
+        var qa = await LiveAsync();
+        await using var guest = await JoinAsync(qa);
+        await QaRowSeed.QuestionAsync(qa.RoundId, FIRST, guestId: guest.GuestId);
+        await QaRowSeed.VoteAsync(qa.RoundId, guest.GuestId, 1);
+
+        var response = await guest.VoteAsync(qa.Code, new VoteRequest(qa.RoundId.ToString(), [], 1));
+        var body = await BodyAsync(response);
+        var view = await BodyAsync(await guest.GetQuestionsAsync(qa.Code));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        Picks(body).ShouldBeEmpty();
+        body.GetProperty("revision").GetInt32().ShouldBe(2);
+        Votes(view).ShouldBe([(1, 0)]);
+        view.GetProperty("questions")[0].GetProperty("yours").GetBoolean().ShouldBeTrue();
+    }
+
+    [Test]
     public async Task VoteAsync_WhenGuestIsNotOnTheRoster_ShouldBeNoSession()
     {
         var qa = await LiveAsync();

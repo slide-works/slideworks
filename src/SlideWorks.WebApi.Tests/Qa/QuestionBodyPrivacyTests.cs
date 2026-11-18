@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +40,7 @@ public class QuestionBodyPrivacyTests : QaTestFixture
         bodies.Asker.ShouldContain(SECRET);
         bodies.Asker.ShouldContain($"\"votes\":{SECRET_VOTES}");
         bodies.Other[1].Body.ShouldContain(GuestQaErrors.STALE);
+        bodies.AskStatus.ShouldBe(HttpStatusCode.Created, bodies.Other[2].Body);
         foreach (var (route, body) in bodies.Other)
         {
             body.ShouldNotContain(SECRET, Case.Insensitive, route);
@@ -57,6 +59,7 @@ public class QuestionBodyPrivacyTests : QaTestFixture
         bodies.Asker.ShouldContain(SECRET);
         bodies.Asker.ShouldContain($"\"votes\":{SECRET_VOTES}");
         bodies.Other[1].Body.ShouldContain(GuestQaErrors.STALE);
+        bodies.AskStatus.ShouldBe(HttpStatusCode.Created, bodies.Other[2].Body);
         foreach (var (route, body) in bodies.Other)
         {
             body.ShouldNotContain(SECRET, Case.Insensitive, route);
@@ -68,8 +71,9 @@ public class QuestionBodyPrivacyTests : QaTestFixture
     }
 
     // A live deck with one visible question and the asker's secret one in this state, upvoted by SECRET_VOTES guests while
-    // it was open; then the asker's GET, and another guest's raw GET, stale vote and ask bodies, by route.
-    private async Task<(string Asker, string AskerId, IReadOnlyList<(string Route, string Body)> Other)> BodiesAsync(QuestionState state, bool hidden)
+    // it was open; then the asker's GET, the status of another guest's ask, and that guest's raw GET, stale vote and ask
+    // bodies, by route.
+    private async Task<(string Asker, string AskerId, HttpStatusCode AskStatus, IReadOnlyList<(string Route, string Body)> Other)> BodiesAsync(QuestionState state, bool hidden)
     {
         var qa = await SeedQaAsync();
         Rooms.Set(qa.DeckId, new QaRoom(qa.RoundId.ToString(), QaRoomQuestions.Open, true, true, 3));
@@ -86,8 +90,9 @@ public class QuestionBodyPrivacyTests : QaTestFixture
         var askerView = await (await asker.GetQuestionsAsync(qa.Code)).Content.ReadAsStringAsync();
         var get = await (await other.GetQuestionsAsync(qa.Code)).Content.ReadAsStringAsync();
         var stale = await (await other.VoteAsync(qa.Code, new VoteRequest(qa.RoundId.ToString(), [1], 5))).Content.ReadAsStringAsync();
-        var ask = await (await other.AskAsync(qa.Code, new AskRequest("What about tests?", null))).Content.ReadAsStringAsync();
-        return (askerView, asker.GuestId, [("GET", get), ("PUT votes 409", stale), ("POST", ask)]);
+        var asked = await other.AskAsync(qa.Code, new AskRequest("What about tests?", null));
+        var ask = await asked.Content.ReadAsStringAsync();
+        return (askerView, asker.GuestId, asked.StatusCode, [("GET", get), ("PUT votes 409", stale), ("POST 201", ask)]);
     }
 
     private async Task<GuestClient> JoinAsync(SeededQa qa)
