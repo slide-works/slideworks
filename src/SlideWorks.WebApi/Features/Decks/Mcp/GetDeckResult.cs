@@ -12,7 +12,7 @@ public sealed record GetDeckResult(
     string Title,
     string? Subtitle,
     string? Author,
-    IReadOnlyList<string> Parts,
+    IReadOnlyList<DeckPart> Parts,
     DeckSharing Sharing,
     string Url,
     GetDeckLook Look,

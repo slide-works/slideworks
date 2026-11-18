@@ -15,7 +15,7 @@ public sealed record PresenterView(
     string Slug,
     string Title,
     string? Author,
-    IReadOnlyList<string> Parts,
+    IReadOnlyList<DeckPart> Parts,
     LookView Look,
     JoinView Join,
     IReadOnlyList<PresenterSlide> Slides,

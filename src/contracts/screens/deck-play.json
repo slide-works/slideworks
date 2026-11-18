@@ -3,7 +3,12 @@
   "slug": "ship-smaller",
   "title": "Ship smaller",
   "author": "Sam Rivera",
-  "parts": ["The cost", "Slice it", "Ship it", "Make it stick"],
+  "parts": [
+    { "name": "The cost", "short": "The cost", "caption": null, "mark": null },
+    { "name": "Slice it", "short": "Slice it", "caption": null, "mark": null },
+    { "name": "Ship it", "short": "Ship it", "caption": null, "mark": null },
+    { "name": "Make it stick", "short": "Make it stick", "caption": null, "mark": null }
+  ],
   "look": {
     "template": {
       "name": "workshop",

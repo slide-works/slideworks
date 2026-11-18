@@ -97,7 +97,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
             PlayUrl: "/d/7Kq2xYp9LmQa/ship-smaller",
             example.GetProperty("join").Deserialize<JoinView>(AppJsonOptions())!,
             SharingSummary.From(DeckSharing.Link, 0),
-            ["The cost", "Slice it", "Ship it", "Make it stick"],
+            [new DeckPart("The cost"), new DeckPart("Slice it"), new DeckPart("Ship it"), new DeckPart("Make it stick")],
             example.GetProperty("look").Deserialize<DeckLookView>(AppJsonOptions())!,
             slides,
             [

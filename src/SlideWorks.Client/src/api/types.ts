@@ -5,6 +5,7 @@
 import type { CustomLayoutView } from '../slides/custom/layoutTree';
 import type { LayoutName, Slots } from '../slides/slots';
 import type { LookArt, LookExtra, LookFont, LookLogos, LookOrnament, TopBar } from './look';
+import type { DeckPart } from './parts';
 
 export type ActorKind = 'agent' | 'person';
 export type Via = 'mcp' | 'web';
@@ -104,7 +105,7 @@ export type DeckPageView = {
   sharing: { level: SharingLevel; viewerCount: number };
   revision: number;
   look: DeckPageLook;
-  parts: string[];
+  parts: DeckPart[];
   slides: DeckPageSlide[];
   activity: ActivityRow[];
 };
@@ -137,7 +138,7 @@ export type DeckPlayView = {
   slug: string;
   title: string;
   author: string | null;
-  parts: string[];
+  parts: DeckPart[];
   look: LookView;
   join: JoinView;
   // True only for the signed-in person who owns the deck; the player asks the live session only when it is true.
@@ -424,7 +425,7 @@ export type PresenterView = {
   slug: string;
   title: string;
   author: string | null;
-  parts: string[];
+  parts: DeckPart[];
   look: LookView;
   join: JoinView;
   slides: PresenterSlide[];
