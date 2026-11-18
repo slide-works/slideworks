@@ -9,6 +9,10 @@ type Props = {
   deckId: string;
 };
 
+// A failed read or watch of the questions, which the strip may show: it changes what the phone shows. Any other message
+// in the provider's shared `error` belongs to a call some other part made (the presenter window's settings, say).
+const FEED_FAILURE = /^(Live question updates aren't reaching|Couldn't load the questions)/;
+
 const BUTTON =
   'grid min-h-11 min-w-11 place-items-center rounded-[9px] border px-1 text-center text-xs leading-tight font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300 aria-busy:opacity-60 forced-colors:border-2';
 const PLAIN = `${BUTTON} border-white/10 bg-white/10 text-slate-100`;
@@ -48,29 +52,52 @@ export function QaStrip({ deckId }: Props) {
   // A tap is ignored while its call is in flight: a second tap would only come back refused.
   const [busy, setBusy] = useState(false);
   const sending = useRef(false);
+  // The message the last action of this strip settled with, from the value that call returned, not the shared error.
+  const [outcome, setOutcome] = useState<string | null>(null);
+  // Set when a tap settled or the sheet closed: the next render moves focus off the page body (and, after Show or
+  // Take off, off the button that now reads Answered or Show). `after` is the action that settled.
   const refocus = useRef(false);
+  const after = useRef<StripAction | null>(null);
   const [settled, setSettled] = useState(0);
+  const hidden =
+    control === null ||
+    !control.live ||
+    control.round === null ||
+    control.settings.questions === 'off';
   const announced = useCalmAnnouncement(
     control === null ? '' : `${control.counts.open} open, ${control.counts.waiting} to review`,
   );
 
-  // Once the answer is drawn: the button pressed may be gone (the last open question was answered): focus goes to the
-  // strip, not to the page.
+  // The strip draws nothing now: the sheet and the last message must not come back with the deck.
   useEffect(() => {
-    if (!refocus.current) return;
+    if (!hidden) return;
+    setSheetOpen(false);
+    setOutcome(null);
+  }, [hidden]);
+
+  // Once the answer is drawn: after Show or Take off the focused button is the same element and now reads another
+  // action, so a late second tap would press that: focus goes to the other button, which only undoes the first. A
+  // button that is gone (the last open question was answered, or the sheet closed with All gone) leaves focus on the
+  // page body: it goes to the strip's main button, else the strip.
+  useEffect(() => {
+    if (!refocus.current || sheetOpen || root.current === null) return;
     refocus.current = false;
-    if (!sheetOpen && document.activeElement === document.body) root.current?.focus();
+    const active = document.activeElement;
+    const settledAction = after.current;
+    after.current = null;
+    if (active !== document.body && !root.current.contains(active)) return;
+    const other =
+      settledAction === 'show' ? IDS.takeOff : settledAction === 'unshow' ? IDS.show : null;
+    const target =
+      other === null ? null : root.current.querySelector<HTMLElement>(`[data-testid="${other}"]`);
+    if (target !== null) target.focus();
+    else if (active === document.body)
+      (root.current.querySelector<HTMLElement>('button') ?? root.current).focus();
   }, [settled, control, sheetOpen]);
 
-  if (
-    control === null ||
-    !control.live ||
-    control.round === null ||
-    control.settings.questions === 'off'
-  )
-    return null;
+  if (hidden) return null;
 
-  const actions: Record<StripAction, (number: number) => Promise<unknown>> = {
+  const actions: Record<StripAction, (number: number) => Promise<string | null>> = {
     show,
     unshow,
     answer,
@@ -81,15 +108,20 @@ export function QaStrip({ deckId }: Props) {
     if (sending.current) return;
     sending.current = true;
     setBusy(true);
+    setOutcome(null);
     try {
-      await actions[action](number);
+      const message = (await actions[action](number)) as string | null;
+      if (message !== null) setOutcome(message);
     } finally {
       sending.current = false;
       setBusy(false);
     }
     refocus.current = true;
+    after.current = action;
     setSettled((n) => n + 1);
   };
+  // What the phone shows for a failure: this strip's own last call, else a failed read or watch.
+  const failure = outcome ?? (error !== null && FEED_FAILURE.test(error) ? error : null);
 
   const { counts } = control;
   const question = featured(control.questions, control.onScreen);
@@ -101,6 +133,7 @@ export function QaStrip({ deckId }: Props) {
       data-testid={testId}
       aria-label={`${label}: ${question!.text}`}
       aria-busy={busy || undefined}
+      aria-disabled={busy || undefined}
       className={look}
       onClick={() => void run(action, question!.number)}
     >
@@ -181,17 +214,21 @@ export function QaStrip({ deckId }: Props) {
       <span role="status" aria-live="polite" className="sr-only">
         {announced}
       </span>
-      {error !== null && !sheetOpen && (
+      {failure !== null && !sheetOpen && (
         <p data-testid={IDS.error} role="alert" className="text-sm text-red-300">
-          {error}
+          {failure}
         </p>
       )}
       {sheetOpen && (
         <QaStripSheet
           questions={sheetOrder(control.questions)}
-          error={error}
+          error={failure}
           onAction={run}
-          onClose={() => setSheetOpen(false)}
+          onClose={() => {
+            refocus.current = true;
+            after.current = null;
+            setSheetOpen(false);
+          }}
         />
       )}
     </section>
