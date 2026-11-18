@@ -18,7 +18,22 @@ const EMPTY = {
   closed: ['Questions are closed', 'Thanks for asking.'],
 } as const;
 
-function Body({ screen }: { screen: QaScreen | null }) {
+// The one-up question's size step by length: 80px for a normal question, smaller as the text grows (CSS).
+function sizeOf(length: number): 'xl' | 'l' | 'm' | 's' {
+  if (length <= 60) return 'xl';
+  if (length <= 100) return 'l';
+  if (length <= 140) return 'm';
+  return 's';
+}
+
+function Body({ screen, off }: { screen: QaScreen | null; off: boolean }) {
+  if (screen === null && off) {
+    return (
+      <div data-testid={IDS.off} className={styles.empty}>
+        <b>Questions are off</b>
+      </div>
+    );
+  }
   if (screen === null) {
     return (
       <div data-testid={IDS.notLive} className={styles.empty}>
@@ -35,7 +50,11 @@ function Body({ screen }: { screen: QaScreen | null }) {
           <em data-testid={IDS.oneUpVotes}>▲ {onScreen.votes}</em>
           <span data-testid={IDS.oneUpName}>{onScreen.name ?? 'Anonymous'}</span>
         </p>
-        <p data-testid={IDS.oneUpText} className={styles.oneUpText}>
+        <p
+          data-testid={IDS.oneUpText}
+          className={styles.oneUpText}
+          data-size={sizeOf(onScreen.text.length)}
+        >
           {onScreen.text}
         </p>
       </div>
@@ -85,6 +104,8 @@ function footerNote(screen: QaScreen): string | null {
 export function QaLayout({ slots }: LayoutProps<'qa'>) {
   const screen = useQaScreen();
   const joined = useJoin();
+  // Live with no screen: questions are off (a deck that isn't live has no join pill).
+  const off = screen === null && joined?.live === true;
   const note = screen === null ? null : footerNote(screen);
 
   return (
@@ -100,13 +121,15 @@ export function QaLayout({ slots }: LayoutProps<'qa'>) {
           {slots.title ?? DEFAULT_QA_TITLE}
         </h2>
         <div className={`sw-body ${styles.body}`}>
-          <Body screen={screen} />
+          <Body screen={screen} off={off} />
         </div>
         <div data-testid={IDS.footer} className={styles.foot}>
           {screen === null ? (
-            <span data-testid={IDS.notLivePill} className={styles.state} data-phase="notLive">
-              Not live
-            </span>
+            off ? null : (
+              <span data-testid={IDS.notLivePill} className={styles.state} data-phase="notLive">
+                Not live
+              </span>
+            )
           ) : (
             <>
               <span data-testid={IDS.phase} className={styles.state} data-phase={screen.phase}>

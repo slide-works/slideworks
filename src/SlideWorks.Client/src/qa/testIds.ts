@@ -174,6 +174,8 @@ export const QA_SLIDE_TEST_IDS = {
   notLive: 'qa-slide-not-live',
   // "Not live"
   notLivePill: 'qa-slide-not-live-pill',
+  // Live with questions off: "Questions are off"
+  off: 'qa-slide-off',
 } as const;
 
 // One row of the qa slide's list, by question number: the row, its text (one line, cut with an ellipsis) and its votes.

@@ -203,6 +203,7 @@ test('closed and empty says so, and the pill says Closed', async ({ mount, page 
   await expect(page.getByTestId(IDS.closed)).toContainText('Thanks for asking.');
   await expect(page.getByTestId(IDS.empty)).toHaveCount(0);
   await expect(page.getByTestId(IDS.phase)).toHaveText('Closed');
+  await expect(page.getByTestId(IDS.footerNote)).toHaveCount(0);
 });
 
 test('closed with questions keeps the list and the Closed pill', async ({ mount, page }) => {
@@ -212,6 +213,49 @@ test('closed with questions keeps the list and the Closed pill', async ({ mount,
   await mount(qaSlide({ control }));
   await expect(page.getByTestId(IDS.rows).locator('li')).toHaveCount(2);
   await expect(page.getByTestId(IDS.phase)).toHaveText('Closed');
+  // Nobody can ask, so no invite (D-B1b).
+  await expect(page.getByTestId(IDS.footerNote)).toHaveCount(0);
+  await expect(page.getByText('Ask and upvote on your phone')).toHaveCount(0);
+});
+
+test('a closed list of six or more still says "Top 5 of n"', async ({ mount, page }) => {
+  const control = viewOf(seven().slice(0, 6), {
+    settings: { ...qaControlView('live').settings, questions: 'closed' },
+  });
+  await mount(qaSlide({ control }));
+  await expect(page.getByTestId(IDS.footerNote)).toHaveText('Top 5 of 6, by upvotes');
+});
+
+test('exactly five open questions invite the room, with no "Top 5 of"', async ({ mount, page }) => {
+  await mount(qaSlide({ control: viewOf(seven().slice(0, 5)) }));
+  await expect(page.getByTestId(IDS.rows).locator('li')).toHaveCount(5);
+  await expect(page.getByTestId(IDS.footerNote)).toHaveText('Ask and upvote on your phone');
+});
+
+test('questions off while the deck is live says "Questions are off", never "Not live"', async ({
+  mount,
+  page,
+}) => {
+  await mount(qaSlide({ control: null, join: live }));
+  await expect(page.getByTestId(IDS.title)).toHaveText('Questions from the room');
+  await expect(page.getByTestId(IDS.off)).toContainText('Questions are off');
+  await expect(page.getByTestId(IDS.notLive)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.notLivePill)).toHaveCount(0);
+  await expect(page.getByText('Not live')).toHaveCount(0);
+  await expect(page.getByTestId(IDS.rows)).toHaveCount(0);
+});
+
+test('the phase pill text uses the readable good ink', async ({ mount, page }) => {
+  await mount(qaSlide({ control: viewOf([]), join: live }));
+  const [pill, ink] = await page.getByTestId(IDS.phase).evaluate((el) => {
+    const probe = document.createElement('i');
+    probe.style.color = 'var(--sw-good-ink)';
+    el.appendChild(probe);
+    const wanted = getComputedStyle(probe).color;
+    probe.remove();
+    return [getComputedStyle(el).color, wanted];
+  });
+  expect(pill).toBe(ink);
 });
 
 test('no live data draws the not-live state with a Not live pill and no join pill', async ({
@@ -282,6 +326,92 @@ test('the qaTitle fit fixture is at most two lines', async ({ mount, page }) => 
     return Math.round(el.getBoundingClientRect().height / parseFloat(style.lineHeight));
   });
   expect(lines).toBeLessThanOrEqual(2);
+});
+
+// The one-up question at its longest (200 characters, what the server accepts), in the shapes that break a slide:
+// the text must sit below the title, above the footer, inside y 150-960 and x 120-1800.
+const LONG_NAME = 'Alexandria Montgomery-Featherstonehaugh'.slice(0, 30);
+const ONE_UP_CASES: [string, string][] = [
+  ['200 W', 'W'.repeat(200)],
+  ['200 m', 'm'.repeat(200)],
+  ['200 a', 'a'.repeat(200)],
+  ['spaced text', 'How do you split a big change into small ones '.repeat(5).trim().slice(0, 200)],
+  ['a URL', `https://example.com/${'a-long-path/'.repeat(17)}`.slice(0, 200)],
+  ['Arabic', 'كيف نقسم تغييرا كبيرا إلى تغييرات صغيرة '.repeat(6).slice(0, 200)],
+  ['emoji', '🚀'.repeat(100)],
+  ['a short question', 'Why now?'],
+];
+
+for (const [title, slots] of [
+  ['the qaTitle fixture title', { title: QA_TITLE }],
+  ['the default title', {}],
+] as const) {
+  for (const [name, text] of ONE_UP_CASES) {
+    test(`one-up: ${name} with ${title} fits between the title and the footer`, async ({
+      mount,
+      page,
+    }) => {
+      const control = viewOf([question(1, { text, name: LONG_NAME, votes: 1234, onScreen: true })]);
+      await mount(qaSlide({ control, slots, join: live }));
+      await page.evaluate(() => document.fonts.ready);
+      const box = await page.getByTestId('layout-qa').evaluate((root: Element) => {
+        const frame = root.closest('[data-layout]')!.getBoundingClientRect();
+        const of = (id: string) => {
+          const r = root.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect();
+          return { top: r.top - frame.top, bottom: r.bottom - frame.top, right: r.right - frame.left };
+        };
+        const text = of('qa-slide-one-up-text');
+        const label = of('qa-slide-one-up');
+        const textEl = root.querySelector('[data-testid="qa-slide-one-up-text"]')!;
+        return {
+          title: of('qa-slide-title'),
+          footer: of('qa-slide-footer'),
+          text,
+          label,
+          overflowX: textEl.scrollWidth - textEl.clientWidth,
+        };
+      });
+      expect(box.text.top).toBeGreaterThanOrEqual(box.title.bottom);
+      expect(box.label.top).toBeGreaterThanOrEqual(box.title.bottom);
+      expect(box.text.bottom).toBeLessThanOrEqual(box.footer.top);
+      expect(box.footer.bottom).toBeLessThanOrEqual(960.5);
+      expect(box.text.top).toBeGreaterThanOrEqual(149.5);
+      expect(box.text.right).toBeLessThanOrEqual(1800.5);
+      expect(box.overflowX).toBeLessThanOrEqual(0);
+      const drawn = await measure(page);
+      expect(drawn.bottom).toBeLessThanOrEqual(960.5);
+      expect(drawn.top).toBeGreaterThanOrEqual(149.5);
+    });
+  }
+}
+
+for (const [label, text, check] of [
+  ['a normal one-up question is the mockup 80px', 'How do we ship smaller changes?', 'is80'],
+  ['a 200-character one-up question is smaller than 80px', 'W'.repeat(200), 'smaller'],
+] as const) {
+  test(label, async ({ mount, page }) => {
+    await mount(qaSlide({ control: viewOf([question(1, { text, onScreen: true })]), join: live }));
+    const size = await page
+      .getByTestId(IDS.oneUpText)
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    if (check === 'is80') expect(size).toBe(80);
+    else expect(size).toBeLessThan(80);
+  });
+}
+
+test('a long unbroken word wraps inside the slide (overflow-wrap anywhere)', async ({
+  mount,
+  page,
+}) => {
+  await mount(
+    qaSlide({
+      control: viewOf([question(1, { text: 'x'.repeat(200), onScreen: true })]),
+      join: live,
+    }),
+  );
+  const el = page.getByTestId(IDS.oneUpText);
+  expect(await el.evaluate((e) => getComputedStyle(e).overflowWrap)).toBe('anywhere');
+  expect(await el.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
 });
 
 const SCREENSHOTS: [string, QaControlView | null][] = [

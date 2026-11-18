@@ -284,3 +284,44 @@ test('a new live session shows no view of the last one', async ({ mount, page })
   slow.release();
   await expect.poll(async () => (await read(page))?.total).toBe(0);
 });
+
+// A request the old deck's slow answer must not turn into anything on the new deck.
+const OTHER = 'otherDeck1';
+
+test('a read held across a deck change is dropped when released', async ({ mount, page }) => {
+  const { hub, qa } = await stubLive(page);
+  // The new deck's own read fails, so only the old deck's late view could put anything on the screen.
+  await page.route(`**/api/decks/${OTHER}/qa`, (route) => route.abort());
+  const slow = qa.hold('read');
+  const component = await mount(screen(true));
+  await watching(hub);
+  await expect.poll(() => qa.calls.length).toBe(1);
+
+  await component.update(screen(true, { id: OTHER }));
+  await expect.poll(() => hub.watches).toContain(OTHER);
+  slow.release();
+  await settle(page);
+  expect(await read(page)).toBeNull();
+});
+
+test('a watch held across a deck change does not start a read for the new deck when released', async ({
+  mount,
+  page,
+}) => {
+  const { hub } = await stubLive(page);
+  const reads: string[] = [];
+  await page.route(`**/api/decks/${OTHER}/qa`, async (route) => {
+    reads.push(route.request().url());
+    await route.fulfill({ json: view() });
+  });
+  hub.holdWatches(deckId);
+  const component = await mount(screen(true));
+  await expect.poll(() => hub.watches).toContain(deckId);
+
+  await component.update(screen(true, { id: OTHER }));
+  // The new deck's own watch is answered at once and reads once.
+  await expect.poll(() => reads.length).toBe(1);
+  hub.releaseWatches(deckId);
+  await settle(page);
+  expect(reads).toHaveLength(1);
+});
