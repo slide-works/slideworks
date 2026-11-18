@@ -1,4 +1,3 @@
-using System.Globalization;
 
 namespace SlideWorks.WebApi.Infrastructure.Rendering;
 
@@ -34,6 +33,4 @@ public static class FontMeasurePage
 
     // The width of the line in pixels / (its characters x 16): the raw width on the font's scale.
     public static double Raw(double widthPx) => widthPx / (SAMPLE.Length * (double)SIZE_PX);
-
-    public static string Describe(double raw) => raw.ToString("0.000", CultureInfo.InvariantCulture);
 }

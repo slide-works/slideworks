@@ -78,7 +78,7 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
 
     private static async Task<double> MeasurePageAsync(IBrowser chromium, byte[] woff2, CancellationToken ct)
     {
-        await using var context = await chromium.NewContextAsync(new BrowserNewContextOptions { ViewportSize = new ViewportSize { Width = 1200, Height = 400 } });
+        await using var context = await chromium.NewContextAsync(new BrowserNewContextOptions { ViewportSize = new ViewportSize { Width = 1200, Height = 400 }, Offline = true, ServiceWorkers = ServiceWorkerPolicy.Block });
         await using var closeOnDeadline = ct.Register(() => _ = context.CloseAsync());
         await context.RouteAsync("**/*", route => route.AbortAsync());
         var page = await context.NewPageAsync();

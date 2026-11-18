@@ -164,6 +164,19 @@ public class FontCheckTests
         html.ShouldContain("base64,");
     }
 
+    [Test]
+    public void Html_ShouldDeclareALockedDownPolicyBeforeAnyStyleAndNoScript()
+    {
+        var html = FontMeasurePage.Html([1, 2, 3]);
+
+        var csp = html.IndexOf("Content-Security-Policy", StringComparison.Ordinal);
+        csp.ShouldBeGreaterThanOrEqualTo(0);
+        html.ShouldContain("default-src 'none'");
+        html.ShouldContain("font-src data:");
+        csp.ShouldBeLessThan(html.IndexOf("<style", StringComparison.Ordinal));
+        html.ShouldNotContain("<script");
+    }
+
     private static double RawFor(double em) => em / FontMeasure.BUILT_IN_EM * FontMeasure.REFERENCE;
 
     private async Task<AssetCheckResult> CheckAsync(byte[] bytes, string fileName)

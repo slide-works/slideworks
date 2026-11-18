@@ -25,7 +25,6 @@ public class FontMeasureEngineTests
     {
         var raw = await AcceptanceApp.Services.GetRequiredService<IRenderEngine>().MeasureFontAsync(FontFixtures.Normal(), CancellationToken.None);
 
-        await TestContext.Out.WriteLineAsync($"RAW {raw:0.0000} WIDE_EM {await Measure.MeasureAsync(FontFixtures.Wide(), CancellationToken.None)}");
         raw.ShouldBe(FontMeasure.REFERENCE, 0.0005);
     }
 
