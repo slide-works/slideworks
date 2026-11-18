@@ -146,3 +146,28 @@ test('screenshot: template share dialog on link', async ({ mount, page }) => {
   await expect(dialog.getByTestId('sharing-link')).toBeVisible();
   await expect(dialog).toHaveScreenshot('template-share-dialog-link.png');
 });
+
+test('closes on Escape after a save failed, and returns focus', async ({ mount, page }) => {
+  await stubTemplatesApi(page, { setSharing: { status: 500, json: { error: 'Nope.' } } });
+  await mount(<TemplateShareDialogHarness templateId={id} name={name} />);
+  const dialog = await open(page);
+
+  await dialog.getByRole('radio', { name: 'Anyone with the link' }).click();
+  await expect(dialog.getByTestId('template-share-error')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId(TEMPLATES_TEST_IDS.shareDialog)).toHaveCount(0);
+  await expect(page.getByTestId('open-template-share')).toBeFocused();
+});
+
+test('closes on Done after a save failed', async ({ mount, page }) => {
+  await stubTemplatesApi(page, { setSharing: { status: 500, json: { error: 'Nope.' } } });
+  await mount(<TemplateShareDialogHarness templateId={id} name={name} />);
+  const dialog = await open(page);
+
+  await dialog.getByRole('radio', { name: 'Anyone with the link' }).click();
+  await expect(dialog.getByTestId('template-share-error')).toBeVisible();
+
+  await dialog.getByTestId('template-share-done').click();
+  await expect(page.getByTestId(TEMPLATES_TEST_IDS.shareDialog)).toHaveCount(0);
+});

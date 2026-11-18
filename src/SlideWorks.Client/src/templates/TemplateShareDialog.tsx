@@ -52,6 +52,7 @@ export function TemplateShareDialog({ templateId, name, onClose }: TemplateShare
   // The server's last answer, and the saves in order (a second change waits for the first).
   const server = useRef<TemplateSharingView | null>(null);
   const queue = useRef<Promise<boolean>>(Promise.resolve(true));
+  const inflight = useRef(0);
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -95,6 +96,7 @@ export function TemplateShareDialog({ templateId, name, onClose }: TemplateShare
     (update: TemplateSharingUpdate, next: Shown) => {
       setShown(next);
       setError(null);
+      inflight.current += 1;
       const run = async () => {
         try {
           const saved = await templatesApi.setSharing(templateId, update);
@@ -112,6 +114,8 @@ export function TemplateShareDialog({ templateId, name, onClose }: TemplateShare
             setFailures((count) => count + 1);
           }
           return false;
+        } finally {
+          inflight.current -= 1;
         }
       };
       queue.current = queue.current.then(run);
@@ -120,8 +124,11 @@ export function TemplateShareDialog({ templateId, name, onClose }: TemplateShare
   );
 
   const done = async () => {
-    // A change still on its way finishes first; if it fails the dialog stays to say so.
-    if (await queue.current) onClose();
+    // A change still on its way finishes first; if that very save fails the dialog stays to say so.
+    // With nothing in flight the person has already seen any earlier error, so it closes.
+    const busy = inflight.current > 0;
+    const ok = await queue.current;
+    if (ok || !busy) onClose();
   };
 
   const pick = (level: SharingLevel) => {
