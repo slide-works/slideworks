@@ -197,6 +197,21 @@ test('the owner flag alone keeps the screen null, even when the live session con
   expect(hub.watches).toHaveLength(1);
 });
 
+test('an empty deck id gets null and makes no call', async ({ mount, page }) => {
+  const { hub, qa } = await stubLive(page);
+  await mount(
+    <JoinProvider deckId="" join={liveJoin} owner>
+      <QaScreenLive deckId="" owner>
+        <QaScreenProbe />
+      </QaScreenLive>
+    </JoinProvider>,
+  );
+  await settle(page);
+  expect(await read(page)).toBeNull();
+  expect(hub.watches).not.toContain('');
+  expect(qa.calls).toEqual([]);
+});
+
 test('a deck that is not live gets null and makes no call, then reads once it goes live', async ({
   mount,
   page,

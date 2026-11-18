@@ -177,6 +177,15 @@ test('an anonymous question on screen says "Anonymous"', async ({ mount, page })
   await expect(page.getByTestId(IDS.footerNote)).toHaveText('On screen now · 0 more waiting');
 });
 
+test('a question on screen that is no longer open never counts below zero waiting', async ({
+  mount,
+  page,
+}) => {
+  const control = viewOf([question(1, { state: 'answered', onScreen: true })]);
+  await mount(qaSlide({ control }));
+  await expect(page.getByTestId(IDS.footerNote)).toHaveText('On screen now · 0 more waiting');
+});
+
 test('an onScreen number that is not in the list shows no question', async ({ mount, page }) => {
   await mount(qaSlide({ control: viewOf(seven().slice(0, 2), { onScreen: 99 }) }));
   await expect(page.getByTestId(IDS.oneUp)).toHaveCount(0);
@@ -358,7 +367,11 @@ for (const [title, slots] of [
         const frame = root.closest('[data-layout]')!.getBoundingClientRect();
         const of = (id: string) => {
           const r = root.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect();
-          return { top: r.top - frame.top, bottom: r.bottom - frame.top, right: r.right - frame.left };
+          return {
+            top: r.top - frame.top,
+            bottom: r.bottom - frame.top,
+            right: r.right - frame.left,
+          };
         };
         const text = of('qa-slide-one-up-text');
         const label = of('qa-slide-one-up');
