@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ApiError } from '../api/client';
 import { templateErrorCode, templateErrorMessage, templateErrorPath, templatesApi } from './api';
 import type { TemplateEditorView, TemplateManifest } from './types';
 
 export type DraftLoad =
   | { kind: 'loading' }
   | { kind: 'loaded'; draft: TemplateEditorView }
-  | { kind: 'failed'; message: string };
+  | { kind: 'failed'; message: string; notFound: boolean };
 
 // Why a save failed: the refusal's code (null when it was not a refusal), the sentence to show,
 // and the manifest field the refusal is about when it names one.
@@ -53,9 +54,14 @@ export function useTemplateDraft(id: string): TemplateDraft {
   // The newest view the server sent for `forId`, and the tail of the queue of saves and reloads.
   const latest = useRef<{ forId: string; draft: TemplateEditorView } | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
+  // The template this hook is open on now, and how many stale_revision refusals it has seen: a
+  // change made before a refusal must not save on top of the draft that was read again after it.
+  const openId = useRef(id);
+  const epoch = useRef(0);
 
   useEffect(() => {
     let active = true;
+    openId.current = id;
     latest.current = null;
     templatesApi.get(id).then(
       (draft) => {
@@ -64,7 +70,12 @@ export function useTemplateDraft(id: string): TemplateDraft {
         setLoad({ kind: 'loaded', draft });
       },
       (error: unknown) =>
-        active && setLoad({ kind: 'failed', message: templateErrorMessage(error) }),
+        active &&
+        setLoad({
+          kind: 'failed',
+          message: templateErrorMessage(error),
+          notFound: error instanceof ApiError && error.status === 404,
+        }),
     );
     return () => {
       active = false;
@@ -97,8 +108,18 @@ export function useTemplateDraft(id: string): TemplateDraft {
       // succeeds after it must not take the message away.
       setSaveError(null);
       setPending((count) => count + 1);
+      const madeAt = epoch.current;
       return enqueue(async (): Promise<ChangeOutcome> => {
+        // A save still in flight for another template must never put its error on this one.
+        const report = (failed: DraftSaveError) => {
+          if (openId.current === id) setSaveError(failed);
+        };
         try {
+          if (madeAt !== epoch.current) {
+            // Queued behind a stale_revision refusal: the draft was read again, so this change
+            // is dropped, not saved on top of it.
+            return { ok: false, code: STALE_REVISION, message: RELOADED };
+          }
           const current = latest.current;
           if (current?.forId !== id) return { ok: false, code: null, message: NOT_LOADED };
           const manifest = { ...current.draft.manifest, ...patch };
@@ -107,6 +128,7 @@ export function useTemplateDraft(id: string): TemplateDraft {
         } catch (error) {
           let failed = saveErrorOf(error);
           if (failed.code === STALE_REVISION) {
+            epoch.current += 1;
             // Every later save would be refused too, so read the draft again here, inside the
             // queue, before the next queued change saves on top of it.
             const reloaded = await templatesApi.get(id).then(
@@ -115,7 +137,7 @@ export function useTemplateDraft(id: string): TemplateDraft {
             );
             failed = { code: STALE_REVISION, message: reloaded ? RELOADED : NOT_RELOADED };
           }
-          setSaveError(failed);
+          report(failed);
           return { ok: false, ...failed };
         } finally {
           setPending((count) => count - 1);
@@ -131,7 +153,7 @@ export function useTemplateDraft(id: string): TemplateDraft {
         try {
           accept(await templatesApi.get(id));
         } catch (error) {
-          setSaveError(saveErrorOf(error));
+          if (openId.current === id) setSaveError(saveErrorOf(error));
         }
       }),
     [id, accept, enqueue],
