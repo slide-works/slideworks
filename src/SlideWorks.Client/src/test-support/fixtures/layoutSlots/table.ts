@@ -15,6 +15,9 @@ export const SLOTS: TableSlots = {
     ['Share a search', 'M', { text: 'Late', tone: 'warn' }],
   ],
   highlightRow: 1,
+  reveal: 'all',
+  callout: { tone: 'info', text: 'Two slices are already live.' },
+  emphasis: [{ text: 'a week', tone: 'accent' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is
