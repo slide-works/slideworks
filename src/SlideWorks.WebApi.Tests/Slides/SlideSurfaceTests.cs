@@ -61,11 +61,16 @@ public class SlideSurfaceTests : ApiTestFixture
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent);
         await OkAsync(agent, "add_slide", new { deck, layout = "statement", slots = Slots(STATEMENT), surface = "dark" });
+        var before = (await SlidesAsync(agent, deck))[0];
 
         var error = await ErrorAsync(agent, "update_slide", new { deck, slide = 1, revision = 1, slots = Slots(CARDS), layout = "cards" });
 
         error.ShouldBe("cards.surface: this layout is light only");
-        (await SlidesAsync(agent, deck))[0].GetProperty("layout").GetString().ShouldBe("statement");
+        var slide = (await SlidesAsync(agent, deck))[0];
+        slide.GetProperty("layout").GetString().ShouldBe("statement");
+        slide.GetProperty("surface").GetString().ShouldBe("dark");
+        slide.GetProperty("revision").GetInt32().ShouldBe(before.GetProperty("revision").GetInt32());
+        slide.GetProperty("slots").GetRawText().ShouldBe(before.GetProperty("slots").GetRawText());
     }
 
     [Test]

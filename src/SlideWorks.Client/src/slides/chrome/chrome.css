@@ -107,6 +107,7 @@
    layouts carry data-dark and are left as they were. */
 .sw-frame[data-surface='dark']:not([data-dark='true']) .sw-tracker li {
   color: var(--sw-night-muted);
+  opacity: 1;
 }
 
 .sw-frame[data-surface='dark']:not([data-dark='true']) .sw-tracker li[data-state='past'] {
@@ -115,12 +116,6 @@
 
 .sw-frame[data-surface='dark']:not([data-dark='true']) .sw-tracker li[data-state='on'] {
   color: var(--sw-accent-glow);
-}
-
-.sw-frame[data-surface='dark']:not([data-dark='true'])[data-deep-dive='true']
-  .sw-tracker
-  li[data-state='on'] {
-  border-top-color: var(--sw-dd);
 }
 
 .sw-frame[data-surface='dark']:not([data-dark='true']) .sw-footer {

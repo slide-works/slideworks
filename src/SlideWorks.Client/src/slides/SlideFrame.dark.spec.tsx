@@ -57,6 +57,9 @@ for (const palette of ['cobalt', 'ember']) {
     const muted = await resolved(page, '--sw-night-muted');
     await expect(parts.nth(0)).toHaveCSS('color', muted);
     await expect(parts.nth(2)).toHaveCSS('color', muted);
+    // A tracker item that is not the current one paints at full night-muted, not the light slide's 0.75.
+    await expect(parts.nth(0)).toHaveCSS('opacity', '1');
+    await expect(parts.nth(2)).toHaveCSS('opacity', '1');
     await expect(parts.nth(1)).toHaveCSS('color', await resolved(page, '--sw-accent-glow'));
     await expect(page.getByTestId('slide-footer-text')).toHaveCSS('color', muted);
     await expect(page.getByTestId('slide-footer-text')).toHaveText(
@@ -102,4 +105,13 @@ test('a title slide draws as before', async ({ mount, page }) => {
   await expect(page.getByTestId('part-tracker-part')).toHaveCount(0);
   await expect(page.getByTestId('slide-footer-text')).toHaveCount(0);
   await expect(page.getByTestId('slide-progress')).toHaveCSS('opacity', '0.7');
+});
+
+test('a divider slide keeps its own kicker colour, not the glow', async ({ mount, page }) => {
+  await mount(themed('cobalt', { layout: 'divider', part: null, number: 1 }));
+
+  await expect(page.getByTestId('slide-frame')).toHaveAttribute('data-dark', 'true');
+  const kicker = page.getByTestId('kicker');
+  await expect(kicker).toHaveCSS('color', await resolved(page, '--sw-accent'));
+  await expect(kicker).not.toHaveCSS('color', await resolved(page, '--sw-accent-glow'));
 });

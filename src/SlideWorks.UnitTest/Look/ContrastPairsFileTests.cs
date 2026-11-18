@@ -32,12 +32,18 @@ public class ContrastPairsFileTests
     }
 
     [Test]
-    public void Pairs_WhenListed_ShouldBeTheCheckedPairsInOrderAndPlain()
+    public void Pairs_WhenListed_ShouldBeTheCheckedPairsInOrder()
     {
         var checkedPairs = PaletteContrast.Check(new PaletteCatalogue().All[0]);
 
         PaletteContrast.Pairs.Select(pair => (pair.Name, pair.Needed)).ShouldBe(checkedPairs.Select(check => (check.Pair, check.Bar)));
-        PaletteContrast.Pairs.ShouldAllBe(pair => pair.Over == null && pair.Share == null);
+        PaletteContrast.Pairs.ShouldAllBe(pair => (pair.Over == null) == (pair.Share == null));
+        PaletteContrast.Pairs.Where(pair => pair.Share is not null).ShouldAllBe(pair => pair.Share > 0 && pair.Share <= 1);
+        // The mixed-ground pairs: the three dark soft washes over night, and the pin on a solid accent panel over the panel.
+        PaletteContrast.Pairs.Where(pair => pair.Share is not null).Select(pair => pair.Name).ShouldBe(
+            ["dark-soft-accent", "dark-soft-positive", "dark-soft-negative", "pin-solid-accent"]);
+        PaletteContrast.Pairs.Where(pair => pair.Name.StartsWith("dark-soft-", StringComparison.Ordinal)).Select(pair => (pair.Over, pair.Share))
+            .ShouldBe([("night", 0.24), ("night", 0.22), ("night", 0.22)]);
         PaletteContrast.Pairs.Select(pair => pair.Name).ShouldBeUnique();
     }
 
