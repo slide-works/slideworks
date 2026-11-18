@@ -1,0 +1,58 @@
+// The Templates area's screen samples (src/contracts/screens), typed as the client's views, and
+// the props a spec mounts one editor tab with. The server's shape tests check its real responses
+// against the same files.
+import layoutReviewJson from '@contracts/screens/layout-review.json' with { type: 'json' };
+import templateEditorJson from '@contracts/screens/template-editor.json' with { type: 'json' };
+import templatePublicJson from '@contracts/screens/template-public.json' with { type: 'json' };
+import templateSharingJson from '@contracts/screens/template-sharing.json' with { type: 'json' };
+import templatesJson from '@contracts/screens/templates.json' with { type: 'json' };
+import type { EditorTabProps } from '../../templates/editor/tabProps';
+import type {
+  LayoutReviewView,
+  TemplateChecklistView,
+  TemplateEditorView,
+  TemplatePublicView,
+  TemplateSharingView,
+  TemplatesView,
+} from '../../templates/types';
+import type { Widen } from './widen';
+
+export const templates = templatesJson satisfies Widen<TemplatesView> as TemplatesView;
+export const templateEditor =
+  templateEditorJson satisfies Widen<TemplateEditorView> as TemplateEditorView;
+export const templateSharing =
+  templateSharingJson satisfies Widen<TemplateSharingView> as TemplateSharingView;
+export const templatePublic =
+  templatePublicJson satisfies Widen<TemplatePublicView> as TemplatePublicView;
+
+// GET …/checklist answers the editor view's checklist and canPublish on their own.
+export const templateChecklist: TemplateChecklistView = {
+  checklist: templateEditor.checklist,
+  canPublish: templateEditor.canPublish,
+};
+
+// layout-review.json, with its `layout` in the compiled shape the client draws (layoutTree.ts):
+// the sample file writes the tree and the slots in short, so those two are spelled out here.
+const { layout: reviewedLayout, ...review } = layoutReviewJson;
+export const layoutReview: LayoutReviewView = {
+  ...(review satisfies Widen<Omit<LayoutReviewView, 'layout'>> as Omit<LayoutReviewView, 'layout'>),
+  layout: {
+    name: reviewedLayout.name,
+    surface: 'light',
+    tree: { version: 1, root: [] },
+    css: reviewedLayout.css,
+    slots: { headline: { type: 'text', max: 80 } },
+  },
+};
+
+// The props one editor tab (or the publish checklist) is mounted with on its own: the sample
+// draft, and change and reload that do nothing. A spec passes its own to watch the calls.
+export function editorTabProps(overrides: Partial<EditorTabProps> = {}): EditorTabProps {
+  return {
+    draft: templateEditor,
+    change: () => Promise.resolve(),
+    reload: () => Promise.resolve(),
+    saving: false,
+    ...overrides,
+  };
+}

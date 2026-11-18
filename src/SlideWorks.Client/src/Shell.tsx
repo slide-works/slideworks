@@ -20,6 +20,12 @@ export function Shell({ me }: { me: MeView }) {
             >
               Decks
             </Link>
+            <Link
+              to="/templates"
+              className="rounded-md px-2.5 py-1 text-meta font-medium text-ink-muted no-underline hover:bg-panel-2 hover:text-ink"
+            >
+              Templates
+            </Link>
           </nav>
           <AdminLink me={me} />
           <div data-testid="user-menu" className="ml-auto">
