@@ -94,5 +94,36 @@
       ],
       "reveal": "one-by-one"
     }
+  },
+  "rulesCallout": {
+    "layout": "rules",
+    "estimate": 591.4,
+    "grow": [
+      "/callout/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Make Every Merge Small And Reviewable",
+      "headline": "Every Merge Small And Reviewable Matters",
+      "rules": [
+        {
+          "title": "Merge to main every day, behind a flag if it is not ready",
+          "text": "Behind a flag if it is not ready, so the rest of the team always sees it and builds on top of it, never b"
+        },
+        {
+          "title": "Merge to main every day, behind a flag if it is not ready",
+          "text": "Behind a flag if it is not ready, so the rest of the team always sees it and builds on top of it, never b"
+        },
+        {
+          "title": "Merge to main every day, behind a flag if it is not ready",
+          "text": "Behind a flag if it is not ready, so the rest of the team always sees it and builds on top of it, never b"
+        }
+      ],
+      "reveal": "one-by-one",
+      "callout": {
+        "tone": "info",
+        "text": "Small steps keep every release easy to review, so the team learns from real customers every single."
+      }
+    }
   }
 }
