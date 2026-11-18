@@ -147,12 +147,16 @@ public class TemplateAssets(
     // that one statement. Everyone else learns why from the row as it now is.
     private async Task<TemplateUpload> ClaimAsync(string hash, CancellationToken ct)
     {
+        // One write transaction (SQLite's BEGIN IMMEDIATE) for the update and the read of the row: a start (which removes
+        // used rows) cannot run between them, so the claim never finds its own row gone.
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var now = clock.GetUtcNow();
         var taken = await db.TemplateUploads
             .Where(u => u.TokenHash == hash && u.UsedAt == null && u.ExpiresAt > now
                 && db.Templates.Any(t => t.Id == u.TemplateId && db.Users.Any(person => person.Id == t.OwnerId && person.Access == UserAccess.Approved)))
             .ExecuteUpdateAsync(set => set.SetProperty(u => u.UsedAt, now), ct);
         var upload = await db.TemplateUploads.AsNoTracking().SingleOrDefaultAsync(u => u.TokenHash == hash, ct);
+        await transaction.CommitAsync(ct);
         if (taken == 1 && upload != null)
         {
             return upload;
@@ -304,19 +308,7 @@ public class TemplateAssets(
             return true;
         }
         var deckIds = await decks.Select(d => d.Id).ToListAsync();
-        return deckIds.Exists(renderSessions.AllowsImagesOf) || (guestId is not null && await AnyIsLiveAsync(deckIds));
-    }
-
-    private async Task<bool> AnyIsLiveAsync(List<string> deckIds)
-    {
-        foreach (var deckId in deckIds)
-        {
-            if ((await audienceSessions.ForDeckAsync(deckId))?.Phase == AudiencePhase.Live)
-            {
-                return true;
-            }
-        }
-        return false;
+        return deckIds.Exists(renderSessions.AllowsImagesOf) || (guestId is not null && await audienceSessions.AnyLiveAsync(deckIds));
     }
 
     private static StoredAsset ViewOf(TemplateAsset asset)

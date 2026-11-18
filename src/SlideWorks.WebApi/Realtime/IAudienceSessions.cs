@@ -13,4 +13,18 @@ public interface IAudienceSessions
     Task<AudienceSessionRef?> FindAsync(string code);
 
     Task<AudienceSessionRef?> ForDeckAsync(string deckId);
+
+    // Whether any of the decks has a live session. The real implementation answers with one query; the default asks
+    // deck by deck, for a stand-in that has no database.
+    async Task<bool> AnyLiveAsync(IReadOnlyCollection<string> deckIds)
+    {
+        foreach (var deckId in deckIds)
+        {
+            if ((await ForDeckAsync(deckId))?.Phase == AudiencePhase.Live)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }
