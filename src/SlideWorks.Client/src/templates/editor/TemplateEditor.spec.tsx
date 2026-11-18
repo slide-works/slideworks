@@ -96,6 +96,49 @@ test('choosing a tab puts it in the tab parameter and keeps focus on the tab', a
   await expect(page.getByRole('tab', { name: 'Palette' })).toBeFocused();
 });
 
+test('arrow, Home and End keys move along the tab bar and open the tab', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { '/api/me': { json: me } });
+  await stubTemplatesApi(page);
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    at('?tab=fonts'),
+  );
+  await expectOpen(page, 'fonts');
+  const tab = (name: string) => page.getByRole('tab', { name, exact: true });
+
+  // Only the open tab is in the Tab order.
+  await expect(tab('Fonts')).toHaveAttribute('tabindex', '0');
+  for (const other of ['Basics', 'Logo and art', 'Palette'])
+    await expect(tab(other)).toHaveAttribute('tabindex', '-1');
+
+  await tab('Fonts').focus();
+  const steps: [key: string, open: EditorTab, name: string][] = [
+    ['ArrowRight', 'logo-art', 'Logo and art'],
+    ['ArrowRight', 'palette', 'Palette'],
+    ['ArrowRight', 'basics', 'Basics'],
+    ['ArrowLeft', 'palette', 'Palette'],
+    ['ArrowLeft', 'logo-art', 'Logo and art'],
+    ['Home', 'basics', 'Basics'],
+    ['End', 'palette', 'Palette'],
+  ];
+  for (const [key, open, name] of steps) {
+    await page.keyboard.press(key);
+    await expectOpen(page, open);
+    await expect(tab(name)).toBeFocused();
+    await expect(tab(name)).toHaveAttribute('tabindex', '0');
+    await expect(page.getByTestId('location')).toHaveText(`${path}?tab=${open}`);
+  }
+  await expect(page.getByRole('tabpanel')).toHaveAttribute(
+    'aria-labelledby',
+    'template-editor-tab-palette',
+  );
+});
+
 test('shows a message when the template cannot be read', async ({ mount, page }) => {
   await stubApi(page, { '/api/me': { json: me } });
   await stubTemplatesApi(page, { get: { status: 404, json: { error: 'No such template.' } } });
