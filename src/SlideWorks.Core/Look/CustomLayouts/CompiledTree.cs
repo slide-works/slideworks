@@ -7,6 +7,19 @@ namespace SlideWorks.Core.Look.CustomLayouts;
 // data-each included), never further out.
 public static class CompiledTree
 {
+    private const string SLOTS_PATH = "slots";
+
+    // What the author must change before Of can run: one error for each enum a data-variant binds
+    // that has a value which can't be a class, at slots.<slot path> (the lists around it, then the
+    // enum). A value is a lower-case letter, then lower-case letters, digits and hyphens, and no
+    // longer than CustomLayoutLimits.MAX_ENUM_VALUE_CHARS. An enum no variant binds is not checked.
+    public static IReadOnlyList<CustomLayoutError> VariantErrors(LayoutTree tree, CustomLayoutSchema schema) =>
+    [
+        .. tree.Root.SelectMany(node => UnusableEnums(node, schema, SLOTS_PATH))
+            .Distinct()
+            .Select(found => CustomLayoutError.Of(found.Path, CustomLayoutErrorCodes.BINDING_WRONG_KIND, found.Slot)),
+    ];
+
     // Run after the cross-check passed, so a variant that names no enum here is our bug.
     public static LayoutTree Of(LayoutTree tree, CustomLayoutSchema schema, string scope, LayoutClassPrefix prefix) =>
         tree with { Scope = scope, Root = [.. tree.Root.Select(node => Scoped(node, schema, prefix))] };
@@ -67,6 +80,27 @@ public static class CompiledTree
             Verify(child, slots, prefix);
         }
     }
+
+    // A variant that names no enum is left for Of to throw on: that one is the cross-check's.
+    private static IEnumerable<(string Path, string Slot)> UnusableEnums(TreeNode node, CustomLayoutSchema outer, string path)
+    {
+        var slots = Around(node, outer);
+        if (slots is null)
+        {
+            return [];
+        }
+
+        var here = node.Each is null ? path : $"{path}.{node.Each}";
+        return node.Variants
+            .Where(variant => EnumAt(variant.Slot, slots) is { } choice && !choice.Values.All(IsVariantValue))
+            .Select(variant => ($"{here}.{variant.Slot}", variant.Slot))
+            .Concat(node.Children.SelectMany(child => UnusableEnums(child, slots, here)));
+    }
+
+    private static bool IsVariantValue(string? value) =>
+        value is { Length: > 0 and <= CustomLayoutLimits.MAX_ENUM_VALUE_CHARS }
+        && value[0] is >= 'a' and <= 'z'
+        && value.All(c => c is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '-');
 
     // The slots an element's own bindings and its children read: the fields of the list it repeats,
     // or the ones around it. Null when its data-each names no list there.

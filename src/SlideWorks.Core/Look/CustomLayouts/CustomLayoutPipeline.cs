@@ -53,6 +53,14 @@ public sealed class CustomLayoutPipeline(
             throw new InvalidOperationException("The cross-check returned neither steps nor an error.");
         }
 
+        // The class of an enum's value is built from the value, and no stage owns what a value may
+        // be: the author gets an error here instead of the prefix throwing.
+        var variantErrors = CompiledTree.VariantErrors(tree, compiledSchema);
+        if (variantErrors.Count > 0)
+        {
+            return new CompileResult(null, variantErrors);
+        }
+
         var sample = samples.Sample(compiledSchema);
         var maximum = samples.Maximum(compiledSchema);
         MustValidate(definition, sample, "sample");

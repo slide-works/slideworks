@@ -27,4 +27,7 @@ public static class CustomLayoutLimits
 
     // Slots, counting the fields of a list slot.
     public const int MAX_SLOTS = 24;
+
+    // The longest value of an enum that a data-variant binds: each value becomes a class.
+    public const int MAX_ENUM_VALUE_CHARS = 40;
 }

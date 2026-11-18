@@ -51,12 +51,14 @@ public static class CompiledLayoutJson
     // Strict and fail closed: this is the last check before a layout is drawn in every viewer's
     // browser. A document that is not the contract's shape (an unknown or missing member, a steps
     // kind that does not exist, a tree over CustomLayoutLimits) throws JsonException. One that has
-    // the shape but can't be trusted throws StoredLayoutRefusedException: a name or surface that is
-    // not its schema's, a tree without a scope, a class anywhere in the tree (a variant's classes
-    // included) that does not start with the layout's own prefix, a variant map that is not one class
-    // for each value of its enum. A schema today's compiler refuses throws InvalidOperationException.
-    // A caller that reads several layouts catches the three for each one, so one bad row does not
-    // take the others down. A row written before compilerVersion existed reads as version 0.
+    // the shape but can't be trusted throws StoredLayoutRefusedException: a schema name that is not a
+    // layout name (checked first, and the message then says "unnamed": no message carries a name
+    // that was not checked), a name or surface that is not its schema's, a tree without a scope, a
+    // class anywhere in the tree (a variant's classes included) that does not start with the layout's
+    // own prefix, a variant map that is not one class for each value of its enum. A schema today's
+    // compiler refuses throws InvalidOperationException. Nothing stored makes Read throw anything
+    // else: a caller that reads several layouts catches the three for each one, so one bad row does
+    // not take the others down. A row written before compilerVersion existed reads as version 0.
     public static CompiledLayout Read(string json, ISlotSchemaCompiler compiler)
     {
         using var document = JsonDocument.Parse(json);
@@ -68,6 +70,11 @@ public static class CompiledLayoutJson
         if (definition is null || schema is null || errors.Count > 0)
         {
             throw new InvalidOperationException("A stored layout's schema no longer compiles: " + string.Join(", ", errors.Select(error => error.Code)));
+        }
+
+        if (!LayoutClassPrefix.IsLayoutName(schema.Name))
+        {
+            throw new StoredLayoutRefusedException(StoredLayoutRefusedException.UNNAMED, "its name is not a layout name");
         }
 
         var name = Text(root, "name");

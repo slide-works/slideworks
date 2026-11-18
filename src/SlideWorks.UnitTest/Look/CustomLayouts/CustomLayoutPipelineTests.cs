@@ -184,14 +184,76 @@ public class CustomLayoutPipelineTests
         Should.Throw<InvalidOperationException>(() => stages.Pipeline().Compile("<div>", ".a {}", SLOTS_JSON, SCOPE)).Message.ShouldContain("cross-check");
     }
 
-    [Test]
-    public void Compile_WhenAnEnumValueIsNotAClassName_ShouldThrow()
+    // Was Compile_WhenAnEnumValueIsNotAClassName_ShouldThrow ("Very Loud"): the author's slots file
+    // must never make Compile throw, so the same input is now an error for the author.
+    [TestCaseSource(nameof(EnumValuesThatAreNotClassNames))]
+    public void Compile_WhenABoundEnumValueIsNotAClassName_ShouldReturnAnErrorNotThrow(string value)
     {
-        var schema = Schema with { Slots = [new CustomSlot("tone", CustomSlot.ENUM, false, null, null, ["Very Loud"], [], null)] };
+        var schema = Schema with { Slots = [new CustomSlot("tone", CustomSlot.ENUM, false, null, null, ["calm", value], [], null)] };
+        var root = new TreeNode("div", [], null, null, null, null, [], [TreeVariant.Bare("tone")], [new TreeNode("span", [], null, null, null, null, [], [TreeVariant.Bare("tone")], [])]);
+        var stages = new Stages { Tree = new LayoutTree(1, null, [root]), GivenSchema = schema };
+
+        var result = stages.Pipeline().Compile("<div>", ".a {}", SLOTS_JSON, SCOPE);
+
+        result.Layout.ShouldBeNull();
+        result.Errors.ShouldBe([CustomLayoutError.Of("slots.tone", CustomLayoutErrorCodes.BINDING_WRONG_KIND, "tone")]);
+        result.Errors[0].Message.ShouldBe("This binding needs a slot of another type. (tone)");
+        stages.CrossChecks.ShouldBe(1);
+        stages.SampleCalls.ShouldBe(0);
+    }
+
+    [Test]
+    public void Compile_WhenABoundEnumValueIsAsLongAsAllowed_ShouldCompile()
+    {
+        var longest = new string('a', CustomLayoutLimits.MAX_ENUM_VALUE_CHARS);
+        var schema = Schema with { Slots = [new CustomSlot("tone", CustomSlot.ENUM, false, null, null, [longest, "a-1"], [], null)] };
         var root = new TreeNode("div", [], null, null, null, null, [], [TreeVariant.Bare("tone")], []);
         var stages = new Stages { Tree = new LayoutTree(1, null, [root]), GivenSchema = schema };
 
-        Should.Throw<ArgumentException>(() => stages.Pipeline().Compile("<div>", ".a {}", SLOTS_JSON, SCOPE)).ParamName.ShouldBe("className");
+        var layout = stages.Pipeline().Compile("<div>", ".a {}", SLOTS_JSON, SCOPE).Layout.ShouldNotBeNull();
+
+        layout.Tree.Root[0].Variants[0].Classes!.Select(entry => entry.Class).ShouldBe([PREFIX + "is-" + longest, PREFIX + "is-a-1"]);
+    }
+
+    [Test]
+    public void Compile_WhenABoundEnumInsideAListIsNotAClassName_ShouldGiveThePathThroughTheList()
+    {
+        var bars = Schema.Slots[1];
+        var state = bars.Fields[2] with { Values = ["normal", "Alert"] };
+        var stages = new Stages { GivenSchema = Schema with { Slots = [Schema.Slots[0], bars with { Fields = [bars.Fields[0], bars.Fields[1], state] }, Schema.Slots[2]] } };
+
+        var result = stages.Pipeline().Compile("<div>", ".bar {}", SLOTS_JSON, SCOPE);
+
+        result.Layout.ShouldBeNull();
+        result.Errors.ShouldBe([CustomLayoutError.Of("slots.bars.state", CustomLayoutErrorCodes.BINDING_WRONG_KIND, "state")]);
+    }
+
+    [Test]
+    public void Compile_WhenAnUnboundEnumValueIsNotAClassName_ShouldCompile()
+    {
+        var unbound = new CustomSlot("mood", CustomSlot.ENUM, false, null, null, ["Has_Underscore", "UPPER", "two words", new string('a', CustomLayoutLimits.MAX_ENUM_VALUE_CHARS + 1)], [], null);
+        var stages = new Stages { GivenSchema = Schema with { Slots = [.. Schema.Slots, unbound] } };
+
+        var result = stages.Pipeline().Compile("<div>", ".bar {}", SLOTS_JSON, SCOPE);
+
+        result.Errors.ShouldBeEmpty();
+        result.Layout.ShouldNotBeNull().Tree.Nodes().SelectMany(node => node.Variants).ShouldHaveSingleItem().Slot.ShouldBe("state");
+    }
+
+    // What the pipeline compiles, the stored form reads back: with a variant binding, through Write and Read.
+    [Test]
+    public void Compile_WhenRoundTrippedThroughTheStoredForm_ShouldReadBack()
+    {
+        var stages = new Stages();
+        var layout = stages.Pipeline().Compile("<div>", ".bar {}", SLOTS_JSON, SCOPE).Layout.ShouldNotBeNull();
+        layout.Tree.Nodes().SelectMany(node => node.Variants).ShouldHaveSingleItem().Classes.ShouldNotBeNull().Count.ShouldBe(2);
+
+        var stored = CompiledLayoutJson.Write(layout);
+        var read = CompiledLayoutJson.Read(stored, stages);
+
+        CompiledLayoutJson.Write(read).ShouldBe(stored);
+        LayoutTreeJson.Write(read.Tree).ShouldBe(LayoutTreeJson.Write(layout.Tree));
+        (read with { Tree = layout.Tree }).ShouldBe(layout);
     }
 
     [Test]
@@ -462,6 +524,52 @@ public class CustomLayoutPipelineTests
         Should.Throw<StoredLayoutRefusedException>(() => CompiledLayoutJson.Read(stored, new Stages())).Message.ShouldContain("no scope");
     }
 
+    // The same name stored and in the schema, and a stored name that differs from the schema's.
+    [TestCase("bar_chart<script>")]
+    [TestCase("Bar")]
+    [TestCase("evil <b>stored</b> schema name")]
+    [TestCase("bar--chart")]
+    [TestCase("")]
+    public void Read_WhenTheStoredNameIsNotALayoutName_ShouldRefuseWithoutEchoingIt(string name)
+    {
+        var compiler = new Stages { GivenSchema = Schema with { Name = name } };
+        var sameName = Stored(document => document["name"] = name);
+        var otherName = Stored(_ => { });
+
+        var same = Should.Throw<StoredLayoutRefusedException>(() => CompiledLayoutJson.Read(sameName, compiler));
+        var other = Should.Throw<StoredLayoutRefusedException>(() => CompiledLayoutJson.Read(otherName, compiler));
+
+        same.Message.ShouldBe("The stored layout 'unnamed' was refused: its name is not a layout name.");
+        other.Message.ShouldBe(same.Message);
+        same.LayoutName.ShouldBe(StoredLayoutRefusedException.UNNAMED);
+    }
+
+    [TestCase("")]
+    [TestCase("0a1b2c3")]
+    [TestCase("0a1b2c3d4")]
+    [TestCase("0A1B2C3D")]
+    [TestCase("0a1b2c3g")]
+    [TestCase("<b>0a1b2c3d</b>")]
+    public void Read_WhenTheStoredScopeIsNotEightHex_ShouldRefuse(string scope)
+    {
+        var stored = Stored(document => document["tree"]!["scope"] = scope);
+
+        var refused = Should.Throw<JsonException>(() => CompiledLayoutJson.Read(stored, new Stages()));
+
+        refused.Message.ShouldBe("A layout tree's scope is 8 lower-case hex characters.");
+    }
+
+    [Test]
+    public void Read_WhenAnElementHasTooManyClasses_ShouldRefuse()
+    {
+        JsonArray Owned(int count) => new([.. Enumerable.Range(0, count).Select(index => (JsonNode)(PREFIX + "c" + index))]);
+        var atTheLimit = Stored(document => Bar(document)["classes"] = Owned(CustomLayoutLimits.MAX_CLASSES_PER_ELEMENT));
+        var over = Stored(document => Bar(document)["classes"] = Owned(CustomLayoutLimits.MAX_CLASSES_PER_ELEMENT + 1));
+
+        CompiledLayoutJson.Read(atTheLimit, new Stages()).Tree.Nodes().Max(node => node.Classes.Count).ShouldBe(CustomLayoutLimits.MAX_CLASSES_PER_ELEMENT);
+        Should.Throw<JsonException>(() => CompiledLayoutJson.Read(over, new Stages())).Message.ShouldBe("An element has more classes than a layout may give one.");
+    }
+
     [TestCase("name", "pie-chart")]
     [TestCase("surface", "dark")]
     public void Read_WhenTheNameOrSurfaceIsNotTheSchemas_ShouldRefuse(string key, string value)
@@ -550,6 +658,9 @@ public class CustomLayoutPipelineTests
         JsonNode.DeepEquals(upload["slots"], compiled["schema"]).ShouldBeTrue();
         compiled["css"]!.GetValue<string>().ShouldBe(upload["css"]!.GetValue<string>().Replace(".", ".cl-0a1b2c3d-bar-chart__", StringComparison.Ordinal));
     }
+
+    private static IEnumerable<string> EnumValuesThatAreNotClassNames() =>
+        ["Has_Underscore", "UPPER", "two words", "Very Loud", "9lives", "-dash", new string('a', CustomLayoutLimits.MAX_ENUM_VALUE_CHARS + 1), string.Empty];
 
     private static string Contract(string name) => File.ReadAllText(ContractFiles.PathOf(name));
 

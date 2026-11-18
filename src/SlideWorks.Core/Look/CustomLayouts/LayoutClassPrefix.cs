@@ -51,7 +51,9 @@ public sealed class LayoutClassPrefix
 
     public override string ToString() => Value;
 
-    private static bool IsLayoutName(string? name) =>
+    // Whether a name can stand in a prefix. A reader of stored layouts asks this first, so a stored
+    // name that is not one is refused there and never reaches Of.
+    public static bool IsLayoutName(string? name) =>
         IsClassName(name)
         && name![0] is >= 'a' and <= 'z'
         && name[^1] != '-'

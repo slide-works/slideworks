@@ -11,7 +11,7 @@ namespace SlideWorks.Core.Look.CustomLayouts;
 // bare slot names: ["state"]. The compiled side (with a scope) lists the server-written classes:
 // [ { "slot": "state", "classes": { "normal": "cl-…__is-normal", "alert": "cl-…__is-alert" } } ].
 //
-// Read is bounded by CustomLayoutLimits (depth, nodes, the highest step), so a stored tree is never
+// Read is bounded by CustomLayoutLimits (depth, nodes, the highest step, the classes on one element), so a stored tree is never
 // larger than one that could have been compiled. Whatever is wrong, it throws JsonException, and no
 // message quotes a piece of the document.
 public static class LayoutTreeJson
@@ -137,6 +137,11 @@ public static class LayoutTreeJson
             if (step is < TreeNode.STEP_EACH or > CustomLayoutLimits.MAX_STEPS)
             {
                 throw new JsonException("A step is 0, or a number up to the highest step a layout may have.");
+            }
+
+            if (json.TryGetProperty("classes", out var classes) && classes.ValueKind == JsonValueKind.Array && classes.GetArrayLength() > CustomLayoutLimits.MAX_CLASSES_PER_ELEMENT)
+            {
+                throw new JsonException("An element has more classes than a layout may give one.");
             }
 
             return new TreeNode(

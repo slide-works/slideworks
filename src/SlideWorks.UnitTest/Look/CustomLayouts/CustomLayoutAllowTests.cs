@@ -155,6 +155,7 @@ public class CustomLayoutAllowTests
         CustomLayoutLimits.MAX_VALUE_LAYERS.ShouldBe(8);
         CustomLayoutLimits.MAX_FUNCTION_ARGUMENTS.ShouldBe(16);
         CustomLayoutLimits.MAX_SLOTS.ShouldBe(24);
+        CustomLayoutLimits.MAX_ENUM_VALUE_CHARS.ShouldBe(40);
     }
 
     private static IReadOnlyList<IReadOnlyList<string>> Lists(CustomLayoutAllow allow) =>
