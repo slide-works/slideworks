@@ -47,7 +47,9 @@ public sealed class UpdateMyDecks(AppDbContext db, IActivityLog activity, IDeckE
                 return 0;
             }
 
-            var locks = ManifestJson.Parse(latest.ManifestJson).Manifest?.LockPalette == true;
+            var manifest = ManifestJson.Parse(latest.ManifestJson).Manifest;
+            var locks = manifest?.LockPalette == true;
+            var label = manifest?.Label ?? template.Name;
             var now = clock.GetUtcNow();
             foreach (var deck in decks)
             {
@@ -60,7 +62,7 @@ public sealed class UpdateMyDecks(AppDbContext db, IActivityLog activity, IDeckE
                 deck.Revision += 1;
                 deck.UpdatedAt = now;
                 await db.SaveChangesAsync(ct);
-                await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, null, $"Look: {template.Name} version {from} to {latest.Version}"));
+                await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, null, VersionMoveSummary.Of(label, from, latest.Version)));
                 moved.Add(deck.Id);
             }
             await transaction.CommitAsync(ct);
