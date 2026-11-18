@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -6,12 +8,32 @@ using System.Text.RegularExpressions;
 namespace SlideWorks.Core.Look.Manifest;
 
 // Reads and writes a template manifest (T3), the format of src/contracts/template-manifest.schema.json. Parse refuses
-// an unknown field and checks the two value rules a custom layout's CSS relies on: every palette value is # plus 6 hex
-// digits, and shape.shadow passes ManifestShadow. Counts and sizes (TemplateLimits) are checked where files are stored.
+// an unknown field, a field given twice and a file over MAX_BYTES, and checks every value that ends up in CSS or in a
+// path: a palette value is # plus 6 hex digits, shape.shadow passes ManifestShadow, a font family name is plain words,
+// type.headTracking is a small em length and a custom layout's name is a slug. Counts are ManifestLimits' and
+// ExtraColours' job; sizes (TemplateLimits) are checked where files are stored.
 public static partial class ManifestJson
 {
     public const int MAX_NAME = 40;
     public const int MAX_FILE = 200;
+
+    // A manifest's size as UTF-8. A larger one is refused before it is parsed.
+    public const int MAX_BYTES = 200_000;
+
+    // A font family name: type.head, type.body and fonts[].family.
+    public const int MAX_FAMILY = 60;
+
+    // A custom layout's name.
+    public const int MAX_LAYOUT_NAME = 31;
+
+    // type.headTracking, in em.
+    public const decimal MIN_TRACKING = -0.1m;
+    public const decimal MAX_TRACKING = 0.2m;
+
+    // The longest headTracking that is looked at: a sign, a few digits and "em".
+    private const int MAX_TRACKING_LENGTH = 12;
+
+    public const string HEX_RULE = "must be # and 6 hex digits, such as #2f5bea";
 
     private static readonly string[] Root =
     [
@@ -28,17 +50,26 @@ public static partial class ManifestJson
 
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
+    // A field given twice is refused: two readers of the same file must never see two different values.
+    private static readonly JsonDocumentOptions Strict = new() { AllowDuplicateProperties = false };
+
     public static ManifestParseResult Parse(string json)
     {
+        // A UTF-8 text is never shorter than its UTF-16 length, so most oversized files are refused without a count.
+        if (json.Length > MAX_BYTES || Encoding.UTF8.GetByteCount(json) > MAX_BYTES)
+        {
+            return new ManifestParseResult { Errors = [new ManifestError("", $"is larger than {MAX_BYTES} bytes")] };
+        }
+
         var reader = new ManifestReader();
         JsonDocument document;
         try
         {
-            document = JsonDocument.Parse(json);
+            document = JsonDocument.Parse(json, Strict);
         }
         catch (JsonException)
         {
-            return new ManifestParseResult { Errors = [new ManifestError("", "is not valid JSON")] };
+            return new ManifestParseResult { Errors = [new ManifestError("", "is not valid JSON, or gives a field twice")] };
         }
 
         using (document)
@@ -224,11 +255,57 @@ public static partial class ManifestJson
         var (type, reader) = Section(outer, root, "type", ["head", "body", "headWeight", "headTracking"]);
         return new ManifestType
         {
-            Head = reader.Text(type, "type", "head", minLength: 1),
-            Body = reader.Text(type, "type", "body", minLength: 1),
+            Head = Family(reader, type, "type", "head"),
+            Body = Family(reader, type, "type", "body"),
             HeadWeight = reader.Whole(type, "type", "headWeight", 100, 900),
-            HeadTracking = reader.Text(type, "type", "headTracking"),
+            HeadTracking = Tracking(reader, type),
         };
+    }
+
+    // A font family name ends up in CSS, so it is plain words: no quote, comma, semicolon, bracket or backslash.
+    private static string Family(ManifestReader reader, JsonElement parent, string path, string key)
+    {
+        var family = reader.Text(parent, path, key);
+        if (parent.TryGetProperty(key, out var given) && given.ValueKind == JsonValueKind.String && !IsFamily(family))
+        {
+            reader.Add(ManifestReader.Join(path, key), $"must be 1 to {MAX_FAMILY} characters: letters, digits, spaces and hyphens, starting and ending with a letter or digit");
+        }
+
+        return family;
+    }
+
+    public static bool IsFamily(string family) =>
+        family.Length is >= 1 and <= MAX_FAMILY
+        && char.IsAsciiLetterOrDigit(family[0])
+        && char.IsAsciiLetterOrDigit(family[^1])
+        && family.All(c => char.IsAsciiLetterOrDigit(c) || c is ' ' or '-');
+
+    // type.headTracking ends up in CSS as letter-spacing: "0", or a decimal in em within the limits.
+    private static string Tracking(ManifestReader reader, JsonElement type)
+    {
+        var tracking = reader.Text(type, "type", "headTracking");
+        if (type.TryGetProperty("headTracking", out var given) && given.ValueKind == JsonValueKind.String && !IsTracking(tracking))
+        {
+            reader.Add("type.headTracking", string.Create(CultureInfo.InvariantCulture, $"must be 0, or a length in em from {MIN_TRACKING}em to {MAX_TRACKING}em, such as -0.025em"));
+        }
+
+        return tracking;
+    }
+
+    public static bool IsTracking(string tracking)
+    {
+        if (tracking == "0")
+        {
+            return true;
+        }
+
+        if (tracking.Length > MAX_TRACKING_LENGTH || !TrackingLength().IsMatch(tracking))
+        {
+            return false;
+        }
+
+        var em = decimal.Parse(tracking.AsSpan(0, tracking.Length - 2), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
+        return em is >= MIN_TRACKING and <= MAX_TRACKING;
     }
 
     private static ManifestShape ReadShape(ManifestReader outer, JsonElement root)
@@ -267,7 +344,7 @@ public static partial class ManifestJson
         return new ManifestFonts
         {
             Role = reader.OneOf(font, path, "role", Roles),
-            Family = reader.Text(font, path, "family", minLength: 1),
+            Family = Family(reader, font, path, "family"),
             File = reader.Text(font, path, "file", minLength: 1, maxLength: MAX_FILE),
             Weight = reader.Whole(font, path, "weight", 100, 900),
             Style = reader.OneOf(font, path, "style", Styles),
@@ -334,21 +411,30 @@ public static partial class ManifestJson
     private static string Colour(ManifestReader reader, JsonElement parent, string path, string key)
     {
         var colour = reader.Text(parent, path, key);
-        if (parent.TryGetProperty(key, out var given) && given.ValueKind == JsonValueKind.String && !Hex().IsMatch(colour))
+        if (parent.TryGetProperty(key, out var given) && given.ValueKind == JsonValueKind.String && !IsHexColour(colour))
         {
-            reader.Add(ManifestReader.Join(path, key), "must be # and 6 hex digits, such as #2f5bea");
+            reader.Add(ManifestReader.Join(path, key), HEX_RULE);
         }
 
         return colour;
     }
 
+    // # and 6 hex digits: the only colour a manifest may hold.
+    public static bool IsHexColour(string colour) => colour.Length == 7 && Hex().IsMatch(colour);
+
     private static ManifestCustomLayout ReadLayout(ManifestReader outer, JsonElement layout, string path)
     {
         var reader = outer.IsObject(layout, path, ["name", "file"]) ? outer : new ManifestReader();
         layout = ReferenceEquals(reader, outer) ? layout : Empty;
+        var name = reader.Text(layout, path, "name");
+        if (layout.TryGetProperty("name", out var given) && given.ValueKind == JsonValueKind.String && !IsLayoutName(name))
+        {
+            reader.Add(ManifestReader.Join(path, "name"), $"must be 2 to {MAX_LAYOUT_NAME} characters: a lower-case letter, then lower-case letters, digits and hyphens");
+        }
+
         return new ManifestCustomLayout
         {
-            Name = reader.Text(layout, path, "name", minLength: 1),
+            Name = name,
             File = reader.Text(layout, path, "file", minLength: 1, maxLength: MAX_FILE),
         };
     }
@@ -358,4 +444,14 @@ public static partial class ManifestJson
 
     [GeneratedRegex(@"\A#[0-9a-fA-F]{6}\z")]
     private static partial Regex Hex();
+
+    // A custom layout's name becomes a path in a bundle (layouts/<name>.html), so it is a slug.
+    public static bool IsLayoutName(string name) => name.Length <= MAX_LAYOUT_NAME && LayoutName().IsMatch(name);
+
+    [GeneratedRegex(@"\A[a-z][a-z0-9-]{1,30}\z")]
+    private static partial Regex LayoutName();
+
+    // An optional minus, digits, an optional fraction, then em. The length is capped before it is matched.
+    [GeneratedRegex(@"\A-?[0-9]+(\.[0-9]+)?em\z")]
+    private static partial Regex TrackingLength();
 }
