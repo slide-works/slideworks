@@ -1,3 +1,5 @@
+import { createElement } from 'react';
+import type { LucideProps } from 'lucide-react';
 import { iconFor } from './icons';
 import styles from './Icon.module.css';
 
@@ -12,17 +14,17 @@ type IconProps = {
 // element that places it and hidden from screen readers: the text beside it
 // says what it means. An unknown name draws nothing.
 export function Icon({ name, size }: IconProps) {
-  const Drawing = iconFor(name);
-  if (Drawing === undefined) return null;
-  return (
-    <Drawing
-      data-testid="block-icon"
-      data-icon={name}
-      className={styles.icon}
-      size={size}
-      color="currentColor"
-      aria-hidden="true"
-      focusable="false"
-    />
-  );
+  const drawing = iconFor(name);
+  if (drawing === undefined) return null;
+  // createElement, not JSX: the drawing is one of the 48 fixed components of
+  // the set, looked up by name, never a component made while rendering.
+  return createElement(drawing, {
+    'data-testid': 'block-icon',
+    'data-icon': name,
+    className: styles.icon,
+    size,
+    color: 'currentColor',
+    'aria-hidden': true,
+    focusable: false,
+  } as LucideProps);
 }
