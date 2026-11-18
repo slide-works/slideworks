@@ -9,6 +9,9 @@ import type { StatementSlots } from '../../../slides/slots/statement';
 export const SLOTS: StatementSlots = {
   kicker: 'The point',
   statement: 'Small batches are how we find out sooner.',
+  sub: 'Ship half of it by Friday, then learn from the rest.',
+  reveal: 'one-by-one',
+  emphasis: [{ text: 'find out sooner', tone: 'accent' }],
 };
 
 // The slot keys the layout can't do without. `satisfies` rejects a key that is
