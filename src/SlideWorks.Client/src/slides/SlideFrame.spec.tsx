@@ -167,12 +167,11 @@ test('deck without parts shows no tracker', async ({ mount, page }) => {
   );
 });
 
-test('slide outside any part highlights no part', async ({ mount, page }) => {
+test('slide with no part has no tracker', async ({ mount, page }) => {
   await mount(slide({ part: null }));
 
-  await expect(page.getByTestId('part-tracker-part')).toHaveCount(4);
-  await expect(page.locator('[data-testid="part-tracker-part"][data-state="next"]')).toHaveCount(4);
-  await expect(page.locator('[aria-current]')).toHaveCount(0);
+  await expect(page.getByTestId('slide-frame')).toBeAttached();
+  await expect(page.getByTestId('part-tracker')).toHaveCount(0);
 });
 
 test('footer leaves out a missing author', async ({ mount, page }) => {

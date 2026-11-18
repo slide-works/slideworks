@@ -22,7 +22,7 @@ const deck: SlideDeck = {
 };
 
 function bullets(slots: BulletsSlots, surface?: 'light' | 'dark', number = 3): RenderableSlide {
-  return { number, layout: 'bullets', part: null, deepDive: false, surface, slots };
+  return { number, layout: 'bullets', part: 1, deepDive: false, surface, slots };
 }
 
 // A plain function, not a component: CT can only mount components from source files.
