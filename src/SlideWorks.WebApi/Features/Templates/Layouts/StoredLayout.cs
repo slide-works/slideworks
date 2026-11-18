@@ -19,9 +19,22 @@ public sealed record StoredLayout(CompiledLayout Layout, bool Approved, IReadOnl
     public static StoredLayout New(CompiledLayout layout) => new(layout, false, [], []);
 
     // Strict and fail closed, as ICustomLayoutCompiler.Read is, and with the same three exceptions: a document that is
-    // not exactly this shape throws JsonException, so a row that was tampered with is never read as approved.
-    public static StoredLayout Read(string metaJson, ICustomLayoutCompiler compiler)
+    // not exactly this shape throws JsonException, so a row that was tampered with is never read as approved. Two rules
+    // are checked here so that no reader can forget them, each refusing with StoredLayoutRefusedException: a row with no
+    // meta (the column is nullable) is not a layout, and the compiled tree's scope is the start of the layout asset's id
+    // (LayoutScope), so a layout stored under another asset's id is never read.
+    public static StoredLayout Read(string? metaJson, string assetId, ICustomLayoutCompiler compiler)
     {
+        if (string.IsNullOrWhiteSpace(metaJson))
+        {
+            throw new StoredLayoutRefusedException(StoredLayoutRefusedException.UNNAMED, "the asset holds no stored layout");
+        }
+
+        if (assetId is not { Length: >= LayoutScope.LENGTH } || !LayoutScope.IsValid(assetId[..LayoutScope.LENGTH]))
+        {
+            throw new StoredLayoutRefusedException(StoredLayoutRefusedException.UNNAMED, "the asset's id does not start with a scope");
+        }
+
         using var document = JsonDocument.Parse(metaJson);
         var root = document.RootElement;
         OnlyKeys(root, [LAYOUT, REVIEW]);
@@ -33,11 +46,13 @@ public sealed record StoredLayout(CompiledLayout Layout, bool Approved, IReadOnl
             throw new JsonException("A stored layout's review says approved with true or false.");
         }
 
-        return new StoredLayout(
-            compiler.Read(root.GetProperty(LAYOUT).GetRawText()),
-            approved.GetBoolean(),
-            Texts(review.GetProperty(OVERFLOW)),
-            Texts(review.GetProperty(CONTRAST)));
+        var layout = compiler.Read(root.GetProperty(LAYOUT).GetRawText());
+        if (!string.Equals(layout.Tree.Scope, assetId[..LayoutScope.LENGTH], StringComparison.Ordinal))
+        {
+            throw new StoredLayoutRefusedException(layout.Name, "its scope is not the start of its asset's id");
+        }
+
+        return new StoredLayout(layout, approved.GetBoolean(), Texts(review.GetProperty(OVERFLOW)), Texts(review.GetProperty(CONTRAST)));
     }
 
     public string Write()

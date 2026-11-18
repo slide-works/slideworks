@@ -16,6 +16,8 @@ public class TemplateLayoutsContractTests : ApiTestFixture
 {
     private const string SAMPLE_NAME = "bar-chart";
     private const string SAMPLE_SCOPE = "0a1b2c3d";
+    private const string SAMPLE_ASSET = "0a1b2c3d4e5f60718293a4b5c6d7e8f9";
+    private const string SAMPLE_META = """{"layout":LAYOUT,"review":{"approved":true,"overflow":[],"contrast":[]}}""";
 
     [Test]
     public async Task ForVersion_WhenNothingIsBuilt_ShouldBeEmpty()
@@ -37,7 +39,7 @@ public class TemplateLayoutsContractTests : ApiTestFixture
         using var scope = Factory.Services.CreateScope();
         var layouts = scope.ServiceProvider.GetRequiredService<ITemplateLayouts>();
 
-        var outcome = await layouts.ApproveAsync("tpl_layouts00002", SAMPLE_NAME, new LayoutReport("0a1b2c3d4e5f60718293a4b5c6d7e8f9", [], []), CancellationToken.None);
+        var outcome = await layouts.ApproveAsync("tpl_layouts00002", SAMPLE_NAME, new LayoutReport(SAMPLE_ASSET, [], []), CancellationToken.None);
 
         outcome.ShouldBe(ApproveOutcome.NotFound);
     }
@@ -57,7 +59,7 @@ public class TemplateLayoutsContractTests : ApiTestFixture
             },
         }.ToJsonString();
 
-        var stored = StoredLayout.Read(meta, compiler);
+        var stored = StoredLayout.Read(meta, SAMPLE_ASSET, compiler);
         var written = stored.Write();
 
         stored.Approved.ShouldBeTrue();
@@ -89,7 +91,7 @@ public class TemplateLayoutsContractTests : ApiTestFixture
     {
         var compiler = SampleCompiler();
 
-        Should.Throw<JsonException>(() => StoredLayout.Read(meta.Replace("LAYOUT", CompiledSample(), StringComparison.Ordinal), compiler));
+        Should.Throw<JsonException>(() => StoredLayout.Read(meta.Replace("LAYOUT", CompiledSample(), StringComparison.Ordinal), SAMPLE_ASSET, compiler));
     }
 
     // A class without the layout's own prefix is refused through the seam, as Core refuses it.
@@ -98,9 +100,51 @@ public class TemplateLayoutsContractTests : ApiTestFixture
     {
         var compiler = SampleCompiler();
         var foreign = CompiledSample().Replace("cl-0a1b2c3d-bar-chart__note", "cl-ffffffff-bar-chart__note", StringComparison.Ordinal);
-        var meta = """{"layout":LAYOUT,"review":{"approved":true,"overflow":[],"contrast":[]}}""".Replace("LAYOUT", foreign, StringComparison.Ordinal);
+        var meta = SAMPLE_META.Replace("LAYOUT", foreign, StringComparison.Ordinal);
 
-        Should.Throw<StoredLayoutRefusedException>(() => StoredLayout.Read(meta, compiler));
+        Should.Throw<StoredLayoutRefusedException>(() => StoredLayout.Read(meta, SAMPLE_ASSET, compiler));
+    }
+
+    // The asset row's meta is nullable: a row without one is refused as any other untrusted layout is, so the caller's
+    // one catch per layout covers it.
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("  \n\t")]
+    public void Read_WhenTheStoredValueIsMissing_ShouldRefuse(string? meta)
+    {
+        var compiler = SampleCompiler();
+
+        var refused = Should.Throw<StoredLayoutRefusedException>(() => StoredLayout.Read(meta, SAMPLE_ASSET, compiler));
+
+        refused.LayoutName.ShouldBe(StoredLayoutRefusedException.UNNAMED);
+    }
+
+    // The scope check lives in the seam: a layout stored under an asset whose id does not start with the tree's scope,
+    // or under something that is not an asset id, is never read.
+    [TestCase("ffffffff4e5f60718293a4b5c6d7e8f9")]
+    [TestCase("0a1b2c3")]
+    [TestCase("0A1B2C3D4e5f60718293a4b5c6d7e8f9")]
+    [TestCase("0a1b2c3g4e5f60718293a4b5c6d7e8f9")]
+    [TestCase("")]
+    public void Read_WhenTheScopeIsNotTheAssetIdsStart_ShouldRefuse(string assetId)
+    {
+        var compiler = SampleCompiler();
+        var meta = SAMPLE_META.Replace("LAYOUT", CompiledSample(), StringComparison.Ordinal);
+
+        Should.Throw<StoredLayoutRefusedException>(() => StoredLayout.Read(meta, assetId, compiler));
+    }
+
+    [Test]
+    public void Read_WhenTheScopeMatchesTheAssetId_ShouldReadTheLayout()
+    {
+        var compiler = SampleCompiler();
+        var meta = SAMPLE_META.Replace("LAYOUT", CompiledSample(), StringComparison.Ordinal);
+
+        var stored = StoredLayout.Read(meta, SAMPLE_ASSET, compiler);
+
+        stored.Layout.Name.ShouldBe(SAMPLE_NAME);
+        stored.Layout.Tree.Scope.ShouldBe(SAMPLE_ASSET[..LayoutScope.LENGTH]);
+        stored.Approved.ShouldBeTrue();
     }
 
     [Test]
@@ -164,7 +208,7 @@ public class TemplateLayoutsContractTests : ApiTestFixture
     }
 
     // The rule every reader of a stored layout checks: the tree's scope is the first 8 characters of the layout asset's
-    // id. The review sample obeys it, and its steps are the compiled sample's own count.
+    // id. The review sample obeys it.
     [Test]
     public void ReviewSample_WhenCompared_ShouldHaveAnAssetIdThatStartsWithItsTreesScope()
     {
@@ -177,7 +221,12 @@ public class TemplateLayoutsContractTests : ApiTestFixture
         asset.Length.ShouldBe(32);
         asset.All(c => c is (>= '0' and <= '9') or (>= 'a' and <= 'f')).ShouldBeTrue();
         asset[..LayoutScope.LENGTH].ShouldBe(scope);
-        review.RootElement.GetProperty("steps").GetInt32().ShouldBe(compiled.RootElement.GetProperty("steps").GetProperty("count").GetInt32());
+
+        // In the review view, steps is the number of steps the SAMPLE slide reveals (what the owner clicks through on the
+        // review page), not the count the layout declares: here one per bar of the sample's list.
+        var revealed = review.RootElement.GetProperty("sample").GetProperty(compiled.RootElement.GetProperty("steps").GetProperty("list").GetString()!).GetArrayLength();
+        review.RootElement.GetProperty("steps").GetInt32().ShouldBe(3);
+        revealed.ShouldBe(3);
     }
 
     [Test]

@@ -3,7 +3,7 @@
   "asset": "0a1b2c3d4e5f60718293a4b5c6d7e8f9",
   "approved": false,
   "surface": "light",
-  "steps": 0,
+  "steps": 3,
   "layout": {
     "name": "bar-chart",
     "surface": "light",
