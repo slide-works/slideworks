@@ -16,18 +16,34 @@ public class SlideSurfaceTests : ApiTestFixture
     private const string TITLE = """{ "title": "Ship smaller" }""";
     private const string STATEMENT = """{ "statement": "Small batches win." }""";
     private const string CARDS = """{ "headline": "Why", "cards": [{ "title": "One", "text": "First.", "chips": [] }] }""";
+    private const string TABLE = """{ "headline": "Ship smaller", "columns": ["Was", "Now"], "rows": [["Big", "Small"]] }""";
     private const string BOLD_NOTES = "**Say:** open with the story.\n- then the numbers\n- then the ask";
 
     [Test]
-    public async Task AddSlide_WhenCardsAreDark_ShouldRefuse()
+    public async Task AddSlide_WhenTableIsDark_ShouldRefuse()
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent);
 
-        var error = await ErrorAsync(agent, "add_slide", new { deck, layout = "cards", slots = Slots(CARDS), surface = "dark" });
+        var error = await ErrorAsync(agent, "add_slide", new { deck, layout = "table", slots = Slots(TABLE), surface = "dark" });
 
-        error.ShouldBe("cards.surface: this layout is light only");
+        error.ShouldBe("table.surface: this layout is light only");
         (await SlidesAsync(agent, deck)).ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task AddSlide_WhenPracticeCardsOrTwoColumnAreDark_ShouldKeepThem()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        var practice = """{ "headline": "Ship smaller", "do": [{ "text": "Slice the work thinner." }], "avoid": [] }""";
+        var two = """{ "headline": "Two sides", "left": { "text": "Was." }, "right": { "text": "Now." } }""";
+
+        await OkAsync(agent, "add_slide", new { deck, layout = "practice", slots = Slots(practice), surface = "dark" });
+        await OkAsync(agent, "add_slide", new { deck, layout = "cards", slots = Slots(CARDS), surface = "dark" });
+        await OkAsync(agent, "add_slide", new { deck, layout = "two-column", slots = Slots(two), surface = "dark" });
+
+        (await SlidesAsync(agent, deck)).Select(slide => slide.GetProperty("surface").GetString()).ShouldBe(["dark", "dark", "dark"]);
     }
 
     [Test]
@@ -63,9 +79,9 @@ public class SlideSurfaceTests : ApiTestFixture
         await OkAsync(agent, "add_slide", new { deck, layout = "statement", slots = Slots(STATEMENT), surface = "dark" });
         var before = (await SlidesAsync(agent, deck))[0];
 
-        var error = await ErrorAsync(agent, "update_slide", new { deck, slide = 1, revision = 1, slots = Slots(CARDS), layout = "cards" });
+        var error = await ErrorAsync(agent, "update_slide", new { deck, slide = 1, revision = 1, slots = Slots(TABLE), layout = "table" });
 
-        error.ShouldBe("cards.surface: this layout is light only");
+        error.ShouldBe("table.surface: this layout is light only");
         var slide = (await SlidesAsync(agent, deck))[0];
         slide.GetProperty("layout").GetString().ShouldBe("statement");
         slide.GetProperty("surface").GetString().ShouldBe("dark");

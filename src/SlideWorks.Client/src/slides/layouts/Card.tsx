@@ -49,9 +49,9 @@ export function Card({ card, at, step }: CardProps) {
         <p data-testid="cards-text" className={styles.text}>
           {card.text}
         </p>
-        {card.chips.length > 0 ? (
+        {(card.chips ?? []).length > 0 ? (
           <div data-testid="cards-chips" className={styles.chips}>
-            {card.chips.map((chip, j) => (
+            {(card.chips ?? []).map((chip, j) => (
               <Chip key={j} text={chip} />
             ))}
           </div>

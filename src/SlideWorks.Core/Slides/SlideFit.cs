@@ -53,12 +53,45 @@ internal static class SlideFit
             .Where(name => item.TryGetProperty(name, out var part) && part.ValueKind == JsonValueKind.String)
             .Select(name => item.GetProperty(name).GetString()));
 
-    public static void Check(double height, string path, SlotValidation validation, double budget = BODY_HEIGHT)
+    // parts and shares are recorded even when the text fits, so a dry run can report the heights.
+    // An overflow names each part's height and, when more than one slot draws in the region, every slot that shares it.
+    public static void Check(
+        double height,
+        string path,
+        SlotValidation validation,
+        double budget = BODY_HEIGHT,
+        IReadOnlyList<FitPart>? parts = null,
+        IReadOnlyList<string>? shares = null)
     {
+        var measured = parts ?? [];
+        var shared = shares ?? [];
+        validation.RecordFit(new FitRegion(path, height, budget, measured, shared));
         if (height > budget)
         {
             validation.Fail(path, string.Create(CultureInfo.InvariantCulture,
-                $"too much text to fit on the slide (about {Math.Round(height)} px of {budget} px); use fewer or shorter items"));
+                $"too much text to fit on the slide (about {Math.Round(height)} px of {budget} px){Detail(measured, shared)}; use fewer or shorter items"));
         }
+    }
+
+    private static string Detail(IReadOnlyList<FitPart> parts, IReadOnlyList<string> shares)
+    {
+        var detail = "";
+        if (parts.Count > 0)
+        {
+            detail += "; " + string.Join(", ", parts.Select(part => string.Create(CultureInfo.InvariantCulture, $"{part.Name} {Math.Round(part.Height)} px")));
+        }
+
+        if (shares.Count > 1)
+        {
+            detail += "; " + string.Join(" and ", shares) + " share this region";
+        }
+
+        if (parts.Count > 0)
+        {
+            var tip = parts.MaxBy(part => part.Height);
+            detail += $"; {tip.Name} tips it over";
+        }
+
+        return detail;
     }
 }

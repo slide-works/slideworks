@@ -17,7 +17,7 @@ namespace SlideWorks.WebApi.Features.Decks.Mcp;
 public sealed class ListLayoutsTool
 {
     [McpServerTool(Name = "list_layouts", ReadOnly = true)]
-    [Description("List the slide layouts you can pass to add_slide: each one's name, what it is for, its surface (light, dark or either; with either, add_slide's surface picks), what its steps reveal, and the JSON Schema of its slots. Give a template to list only the layouts it allows. Slot text is plain text: no Markdown or HTML.")]
+    [Description("List the slide layouts you can pass to add_slide: each one's name, what it is for, its surface (light, dark or either; with either, add_slide's surface picks), what its steps reveal, the JSON Schema of its slots, and how many typical items each list or table slot fits. Give a template to list only the layouts it allows. Slot text is plain text: no Markdown or HTML.")]
     public Task<CallToolResult> ListLayouts(
         ITemplates templates,
         ICurrentActor actor,

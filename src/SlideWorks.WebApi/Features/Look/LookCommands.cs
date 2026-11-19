@@ -63,7 +63,7 @@ public class LookCommands(
         {
             throw new NotFoundException(DeckReader.NOT_FOUND);
         }
-        if (change is { Template: null, Palette: null, Logo: null, Draft: null, Chrome: null, TemplateVersion: null })
+        if (change is { Template: null, Palette: null, Logo: null, Draft: null, Chrome: null, TemplateVersion: null, Colors: null })
         {
             throw new BadRequestException(NOTHING_TO_CHANGE);
         }
@@ -99,7 +99,7 @@ public class LookCommands(
             }
 
             // Naming the version the deck is already on, and nothing else, changes nothing: no revision, no entry.
-            if (change is { Template: null, Palette: null, Logo: null, Draft: null, Chrome: null } && !versionMoves)
+            if (change is { Template: null, Palette: null, Logo: null, Draft: null, Chrome: null, Colors: null } && !versionMoves)
             {
                 warnings = await WarningsAsync(deck.Id, template.Template);
                 await transaction.CommitAsync();
@@ -111,6 +111,11 @@ public class LookCommands(
             var keepsPalette = !moves && !versionMoves && change.Palette is null && !template.Template.LockPalette;
             var palette = PaletteAfter(catalogues.Palettes, template, deck.Palette, change);
             var summary = LookSummary.Of(change, template.Template, palette, !keepsPalette && palette.Name != deck.Palette);
+            if (change.Colors is { } colorChange)
+            {
+                var wording = colorChange.Value is { Count: > 0 } ? "set custom colours" : "cleared custom colours";
+                summary = summary.Length == 0 ? wording : $"{summary}; {wording}";
+            }
             if (versionMoves)
             {
                 var wording = VersionMoveSummary.Of(template.Template.Label, deck.TemplateVersion ?? current.Version ?? template.Version!.Value, template.Version!.Value);
@@ -125,6 +130,16 @@ public class LookCommands(
             {
                 deck.Palette = palette.Name;
             }
+
+            if (change.Colors?.Value is { Count: > 0 } colors)
+            {
+                var refused = PaletteTokens.Check(palette, colors);
+                if (refused is not null)
+                {
+                    throw new BadRequestException(refused);
+                }
+            }
+
             Apply(deck, change);
             await db.SaveChangesAsync();
             await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, summary));
@@ -194,6 +209,11 @@ public class LookCommands(
         {
             deck.Draft = draft;
         }
+        if (change.Colors is { } colors)
+        {
+            deck.PaletteTokensJson = PaletteTokens.Write(colors.Value);
+        }
+
         if (change.Chrome is { } chrome)
         {
             var overrides = ChromeOverridesView.From(deck.ChromeJson);

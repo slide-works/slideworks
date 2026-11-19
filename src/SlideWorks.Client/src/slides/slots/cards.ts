@@ -10,7 +10,7 @@ export type Card = {
   icon?: string;
   title: string;
   text: string;
-  chips: string[];
+  chips?: string[];
   tone?: Tone;
   fill?: PanelFill;
   pin?: string;

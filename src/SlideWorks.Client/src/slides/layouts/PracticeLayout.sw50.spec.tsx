@@ -119,8 +119,8 @@ test('the practice fixture and a wide twin stay inside the box sideways', async 
   const twin: PracticeSlots = {
     kicker: wide(slots.kicker!.length),
     headline: wide(slots.headline.length),
-    do: slots.do.map((i) => ({ lead: wide(i.lead.length), text: wide(i.text.length) })),
-    comes_back: slots.comes_back.map((t) => wide(t.length)),
+    do: slots.do.map((i) => ({ lead: wide((i.lead ?? '').length), text: wide(i.text.length) })),
+    comes_back: (slots.comes_back ?? []).map((t) => wide(t.length)),
     avoid: slots.avoid.map((t) => wide(t.length)),
     callout: { ...slots.callout!, text: wide(slots.callout!.text.length) },
   };

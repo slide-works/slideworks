@@ -1,0 +1,14 @@
+{
+  "timelineHeadline": {
+    "layout": "timeline",
+    "slots": {
+      "headline": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "events": [
+        { "when": "Monday", "text": "Pick one change." },
+        { "when": "Friday", "text": "Show what shipped." }
+      ]
+    },
+    "grow": ["/headline"],
+    "refusedBy": "length"
+  }
+}

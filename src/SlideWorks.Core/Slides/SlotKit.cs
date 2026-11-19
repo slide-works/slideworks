@@ -6,8 +6,10 @@ namespace SlideWorks.Core.Slides;
 // plan's section 4. The limits come from the mockup CSS.
 public static class SlotKit
 {
-    public const int KICKER = 40;
-    public const int HEADLINE = 80;
+    // Raised from 40 and 80: real slide copy sat just over those, and the headline shrinks to fit
+    // while a kicker of 60 still sits on one line of the slide.
+    public const int KICKER = 60;
+    public const int HEADLINE = 100;
 
     public const string REVEAL = "'one-by-one' shows one item per step; 'all' (the default) shows them all at once";
 

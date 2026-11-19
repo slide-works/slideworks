@@ -52,15 +52,15 @@ public class TableLayoutTests
     }
 
     [Test]
-    public void Validate_WhenACellIs80_ShouldAccept()
+    public void Validate_WhenACellIs120_ShouldAccept()
     {
-        Validate(Cells(80)).Errors.ShouldBeEmpty();
+        Validate(Cells(120)).Errors.ShouldBeEmpty();
     }
 
     [Test]
-    public void Validate_WhenACellIs81_ShouldRefuse()
+    public void Validate_WhenACellIs121_ShouldRefuse()
     {
-        Validate(Cells(81)).Errors.ShouldContain(e => e.StartsWith("table.rows[0][0]", StringComparison.Ordinal) && e.Contains("80", StringComparison.Ordinal));
+        Validate(Cells(121)).Errors.ShouldContain(e => e.StartsWith("table.rows[0][0]", StringComparison.Ordinal) && e.Contains("120", StringComparison.Ordinal));
     }
 
     [Test]

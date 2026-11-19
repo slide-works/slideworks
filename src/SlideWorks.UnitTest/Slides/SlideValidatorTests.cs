@@ -33,11 +33,11 @@ public class SlideValidatorTests
     public void Validate_WhenRequiredSlotMissing_ShouldNameThePath()
     {
         var result = Validate("practice", """
-            { "headline": "Slice it", "do": [{ "lead": "a", "text": "b" }, { "lead": "c", "text": "d" }, { "text": "e" }],
-              "comes_back": [], "avoid": [] }
+            { "headline": "Slice it", "do": [{ "lead": "a", "text": "b" }, { "text": "d" }, { "lead": "c" }],
+              "avoid": [] }
             """);
 
-        result.Error.ShouldBe("practice.do[2].lead: required");
+        result.Error.ShouldBe("practice.do[2].text: required");
     }
 
     // An escaped lone surrogate (half an emoji) in a field name, slot text or an enum value can't be read as a .NET
@@ -111,7 +111,7 @@ public class SlideValidatorTests
 
         result.Error.ShouldBe("layout: unknown layout 'foo' (known: title, divider, bullets, two-column, practice, compare, "
             + "big-number, quote, image, table, chart, gantt, numbered-cards, rules, cards, statement, links, stack, bars, flow, levels, "
-            + "close, join, poll, qa)");
+            + "columns-list, timeline, loop, close, join, poll, qa)");
     }
 
     [TestCase("{}")]

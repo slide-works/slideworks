@@ -11,4 +11,5 @@ public sealed record CreateDeckRequest(
     string? Author = null,
     IReadOnlyList<JsonElement>? Parts = null,
     string? Template = null,
-    string? Palette = null);
+    string? Palette = null,
+    IReadOnlyDictionary<string, string>? Colors = null);

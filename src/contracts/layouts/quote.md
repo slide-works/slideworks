@@ -6,7 +6,7 @@ A quotation with its attribution, and optionally a headline, a supporting stat, 
 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
-| `kicker` | text | no | up to 40 chars |  |
+| `kicker` | text | no | up to 60 chars |  |
 | `headline` | text | no | up to 80 chars |  |
 | `quote` | text | yes | up to 280 chars | The words only; the layout adds the quotation marks |
 | `attribution` | text | yes | up to 80 chars | Who said it. With a role, this is the name |

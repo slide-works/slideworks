@@ -93,6 +93,10 @@
         "bars",
         "flow",
         "levels",
+        "gantt",
+        "columns-list",
+        "timeline",
+        "loop",
         "close"
       ],
       "chrome": {

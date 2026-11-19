@@ -9,6 +9,7 @@ import type { PracticeSlots } from '../../../slides/slots/practice';
 export const SLOTS: PracticeSlots = {
   kicker: 'Slice it',
   headline: 'Slice by what a customer can do, not by layer',
+  density: 'regular',
   do: [{ lead: 'Start from one user action', text: 'and build every layer it needs, thinly.' }],
   comes_back: ['Feedback in days, not quarters.'],
   avoid: ['"API first, UI later."'],
@@ -21,7 +22,6 @@ export const SLOTS: PracticeSlots = {
 export const REQUIRED = [
   'headline',
   'do',
-  'comes_back',
   'avoid',
 ] as const satisfies readonly RequiredKey<PracticeSlots>[];
 export type RequiredComplete = AssertTrue<ListsEveryRequiredKey<PracticeSlots, typeof REQUIRED>>;

@@ -2,7 +2,6 @@
   "cardsProse": {
     "layout": "cards",
     "grow": [
-      "/cards/2/title",
       "/cards/2/text",
       "/cards/2/chips/3"
     ],
@@ -51,7 +50,6 @@
   "cardsTitleCase": {
     "layout": "cards",
     "grow": [
-      "/cards/2/title",
       "/cards/2/text",
       "/cards/2/chips/3"
     ],
@@ -100,7 +98,6 @@
   "cardsWide": {
     "layout": "cards",
     "grow": [
-      "/cards/2/title",
       "/cards/2/text",
       "/cards/2/chips/3"
     ],
@@ -392,7 +389,7 @@
         {
           "icon": "coins",
           "badge": "The team ships a small slice of wo",
-          "title": "The team ships a small slice of work to customers",
+          "title": "The team ships a small slice of work to customers xxxxxxxxxxxxxxxxxxxx",
           "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than quarters, so the risk shows up ea",
           "chips": [],
           "tone": "accent",
@@ -429,7 +426,7 @@
         {
           "icon": "coins",
           "badge": "Many Women Who Wander Wide Meadows",
-          "title": "Many Women Who Wander Wide Meadows Mow Moss With M",
+          "title": "Many Women Who Wander Wide Meadows Mow Moss With M xxxxxxxxxxxxxxxxxxx",
           "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Wo",
           "chips": [],
           "tone": "accent",

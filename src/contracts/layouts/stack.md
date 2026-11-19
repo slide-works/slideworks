@@ -6,8 +6,8 @@ A stack of 2–8 labelled segments that make up one whole, with optional values,
 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
-| `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 80 chars |  |
+| `kicker` | text | no | up to 60 chars |  |
+| `headline` | text | yes | up to 100 chars |  |
 | `emphasis` | emphasis | no | 1–3 entries, each `text` (up to 60 chars; the phrase must occur exactly once in its target), `tone` and optional `in`; targets `headline` | Phrases of the slide's display text drawn in a tone. Each must occur exactly once in the text it is in |
 | `segments` | list of object | yes | 2–8 items | Listed top to bottom |
 | `segments[].label` | text | yes | up to 40 chars |  |
@@ -26,5 +26,5 @@ A stack of 2–8 labelled segments that make up one whole, with optional values,
 | `callout` | block `callout` | no |  |  |
 | `callout.tone` | `accent` or `positive` or `negative` or `inverse` | yes | aliases `good` = `positive`, `bad` = `negative`, `info` = `accent` | Colours from the deck's palette |
 | `callout.fill` | `soft` or `solid` | no | default `soft` | 'soft' (the default) tints it; 'solid' fills it with the tone's colour |
-| `callout.text` | text | yes | up to 160 chars |  |
+| `callout.text` | text | yes | up to 220 chars |  |
 | `callout.reveal` | `with-slide` or `last` | no | default `with-slide` | 'with-slide' (the default) shows it with the slide; 'last' shows it as one more step after the others |

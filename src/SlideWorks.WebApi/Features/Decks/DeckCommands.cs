@@ -55,6 +55,15 @@ public class DeckCommands(
             }
             var template = look.Template!;
             var palette = look.Palette!;
+            if (request.Colors is { Count: > 0 })
+            {
+                var refused = PaletteTokens.Check(palette, request.Colors);
+                if (refused is not null)
+                {
+                    throw new BadRequestException(refused);
+                }
+            }
+
             var now = clock.GetUtcNow();
             deck = new Deck
             {
@@ -70,6 +79,7 @@ public class DeckCommands(
                 Template = target.Ref,
                 TemplateVersion = target.Version,
                 Palette = palette.Name,
+                PaletteTokensJson = PaletteTokens.Write(request.Colors),
                 Draft = template.Chrome.Draft,
                 CreatedAt = now,
                 UpdatedAt = now,

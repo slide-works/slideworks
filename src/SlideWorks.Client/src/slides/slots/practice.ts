@@ -1,12 +1,15 @@
 // The practice layout's slots (K5). Field names are frozen; the server sets the limits.
-import type { CalloutBlock, Emphasis, LeadText } from './blocks';
+import type { CalloutBlock, Emphasis } from './blocks';
 import type { AssertTrue, ListsEveryKey } from './keyChecks';
+
+export type PracticeItem = { lead?: string; text: string };
 
 export type PracticeSlots = {
   kicker?: string;
   headline: string;
-  do: LeadText[];
-  comes_back: string[];
+  density?: 'regular' | 'compact';
+  do: PracticeItem[];
+  comes_back?: string[];
   avoid: string[];
   callout?: CalloutBlock;
   emphasis?: Emphasis[];
@@ -17,6 +20,7 @@ export type PracticeSlots = {
 export const KEYS = [
   'kicker',
   'headline',
+  'density',
   'do',
   'comes_back',
   'avoid',

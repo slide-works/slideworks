@@ -6,7 +6,7 @@ namespace SlideWorks.Core.Slides;
 
 // Plain text (D12): never Markdown or HTML. Line breaks only where the layout allows them, and no
 // control characters.
-public sealed class TextSlot(int maxLength, bool lineBreaks = false) : ISlotType
+public sealed class TextSlot(int maxLength, bool lineBreaks = false, bool allowEmpty = false) : ISlotType
 {
     // Combining marks count as part of one character, so the raw UTF-16 length gets a cap as well.
     private const int UTF16_UNITS_PER_CHARACTER = 4;
@@ -15,6 +15,9 @@ public sealed class TextSlot(int maxLength, bool lineBreaks = false) : ISlotType
 
     public bool LineBreaks { get; } = lineBreaks;
 
+    // A row-label column header may be an empty string. Other text may not.
+    public bool AllowEmpty { get; } = allowEmpty;
+
     public string Expected => "text";
 
     public string Kind => "text";
@@ -22,10 +25,20 @@ public sealed class TextSlot(int maxLength, bool lineBreaks = false) : ISlotType
     public JsonObject ToJsonSchema() => new()
     {
         ["type"] = "string",
-        ["minLength"] = 1,
+        ["minLength"] = AllowEmpty ? 0 : 1,
         ["maxLength"] = MaxLength,
-        ["pattern"] = LineBreaks ? "\\S" : "^[^\\r\\n\\u2028\\u2029]*\\S[^\\r\\n\\u2028\\u2029]*$",
+        ["pattern"] = Pattern(),
     };
+
+    private string Pattern()
+    {
+        if (LineBreaks)
+        {
+            return "\\S";
+        }
+
+        return AllowEmpty ? "^[^\\r\\n\\u2028\\u2029]*$" : "^[^\\r\\n\\u2028\\u2029]*\\S[^\\r\\n\\u2028\\u2029]*$";
+    }
 
     public void Validate(JsonElement value, string path, SlotValidation validation)
     {
@@ -36,7 +49,7 @@ public sealed class TextSlot(int maxLength, bool lineBreaks = false) : ISlotType
         }
 
         var text = value.GetString() ?? "";
-        if (text.All(c => char.IsWhiteSpace(c) || char.GetUnicodeCategory(c) == UnicodeCategory.Format))
+        if (!AllowEmpty && text.All(c => char.IsWhiteSpace(c) || char.GetUnicodeCategory(c) == UnicodeCategory.Format))
         {
             validation.Fail(path, "must not be empty");
             return;

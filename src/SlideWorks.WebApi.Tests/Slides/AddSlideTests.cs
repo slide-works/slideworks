@@ -40,11 +40,11 @@ public class AddSlideTests : ApiTestFixture
         var deck = await DeckSeed.CreateDeckAsync(agent);
 
         var error = await AddSlideErrorAsync(agent, deck, "practice", """
-            { "headline": "Slice it", "do": [{ "lead": "a", "text": "b" }, { "lead": "c", "text": "d" }, { "text": "e" }],
-              "comes_back": [], "avoid": [] }
+            { "headline": "Slice it", "do": [{ "lead": "a", "text": "b" }, { "text": "d" }, { "lead": "c" }],
+              "avoid": [] }
             """);
 
-        error.ShouldBe("practice.do[2].lead: required");
+        error.ShouldBe("practice.do[2].text: required");
         (await GetDeckAsync(agent, deck)).GetProperty("slides").GetArrayLength().ShouldBe(0);
     }
 

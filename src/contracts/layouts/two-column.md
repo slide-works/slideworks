@@ -1,13 +1,13 @@
-Surface: light. Steps: 1 for the right column when `reveal` is `one-by-one`.
+Surface: either. Steps: 1 for the right column when `reveal` is `one-by-one`.
 
 ## two-column
 
-A headline over two columns. Each column holds a list of points, a paragraph or an image.
+A headline over two columns. Each column holds a list of points, a paragraph or an image. Light or dark.
 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
-| `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 80 chars |  |
+| `kicker` | text | no | up to 60 chars |  |
+| `headline` | text | yes | up to 100 chars |  |
 | `emphasis` | emphasis | no | 1–3 entries, each `text` (up to 60 chars; the phrase must occur exactly once in its target), `tone` and optional `in`; targets `headline` | Phrases of the slide's display text drawn in a tone. Each must occur exactly once in the text it is in |
 | `left` | object | yes | exactly one of `items`, `text`, `image` | Exactly one of items, text or image; an icon needs a title |
 | `left.title` | text | no | up to 60 chars |  |
@@ -35,5 +35,5 @@ A headline over two columns. Each column holds a list of points, a paragraph or 
 | `callout` | block `callout` | no |  |  |
 | `callout.tone` | `accent` or `positive` or `negative` or `inverse` | yes | aliases `good` = `positive`, `bad` = `negative`, `info` = `accent` | Colours from the deck's palette |
 | `callout.fill` | `soft` or `solid` | no | default `soft` | 'soft' (the default) tints it; 'solid' fills it with the tone's colour |
-| `callout.text` | text | yes | up to 160 chars |  |
+| `callout.text` | text | yes | up to 220 chars |  |
 | `callout.reveal` | `with-slide` or `last` | no | default `with-slide` | 'with-slide' (the default) shows it with the slide; 'last' shows it as one more step after the others |

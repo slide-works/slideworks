@@ -90,6 +90,35 @@
   margin-top: 36px;
 }
 
+/* Compact: a 14 px header and a card of 16 px/1.25 text with 8 px padding, so a
+   full practice (5 do, 4 avoid, 2 comes-back, a callout) fits the body. */
+.compact .header {
+  font-size: 14px;
+}
+
+.compact .group {
+  gap: 6px;
+}
+
+.compact .group + .group {
+  margin-top: 12px;
+}
+
+.compact .card {
+  padding: 8px 14px;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.compact .card[data-tone='good'],
+.compact .card[data-tone='bad'] {
+  padding-left: 22px;
+}
+
+.compact .callout {
+  margin-top: 12px;
+}
+
 /* The shared callout block brings its own 30 px; the practice column keeps its 36. */
 .callout > :global([data-testid='body-callout']) {
   margin-top: 0;

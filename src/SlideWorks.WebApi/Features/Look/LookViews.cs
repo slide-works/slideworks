@@ -19,7 +19,7 @@ public static class LookViews
         return Build(
             template,
             overrides,
-            PaletteOf(deck, template, palettes),
+            PaletteTokens.Apply(PaletteOf(deck, template, palettes), deck.PaletteTokensJson),
             LookLogoView.From(deck.LogoImageId),
             missing ? deck.Template : template.Ref,
             missing ? null : deck.TemplateVersion,
@@ -30,7 +30,7 @@ public static class LookViews
 
     // The deck page's look: the LookView plus the chrome overrides and the palette's contrast.
     public static DeckLookView ForPage(Deck deck, ResolvedTemplate template, IPaletteCatalogue palettes)
-        => DeckLookView.From(From(deck, template, palettes), ChromeOverridesView.From(deck.ChromeJson), PaletteOf(deck, template, palettes));
+        => DeckLookView.From(From(deck, template, palettes), ChromeOverridesView.From(deck.ChromeJson), PaletteTokens.Apply(PaletteOf(deck, template, palettes), deck.PaletteTokensJson));
 
     // The look of no deck in particular, for the generic share card: the default template and its palette.
     public static LookView Default(ResolvedTemplate template, IPaletteCatalogue palettes, DateTimeOffset now)

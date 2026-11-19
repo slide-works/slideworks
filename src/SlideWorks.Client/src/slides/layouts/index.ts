@@ -23,6 +23,9 @@ import { StackLayout } from './StackLayout';
 import { BarsLayout } from './BarsLayout';
 import { FlowLayout } from './FlowLayout';
 import { LevelsLayout } from './LevelsLayout';
+import { ColumnsListLayout } from './ColumnsListLayout';
+import { TimelineLayout } from './TimelineLayout';
+import { LoopLayout } from './LoopLayout';
 import { CloseLayout } from './CloseLayout';
 import { JoinLayout } from './JoinLayout';
 import { PollLayout } from './PollLayout';
@@ -50,6 +53,9 @@ export const LAYOUTS: { [L in LayoutName]: ComponentType<LayoutProps<L>> } = {
   bars: BarsLayout,
   flow: FlowLayout,
   levels: LevelsLayout,
+  'columns-list': ColumnsListLayout,
+  timeline: TimelineLayout,
+  loop: LoopLayout,
   close: CloseLayout,
   join: JoinLayout,
   poll: PollLayout,
