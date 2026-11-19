@@ -327,6 +327,23 @@ test('LivePlayer_WhenThePresentationRefusesTheJoin_ShouldShowAMessageInTheChip',
   await expect(page.getByTestId('live-chip-error')).toContainText('refused');
 });
 
+test('LivePlayer_WhenAKeyIsPressedBeforeTheJoinIsAnswered_ShouldPublishThatPosition', async ({
+  mount,
+  page,
+}) => {
+  const hub = await mountLivePlayer(mount, page, untouched(), '', { holdJoin: true });
+  await expect(page.getByTestId('player-connecting')).toHaveCount(0);
+
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('slide-2')).toBeVisible();
+  hub.releasePresentationJoins();
+
+  await expect
+    .poll(() => hub.updates)
+    .toEqual([{ slide: 2, step: 0, black: false, skipDeepDives: false }]);
+  await expect(page.getByTestId('player')).toHaveAttribute('data-driving', 'true');
+});
+
 test('LivePlayer_WhenTheFirstJoinIsSlow_ShouldFreezeTheMovesAndShowAConnectingNoticeAfterAWhile', async ({
   mount,
   page,

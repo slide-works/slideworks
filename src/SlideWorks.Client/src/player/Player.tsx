@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { DeckPlayView } from '../api/types';
 import { useLiveDrive } from '../live/useLiveDrive';
 import { useLiveSessionContext } from '../live/LiveSessionProvider';
@@ -83,7 +83,9 @@ export function Player({
     control?.position ? { position: control.position, live: control.live } : null,
   );
   const { position } = navigation;
-  useEffect(() => {
+  // A layout effect, so it runs before the live drive reads this on the same commit. A plain effect runs after that
+  // read, and a move made as the join landed would be published as the position from before it.
+  useLayoutEffect(() => {
     ownPosition.current = position;
   }, [position]);
   const deepDives = useMemo(
@@ -133,6 +135,7 @@ export function Player({
     <section
       ref={root}
       data-testid="player"
+      data-driving={liveDrive?.live ? 'true' : undefined}
       aria-label={deck.title}
       className="relative flex h-dvh w-full flex-col overflow-hidden bg-[#05070d]"
     >
