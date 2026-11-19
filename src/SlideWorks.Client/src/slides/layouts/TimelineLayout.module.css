@@ -1,0 +1,27 @@
+.events {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.event {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 28px;
+  padding: 8px 0 8px 28px;
+  border-left: 3px solid var(--sw-accent);
+}
+
+.when {
+  color: var(--sw-accent);
+  font: 700 18px/1.35 var(--sw-font-body);
+}
+
+.text {
+  overflow-wrap: anywhere;
+  color: var(--sw-ink);
+  font: 400 24px/1.35 var(--sw-font-body);
+}

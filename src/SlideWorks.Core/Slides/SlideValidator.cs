@@ -50,7 +50,10 @@ public static class SlideValidator
     }
 
     private static SlideValidationResult Result(SlotValidation validation) =>
-        new(validation.Errors.ToArray(), validation.ErrorCount == 0 ? validation.ImageIds.ToArray() : []);
+        new(validation.Errors.ToArray(), validation.ErrorCount == 0 ? validation.ImageIds.ToArray() : [])
+        {
+            Regions = validation.Regions,
+        };
 
     // True when every property name and string value in the slots decodes to valid UTF-16.
     private static bool IsValidUtf16(JsonElement element)

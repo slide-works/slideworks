@@ -22,7 +22,7 @@ public static class CardsLayout
     private const double PIN_ROW = 44;
     private const double RULE = 8;
 
-    public static LayoutDefinition Definition { get; } = new("cards", "1–4 cards, each with an optional icon and badge, a title, text, chips and a pin. Four cards lay out 2×2. A card can be plain with a top rule, and a callout can sit under the cards. Can reveal one card per step.", LayoutSurface.Light,
+    public static LayoutDefinition Definition { get; } = new("cards", "1–4 cards, each with an optional icon and badge, a title, text, chips and a pin. Four cards lay out 2×2. A card can be plain with a top rule, and a callout can sit under the cards. Can reveal one card per step. Light or dark.", LayoutSurface.Either,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),
@@ -30,9 +30,9 @@ public static class CardsLayout
         Req("cards", new ListSlot(Obj(
             Opt("icon", new IconSlot()),
             Opt("badge", new BlockSlot(InlineBlocks.Badge)),
-            Req("title", new TextSlot(50)),
+            Req("title", new TextSlot(70)),
             Req("text", new TextSlot(140)),
-            Req("chips", new ListSlot(new BlockSlot(InlineBlocks.Chip), 0, 4), "May be empty"),
+            Opt("chips", new ListSlot(new BlockSlot(InlineBlocks.Chip), 0, 4), "Optional. May be empty"),
             Opt("tone", Tone(null), TONE + "; left out, the card is plain"),
             Opt("fill", PanelFill(), CARD_FILL),
             Pin()), 1, MAX_CARDS)),

@@ -17,7 +17,7 @@ public class TemplateCatalogueTests
         catalogue.Default.ShouldBe(talk);
 
         talk.Layouts.ShouldBe(["title", "divider", "bullets", "two-column", "compare", "big-number", "quote", "image", "chart", "cards", "numbered-cards", "rules", "table", "statement", "links", "stack", "bars", "flow", "levels", "close"]);
-        workshop.Layouts.ShouldBe(["title", "divider", "bullets", "two-column", "practice", "compare", "quote", "image", "table", "numbered-cards", "rules", "cards", "statement", "links", "stack", "bars", "flow", "levels", "close"]);
+        workshop.Layouts.ShouldBe(["title", "divider", "bullets", "two-column", "practice", "compare", "quote", "image", "table", "numbered-cards", "rules", "cards", "statement", "links", "stack", "bars", "flow", "levels", "gantt", "columns-list", "timeline", "loop", "close"]);
         update.Layouts.ShouldBe(["title", "bullets", "big-number", "table", "chart", "gantt", "numbered-cards", "cards", "stack", "bars", "flow", "levels", "close"]);
 
         talk.Chrome.ShouldBe(new TemplateChrome { Tracker = true, Footer = "author", Progress = true, DeepDivesOnDivider = false, Draft = false });

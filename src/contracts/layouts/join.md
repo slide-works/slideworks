@@ -6,5 +6,5 @@ Join slide (dark): a QR code, the join code and the address, so the room can fol
 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
-| `kicker` | text | no | up to 40 chars | Defaults to 'Join on your phone' |
+| `kicker` | text | no | up to 60 chars | Defaults to 'Join on your phone' |
 | `count` | `shown` or `hidden` | no | default `shown` | 'shown' (the default) shows how many have joined; 'hidden' leaves the count off |

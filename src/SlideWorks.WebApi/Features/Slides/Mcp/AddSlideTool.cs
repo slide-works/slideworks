@@ -12,7 +12,7 @@ namespace SlideWorks.WebApi.Features.Slides.Mcp;
 public sealed class AddSlideTool
 {
     [McpServerTool(Name = SlideCommands.ADD_TOOL)]
-    [Description("Add a slide to a deck you own. Pick a layout (list_layouts gives each one's slots) and fill its slots with plain text: no Markdown or HTML. A slide that can't render is refused with an error naming the field, such as \"practice.do[2].lead: required\". Returns the slide's number, its steps, its revision, its url and warnings: a layout outside the deck's template is kept and still renders, with a warning, so consider another layout.")]
+    [Description("Add a slide to a deck you own. Pick a layout (list_layouts gives each one's slots) and fill its slots with plain text: no Markdown or HTML. A slide that can't render is refused with an error naming the field, such as \"practice.do[2].text: required\". Returns the slide's number, its steps, its revision, its url and warnings: a layout outside the deck's template is kept and still renders, with a warning, so consider another layout.")]
     public Task<CallToolResult> AddSlide(
         SlideCommands commands,
         [Description("The deck's id.")] string deck,

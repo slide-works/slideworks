@@ -53,6 +53,8 @@ public sealed class FakeRenderEngine : IRenderEngine
 
     public Task<byte[]> RenderGenericCardAsync(CancellationToken ct) => Render(GENERIC);
 
+    public Task<byte[]> RenderSlideAsync(string deckId, int slide, CancellationToken ct) => Render($"slide:{deckId}:{slide}");
+
     private Task<byte[]> Render(string call)
     {
         _calls.Enqueue(call);

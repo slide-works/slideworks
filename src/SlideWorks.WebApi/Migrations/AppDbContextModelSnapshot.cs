@@ -137,6 +137,9 @@ namespace SlideWorks.WebApi.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("PaletteTokensJson")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("PartsJson")
                         .IsRequired()
                         .HasColumnType("TEXT");

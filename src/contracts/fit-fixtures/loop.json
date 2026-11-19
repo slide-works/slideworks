@@ -1,0 +1,15 @@
+{
+  "loopHeadline": {
+    "layout": "loop",
+    "slots": {
+      "headline": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "steps": [
+        { "label": "See", "text": "Watch one customer." },
+        { "label": "Ship", "text": "Change one thing." },
+        { "label": "Learn", "text": "Ask what is next." }
+      ]
+    },
+    "grow": ["/headline"],
+    "refusedBy": "length"
+  }
+}

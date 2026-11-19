@@ -33,8 +33,8 @@ public class DatabaseTests : ApiTestFixture
 
         // SW-54 adds a third migration after these two (S1), SW-2 a fourth (L5) and SW-4 a fifth (P7), SW-5 a sixth (the join code, sessions and joins),
         // SW-6 a seventh (polls, rounds and answers), SW-9 an eighth (the poll tables made general) and a ninth (its questions, settings, switches and reactions),
-        // SW-50 a tenth (templates, a deck's template version and a slide's surface).
-        applied.Count.ShouldBe(10);
+        // SW-50 a tenth (templates, a deck's template version and a slide's surface), SW-556 an eleventh (a deck's custom colours).
+        applied.Count.ShouldBe(11);
         applied[0].ShouldEndWith("_Initial");
         applied[1].ShouldEndWith("_Sw1Foundation");
         applied[2].ShouldEndWith("_Sw54SignUpApproval");
@@ -45,6 +45,7 @@ public class DatabaseTests : ApiTestFixture
         applied[7].ShouldEndWith("_Sw9PollKinds");
         applied[8].ShouldEndWith("_Sw9Qa");
         applied[9].ShouldEndWith("_Sw50Templates");
+        applied[10].ShouldEndWith("_Sw556PaletteTokens");
     }
 
     [Test]

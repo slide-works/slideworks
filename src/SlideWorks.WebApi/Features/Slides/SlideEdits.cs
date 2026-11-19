@@ -69,6 +69,11 @@ public class SlideEdits(
             slide.SlotsJson = SlideJson.ForStorage(slots);
             slide.Steps = SlideSteps.Count(definition, slots);
             slide.Surface = surface;
+            if (request.Notes is { } notes)
+            {
+                slide.Notes = notes.Value;
+            }
+
             slide.Part = request.Part ?? slide.Part;
             var deepDive = DeepDiveChange(slide.DeepDive, request.DeepDive);
             slide.DeepDive = request.DeepDive ?? slide.DeepDive;

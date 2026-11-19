@@ -30,6 +30,12 @@ import { REQUIRED as STACK_REQUIRED, SLOTS as STACK_SLOTS } from './layoutSlots/
 import { REQUIRED as BARS_REQUIRED, SLOTS as BARS_SLOTS } from './layoutSlots/bars';
 import { REQUIRED as FLOW_REQUIRED, SLOTS as FLOW_SLOTS } from './layoutSlots/flow';
 import { REQUIRED as LEVELS_REQUIRED, SLOTS as LEVELS_SLOTS } from './layoutSlots/levels';
+import {
+  REQUIRED as COLUMNS_LIST_REQUIRED,
+  SLOTS as COLUMNS_LIST_SLOTS,
+} from './layoutSlots/columns-list';
+import { REQUIRED as TIMELINE_REQUIRED, SLOTS as TIMELINE_SLOTS } from './layoutSlots/timeline';
+import { REQUIRED as LOOP_REQUIRED, SLOTS as LOOP_SLOTS } from './layoutSlots/loop';
 import { REQUIRED as CLOSE_REQUIRED, SLOTS as CLOSE_SLOTS } from './layoutSlots/close';
 import { REQUIRED as JOIN_REQUIRED, SLOTS as JOIN_SLOTS } from './layoutSlots/join';
 import { REQUIRED as POLL_REQUIRED, SLOTS as POLL_SLOTS } from './layoutSlots/poll';
@@ -61,6 +67,9 @@ export const LAYOUT_SLOTS: { [L in keyof Slots]: Slots[L] } = {
   bars: BARS_SLOTS,
   flow: FLOW_SLOTS,
   levels: LEVELS_SLOTS,
+  'columns-list': COLUMNS_LIST_SLOTS,
+  timeline: TIMELINE_SLOTS,
+  loop: LOOP_SLOTS,
   close: CLOSE_SLOTS,
   join: JOIN_SLOTS,
   poll: POLL_SLOTS,
@@ -92,6 +101,9 @@ export const REQUIRED_SLOT_KEYS = {
   bars: BARS_REQUIRED,
   flow: FLOW_REQUIRED,
   levels: LEVELS_REQUIRED,
+  'columns-list': COLUMNS_LIST_REQUIRED,
+  timeline: TIMELINE_REQUIRED,
+  loop: LOOP_REQUIRED,
   close: CLOSE_REQUIRED,
   join: JOIN_REQUIRED,
   poll: POLL_REQUIRED,

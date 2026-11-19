@@ -1,0 +1,15 @@
+{
+  "columnsListHeadline": {
+    "layout": "columns-list",
+    "slots": {
+      "headline": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "columns": [
+        { "title": "See", "items": ["One change"] },
+        { "title": "Ship", "items": ["This week"] },
+        { "title": "Learn", "items": ["What happened"] }
+      ]
+    },
+    "grow": ["/headline"],
+    "refusedBy": "length"
+  }
+}

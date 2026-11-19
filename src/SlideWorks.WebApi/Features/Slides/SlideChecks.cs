@@ -26,6 +26,20 @@ public static class SlideChecks
     // layout's own), then the images. Returns the layout's definition, which the caller counts the steps with.
     public static async Task<LayoutDefinition> ValidateAsync(IDeckImages images, string deckId, ResolvedTemplate template, string layout, JsonElement slots, string? surface)
     {
+        var (definition, result) = await ReportAsync(images, deckId, template, layout, slots, surface);
+        if (!result.IsValid)
+        {
+            throw new BadRequestException(result.Error);
+        }
+
+        return definition;
+    }
+
+    // The same check as ValidateAsync, without refusing: a dry run and a batch both need the fit report
+    // of a slide that does not fit. An unknown layout is still a refusal, as add_slide's is.
+    public static async Task<(LayoutDefinition Definition, SlideValidationResult Result)> ReportAsync(
+        IDeckImages images, string deckId, ResolvedTemplate template, string layout, JsonElement slots, string? surface)
+    {
         var definition = template.FindLayout(layout);
         if (definition is null)
         {
@@ -36,23 +50,25 @@ public static class SlideChecks
                 ?? builtIn.FirstOrDefault(error => error.StartsWith("slots: ", StringComparison.Ordinal))
                 ?? $"layout: \"{layout}\" is not a layout of this deck's template; call list_layouts for the ones it has");
         }
-        await ValidateAsync(images, deckId, layout, slots, SlideValidator.Validate(definition, slots, template.FitWidths, surface));
-        return definition;
-    }
 
-    private static async Task ValidateAsync(IDeckImages images, string deckId, string layout, JsonElement slots, SlideValidationResult validation)
-    {
-        if (!validation.IsValid)
+        var result = SlideValidator.Validate(definition, slots, template.FitWidths, surface);
+        if (!result.IsValid)
         {
-            throw new BadRequestException(validation.Error);
+            return (definition, result);
         }
-        foreach (var imageId in validation.ImageIds)
+
+        var missing = new List<string>();
+        foreach (var imageId in result.ImageIds)
         {
             if (!await images.ExistsAsync(deckId, imageId))
             {
-                throw new BadRequestException($"{ImagePath(layout, slots, imageId)}: unknown image {imageId}");
+                missing.Add($"{ImagePath(layout, slots, imageId)}: unknown image {imageId}");
             }
         }
+
+        return missing.Count == 0
+            ? (definition, result)
+            : (definition, new SlideValidationResult(missing, result.ImageIds) { Regions = result.Regions });
     }
 
     // A 1-based part, or null for none (add_slide) or to keep the slide's own (update_slide).

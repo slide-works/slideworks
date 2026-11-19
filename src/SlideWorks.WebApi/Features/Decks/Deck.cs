@@ -36,6 +36,9 @@ public class Deck
 
     public required string Palette { get; set; }
 
+    // Token overrides on Palette, as a JSON object of token name to #rrggbb, or null for none.
+    public string? PaletteTokensJson { get; set; }
+
     // An uploaded image of this deck shown as the logo, or null for none.
     public string? LogoImageId { get; set; }
 

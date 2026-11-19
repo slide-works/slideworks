@@ -10,8 +10,8 @@ public static class TableLayout
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),
         Emphasis("headline"),
-        Req("columns", new ListSlot(new TextSlot(30), 2, 6)),
-        Req("rows", new ListSlot(new ListSlot(TableCell(80), 2, 6), 1, 6), "Each row has one cell per column"),
+        Req("columns", new ListSlot(new TextSlot(30, allowEmpty: true), 2, 6), "The first header may be empty, for a row-label column. Later headers may not"),
+        Req("rows", new ListSlot(new ListSlot(TableCell(120), 2, 6), 1, 6), "Each row has one cell per column"),
         Opt("highlightRow", new NumberSlot(1, 6, true), "The 1-based number of the row to highlight"),
         Opt("reveal", new EnumSlot("all", "one-by-one", "strike-and-answer"), "'one-by-one' shows one row per step; 'strike-and-answer' (two columns) shows every left cell from the start and, one row per step, strikes it and shows its answer; 'all' (the default) shows everything at once"),
         Opt("callout", new BlockSlot(InlineBlocks.Callout)),
@@ -24,6 +24,17 @@ public static class TableLayout
         if (slots.TryGetProperty("reveal", out var reveal) && reveal.ValueKind == JsonValueKind.String && reveal.GetString() == "strike-and-answer" && columns != 2)
         {
             validation.Fail($"{path}.reveal", $"'strike-and-answer' needs exactly 2 columns (got {columns})");
+        }
+
+        var columnIndex = 0;
+        foreach (var column in slots.GetProperty("columns").EnumerateArray())
+        {
+            if (columnIndex > 0 && string.IsNullOrWhiteSpace(column.GetString()))
+            {
+                validation.Fail($"{path}.columns[{columnIndex}]", "must not be empty");
+            }
+
+            columnIndex++;
         }
 
         var rows = slots.GetProperty("rows");

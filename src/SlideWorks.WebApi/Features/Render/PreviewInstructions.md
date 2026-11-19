@@ -1,5 +1,7 @@
 # Preview the slides yourself
 
+The images are already in this tool result. If the render URL is blocked, use those images. `images_included` says how many pictures are attached; any slide after that still needs the URL.
+
 Render each slide in your own headless Chromium and look at the PNGs before you say the deck is done.
 
 1. **Check for Playwright.** Run `npx -y playwright@{{version}} --version` (needs Node 18 or later). If `npx` is missing, install Node first, or use Python in a virtual environment instead: `python3 -m venv .pw && .pw/bin/pip install 'playwright=={{minor}}.*'`, then run each command below as `.pw/bin/python -m playwright …` in place of `npx -y playwright@{{version}} …`.

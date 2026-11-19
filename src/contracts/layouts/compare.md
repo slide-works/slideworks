@@ -6,8 +6,8 @@ Two panels side by side: the failure mode and the success mode. A panel holds po
 
 | Slot | Kind | Required | Limits | Notes |
 |---|---|---|---|---|
-| `kicker` | text | no | up to 40 chars |  |
-| `headline` | text | yes | up to 80 chars |  |
+| `kicker` | text | no | up to 60 chars |  |
+| `headline` | text | yes | up to 100 chars |  |
 | `emphasis` | emphasis | no | 1–3 entries, each `text` (up to 60 chars; the phrase must occur exactly once in its target), `tone` and optional `in`; targets `headline`, `failure.line`, `success.line` | Phrases of the slide's display text drawn in a tone. Each must occur exactly once in the text it is in |
 | `failure` | object | yes | exactly one of `points`, `rows`, `line` |  |
 | `failure.label` | text | yes | up to 24 chars | The panel's tag, such as 'Failure mode' |
@@ -18,7 +18,7 @@ Two panels side by side: the failure mode and the success mode. A panel holds po
 | `failure.rows[].label` | text | yes | up to 16 chars |  |
 | `failure.rows[].value` | text | yes | up to 40 chars |  |
 | `failure.line` | text | no | up to 100 chars | One large line, such as a quoted sentence. Write the quotation marks yourself |
-| `failure.stamp` | block `stamp` | no | up to 16 chars |  |
+| `failure.stamp` | block `stamp` | no | up to 40 chars |  |
 | `failure.footer` | text | no | up to 90 chars |  |
 | `failure.tone` | `accent` or `positive` or `negative` or `inverse` | no | default `negative`; aliases `good` = `positive`, `bad` = `negative`, `info` = `accent` | Colours from the deck's palette; defaults to 'negative' |
 | `failure.fill` | `soft` or `solid` or `plain` | no | default `soft` | 'soft' (the default) tints it; 'solid' fills it with the tone's colour; 'plain' leaves it on the slide's ground |
@@ -32,7 +32,7 @@ Two panels side by side: the failure mode and the success mode. A panel holds po
 | `success.rows[].label` | text | yes | up to 16 chars |  |
 | `success.rows[].value` | text | yes | up to 40 chars |  |
 | `success.line` | text | no | up to 100 chars | One large line, such as a quoted sentence. Write the quotation marks yourself |
-| `success.stamp` | block `stamp` | no | up to 16 chars |  |
+| `success.stamp` | block `stamp` | no | up to 40 chars |  |
 | `success.footer` | text | no | up to 90 chars |  |
 | `success.tone` | `accent` or `positive` or `negative` or `inverse` | no | default `positive`; aliases `good` = `positive`, `bad` = `negative`, `info` = `accent` | Colours from the deck's palette; defaults to 'positive' |
 | `success.fill` | `soft` or `solid` or `plain` | no | default `soft` | 'soft' (the default) tints it; 'solid' fills it with the tone's colour; 'plain' leaves it on the slide's ground |
@@ -41,5 +41,5 @@ Two panels side by side: the failure mode and the success mode. A panel holds po
 | `callout` | block `callout` | no |  |  |
 | `callout.tone` | `accent` or `positive` or `negative` or `inverse` | yes | aliases `good` = `positive`, `bad` = `negative`, `info` = `accent` | Colours from the deck's palette |
 | `callout.fill` | `soft` or `solid` | no | default `soft` | 'soft' (the default) tints it; 'solid' fills it with the tone's colour |
-| `callout.text` | text | yes | up to 160 chars |  |
+| `callout.text` | text | yes | up to 220 chars |  |
 | `callout.reveal` | `with-slide` or `last` | no | default `with-slide` | 'with-slide' (the default) shows it with the slide; 'last' shows it as one more step after the others |

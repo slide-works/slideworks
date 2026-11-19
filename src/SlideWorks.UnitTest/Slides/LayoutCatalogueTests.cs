@@ -30,7 +30,7 @@ public class LayoutCatalogueTests
     [Test]
     public void Layouts_WhenSurfaceTrackerAndSteps_ShouldSayThemOnEveryDefinition()
     {
-        LayoutCatalogue.Layouts.Where(l => l.Surface == LayoutSurface.Either).Select(l => l.Name).ShouldBe(["bullets", "big-number", "quote", "statement"]);
+        LayoutCatalogue.Layouts.Where(l => l.Surface == LayoutSurface.Either).Select(l => l.Name).ShouldBe(["bullets", "two-column", "practice", "big-number", "quote", "cards", "statement"]);
         LayoutCatalogue.Layouts.Where(l => !l.Tracker).Select(l => l.Name).ShouldBe(["statement"]);
         LayoutCatalogue.Layouts.Where(l => l.Steps is not null).Select(l => (l.Name, l.StepsFrom))
             .ShouldBe([("bullets", "items"), ("two-column", null), ("compare", null), ("big-number", null), ("quote", null), ("image", "points"), ("table", "rows"), ("numbered-cards", "cards"), ("rules", "rules"), ("cards", "cards"), ("statement", null), ("stack", "segments"), ("bars", "bars"), ("flow", "nodes")]);
@@ -46,7 +46,8 @@ public class LayoutCatalogueTests
             ImageLayout.Definition, TableLayout.Definition, ChartLayout.Definition, GanttLayout.Definition,
             NumberedCardsLayout.Definition, RulesLayout.Definition, CardsLayout.Definition, StatementLayout.Definition,
             LinksLayout.Definition, StackLayout.Definition, BarsLayout.Definition, FlowLayout.Definition,
-            LevelsLayout.Definition, CloseLayout.Definition, JoinLayout.Definition, PollLayout.Definition,
+            LevelsLayout.Definition, ColumnsListLayout.Definition, TimelineLayout.Definition, LoopLayout.Definition,
+            CloseLayout.Definition, JoinLayout.Definition, PollLayout.Definition,
             QaLayout.Definition,
         ];
 
@@ -60,7 +61,7 @@ public class LayoutCatalogueTests
         [
             "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote", "image",
             "table", "chart", "gantt", "numbered-cards", "rules", "cards", "statement", "links", "stack", "bars",
-            "flow", "levels", "close", "join", "poll", "qa",
+            "flow", "levels", "columns-list", "timeline", "loop", "close", "join", "poll", "qa",
         ]);
     }
 
@@ -110,14 +111,15 @@ public class LayoutCatalogueTests
     }
 
     [Test]
-    public void ToJsonSchema_WhenPractice_ShouldRequireDoWithLeadAndText()
+    public void ToJsonSchema_WhenPractice_ShouldRequireDoTextAndLeaveLeadOptional()
     {
         var schema = LayoutCatalogue.Find("practice")!.ToJsonSchema();
 
         var doItems = schema["properties"]!["do"]!;
         doItems["type"]!.GetValue<string>().ShouldBe("array");
         doItems["maxItems"]!.GetValue<int>().ShouldBe(5);
-        doItems["items"]!["required"]!.AsArray().Select(n => n!.GetValue<string>()).ShouldBe(["lead", "text"]);
+        doItems["items"]!["required"]!.AsArray().Select(n => n!.GetValue<string>()).ShouldBe(["text"]);
+        schema["required"]!.AsArray().Select(n => n!.GetValue<string>()).ShouldNotContain("comes_back");
     }
 
     // A oneOf branch such as { "required": ["items"] } names the properties of the schema around it.

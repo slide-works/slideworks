@@ -11,7 +11,15 @@ import styles from './PracticeLayout.module.css';
 // list is left out with its header. The callout's own step, when it reveals
 // last, is the slide's only one.
 export function PracticeLayout({ slots, step }: LayoutProps<'practice'>) {
-  const { kicker, headline, do: doItems, comes_back: comesBack, avoid, callout } = slots;
+  const {
+    kicker,
+    headline,
+    density,
+    do: doItems,
+    comes_back: comesBack = [],
+    avoid,
+    callout,
+  } = slots;
   return (
     <div data-testid="layout-practice" className="sw-layout">
       <SlideHeading
@@ -20,7 +28,11 @@ export function PracticeLayout({ slots, step }: LayoutProps<'practice'>) {
         headline={headline}
         emphasis={emphasisFor(slots, 'headline')}
       />
-      <div data-testid="practice-body" className={`sw-body ${styles.columns}`}>
+      <div
+        data-testid="practice-body"
+        data-density={density === 'compact' ? 'compact' : 'regular'}
+        className={`sw-body ${styles.columns} ${density === 'compact' ? styles.compact : ''}`}
+      >
         <div className={styles.column}>
           <section data-testid="practice-do" className={styles.group}>
             <h3 className={styles.header}>Do</h3>

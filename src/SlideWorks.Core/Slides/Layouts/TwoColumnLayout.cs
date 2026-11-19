@@ -5,7 +5,7 @@ namespace SlideWorks.Core.Slides.Layouts;
 
 public static class TwoColumnLayout
 {
-    public static LayoutDefinition Definition { get; } = new("two-column", "A headline over two columns. Each column holds a list of points, a paragraph or an image.", LayoutSurface.Light,
+    public static LayoutDefinition Definition { get; } = new("two-column", "A headline over two columns. Each column holds a list of points, a paragraph or an image. Light or dark.", LayoutSurface.Either,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),
@@ -25,24 +25,42 @@ public static class TwoColumnLayout
         {
             var column = slots.GetProperty(side);
             ColumnIconNeedsTitle(column, $"{path}.{side}", validation);
-            var height = callout;
+            var parts = new List<FitPart>();
+            var shares = new List<string> { side };
+            var height = 0.0;
+            if (callout > 0)
+            {
+                parts.Add(new FitPart("callout", callout));
+                shares.Add("callout");
+                height += callout;
+            }
+
             if (ObjectSlot.IsPresent(column, "title", out var title))
             {
-                height += (SlideFit.Lines(title.GetString()!, 788, 34, validation.Widths.Head) * 40.8) + 16;
+                var titleHeight = (SlideFit.Lines(title.GetString()!, 788, 34, validation.Widths.Head) * 40.8) + 16;
+                parts.Add(new FitPart($"{side}.title", titleHeight));
+                height += titleHeight;
             }
 
             if (ObjectSlot.IsPresent(column, "items", out var items))
             {
                 var list = items.EnumerateArray().ToArray();
-                height += list.Sum(i => SlideFit.Lines(SlideFit.Words(i), 736, 30, validation.Widths.Body) * 40.5) + ((list.Length - 1) * 30);
+                for (var index = 0; index < list.Length; index++)
+                {
+                    var itemHeight = (SlideFit.Lines(SlideFit.Words(list[index]), 736, 30, validation.Widths.Body) * 40.5) + (index > 0 ? 30 : 0);
+                    parts.Add(new FitPart($"{side}.items[{index}]", itemHeight));
+                    height += itemHeight;
+                }
             }
 
             if (ObjectSlot.IsPresent(column, "text", out var text))
             {
-                height += SlideFit.Lines(text.GetString()!, 788, 28, validation.Widths.Body) * 39.2;
+                var textHeight = SlideFit.Lines(text.GetString()!, 788, 28, validation.Widths.Body) * 39.2;
+                parts.Add(new FitPart($"{side}.text", textHeight));
+                height += textHeight;
             }
 
-            SlideFit.Check(height, $"{path}.{side}", validation);
+            SlideFit.Check(height, $"{path}.{side}", validation, parts: parts, shares: shares);
         }
     }
 }

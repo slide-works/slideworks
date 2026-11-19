@@ -27,6 +27,9 @@ import { KEYS as STACK_KEYS, type StackSlots } from './slots/stack';
 import { KEYS as BARS_KEYS, type BarsSlots } from './slots/bars';
 import { KEYS as FLOW_KEYS, type FlowSlots } from './slots/flow';
 import { KEYS as LEVELS_KEYS, type LevelsSlots } from './slots/levels';
+import { KEYS as COLUMNS_LIST_KEYS, type ColumnsListSlots } from './slots/columns-list';
+import { KEYS as TIMELINE_KEYS, type TimelineSlots } from './slots/timeline';
+import { KEYS as LOOP_KEYS, type LoopSlots } from './slots/loop';
 import { KEYS as CLOSE_KEYS, type CloseSlots } from './slots/close';
 import { KEYS as JOIN_KEYS, type JoinSlots } from './slots/join';
 import { KEYS as POLL_KEYS, type PollSlots } from './slots/poll';
@@ -67,6 +70,9 @@ export type { StackSlots } from './slots/stack';
 export type { BarsSlots } from './slots/bars';
 export type { FlowSlots } from './slots/flow';
 export type { LevelsSlots } from './slots/levels';
+export type { ColumnsListSlots } from './slots/columns-list';
+export type { TimelineSlots } from './slots/timeline';
+export type { LoopSlots } from './slots/loop';
 export type { CloseSlots } from './slots/close';
 export type { JoinSlots } from './slots/join';
 export type { PollSlots } from './slots/poll';
@@ -94,6 +100,9 @@ export const LAYOUT_NAMES = [
   'bars',
   'flow',
   'levels',
+  'columns-list',
+  'timeline',
+  'loop',
   'close',
   'join',
   'poll',
@@ -111,8 +120,8 @@ export const LAYOUT_SURFACE: Record<LayoutName, Surface | 'either'> = {
   title: 'dark',
   divider: 'dark',
   bullets: 'either',
-  'two-column': 'light',
-  practice: 'light',
+  'two-column': 'either',
+  practice: 'either',
   compare: 'light',
   'big-number': 'either',
   quote: 'either',
@@ -122,13 +131,16 @@ export const LAYOUT_SURFACE: Record<LayoutName, Surface | 'either'> = {
   gantt: 'light',
   'numbered-cards': 'light',
   rules: 'light',
-  cards: 'light',
+  cards: 'either',
   statement: 'either',
   links: 'light',
   stack: 'light',
   bars: 'light',
   flow: 'light',
   levels: 'light',
+  'columns-list': 'light',
+  timeline: 'light',
+  loop: 'light',
   close: 'dark',
   join: 'dark',
   poll: 'light',
@@ -163,6 +175,9 @@ export type Slots = {
   bars: BarsSlots;
   flow: FlowSlots;
   levels: LevelsSlots;
+  'columns-list': ColumnsListSlots;
+  timeline: TimelineSlots;
+  loop: LoopSlots;
   close: CloseSlots;
   join: JoinSlots;
   poll: PollSlots;
@@ -194,6 +209,9 @@ export const SLOT_KEYS = {
   bars: BARS_KEYS,
   flow: FLOW_KEYS,
   levels: LEVELS_KEYS,
+  'columns-list': COLUMNS_LIST_KEYS,
+  timeline: TIMELINE_KEYS,
+  loop: LOOP_KEYS,
   close: CLOSE_KEYS,
   join: JOIN_KEYS,
   poll: POLL_KEYS,

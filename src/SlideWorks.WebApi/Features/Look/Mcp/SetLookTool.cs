@@ -21,6 +21,7 @@ public sealed class SetLookTool
         [Description("The logo: the id of a completed upload_image on this deck, or null to remove the logo.")] JsonElement? logo = null,
         [Description("true to mark the deck as a draft, false to clear the mark.")] bool? draft = null,
         [Description("Chrome overrides, any of { \"tracker\": true|false, \"footer\": \"author\"|\"date\"|\"off\", \"progress\": true|false, \"topBar\": \"accent\"|\"none\" }. A key set to null goes back to the template's default; a key left out keeps its current value.")] JsonElement? chrome = null,
-        [Description("A version of the deck's uploaded template to move the deck to: a whole number of 1 or more, or \"latest\". Moving back to an older version is allowed. A built-in template has no versions. Stored slides are not rewritten.")] JsonElement? template_version = null)
-        => McpToolErrors.Run(() => commands.SetFromAgentAsync(deck, new LookChangeRequest(template, palette, logo ?? default, draft, chrome ?? default, template_version ?? default).ToChange()));
+        [Description("A version of the deck's uploaded template to move the deck to: a whole number of 1 or more, or \"latest\". Moving back to an older version is allowed. A built-in template has no versions. Stored slides are not rewritten.")] JsonElement? template_version = null,
+        [Description("Custom colours for this deck, without a template: an object of palette token names (as list_palettes' tokens) to # and six hex digits. Null clears them. A colour that fails the contrast check is refused.")] JsonElement? colors = null)
+        => McpToolErrors.Run(() => commands.SetFromAgentAsync(deck, new LookChangeRequest(template, palette, logo ?? default, draft, chrome ?? default, template_version ?? default, colors ?? default).ToChange()));
 }

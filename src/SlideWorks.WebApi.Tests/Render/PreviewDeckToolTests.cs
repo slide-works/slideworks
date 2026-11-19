@@ -25,10 +25,11 @@ public class PreviewDeckToolTests : ApiTestFixture
         var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "preview_deck", $$"""{"deck":"{{deck}}"}""");
 
         (result.TryGetProperty("isError", out var isError) && isError.GetBoolean()).ShouldBeFalse(result.GetRawText());
-        result.GetProperty("content").EnumerateArray().Select(c => c.GetProperty("type").GetString()).ShouldBe(["text"]);
+        result.GetProperty("content").EnumerateArray().Select(c => c.GetProperty("type").GetString()).ShouldBe(["text", "image", "image", "image"]);
         var structured = result.GetProperty("structuredContent");
         structured.EnumerateObject().Select(p => p.Name).ShouldBe(
-            ["render_url", "slides", "viewport", "wait_for", "expires_in_seconds", "player_url", "share_card_url", "instructions"]);
+            ["render_url", "slides", "viewport", "wait_for", "expires_in_seconds", "player_url", "share_card_url", "instructions", "images_included"]);
+        structured.GetProperty("images_included").GetInt32().ShouldBe(3);
         Numbers(structured).ShouldBe([1, 2, 3]);
         structured.GetProperty("viewport").GetRawText().ShouldBe("""{"width":1920,"height":1080}""");
         structured.GetProperty("wait_for").GetString().ShouldBe(WAIT_FOR);

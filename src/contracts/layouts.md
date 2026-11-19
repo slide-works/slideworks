@@ -5,7 +5,7 @@ These files are generated from `LayoutCatalogue`: do not edit them by hand, reru
 A slide is a layout plus slots (K2). Slot text is plain text: Markdown and HTML are not interpreted,
 and line breaks are allowed only where a slot says so. Every slide also has `part` (1-based, or null)
 and `notes`, which are set next to the slots, not inside them. A JSON null counts as an absent slot.
-Error paths name the failing field with 0-based indexes, such as `practice.do[2].lead: required`.
+Error paths name the failing field with 0-based indexes, such as `practice.do[2].text: required`.
 
 - [`title`](layouts/title.md)
 - [`divider`](layouts/divider.md)
@@ -28,6 +28,9 @@ Error paths name the failing field with 0-based indexes, such as `practice.do[2]
 - [`bars`](layouts/bars.md)
 - [`flow`](layouts/flow.md)
 - [`levels`](layouts/levels.md)
+- [`columns-list`](layouts/columns-list.md)
+- [`timeline`](layouts/timeline.md)
+- [`loop`](layouts/loop.md)
 - [`close`](layouts/close.md)
 - [`join`](layouts/join.md)
 - [`poll`](layouts/poll.md)

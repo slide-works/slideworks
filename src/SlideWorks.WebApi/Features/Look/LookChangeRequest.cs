@@ -11,7 +11,7 @@ namespace SlideWorks.WebApi.Features.Look;
 // S6964 (under-posting) is the point here: an absent logo or chrome must stay Undefined, which a nullable or required
 // property can't express.
 #pragma warning disable S6964
-public sealed record LookChangeRequest(string? Template, string? Palette, JsonElement Logo, bool? Draft, JsonElement Chrome, JsonElement TemplateVersion = default)
+public sealed record LookChangeRequest(string? Template, string? Palette, JsonElement Logo, bool? Draft, JsonElement Chrome, JsonElement TemplateVersion = default, JsonElement Colors = default)
 #pragma warning restore S6964
 {
     private const string TRACKER = "tracker";
@@ -22,7 +22,34 @@ public sealed record LookChangeRequest(string? Template, string? Palette, JsonEl
     private static readonly string[] FOOTERS = ["author", "date", "off"];
     private static readonly string[] TOP_BARS = ["accent", "none"];
 
-    public LookChange ToChange() => new(Template, Palette, LogoOf(Logo), Draft, ChromeOf(Chrome), VersionOf(TemplateVersion));
+    public LookChange ToChange() => new(Template, Palette, LogoOf(Logo), Draft, ChromeOf(Chrome), VersionOf(TemplateVersion), ColorsOf(Colors));
+
+    // Left out keeps the deck's colours. Null clears them. An object replaces them: token name to #rrggbb.
+    private static Change<IReadOnlyDictionary<string, string>?>? ColorsOf(JsonElement colors)
+    {
+        switch (colors.ValueKind)
+        {
+            case JsonValueKind.Undefined:
+                return null;
+            case JsonValueKind.Null:
+                return new Change<IReadOnlyDictionary<string, string>?>(null);
+            case JsonValueKind.Object:
+                var map = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (var entry in colors.EnumerateObject())
+                {
+                    if (entry.Value.ValueKind != JsonValueKind.String)
+                    {
+                        throw new BadRequestException($"colors.{entry.Name}: a colour is # and six hex digits");
+                    }
+
+                    map[entry.Name] = entry.Value.GetString()!;
+                }
+
+                return new Change<IReadOnlyDictionary<string, string>?>(map);
+            default:
+                throw new BadRequestException("colors: an object of colour token to #rrggbb, or null to clear");
+        }
+    }
 
     // A whole number of 1 or more, or "latest". Left out is left alone; null and anything else is refused.
     private static TemplateVersionChange? VersionOf(JsonElement version)

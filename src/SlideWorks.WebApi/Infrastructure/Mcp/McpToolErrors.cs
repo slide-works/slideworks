@@ -40,6 +40,23 @@ public static class McpToolErrors
         }
     }
 
+    // The JSON result, plus one image content block per PNG. The pictures stay out of the JSON.
+    public static CallToolResult WithImages<T>(T value, IReadOnlyList<byte[]> images)
+    {
+        var json = JsonSerializer.SerializeToElement(value, JSON);
+        var content = new List<ContentBlock> { new TextContentBlock { Text = json.GetRawText() } };
+        foreach (var image in images)
+        {
+            content.Add(ImageContentBlock.FromBytes(image, "image/png"));
+        }
+
+        return new CallToolResult
+        {
+            Content = content,
+            StructuredContent = json.ValueKind == JsonValueKind.Object ? json : null,
+        };
+    }
+
     // A tool result with isError: true and the message as its only text, the shape every refusal takes.
     public static CallToolResult Refusal(string message)
         => new()

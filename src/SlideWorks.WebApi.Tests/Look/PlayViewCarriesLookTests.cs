@@ -36,6 +36,22 @@ public class PlayViewCarriesLookTests : ApiTestFixture
     }
 
     [Test]
+    public async Task Play_WhenTheDeckHasCustomColours_ShouldMergeThemOntoThePalette()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var id = await DeckSeed.CreateDeckAsync(agent);
+
+        var set = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "set_look", $$$"""{"deck":"{{{id}}}","colors":{"accent":"#2f5beb"}}""");
+
+        (set.TryGetProperty("isError", out var isError) && isError.GetBoolean()).ShouldBeFalse(set.GetRawText());
+        var play = await Client.GetFromJsonAsync<JsonElement>($"/api/play/{id}");
+        var palette = play.GetProperty("look").GetProperty("palette");
+        palette.GetProperty("name").GetString().ShouldBe("cobalt");
+        palette.GetProperty("tokens").GetProperty("accent").GetString().ShouldBe("#2f5beb");
+        palette.GetProperty("tokens").GetProperty("ink").GetString().ShouldBe(new PaletteCatalogue().Default.Tokens["ink"]);
+    }
+
+    [Test]
     public async Task DeckPage_ShouldCarryRevisionLookOverridesAndContrast()
     {
         var id = await CreateWithSlideAsync(template: "update", palette: "plum");
