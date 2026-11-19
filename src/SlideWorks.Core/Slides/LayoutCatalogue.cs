@@ -182,7 +182,7 @@ public static class LayoutCatalogue
             Req("question", new TextSlot(120)),
             Req("options", new ListSlot(new TextSlot(60), 2, 8), "Known by position: while a round is open they can be reworded or added to, not removed or reordered. Each option needs its own text: two that match, ignoring case and spaces at the ends, are refused"),
         ], rules: LayoutRules.Poll),
-        new("qa", "Q&A slide: the room's questions, most upvoted first, while the deck is live, and one question at full size when the presenter shows it. The questions come from the live session, never from the slots; the Q&A settings are set with update_qa.", false,
+        new("qa", "Q&A slide: the room's questions, most upvoted first, while the deck is live, and one question at full size when the presenter shows it. The questions come from the live session, never from the slots.", false,
         [
             Opt("title", new TextSlot(80), "Defaults to 'Questions from the room'"),
         ]),
