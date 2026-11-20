@@ -1,32 +1,21 @@
 using Agoda.IoC.Core;
-using SlideWorks.Core.OpenResponses;
-using SlideWorks.WebApi.Features.OpenResponses.Contracts;
+using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Realtime;
 
 namespace SlideWorks.WebApi.Features.OpenResponses;
 
-// Publishes one fixed open-text event for a slide, already revealed, to the audience.
+// Publishes the open-text slide's round as it stands: the audience copy with hidden answers left out, and the presenter
+// copy with every answer. A newly opened round is already revealed and already includes its answers (D14). A singleton,
+// so the rows are read through a scope.
 [RegisterSingleton(For = typeof(IOpenTextPublisher))]
-public sealed class OpenTextPublisher(IAudienceEvents events) : IOpenTextPublisher
+public sealed class OpenTextPublisher(IServiceScopeFactory scopes, IAudienceEvents events) : IOpenTextPublisher
 {
-    public Task PublishAsync(string deckId, int slide, CancellationToken cancellationToken)
+    public async Task PublishAsync(string deckId, int slide, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        // TODO: reading the rows replaces this fixed event.
-        return events.PublishAsync(new OpenTextTally(
-            deckId,
-            OpenResponseTarget.Audience,
-            slide,
-            OpenResponsePhase.Open,
-            "a3d81c5e-7f2b-4e96-b0c4-1d8e6f9a2b57",
-            1,
-            6,
-            true,
-            4,
-            [
-                new WallAnswer(1, "Smaller stories, so review is quick", false),
-                new WallAnswer(2, "A shared definition of done", false),
-                new WallAnswer(4, "Pairing on the risky changes", false),
-            ]));
+        await using var scope = scopes.CreateAsyncScope();
+        var (audience, presenter) = await scope.ServiceProvider.GetRequiredService<OpenAnswers>().TalliesAsync(deckId, slide, cancellationToken);
+        await events.PublishAsync(audience);
+        await events.PublishAsync(presenter);
     }
 }
