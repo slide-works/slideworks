@@ -232,7 +232,7 @@ Ask the agent for a deck, for example: "Make a 10-slide deck on why small batche
 | `open_poll`, `close_poll` | Opens or closes a poll slide's round on a deck a person has taken live. They need edit access; revealing counts, showing the answer and starting a new round stay with the presenter |
 | `get_poll_results` | A poll slide's rounds for each time the deck went live: the option texts each round ran with (kept when the options change later), answered, joined, response rate (capped at 1) and the count per option. Each round says whether it is still open (then its numbers are live). Never who picked what |
 | `upload_image` | Returns a one-time upload URL for a PNG, JPEG, WebP or GIF of up to 10 MB |
-| `upload_images` | Starts up to 40 of those uploads in one call. Each file is still PUT to its own URL |
+| `upload_images` | Starts up to 30 of those uploads in one call. Each file is still PUT to its own URL |
 | `set_sharing` | Private, anyone with the link, or named people |
 | `list_decks`, `get_deck`, `get_deck_url` | Read decks back and get the link to present. `get_deck` with `detail` `summary` returns each slide's number, layout, part and headline |
 

@@ -72,7 +72,9 @@ public class AgentRoundTripTests : ApiTestFixture
             put.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         }
 
-        (await DeckSeed.ActivityAsync(Client, deck)).ShouldContain(entry => entry.GetProperty("summary").GetString() == "started uploading 2 images");
+        var summaries = (await DeckSeed.ActivityAsync(Client, deck)).Select(entry => entry.GetProperty("summary").GetString());
+        summaries.ShouldContain("started uploading one.png");
+        summaries.ShouldContain("started uploading two.png");
     }
 
     [Test]
