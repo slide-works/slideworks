@@ -119,8 +119,9 @@ public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenRe
             null);
     }
 
-    // Deletes this guest's rows and inserts the new set, keeping the first casing already stored for a word, in one
-    // transaction. The round is checked again here so a round that closed or moved on after the read writes nothing.
+    // Deletes this guest's rows and inserts the new set, in one transaction. A word one typo from a word other guests sent
+    // is stored under that word's key (SW-606), and a word keeps the first casing already stored for its key, so the
+    // group shows one spelling. The round is checked again here so a round that closed or moved on after the read writes nothing.
     private async Task<IReadOnlyList<string>> ReplaceAsync(
         Guid sessionId,
         Guid roundId,
@@ -145,7 +146,7 @@ public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenRe
             .Where(e => e.RoundId == roundId)
             .OrderBy(e => e.GuestId)
             .ThenBy(e => e.Position)
-            .Select(e => new { e.TextKey, e.Text })
+            .Select(e => new { e.GuestId, e.TextKey, e.Text })
             .ToListAsync(cancellationToken);
         var first = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in saved)
@@ -153,22 +154,38 @@ public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenRe
             first.TryAdd(entry.TextKey, entry.Text);
         }
 
+        // A near miss joins the word most other guests hold; this guest's old words are being replaced, so they don't count.
+        var known = saved
+            .Where(e => e.GuestId != guestId)
+            .GroupBy(e => e.TextKey, StringComparer.Ordinal)
+            .OrderByDescending(g => g.Select(e => e.GuestId).Distinct(StringComparer.Ordinal).Count())
+            .ThenBy(g => g.Key, StringComparer.Ordinal)
+            .Select(g => g.Key)
+            .ToList();
         await db.OpenEntries.Where(e => e.RoundId == roundId && e.GuestId == guestId).ExecuteDeleteAsync(cancellationToken);
-        var held = new string[words.Count];
-        for (var i = 0; i < words.Count; i++)
+        var held = new List<string>(words.Count);
+        var mine = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var word in words)
         {
-            var key = OpenTextRules.KeyOf(words[i]);
-            var text = first.TryGetValue(key, out var casing) ? casing : words[i];
-            held[i] = text;
+            var key = OpenTextRules.GroupKeyOf(OpenTextRules.KeyOf(word), known);
+            if (!mine.Add(key))
+            {
+                continue;
+            }
+
+            known.Add(key);
+            var text = first.TryGetValue(key, out var casing) ? casing : word;
+            first.TryAdd(key, text);
             db.OpenEntries.Add(new OpenEntry
             {
                 Id = Guid.NewGuid(),
                 RoundId = roundId,
                 GuestId = guestId,
-                Position = i,
+                Position = held.Count,
                 Text = text,
                 TextKey = key,
             });
+            held.Add(text);
         }
 
         round.Revision++;

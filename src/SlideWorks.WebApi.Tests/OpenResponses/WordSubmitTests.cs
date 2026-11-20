@@ -61,6 +61,86 @@ public class WordSubmitTests : ApiTestFixture
     }
 
     [Test]
+    public async Task Submit_WhenAWordIsOneTypoFromAnotherGuestsWord_ShouldStoreItUnderThatWord()
+    {
+        var guest = GuestCookie.NewId();
+        var other = GuestCookie.NewId();
+        var seeded = await SeedAsync(live: true, open: true, revision: 1, guestId: guest, joined: true, (other, "Ship"), (other, "Focus"));
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        using var response = await anonymous.SendAsync(Words(seeded.Code, guest, seeded.RoundId, 1, "shipp", "Shipping", "Fcous"));
+
+        var body = await response.Content.ReadAsStringAsync();
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
+        body.ShouldBe("""{"words":["Ship","Shipping","Focus"]}""");
+        var mine = (await RowsAsync(seeded.RoundId)).Where(row => row.GuestId == guest).OrderBy(row => row.Position).ToList();
+        mine.Select(row => row.Text).ShouldBe(["Ship", "Shipping", "Focus"]);
+        mine.Select(row => row.TextKey).ShouldBe(["ship", "shipping", "focus"]);
+    }
+
+    [Test]
+    public async Task Submit_WhenShortWordsAreOneLetterApart_ShouldKeepThemApart()
+    {
+        var guest = GuestCookie.NewId();
+        var other = GuestCookie.NewId();
+        var seeded = await SeedAsync(live: true, open: true, revision: 1, guestId: guest, joined: true, (other, "Code"));
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        using var response = await anonymous.SendAsync(Words(seeded.Code, guest, seeded.RoundId, 1, "Core"));
+
+        var body = await response.Content.ReadAsStringAsync();
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
+        body.ShouldBe("""{"words":["Core"]}""");
+        (await RowsAsync(seeded.RoundId)).Single(row => row.GuestId == guest).TextKey.ShouldBe("core");
+    }
+
+    [Test]
+    public async Task Submit_WhenTwoNearWordsMatchTheSameWord_ShouldJoinTheOneMoreGuestsSent()
+    {
+        var guest = GuestCookie.NewId();
+        var first = GuestCookie.NewId();
+        var second = GuestCookie.NewId();
+        var seeded = await SeedAsync(
+            live: true, open: true, revision: 1, guestId: guest, joined: true, (first, "Teams"), (first, "Teamx"), (second, "Teamx"));
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        using var response = await anonymous.SendAsync(Words(seeded.Code, guest, seeded.RoundId, 1, "Teamz"));
+
+        var body = await response.Content.ReadAsStringAsync();
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
+        body.ShouldBe("""{"words":["Teamx"]}""");
+    }
+
+    [Test]
+    public async Task Submit_WhenTheGuestSendsTwoNearWords_ShouldStoreOne()
+    {
+        var guest = GuestCookie.NewId();
+        var seeded = await SeedAsync(live: true, open: true, revision: 1, guestId: guest, joined: true);
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        using var response = await anonymous.SendAsync(Words(seeded.Code, guest, seeded.RoundId, 1, "Teams", "team", "Calm"));
+
+        var body = await response.Content.ReadAsStringAsync();
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
+        body.ShouldBe("""{"words":["Teams","Calm"]}""");
+        (await RowsAsync(seeded.RoundId)).Select(row => (row.Position, row.TextKey)).ShouldBe([(0, "teams"), (1, "calm")]);
+    }
+
+    [Test]
+    public async Task Submit_WhenTheGuestReplacesTheirOwnWord_ShouldNotGroupItWithTheOldOne()
+    {
+        var guest = GuestCookie.NewId();
+        var seeded = await SeedAsync(live: true, open: true, revision: 1, guestId: guest, joined: true, (guest, "Teams"));
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        using var response = await anonymous.SendAsync(Words(seeded.Code, guest, seeded.RoundId, 1, "team"));
+
+        var body = await response.Content.ReadAsStringAsync();
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
+        body.ShouldBe("""{"words":["team"]}""");
+    }
+
+    [Test]
     public async Task Submit_WhenAWordIsProfane_ShouldRefuseAndStoreNothing()
     {
         var guest = GuestCookie.NewId();

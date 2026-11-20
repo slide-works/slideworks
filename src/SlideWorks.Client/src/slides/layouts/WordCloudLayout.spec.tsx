@@ -11,6 +11,7 @@ import { stubDeckHub } from '../../test-support/stubDeckHub';
 import { JoinProvider } from '../JoinContext';
 import { SlideRenderer } from '../SlideRenderer';
 import type { SlideDeck } from '../slots';
+import type { WordCloudSlots } from '../slots/word-cloud';
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -95,14 +96,64 @@ async function stubLive(page: Page, view: OpenResponseControlView, { canPresent 
 }
 
 // The player as a viewer the page takes for the owner; GET /live decides whether they can present.
-function player() {
+function player(slots: Partial<WordCloudSlots> = {}) {
+  const slide = { ...cloudSlide, slots: { ...cloudSlide.slots, ...slots } } as DeckPlaySlide;
   return (
     <JoinProvider deckId={deckId} join={liveJoin} owner>
       <OpenResponseScreenLive deckId={deckId} owner>
-        <SlideRenderer slide={cloudSlide} deck={deck} total={6} step={0} />
+        <SlideRenderer slide={slide} deck={deck} total={6} step={0} />
       </OpenResponseScreenLive>
     </JoinProvider>
   );
+}
+
+// Thirty words, the longest the phone allows among them, more than the body holds at their starting sizes.
+const CROWD: OpenResponseControlView['entries'] = Array.from({ length: 30 }, (_, index) => ({
+  number: index + 1,
+  text:
+    index % 5 === 0 ? `Continuous integration ${String(index).padStart(2, '0')}` : `Word${index}`,
+  count: 30 - index,
+  hidden: false,
+}));
+
+const SEVEN: OpenResponseControlView['entries'] = [
+  'Calm',
+  'Busy',
+  'Focused',
+  'Tired',
+  'Proud',
+  'Rushed',
+  'Steady',
+].map((text, index) => ({ number: index + 1, text, count: 7 - index, hidden: false }));
+
+// Each drawn word's box on the slide, in slide px from its top-left corner, with its transform.
+const drawn = (page: Page) =>
+  slide(page).evaluate((element) => {
+    const frame = element.getBoundingClientRect();
+    return [...element.querySelectorAll('[data-testid^="word-cloud-word-"]')].map((word) => {
+      const box = word.getBoundingClientRect();
+      return {
+        text: word.textContent,
+        left: box.left - frame.left,
+        top: box.top - frame.top,
+        right: box.right - frame.left,
+        bottom: box.bottom - frame.top,
+        transform: word.getAttribute('transform') ?? '',
+        fill: getComputedStyle(word).fill,
+        size: parseFloat(getComputedStyle(word).fontSize),
+      };
+    });
+  });
+
+async function tokenColour(page: Page, token: string) {
+  return slide(page).evaluate((element, name) => {
+    const probe = document.createElement('span');
+    probe.style.color = `var(${name})`;
+    element.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  }, token);
 }
 
 const slide = (page: Page) => page.getByTestId(`slide-${SLIDE}`);
@@ -180,6 +231,127 @@ test('Cloud_WhenTheViewerCannotPresent_ShouldShowTheQuestionOnly', async ({ moun
   await expect(slide(page).getByText(QUESTION)).toBeVisible();
   await expect(slide(page).getByRole('list')).toHaveCount(0);
   await expect(word(page, 0)).toHaveCount(0);
+});
+
+test('WordCloudLayout_WhenMoreWordsArriveThanFit_ShouldDrawEveryWordInsideTheBody', async ({
+  mount,
+  page,
+}) => {
+  await stubLive(page, control(5, CROWD));
+  await mount(player({ turn: 'some' }));
+  await expect(word(page, 0)).toHaveText('Continuous integration 00');
+
+  // A text's box is its font's line box, a little taller than its letters, which are what the cloud packs inside the
+  // body. So the boxes are held to the slide's fit box and kept off the question.
+  const heading = await slide(page)
+    .getByText(QUESTION)
+    .evaluate((element) => {
+      const frame = element.closest('[data-testid^="slide-"]')!.getBoundingClientRect();
+      return element.getBoundingClientRect().bottom - frame.top;
+    });
+  const words = await drawn(page);
+  expect(words.length).toBeGreaterThan(5);
+  for (const placed of words) {
+    expect(placed.left, placed.text ?? '').toBeGreaterThanOrEqual(120);
+    expect(placed.right, placed.text ?? '').toBeLessThanOrEqual(1800);
+    expect(placed.top, placed.text ?? '').toBeGreaterThanOrEqual(heading);
+    expect(placed.bottom, placed.text ?? '').toBeLessThanOrEqual(996);
+  }
+  const sizes = words.map((placed) => placed.size);
+  expect(sizes).toEqual([...sizes].sort((a, b) => b - a));
+});
+
+test('WordCloudLayout_WhenWordsAreShown_ShouldInkThemFromThePalette', async ({ mount, page }) => {
+  await stubLive(page, control(5, SEVEN));
+  await mount(player());
+  await expect(word(page, 6)).toHaveText('Steady');
+
+  const inks = await Promise.all(
+    ['--sw-accent', '--sw-ink', '--sw-dd', '--sw-accent-dark', '--sw-panel-positive'].map((token) =>
+      tokenColour(page, token),
+    ),
+  );
+  const fills = (await drawn(page)).map((placed) => placed.fill);
+  for (const fill of fills) expect(inks).toContain(fill);
+  expect(new Set(fills).size).toBeGreaterThan(1);
+});
+
+test('WordCloudLayout_WhenTurnIsSome_ShouldTurnSomeWordsOnTheirSide', async ({ mount, page }) => {
+  await stubLive(page, control(5, SEVEN));
+  await mount(player({ turn: 'some' }));
+  await expect(word(page, 6)).toHaveText('Steady');
+
+  const transforms = (await drawn(page)).map((placed) => placed.transform);
+  expect(
+    transforms.filter((transform) => transform.includes('rotate(-90)')).length,
+  ).toBeGreaterThan(0);
+  expect(transforms.filter((transform) => transform.includes('rotate(0)')).length).toBeGreaterThan(
+    0,
+  );
+});
+
+test('WordCloudLayout_WhenTurnIsLeftOut_ShouldKeepEveryWordLevel', async ({ mount, page }) => {
+  await stubLive(page, control(5, SEVEN));
+  await mount(player({ turn: undefined }));
+  await expect(word(page, 6)).toHaveText('Steady');
+
+  for (const placed of await drawn(page)) expect(placed.transform).toContain('rotate(0)');
+});
+
+test('WordCloudLayout_WhenANewWordArrives_ShouldKeepThePlacedWordsWhereTheyWere', async ({
+  mount,
+  page,
+}) => {
+  const { hub } = await stubLive(page, control(5, SEVEN));
+  await mount(player({ turn: 'some' }));
+  await expect(word(page, 6)).toHaveText('Steady');
+  const before = await drawn(page);
+
+  const joined: WordCloudEvent = {
+    type: 'wordCloud',
+    slide: SLIDE,
+    phase: 'open',
+    round: ROUND,
+    number: 1,
+    revision: 6,
+    revealed: true,
+    guests: 8,
+    words: [
+      ...SEVEN.map(({ text, count }) => ({ text, count: count ?? 0, hidden: false })),
+      { text: 'Hopeful', count: 1, hidden: false },
+    ],
+  };
+  hub.pushWordCloud(joined, { target: 'screen' });
+  await expect(word(page, 7)).toHaveText('Hopeful');
+
+  const after = await drawn(page);
+  expect(after.slice(0, 7).map(({ text, transform }) => ({ text, transform }))).toEqual(
+    before.map(({ text, transform }) => ({ text, transform })),
+  );
+});
+
+test('WordCloudLayout_WhenTheScreenMountsAgain_ShouldDrawTheSameCloud', async ({ mount, page }) => {
+  await stubLive(page, control(5, SEVEN));
+  const first = await mount(player({ turn: 'some' }));
+  await expect(word(page, 6)).toHaveText('Steady');
+  const before = await drawn(page);
+  await first.unmount();
+
+  await mount(player({ turn: 'some' }));
+  await expect(word(page, 6)).toHaveText('Steady');
+
+  expect(await drawn(page)).toEqual(before);
+});
+
+test('WordCloudLayout_WhenManyWordsAreShownScreenshot_ShouldMatchTheBaseline', async ({
+  mount,
+  page,
+}) => {
+  await stubLive(page, control(5, CROWD));
+  await mount(player({ turn: 'some' }));
+  await expect(word(page, 0)).toHaveText('Continuous integration 00');
+
+  await expect(slide(page)).toHaveScreenshot('word-cloud-many-words.png');
 });
 
 test('WordCloudLayout_WhenOneWordIsShownScreenshot_ShouldMatchTheBaseline', async ({

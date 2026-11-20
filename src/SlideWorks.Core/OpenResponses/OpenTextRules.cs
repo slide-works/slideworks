@@ -11,6 +11,8 @@ public static class OpenTextRules
 
     public const int MAX_TEXT_LENGTH = 200;
 
+    public const int NEAR_MATCH_LENGTH = 5;
+
     public const string REQUIRED = "required";
 
     public const string TOO_MANY_WORDS = "too_many_words";
@@ -68,6 +70,18 @@ public static class OpenTextRules
     // A word's identity (D2): trimmed, whitespace collapsed and case-folded. No stemming.
     public static string KeyOf(string word) => Collapse(word).ToLowerInvariant();
 
+    // The key a word-cloud word is counted under (SW-606): its own key when the round already has it, else the first of
+    // the round's keys, in the order given, that is one typo away, else its own. One typo is one letter added, dropped or
+    // changed, or two letters next to each other swapped, and only when the longer key has at least
+    // NEAR_MATCH_LENGTH characters, so short words such as "code" and "core" stay apart.
+    public static string GroupKeyOf(string key, IEnumerable<string> keys)
+    {
+        var known = keys.ToList();
+        return known.Contains(key, StringComparer.Ordinal)
+            ? key
+            : known.FirstOrDefault(other => Math.Max(key.Length, other.Length) >= NEAR_MATCH_LENGTH && OneTypoApart(key, other)) ?? key;
+    }
+
     // The text trimmed, with each run of whitespace inside it made one space.
     public static string Collapse(string text) =>
         string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
@@ -75,6 +89,41 @@ public static class OpenTextRules
     // Whether any whole word of the collapsed text, without the punctuation around it, is on the profanity list.
     private static bool IsProfane(string text) =>
         text.Split(' ').Any(word => ProfanityList.Contains(KeyOf(word.Trim(Punctuation(word)))));
+
+    private static bool OneTypoApart(string a, string b)
+    {
+        if (a.Length < b.Length)
+        {
+            (a, b) = (b, a);
+        }
+
+        if (a.Length - b.Length > 1)
+        {
+            return false;
+        }
+
+        var start = 0;
+        while (start < b.Length && a[start] == b[start])
+        {
+            start++;
+        }
+
+        if (a.Length != b.Length)
+        {
+            return a.AsSpan(start + 1).SequenceEqual(b.AsSpan(start));
+        }
+
+        if (start == a.Length)
+        {
+            return false;
+        }
+
+        return a.AsSpan(start + 1).SequenceEqual(b.AsSpan(start + 1))
+            || (start + 1 < a.Length
+                && a[start] == b[start + 1]
+                && a[start + 1] == b[start]
+                && a.AsSpan(start + 2).SequenceEqual(b.AsSpan(start + 2)));
+    }
 
     private static char[] Punctuation(string word) => [.. word.Where(c => char.IsPunctuation(c) || char.IsSymbol(c)).Distinct()];
 }
