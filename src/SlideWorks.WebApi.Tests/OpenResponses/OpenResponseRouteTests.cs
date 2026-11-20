@@ -3,8 +3,11 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.Core.OpenResponses;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Join;
+using SlideWorks.WebApi.Features.OpenResponses.Data;
+using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Join;
 using SlideWorks.WebApi.Tests.Mcp;
@@ -154,9 +157,8 @@ public class OpenResponseRouteTests : JoinFixture
     [Test]
     public async Task Get_WhenThePresenterReadsTheControlView_ShouldMatchTheContract()
     {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        var deckId = await DeckSeed.CreateDeckAsync(agent);
         using var sam = ClientFor(TestUser.Sam);
+        var (deckId, round) = await OpenLiveWordCloudAsync(sam, ("guest-a", "Focused"), ("guest-b", "focused"), ("guest-c", "Calm"));
 
         using var response = await sam.GetAsync($"/api/decks/{deckId}/slides/1/response");
 
@@ -164,14 +166,14 @@ public class OpenResponseRouteTests : JoinFixture
         response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
         using var sample = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "open-response-control.json")));
         JsonShape.AssertMatches(JsonDocument.Parse(body).RootElement, sample.RootElement.GetProperty("wordCloud"), "open-response-control.json");
+        body.ShouldBe($$"""{"kind":"word-cloud","phase":"open","round":"{{round}}","number":1,"revision":0,"results":"live","opens":"arrival","revealed":true,"guests":3,"entries":[{"number":1,"text":"Focused","count":2,"hidden":false},{"number":2,"text":"Calm","count":1,"hidden":false}]}""");
     }
 
     [Test]
     public async Task Hide_WhenTheNumberIsUnknown_ShouldReturnNoEntry()
     {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        var deckId = await DeckSeed.CreateDeckAsync(agent);
         using var sam = ClientFor(TestUser.Sam);
+        var (deckId, _) = await OpenLiveWordCloudAsync(sam, ("guest-a", "Focused"));
         var before = await EntryCountAsync();
 
         using var response = await sam.PostAsync($"/api/decks/{deckId}/slides/1/response/entries/99/hide", null);
@@ -179,6 +181,36 @@ public class OpenResponseRouteTests : JoinFixture
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await response.Content.ReadAsStringAsync()).ShouldBe("""{"error":"no_entry"}""");
         (await EntryCountAsync()).ShouldBe(before);
+        await using var scope = Factory.Services.CreateAsyncScope();
+        (await scope.ServiceProvider.GetRequiredService<AppDbContext>().OpenEntries.CountAsync(e => e.HiddenAt != null)).ShouldBe(0);
+    }
+
+    // A deck whose slide 1 is a word cloud, taken live by Sam, with the sessions fake pointed at that real session, the
+    // slide's round opened through the open route, and one row per guest and word written into it.
+    private async Task<(string DeckId, string Round)> OpenLiveWordCloudAsync(HttpClient sam, params (string Guest, string Word)[] entries)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deckId = await DeckSeed.CreateDeckAsync(agent);
+        await DeckSeed.AddSlideAsync(agent, deckId, "word-cloud", """{"question":"How do you feel?"}""");
+        using var live = await sam.PostAsync($"/api/decks/{deckId}/live", null);
+        live.EnsureSuccessStatusCode();
+        Sessions.Set(CODE, deckId, (await live.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sessionId").GetString(), AudiencePhase.Live);
+        using var opened = await sam.PostAsync($"/api/decks/{deckId}/slides/1/response/open", null);
+        opened.EnsureSuccessStatusCode();
+        var round = (await opened.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("round").GetString()!;
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.OpenEntries.AddRange(entries.Select(entry => new OpenEntry
+        {
+            Id = Guid.NewGuid(),
+            RoundId = Guid.Parse(round),
+            GuestId = entry.Guest,
+            Position = 0,
+            Text = OpenTextRules.Collapse(entry.Word),
+            TextKey = OpenTextRules.KeyOf(entry.Word),
+        }));
+        await db.SaveChangesAsync();
+        return (deckId, round);
     }
 
     private static HttpRequestMessage Words(string guestId, string round, int revision, params string[] words)
