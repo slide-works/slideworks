@@ -43,6 +43,14 @@
   stroke-width: 2.4;
 }
 
+.art.artDeck path {
+  stroke: var(--sw-accent-2);
+}
+
+.artImage {
+  object-fit: cover;
+}
+
 .card > :not(.art) {
   position: relative;
   z-index: 1;

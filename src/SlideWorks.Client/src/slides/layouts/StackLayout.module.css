@@ -1,0 +1,94 @@
+/* The heading is SlideHeading's; the root (.sw-layout) and body (.sw-body)
+   rules are the frame's. The body is a 800 px text column, a 60 px gap and the
+   820 px figure (the stack on the right); side left swaps them. With no
+   points and no callout the figure is 900 px wide and centred. */
+.body {
+  display: grid;
+  grid-template-columns: 800px 820px;
+  column-gap: 60px;
+  align-items: start;
+}
+
+.body[data-side='left'] {
+  grid-template-columns: 820px 800px;
+}
+
+.body[data-alone='true'] {
+  display: flex;
+  justify-content: center;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.points {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.point {
+  overflow-wrap: anywhere;
+  font: 400 30px/1.35 var(--sw-font-body);
+}
+
+/* A point with a lead: a column of 220 px for the large lead, a gap of 34 px
+   and the 546 px of text. */
+.led {
+  display: grid;
+  grid-template-columns: 220px 546px;
+  column-gap: 34px;
+  align-items: center;
+  min-height: 76px;
+}
+
+.lead {
+  overflow-wrap: anywhere;
+  color: var(--sw-accent-dark);
+  font: 800 42px/1.05 var(--sw-font-head);
+}
+
+.foot {
+  margin-top: auto;
+}
+
+/* The figure: clipped like bars, flow and levels, so a too-wide font never
+   draws past it. The 500 px stack over the total and the caption. */
+.figure {
+  display: flex;
+  flex-direction: column;
+  width: 820px;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.body[data-alone='true'] .figure {
+  width: 900px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 500px;
+}
+
+.total {
+  margin-top: 14px;
+  overflow-wrap: anywhere;
+  font: 700 30px/1.3 var(--sw-font-head);
+}
+
+.caption {
+  overflow-wrap: anywhere;
+  color: var(--sw-muted);
+  font: 400 22px/1.3 var(--sw-font-body);
+}

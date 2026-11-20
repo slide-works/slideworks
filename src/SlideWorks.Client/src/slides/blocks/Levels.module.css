@@ -1,0 +1,77 @@
+/* The levels block, in canvas px: a 480 px card with 24 px padding (432 px
+   inside). A rung is a 44 px circle, 16 px, and 22 px/1.4 text in 10/12 px
+   padding, at least 64 px tall and 8 px from the next. The card is at most
+   620 px tall (the server's budget for it) and clips what is past that, so a
+   font wider than the estimate never draws the ladder off the slide. */
+.levels {
+  box-sizing: border-box;
+  width: 480px;
+  max-height: 620px;
+  padding: 24px;
+  overflow: hidden;
+  border-radius: var(--sw-radius-lg);
+  background: var(--sw-card);
+  box-shadow: var(--sw-lift);
+}
+
+.title {
+  margin: 0 0 16px;
+  overflow-wrap: anywhere;
+  color: var(--sw-muted);
+  font: 700 16px/1.2 var(--sw-font-head);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rungs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rung {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-sizing: border-box;
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: var(--sw-radius-md);
+  color: var(--sw-ink);
+}
+
+.rung[data-state='current'] {
+  background: var(--sw-accent-light);
+  color: var(--sw-accent-dark);
+  font-weight: 700;
+}
+
+.mark {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: var(--sw-radius-pill);
+  background: var(--sw-chip);
+  color: var(--sw-muted);
+  font: 700 18px/1 var(--sw-font-head);
+}
+
+.rung[data-state='current'] .mark {
+  background: var(--sw-accent);
+  color: var(--sw-on-accent);
+}
+
+.text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 22px;
+  line-height: 1.4;
+}

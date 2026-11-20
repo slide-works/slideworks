@@ -12,7 +12,7 @@ namespace SlideWorks.LoadTest;
 // then the guest poll view, and one answer. It measures the answer's write (request sent to response read) and then how long the
 // first pollTally on its own connection whose answered count includes its answer took to arrive. It sends no Origin, as a
 // client that isn't a browser doesn't. Every refusal is counted by kind in RunState, never swallowed.
-public sealed class Voter(LoadOptions options, Uri hubBase, HttpClient http, RunState state) : IAsyncDisposable
+public sealed class Voter(LoadOptions options, Uri hubBase, HttpClient http, RunState state) : ILoadGuest
 {
     private const string HUB_PATH = "/hubs/deck";
     private const string AUDIENCE_EVENT = "audienceEvent";
@@ -70,8 +70,8 @@ public sealed class Voter(LoadOptions options, Uri hubBase, HttpClient http, Run
         }
     }
 
-    // Sends the one answer, then waits for the tally that includes it. Call it only after JoinAsync returned true.
-    public async Task AnswerAsync(CancellationToken ct)
+    // Sends the one answer, then waits for the tally that includes it. Call it only after JoinAsync returned true; the answer is one request, so `remaining` is not used.
+    public async Task ActAsync(TimeSpan remaining, CancellationToken ct)
     {
         if (_activity?.Round is not { Length: > 0 } round || _activity.Options is not { Count: > 0 } optionList || _activity.Phase != "open")
         {

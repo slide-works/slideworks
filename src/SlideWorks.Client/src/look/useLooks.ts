@@ -5,8 +5,9 @@ import type { LooksView } from '../api/types';
 export type LooksLoad =
   { kind: 'loading' } | { kind: 'loaded'; looks: LooksView } | { kind: 'failed'; message: string };
 
-// GET /api/looks: the built-in templates and palettes. It is a static catalogue,
-// the same for every user and deck, so it is read on its own (D20).
+// GET /api/looks: the templates the signed-in person may pick (the built-ins,
+// their own and the ones shared with them) and the palettes. It is per person and
+// the same for every deck, so it is read on its own (D20, SW-50 T4).
 export function useLooks(): LooksLoad {
   const [load, setLoad] = useState<LooksLoad>({ kind: 'loading' });
   useEffect(() => {

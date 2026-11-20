@@ -24,8 +24,13 @@ public class AudienceRosterTests : ApiTestFixture
 {
     private readonly List<IAsyncDisposable> _connections = [];
 
-    protected override Action<IServiceCollection>? ConfigureTestServices => services
-        => services.AddSingleton<SettablePresentations>().AddSingleton<IPresentations>(provider => provider.GetRequiredService<SettablePresentations>());
+    // IQaRounds is the recording fake, so Go live writes no Q&A poll row: a test that deletes its deck by SQL meets no foreign
+    // key from SW-9's rows. Nothing here reads the Q&A round.
+    protected override Action<IServiceCollection>? ConfigureTestServices => services =>
+    {
+        services.AddSingleton<SettablePresentations>().AddSingleton<IPresentations>(provider => provider.GetRequiredService<SettablePresentations>());
+        FakeQaRounds.AddTo(services);
+    };
 
     [TearDown]
     public async Task DisconnectAsync()

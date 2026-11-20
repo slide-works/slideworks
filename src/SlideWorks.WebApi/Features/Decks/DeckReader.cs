@@ -8,6 +8,7 @@ using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Slides;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 
@@ -22,8 +23,8 @@ public class DeckReader(
     IDeckAccess access,
     IPublicUrls urls,
     JoinViews joinViews,
-    ITemplateCatalogue templates,
-    IPaletteCatalogue palettes)
+    IDeckLooks looks,
+    ITemplates templates)
 {
     public const string NOT_FOUND = "Deck not found";
 
@@ -52,11 +53,14 @@ public class DeckReader(
             throw new NotFoundException(NOT_FOUND);
         }
         var deck = await LoadDeckAsync(deckId);
-        return GetDeckResult.From(deck, await LiveSlidesAsync(deckId), urls.Deck(deck.Id, deck.Slug));
+        return GetDeckResult.From(deck, await LiveSlidesAsync(deckId), await templates.ForDeckAsync(deck, CancellationToken.None), urls.Deck(deck.Id, deck.Slug));
     }
 
     private async Task<DeckPlayView> PlayAsync(Deck deck, bool isOwner)
-        => DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), LookViews.From(deck, templates, palettes), await joinViews.ForAsync(deck), isOwner);
+    {
+        var template = await templates.ForDeckAsync(deck, CancellationToken.None);
+        return DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), template, looks.Of(deck, template), await joinViews.ForAsync(deck), isOwner);
+    }
 
     private Task<Deck> LoadDeckAsync(string deckId) => db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);
 

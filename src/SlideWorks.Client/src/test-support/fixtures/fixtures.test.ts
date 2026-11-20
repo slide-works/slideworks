@@ -136,6 +136,7 @@ const DECK_PAGE_SLIDE = keys<DeckPageSlide>({
   layout: true,
   part: true,
   deepDive: true,
+  surface: true,
   headline: true,
   steps: true,
   notes: true,
@@ -173,6 +174,7 @@ const DECK_PLAY_SLIDE = keys<DeckPlaySlide>({
   layout: true,
   part: true,
   deepDive: true,
+  surface: true,
   steps: true,
   slots: true,
 });
@@ -182,6 +184,17 @@ const LOOK = keys<LookView>({
   template: true,
   palette: true,
   logo: true,
+  fonts: true,
+  logos: true,
+  art: true,
+  ornament: true,
+  topBar: true,
+  templateRef: true,
+  templateVersion: true,
+  latestVersion: true,
+  extras: true,
+  customLayouts: true,
+  templateMissing: true,
   draft: true,
   footerDateLabel: true,
   joinBar: true,
@@ -190,6 +203,17 @@ const DECK_PAGE_LOOK = keys<DeckPageLook>({
   template: true,
   palette: true,
   logo: true,
+  fonts: true,
+  logos: true,
+  art: true,
+  ornament: true,
+  topBar: true,
+  templateRef: true,
+  templateVersion: true,
+  latestVersion: true,
+  extras: true,
+  customLayouts: true,
+  templateMissing: true,
   draft: true,
   footerDateLabel: true,
   joinBar: true,
@@ -219,6 +243,7 @@ const CHROME_OVERRIDES = keys<ChromeOverrides>({
   footer: true,
   progress: true,
   joinBar: true,
+  topBar: true,
 });
 const TEMPLATE_TYPE = keys<TemplateType>({
   head: true,
@@ -235,6 +260,7 @@ const TOKENS = keys<Record<PaletteTokenKey, string>>({
   ink: true,
   muted: true,
   accent: true,
+  'accent-2': true,
   'accent-dark': true,
   'accent-light': true,
   'accent-glow': true,
@@ -277,6 +303,7 @@ const CONTRAST_PAIRS = keys<Record<ContrastPair, true>>({
   'card-bold': true,
   'headline-accent': true,
   'on-accent': true,
+  'on-accent-2': true,
   'deep-dive-pill': true,
   'panel-accent': true,
   'panel-positive': true,
@@ -288,6 +315,14 @@ const CONTRAST_PAIRS = keys<Record<ContrastPair, true>>({
   'soft-accent': true,
   'soft-inverse': true,
   'deep-dive-list': true,
+  'dark-kicker': true,
+  'dark-chrome': true,
+  'dark-soft-accent': true,
+  'dark-soft-positive': true,
+  'dark-soft-negative': true,
+  'pin-solid-accent': true,
+  'pin-solid-positive': true,
+  'pin-solid-negative': true,
 });
 const LOOKS = keys<LooksView>({ templates: true, palettes: true });
 const LOOKS_TEMPLATE = keys<LooksTemplate>({
@@ -303,6 +338,10 @@ const LOOKS_TEMPLATE = keys<LooksTemplate>({
   ornament: true,
   titleArt: true,
   lockedPalette: true,
+  ref: true,
+  version: true,
+  builtIn: true,
+  owner: true,
 });
 const LOOKS_PALETTE = keys<LooksPalette>({
   name: true,
@@ -314,6 +353,7 @@ const LOOKS_PALETTE = keys<LooksPalette>({
 });
 const LOOK_CHANGE_REQUEST = keys<LookChangeRequest>({
   template: true,
+  templateVersion: true,
   palette: true,
   logo: true,
   draft: true,
@@ -352,6 +392,22 @@ function nullPaths(value: unknown, path = '$'): string[] {
     return Object.entries(value).flatMap(([key, item]) => nullPaths(item, `${path}.${key}`));
   return [];
 }
+
+// What a built-in template leaves null in a look (T7), in the order the look holds them; the server's
+// ScreenShapes.BuiltInLookNullablePaths declares the same seven: a built-in has no title art either. The deck samples show a built-in deck as the server sends it, so
+// these are their only nulls; template-public.json is the sample of an uploaded template, with every one filled.
+const LOOK_NULLABLE = [
+  'template.titleArt',
+  'logos.light',
+  'logos.dark',
+  'art.generator',
+  'art.url',
+  'templateVersion',
+  'latestVersion',
+];
+const builtInLookNulls = LOOK_NULLABLE.map((member) => `$.look.${member}`);
+// The deck samples' four parts have no caption and no mark (K19), so those are null too, ahead of the look.
+const partNulls = [0, 1, 2, 3].flatMap((i) => [`$.parts[${i}].caption`, `$.parts[${i}].mark`]);
 
 function expectSlots(layout: string, slots: object) {
   expect(LAYOUT_NAMES).toContain(layout);
@@ -424,8 +480,10 @@ function expectDeckRow(row: DeckRow, expected: string[]) {
 
 describe('screen JSON examples', () => {
   it('give every nullable field a non-null value', () => {
-    for (const screen of [me, adminUsers, decksLibrary, deckPage, deckPlay, sharing])
+    for (const screen of [me, adminUsers, decksLibrary, sharing])
       expect(nullPaths(screen)).toEqual([]);
+    for (const screen of [deckPage, deckPlay])
+      expect(nullPaths(screen)).toEqual([...partNulls, ...builtInLookNulls]);
   });
 
   it('me.json matches MeView', () => {
@@ -527,7 +585,7 @@ describe('screen JSON examples', () => {
 
   it('look-change.json holds a LookChangeRequest and a LookChangeResult', () => {
     expect(nullPaths(lookChangeRequest)).toEqual([]);
-    expect(nullPaths(lookChangeResult)).toEqual([]);
+    expect(nullPaths(lookChangeResult)).toEqual(builtInLookNulls);
     expect(sorted(lookChangeRequest)).toEqual(LOOK_CHANGE_REQUEST);
     for (const key of Object.keys(lookChangeRequest.chrome!))
       expect(CHROME_OVERRIDES).toContain(key);
@@ -537,7 +595,7 @@ describe('screen JSON examples', () => {
   });
 
   it('card.json matches CardView', () => {
-    expect(nullPaths(card)).toEqual([]);
+    expect(nullPaths(card)).toEqual(builtInLookNulls);
     expect(sorted(card)).toEqual(CARD);
     expect(card.generic).toBe(false);
     expectLook(card.look);

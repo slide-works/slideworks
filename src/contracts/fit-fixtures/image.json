@@ -1,0 +1,202 @@
+{
+  "imageTitle": {
+    "layout": "image",
+    "grow": [
+      "/points/3",
+      "/caption"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Team Ships A Small Slice Of Work Toeeeee",
+      "headline": "Customers Every Week And The Feedback Arrives In Days Rather Than Quarters Soeee",
+      "image": {
+        "image": "img_sample0001",
+        "alt": "The Risk Shows Up Early While It Is Still Cheap To Change Course And Nobody Has To Guess How Far Along The Work Really Is The Team Ships A Small Slice Of Work To Customers Every Week And The Feedbacke"
+      },
+      "points": [
+        "Arrives In Days Rather Than Quarters So The Risk Shows Up Early While It Iseeeee",
+        "Still Cheap To Change Course And Nobody Has To Guess How Far Along The Workeeeee",
+        "Really Is The Team Ships A Small Slice Of Work To Customers Every Week And Theee",
+        "Feedback Arrives In Days Rather Than Quarters So The Risk Shows Up Early Whileee"
+      ],
+      "caption": "It Is Still Cheap To Change Course And Nobody Has To Guess How Far Along The Work Really Is The Team Ships A Small Slice Of Work Toeeeeeeeee"
+    }
+  },
+  "imageProse": {
+    "layout": "image",
+    "grow": [
+      "/points/3",
+      "/caption"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Team ships a small slice of work toeeeee",
+      "headline": "Customers every week and the feedback arrives in days rather than quarters soeee",
+      "image": {
+        "image": "img_sample0001",
+        "alt": "The risk shows up early while it is still cheap to change course and nobody has to guess how far along the work really is the team ships a small slice of work to customers every week and the feedbacke"
+      },
+      "points": [
+        "Arrives in days rather than quarters so the risk shows up early while it iseeeee",
+        "Still cheap to change course and nobody has to guess how far along the workeeeee",
+        "Really is the team ships a small slice of work to customers every week and theee",
+        "Feedback arrives in days rather than quarters so the risk shows up early whileee"
+      ],
+      "caption": "It is still cheap to change course and nobody has to guess how far along the work really is the team ships a small slice of work toeeeeeeeee"
+    }
+  },
+  "imageRightMax": {
+    "layout": "image",
+    "estimate": 803.7,
+    "grow": [
+      "/points/0",
+      "/points/1",
+      "/points/2",
+      "/points/3"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Reviewable Momentum Matters More Than Ma",
+      "headline": "Make Every Merge Small And Reviewable Momentum Matters More",
+      "image": {
+        "image": "img_sample0001",
+        "alt": "A transparent diagram of the story map"
+      },
+      "position": "right",
+      "points": [
+        "Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Through",
+        "Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Workinge",
+        "Momentum Matters More Than Maximum Throughput Ship Working Software Every Week T",
+        "Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When"
+      ],
+      "caption": "Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Custom",
+      "callout": {
+        "tone": "accent",
+        "text": "Merge Small And Reviewable Momentum Matters More Than Maximum Throughp"
+      }
+    }
+  },
+  "imageRightMaxWide": {
+    "layout": "image",
+    "estimate": 803.7,
+    "grow": [
+      "/points/0",
+      "/points/1",
+      "/points/2",
+      "/points/3"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Many Women Who Wander Wide Meadows Mow M",
+      "headline": "Many Women Who Wander Wide Meadows Mow Moss With Me When Wa",
+      "image": {
+        "image": "img_sample0001",
+        "alt": "Many Women Who Wander Wide Meadows Mow"
+      },
+      "position": "right",
+      "points": [
+        "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMB",
+        "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMB",
+        "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMB",
+        "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMB"
+      ],
+      "caption": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow",
+      "callout": {
+        "tone": "accent",
+        "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We"
+      }
+    }
+  },
+  "imageRightNoFrame": {
+    "layout": "image",
+    "grow": [
+      "/caption"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Make Every Merge Small And Rev",
+      "headline": "Merge Small And Reviewable Momentum Matters More T",
+      "image": {
+        "image": "img_sample0001",
+        "alt": "A transparent diagram of the story map"
+      },
+      "frame": "none",
+      "position": "right",
+      "points": [
+        "Every Merge Small And Reviewable Momentum Matters More Thane",
+        "And Reviewable Momentum Matters More Than Maximum Throughput"
+      ],
+      "caption": "Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Me"
+    }
+  },
+  "imageBelowLeadPoints": {
+    "layout": "image",
+    "estimate": 487.0,
+    "grow": [
+      "/points/0/text",
+      "/points/1/text",
+      "/points/2/text",
+      "/points/3/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Reviewable Momentum Matters More Than Ma",
+      "headline": "Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When",
+      "image": {
+        "image": "img_sample0001",
+        "alt": "A transparent diagram of the story map"
+      },
+      "points": [
+        {
+          "icon": "bolt",
+          "lead": "Make Every Merge Small And Rev",
+          "text": "Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Through"
+        },
+        {
+          "icon": "check",
+          "lead": "Every Merge Small And Reviewab",
+          "text": "Merge Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Wo"
+        },
+        {
+          "icon": "clock",
+          "lead": "Merge Small And Reviewable Mom",
+          "text": "And Reviewable Momentum Matters More Than Maximum Throughput Ship Working Softwa"
+        },
+        {
+          "icon": "target",
+          "lead": "Small And Reviewable Momentume",
+          "text": "Momentum Matters More Than Maximum Throughput Ship Working Software Every Week T"
+        }
+      ],
+      "caption": "Merge Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customerse",
+      "reveal": "one-by-one"
+    }
+  },
+  "imageCallout": {
+    "layout": "image",
+    "grow": [
+      "/callout/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Small And Reviewable Momentum Matters Mo",
+      "headline": "Every Merge Small And Reviewable Momentum Matters More Than Maximum Throughput S",
+      "image": {
+        "image": "img_sample0001",
+        "alt": "A transparent diagram of the story map"
+      },
+      "points": [
+        "Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Through",
+        "Every Merge Small And Reviewable Momentum Matters More Than Maximum Throughput S",
+        "Merge Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Wo",
+        "Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Workinge"
+      ],
+      "caption": "More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Wheree",
+      "callout": {
+        "tone": "accent",
+        "text": "And Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "reveal": "last"
+      }
+    }
+  }
+}

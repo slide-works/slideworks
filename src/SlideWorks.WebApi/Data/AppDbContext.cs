@@ -12,6 +12,7 @@ using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Qa.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Slides;
+using SlideWorks.WebApi.Features.Templates.Data;
 
 namespace SlideWorks.WebApi.Data;
 
@@ -58,6 +59,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ReactionTotal> ReactionTotals => Set<ReactionTotal>();
 
     public DbSet<ReactionGuest> ReactionGuests => Set<ReactionGuest>();
+
+    public DbSet<TemplateRecord> Templates => Set<TemplateRecord>();
+
+    public DbSet<TemplateVersion> TemplateVersions => Set<TemplateVersion>();
+
+    public DbSet<TemplateAsset> TemplateAssets => Set<TemplateAsset>();
+
+    public DbSet<TemplateViewer> TemplateViewers => Set<TemplateViewer>();
+
+    public DbSet<TemplateUpload> TemplateUploads => Set<TemplateUpload>();
 
     // SQLite can't compare or ORDER BY a DateTimeOffset stored as TEXT, so every one is stored as a sortable integer.
     // Expiry checks and newest-first lists then run in SQL.
@@ -130,6 +141,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         ConfigurePolls(modelBuilder);
 
         ConfigureQa(modelBuilder);
+
+        ConfigureTemplates(modelBuilder);
 
         modelBuilder.Entity<OAuthClientRow>(client => client.HasKey(c => c.ClientId));
 
@@ -263,6 +276,73 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             guest.HasKey(g => new { g.SessionId, g.GuestId });
             guest.HasOne<AudienceSession>().WithMany().HasForeignKey(g => g.SessionId).OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    // SW-50's template rows (T1): a template, its versions (0 is the draft), its files, its named viewers and its pending
+    // uploads. Access is stored by name, as a deck's Sharing is; a file's kind is stored as its camelCase name. SQLite
+    // ignores a column's length, so the limits are checks. Every foreign key is Restrict: a template is archived, never
+    // deleted, and app code removes its rows itself where it removes any.
+    private static void ConfigureTemplates(ModelBuilder modelBuilder)
+    {
+        var kind = new ValueConverter<TemplateAssetKind, string>(
+            value => JsonNamingPolicy.CamelCase.ConvertName(value.ToString()),
+            name => Enum.Parse<TemplateAssetKind>(name, ignoreCase: true));
+        var kinds = string.Join(", ", Enum.GetNames<TemplateAssetKind>().Select(name => $"'{JsonNamingPolicy.CamelCase.ConvertName(name)}'"));
+
+        modelBuilder.Entity<TemplateRecord>(template =>
+        {
+            template.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_Templates_Name_Length", $"length(\"Name\") <= {TemplateRecord.NAME_MAX}");
+                table.HasCheckConstraint("CK_Templates_Access", OneOf<DeckSharing>("Access"));
+            });
+            template.Property(t => t.Id).HasMaxLength(TemplateRecord.ID_PREFIX.Length + DeckIds.LENGTH);
+            template.Property(t => t.Name).HasMaxLength(TemplateRecord.NAME_MAX);
+            template.Property(t => t.Access).HasConversion<string>();
+            template.HasOne<User>().WithMany().HasForeignKey(t => t.OwnerId).OnDelete(DeleteBehavior.Restrict);
+            template.HasIndex(t => t.OwnerId);
+        });
+
+        modelBuilder.Entity<TemplateVersion>(version =>
+        {
+            version.HasKey(v => new { v.TemplateId, v.Version });
+            version.HasOne<TemplateRecord>().WithMany().HasForeignKey(v => v.TemplateId).OnDelete(DeleteBehavior.Restrict);
+            version.ToTable(table => table.HasCheckConstraint("CK_TemplateVersions_Version", "\"Version\" >= 0"));
+        });
+
+        modelBuilder.Entity<TemplateAsset>(asset =>
+        {
+            asset.HasKey(a => new { a.TemplateId, a.Id });
+            asset.HasOne<TemplateRecord>().WithMany().HasForeignKey(a => a.TemplateId).OnDelete(DeleteBehavior.Restrict);
+            asset.Property(a => a.Id).HasMaxLength(TemplateAsset.ID_LENGTH);
+            asset.Property(a => a.Kind).HasConversion(kind);
+            asset.Property(a => a.FileName).HasMaxLength(TemplateAsset.FILE_NAME_MAX);
+            asset.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_TemplateAssets_Kind", $"\"Kind\" IN ({kinds})");
+                table.HasCheckConstraint("CK_TemplateAssets_FileName_Length", $"length(\"FileName\") <= {TemplateAsset.FILE_NAME_MAX}");
+            });
+        });
+
+        modelBuilder.Entity<TemplateViewer>(viewer =>
+        {
+            viewer.HasKey(v => new { v.TemplateId, v.Email });
+            viewer.HasOne<TemplateRecord>().WithMany().HasForeignKey(v => v.TemplateId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TemplateUpload>(upload =>
+        {
+            upload.HasKey(u => u.TokenHash);
+            upload.HasOne<TemplateRecord>().WithMany().HasForeignKey(u => u.TemplateId).OnDelete(DeleteBehavior.Restrict);
+            upload.HasIndex(u => u.TemplateId);
+            upload.Property(u => u.Kind).HasConversion(kind);
+            upload.Property(u => u.FileName).HasMaxLength(TemplateAsset.FILE_NAME_MAX);
+            upload.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_TemplateUploads_Kind", $"\"Kind\" IN ({kinds})");
+                table.HasCheckConstraint("CK_TemplateUploads_FileName_Length", $"length(\"FileName\") <= {TemplateAsset.FILE_NAME_MAX}");
+            });
         });
     }
 

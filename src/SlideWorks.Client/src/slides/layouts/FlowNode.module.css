@@ -1,0 +1,79 @@
+/* One node. The numbers are the server's FlowLayout.cs, number for number:
+   30 px padding, an 8 px rule on the left (drawn over the padding, so the inner
+   width is the node's less 60), label 16 px, title 32 px/1.2, text 24 px/1.4
+   12 px under it, tiles 18 px under that. */
+.slot {
+  display: flex;
+  min-width: 0;
+}
+
+.node {
+  position: relative;
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  padding: 30px;
+  overflow-wrap: anywhere;
+  border-radius: var(--sw-radius-md);
+  background: var(--panel-surface);
+  color: var(--panel-ink);
+}
+
+.node::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 8px;
+  border-radius: var(--sw-radius-md) 0 0 var(--sw-radius-md);
+  background: var(--node-rule);
+  content: '';
+}
+
+.node[data-filled='true']::before {
+  background: transparent;
+}
+
+/* A box of tiles has a 3 px border on the light accent, drawn inside. */
+.node[data-group='true'] {
+  box-shadow: inset 0 0 0 3px var(--sw-accent-light);
+}
+
+.label {
+  margin: 0 0 12px;
+  font: 500 16px/16px var(--sw-font-body);
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font: 700 32px/1.2 var(--sw-font-head);
+}
+
+.text {
+  margin: 12px 0 0;
+  font: 400 24px/1.4 var(--sw-font-body);
+}
+
+/* Two columns, 14 px apart; a tile has 22 px text in 16 px / 18 px padding
+   and a 5 px rule, so its text is (inner - 14) / 2 - 41 px wide. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tile {
+  box-sizing: border-box;
+  padding: 16px 18px;
+  border-left: 5px solid var(--sw-accent);
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-accent-light);
+  color: var(--sw-accent-dark);
+  font: 500 22px/1.25 var(--sw-font-body);
+}

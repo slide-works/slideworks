@@ -4,10 +4,30 @@
   "title": "Ship smaller",
   "author": "Sam Rivera",
   "parts": [
-    "The cost",
-    "Slice it",
-    "Ship it",
-    "Make it stick"
+    {
+      "name": "The cost",
+      "short": "The cost",
+      "caption": null,
+      "mark": null
+    },
+    {
+      "name": "Slice it",
+      "short": "Slice it",
+      "caption": null,
+      "mark": null
+    },
+    {
+      "name": "Ship it",
+      "short": "Ship it",
+      "caption": null,
+      "mark": null
+    },
+    {
+      "name": "Make it stick",
+      "short": "Make it stick",
+      "caption": null,
+      "mark": null
+    }
   ],
   "look": {
     "template": {
@@ -64,6 +84,7 @@
         "ink": "#111827",
         "muted": "#5b6474",
         "accent": "#2f5bea",
+        "accent-2": "#2f5bea",
         "accent-dark": "#1e3a8a",
         "accent-light": "#e4eafd",
         "accent-glow": "#a5b8ff",
@@ -86,7 +107,7 @@
         "night-2": "#cbd5e1",
         "night-muted": "#8c97ad",
         "night-line": "#334155",
-        "night-glow": "rgb(47 91 234)",
+        "night-glow": "#2f5bea",
         "number-from": "#c3d0ff",
         "number-to": "#5b7cff",
         "stamp": "#fcd34d",
@@ -101,9 +122,30 @@
       }
     },
     "logo": null,
+    "fonts": [],
+    "logos": {
+      "light": null,
+      "dark": null,
+      "showOnDark": false
+    },
+    "art": {
+      "kind": "none",
+      "generator": null,
+      "url": null
+    },
+    "ornament": {
+      "colours": []
+    },
+    "topBar": "none",
+    "templateRef": "workshop",
+    "templateVersion": null,
+    "latestVersion": null,
+    "extras": [],
+    "customLayouts": [],
     "draft": true,
     "footerDateLabel": "16 Nov 2026",
-    "joinBar": false
+    "joinBar": false,
+    "templateMissing": false
   },
   "join": {
     "code": "482913",
@@ -119,6 +161,7 @@
       "layout": "title",
       "part": null,
       "deepDive": false,
+      "surface": "dark",
       "steps": 0,
       "slots": {
         "kicker": "Team offsite · 2026",
@@ -135,6 +178,7 @@
       "layout": "divider",
       "part": 1,
       "deepDive": false,
+      "surface": "dark",
       "steps": 0,
       "slots": {
         "title": "Big batches hide the risk",
@@ -146,6 +190,7 @@
       "layout": "bullets",
       "part": 1,
       "deepDive": false,
+      "surface": "light",
       "steps": 4,
       "slots": {
         "kicker": "The pattern",
@@ -176,6 +221,7 @@
       "layout": "big-number",
       "part": 1,
       "deepDive": false,
+      "surface": "light",
       "steps": 0,
       "slots": {
         "kicker": "Last year, measured",
@@ -191,6 +237,7 @@
       "layout": "gantt",
       "part": 1,
       "deepDive": false,
+      "surface": "light",
       "steps": 0,
       "slots": {
         "kicker": "What it looked like",
@@ -247,6 +294,7 @@
       "layout": "quote",
       "part": 1,
       "deepDive": false,
+      "surface": "light",
       "steps": 0,
       "slots": {
         "kicker": "From the retro",
@@ -259,6 +307,7 @@
       "layout": "divider",
       "part": 2,
       "deepDive": false,
+      "surface": "dark",
       "steps": 0,
       "slots": {
         "title": "Slice it thin",
@@ -270,6 +319,7 @@
       "layout": "practice",
       "part": 2,
       "deepDive": false,
+      "surface": "light",
       "steps": 0,
       "slots": {
         "kicker": "Slice it",
@@ -310,6 +360,7 @@
       "layout": "compare",
       "part": 2,
       "deepDive": false,
+      "surface": "light",
       "steps": 0,
       "slots": {
         "kicker": "Same feature, two ways",
@@ -339,6 +390,7 @@
       "layout": "two-column",
       "part": 2,
       "deepDive": false,
+      "surface": "light",
       "steps": 0,
       "slots": {
         "kicker": "The tool",
@@ -372,6 +424,7 @@
       "layout": "table",
       "part": 2,
       "deepDive": false,
+      "surface": "light",
       "steps": 0,
       "slots": {
         "kicker": "Sizing",
@@ -433,6 +486,7 @@
       "layout": "chart",
       "part": 3,
       "deepDive": false,
+      "surface": "light",
       "steps": 0,
       "slots": {
         "kicker": "Ship it",
@@ -472,6 +526,7 @@
       "layout": "numbered-cards",
       "part": 3,
       "deepDive": true,
+      "surface": "light",
       "steps": 0,
       "slots": {
         "kicker": "Before you split a story",
@@ -501,6 +556,7 @@
       "layout": "rules",
       "part": 4,
       "deepDive": false,
+      "surface": "light",
       "steps": 0,
       "slots": {
         "kicker": "Make it stick",
@@ -526,6 +582,7 @@
       "layout": "cards",
       "part": 4,
       "deepDive": false,
+      "surface": "light",
       "steps": 0,
       "slots": {
         "kicker": "Who does what",
@@ -566,6 +623,7 @@
       "layout": "close",
       "part": 4,
       "deepDive": false,
+      "surface": "dark",
       "steps": 0,
       "slots": {
         "headline": "Pick one story.\nShip half of it by Friday.",

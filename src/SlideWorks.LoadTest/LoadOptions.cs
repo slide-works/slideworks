@@ -2,8 +2,9 @@ using System.Globalization;
 
 namespace SlideWorks.LoadTest;
 
-// The command line: --url, --code, --voters, --seconds, --pick, and --results-timeout (how long a voter waits for a tally
-// that includes its answer before it counts as not received). Parse throws ArgumentException with a message for the user.
+// The command line: --scenario, --url, --code, --voters (--guests), --seconds, --pick, and --results-timeout (how long a voter
+// waits for a tally that includes its answer before it counts as not received). Parse throws ArgumentException with a message
+// for the user.
 public sealed record LoadOptions(
     Uri Url,
     string Code,
@@ -25,16 +26,29 @@ public sealed record LoadOptions(
     // thousands of voters is not capped by the client machine's ephemeral ports per destination. Defaults to Url.
     public IReadOnlyList<Uri> HubUrls { get; init; } = [];
 
+    // What the guests do (LoadScenario): poll, the default and the run as it always was, or qa.
+    public string Scenario { get; init; } = LoadScenario.POLL;
+
+    // qa only: how many questions the harness asks (one per guest of its own) before the run, so the guests have some to
+    // upvote. 0 runs against the questions the round already holds.
+    public int Questions { get; init; } = DEFAULT_QUESTIONS;
+
     // Seconds into the answer window at which the presenter closes the poll, or null to leave it open.
     public double? CloseAt { get; init; }
 
     public const int MAX_JOINS_IN_FLIGHT = 50;
 
+    public const int DEFAULT_QUESTIONS = 5;
+
     public const string NO_RESULTS = "--no-results";
 
     public const string USAGE =
-        "Usage: SlideWorks.LoadTest --code <join code> [--url http://localhost:5510] [--voters 100] [--seconds 10]\n"
+        "Usage: SlideWorks.LoadTest --code <join code> [--scenario poll|qa] [--url http://localhost:5510] [--voters 100] [--seconds 10]\n"
         + "                           [--pick random|<n>[,<n>...]] [--results-timeout 10] [--no-results]\n"
+        + "  --scenario qa has each guest (--guests is --voters) read the questions, upvote three open ones and tap ten reactions, and\n"
+        + "  gates the writes' p95, the p95 from an upvote's 200 to the first questionTally that includes it, and errors. [--questions 5]\n"
+        + "  is how many questions the harness asks first (0 uses the ones the round has). qa refuses --pick, --owner-cookie, --deck,\n"
+        + "  --slide and --close-at; poll refuses --questions.\n"
         + "  --pick takes 0-based option positions; random (the default) picks one option per voter.\n"
         + "  --no-results says tallies are not expected (a run against the stub routes, or a poll whose results are not live): the\n"
         + "  results check is skipped. Without it, a poll whose results are not live is refused and a results p95 of n/a fails the gate.\n"
@@ -56,7 +70,7 @@ public sealed record LoadOptions(
             }
             values[pairs[i]] = pairs[i + 1];
         }
-        var unknown = values.Keys.Except(["--url", "--code", "--voters", "--seconds", "--pick", "--results-timeout", "--owner-cookie", "--deck", "--slide", "--close-at", "--hub-urls"]).ToList();
+        var unknown = values.Keys.Except(["--url", "--code", "--voters", "--seconds", "--pick", "--results-timeout", "--scenario", "--guests", "--questions", "--owner-cookie", "--deck", "--slide", "--close-at", "--hub-urls"]).ToList();
         if (unknown.Count > 0)
         {
             throw new ArgumentException($"Unknown option {unknown[0]}.");
@@ -71,7 +85,24 @@ public sealed record LoadOptions(
         {
             throw new ArgumentException("--url must be an absolute http or https URL.");
         }
-        var voters = Whole(values, "--voters", 100);
+        var scenario = values.GetValueOrDefault("--scenario", LoadScenario.POLL);
+        if (!LoadScenario.Names.Contains(scenario))
+        {
+            throw new ArgumentException($"--scenario must be {string.Join(" or ", LoadScenario.Names)}.");
+        }
+        if (values.ContainsKey("--voters") && values.ContainsKey("--guests"))
+        {
+            throw new ArgumentException("--voters and --guests are the same option: give one.");
+        }
+        var forScenario = scenario == LoadScenario.QA
+            ? new[] { "--pick", "--owner-cookie", "--deck", "--slide", "--close-at" }
+            : ["--questions"];
+        var refused = forScenario.FirstOrDefault(values.ContainsKey);
+        if (refused != null)
+        {
+            throw new ArgumentException($"{refused} is not an option of --scenario {scenario}.");
+        }
+        var voters = Whole(values, values.ContainsKey("--guests") ? "--guests" : "--voters", 100);
         var seconds = Positive(values, "--seconds", 10);
         var timeout = Positive(values, "--results-timeout", 10);
         var pick = values.GetValueOrDefault("--pick", "random");
@@ -91,6 +122,8 @@ public sealed record LoadOptions(
         {
             OwnerCookie = owner,
             Deck = deck,
+            Scenario = scenario,
+            Questions = values.ContainsKey("--questions") ? Count(values, "--questions") : DEFAULT_QUESTIONS,
             Slide = hasSlide ? Whole(values, "--slide", 1) : 0,
             CloseAt = values.ContainsKey("--close-at") ? Positive(values, "--close-at", 1) : null,
             HubUrls = values.TryGetValue("--hub-urls", out var hubUrls)
@@ -114,6 +147,11 @@ public sealed record LoadOptions(
             ? value
             : throw new ArgumentException($"{name} must be a whole number above zero.");
     }
+
+    private static int Count(Dictionary<string, string> values, string name) =>
+        int.TryParse(values[name], CultureInfo.InvariantCulture, out var value) && value >= 0
+            ? value
+            : throw new ArgumentException($"{name} must be a whole number, zero or more.");
 
     private static double Positive(Dictionary<string, string> values, string name, double fallback)
     {

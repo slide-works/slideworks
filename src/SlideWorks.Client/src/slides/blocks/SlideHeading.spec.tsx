@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/experimental-ct-react';
 import { lookViewOf } from '../../test-support/fixtures/lookViewOf';
 import { SlideFrame } from '../SlideFrame';
 import { cardFitFixture } from '../layouts/CardLayouts.fixtures';
+import type { Emphasis } from '../slots/blocks';
 import { SlideHeading } from './SlideHeading';
 
 // The shared kicker and headline, inside the real frame with a body under it.
@@ -10,11 +11,11 @@ test.use({ viewport: { width: 1920, height: 1080 } });
 
 const TWO_LINES = 'Every slip we had last year started as a big batch that nobody could ship';
 
-function slide(kicker: string | undefined, headline: string) {
+function slide(kicker: string | undefined, headline: string, emphasis?: Emphasis[]) {
   return (
     <SlideFrame
       layout="rules"
-      dark={false}
+      surface="light"
       part={1}
       parts={['One', 'Two']}
       number={2}
@@ -26,7 +27,7 @@ function slide(kicker: string | undefined, headline: string) {
       titleStamp={null}
     >
       <div data-testid="layout-rules" className="sw-layout">
-        <SlideHeading layout="rules" kicker={kicker} headline={headline} />
+        <SlideHeading layout="rules" kicker={kicker} headline={headline} emphasis={emphasis} />
         <div data-testid="body" className="sw-body" />
       </div>
     </SlideFrame>
@@ -92,3 +93,49 @@ for (const [kind, name] of [
     expect((await top(page, 'body')).top).toBeCloseTo(376, 0);
   });
 }
+
+test('headline emphasis carries its tone', async ({ mount, page }) => {
+  await mount(
+    slide('The pattern', TWO_LINES, [
+      { text: 'big batch', tone: 'negative' },
+      { text: 'Every slip', tone: 'accent', in: 'headline' },
+    ]),
+  );
+  await page.evaluate(() => document.fonts.ready);
+
+  // The heading's text is the headline itself, with the phrases inside it.
+  const heading = page.getByRole('heading', { level: 2 });
+  await expect(heading).toHaveText(TWO_LINES);
+  const phrases = page.getByTestId('rules-headline').getByTestId('emphasis');
+  await expect(phrases).toHaveText(['Every slip', 'big batch']);
+  await expect(phrases.nth(0)).toHaveAttribute('data-tone', 'accent');
+  await expect(phrases.nth(0)).toHaveCSS('color', 'rgb(47, 91, 234)');
+  await expect(phrases.nth(1)).toHaveAttribute('data-tone', 'negative');
+  await expect(phrases.nth(1)).toHaveCSS('color', 'rgb(220, 38, 38)');
+  // The rest of the headline keeps the slide's ink, and the phrase the headline's weight.
+  await expect(heading).not.toHaveCSS('color', 'rgb(47, 91, 234)');
+  await expect(phrases.nth(0)).toHaveCSS('font-weight', '800');
+  await expect(phrases.nth(0)).toHaveCSS('font-style', 'normal');
+
+  // Emphasis moves nothing: the same two lines, and the body where it was.
+  const headline = await top(page, 'rules-headline');
+  expect(headline.top).toBe(192);
+  expect(headline.height).toBeCloseTo(2 * 64 * 1.08, 0);
+  expect((await top(page, 'body')).top).toBeCloseTo(376, 0);
+});
+
+test('without emphasis the headline holds only its text', async ({ mount, page }) => {
+  await mount(slide('The pattern', 'Ship <b>small</b> batches'));
+  const headline = page.getByTestId('rules-headline');
+  await expect(headline).toHaveText('Ship <b>small</b> batches');
+  await expect(headline.locator('*')).toHaveCount(0);
+  expect(await headline.evaluate((element) => element.childNodes.length)).toBe(1);
+});
+
+test('an empty emphasis list is the same as none', async ({ mount, page }) => {
+  await mount(slide('The pattern', 'Ship small batches', []));
+  const headline = page.getByTestId('rules-headline');
+  await expect(headline).toHaveText('Ship small batches');
+  await expect(headline.locator('*')).toHaveCount(0);
+  expect(await headline.evaluate((element) => element.childNodes.length)).toBe(1);
+});

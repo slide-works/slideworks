@@ -28,10 +28,16 @@ public class Deck
 
     public DateTimeOffset UpdatedAt { get; set; }
 
-    // The deck's look (L5): a template and a palette by name, from ITemplateCatalogue and IPaletteCatalogue.
+    // The deck's look (L5): a template and a palette by name, from the template and palette catalogues.
     public required string Template { get; set; }
 
+    // The published version of an uploaded template the deck uses, or null for a built-in template.
+    public int? TemplateVersion { get; set; }
+
     public required string Palette { get; set; }
+
+    // Token overrides on Palette, as a JSON object of token name to #rrggbb, or null for none.
+    public string? PaletteTokensJson { get; set; }
 
     // An uploaded image of this deck shown as the logo, or null for none.
     public string? LogoImageId { get; set; }

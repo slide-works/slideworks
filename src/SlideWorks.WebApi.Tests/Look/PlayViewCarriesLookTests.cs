@@ -5,6 +5,7 @@ using SlideWorks.Core;
 using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Look;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Support;
@@ -32,6 +33,22 @@ public class PlayViewCarriesLookTests : ApiTestFixture
         look.GetProperty("draft").GetBoolean().ShouldBeTrue();
         look.GetProperty("footerDateLabel").GetString().ShouldBe(DisplayDate.Day(Clock.GetUtcNow()));
         play.GetProperty("slides")[0].GetProperty("deepDive").GetBoolean().ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task Play_WhenTheDeckHasCustomColours_ShouldMergeThemOntoThePalette()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var id = await DeckSeed.CreateDeckAsync(agent);
+
+        var set = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "set_look", $$$"""{"deck":"{{{id}}}","colors":{"accent":"#2f5beb"}}""");
+
+        (set.TryGetProperty("isError", out var isError) && isError.GetBoolean()).ShouldBeFalse(set.GetRawText());
+        var play = await Client.GetFromJsonAsync<JsonElement>($"/api/play/{id}");
+        var palette = play.GetProperty("look").GetProperty("palette");
+        palette.GetProperty("name").GetString().ShouldBe("cobalt");
+        palette.GetProperty("tokens").GetProperty("accent").GetString().ShouldBe("#2f5beb");
+        palette.GetProperty("tokens").GetProperty("ink").GetString().ShouldBe(new PaletteCatalogue().Default.Tokens["ink"]);
     }
 
     [Test]
@@ -80,7 +97,7 @@ public class PlayViewCarriesLookTests : ApiTestFixture
     {
         var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "s", Title = "T", PartsJson = "[]", Template = "talk", Palette = "cobalt", LogoImageId = "img_logo0001" };
 
-        var look = LookViews.From(deck, Factory.Services.GetRequiredService<ITemplateCatalogue>(), Factory.Services.GetRequiredService<IPaletteCatalogue>());
+        var look = LookViews.From(deck, BuiltInTemplates.Resolve(new TemplateCatalogue().Find("talk")!), Factory.Services.GetRequiredService<IPaletteCatalogue>());
 
         look.Logo!.Url.ShouldBe("/api/images/img_logo0001");
     }

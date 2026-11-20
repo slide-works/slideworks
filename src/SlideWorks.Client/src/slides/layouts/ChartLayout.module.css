@@ -6,6 +6,17 @@
    centres its legend (22 px/1.25, three series of up to two lines) and the
    caption callout (up to 160 characters), and starts at the top if they are
    taller than the body. */
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+/* With a callout the columns take the height it leaves and the plot shrinks. */
+.fill {
+  flex: 1;
+  min-height: 0;
+}
+
 .columns {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

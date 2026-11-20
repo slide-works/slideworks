@@ -9,6 +9,7 @@ using SlideWorks.WebApi.Features.Decks.Views;
 using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Sharing;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 
@@ -26,8 +27,8 @@ public class DeckQueries(
     IPublicUrls urls,
     JoinViews joinViews,
     TimeProvider clock,
-    ITemplateCatalogue templates,
-    IPaletteCatalogue palettes)
+    IDeckLooks looks,
+    ITemplates templates)
 {
     public const int ACTIVITY_MAX = 50;
 
@@ -49,6 +50,7 @@ public class DeckQueries(
             .ToListAsync();
         var viewerCount = await db.DeckViewers.AsNoTracking().CountAsync(v => v.DeckId == deckId);
         var entries = await activity.ListAsync(deckId, ACTIVITY_MAX);
+        var template = await templates.ForDeckAsync(deck, CancellationToken.None);
         return new DeckPageView(
             deck.Id,
             deck.Slug,
@@ -60,8 +62,8 @@ public class DeckQueries(
             await joinViews.ForAsync(deck),
             SharingSummary.From(deck.Sharing, viewerCount),
             DeckParts.Read(deck),
-            LookViews.ForPage(deck, templates, palettes),
-            slides.Select(slide => DeckPageSlide.From(deck, slide)).ToList(),
+            looks.PageOf(deck, template),
+            slides.Select(slide => DeckPageSlide.From(deck, slide, template)).ToList(),
             entries.Select(entry => ActivityRow.From(entry, DisplayDate.Ago(entry.At, now))).ToList());
     }
 

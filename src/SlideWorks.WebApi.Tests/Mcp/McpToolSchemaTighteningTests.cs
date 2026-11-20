@@ -17,8 +17,6 @@ namespace SlideWorks.WebApi.Tests.Mcp;
 [CancelAfter(60000)]
 public class McpToolSchemaTighteningTests : ApiTestFixture
 {
-    private const int TOOLS = 23;
-
     private readonly TighteningLog _log = new();
 
     protected override Action<IServiceCollection>? ConfigureTestServices
@@ -36,8 +34,9 @@ public class McpToolSchemaTighteningTests : ApiTestFixture
         }
         await Task.WhenAll(Enumerable.Range(0, 20).Select(_ => McpWire.InputSchemasAsync(Factory, agent.Tokens.AccessToken)));
 
-        _log.Tools.Count.ShouldBe(TOOLS, string.Join(", ", _log.Tools));
-        _log.Tools.Distinct(StringComparer.Ordinal).Count().ShouldBe(TOOLS);
+        var tools = (await McpWire.InputSchemasAsync(Factory, agent.Tokens.AccessToken)).Count;
+        _log.Tools.Count.ShouldBe(tools, string.Join(", ", _log.Tools));
+        _log.Tools.Distinct(StringComparer.Ordinal).Count().ShouldBe(tools);
     }
 
     [Test]
@@ -51,7 +50,8 @@ public class McpToolSchemaTighteningTests : ApiTestFixture
             """{"jsonrpc":"2.0","id":7,"method":"tools/list","params":{}}""")));
 
         var first = answers[0].GetProperty("result").GetRawText();
-        answers[0].GetProperty("result").GetProperty("tools").GetArrayLength().ShouldBe(TOOLS);
+        var tools = (await McpWire.InputSchemasAsync(Factory, agent.Tokens.AccessToken)).Count;
+        answers[0].GetProperty("result").GetProperty("tools").GetArrayLength().ShouldBe(tools);
         foreach (var answer in answers)
         {
             answer.GetProperty("result").GetRawText().ShouldBe(first);

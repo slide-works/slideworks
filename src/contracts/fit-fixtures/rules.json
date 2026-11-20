@@ -1,0 +1,129 @@
+{
+  "rulesProse": {
+    "layout": "rules",
+    "estimate": 617.7,
+    "grow": [
+      "/rules/0/text",
+      "/rules/1/text",
+      "/rules/2/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "The team ships a small slice of work toe",
+      "headline": "The team ships a small slice of work to customers every week, and the feedback a",
+      "rules": [
+        {
+          "title": "The team ships a small slice of work to customers every week",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather t"
+        },
+        {
+          "title": "The team ships a small slice of work to customers every week",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather t"
+        },
+        {
+          "title": "The team ships a small slice of work to customers every week",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather t"
+        },
+        {
+          "title": "The team ships a small slice of work to customers every week",
+          "text": "The team ships a small slice of work to customers every week, and the feedback arrives in days rather than qua"
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "rulesTitleCase": {
+    "layout": "rules",
+    "estimate": 617.7,
+    "grow": [
+      "/rules/0/text",
+      "/rules/1/text",
+      "/rules/2/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "The Team Ships A Small Slice Of Work Toe",
+      "headline": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback A",
+      "rules": [
+        {
+          "title": "The Team Ships A Small Slice Of Work To Customers Every Week",
+          "text": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback Arrives In Days Rather T"
+        },
+        {
+          "title": "The Team Ships A Small Slice Of Work To Customers Every Week",
+          "text": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback Arrives In Days Rather T"
+        },
+        {
+          "title": "The Team Ships A Small Slice Of Work To Customers Every Week",
+          "text": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback Arrives In Days Rather T"
+        },
+        {
+          "title": "The Team Ships A Small Slice Of Work To Customers Every Week",
+          "text": "The Team Ships A Small Slice Of Work To Customers Every Week, And The Feedback Arrives In Days Rather Than Qua"
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "rulesWide": {
+    "layout": "rules",
+    "accepted": false,
+    "estimate": 634.8,
+    "grow": [],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Many Women Who Wander Wide Meadows Mow M",
+      "headline": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMB",
+      "rules": [
+        {
+          "title": "Many Women Who Wander Wide Meadows Mow Moss With Me When War",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum"
+        },
+        {
+          "title": "Many Women Who Wander Wide Meadows Mow Moss With Me When War",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum"
+        },
+        {
+          "title": "Many Women Who Wander Wide Meadows Mow Moss With Me When War",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum"
+        },
+        {
+          "title": "Many Women Who Wander Wide Meadows Mow Moss With Me When War",
+          "text": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum"
+        }
+      ],
+      "reveal": "one-by-one"
+    }
+  },
+  "rulesCallout": {
+    "layout": "rules",
+    "estimate": 591.4,
+    "grow": [
+      "/callout/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Make Every Merge Small And Reviewable",
+      "headline": "Every Merge Small And Reviewable Matters",
+      "rules": [
+        {
+          "title": "Merge to main every day, behind a flag if it is not ready",
+          "text": "Behind a flag if it is not ready, so the rest of the team always sees it and builds on top of it, never b"
+        },
+        {
+          "title": "Merge to main every day, behind a flag if it is not ready",
+          "text": "Behind a flag if it is not ready, so the rest of the team always sees it and builds on top of it, never b"
+        },
+        {
+          "title": "Merge to main every day, behind a flag if it is not ready",
+          "text": "Behind a flag if it is not ready, so the rest of the team always sees it and builds on top of it, never b"
+        }
+      ],
+      "reveal": "one-by-one",
+      "callout": {
+        "tone": "info",
+        "text": "Small steps keep every release easy to review, so the team learns from real customers every single."
+      }
+    }
+  }
+}

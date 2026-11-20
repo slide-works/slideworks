@@ -153,6 +153,9 @@ public class Sw5NetworkJourneyTests : AcceptanceTest
         var player = new PlayerPage(Page);
         await player.GotoAsync(deckId);
         await Expect(player.Count).ToHaveTextAsync($"1 / {SLIDES}");
+        // The count is the player's own position and shows before the presentation join is answered. A key in that
+        // window moves nothing the room follows (and after a second it is dropped), so wait until moves are published.
+        await Expect(player.Player).ToHaveAttributeAsync("data-driving", "true");
         await Page.Keyboard.PressAsync("ArrowRight");
         await Expect(phone.Slide).ToHaveAttributeAsync("data-slide", "2");
     }

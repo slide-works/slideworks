@@ -1,0 +1,94 @@
+[
+  {
+    "layout": "bullets",
+    "slots": {
+      "headline": "Small steps beat big plans",
+      "items": [
+        "Ship working software every week",
+        "Keep every merge small",
+        "Measure where work waits"
+      ]
+    },
+    "steps": 0
+  },
+  {
+    "layout": "bullets",
+    "slots": {
+      "headline": "Small steps beat big plans",
+      "items": [
+        "Ship working software every week",
+        "Keep every merge small",
+        "Measure where work waits"
+      ],
+      "reveal": "all"
+    },
+    "steps": 0
+  },
+  {
+    "layout": "bullets",
+    "slots": {
+      "headline": "Small steps beat big plans",
+      "items": [
+        "Ship working software every week",
+        "Keep every merge small",
+        "Measure where work waits"
+      ],
+      "reveal": "one-by-one"
+    },
+    "steps": 3
+  },
+  {
+    "layout": "bullets",
+    "slots": {
+      "headline": "Small steps beat big plans",
+      "items": [
+        "Ship working software every week",
+        "Keep every merge small",
+        "Measure where work waits"
+      ],
+      "reveal": "one-by-one",
+      "callout": {
+        "tone": "accent",
+        "text": "Start with one team this month.",
+        "reveal": "last"
+      }
+    },
+    "steps": 4
+  },
+  {
+    "layout": "bullets",
+    "slots": {
+      "headline": "Small steps beat big plans",
+      "items": [
+        "Ship working software every week",
+        "Keep every merge small",
+        "Measure where work waits"
+      ],
+      "reveal": "all",
+      "callout": {
+        "tone": "accent",
+        "text": "Start with one team this month.",
+        "reveal": "last"
+      }
+    },
+    "steps": 1
+  },
+  {
+    "layout": "bullets",
+    "slots": {
+      "headline": "Small steps beat big plans",
+      "items": [
+        "Ship working software every week",
+        "Keep every merge small",
+        "Measure where work waits"
+      ],
+      "reveal": "one-by-one",
+      "callout": {
+        "tone": "accent",
+        "text": "Start with one team this month.",
+        "reveal": "with-slide"
+      }
+    },
+    "steps": 3
+  }
+]

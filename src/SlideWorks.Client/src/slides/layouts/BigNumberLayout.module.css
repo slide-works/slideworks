@@ -6,6 +6,18 @@
   align-items: center;
 }
 
+/* With a callout the body stacks the grid over it; the grid takes the height
+   the callout leaves. */
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.fill {
+  flex: 1;
+  min-height: 0;
+}
+
 .column {
   min-width: 0;
 }

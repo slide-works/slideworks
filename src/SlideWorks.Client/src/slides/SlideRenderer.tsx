@@ -5,11 +5,12 @@ import { SlideFrame } from './SlideFrame';
 import { SlideNumberContext } from './slideNumber';
 import { SlidePartContext } from './slidePart';
 import {
-  DARK_LAYOUTS,
+  LAYOUT_SURFACE,
   type LayoutName,
   type LayoutProps,
   type SlideDeck,
   type Slots,
+  type Surface,
 } from './slots';
 
 // What a slide needs to render; both the play view's and the deck page's slides fit.
@@ -19,6 +20,8 @@ export type RenderableSlide = {
     layout: L;
     part: number | null;
     deepDive: boolean;
+    // The slide's own surface on a layout that can be either; left out or null, the layout's.
+    surface?: Surface | null;
     slots: Slots[L];
   };
 }[LayoutName];
@@ -38,6 +41,8 @@ export function SlideRenderer({ slide, deck, total, step }: SlideRendererProps) 
   // The registry is keyed by layout, so this pairs the slide's layout with its
   // own slots; TypeScript can't correlate the two through the union by itself.
   const Layout = LAYOUTS[slide.layout] as ComponentType<LayoutProps<LayoutName>>;
+  const own = LAYOUT_SURFACE[slide.layout];
+  const surface = slide.surface ?? (own === 'either' ? 'light' : own);
   return (
     <div
       data-testid={`slide-${slide.number}`}
@@ -51,7 +56,7 @@ export function SlideRenderer({ slide, deck, total, step }: SlideRendererProps) 
     >
       <SlideFrame
         layout={slide.layout}
-        dark={DARK_LAYOUTS.includes(slide.layout)}
+        surface={surface}
         part={slide.part}
         parts={deck.parts}
         number={slide.number}

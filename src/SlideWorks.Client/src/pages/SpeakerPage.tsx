@@ -205,7 +205,7 @@ function SpeakerMode({
   const nextButtonLabel =
     preview.kind === 'end' ? null : withHeadline(nextLabel(view, preview), preview.slide);
   const shown = view.slides[state.slide - 1];
-  const part = shown?.part ? (view.parts[shown.part - 1] ?? null) : null;
+  const part = shown?.part ? (view.parts[shown.part - 1]?.name ?? null) : null;
   // The sheet is only open while live: a jump while reconnecting would go nowhere.
   const showSheet = sheetOpen && live;
 

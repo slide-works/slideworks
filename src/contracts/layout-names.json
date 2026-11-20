@@ -1,0 +1,32 @@
+{
+  "layouts": [
+    "title",
+    "divider",
+    "bullets",
+    "two-column",
+    "practice",
+    "compare",
+    "big-number",
+    "quote",
+    "image",
+    "table",
+    "chart",
+    "gantt",
+    "numbered-cards",
+    "rules",
+    "cards",
+    "statement",
+    "links",
+    "stack",
+    "bars",
+    "flow",
+    "levels",
+    "columns-list",
+    "timeline",
+    "loop",
+    "close",
+    "join",
+    "poll",
+    "qa"
+  ]
+}

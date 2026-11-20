@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
-import type { CreateDeckResult, LooksView } from '../api/types';
+import type { CreateDeckResult, LooksTemplate, LooksView } from '../api/types';
 import {
   PALETTES,
   TEMPLATES,
@@ -8,6 +8,7 @@ import {
   looksPaletteOf,
   looksTemplateOf,
 } from '../test-support/fixtures/lookViewOf';
+import { looks as looksSample } from '../test-support/fixtures/screens';
 import { stubApi } from '../test-support/stubApi';
 import { NewDeckDialog } from './NewDeckDialog';
 
@@ -205,4 +206,168 @@ test('closed, it renders nothing and loads nothing', async ({ mount, page }) => 
 
   await expect(page.getByTestId('new-deck-dialog')).toHaveCount(0);
   expect(requests).toEqual([]);
+});
+
+// Uploaded templates as GET /api/looks lists them: one of the caller's own, one shared with them, and one that
+// locks its palette (the contract sample).
+const sample = looksSample.templates[0];
+const mine: LooksTemplate = {
+  ...sample,
+  label: 'Studio house style',
+  purpose: 'Our own talks.',
+  lockedPalette: null,
+  ref: 'tpl_Mine00000001',
+  name: 'tpl_Mine00000001',
+  version: 3,
+  owner: null,
+};
+const shared: LooksTemplate = {
+  ...mine,
+  label: 'Northwind',
+  ref: 'tpl_Shared000002',
+  name: 'tpl_Shared000002',
+  owner: 'Mira Okafor',
+};
+const uploadedLocked: LooksTemplate = {
+  ...shared,
+  label: 'Harbour',
+  ref: 'tpl_Locked000003',
+  name: 'tpl_Locked000003',
+  lockedPalette: 'ember',
+};
+const withUploads: LooksView = {
+  templates: [
+    ...looks.templates.slice(0, 2),
+    shared,
+    uploadedLocked,
+    ...looks.templates.slice(2),
+    mine,
+  ],
+  palettes: looks.palettes,
+};
+
+test('lists my templates above the built-ins', async ({ mount, page }) => {
+  await stubApi(page, { '/api/looks': { json: withUploads } });
+  await mount(<NewDeckDialog open onClose={noop} onCreated={noop} />);
+
+  const rows = page.getByTestId('new-deck-template');
+  await expect(rows.first()).toHaveAttribute('data-template', mine.ref);
+  await expect(rows.first()).toContainText('yours');
+  await expect(rows.first()).toContainText('Our own talks.');
+  await expect(page.getByTestId(`new-deck-template-${mine.ref}`)).toBeVisible();
+  await expect(rows.nth(1)).toHaveAttribute('data-template', shared.ref);
+  await expect(rows.nth(3)).toHaveAttribute('data-template', 'talk');
+  await expect(page.getByRole('radio', { name: /^Talk/ })).toBeChecked();
+});
+
+test('marks a shared template with its owner', async ({ mount, page }) => {
+  await stubApi(page, { '/api/looks': { json: withUploads } });
+  await mount(<NewDeckDialog open onClose={noop} onCreated={noop} />);
+
+  const row = page.getByTestId('new-deck-template').filter({ hasText: 'Northwind' });
+  await expect(row).toContainText('shared by Mira Okafor');
+  await expect(row).not.toContainText('yours');
+});
+
+test('renders a template name as text, never markup', async ({ mount, page }) => {
+  const hostile = { ...mine, label: '<img src=x onerror=alert(1)>' };
+  await stubApi(page, {
+    '/api/looks': { json: { ...withUploads, templates: [...looks.templates, hostile] } },
+  });
+  await mount(<NewDeckDialog open onClose={noop} onCreated={noop} />);
+
+  await expect(page.getByTestId('new-deck-template').first()).toContainText('<img src=x');
+  await expect(page.getByTestId('new-deck-template').locator('img')).toHaveCount(0);
+});
+
+test('locks the palette a template sets', async ({ mount, page }) => {
+  await stubApi(page, { '/api/looks': { json: withUploads } });
+  await mount(<NewDeckDialog open onClose={noop} onCreated={noop} />);
+
+  await page.getByTestId(`new-deck-template-${uploadedLocked.ref}`).check();
+
+  const palette = page.getByTestId('new-deck-palette');
+  await expect(palette).toBeDisabled();
+  await expect(palette).toHaveValue('ember');
+  await expect(palette.locator('option:checked')).toHaveText('Ember (set by the template)');
+  await expect(page.getByTestId('look-preview')).toHaveAttribute('data-palette', 'ember');
+
+  await page.getByTestId(`new-deck-template-${mine.ref}`).check();
+  await expect(palette).toBeEnabled();
+});
+
+test('creates a deck on an uploaded template', async ({ mount, page }) => {
+  const posted: unknown[] = [];
+  await stubApi(page, { '/api/looks': { json: withUploads } });
+  await page.route('**/api/decks', (route) => {
+    posted.push(route.request().postDataJSON());
+    return route.fulfill({ status: 201, json: created });
+  });
+  const results: CreateDeckResult[] = [];
+  await mount(<NewDeckDialog open onClose={noop} onCreated={(result) => results.push(result)} />);
+
+  await page.getByTestId('new-deck-title').fill('Ship smaller');
+  await page.getByTestId(`new-deck-template-${mine.ref}`).check();
+  await page.getByTestId('new-deck-create').click();
+
+  await expect.poll(() => results).toEqual([created]);
+  expect(posted).toEqual([{ title: 'Ship smaller', template: mine.ref, palette: 'cobalt' }]);
+});
+
+test('a template that sets its own palette is created with the reserved name', async ({
+  mount,
+  page,
+}) => {
+  const own = { ...uploadedLocked, lockedPalette: 'template' };
+  const posted: unknown[] = [];
+  await stubApi(page, {
+    '/api/looks': {
+      json: {
+        ...withUploads,
+        templates: [...withUploads.templates.filter((t) => t.ref !== own.ref), own],
+      },
+    },
+  });
+  await page.route('**/api/decks', (route) => {
+    posted.push(route.request().postDataJSON());
+    return route.fulfill({ status: 201, json: created });
+  });
+  await mount(<NewDeckDialog open onClose={noop} onCreated={noop} />);
+
+  await page.getByTestId('new-deck-title').fill('Own');
+  await page.getByTestId('new-deck-template-tpl_Locked000003').check();
+  await expect(page.getByTestId('new-deck-palette')).toBeDisabled();
+  await page.getByTestId('new-deck-create').click();
+
+  await expect.poll(() => posted.length).toBe(1);
+  expect(posted).toEqual([{ title: 'Own', template: own.ref, palette: 'template' }]);
+});
+
+test('starts on the template it is given', async ({ mount, page }) => {
+  await stubApi(page, { '/api/looks': { json: withUploads } });
+  await mount(<NewDeckDialog open onClose={noop} onCreated={noop} initialTemplate={shared.ref} />);
+
+  await expect(page.getByTestId(`new-deck-template-${shared.ref}`)).toBeChecked();
+  await expect(page.getByTestId('new-deck-template-unavailable')).toHaveCount(0);
+});
+
+test('a template it cannot pick opens on the default with a note', async ({ mount, page }) => {
+  await stubApi(page, { '/api/looks': { json: withUploads } });
+  await mount(
+    <NewDeckDialog open onClose={noop} onCreated={noop} initialTemplate="tpl_Nobody000009" />,
+  );
+
+  await expect(page.getByRole('radio', { name: /^Talk/ })).toBeChecked();
+  await expect(page.getByTestId('new-deck-template-unavailable')).toHaveText(
+    'That template is not available to you.',
+  );
+});
+
+// The baseline comes from CI's playwright job (never from a dev machine).
+test('screenshot: new deck dialog with my templates', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await stubApi(page, { '/api/looks': { json: withUploads } });
+  await mount(<NewDeckDialog open onClose={noop} onCreated={noop} />);
+  await expect(page.getByTestId('look-preview')).toBeVisible();
+  await expect(page.getByTestId('new-deck-dialog')).toHaveScreenshot('new-deck-my-templates.png');
 });

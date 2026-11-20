@@ -12,6 +12,10 @@ public class LayoutOutsideTemplateWarnsTests : ApiTestFixture
 {
     private const string QUOTE = """{"quote":"Ship it","attribution":"Sam Rivera"}""";
 
+    private const string CARDS = """{"headline":"Why","cards":[{"title":"One","text":"First.","chips":[]}]}""";
+    private const string STATEMENT = """{"statement":"Ship smaller"}""";
+    private const string GANTT = """{"headline":"Plan","columns":["Q1","Q2"],"rows":[{"label":"Build","start":1,"end":2,"status":"done"}]}""";
+
     private Template _template = null!;
 
     [SetUp]
@@ -51,6 +55,38 @@ public class LayoutOutsideTemplateWarnsTests : ApiTestFixture
         var result = await AddAsync(agent, deck, "quote", QUOTE);
 
         Warnings(result).ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task AddSlide_WhenCardsOnTalk_ShouldNotWarn()
+    {
+        var result = await AddOnTalkAsync("cards", CARDS);
+
+        Warnings(result).ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task AddSlide_WhenStatementOnTalk_ShouldNotWarn()
+    {
+        var result = await AddOnTalkAsync("statement", STATEMENT);
+
+        Warnings(result).ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task AddSlide_WhenGanttOnTalk_ShouldWarn()
+    {
+        var result = await AddOnTalkAsync("gantt", GANTT);
+
+        Warnings(result).ShouldBe(["Slide 1: layout 'gantt' is not in the 'talk' template"]);
+    }
+
+    private async Task<JsonElement> AddOnTalkAsync(string layout, string slotsJson)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await CreateDeckAsync(agent, new TemplateCatalogue().Find("talk")!);
+
+        return await AddAsync(agent, deck, layout, slotsJson);
     }
 
     private static async Task<string> CreateDeckAsync(McpTestClient agent, Template template)

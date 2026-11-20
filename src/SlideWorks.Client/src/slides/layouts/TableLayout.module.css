@@ -59,3 +59,14 @@
 .row[data-highlight='true'] > .cell:first-child {
   box-shadow: inset 6px 0 0 var(--sw-accent);
 }
+
+/* Strike-and-answer: the row before the current step dims, and the left cell
+   of a row whose answer has arrived is struck through. */
+.row[data-dim='true'] {
+  opacity: 0.45;
+}
+
+.cell[data-struck='true'] {
+  color: var(--sw-muted);
+  text-decoration: line-through;
+}

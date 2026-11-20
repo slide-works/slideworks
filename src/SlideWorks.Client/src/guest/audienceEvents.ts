@@ -19,6 +19,7 @@ export type AudienceCurrent = {
     steps: number;
     step: number;
     black: boolean;
+    surface: 'light' | 'dark';
   };
 }[LayoutName];
 

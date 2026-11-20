@@ -15,3 +15,13 @@
 :global(.sw-frame[data-deep-dive='true']) .kicker {
   color: var(--sw-dd);
 }
+
+/* On a dark content slide (K6) the kicker is the accent's glow; the always-dark layouts keep theirs, and a deep dive
+   keeps priority with its colour for night. */
+:global(.sw-frame[data-surface='dark']:not([data-dark='true'])) .kicker {
+  color: var(--sw-accent-glow);
+}
+
+:global(.sw-frame[data-surface='dark']:not([data-dark='true'])[data-deep-dive='true']) .kicker {
+  color: var(--sw-dd-on-night);
+}

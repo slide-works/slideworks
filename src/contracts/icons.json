@@ -1,0 +1,196 @@
+{
+  "icons": [
+    {
+      "name": "bolt",
+      "lucide": "Zap"
+    },
+    {
+      "name": "book",
+      "lucide": "BookOpen"
+    },
+    {
+      "name": "bulb",
+      "lucide": "Lightbulb"
+    },
+    {
+      "name": "calendar",
+      "lucide": "Calendar"
+    },
+    {
+      "name": "chart",
+      "lucide": "ChartColumn"
+    },
+    {
+      "name": "chat",
+      "lucide": "MessageCircle"
+    },
+    {
+      "name": "check",
+      "lucide": "Check"
+    },
+    {
+      "name": "check-circle",
+      "lucide": "CircleCheck"
+    },
+    {
+      "name": "clock",
+      "lucide": "Clock"
+    },
+    {
+      "name": "cloud",
+      "lucide": "Cloud"
+    },
+    {
+      "name": "code",
+      "lucide": "Code"
+    },
+    {
+      "name": "coins",
+      "lucide": "Coins"
+    },
+    {
+      "name": "cycle",
+      "lucide": "RefreshCw"
+    },
+    {
+      "name": "database",
+      "lucide": "Database"
+    },
+    {
+      "name": "document",
+      "lucide": "FileText"
+    },
+    {
+      "name": "eye",
+      "lucide": "Eye"
+    },
+    {
+      "name": "factory",
+      "lucide": "Factory"
+    },
+    {
+      "name": "flag",
+      "lucide": "Flag"
+    },
+    {
+      "name": "folder",
+      "lucide": "Folder"
+    },
+    {
+      "name": "gauge",
+      "lucide": "Gauge"
+    },
+    {
+      "name": "gear",
+      "lucide": "Settings"
+    },
+    {
+      "name": "globe",
+      "lucide": "Globe"
+    },
+    {
+      "name": "handshake",
+      "lucide": "Handshake"
+    },
+    {
+      "name": "heart",
+      "lucide": "Heart"
+    },
+    {
+      "name": "key",
+      "lucide": "Key"
+    },
+    {
+      "name": "layers",
+      "lucide": "Layers"
+    },
+    {
+      "name": "link",
+      "lucide": "Link"
+    },
+    {
+      "name": "list",
+      "lucide": "List"
+    },
+    {
+      "name": "lock",
+      "lucide": "Lock"
+    },
+    {
+      "name": "mail",
+      "lucide": "Mail"
+    },
+    {
+      "name": "map-pin",
+      "lucide": "MapPin"
+    },
+    {
+      "name": "people",
+      "lucide": "Users"
+    },
+    {
+      "name": "person",
+      "lucide": "User"
+    },
+    {
+      "name": "phone",
+      "lucide": "Phone"
+    },
+    {
+      "name": "puzzle",
+      "lucide": "Puzzle"
+    },
+    {
+      "name": "robot",
+      "lucide": "Bot"
+    },
+    {
+      "name": "rocket",
+      "lucide": "Rocket"
+    },
+    {
+      "name": "scale",
+      "lucide": "Scale"
+    },
+    {
+      "name": "search",
+      "lucide": "Search"
+    },
+    {
+      "name": "shield",
+      "lucide": "Shield"
+    },
+    {
+      "name": "star",
+      "lucide": "Star"
+    },
+    {
+      "name": "target",
+      "lucide": "Target"
+    },
+    {
+      "name": "terminal",
+      "lucide": "Terminal"
+    },
+    {
+      "name": "ticket",
+      "lucide": "Ticket"
+    },
+    {
+      "name": "trophy",
+      "lucide": "Trophy"
+    },
+    {
+      "name": "warning",
+      "lucide": "TriangleAlert"
+    },
+    {
+      "name": "wrench",
+      "lucide": "Wrench"
+    },
+    {
+      "name": "x-circle",
+      "lucide": "CircleX"
+    }
+  ]
+}

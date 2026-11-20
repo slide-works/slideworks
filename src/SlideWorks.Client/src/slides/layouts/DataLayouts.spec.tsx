@@ -143,7 +143,9 @@ test('image renders with alt from slot', async ({ mount, page }) => {
   await expect(image).toHaveAttribute('alt', IMAGE_SLOTS.image.alt);
   await expect(layout.getByRole('img', { name: IMAGE_SLOTS.image.alt })).toBeVisible();
   await expect(image).toHaveCSS('object-fit', 'contain');
-  await expect(layout.getByTestId('image-point')).toHaveText(IMAGE_SLOTS.points!);
+  await expect(layout.getByTestId('image-point')).toHaveText(
+    IMAGE_SLOTS.points!.map((p) => (typeof p === 'string' ? p : p.text)),
+  );
   await expect(layout.getByTestId('image-caption')).toHaveText(IMAGE_SLOTS.caption!);
   const box = (await image.boundingBox())!;
   const points = (await layout.getByTestId('image-point').first().boundingBox())!;

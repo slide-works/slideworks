@@ -4,8 +4,11 @@ import type { LookView } from '../api/types';
 // Custom properties aren't in CSSProperties' keys.
 type CustomProperties = Record<`--sw-${string}`, string | number>;
 
+// The mono font is the same in every template: tokens.css declares this value at :root.
+const FONT_MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+
 // The look as CSS custom properties for a slide's root element (SW-2 L10):
-// every palette token as --sw-<key>, the template's type and shape, and the
+// every palette token as --sw-<key> (accent-2 among them), the template's type and shape, and the
 // tokens tokens.css derives with var() at :root. A var() resolves where it is
 // declared, so the derived ones are declared again here, on the same element
 // as the palette, or they would keep :root's Cobalt values.
@@ -16,6 +19,7 @@ export function lookStyle(look: LookView): CSSProperties {
   Object.assign(style, {
     '--sw-font-head': `'${type.head}', '${type.body}', system-ui, sans-serif`,
     '--sw-font-body': `'${type.body}', system-ui, sans-serif`,
+    '--sw-font-mono': FONT_MONO,
     '--sw-head-weight': type.headWeight,
     '--sw-head-tracking': type.headTracking,
     '--sw-radius-sm': `${shape.radius.sm}px`,

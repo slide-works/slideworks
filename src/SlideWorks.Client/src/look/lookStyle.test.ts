@@ -33,6 +33,19 @@ describe('lookStyle', () => {
     },
   );
 
+  it.each(PALETTES.map((palette) => [palette.name, palette] as const))(
+    'sets accent-2 and the mono font for %s',
+    (name, palette) => {
+      const style = styleOf('talk', name);
+      expect(style['--sw-accent-2']).toBe(palette.tokens.accent);
+      expect(style['--sw-font-mono']).toBe(
+        'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+      );
+      // The extras belong to a custom look: a built-in leaves them unset.
+      expect(Object.keys(style).filter((key) => key.startsWith('--sw-extra-'))).toEqual([]);
+    },
+  );
+
   it('sets the derived tokens on the same element, from the accent family and the night glow', () => {
     const style = styleOf('talk', 'ember');
     expect(style['--sw-info']).toBe('var(--sw-accent)');

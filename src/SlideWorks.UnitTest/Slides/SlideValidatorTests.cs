@@ -33,11 +33,11 @@ public class SlideValidatorTests
     public void Validate_WhenRequiredSlotMissing_ShouldNameThePath()
     {
         var result = Validate("practice", """
-            { "headline": "Slice it", "do": [{ "lead": "a", "text": "b" }, { "lead": "c", "text": "d" }, { "text": "e" }],
-              "comes_back": [], "avoid": [] }
+            { "headline": "Slice it", "do": [{ "lead": "a", "text": "b" }, { "text": "d" }, { "lead": "c" }],
+              "avoid": [] }
             """);
 
-        result.Error.ShouldBe("practice.do[2].lead: required");
+        result.Error.ShouldBe("practice.do[2].text: required");
     }
 
     // An escaped lone surrogate (half an emoji) in a field name, slot text or an enum value can't be read as a .NET
@@ -101,7 +101,7 @@ public class SlideValidatorTests
     {
         var result = Validate("big-number", """{ "headline": "Lead time", "value": "eleven weeks", "caption": "Median" }""");
 
-        result.Error.ShouldBe("big-number.value: at most 6 characters (got 12)");
+        result.Error.ShouldBe("big-number.value: at most 10 characters (got 12)");
     }
 
     [Test]
@@ -110,7 +110,8 @@ public class SlideValidatorTests
         var result = Validate("foo", "{}");
 
         result.Error.ShouldBe("layout: unknown layout 'foo' (known: title, divider, bullets, two-column, practice, compare, "
-            + "big-number, quote, image, table, chart, gantt, numbered-cards, rules, cards, close, join, poll, qa)");
+            + "big-number, quote, image, table, chart, gantt, numbered-cards, rules, cards, statement, links, stack, bars, flow, levels, "
+            + "columns-list, timeline, loop, close, join, poll, qa)");
     }
 
     [TestCase("{}")]

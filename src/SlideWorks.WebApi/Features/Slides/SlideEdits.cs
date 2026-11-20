@@ -1,6 +1,5 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
-using SlideWorks.Core.Look;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
@@ -10,6 +9,7 @@ using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Sharing;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Realtime;
@@ -29,7 +29,7 @@ public class SlideEdits(
     IActivityLog activity,
     IDeckEvents events,
     IPublicUrls urls,
-    ITemplateCatalogue templates,
+    ITemplates templates,
     PollRows pollRows,
     PollEdits pollEdits,
     TimeProvider clock)
@@ -57,13 +57,23 @@ public class SlideEdits(
             }
             var layout = request.Layout ?? slide.Layout;
             var slots = request.Slots;
-            await SlideChecks.ValidateAsync(images, deck.Id, layout, slots);
+            // The surface the slide will have: the one given (null clears it), else the one it has. A layout that
+            // cannot take it refuses the write; nothing clears a stored surface but the caller.
+            var surface = request.Surface is { } given ? given.Value : slide.Surface;
+            var template = await templates.ForDeckAsync(deck, CancellationToken.None);
+            var definition = await SlideChecks.ValidateAsync(images, deck.Id, template, layout, slots, surface);
             SlideChecks.CheckPart(request.Part, DeckParts.Read(deck).Count);
             announce = await pollEdits.CheckSlideEditAsync(deck.Id, slide, layout, slots);
 
             slide.Layout = layout;
             slide.SlotsJson = SlideJson.ForStorage(slots);
-            slide.Steps = SlideSteps.Count(layout, slots);
+            slide.Steps = SlideSteps.Count(definition, slots);
+            slide.Surface = surface;
+            if (request.Notes is { } notes)
+            {
+                slide.Notes = notes.Value;
+            }
+
             slide.Part = request.Part ?? slide.Part;
             var deepDive = DeepDiveChange(slide.DeepDive, request.DeepDive);
             slide.DeepDive = request.DeepDive ?? slide.DeepDive;
@@ -73,7 +83,7 @@ public class SlideEdits(
             {
                 await pollRows.EnsureAsync(slide.Id, deck.Id);
             }
-            var warnings = LayoutWarnings.For(LookViews.TemplateOf(deck, templates), request.Slide, layout);
+            var warnings = LayoutWarnings.For(template.Template, request.Slide, layout);
             var updated = new UpdateSlideResult(request.Slide, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, request.Slide), warnings);
             return (updated, $"updated slide {request.Slide} ({layout}){deepDive}");
         });

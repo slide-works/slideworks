@@ -22,7 +22,8 @@
       },
       "steps": 3,
       "step": 1,
-      "black": false
+      "black": false,
+      "surface": "light"
     },
     "revision": 7,
     "activity": null,

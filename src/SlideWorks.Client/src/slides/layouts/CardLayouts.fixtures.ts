@@ -1,8 +1,8 @@
-import fitFixturesJson from '@contracts/fit-fixtures.json' with { type: 'json' };
+import { legacyFitFixturesOf } from '../../test-support/fixtures/fitFixtures';
 import type { Slots } from '../slots';
 
 // The max-content fit fixtures for the numbered-cards, rules and cards layouts,
-// shared with the server: src/contracts/fit-fixtures.json holds the most text
+// shared with the server: src/contracts/fit-fixtures/<layout>.json holds the most text
 // the validator accepts at each layout's maximum count, in prose, in Title
 // Case and in wide letters (capitals and M and W). SlideWorks.UnitTest's
 // FitFixturesTests proves each one is accepted and that one more word in a
@@ -26,14 +26,13 @@ export type CardFitFixture = {
   };
 }[CardLayout];
 
-export const CARD_FIT_FIXTURES = Object.fromEntries(
-  Object.entries(fitFixturesJson).filter(([, fixture]) =>
-    (CARD_LAYOUTS as readonly string[]).includes(fixture.layout),
-  ),
-) as Record<string, CardFitFixture>;
+export const CARD_FIT_FIXTURES = legacyFitFixturesOf(CARD_LAYOUTS) as Record<
+  string,
+  CardFitFixture
+>;
 
 export function cardFitFixture(name: string): CardFitFixture {
   const fixture = CARD_FIT_FIXTURES[name];
-  if (fixture === undefined) throw new Error(`fit-fixtures.json has no card fixture ${name}`);
+  if (fixture === undefined) throw new Error(`fit-fixtures has no card fixture ${name}`);
   return fixture;
 }

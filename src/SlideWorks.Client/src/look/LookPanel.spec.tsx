@@ -188,3 +188,179 @@ test('the share card URL changes with the revision and the sharing', async ({ mo
     `/api/cards/${deck.id}.png?v=${deck.revision + 1}-private`,
   );
 });
+
+// A deck on version 2 of an uploaded template whose latest published version is 3.
+const uploaded = {
+  ...looksTemplateOf(TEMPLATES[0]),
+  label: 'Northwind',
+  ref: 'tpl_Zk3fWy8Jn5Ts',
+  name: 'tpl_Zk3fWy8Jn5Ts',
+  version: 3,
+  builtIn: false,
+};
+
+function deckBehind(overrides: Partial<DeckPageView> = {}, latest = 3): DeckPageView {
+  const base = deckOn('talk', 'cobalt');
+  const look: DeckPageLook = {
+    ...base.look,
+    template: { ...base.look.template, name: uploaded.ref, label: uploaded.label },
+    templateRef: uploaded.ref,
+    templateVersion: 2,
+    latestVersion: latest,
+  };
+  return { ...base, look, ...overrides };
+}
+
+const updated: DeckPageLook = { ...deckBehind().look, templateVersion: 3 };
+
+async function stubUpdate(page: Page, answer: Answer) {
+  await page.route('**/api/looks', (route) =>
+    route.fulfill({ json: { ...catalogue, templates: [...catalogue.templates, uploaded] } }),
+  );
+  const puts: unknown[] = [];
+  await page.route(lookPath, (route) => {
+    puts.push(route.request().postDataJSON());
+    return route.fulfill(answer);
+  });
+  return puts;
+}
+
+test('offers the newer version and applies it', async ({ mount, page }) => {
+  const puts = await stubUpdate(page, { status: 200, json: { look: updated, warnings: [] } });
+  const saved: number[] = [];
+  const panel = await mount(
+    <LookPanel deck={deckBehind()} onSaved={(look) => saved.push(look.templateVersion ?? 0)} />,
+  );
+
+  const offer = panel.getByTestId('look-version-offer');
+  await expect(offer).toContainText('Northwind · version 2');
+  await expect(offer).toContainText('version 3 available');
+  const button = panel.getByTestId('look-version-update');
+  await expect(button).toHaveAccessibleName('Update this deck to version 3 of Northwind');
+  await button.click();
+
+  await expect(panel.getByTestId('look-version-message')).toHaveText('Now on version 3.');
+  await expect(panel.getByTestId('look-version-message')).toBeFocused();
+  await expect(panel.getByTestId('look-version-message')).toHaveAttribute('role', 'status');
+  expect(puts).toEqual([{ templateVersion: 'latest' }]);
+  expect(saved).toEqual([3]);
+  await expect(offer).toHaveCount(0);
+});
+
+test('disables the button and says Updating while it runs', async ({ mount, page }) => {
+  let release = () => {};
+  await page.route('**/api/looks', (route) => route.fulfill({ json: catalogue }));
+  await page.route(
+    lookPath,
+    (route) =>
+      new Promise<void>((resolve) => {
+        release = () => resolve(route.fulfill({ json: { look: updated, warnings: [] } }));
+      }),
+  );
+  const panel = await mount(<LookPanel deck={deckBehind()} onSaved={() => {}} />);
+
+  await panel.getByTestId('look-version-update').click();
+  await expect(panel.getByTestId('look-version-update')).toBeDisabled();
+  await expect(panel.getByTestId('look-version-update')).toHaveText('Updating…');
+  release();
+  await expect(panel.getByTestId('look-version-message')).toBeVisible();
+});
+
+test('reports a failed update', async ({ mount, page }) => {
+  await stubUpdate(page, {
+    status: 400,
+    json: { error: 'template_refused', message: 'That version is not published.' },
+  });
+  const panel = await mount(<LookPanel deck={deckBehind()} onSaved={() => {}} />);
+
+  await panel.getByTestId('look-version-update').click();
+
+  await expect(panel.getByTestId('look-version-error')).toHaveText(
+    'That version is not published.',
+  );
+  await expect(panel.getByTestId('look-version-error')).toHaveAttribute('role', 'alert');
+  await expect(panel.getByTestId('look-version-offer')).toBeVisible();
+  await expect(panel.getByTestId('look-version-update')).toBeFocused();
+  await expect(panel.getByTestId('look-version-update')).toBeEnabled();
+});
+
+test('a failed update with no sentence says to try again', async ({ mount, page }) => {
+  await stubUpdate(page, { status: 500, json: {} });
+  const panel = await mount(<LookPanel deck={deckBehind()} onSaved={() => {}} />);
+
+  await panel.getByTestId('look-version-update').click();
+
+  await expect(panel.getByTestId('look-version-error')).toHaveText(
+    'Could not update this deck. Try again.',
+  );
+});
+
+test('makes no offer on the latest version', async ({ mount, page }) => {
+  await stubUpdate(page, { status: 200, json: lookChangeResult });
+  const panel = await mount(<LookPanel deck={deckBehind({}, 2)} onSaved={() => {}} />);
+
+  await expect(panel.getByTestId('look-template')).toHaveValue(uploaded.ref);
+  await expect(panel.getByTestId('look-version-offer')).toHaveCount(0);
+});
+
+test('makes no offer on a built-in template', async ({ mount, page }) => {
+  await stubUpdate(page, { status: 200, json: lookChangeResult });
+  const panel = await mount(<LookPanel deck={deckOn('talk', 'cobalt')} onSaved={() => {}} />);
+
+  await expect(panel.getByTestId('look-template')).toBeVisible();
+  await expect(panel.getByTestId('look-version-offer')).toHaveCount(0);
+});
+
+test('makes no offer to someone who is not the owner', async ({ mount, page }) => {
+  await stubUpdate(page, { status: 200, json: lookChangeResult });
+  const panel = await mount(<LookPanel deck={deckBehind({ isOwner: false })} onSaved={() => {}} />);
+
+  await expect(panel.getByTestId('look-template')).toBeVisible();
+  await expect(panel.getByTestId('look-version-offer')).toHaveCount(0);
+});
+
+test('shows the layout warnings after an update', async ({ mount, page }) => {
+  await stubUpdate(page, {
+    status: 200,
+    json: {
+      look: updated,
+      warnings: ["Slide 7: layout 'gantt' is not in the 'Northwind' template"],
+    },
+  });
+  const panel = await mount(<LookPanel deck={deckBehind()} onSaved={() => {}} />);
+
+  await panel.getByTestId('look-version-update').click();
+
+  await expect(panel.getByTestId('look-warning')).toHaveText([
+    "Slide 7: layout 'gantt' is not in the 'Northwind' template",
+  ]);
+});
+
+test('draws a template name as text, never markup', async ({ mount, page }) => {
+  await stubUpdate(page, { status: 200, json: lookChangeResult });
+  const deck = deckBehind();
+  const hostile: DeckPageView = {
+    ...deck,
+    look: { ...deck.look, template: { ...deck.look.template, label: '<b>Bold</b>' } },
+  };
+  const panel = await mount(<LookPanel deck={hostile} onSaved={() => {}} />);
+
+  await expect(panel.getByTestId('look-version-offer')).toContainText('<b>Bold</b> · version 2');
+  await expect(panel.getByTestId('look-version-offer').locator('b')).toHaveCount(0);
+});
+
+test('screenshot: look panel with a version offer', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 480, height: 900 });
+  await stubUpdate(page, { status: 200, json: lookChangeResult });
+  await page.route(`**/api/cards/${deckPage.id}.png*`, (route) =>
+    route.fulfill({ path: 'src/test-support/fixtures/sample-image.png', contentType: 'image/png' }),
+  );
+  const panel = await mount(<LookPanel deck={deckBehind()} onSaved={() => {}} />);
+  await expect(panel.getByTestId('look-version-offer')).toBeVisible();
+  await expect
+    .poll(() =>
+      panel.getByTestId('look-card').evaluate((img: HTMLImageElement) => img.naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await expect(panel).toHaveScreenshot('look-panel-version-offer.png');
+});

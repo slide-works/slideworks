@@ -1,0 +1,61 @@
+/* The heading is SlideHeading's; the root (.sw-layout) and body (.sw-body)
+   rules are the frame's. The body is the figure, 1680 px wide, and a callout
+   under it. */
+.body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The figure clips what a too-wide font would draw past it, so text never
+   lands on the caption, the chips, the callout or another node. */
+.figure {
+  box-sizing: border-box;
+  flex: 0 1 auto;
+  min-height: 0;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* One row: a column per node and a 72 px column per arrow (the columns come
+   from the layout, as fr). */
+.nodes {
+  display: grid;
+  align-items: stretch;
+}
+
+.arrowSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arrow {
+  flex: none;
+  fill: none;
+  stroke: var(--sw-muted);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+/* The caption: 34 px under the nodes, 24 px text. */
+.caption {
+  margin: 34px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--sw-muted);
+  font: 400 24px/1.35 var(--sw-font-body);
+}
+
+/* The chips: a 58 px row, 21 px under the caption (or 34 px under the nodes
+   without one, through .chipsAlone). */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 21px;
+}
+
+.chipsAlone {
+  margin-top: 55px;
+}

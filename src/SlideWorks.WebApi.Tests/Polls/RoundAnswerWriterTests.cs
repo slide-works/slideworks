@@ -39,6 +39,8 @@ public class RoundAnswerWriterTests : PollTestFixture
     {
         _seamRegistrations = services.Count(d => d.ServiceType == typeof(IRoundAnswerWriter));
         services.ConfigureDbContext<AppDbContext>(options => options.AddInterceptors(_starts));
+        // The tests seed the session's Q&A round themselves through PollRowSeed, so Go live must not open one.
+        FakeQaRounds.AddTo(services);
     }
 
     [Test]

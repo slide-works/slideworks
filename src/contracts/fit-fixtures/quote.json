@@ -1,0 +1,57 @@
+{
+  "quoteFull": {
+    "layout": "quote",
+    "estimate": 826.5,
+    "grow": [
+      "/quote"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "kicker": "Make Every Merge Small And Reviewable Mo",
+      "headline": "Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Workinge",
+      "quote": "Small Batches Show Us What Works Sooner And Every Merge Stays Reviewable So Teams Learn Faster When Customers See Real Progress Each Week Small Batches Show Us What Works Sooner And Every Merge Stays",
+      "attribution": "Priya Raman",
+      "role": "Head Of Search Platform, Team Retrospective Q3 Review Meeting",
+      "stat": {
+        "value": "11 wks",
+        "caption": "Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn"
+      },
+      "follow_up": "Every Week Teams Learn Faster When Customers See Real Progress And Metrics",
+      "source": "Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Small And Reviewable Momentum",
+      "reveal": "one-by-one"
+    }
+  },
+  "quoteStatOnly": {
+    "layout": "quote",
+    "grow": [
+      "/quote"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "ll Batches Show Us What Works Sooner And",
+      "quote": "Small Batches Show Us What Works Sooner And Every Merge Stays Reviewable So Teams Learn Faster When Customers See Real Progress Each Week Small Batches Show Us What Works Sooner And Every Merge Stays Reviewable So Teams Learn Faster When Customers See Real Progress Each Week Smal",
+      "attribution": "atches Show Us What Works Sooner And Every Merge Stays Reviewable So Teams Learn",
+      "stat": {
+        "value": "999999 wks",
+        "caption": "es Show Us What Works Sooner And Every Merge Stays Reviewable So Teams Learn Faster When C"
+      }
+    }
+  },
+  "quoteFollowUpDark": {
+    "layout": "quote",
+    "surface": "dark",
+    "grow": [
+      "/follow_up"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "ll Batches Show Us What Works Sooner And",
+      "headline": " Batches Show Us What Works Sooner And Every Merge Stays Reviewable So Teams Lea",
+      "quote": "Small Batches Show Us What Works Sooner And Every Merge Stays Reviewable So Teams Learn Faster When Customers See Real Progress Each Week Small Batches Show Us What Works Sooner And Every Merge Stayse",
+      "attribution": "atches Show Us What Works Sooner And Every Merge Stays Reviewable So Teams Learn",
+      "role": "ches Show Us What Works Sooner And Every Merge Stays Reviewable So Teams Learn Faster When Customers See Real Progress Each Week Small Batches Show Us What Work",
+      "follow_up": " Show Us What Works Sooner And Every Merge Stays Reviewable So Teams Learn Faster When Customers See Real Progress Each Week Small Batches Show Us What Works So",
+      "reveal": "one-by-one"
+    }
+  }
+}

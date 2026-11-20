@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
-import fitFixturesJson from '@contracts/fit-fixtures.json' with { type: 'json' };
+import fitFixturesJson from '@contracts/fit-fixtures/join.json' with { type: 'json' };
 import { LAYOUT_SLOTS } from '../../test-support/fixtures/layoutSlots';
 import { lookViewOf } from '../../test-support/fixtures/lookViewOf';
 import { guestView } from '../../test-support/fixtures/guestStates';

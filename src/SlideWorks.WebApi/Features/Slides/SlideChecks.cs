@@ -1,6 +1,7 @@
 using System.Text.Json;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Features.Images;
+using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 
 namespace SlideWorks.WebApi.Features.Slides;
@@ -11,21 +12,63 @@ public static class SlideChecks
 {
     public const int NOTES_MAX_LENGTH = 4000;
 
-    // The layout's schema, then every image slot's id against the deck's completed uploads.
-    public static async Task ValidateAsync(IDeckImages images, string deckId, string layout, JsonElement slots)
+    // The surface as a tool got it, as the word the validator checks. A JSON value that is not text goes in as its raw
+    // JSON, which is never a surface, so the validator refuses it with the text it has for any other wrong word.
+    public static string? SurfaceWord(JsonElement? given) => given?.ValueKind switch
     {
-        var validation = SlideValidator.Validate(layout, slots);
-        if (!validation.IsValid)
+        null or JsonValueKind.Undefined or JsonValueKind.Null => null,
+        JsonValueKind.String => given.Value.GetString(),
+        _ => given.Value.GetRawText(),
+    };
+
+    // The check for a slide of a deck on this template: the layout is the template's, the text is wrapped with the
+    // widths of the template's fonts, and surface is the one the slide will have ("light", "dark" or null for the
+    // layout's own), then the images. Returns the layout's definition, which the caller counts the steps with.
+    public static async Task<LayoutDefinition> ValidateAsync(IDeckImages images, string deckId, ResolvedTemplate template, string layout, JsonElement slots, string? surface)
+    {
+        var (definition, result) = await ReportAsync(images, deckId, template, layout, slots, surface);
+        if (!result.IsValid)
         {
-            throw new BadRequestException(validation.Error);
+            throw new BadRequestException(result.Error);
         }
-        foreach (var imageId in validation.ImageIds)
+
+        return definition;
+    }
+
+    // The same check as ValidateAsync, without refusing: a dry run and a batch both need the fit report
+    // of a slide that does not fit. An unknown layout is still a refusal, as add_slide's is.
+    public static async Task<(LayoutDefinition Definition, SlideValidationResult Result)> ReportAsync(
+        IDeckImages images, string deckId, ResolvedTemplate template, string layout, JsonElement slots, string? surface)
+    {
+        var definition = template.FindLayout(layout);
+        if (definition is null)
+        {
+            // A name the template does not have. Core words the refusal for a name it does not know either, with the
+            // names it knows; a built-in name gets no layout failure from Core, so it is worded here.
+            var builtIn = SlideValidator.Validate(layout, slots).Errors;
+            throw new BadRequestException(builtIn.FirstOrDefault(error => error.StartsWith("layout: ", StringComparison.Ordinal))
+                ?? builtIn.FirstOrDefault(error => error.StartsWith("slots: ", StringComparison.Ordinal))
+                ?? $"layout: \"{layout}\" is not a layout of this deck's template; call list_layouts for the ones it has");
+        }
+
+        var result = SlideValidator.Validate(definition, slots, template.FitWidths, surface);
+        if (!result.IsValid)
+        {
+            return (definition, result);
+        }
+
+        var missing = new List<string>();
+        foreach (var imageId in result.ImageIds)
         {
             if (!await images.ExistsAsync(deckId, imageId))
             {
-                throw new BadRequestException($"{ImagePath(layout, slots, imageId)}: unknown image {imageId}");
+                missing.Add($"{ImagePath(layout, slots, imageId)}: unknown image {imageId}");
             }
         }
+
+        return missing.Count == 0
+            ? (definition, result)
+            : (definition, new SlideValidationResult(missing, result.ImageIds) { Regions = result.Regions });
     }
 
     // A 1-based part, or null for none (add_slide) or to keep the slide's own (update_slide).

@@ -110,15 +110,15 @@ public class UpdateSlideTests : ApiTestFixture
         var deck = await DeckOfQuotesAsync(agent, "A");
 
         var error = await UpdateErrorAsync(agent, deck, 1, 1, """
-            { "headline": "Slice it", "do": [{ "lead": "a", "text": "b" }, { "lead": "c", "text": "d" }, { "text": "e" }],
-              "comes_back": [], "avoid": [] }
+            { "headline": "Slice it", "do": [{ "lead": "a", "text": "b" }, { "text": "d" }, { "lead": "c" }],
+              "avoid": [] }
             """, layout: "practice");
         var image = await UpdateErrorAsync(agent, deck, 1, 1, """
             { "headline": "The board", "image": { "image": "img_3f9", "alt": "A taskboard" } }
             """, layout: "image");
         var part = await UpdateErrorAsync(agent, deck, 1, 1, """{ "quote": "B", "attribution": "Sam" }""", part: 1);
 
-        error.ShouldBe("practice.do[2].lead: required");
+        error.ShouldBe("practice.do[2].text: required");
         image.ShouldBe("image.image: unknown image img_3f9");
         part.ShouldBe("part: the deck has no parts");
         var slides = await SlidesAsync(agent, deck);

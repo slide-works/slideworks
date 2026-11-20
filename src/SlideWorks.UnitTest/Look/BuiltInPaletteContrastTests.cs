@@ -7,9 +7,10 @@ public class BuiltInPaletteContrastTests
 {
     private static readonly string[] _pairs =
     [
-        "body", "secondary", "card-bold", "headline-accent", "on-accent", "deep-dive-pill", "panel-accent",
+        "body", "secondary", "card-bold", "headline-accent", "on-accent", "on-accent-2", "deep-dive-pill", "panel-accent",
         "panel-positive", "panel-negative", "panel-inverse", "badge-positive", "badge-negative", "dark-subtitle",
-        "soft-accent", "soft-inverse", "deep-dive-list",
+        "soft-accent", "soft-inverse", "deep-dive-list", "dark-kicker", "dark-chrome", "dark-soft-accent", "dark-soft-positive",
+        "dark-soft-negative", "pin-solid-accent", "pin-solid-positive", "pin-solid-negative",
     ];
 
     private static IEnumerable<string> PaletteNames() => new PaletteCatalogue().All.Select(p => p.Name);
@@ -48,6 +49,36 @@ public class BuiltInPaletteContrastTests
         var lowest = PaletteContrast.Check(new PaletteCatalogue().Find(name)!).MinBy(c => c.Ratio / c.Bar)!;
 
         (lowest.Pair, Math.Round(lowest.Ratio, 1), lowest.Bar).ShouldBe((pair, ratio, bar));
+    }
+
+    [TestCaseSource(nameof(PaletteNames))]
+    public void Palettes_WhenBuiltIn_ShouldPassTheFiveDarkPairs(string name)
+    {
+        var dark = PaletteContrast.Check(new PaletteCatalogue().Find(name)!).Where(c => c.Pair.StartsWith("dark-", StringComparison.Ordinal) && c.Pair != "dark-subtitle").ToList();
+
+        dark.Select(c => c.Pair).ShouldBe(["dark-kicker", "dark-chrome", "dark-soft-accent", "dark-soft-positive", "dark-soft-negative"]);
+        dark.Where(c => !c.Pass).Select(c => $"{c.Pair}: {c.Fg} on {c.Bg} is {c.Ratio:0.00}:1").ShouldBeEmpty();
+    }
+
+    [TestCaseSource(nameof(PaletteNames))]
+    public void Palettes_WhenBuiltIn_ShouldPassTheThreeSolidPinPairs(string name)
+    {
+        var pins = PaletteContrast.Check(new PaletteCatalogue().Find(name)!).Where(c => c.Pair.StartsWith("pin-solid-", StringComparison.Ordinal)).ToList();
+
+        pins.Select(c => c.Pair).ShouldBe(["pin-solid-accent", "pin-solid-positive", "pin-solid-negative"]);
+        pins.Where(c => !c.Pass).Select(c => $"{c.Pair}: {c.Fg} on {c.Bg} is {c.Ratio:0.00}:1").ShouldBeEmpty();
+    }
+
+    [Test]
+    public void Mix_WhenShareIsZero_ShouldBeTheBackground()
+    {
+        Contrast.Mix("#ffffff", "#0b1020", 0).ShouldBe("#0b1020");
+    }
+
+    [Test]
+    public void Mix_WhenShareIsOne_ShouldBeTheForeground()
+    {
+        Contrast.Mix("#ffffff", "#0b1020", 1).ShouldBe("#ffffff");
     }
 
     [Test]

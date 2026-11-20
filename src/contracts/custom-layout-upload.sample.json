@@ -1,0 +1,44 @@
+{
+  "markup": "<div class=\"chart\">\n  <div class=\"headline\" data-slot=\"headline\"></div>\n  <div class=\"bars\">\n    <div class=\"row\" data-each=\"bars\" data-step=\"each\">\n      <span class=\"label\" data-slot=\"label\"></span>\n      <div class=\"track\">\n        <div class=\"bar\" data-var=\"--v: share\" data-variant=\"state\"></div>\n      </div>\n    </div>\n  </div>\n  <p class=\"note\" data-if=\"note\" data-slot=\"note\"></p>\n</div>\n",
+  "css": ".chart {\n  display: flex;\n  flex-direction: column;\n  gap: var(--sw-space-5);\n  color: var(--sw-ink);\n}\n.headline {\n  font-size: 64px;\n  font-weight: 700;\n}\n.bars {\n  display: flex;\n  flex-direction: column;\n  gap: var(--sw-space-4);\n}\n.row {\n  display: flex;\n  align-items: center;\n  gap: var(--sw-space-4);\n}\n.label {\n  width: 320px;\n  font-size: 32px;\n}\n.track {\n  flex-grow: 1;\n  height: 56px;\n  border-radius: var(--sw-radius-sm);\n  background: var(--sw-chip);\n}\n.bar {\n  width: calc(var(--v) * 1%);\n  height: 100%;\n  border-radius: var(--sw-radius-sm);\n  background: var(--sw-accent);\n}\n.bar.is-alert {\n  background: var(--sw-bad);\n}\n.note {\n  font-size: 28px;\n  color: var(--sw-muted);\n}\n",
+  "slots": {
+    "name": "bar-chart",
+    "description": "A headline over 2 to 5 horizontal bars, each a share of 100. Can reveal one bar per step.",
+    "surface": "light",
+    "steps": "bars",
+    "slots": {
+      "headline": {
+        "type": "text",
+        "max": 80
+      },
+      "bars": {
+        "type": "list",
+        "min": 2,
+        "max": 5,
+        "of": {
+          "label": {
+            "type": "text",
+            "max": 20
+          },
+          "share": {
+            "type": "number",
+            "min": 0,
+            "max": 100
+          },
+          "state": {
+            "type": "enum",
+            "values": [
+              "normal",
+              "alert"
+            ]
+          }
+        }
+      },
+      "note": {
+        "type": "text",
+        "max": 120,
+        "optional": true
+      }
+    }
+  }
+}

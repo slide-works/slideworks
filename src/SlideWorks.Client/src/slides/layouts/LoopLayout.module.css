@@ -1,0 +1,42 @@
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps[data-rows='2'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-card);
+  box-shadow: var(--sw-lift);
+}
+
+.label {
+  color: var(--sw-accent);
+  font: 700 16px/1.35 var(--sw-font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.text {
+  overflow-wrap: anywhere;
+  color: var(--sw-ink);
+  font: 400 20px/1.4 var(--sw-font-body);
+}
+
+.back {
+  margin: 16px 0 0;
+  color: var(--sw-ink);
+  font: 600 16px/1.3 var(--sw-font-body);
+}

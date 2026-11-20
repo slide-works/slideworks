@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-50 layout gaps, group C: diagram building blocks (SW-369)</title>
+<style>
+/* =====================================================================
+   Review-page chrome: the same light ledger as sw-50-mockups.html.
+   No web fonts here: the page loads nothing from the network.
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, "Liberation Mono", monospace;
+  --ui: "Inter", "Helvetica Neue", Arial, "Liberation Sans", sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 20px 80px; }
+h1, h2, h3, h4, p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+p, li, td, th, h1, h2, h3, h4 { overflow-wrap: anywhere; }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 26px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { color: var(--muted); max-width: 900px; font-size: 15px; }
+.toc { display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 20px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 940px; }
+h3.sub-h { font: 600 14px/1.3 var(--ui); margin: 26px 0 10px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.pad { padding: 16px 18px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 800px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
+.grid2 > *, .grid3 > * { min-width: 0; }
+.card h3 { font: 600 13.5px/1.3 var(--ui); margin-bottom: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+ul.plain { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+ul.plain li { position: relative; padding-left: 20px; }
+ul.plain li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+ul.plain.later li::before { background: var(--later); opacity: .6; }
+ul.plain.grey li::before { background: var(--faint); }
+
+table.ledger { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-size: 13px; }
+.ledger th { text-align: left; font: 600 11px/1.2 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ledger td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ledger tr:last-child td { border-bottom: 0; }
+.ledger td.t { font-weight: 600; }
+.ledger td small { display: block; font: 400 12px/1.35 var(--ui); color: var(--faint); }
+.ledger td code { color: var(--accent-dark); }
+.ledger tr.group td { background: #fafbfc; font: 600 11px/1.2 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 7px 12px; }
+.ledger td.num { font: 500 12.5px/1.5 var(--mono); color: var(--muted); white-space: nowrap; }
+.table-wrap { overflow-x: auto; }
+.lbl { font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px; }
+.cap { display: block; padding: 8px 2px 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+.cap code.layout { font-weight: 500; color: var(--accent-dark); background: var(--accent-soft); padding: 1px 7px; border-radius: 5px; margin-right: 4px; }
+.mcp { background: #0f1420; color: #cbd5e1; border-radius: 10px; padding: 14px 16px; font: 400 12px/1.6 var(--mono); overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mcp .u { color: #fbbf24; } .mcp .c { color: #8ea5ff; } .mcp .r { color: #86efac; } .mcp .m { color: #64748b; }
+.two-up { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 980px) { .two-up { grid-template-columns: minmax(0, 1fr); } }
+.two-up > * { min-width: 0; }
+.stackcol { display: grid; gap: 14px; }
+
+/* pictograms in the verdict table */
+.pic { width: 74px; height: 42px; border: 1px solid var(--line); border-radius: 4px; background: #fbfcfd; display: block; }
+.pic * { vector-effect: non-scaling-stroke; }
+
+/* =====================================================================
+   Slides. A slide is a real 1920 x 1080 canvas scaled to its box, so
+   every size below is in canvas px and matches the spec in gaps-c.md.
+   Colours are the built-in Cobalt palette, named as the --sw-* tokens.
+   ===================================================================== */
+.sl { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 6px; border: 1px solid var(--line); background: var(--sw-paper);
+  --sw-paper: #f7f8fa; --sw-card: #ffffff; --sw-chip: #eef1f6; --sw-grid: #e3e6ec; --sw-ink: #111827; --sw-muted: #5b6474;
+  --sw-accent: #2f5bea; --sw-accent-dark: #1e3a8a; --sw-accent-light: #e4eafd; --sw-accent-glow: #a5b8ff; --sw-on-accent: #ffffff;
+  --sw-good: #16a34a; --sw-bad: #dc2626; --sw-bad-soft: #fdecec; --sw-bad-ink: #991b1b; --sw-warn: #ea580c;
+  --sw-night: #0b1020; --sw-night-ink: #ffffff; --sw-night-2: #cbd5e1; --sw-night-muted: #8c97ad; --sw-night-line: #334155;
+  --sw-panel-accent: #2f5bea; --sw-panel-positive: #15803d; --sw-panel-negative: #b91c1c; --sw-panel-inverse: #0b1020; --sw-panel-ink: #ffffff;
+  --sw-head: "Plus Jakarta Sans", "Inter", "Helvetica Neue", Arial, "Liberation Sans", sans-serif;
+  --sw-body: "Inter", "Helvetica Neue", Arial, "Liberation Sans", sans-serif;
+  --sw-mono: ui-monospace, "Liberation Mono", monospace;
+  /* what the surface resolves to: light here, dark below (group B's slide-level surface) */
+  --s-paper: var(--sw-paper); --s-card: var(--sw-card); --s-chip: var(--sw-chip); --s-grid: var(--sw-grid);
+  --s-ink: var(--sw-ink); --s-muted: var(--sw-muted); --s-accent-text: var(--sw-accent); --s-strong: var(--sw-accent-dark);
+  --s-soft: var(--sw-accent-light); --s-ramp-a: var(--sw-accent-dark); --s-ramp-b: var(--sw-card); --s-bad-text: var(--sw-bad);
+  --s-shadow: 0 1px 2px rgb(15 23 42 / .06), 0 14px 36px rgb(15 23 42 / .09);
+}
+.sl.dark { border-color: transparent;
+  --s-paper: var(--sw-night); --s-card: color-mix(in srgb, var(--sw-night-ink) 7%, var(--sw-night)); --s-chip: color-mix(in srgb, var(--sw-night-ink) 12%, var(--sw-night));
+  --s-grid: var(--sw-night-line); --s-ink: var(--sw-night-ink); --s-muted: var(--sw-night-2); --s-accent-text: var(--sw-accent-glow); --s-strong: var(--sw-accent-glow);
+  --s-soft: color-mix(in srgb, var(--sw-accent) 30%, var(--sw-night)); --s-ramp-a: var(--sw-accent-glow); --s-ramp-b: var(--sw-night); --s-bad-text: #fca5a5;
+  --s-shadow: none;
+}
+.cv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; transform: scale(var(--k, .3)); background: var(--s-paper); color: var(--s-ink); font-family: var(--sw-body); }
+.sl.dark .cv { background: radial-gradient(1100px 700px at 88% 112%, color-mix(in srgb, var(--sw-accent) 42%, transparent), transparent 62%), var(--sw-night); }
+.cv * { margin: 0; }
+.cv .trk { position: absolute; left: 120px; right: 120px; top: 52px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; font: 600 15px/1 var(--sw-body); letter-spacing: .1em; text-transform: uppercase; color: var(--s-muted); }
+.cv .trk span { border-top: 3px solid var(--s-grid); padding-top: 13px; }
+.cv .trk span.on { border-color: var(--sw-accent); color: var(--s-ink); }
+.cv .ft { position: absolute; left: 120px; right: 120px; top: 1023px; font: 400 17px/1 var(--sw-body); color: var(--s-muted); }
+.cv .prog { position: absolute; left: 0; bottom: 0; height: 6px; width: 42%; background: var(--sw-accent); }
+.cv .lay { position: absolute; left: 120px; top: 150px; width: 1680px; height: 846px; display: flex; flex-direction: column; }
+.cv .kick { font: 700 20px/1 var(--sw-body); letter-spacing: .16em; text-transform: uppercase; color: var(--s-accent-text); margin-bottom: 22px; }
+.cv .hl { font: 800 62px/1.1 var(--sw-head); letter-spacing: -.025em; max-width: 1500px; }
+.cv .body { margin-top: 46px; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.cv .safe { position: absolute; left: 120px; top: 150px; width: 1680px; height: 846px; border: 3px dashed #e11d48; pointer-events: none; }
+.cv .hid { visibility: hidden; opacity: 0; }
+.cv .callout { background: var(--s-soft); color: var(--s-strong); border-radius: 14px; padding: 28px 36px; font: 700 28px/1.35 var(--sw-head); }
+.cv .callout.inverse { background: var(--sw-panel-inverse); color: var(--sw-panel-ink); }
+.sl.dark .cv .callout.inverse { background: var(--sw-night-ink); color: var(--sw-night); }
+.cv .capt { font: 400 24px/1.35 var(--sw-body); color: var(--s-muted); }
+.cv .chip { display: inline-block; background: var(--s-chip); color: var(--s-ink); border-radius: 999px; padding: 8px 18px; font: 600 20px/1.2 var(--sw-body); }
+
+/* ---- stack ---- */
+.cv .stk { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 820px; gap: 60px; min-height: 0; }
+.cv .stk.left { grid-template-columns: 820px minmax(0, 1fr); }
+.cv .stk.left .stk-side { order: 2; }
+.cv .stk.solo { grid-template-columns: 1fr; justify-items: center; }
+.cv .stk.solo .stk-fig { width: 900px; }
+.cv .stk-side { display: flex; flex-direction: column; gap: 30px; }
+.cv .stk-side .callout { margin-top: auto; }
+.cv .pt { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 24px; align-items: center; }
+.cv .pt b { font: 800 76px/1 var(--sw-head); letter-spacing: -.03em; color: var(--s-accent-text); }
+.cv .pt span { font: 400 30px/1.35 var(--sw-body); }
+.cv .pt.plain { display: block; }
+.cv .stk-fig { display: flex; flex-direction: column; min-height: 0; }
+.cv .stack { height: 500px; display: flex; flex-direction: column; gap: 4px; }
+.cv .seg { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 28px; min-height: 44px; align-items: center; }
+.cv .seg i { display: block; align-self: stretch; background: color-mix(in srgb, var(--s-ramp-a) calc(var(--m) * 1%), var(--s-ramp-b)); }
+.cv .seg:first-child i { border-radius: 14px 14px 0 0; } .cv .seg:last-child i { border-radius: 0 0 14px 14px; }
+.cv .seg .tx { padding: 5px 0; }
+.cv .seg .lb { font: 600 26px/1.3 var(--sw-body); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.cv .seg .val { font-weight: 400; color: var(--s-muted); }
+.cv .seg .nt { font: 400 20px/1.3 var(--sw-body); color: var(--s-muted); }
+.cv .seg .tg { font: 700 15px/1 var(--sw-body); letter-spacing: .1em; text-transform: uppercase; background: var(--sw-accent); color: var(--sw-on-accent); padding: 6px 10px; border-radius: 999px; }
+.cv .seg.t-accent i { background: var(--sw-panel-accent); } .cv .seg.t-accent .lb { color: var(--s-accent-text); font-weight: 800; }
+.cv .seg.t-negative i { background: var(--sw-panel-negative); } .cv .seg.t-negative .lb { color: var(--s-bad-text); font-weight: 800; } .cv .seg.t-negative .tg { background: var(--sw-panel-negative); }
+.cv .seg.t-positive i { background: var(--sw-panel-positive); } .cv .seg.t-inverse i { background: var(--s-ink); }
+.cv .stk-foot { margin-top: 16px; width: 300px; text-align: center; }
+.cv .stk-foot b { display: block; font: 700 18px/1.2 var(--sw-body); letter-spacing: .12em; text-transform: uppercase; }
+.cv .stk-foot span { display: block; font: 400 20px/1.3 var(--sw-body); color: var(--s-muted); margin-top: 4px; }
+
+/* ---- bars ---- */
+.cv .brs { display: grid; grid-template-columns: 400px 1248px; column-gap: 32px; align-items: center; }
+.cv .br-l b { display: block; font: 700 30px/1.2 var(--sw-head); }
+.cv .br-l span { display: block; font: 400 20px/1.3 var(--sw-body); color: var(--s-muted); margin-top: 4px; }
+.cv .br-t { position: relative; }
+.cv .br-f { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 12px; background: var(--sw-panel-accent); min-width: 6px; }
+.cv .br-t.t-negative .br-f { background: var(--sw-panel-negative); } .cv .br-t.t-positive .br-f { background: var(--sw-panel-positive); } .cv .br-t.t-inverse .br-f { background: var(--s-ink); }
+.cv .br-g { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 12px; border: 3px dashed var(--s-muted); }
+.cv .br-n { position: absolute; top: 50%; transform: translateY(-50%); font: 700 22px/1.2 var(--sw-body); white-space: nowrap; }
+.cv .br-n.in { left: 20px; color: var(--sw-panel-ink); } .sl.dark .cv .t-inverse .br-n.in { color: var(--sw-night); }
+.cv .br-e { position: absolute; top: 50%; transform: translateY(-50%); display: flex; gap: 14px; align-items: center; white-space: nowrap; }
+.cv .br-e .v { font: 700 28px/1 var(--sw-head); }
+.cv .br-e .tg { font: 800 18px/1 var(--sw-body); letter-spacing: .14em; text-transform: uppercase; color: var(--s-accent-text); }
+.cv .br-t.t-negative .br-e .tg { color: var(--s-bad-text); } .cv .br-t.t-positive .br-e .tg { color: var(--sw-good); }
+.cv .br-leg { display: flex; justify-content: flex-end; align-items: center; gap: 10px; font: 400 20px/1 var(--sw-body); color: var(--s-muted); margin-bottom: 18px; }
+.cv .br-leg i { width: 44px; height: 20px; border: 3px dashed var(--s-muted); border-radius: 6px; display: block; }
+.cv .brs-foot { margin-top: 34px; display: grid; gap: 24px; }
+
+/* ---- flow ---- */
+.cv .flw { display: grid; align-items: stretch; }
+.cv .nd { background: var(--s-card); border: 1px solid var(--s-grid); border-left: 8px solid var(--sw-accent); border-radius: 16px; box-shadow: var(--s-shadow); padding: 30px 30px 30px 28px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.cv .nd .nl { font: 700 16px/1 var(--sw-body); letter-spacing: .14em; text-transform: uppercase; color: var(--s-accent-text); }
+.cv .nd b { font: 700 32px/1.2 var(--sw-head); }
+.cv .nd p { font: 400 24px/1.4 var(--sw-body); color: var(--s-muted); }
+.cv .nd.grp { border: 3px solid var(--sw-accent); background: var(--s-soft); }
+.cv .nd .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 6px; }
+.cv .nd .tiles span { background: var(--s-card); border-radius: 10px; padding: 16px 18px; font: 600 22px/1.25 var(--sw-body); border-left: 5px solid var(--sw-accent); }
+.cv .nd.t-inverse { background: var(--sw-panel-inverse); border-color: var(--sw-panel-inverse); color: var(--sw-panel-ink); }
+.cv .nd.t-inverse p, .cv .nd.t-inverse .nl { color: var(--sw-night-2); }
+.sl.dark .cv .nd.t-inverse { background: var(--sw-night-ink); border-color: var(--sw-night-ink); color: var(--sw-night); } .sl.dark .cv .nd.t-inverse p, .sl.dark .cv .nd.t-inverse .nl { color: var(--sw-night-line); }
+.cv .nd.t-accent { background: var(--sw-panel-accent); border-color: var(--sw-panel-accent); color: var(--sw-panel-ink); } .cv .nd.t-accent p, .cv .nd.t-accent .nl { color: var(--sw-panel-ink); opacity: .85; }
+.cv .nd.t-negative { border-left-color: var(--sw-panel-negative); } .cv .nd.t-positive { border-left-color: var(--sw-panel-positive); }
+.cv .arw { display: grid; place-items: center; }
+.cv .arw svg { width: 56px; height: 28px; stroke: var(--s-muted); fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.cv .flw-foot { margin-top: 34px; display: grid; gap: 24px; }
+.cv .flw-cap { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+
+/* ---- levels and facts ---- */
+.cv .lvw { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 480px; gap: 56px; min-height: 0; }
+.cv .lvw.left { grid-template-columns: 480px minmax(0, 1fr); } .cv .lvw.left .lv-main { order: 2; }
+.cv .lv-main { display: flex; flex-direction: column; gap: 24px; min-height: 0; min-width: 0; }
+.cv .lv-main .mt { font: 700 34px/1.2 var(--sw-head); }
+.cv .lv-main ul { list-style: none; padding: 0; display: grid; gap: 30px; }
+.cv .lv-main li { font: 400 30px/1.35 var(--sw-body); padding-left: 44px; position: relative; }
+.cv .lv-main li::before { content: ""; position: absolute; left: 4px; top: 13px; width: 14px; height: 14px; border-radius: 4px; background: var(--sw-accent); }
+.cv .lv-main li b { font-weight: 700; }
+.cv .lv-main .para { font: 400 28px/1.4 var(--sw-body); }
+.cv .lv-main .img { flex: 1; min-height: 0; border-radius: 16px; border: 1px solid var(--s-grid); background: var(--s-card); box-shadow: var(--s-shadow); display: grid; place-items: center; overflow: hidden; }
+.cv .lv-main .img svg { width: 100%; height: 100%; display: block; }
+.cv .ladder { background: var(--s-card); border: 1px solid var(--s-grid); border-radius: 16px; box-shadow: var(--s-shadow); padding: 24px; display: flex; flex-direction: column; gap: 8px; align-self: start; }
+.cv .ladder .lt { font: 700 16px/1.2 var(--sw-body); letter-spacing: .14em; text-transform: uppercase; color: var(--s-muted); margin-bottom: 8px; }
+.cv .rung { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 16px; align-items: center; padding: 10px 12px; border-radius: 10px; min-height: 64px; }
+.cv .rung i { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font: normal 700 20px/1 var(--sw-body); border: 2px solid var(--s-grid); color: var(--s-muted); }
+.cv .rung span { font: 400 22px/1.4 var(--sw-body); color: var(--s-muted); }
+.cv .rung.cur { background: var(--s-soft); }
+.cv .rung.cur i { background: var(--sw-accent); border-color: var(--sw-accent); color: var(--sw-on-accent); }
+.cv .rung.cur span { font-weight: 700; color: var(--s-strong); }
+.cv .facts { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 20px; }
+.cv .fact { background: var(--s-card); border: 1px solid var(--s-grid); border-top: 5px solid var(--s-grid); border-radius: 12px; padding: 18px 22px; min-height: 120px; box-shadow: var(--s-shadow); }
+.cv .fact i { display: block; font: normal 700 15px/1 var(--sw-body); letter-spacing: .14em; text-transform: uppercase; color: var(--s-muted); margin-bottom: 10px; }
+.cv .fact b { font: 700 24px/1.25 var(--sw-head); }
+.cv .fact.t-accent { border-top-color: var(--sw-accent); } .cv .fact.t-negative { border-top-color: var(--sw-bad); } .cv .fact.t-positive { border-top-color: var(--sw-good); } .cv .fact.t-inverse { border-top-color: var(--s-ink); }
+
+/* ---- custom layout: agent-lanes (the class names an uploader would write) ---- */
+.cv .lanes { background: var(--sw-panel-inverse); color: var(--sw-panel-ink); border-radius: 16px; padding: 30px 34px; display: grid; gap: 22px; }
+.sl.dark .cv .lanes { border: 1px solid var(--sw-night-line); }
+.cv .lane { display: grid; grid-template-columns: 110px minmax(0, 1fr) 150px; gap: 20px; align-items: center; font: 400 22px/1.2 var(--sw-mono); }
+.cv .lane .who { font-weight: 700; color: var(--sw-accent-glow); }
+.cv .lane .task { display: grid; gap: 10px; }
+.cv .lane .meter { height: 10px; border-radius: 5px; background: var(--sw-night-line); overflow: hidden; }
+.cv .lane .meter i { display: block; height: 100%; width: calc(var(--p) * 1%); background: var(--sw-accent-glow); border-radius: 5px; }
+.cv .lane .st { font: 700 15px/1 var(--sw-body); letter-spacing: .14em; text-transform: uppercase; text-align: right; color: var(--sw-night-2); }
+.cv .lane.is-waiting .who, .cv .lane.is-waiting .st { color: var(--sw-warn); } .cv .lane.is-waiting .meter i { background: var(--sw-warn); }
+.cv .lane.is-waiting { border-top: 1px solid var(--sw-night-line); padding-top: 22px; }
+
+/* ---- custom layout: dial ---- */
+.cv .dialw { flex: 1; display: grid; grid-template-columns: 900px minmax(0, 1fr); gap: 70px; align-items: center; }
+.cv .dial { position: relative; width: 820px; height: 440px; margin: 0 auto; }
+.cv .dial .arc { position: absolute; left: 0; top: 0; width: 820px; height: 410px; border-radius: 410px 410px 0 0;
+  background: conic-gradient(from 270deg at 50% 100%, var(--sw-warn), var(--sw-accent) 90deg, var(--sw-accent-dark) 180deg, transparent 180deg);
+  -webkit-mask: radial-gradient(circle at 50% 100%, transparent 318px, #000 320px); mask: radial-gradient(circle at 50% 100%, transparent 318px, #000 320px); }
+.cv .dial .needle { position: absolute; left: 404px; top: 110px; width: 12px; height: 300px; border-radius: 6px; background: var(--s-ink); transform-origin: 50% 100%; transform: rotate(calc((var(--v) - 50) * 1.8deg)); }
+.cv .dial .hub { position: absolute; left: 384px; top: 384px; width: 52px; height: 52px; border-radius: 50%; background: var(--s-paper); border: 10px solid var(--s-ink); }
+.cv .dial-ends { width: 820px; margin: 14px auto 0; display: flex; justify-content: space-between; font: 700 24px/1.2 var(--sw-head); }
+.cv .dial-tag { font: 700 16px/1 var(--sw-body); letter-spacing: .14em; text-transform: uppercase; color: var(--s-accent-text); margin-bottom: 18px; text-align: center; }
+.cv .dial-text { font: 400 32px/1.4 var(--sw-body); }
+</style>
+</head>
+<body>
+<main>
+<header class="page-head">
+  <span class="eyebrow">SW-50 part 2 · group C · SW-369 · design, 17 Nov 2026</span>
+  <h1>Diagram building blocks, so diagrams aren't uploaded as pictures</h1>
+  <p>Nine slides of the 44-slide test deck went in as pictures. This page settles which of them a built-in layout draws and which a custom layout draws, and shows the four built-in layouts and two inline blocks that result. Every slide below is drawn at 1920 × 1080 in the built-in Cobalt look, from the slots printed next to it. The build spec is <code>gaps-c.md</code> in this folder.</p>
+</header>
+<nav class="toc">
+  <a href="#verdicts">00 Verdicts</a><a href="#stack">01 stack</a><a href="#bars">02 bars</a><a href="#flow">03 flow</a><a href="#levels">04 levels and facts</a><a href="#custom">05 Custom layouts</a><a href="#findings">06 Findings and hooks</a>
+</nav>
+
+<!-- ================================================================== -->
+<section class="block" id="verdicts">
+  <div class="sec-head"><span class="n">00</span><h2>The nine diagram slides, and who draws each</h2><span class="pill ok">4 built in</span><span class="pill later">5 custom layout</span></div>
+  <p class="sec-sub">The test: would a deck about something else want this shape? If yes, it is a built-in layout with typed slots. If the shape only tells this deck's story, it is a custom layout, and its slot schema becomes a fixture the custom-layout wave must be able to express. Slide 42 was not a picture, but it lost its arrows, and the same layout fixes it.</p>
+  <div class="table-wrap"><table class="ledger">
+    <thead><tr><th>Slide</th><th>Shape</th><th>What it shows</th><th>Verdict</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td class="num">7</td><td><svg class="pic" viewBox="0 0 74 42"><rect x="26" y="5" width="14" height="5" fill="#b9c8f8"/><rect x="26" y="11" width="14" height="5" fill="#8fa6f2"/><rect x="26" y="17" width="14" height="7" fill="#5b7cff"/><rect x="26" y="25" width="14" height="12" fill="#1e3a8a"/><path d="M44 8h14M44 14h18M44 21h12M44 31h16" stroke="#8a93a3"/></svg></td><td class="t">Seat cost stack<small>six labelled segments, one whole</small></td><td><span class="pill ok">built-in</span> <code>stack</code></td><td>Parts of a whole. Budgets, time, cost and layer diagrams all want it.</td></tr>
+      <tr><td class="num">14</td><td><svg class="pic" viewBox="0 0 74 42"><rect x="26" y="4" width="14" height="5" fill="#2f5bea"/><rect x="26" y="11" width="14" height="5" fill="#b9c8f8"/><rect x="26" y="17" width="14" height="7" fill="#5b7cff"/><rect x="26" y="25" width="14" height="12" fill="#1e3a8a"/><path d="M44 6h10" stroke="#2f5bea" stroke-width="2"/><path d="M44 14h18M44 21h12M44 31h16M6 12h12M6 22h12" stroke="#8a93a3"/></svg></td><td class="t">The stack again, one segment added<small>tagged "New", with two figures beside it</small></td><td><span class="pill ok">built-in</span> <code>stack</code></td><td>The same layout: a toned segment with a tag, and <code>points</code> beside the stack.</td></tr>
+      <tr><td class="num">16</td><td><svg class="pic" viewBox="0 0 74 42"><rect x="22" y="9" width="12" height="9" rx="2" fill="#2f5bea"/><rect x="22" y="9" width="30" height="9" rx="2" fill="none" stroke="#8a93a3" stroke-dasharray="2 2"/><rect x="22" y="24" width="38" height="9" rx="2" fill="#b91c1c"/><path d="M5 13h12M5 28h12M63 28h7" stroke="#8a93a3"/></svg></td><td class="t">Bottleneck bars<small>two bars, a dashed outline, a marker</small></td><td><span class="pill ok">built-in</span> <code>bars</code></td><td>A few named things compared by length. The <code>chart</code> layout draws series over an x axis and has no room for long labels.</td></tr>
+      <tr><td class="num">18</td><td><svg class="pic" viewBox="0 0 74 42"><rect x="4" y="14" width="13" height="14" rx="2" fill="#fff" stroke="#2f5bea"/><rect x="24" y="9" width="26" height="24" rx="2" fill="#e4eafd" stroke="#2f5bea"/><rect x="27" y="13" width="9" height="6" fill="#fff"/><rect x="38" y="13" width="9" height="6" fill="#fff"/><rect x="27" y="23" width="9" height="6" fill="#fff"/><rect x="38" y="23" width="9" height="6" fill="#fff"/><rect x="57" y="14" width="13" height="14" rx="2" fill="#0b1020"/><path d="M18 21h5M51 21h5" stroke="#5b6474"/></svg></td><td class="t">Factory flow<small>node, box of four items, node</small></td><td><span class="pill ok">built-in</span> <code>flow</code></td><td>Steps joined by arrows are the most common diagram there is.</td></tr>
+      <tr><td class="num">42</td><td><svg class="pic" viewBox="0 0 74 42"><rect x="4" y="12" width="17" height="16" rx="2" fill="#fff" stroke="#2f5bea"/><rect x="28" y="12" width="17" height="16" rx="2" fill="#fff" stroke="#2f5bea"/><rect x="52" y="12" width="17" height="16" rx="2" fill="#fff" stroke="#2f5bea"/><path d="M22 20h5M46 20h5" stroke="#5b6474"/><rect x="24" y="33" width="10" height="4" rx="2" fill="#d3d8e0"/><rect x="36" y="33" width="14" height="4" rx="2" fill="#d3d8e0"/></svg></td><td class="t">Three cards with arrows<small>not a picture; rebuilt as numbered cards, arrows and pills lost</small></td><td><span class="pill ok">built-in</span> <code>flow</code></td><td>The same layout, with <code>caption</code> and <code>chips</code> under the nodes.</td></tr>
+      <tr><td class="num">9</td><td><svg class="pic" viewBox="0 0 74 42"><rect x="4" y="5" width="40" height="20" rx="2" fill="#0b1020"/><path d="M8 11h20M8 16h14" stroke="#a5b8ff"/><path d="M24 16h14" stroke="#5b6474"/><rect x="4" y="29" width="12" height="8" fill="#fff" stroke="#d3d8e0"/><rect x="18" y="29" width="12" height="8" fill="#fff" stroke="#d3d8e0"/><rect x="32" y="29" width="12" height="8" fill="#fff" stroke="#d3d8e0"/><path d="M52 8h16M52 14h16M52 20h16M52 26h16" stroke="#d3d8e0" stroke-width="3"/><path d="M52 32h16" stroke="#2f5bea" stroke-width="3"/></svg></td><td class="t">Code editor with a ghost suggestion<small>over three fact tiles, beside a six-level ladder</small></td><td><span class="pill later">custom</span> <code>code-mock</code><br><small>holding the built-in <code>levels</code> and <code>facts</code> blocks</small></td><td>The mock-up is this deck's own prop. The ladder and the tiles are generic, so they are built-in blocks a custom layout can place.</td></tr>
+      <tr><td class="num">11</td><td><svg class="pic" viewBox="0 0 74 42"><rect x="4" y="5" width="40" height="20" rx="2" fill="#fff" stroke="#d3d8e0"/><rect x="24" y="8" width="17" height="5" rx="2" fill="#2f5bea"/><rect x="7" y="16" width="22" height="6" rx="2" fill="#eef1f6"/><rect x="4" y="29" width="12" height="8" fill="#fff" stroke="#d3d8e0"/><rect x="18" y="29" width="12" height="8" fill="#fff" stroke="#d3d8e0"/><rect x="32" y="29" width="12" height="8" fill="#fff" stroke="#d3d8e0"/><path d="M52 8h16M52 14h16M52 20h16M52 32h16" stroke="#d3d8e0" stroke-width="3"/><path d="M52 26h16" stroke="#2f5bea" stroke-width="3"/></svg></td><td class="t">Chat mock-up<small>same frame, another level highlighted</small></td><td><span class="pill later">custom</span> <code>chat-mock</code><br><small>with <code>levels</code> and <code>facts</code></small></td><td>As slide 9.</td></tr>
+      <tr><td class="num">13</td><td><svg class="pic" viewBox="0 0 74 42"><rect x="4" y="5" width="40" height="22" rx="2" fill="#0b1020"/><path d="M8 10h26M8 15h18M8 20h30" stroke="#a5b8ff" stroke-width="2"/><path d="M4 33h36" stroke="#8a93a3"/><path d="M52 8h16M52 14h16M52 32h16" stroke="#d3d8e0" stroke-width="3"/><path d="M52 20h16M52 26h16" stroke="#2f5bea" stroke-width="3"/></svg></td><td class="t">Agent progress lanes<small>three progress rows and a waiting row, two levels highlighted</small></td><td><span class="pill later">custom</span> <code>agent-lanes</code><br><small>with <code>levels</code></small></td><td>As slide 9. Drawn in section 05.</td></tr>
+      <tr><td class="num">24</td><td><svg class="pic" viewBox="0 0 74 42"><path d="M14 34a23 23 0 0 1 46 0" fill="none" stroke="#2f5bea" stroke-width="5"/><path d="M37 34 26 18" stroke="#111827" stroke-width="2"/><circle cx="37" cy="34" r="3" fill="#fff" stroke="#111827" stroke-width="2"/></svg></td><td class="t">Dial<small>a half circle, a needle, two end labels</small></td><td><span class="pill later">custom</span> <code>dial</code></td><td>One number between two named ends. <code>big-number</code> already shows one number, and a built-in gauge invites decoration over data. Drawn in section 05.</td></tr>
+      <tr><td class="num">34</td><td><svg class="pic" viewBox="0 0 74 42"><rect x="18" y="8" width="52" height="8" rx="2" fill="#111827"/><rect x="18" y="22" width="12" height="8" fill="#2f5bea"/><rect x="30" y="22" width="10" height="8" fill="#8fa6f2"/><rect x="40" y="22" width="12" height="8" fill="#e4eafd"/><path d="M18 36h52M5 12h9M5 26h9" stroke="#8a93a3"/></svg></td><td class="t">Forecast horizon<small>two rows of segments over a time axis</small></td><td><span class="pill later">custom</span> <code>horizon</code></td><td>Looks like <code>gantt</code>, but a row holds several segments with their own fills and an uneven axis. Widening <code>gantt</code> for one slide is not worth it.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="grid3" style="margin-top:16px">
+    <div class="card pad"><h3>Built in <span class="pill ok">this story</span></h3>
+      <ul class="plain">
+        <li><b>Four layouts:</b> <code>stack</code>, <code>bars</code>, <code>flow</code>, <code>levels</code></li>
+        <li><b>Two inline blocks:</b> <code>levels</code> and <code>facts</code>, used by the <code>levels</code> layout and open to custom layouts</li>
+        <li>Slides 7, 14, 16, 18 and 42 need nothing else</li>
+      </ul></div>
+    <div class="card pad"><h3>Custom layouts <span class="pill later">last wave</span></h3>
+      <ul class="plain later">
+        <li>Five layouts in the deck's own template: <code>code-mock</code>, <code>chat-mock</code>, <code>agent-lanes</code>, <code>dial</code>, <code>horizon</code></li>
+        <li>D15's three bindings are enough for all five</li>
+        <li>Four supporting abilities are needed besides: see section 06</li>
+      </ul></div>
+    <div class="card pad"><h3>Until custom layouts ship</h3>
+      <ul class="plain grey">
+        <li>Slides 9, 11 and 13 use the built-in <code>levels</code> layout with the mock-up as an image: the ladder and tiles become real text</li>
+        <li>Slides 24 and 34 stay pictures</li>
+        <li>So the picture count drops from nine to two whole slides and three part slides</li>
+      </ul></div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="stack">
+  <div class="sec-head"><span class="n">01</span><h2><code style="font-size:17px">stack</code>: labelled segments that make up one whole</h2><span class="pill grey">slides 7, 14</span><span class="pill acc">size M</span></div>
+  <p class="sec-sub">A column of 2 to 8 segments, each with a label beside it. With values, a segment's height follows its share. Without, they are equal. One segment can carry a tone and a short tag. Points and a callout sit beside the stack.</p>
+  <div class="two-up">
+    <div><span class="lbl">Typical: slide 14 rebuilt</span><div class="sl" data-s="stackTypical"></div></div>
+    <div class="stackcol">
+      <div><span class="lbl">Slots</span><div class="mcp" data-json="stackTypical"></div></div>
+    </div>
+  </div>
+  <div class="grid3" style="margin-top:16px">
+    <div><span class="lbl">No values, no side text: slide 7</span><div class="sl" data-s="stackPlain"></div><span class="cap">Equal segments. With nothing beside it, the stack sits in the middle. The callout is group A's slot.</span></div>
+    <div><span class="lbl">Dark surface</span><div class="sl dark" data-s="stackTypical"></div><span class="cap">The ramp runs from the glow colour into the night colour. The surface switch is group B's.</span></div>
+    <div><span class="lbl">One-by-one, after four clicks</span><div class="sl" data-s="stackTypical" data-step="4"></div><span class="cap">A stack builds from its base, so the last segment in the list comes first. Hidden segments keep their space.</span></div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div><span class="lbl">Accepted maximum (fit fixture <code style="text-transform:none;letter-spacing:0">stackSeven</code>)</span><div class="sl" data-s="stackMax" data-safe="1"></div><span class="cap">Seven segments, six of them with a note, one with a tag, three points and a two-line callout. One more note is refused. The dashed box is the safe area (x 120–1800, y 150–996).</span></div>
+    <div><span class="lbl">Stack on the left</span><div class="sl" data-s="stackLeft"></div><span class="cap"><code>side: "left"</code>. Values are shown after each label with the unit.</span></div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="bars">
+  <div class="sec-head"><span class="n">02</span><h2><code style="font-size:17px">bars</code>: a few named things compared by length</h2><span class="pill grey">slide 16</span><span class="pill acc">size M</span></div>
+  <p class="sec-sub">2 to 6 horizontal bars with a label column. A bar can carry a note inside it, a dashed outline for what it was or was expected to be, a tone, and a short tag at its end. The numbers can be hidden when the lengths are illustrative.</p>
+  <div class="two-up">
+    <div><span class="lbl">Typical: slide 16 rebuilt</span><div class="sl" data-s="barsTypical"></div></div>
+    <div><span class="lbl">Slots</span><div class="mcp" data-json="barsTypical"></div></div>
+  </div>
+  <div class="grid3" style="margin-top:16px">
+    <div><span class="lbl">Ranked, values shown</span><div class="sl" data-s="barsRanked"></div><span class="cap">The agent orders the list. A note that does not fit inside its bar is written after it.</span></div>
+    <div><span class="lbl">Dark surface</span><div class="sl dark" data-s="barsTypical"></div></div>
+    <div><span class="lbl">One-by-one, after one click</span><div class="sl" data-s="barsTypical" data-step="1"></div><span class="cap">One bar per click, label and bar together.</span></div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div><span class="lbl">Accepted maximum (fit fixture <code style="text-transform:none;letter-spacing:0">barsSix</code>)</span><div class="sl" data-s="barsMax" data-safe="1"></div><span class="cap">Six bars with a label, a sub line, a value and a tag each, four notes, a legend and a caption. A label that wraps is refused at six bars.</span></div>
+    <div class="card pad"><h3>Why not the <code>chart</code> layout</h3>
+      <ul class="plain">
+        <li><code>chart</code> draws 1–3 series over 2–12 x labels of 12 characters. It is for a quantity over time or over categories.</li>
+        <li><code>bars</code> is for 2–6 named things: a 30-character label with a sub line, text inside the bar, an outline, a tag.</li>
+        <li>They share nothing but rectangles, so <code>chart</code> stays as it is and gains no <code>kind</code>.</li>
+        <li>Values are never negative here. A chart with a zero line stays in <code>chart</code>.</li>
+      </ul></div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="flow">
+  <div class="sec-head"><span class="n">03</span><h2><code style="font-size:17px">flow</code>: two to four nodes joined by arrows</h2><span class="pill grey">slides 18, 42</span><span class="pill acc">size M</span></div>
+  <p class="sec-sub">Each node is a card with a title and optional label and text. One node can hold 2 to 4 items, which draws it as a wider box of tiles. A caption and chips sit under the flow. Arrows always run left to right.</p>
+  <div class="two-up">
+    <div><span class="lbl">Typical: slide 18 rebuilt</span><div class="sl" data-s="flowTypical"></div></div>
+    <div><span class="lbl">Slots</span><div class="mcp" data-json="flowTypical"></div></div>
+  </div>
+  <div class="grid3" style="margin-top:16px">
+    <div><span class="lbl">Three cards, caption and chips: slide 42</span><div class="sl" data-s="flowCards"></div></div>
+    <div><span class="lbl">Dark surface</span><div class="sl dark" data-s="flowTypical"></div><span class="cap">An inverse node flips to the light ink on dark.</span></div>
+    <div><span class="lbl">One-by-one, after two clicks</span><div class="sl" data-s="flowTypical" data-step="2"></div><span class="cap">An arrow arrives with the node it points to.</span></div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div><span class="lbl">Accepted maximum (fit fixture <code style="text-transform:none;letter-spacing:0">flowFour</code>)</span><div class="sl" data-s="flowMax" data-safe="1"></div><span class="cap">Four nodes, a caption, four chips and a callout. One more line of node text is refused.</span></div>
+    <div><span class="lbl">Accepted maximum with a group (fit fixture <code style="text-transform:none;letter-spacing:0">flowGroup</code>)</span><div class="sl" data-s="flowGroupMax" data-safe="1"></div><span class="cap">A flow with a group node has at most three nodes. The group takes two shares of the width.</span></div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="levels">
+  <div class="sec-head"><span class="n">04</span><h2><code style="font-size:17px">levels</code> and <code style="font-size:17px">facts</code>: a ladder with highlighted rungs, and a row of fact tiles</h2><span class="pill grey">slides 9, 11, 13</span><span class="pill acc">size M</span></div>
+  <p class="sec-sub">Two inline blocks, like <code>callout</code>. The <code>levels</code> layout hosts both: the ladder on one side, and on the other a column of points, a paragraph or an image, with the tiles under it. A custom layout can place the same two blocks next to its own markup.</p>
+  <div class="two-up">
+    <div><span class="lbl">Typical: slide 11 without a custom template</span><div class="sl" data-s="levelsTypical"></div></div>
+    <div><span class="lbl">Slots</span><div class="mcp" data-json="levelsTypical"></div></div>
+  </div>
+  <div class="grid3" style="margin-top:16px">
+    <div><span class="lbl">Image in the main column: slide 9 for now</span><div class="sl" data-s="levelsImage"></div><span class="cap">The mock-up is still an uploaded image. The ladder and the tiles are text, follow the palette and can be read aloud.</span></div>
+    <div><span class="lbl">Dark surface, two levels highlighted</span><div class="sl dark" data-s="levelsTwo"></div></div>
+    <div><span class="lbl">Ladder on the left, no tiles</span><div class="sl" data-s="levelsLeft"></div></div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div><span class="lbl">Accepted maximum (fit fixture <code style="text-transform:none;letter-spacing:0">levelsSeven</code>)</span><div class="sl" data-s="levelsMax" data-safe="1"></div><span class="cap">Seven rungs, two of them on two lines, a ladder title, a column title, three points and four tiles with two-line values.</span></div>
+    <div class="card pad"><h3>The two blocks on their own</h3>
+      <ul class="plain">
+        <li><b><code>levels</code>:</b> an optional title and 2–7 rungs. Each rung has text, an optional mark of up to 3 characters (a number or a letter) and a state, <code>plain</code> or <code>current</code>. Any number of rungs can be current.</li>
+        <li><b><code>facts</code>:</b> 2–4 tiles. Each has a label, a value and an optional tone that colours its top rule.</li>
+        <li>Both are listed under "Inline blocks" in <code>layouts.md</code> and in <code>list_layouts</code>, beside <code>callout</code>, <code>chip</code> and <code>badge</code>.</li>
+        <li>No steps: the ladder is context, and the highlighted rung is the point.</li>
+      </ul></div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="custom">
+  <div class="sec-head"><span class="n">05</span><h2>Two of the custom-layout verdicts, as they would be written</h2><span class="pill later">fixtures for the custom-layout wave</span></div>
+  <p class="sec-sub">These follow section 04 of the template mockups: a slots file, markup that uses only tokens, and the three D15 bindings. They are not built here. They are the cases the custom-layout wave must be able to express, and each one is drawn below from its own markup's rules.</p>
+
+  <h3 class="sub-h">agent-lanes (slide 13): a number sets each meter, a choice picks the waiting row, and the ladder is the built-in block</h3>
+  <div class="two-up">
+    <div class="stackcol">
+      <div><span class="lbl">Rendered result</span><div class="sl" data-s="lanes"></div></div>
+      <div class="grid2"><div><span class="lbl">Dark surface</span><div class="sl dark" data-s="lanes"></div></div><div><span class="lbl">After two clicks</span><div class="sl" data-s="lanes" data-step="2"></div></div></div>
+    </div>
+    <div class="stackcol">
+      <div><span class="lbl">Slots <code style="text-transform:none;letter-spacing:0">agent-lanes.json</code></span>
+<div class="mcp">{ <span class="c">"name"</span>: "agent-lanes",
+  <span class="c">"description"</span>: "Agents at work in lanes, beside a ladder of levels.",
+  <span class="u">"surface"</span>: "either",
+  <span class="u">"steps"</span>: "lanes",
+  <span class="c">"slots"</span>: {
+    <span class="c">"kicker"</span>:   { "type": "text", "max": 40, "optional": true },
+    <span class="c">"headline"</span>: { "type": "text", "max": 80 },
+    <span class="c">"lanes"</span>:    { "type": "list", "min": 2, "max": 4, "of": {
+      "who":      { "type": "text", "max": 8 },
+      "task":     { "type": "text", "max": 44 },
+      <span class="u">"progress"</span>: { "type": "number", "min": 0, "max": 100 },
+      <span class="u">"state"</span>:    { "type": "enum", "values": ["running", "waiting"] },
+      "status":   { "type": "text", "max": 10 } } },
+    <span class="c">"lead"</span>:     { "type": "text", "max": 160, "optional": true },
+    <span class="u">"levels"</span>:   { "type": "levels" } } }   <span class="m">// a built-in block</span></div></div>
+      <div><span class="lbl">Markup <code style="text-transform:none;letter-spacing:0">agent-lanes.html</code></span>
+<div class="mcp">&lt;p class="kicker" <span class="u">data-slot</span>="kicker"&gt;&lt;/p&gt;
+&lt;h2 class="headline" <span class="u">data-slot</span>="headline"&gt;&lt;/h2&gt;
+&lt;div class="cols"&gt;
+  &lt;div class="main"&gt;
+    &lt;div class="lanes"&gt;
+      &lt;div class="lane" <span class="u">data-each</span>="lanes" <span class="u">data-variant</span>="state" <span class="u">data-step</span>&gt;
+        &lt;span class="who" <span class="u">data-slot</span>="who"&gt;&lt;/span&gt;
+        &lt;div class="task"&gt;&lt;span <span class="u">data-slot</span>="task"&gt;&lt;/span&gt;
+          &lt;div class="meter"&gt;&lt;i <span class="u">data-var</span>="--p: progress"&gt;&lt;/i&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;span class="st" <span class="u">data-slot</span>="status"&gt;&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;p class="lead" <span class="u">data-slot</span>="lead"&gt;&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div <span class="u">data-slot</span>="levels"&gt;&lt;/div&gt;   <span class="m">&lt;!-- SlideWorks draws the block --&gt;</span>
+&lt;/div&gt;
+&lt;style&gt;
+  .cols  { display: grid; grid-template-columns: 1fr 480px; gap: 56px; }
+  .lanes { background: <span class="r">var(--sw-panel-inverse)</span>; color: <span class="r">var(--sw-panel-inverse-ink)</span>;
+           font-family: <span class="r">var(--sw-font-mono)</span>; border-radius: <span class="r">var(--sw-radius-lg)</span>; }
+  .meter i { width: calc(<span class="u">var(--p)</span> * 1%); background: <span class="r">var(--sw-accent-glow)</span>; }
+  .lane<span class="u">.is-waiting</span> .who { color: <span class="r">var(--sw-warn)</span>; }
+  .lane<span class="u">.is-waiting</span> .meter i { background: <span class="r">var(--sw-warn)</span>; }
+&lt;/style&gt;</div></div>
+    </div>
+  </div>
+
+  <h3 class="sub-h">dial (slide 24): one number turns the needle</h3>
+  <div class="two-up">
+    <div class="stackcol">
+      <div><span class="lbl">Rendered result, <code style="text-transform:none;letter-spacing:0">value: 30</code></span><div class="sl" data-s="dial"></div></div>
+      <div class="grid2"><div><span class="lbl">Dark surface</span><div class="sl dark" data-s="dial"></div></div><div><span class="lbl">The same markup, <code style="text-transform:none;letter-spacing:0">value: 85</code></span><div class="sl" data-s="dial85"></div></div></div>
+    </div>
+    <div class="stackcol">
+      <div><span class="lbl">Slots <code style="text-transform:none;letter-spacing:0">dial.json</code></span>
+<div class="mcp">{ <span class="c">"name"</span>: "dial",
+  <span class="c">"description"</span>: "A half-circle dial between two named ends.",
+  <span class="u">"surface"</span>: "either",
+  <span class="c">"slots"</span>: {
+    <span class="c">"kicker"</span>:   { "type": "text", "max": 40, "optional": true },
+    <span class="c">"headline"</span>: { "type": "text", "max": 80 },
+    <span class="c">"label"</span>:    { "type": "text", "max": 24, "optional": true },
+    <span class="u">"value"</span>:    { "type": "number", "min": 0, "max": 100 },
+    <span class="c">"from"</span>:     { "type": "text", "max": 20 },
+    <span class="c">"to"</span>:       { "type": "text", "max": 20 },
+    <span class="c">"text"</span>:     { "type": "text", "max": 220, "optional": true } } }</div></div>
+      <div><span class="lbl">Markup <code style="text-transform:none;letter-spacing:0">dial.html</code></span>
+<div class="mcp">&lt;p class="kicker" <span class="u">data-slot</span>="kicker"&gt;&lt;/p&gt;
+&lt;h2 class="headline" <span class="u">data-slot</span>="headline"&gt;&lt;/h2&gt;
+&lt;div class="cols"&gt;
+  &lt;div&gt;
+    &lt;p class="tag" <span class="u">data-slot</span>="label"&gt;&lt;/p&gt;
+    &lt;div class="dial"&gt;
+      &lt;div class="arc"&gt;&lt;/div&gt;
+      &lt;div class="needle" <span class="u">data-var</span>="--v: value"&gt;&lt;/div&gt;
+      &lt;div class="hub"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="ends"&gt;&lt;b <span class="u">data-slot</span>="from"&gt;&lt;/b&gt;&lt;b <span class="u">data-slot</span>="to"&gt;&lt;/b&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;p class="text" <span class="u">data-slot</span>="text"&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;style&gt;
+  .arc    { border-radius: 410px 410px 0 0;
+            background: conic-gradient(from 270deg at 50% 100%, <span class="r">var(--sw-warn)</span>,
+              <span class="r">var(--sw-accent)</span> 90deg, <span class="r">var(--sw-accent-dark)</span> 180deg, transparent 180deg);
+            mask: radial-gradient(circle at 50% 100%, transparent 318px, black 320px); }
+  .needle { background: <span class="r">var(--sw-ink)</span>; transform-origin: 50% 100%;
+            transform: rotate(calc((<span class="u">var(--v)</span> - 50) * 1.8deg)); }
+&lt;/style&gt;</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section class="block" id="findings">
+  <div class="sec-head"><span class="n">06</span><h2>Findings for the custom-layout wave, and hooks for groups A and B</h2></div>
+  <p class="sec-sub">No fourth binding is needed. The five custom layouts do need four things that D15 does not name. They are listed so the wave plans for them.</p>
+  <div class="table-wrap"><table class="ledger">
+    <thead><tr><th>Finding</th><th>Needed by</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr class="group"><td colspan="3">D15's three bindings</td></tr>
+      <tr><td class="t">A number sets a CSS variable</td><td><code>agent-lanes</code> meters, <code>dial</code> needle, <code>horizon</code> segment widths</td><td>Enough as designed. The variable is a plain number, and <code>calc()</code> turns it into a percentage, an angle or a flex share.</td></tr>
+      <tr><td class="t">A choice picks a variant class</td><td><code>agent-lanes</code> waiting row, <code>chat-mock</code> speaker, <code>horizon</code> segment fill</td><td>Enough as designed.</td></tr>
+      <tr><td class="t"><code>data-step</code></td><td><code>agent-lanes</code>, <code>chat-mock</code> messages</td><td>Enough as designed.</td></tr>
+      <tr class="group"><td colspan="3">Not bindings, but needed</td></tr>
+      <tr><td class="t">F1. Built-in blocks as slot types</td><td><code>code-mock</code>, <code>chat-mock</code>, <code>agent-lanes</code></td><td>The planned slot types name the callout, chip and badge blocks. Add <code>levels</code> and <code>facts</code>: a <code>data-slot</code> element whose slot is a block is filled by SlideWorks' own component.</td></tr>
+      <tr><td class="t">F2. A monospace font token</td><td><code>code-mock</code>, <code>agent-lanes</code></td><td>There is no <code>--sw-font-mono</code>, and font names are refused. Add one token, set by the template, with a system monospace stack as the built-in value. Noted on SW-50 as not yet a decision.</td></tr>
+      <tr><td class="t">F3. A list inside a list</td><td><code>horizon</code> (rows, then segments)</td><td><code>data-each</code> inside <code>data-each</code>, with <code>data-var</code> and <code>data-variant</code> reading the inner item. The mocked example has one level only.</td></tr>
+      <tr><td class="t">F4. CSS the sanitiser must let through</td><td><code>dial</code>, <code>horizon</code>, all meters</td><td><code>calc()</code> on a bound variable inside <code>width</code>, <code>flex-grow</code> and <code>transform: rotate()</code>; <code>conic-gradient</code> and <code>repeating-linear-gradient</code> of tokens; <code>mask</code> with a gradient (no <code>url()</code>).</td></tr>
+      <tr class="group"><td colspan="3">Hooks: marked here, designed by groups A and B</td></tr>
+      <tr><td class="t">Callout (SW-357, group A)</td><td><code>stack</code>, <code>bars</code>, <code>flow</code>, <code>levels</code></td><td>All four are content layouts and take the callout slot wherever group A puts it. The fit rules here leave its height to a shared helper.</td></tr>
+      <tr><td class="t">Icons (SW-361, group A)</td><td><code>flow</code> nodes, <code>facts</code> tiles</td><td>An optional <code>icon</code> field per node and per tile, drawn above the label. Not in the schemas in <code>gaps-c.md</code> until group A defines the type.</td></tr>
+      <tr><td class="t">Inline emphasis (SW-360, group A)</td><td>headlines, <code>caption</code></td><td>Nothing particular to these layouts.</td></tr>
+      <tr><td class="t">Step reveals (SW-364, group A)</td><td><code>stack</code>, <code>bars</code>, <code>flow</code></td><td>Each has <code>reveal</code> and a <code>stepsFrom</code> list, the same as <code>bullets</code>. If group A adds a per-item step, these lists take it, and slide 14's "one new segment on a click" becomes one click, not seven.</td></tr>
+      <tr><td class="t">Dark surface (SW-359, group B)</td><td>all four layouts, both blocks</td><td>Every colour is a token that has a night counterpart. The dark renders on this page show the mapping this design assumes.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  // ---------- sample text ----------
+  var WORDS = 'The Team Ships A Small Slice Of Work To Customers Every Week And The Feedback Arrives In Days Rather Than Months So The Risk Shows Up Early While It Is Still Cheap To Change Course Which Really Is The Whole Point'.split(' ');
+  function fill(n, off) { // Title Case text of exactly n characters
+    var s = '', i = off || 0;
+    while (s.length < n) { s += (s ? ' ' : '') + WORDS[i % WORDS.length]; i++; }
+    s = s.slice(0, n).replace(/\s+$/, '');
+    while (s.length < n) s += 'e';
+    return s;
+  }
+  var CALLOUT = { tone: 'accent', text: 'Hold this picture. It changes in act three.' };
+  var LEVELS = { title: 'Five levels of autonomy', items: [
+    { mark: '5', text: 'The lights-out factory' }, { mark: '4', text: 'Write the spec, walk away' },
+    { mark: '3', text: 'You review its work all day' }, { mark: '2', text: 'Pairing with a junior' },
+    { mark: '1', text: 'An intern for small tasks' }, { mark: '0', text: 'Autocomplete' } ] };
+  function levelsWith(cur) { return { title: LEVELS.title, items: LEVELS.items.map(function (r) { return { mark: r.mark, text: r.text, state: cur.indexOf(r.mark) >= 0 ? 'current' : undefined }; }) }; }
+  var FACTS = [ { label: 'Budget', value: 'A small subscription each', tone: 'accent' }, { label: 'Team shape', value: 'Unchanged' }, { label: 'Process', value: 'Unchanged' } ];
+
+  var S = {
+    stackTypical: { layout: 'stack', slots: {
+      kicker: 'The cost of a seat, 2026', headline: 'Tokens are now part of the cost of a seat',
+      segments: [
+        { label: 'AI tokens', tone: 'accent', tag: 'New' }, { label: 'A share of support staff' }, { label: 'Software licences' },
+        { label: 'Equipment' }, { label: 'Office space' }, { label: 'Benefits and on-costs' }, { label: 'Salary' } ],
+      total: 'One seat, 2026', caption: 'Illustrative, not to scale',
+      points: [ { lead: '+5%', text: 'on the cost of every seat. That is the token budget.' }, { lead: '+10%', text: 'productivity planned for in return, on purpose a low figure.' } ],
+      reveal: 'one-by-one',
+      callout: { tone: 'accent', text: 'No separate AI budget. Plan headcount, and AI comes with it.' } } },
+    stackPlain: { layout: 'stack', slots: {
+      kicker: 'The cost of a seat', headline: 'A developer costs a seat, not a salary',
+      segments: [ { label: 'A share of support staff' }, { label: 'Software licences' }, { label: 'Equipment' }, { label: 'Office space' }, { label: 'Benefits and on-costs' }, { label: 'Salary' } ],
+      total: 'One seat', caption: 'Illustrative, not to scale', callout: CALLOUT } },
+    stackLeft: { layout: 'stack', slots: {
+      kicker: 'Where the week goes', headline: 'Half the week is not spent building',
+      side: 'left', unit: 'h',
+      segments: [ { label: 'Meetings', value: 9, note: 'Stand-ups, planning, reviews' }, { label: 'Waiting on review', value: 7, tone: 'negative', tag: 'Waste' }, { label: 'Support and incidents', value: 4 }, { label: 'Building', value: 20, note: 'Design, code and tests' } ],
+      total: 'A 40-hour week',
+      points: [ 'Building is the only segment a customer pays for.', 'Waiting on review is the cheapest one to shrink.' ] } },
+    stackMax: { layout: 'stack', slots: {
+      kicker: fill(40), headline: fill(80, 3),
+      segments: [0, 1, 2, 3, 4, 5, 6].map(function (i) { return { label: i === 2 ? fill(20, 4) : fill(30, i * 2), tag: i === 2 ? 'Tenletters' : undefined, tone: i === 2 ? 'accent' : undefined, note: i < 6 ? fill(40, i * 3 + 1) : undefined }; }),
+      total: fill(24, 5), caption: fill(60, 9),
+      points: [0, 1, 2].map(function (i) { return { lead: '+' + (i + 1) + '00%', text: fill(64, i * 5) }; }),
+      callout: { tone: 'accent', text: fill(96, 7) } } },
+
+    barsTypical: { layout: 'bars', slots: {
+      kicker: 'The new constraint', headline: 'Code got cheap. Reading it didn’t.',
+      bars: [
+        { label: 'Writing the code', sub: 'Time per change', value: 12, was: 60, note: 'Now' },
+        { label: 'Checking the code', sub: 'Time per change', value: 100, tone: 'negative', note: 'Same as it ever was, with many more changes', tag: 'Bottleneck' } ],
+      values: 'hidden', wasLabel: 'Before AI',
+      caption: 'The bottleneck moved from writing code to checking it.' } },
+    barsRanked: { layout: 'bars', slots: {
+      kicker: 'Where reviews wait', headline: 'Most of a change’s life is spent in a queue',
+      unit: 'h',
+      bars: [
+        { label: 'Waiting for a reviewer', value: 31, tone: 'negative', tag: 'Longest' },
+        { label: 'Waiting for the build', value: 12 }, { label: 'Rework after review', value: 9, note: 'Two rounds' },
+        { label: 'Writing the change', value: 6 }, { label: 'Reviewing it', value: 2, note: 'About 40 minutes each' } ],
+      caption: 'Median hours per merged change, last quarter.' } },
+    barsMax: { layout: 'bars', slots: {
+      kicker: fill(40), headline: fill(80, 3), unit: 'points', wasLabel: fill(24, 4),
+      bars: [100, 86, 71, 55, 38, 20].map(function (v, i) { return { label: fill(23, i * 3), sub: fill(35, i * 4), value: v * 1000, was: i % 2 ? v * 1100 : undefined, note: i < 4 ? fill([30, 26, 20, 14][i], i) : undefined, tag: fill(16, i + 2).replace(/ /g, 'e'), tone: ['accent', 'negative', 'positive', 'inverse', 'accent', 'accent'][i] }; }),
+      caption: fill(120, 11) } },
+
+    flowTypical: { layout: 'flow', slots: {
+      kicker: 'The north star', headline: 'People build the factory, and the factory builds the software',
+      nodes: [
+        { title: 'Your people', text: 'Build and maintain the factory' },
+        { label: 'The factory', title: 'Rules about your systems', items: ['Guardrails', 'Tests', 'Standards', 'Instructions for the AI'] },
+        { title: 'Software', text: 'Built by the factory', tone: 'inverse' } ],
+      reveal: 'one-by-one',
+      callout: { tone: 'inverse', text: 'A north star, not where we are today.' } } },
+    flowCards: { layout: 'flow', slots: {
+      kicker: 'Appendix · Q&A', headline: '“Free” prototypes built by non-engineers aren’t free',
+      nodes: [
+        { title: 'Someone builds a prototype with AI', text: 'The new high-fidelity mock-up.' },
+        { title: 'It proves the idea', text: 'Now people want to keep it.' },
+        { title: 'An owning team rebuilds it', text: 'With a budget, and someone who answers for it.' } ],
+      caption: 'What it costs if you skip the last step:', chips: ['Review time', 'Support load, for ever'] } },
+    flowMax: { layout: 'flow', slots: {
+      kicker: fill(40), headline: fill(80, 3),
+      nodes: [0, 1, 2, 3].map(function (i) { return { label: fill(20, i), title: fill(30, i * 3), text: fill(80, i * 7), tone: i === 3 ? 'accent' : undefined }; }),
+      caption: fill(140, 5), chips: [0, 1, 2, 3].map(function (i) { return fill(24, i * 2); }),
+      callout: { tone: 'accent', text: fill(70, 7) } } },
+    flowGroupMax: { layout: 'flow', slots: {
+      kicker: fill(40), headline: fill(80, 3),
+      nodes: [
+        { label: fill(20, 1), title: fill(30, 2), text: fill(80, 3) },
+        { label: fill(20, 4), title: fill(30, 5), text: fill(50, 13), items: [0, 1, 2, 3].map(function (i) { return fill(22, i * 3); }) },
+        { label: fill(20, 6), title: fill(30, 7), text: fill(80, 8), tone: 'inverse' } ],
+      caption: fill(140, 5), chips: [0, 1, 2, 3].map(function (i) { return fill(24, i * 2); }),
+      callout: { tone: 'accent', text: fill(110, 7) } } },
+
+    levelsTypical: { layout: 'levels', slots: {
+      kicker: 'Act two · Level 1', headline: 'We asked a chatbot and pasted the answer',
+      main: { title: 'What changed for the team', items: [ { lead: 'The work:', text: 'ask in a browser tab, paste the answer into the editor by hand.' }, { lead: 'The gain:', text: 'small tasks got quicker. Nothing else moved.' } ] },
+      facts: FACTS, levels: levelsWith(['1']) } },
+    levelsImage: { layout: 'levels', slots: {
+      kicker: 'Act one · Level 0', headline: 'AI finished our sentences',
+      main: { image: { image: 'img_editor', alt: 'A code editor suggesting the rest of a line in grey' } },
+      facts: [ { label: 'Budget', value: 'No new line' }, { label: 'Team shape', value: 'Unchanged' }, { label: 'Process', value: 'A bit less typing' } ],
+      levels: levelsWith(['0']) } },
+    levelsTwo: { layout: 'levels', slots: {
+      kicker: 'Act three · Levels 2 and 3', headline: 'AI started doing the work, and everything sped up',
+      main: { text: 'Agents now run migrations across many systems that used to take teams quarters. One person starts three of them before lunch, then spends the afternoon checking what came back.' },
+      facts: [ { label: 'Budget', value: 'Tokens, per seat', tone: 'accent' }, { label: 'Team shape', value: 'Fewer hand-offs', tone: 'accent' }, { label: 'Process', value: 'Review is the queue', tone: 'negative' } ],
+      levels: levelsWith(['2', '3']) } },
+    levelsLeft: { layout: 'levels', slots: {
+      kicker: 'Where teams are', headline: 'Most teams sit on the second rung',
+      side: 'left',
+      levels: { title: 'Delivery maturity', items: [ { mark: 'D', text: 'Releases on demand' }, { mark: 'C', text: 'Releases every week', state: 'current' }, { mark: 'B', text: 'Releases every month' }, { mark: 'A', text: 'Releases when it is ready' } ] },
+      main: { items: [ 'Weekly releases are now the norm, not the goal.', 'The step to on-demand is a testing problem, not a tooling one.', 'Nobody has gone back down a rung.' ] } } },
+    levelsMax: { layout: 'levels', slots: {
+      kicker: fill(40), headline: fill(80, 3),
+      main: { title: fill(50, 2), items: [0, 1, 2].map(function (i) { return { lead: fill(40, i * 3), text: fill(80, i * 5 + 1) }; }) },
+      facts: [0, 1, 2, 3].map(function (i) { return { label: fill(20, i), value: fill(24, i * 3), tone: ['accent', 'negative', 'positive', undefined][i] }; }),
+      levels: { title: fill(30, 6), items: [0, 1, 2, 3, 4, 5, 6].map(function (i) { return { mark: 'L' + (7 - i), text: fill(i === 3 || i === 4 ? 44 : 26, i * 2), state: i === 3 || i === 4 ? 'current' : undefined }; }) } } },
+
+    lanes: { layout: 'agent-lanes', slots: {
+      kicker: 'Act three · Levels 2 and 3', headline: 'AI started doing the work, and that’s when everything accelerated',
+      lanes: [ { who: 'Agent', task: 'migrating tests', progress: 78, state: 'running', status: 'Running' }, { who: 'Agent', task: 'upgrading a service', progress: 52, state: 'running', status: 'Running' }, { who: 'Agent', task: 'upgrading the next one', progress: 31, state: 'running', status: 'Running' }, { who: 'You', task: 'checking all of it', progress: 12, state: 'waiting', status: 'Behind' } ],
+      lead: 'Agents now run migrations across many systems that used to take teams quarters.',
+      levels: levelsWith(['2', '3']) } },
+    dial: { layout: 'dial', slots: { kicker: 'Where we’re landing', headline: 'Where we’re landing: lights on, with qualified people checking', label: 'Where we are', value: 30, from: 'Lights on', to: 'Lights out', text: 'The machines do more of the work every month. Qualified people still check it, and own it.' } },
+    dial85: { layout: 'dial', slots: { kicker: 'Where the pitch says we are', headline: 'The vendor pitch has the needle somewhere else', label: 'The pitch', value: 85, from: 'Lights on', to: 'Lights out', text: 'Nothing in the markup changed. Only the number did.' } }
+  };
+
+  // ---------- drawing ----------
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  function add(p) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) p.appendChild(arguments[i]); return p; }
+  function hide(e, shown) { if (!shown) e.classList.add('hid'); return e; }
+  function callout(c) { return c ? el('div', 'callout' + (c.tone === 'inverse' ? ' inverse' : ''), c.text) : null; }
+  function point(p) {
+    if (typeof p === 'string') return el('div', 'pt plain', '').appendChild(el('span', '', p)).parentNode;
+    return add(el('div', 'pt'), el('b', '', p.lead), el('span', '', p.text));
+  }
+
+  function drawStack(s, step) {
+    var n = s.segments.length, hasSide = (s.points && s.points.length) || s.callout;
+    var w = el('div', 'stk' + (s.side === 'left' ? ' left' : '') + (hasSide ? '' : ' solo'));
+    if (hasSide) {
+      var side = el('div', 'stk-side');
+      (s.points || []).forEach(function (p) { side.appendChild(point(p)); });
+      add(side, callout(s.callout)); w.appendChild(side);
+    }
+    var fig = el('div', 'stk-fig'), st = el('div', 'stack');
+    s.segments.forEach(function (g, i) {
+      var seg = el('div', 'seg' + (g.tone ? ' t-' + g.tone : ''));
+      seg.style.flex = (g.value || 1) + ' 1 0px';
+      var blk = el('i'); blk.style.setProperty('--m', Math.round(22 + 78 * (n === 1 ? 1 : i / (n - 1))));
+      var tx = el('div', 'tx'), lb = el('div', 'lb');
+      lb.appendChild(document.createTextNode(g.label));
+      if (g.value !== undefined) lb.appendChild(el('span', 'val', g.value + (s.unit ? ' ' + s.unit : '')));
+      if (g.tag) lb.appendChild(el('span', 'tg', g.tag));
+      add(tx, lb, g.note ? el('div', 'nt', g.note) : null);
+      add(seg, blk, tx);
+      // a stack builds from its base: the last item is step 1
+      st.appendChild(hide(seg, step === null || (n - i) <= step));
+    });
+    fig.appendChild(st);
+    if (s.total || s.caption) add(fig, add(el('div', 'stk-foot'), s.total ? el('b', '', s.total) : null, s.caption ? el('span', '', s.caption) : null));
+    if (!hasSide && s.callout) fig.appendChild(callout(s.callout));
+    w.appendChild(fig);
+    return [w];
+  }
+
+  function drawBars(s, step) {
+    var n = s.bars.length, H = n <= 3 ? 96 : n === 4 ? 80 : n === 5 ? 64 : 56, gap = n <= 4 ? 28 : 20;
+    var showV = s.values !== 'hidden', anyTag = s.bars.some(function (b) { return b.tag; });
+    var reserve = Math.max.apply(null, s.bars.map(function (b) {
+      var v = showV ? (b.value.toLocaleString('en-GB') + (s.unit ? ' ' + s.unit : '')).length * 28 * 0.62 : 0;
+      var t = b.tag ? b.tag.length * 18 * 0.85 + 14 : 0;
+      return v + t ? v + t + 30 : 0; }));
+    var usable = 1248 - reserve;
+    var max = Math.max.apply(null, s.bars.map(function (b) { return Math.max(b.value, b.was || 0); }));
+    var out = [];
+    if (s.wasLabel) out.push(add(el('div', 'br-leg'), el('i'), el('span', '', s.wasLabel)));
+    var g = el('div', 'brs'); g.style.rowGap = gap + 'px';
+    s.bars.forEach(function (b, i) {
+      var shown = step === null || i < step;
+      var l = add(el('div', 'br-l'), el('b', '', b.label), b.sub ? el('span', '', b.sub) : null);
+      var t = el('div', 'br-t' + (b.tone ? ' t-' + b.tone : '')); t.style.height = H + 'px';
+      var w = Math.max(6, b.value / max * usable), gw = b.was ? b.was / max * usable : 0;
+      var f = el('div', 'br-f'); f.style.width = w + 'px'; t.appendChild(f);
+      if (b.was) { var gh = el('div', 'br-g'); gh.style.width = gw + 'px'; t.appendChild(gh); }
+      var end = Math.max(w, gw) + 18;
+      if (b.note) {
+        var nw = b.note.length * 22 * 0.56 + 40, nt = el('span', 'br-n', b.note);
+        if (nw <= w) nt.classList.add('in'); else { nt.style.left = end + 'px'; end += nw - 20; }
+        t.appendChild(nt);
+      }
+      var e = el('div', 'br-e'); e.style.left = end + 'px';
+      if (showV) e.appendChild(el('span', 'v', b.value.toLocaleString('en-GB') + (s.unit ? ' ' + s.unit : '')));
+      if (b.tag) e.appendChild(el('span', 'tg', b.tag));
+      t.appendChild(e);
+      g.appendChild(hide(l, shown)); g.appendChild(hide(t, shown));
+    });
+    out.push(g);
+    if (s.caption || s.callout) out.push(add(el('div', 'brs-foot'), s.caption ? el('div', 'capt', s.caption) : null, callout(s.callout)));
+    return out;
+  }
+
+  function drawFlow(s, step) {
+    var cols = [], f = el('div', 'flw');
+    s.nodes.forEach(function (nd, i) {
+      var shown = step === null || i < step;
+      if (i > 0) {
+        var a = el('div', 'arw'); a.innerHTML = '<svg viewBox="0 0 56 28"><path d="M3 14h48M39 3l12 11-12 11"/></svg>';
+        f.appendChild(hide(a, shown)); cols.push('72px');
+      }
+      var c = el('div', 'nd' + (nd.items ? ' grp' : '') + (nd.tone ? ' t-' + nd.tone : ''));
+      add(c, nd.label ? el('span', 'nl', nd.label) : null, el('b', '', nd.title), nd.text ? el('p', '', nd.text) : null);
+      if (nd.items) { var tl = el('div', 'tiles'); nd.items.forEach(function (it) { tl.appendChild(el('span', '', it)); }); c.appendChild(tl); }
+      f.appendChild(hide(c, shown)); cols.push(nd.items ? 'minmax(0, 2fr)' : 'minmax(0, 1fr)');
+    });
+    f.style.gridTemplateColumns = cols.join(' ');
+    var out = [f];
+    if (s.caption || s.chips || s.callout) {
+      var foot = el('div', 'flw-foot');
+      if (s.caption || s.chips) { var fc = el('div', 'flw-cap'); if (s.caption) fc.appendChild(el('span', 'capt', s.caption)); (s.chips || []).forEach(function (c) { fc.appendChild(el('span', 'chip', c)); }); foot.appendChild(fc); }
+      add(foot, callout(s.callout)); out.push(foot);
+    }
+    return out;
+  }
+
+  function ladder(lv) {
+    var l = el('div', 'ladder'); if (lv.title) l.appendChild(el('div', 'lt', lv.title));
+    lv.items.forEach(function (r) { add(l, add(el('div', 'rung' + (r.state === 'current' ? ' cur' : '')), el('i', '', r.mark || ''), el('span', '', r.text))); });
+    return l;
+  }
+  function facts(fs) { var f = el('div', 'facts'); fs.forEach(function (t) { add(f, add(el('div', 'fact' + (t.tone ? ' t-' + t.tone : '')), el('i', '', t.label), el('b', '', t.value))); }); return f; }
+  var MOCK = '<svg viewBox="0 0 1144 400" preserveAspectRatio="xMinYMid slice"><rect width="1144" height="400" fill="#0b1020"/><rect width="1144" height="46" fill="#1b2338"/><circle cx="28" cy="23" r="7" fill="#475569"/><circle cx="52" cy="23" r="7" fill="#475569"/><circle cx="76" cy="23" r="7" fill="#475569"/><g font-family="ui-monospace, Liberation Mono, monospace" font-size="26"><text x="40" y="110" fill="#a5b8ff">function totalPrice(order) {</text><text x="80" y="160" fill="#e2e8f0">return order.items * order.rate</text><text x="590" y="160" fill="#64748b">+ order.taxes</text><text x="40" y="210" fill="#a5b8ff">}</text></g><rect x="40" y="290" width="70" height="38" rx="6" fill="#334155"/><text x="56" y="317" font-family="Arial, Liberation Sans, sans-serif" font-size="20" font-weight="700" fill="#fff">Tab</text><text x="126" y="317" font-family="Arial, Liberation Sans, sans-serif" font-size="20" fill="#94a3b8">The editor suggests the rest of the line.</text></svg>';
+  function drawLevels(s) {
+    var w = el('div', 'lvw' + (s.side === 'left' ? ' left' : '')), m = el('div', 'lv-main');
+    if (s.main.title) m.appendChild(el('div', 'mt', s.main.title));
+    if (s.main.items) { var ul = el('ul'); s.main.items.forEach(function (it) { var li = el('li'); if (typeof it === 'string') li.textContent = it; else { li.appendChild(el('b', '', it.lead + ' ')); li.appendChild(document.createTextNode(it.text)); } ul.appendChild(li); }); m.appendChild(ul); }
+    if (s.main.text) m.appendChild(el('p', 'para', s.main.text));
+    if (s.main.image) { var im = el('div', 'img'); im.innerHTML = MOCK; m.appendChild(im); }
+    if (s.facts) { var f = facts(s.facts); if (!s.main.image) f.style.marginTop = 'auto'; m.appendChild(f); }
+    add(w, m, ladder(s.levels));
+    return [w];
+  }
+
+  function drawLanes(s, step) {
+    var w = el('div', 'lvw'), m = el('div', 'lv-main'), box = el('div', 'lanes');
+    s.lanes.forEach(function (ln, i) {
+      var row = el('div', 'lane is-' + ln.state), meter = el('div', 'meter'), bar = el('i');
+      bar.style.setProperty('--p', ln.progress); meter.appendChild(bar);
+      add(row, el('span', 'who', ln.who), add(el('div', 'task'), el('span', '', ln.task), meter), el('span', 'st', ln.status));
+      box.appendChild(hide(row, step === null || i < step));
+    });
+    add(m, box, s.lead ? el('p', 'para', s.lead) : null); add(w, m, ladder(s.levels));
+    return [w];
+  }
+  function drawDial(s) {
+    var w = el('div', 'dialw'), left = el('div'), d = el('div', 'dial'), needle = el('div', 'needle');
+    needle.style.setProperty('--v', s.value);
+    add(d, el('div', 'arc'), needle, el('div', 'hub'));
+    add(left, s.label ? el('div', 'dial-tag', s.label) : null, d, add(el('div', 'dial-ends'), el('span', '', s.from), el('span', '', s.to)));
+    add(w, left, el('p', 'dial-text', s.text || ''));
+    return [w];
+  }
+  var DRAW = { stack: drawStack, bars: drawBars, flow: drawFlow, levels: drawLevels, 'agent-lanes': drawLanes, dial: drawDial };
+
+  document.querySelectorAll('.sl[data-s]').forEach(function (box) {
+    var d = S[box.dataset.s], s = d.slots, step = box.dataset.step !== undefined ? +box.dataset.step : null;
+    var cv = el('div', 'cv'), lay = el('div', 'lay'), body = el('div', 'body');
+    var trk = el('div', 'trk'); ['Before', 'The shift', 'The cost', 'What next'].forEach(function (t, i) { trk.appendChild(el('span', i === 1 ? 'on' : '', t)); });
+    add(lay, s.kicker ? el('div', 'kick', s.kicker) : null, el('h2', 'hl', s.headline), body);
+    DRAW[d.layout](s, step).forEach(function (n) { body.appendChild(n); });
+    add(cv, trk, lay, el('div', 'ft', '14 / 44 · Seats, not salaries · Sam Rivera'), el('div', 'prog'));
+    if (box.dataset.safe) cv.appendChild(el('div', 'safe'));
+    box.appendChild(cv);
+  });
+  function fit() { document.querySelectorAll('.sl').forEach(function (b) { b.style.setProperty('--k', b.clientWidth / 1920); }); }
+  fit(); window.addEventListener('resize', fit);
+
+  // ---------- slots as JSON beside the slide ----------
+  function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function pretty(v, ind) {
+    var pad = new Array(ind + 1).join('  ');
+    if (Array.isArray(v)) {
+      var flat = '[' + v.map(function (x) { return pretty(x, 0); }).join(', ') + ']';
+      if (flat.replace(/<[^>]+>/g, '').length <= 52 - ind * 2) return flat;
+      return '[\n' + v.map(function (x) { return pad + '  ' + pretty(x, ind + 1); }).join(',\n') + ' ]';
+    }
+    if (v && typeof v === 'object') {
+      var keys = Object.keys(v).filter(function (k) { return v[k] !== undefined; });
+      var one = '{ ' + keys.map(function (k) { return '<span class="c">"' + k + '"</span>: ' + pretty(v[k], 0); }).join(', ') + ' }';
+      if (ind > 0 && one.replace(/<[^>]+>/g, '').length <= 56 - ind * 2) return one;
+      return '{ ' + keys.map(function (k) { return '<span class="c">"' + k + '"</span>: ' + pretty(v[k], ind + 1); }).join(',\n' + pad + '  ') + ' }';
+    }
+    return esc(JSON.stringify(v));
+  }
+  document.querySelectorAll('[data-json]').forEach(function (box) {
+    var d = S[box.dataset.json];
+    box.innerHTML = '<span class="m">// add_slide</span>\n{ <span class="u">"layout"</span>: "' + d.layout + '",\n  <span class="u">"slots"</span>: ' + pretty(d.slots, 1) + ' }';
+  });
+})();
+</script>
+</body>
+</html>

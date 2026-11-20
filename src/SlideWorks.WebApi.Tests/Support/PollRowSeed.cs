@@ -57,7 +57,7 @@ public sealed class PollRowSeed(IServiceProvider services)
     }
 
     // An open Q&A round (SW-9 Q2) in the session, numbered one after the deck's Q&A poll's last round in it. Makes the
-    // deck's Q&A poll first when it has none (Pick Any, no slide), as the Q&A rounds service does.
+    // deck's Q&A poll first when it has none, through Poll.ForQa, as the Q&A rounds service does.
     public async Task<PollRound> QaRoundAsync(string deckId, Guid sessionId)
     {
         await using var scope = services.CreateAsyncScope();
@@ -65,20 +65,7 @@ public sealed class PollRowSeed(IServiceProvider services)
         var poll = await db.Polls.SingleOrDefaultAsync(p => p.DeckId == deckId && p.Kind == PollKind.Qa);
         if (poll == null)
         {
-            var settings = new PollSettings(PollPick.Any, null, PollResults.Live, null, PollOpens.Manual, PollPrivacy.Private);
-            poll = new Poll
-            {
-                Id = Guid.NewGuid(),
-                Kind = PollKind.Qa,
-                SlideId = null,
-                DeckId = deckId,
-                Pick = settings.Pick,
-                Max = settings.Max,
-                Results = settings.Results,
-                Correct = settings.Correct,
-                Opens = settings.Opens,
-                Privacy = settings.Privacy,
-            };
+            poll = Poll.ForQa(deckId);
             db.Polls.Add(poll);
         }
         var numbers = await db.PollRounds.Where(r => r.PollId == poll.Id && r.SessionId == sessionId).Select(r => r.Number).ToListAsync();

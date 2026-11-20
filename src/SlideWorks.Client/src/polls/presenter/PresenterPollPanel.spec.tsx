@@ -76,9 +76,10 @@ test('PresenterPollPanel_WhenOnAPollSlide_ShouldShowThePanelBetweenNextAndNotes'
   const notes = (await page.getByTestId('presenter-notes').boundingBox())!;
   expect(box.y).toBeGreaterThan(next.y + next.height - 1);
   expect(notes.y).toBeGreaterThan(box.y + box.height - 1);
-  // The window's one presentation join is SW-4's; the panel only watches the audience.
+  // The window's one presentation join is SW-4's; the panels only watch the audience: one watch each from the poll's
+  // provider and SW-9's Q&A provider.
   expect(hub.presentationJoins).toHaveLength(1);
-  expect(hub.watches).toEqual([deckId]);
+  expect(hub.watches).toEqual([deckId, deckId]);
 });
 
 test('PresenterPollPanel_WhenPRAndAPressed_ShouldRunThePollThroughItsRoutes', async ({

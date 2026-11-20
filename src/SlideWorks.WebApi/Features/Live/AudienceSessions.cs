@@ -24,6 +24,10 @@ public class AudienceSessions(AppDbContext db, TimeProvider clock) : IAudienceSe
         return deckId == null ? null : await ForDeckAsync(deckId);
     }
 
+    // Live is an open session, as ForDeckAsync decides it.
+    public Task<bool> AnyLiveAsync(IReadOnlyCollection<string> deckIds)
+        => db.AudienceSessions.AsNoTracking().AnyAsync(s => s.EndedAt == null && deckIds.Contains(s.DeckId));
+
     public async Task<AudienceSessionRef?> ForDeckAsync(string deckId)
     {
         var deck = await db.Decks.AsNoTracking().Where(d => d.Id == deckId).Select(d => new { d.ChromeJson }).SingleOrDefaultAsync();

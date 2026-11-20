@@ -20,7 +20,15 @@ const deck = {
 // A plain function, not a component: CT can only mount components from source files.
 function slide(props: Partial<Omit<SlideFrameProps, 'children'>> = {}) {
   return (
-    <SlideFrame layout="bullets" dark={false} part={2} number={3} total={16} {...deck} {...props}>
+    <SlideFrame
+      layout="bullets"
+      surface="light"
+      part={2}
+      number={3}
+      total={16}
+      {...deck}
+      {...props}
+    >
       <h2>Every slip we had last year started as a big batch</h2>
     </SlideFrame>
   );
@@ -48,7 +56,7 @@ test('content slide shows tracker with current part and footer', async ({ mount,
 });
 
 test('title slide is dark without tracker or footer', async ({ mount, page }) => {
-  await mount(slide({ layout: 'title', dark: true, part: null, number: 1 }));
+  await mount(slide({ layout: 'title', surface: 'dark', part: null, number: 1 }));
 
   const frame = page.getByTestId('slide-frame');
   await expect(frame).toHaveAttribute('data-dark', 'true');
@@ -68,12 +76,85 @@ test('title slide is dark without tracker or footer', async ({ mount, page }) =>
 
 test('divider and close slides are dark without tracker or footer', async ({ mount, page }) => {
   for (const layout of ['divider', 'close'] as const) {
-    const component = await mount(slide({ layout, dark: true, part: 1 }));
+    const component = await mount(slide({ layout, surface: 'dark', part: 1 }));
     await expect(page.getByTestId('slide-frame')).toHaveAttribute('data-dark', 'true');
     await expect(page.getByTestId('part-tracker')).toHaveCount(0);
     await expect(page.getByTestId('slide-footer')).toHaveCount(0);
     await component.unmount();
   }
+});
+
+test('content slide, dark', async ({ mount, page }) => {
+  await mount(slide({ surface: 'dark' }));
+
+  const frame = page.getByTestId('slide-frame');
+  await expect(frame).toHaveAttribute('data-surface', 'dark');
+  // Only the always-dark layouts carry data-dark and its night backdrop.
+  await expect(frame).toHaveAttribute('data-dark', 'false');
+  const nightInk = await tokenColour(page, '--sw-night-ink');
+  expect(await tokenColour(page, '--sw-ink')).toBe(nightInk);
+  await expect(frame).toHaveCSS('color', nightInk);
+  await expect(frame).toHaveCSS('background-color', await tokenColour(page, '--sw-night'));
+  await expect(page.getByTestId('part-tracker-part')).toHaveCount(4);
+  await expect(page.getByTestId('slide-footer-text')).toHaveText(
+    '3 / 16 · Ship smaller · Sam Rivera',
+  );
+});
+
+test('a light slide and an always-dark slide keep their own tokens', async ({ mount, page }) => {
+  const component = await mount(slide());
+  const frame = page.getByTestId('slide-frame');
+  await expect(frame).toHaveAttribute('data-surface', 'light');
+  const lightInk = await tokenColour(page, '--sw-ink');
+  const lightGoodSoft = await tokenColour(page, '--sw-good-soft');
+  expect(lightInk).not.toBe(await tokenColour(page, '--sw-night-ink'));
+
+  await component.update(slide({ layout: 'join', surface: 'dark', part: null }));
+  await expect(frame).toHaveAttribute('data-surface', 'dark');
+  await expect(frame).toHaveAttribute('data-dark', 'true');
+  expect(await tokenColour(page, '--sw-ink')).toBe(lightInk);
+  expect(await tokenColour(page, '--sw-good-soft')).toBe(lightGoodSoft);
+});
+
+test('statement has no tracker', async ({ mount, page }) => {
+  await mount(slide({ layout: 'statement' }));
+
+  await expect(page.getByTestId('slide-frame')).toHaveAttribute('data-layout', 'statement');
+  await expect(page.getByTestId('part-tracker')).toHaveCount(0);
+  await expect(page.getByTestId('slide-footer-text')).toHaveText(
+    '3 / 16 · Ship smaller · Sam Rivera',
+  );
+});
+
+test("the footer's text sits where it did with an empty end span", async ({ mount, page }) => {
+  await mount(slide());
+
+  const footer = page.getByTestId('slide-footer');
+  const end = page.getByTestId('slide-footer-end');
+  await expect(end).toBeEmpty();
+  expect(await footer.evaluate((e) => e.lastElementChild?.className)).toBe('sw-footer-end');
+  expect((await end.boundingBox())!.width).toBe(0);
+  const text = await page.getByTestId('slide-footer-text').boundingBox();
+  expect(text).toMatchObject({ x: 120, y: 1023, height: 17 });
+  // The same footer without its end span, as it was drawn before the span was always there.
+  const before = await footer.evaluate((element) => {
+    const copy = element.cloneNode(true) as HTMLElement;
+    copy.lastElementChild!.remove();
+    element.after(copy);
+    const box = copy.firstElementChild!.getBoundingClientRect();
+    copy.remove();
+    return { x: box.x, y: box.y, width: box.width, height: box.height };
+  });
+  expect(text).toEqual(before);
+});
+
+test('the layers take no space and no pointer events', async ({ mount, page }) => {
+  await mount(slide());
+
+  const layers = page.getByTestId('slide-layers');
+  await expect(layers).toHaveCSS('position', 'absolute');
+  await expect(layers).toHaveCSS('pointer-events', 'none');
+  await expect(layers).toBeEmpty();
 });
 
 test('deck without parts shows no tracker', async ({ mount, page }) => {
@@ -86,12 +167,11 @@ test('deck without parts shows no tracker', async ({ mount, page }) => {
   );
 });
 
-test('slide outside any part highlights no part', async ({ mount, page }) => {
+test('slide with no part has no tracker', async ({ mount, page }) => {
   await mount(slide({ part: null }));
 
-  await expect(page.getByTestId('part-tracker-part')).toHaveCount(4);
-  await expect(page.locator('[data-testid="part-tracker-part"][data-state="next"]')).toHaveCount(4);
-  await expect(page.locator('[aria-current]')).toHaveCount(0);
+  await expect(page.getByTestId('slide-frame')).toBeAttached();
+  await expect(page.getByTestId('part-tracker')).toHaveCount(0);
 });
 
 test('footer leaves out a missing author', async ({ mount, page }) => {
@@ -142,7 +222,7 @@ test('chrome sits where the layouts expect it, in canvas px', async ({ mount, pa
 // runs to 150 + 180 + 46 + 620 = 996.
 function seamLayout() {
   return (
-    <SlideFrame layout="bullets" dark={false} part={2} number={3} total={16} {...deck}>
+    <SlideFrame layout="bullets" surface="light" part={2} number={3} total={16} {...deck}>
       <div className="sw-layout" data-testid="seam-layout">
         <div style={{ height: 180, flexShrink: 0 }} />
         <div className="sw-body" data-testid="seam-body">
@@ -256,7 +336,7 @@ test('a draft deck has the stamp on its title slide and a chip in the footer', a
   // The chip sits on the footer's line, which stays at y = 1023.
   expect(await page.getByTestId('slide-footer').boundingBox()).toMatchObject({ y: 1023 });
 
-  await component.update(slide({ look, layout: 'title', dark: true, part: null, number: 1 }));
+  await component.update(slide({ look, layout: 'title', surface: 'dark', part: null, number: 1 }));
   await expect(page.getByTestId('block-stamp')).toHaveText('Draft');
   await expect(page.getByTestId('draft-chip')).toHaveCount(0);
 });
@@ -265,7 +345,7 @@ test('a title slide with its own stamp shows only that one', async ({ mount, pag
   await mount(
     <SlideFrame
       layout="title"
-      dark
+      surface="dark"
       part={null}
       number={1}
       total={16}
@@ -285,7 +365,7 @@ test('a deck that is not a draft has no stamp or chip', async ({ mount, page }) 
   const component = await mount(slide());
   await expect(page.getByTestId('draft-chip')).toHaveCount(0);
 
-  await component.update(slide({ layout: 'title', dark: true, part: null, number: 1 }));
+  await component.update(slide({ layout: 'title', surface: 'dark', part: null, number: 1 }));
   await expect(page.getByTestId('block-stamp')).toHaveCount(0);
 });
 
@@ -293,7 +373,7 @@ test('a dark slide has no footer, even with a logo or a draft', async ({ mount, 
   await mount(
     slide({
       layout: 'divider',
-      dark: true,
+      surface: 'dark',
       part: 1,
       look: talkWith({}, { draft: true, logo: { url: '/api/images/logo-1' } }),
     }),
@@ -376,7 +456,7 @@ test('a dark slide draws the progress bar in the accent glow, softened', async (
   await expect(bar).toHaveCSS('background-color', await tokenColour(page, '--sw-accent'));
   await expect(bar).toHaveCSS('opacity', '1');
 
-  await component.update(slide({ layout: 'title', dark: true, part: null, number: 1 }));
+  await component.update(slide({ layout: 'title', surface: 'dark', part: null, number: 1 }));
   await expect(bar).toHaveCSS('background-color', await tokenColour(page, '--sw-accent-glow'));
   await expect(bar).toHaveCSS('opacity', '0.7');
 });
@@ -407,7 +487,7 @@ test('screenshot: content and title chrome', async ({ mount, page }) => {
   await mount(
     <div>
       {slide()}
-      {slide({ layout: 'title', dark: true, part: null, number: 1 })}
+      {slide({ layout: 'title', surface: 'dark', part: null, number: 1 })}
     </div>,
   );
   const frames = page.getByTestId('slide-frame');

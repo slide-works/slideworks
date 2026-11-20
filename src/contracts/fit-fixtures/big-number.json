@@ -1,0 +1,53 @@
+{
+  "bigNumberUnit": {
+    "layout": "big-number",
+    "grow": [
+      "/value"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Make Every Merge Small And Reviewable Mo",
+      "headline": "Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Workinge",
+      "value": "999999 wks",
+      "caption": "Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Rea",
+      "detail": "Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Small And Reviewable Momentum Matters",
+      "source": "Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metricse"
+    }
+  },
+  "bigNumberUnitWide": {
+    "layout": "big-number",
+    "grow": [
+      "/value"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Many Women Who Wander Wide Meadows Mow M",
+      "headline": " Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow,",
+      "value": "MMMMM6 WWW",
+      "caption": "s With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Women Who Wander Wide Me",
+      "detail": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesday",
+      "source": "UMMY Mavens, Wow, Momentum Wins Most Wednesdays. Many Women Who Wander Wide Meadows Mow Moss With Me"
+    }
+  },
+  "bigNumberCallout": {
+    "layout": "big-number",
+    "grow": [
+      "/callout/text"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "kicker": "Make Every Merge Small And Reviewable Mo",
+      "headline": "Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Workinge",
+      "value": "11 wks",
+      "caption": "Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Rea",
+      "detail": "Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Small And Reviewable Momentum Matters",
+      "source": "Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metricse",
+      "callout": {
+        "tone": "accent",
+        "text": "Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Sho xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "reveal": "last"
+      },
+      "reveal": "one-by-one"
+    }
+  }
+}

@@ -5,22 +5,68 @@ using SlideWorks.WebApi.Infrastructure;
 namespace SlideWorks.WebApi.Features.Look;
 
 // The body of PUT /api/decks/{id}/look and the arguments of set_look (L6 look-change.json, L7): { template?, palette?,
-// logo?: imageId | null, draft?, chrome?: { tracker?, footer?, progress? } }. logo and chrome stay raw JSON so a key
+// logo?: imageId | null, draft?, chrome?: { tracker?, footer?, progress?, topBar? }, templateVersion?: n | "latest" }. logo and chrome stay raw JSON so a key
 // left out (leave it) differs from a key set to null (remove the logo, or reset a chrome key to the template's default).
 // Both callers turn it into a LookChange here, so a malformed value gets the same message from both.
 // S6964 (under-posting) is the point here: an absent logo or chrome must stay Undefined, which a nullable or required
 // property can't express.
 #pragma warning disable S6964
-public sealed record LookChangeRequest(string? Template, string? Palette, JsonElement Logo, bool? Draft, JsonElement Chrome)
+public sealed record LookChangeRequest(string? Template, string? Palette, JsonElement Logo, bool? Draft, JsonElement Chrome, JsonElement TemplateVersion = default, JsonElement Colors = default)
 #pragma warning restore S6964
 {
     private const string TRACKER = "tracker";
     private const string FOOTER = "footer";
     private const string PROGRESS = "progress";
     private const string JOIN_BAR = "joinBar";
+    private const string TOP_BAR = "topBar";
     private static readonly string[] FOOTERS = ["author", "date", "off"];
+    private static readonly string[] TOP_BARS = ["accent", "none"];
 
-    public LookChange ToChange() => new(Template, Palette, LogoOf(Logo), Draft, ChromeOf(Chrome));
+    public LookChange ToChange() => new(Template, Palette, LogoOf(Logo), Draft, ChromeOf(Chrome), VersionOf(TemplateVersion), ColorsOf(Colors));
+
+    // Left out keeps the deck's colours. Null clears them. An object replaces them: token name to #rrggbb.
+    private static Change<IReadOnlyDictionary<string, string>?>? ColorsOf(JsonElement colors)
+    {
+        switch (colors.ValueKind)
+        {
+            case JsonValueKind.Undefined:
+                return null;
+            case JsonValueKind.Null:
+                return new Change<IReadOnlyDictionary<string, string>?>(null);
+            case JsonValueKind.Object:
+                var map = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (var entry in colors.EnumerateObject())
+                {
+                    if (entry.Value.ValueKind != JsonValueKind.String)
+                    {
+                        throw new BadRequestException($"colors.{entry.Name}: a colour is # and six hex digits");
+                    }
+
+                    map[entry.Name] = entry.Value.GetString()!;
+                }
+
+                return new Change<IReadOnlyDictionary<string, string>?>(map);
+            default:
+                throw new BadRequestException("colors: an object of colour token to #rrggbb, or null to clear");
+        }
+    }
+
+    // A whole number of 1 or more, or "latest". Left out is left alone; null and anything else is refused.
+    private static TemplateVersionChange? VersionOf(JsonElement version)
+    {
+        const string REFUSED = "templateVersion: use a version number or 'latest'";
+        switch (version.ValueKind)
+        {
+            case JsonValueKind.Undefined:
+                return null;
+            case JsonValueKind.String when string.Equals(version.GetString(), "latest", StringComparison.Ordinal):
+                return new TemplateVersionChange(null);
+            case JsonValueKind.Number when version.TryGetInt32(out var number) && number >= 1:
+                return new TemplateVersionChange(number);
+            default:
+                throw new BadRequestException(REFUSED);
+        }
+    }
 
     private static LogoChange? LogoOf(JsonElement logo) => logo.ValueKind switch
     {
@@ -46,6 +92,7 @@ public sealed record LookChangeRequest(string? Template, string? Palette, JsonEl
         Change<string?>? footer = null;
         Change<bool?>? progress = null;
         bool? joinBar = null;
+        Change<string?>? topBar = null;
         foreach (var key in chrome.EnumerateObject())
         {
             switch (key.Name)
@@ -64,11 +111,14 @@ public sealed record LookChangeRequest(string? Template, string? Palette, JsonEl
                         ? key.Value.GetBoolean()
                         : throw new BadRequestException("chrome.joinBar: must be true or false");
                     break;
+                case TOP_BAR:
+                    topBar = new Change<string?>(TopBar(key));
+                    break;
                 default:
                     throw new BadRequestException($"chrome: unknown key '{key.Name}'; expected tracker, footer or progress");
             }
         }
-        return tracker is null && footer is null && progress is null && joinBar is null ? null : new ChromeChange(tracker, footer, progress, joinBar);
+        return tracker is null && footer is null && progress is null && joinBar is null && topBar is null ? null : new ChromeChange(tracker, footer, progress, joinBar, topBar);
     }
 
     private static bool? Flag(JsonProperty key) => key.Value.ValueKind switch
@@ -78,6 +128,18 @@ public sealed record LookChangeRequest(string? Template, string? Palette, JsonEl
         JsonValueKind.Null => null,
         _ => throw new BadRequestException($"chrome.{key.Name}: must be true, false or null"),
     };
+
+    private static string? TopBar(JsonProperty key)
+    {
+        if (key.Value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        var value = key.Value.ValueKind == JsonValueKind.String ? key.Value.GetString() : null;
+        return value is not null && TOP_BARS.Contains(value, StringComparer.Ordinal)
+            ? value
+            : throw new BadRequestException("chrome.topBar: must be 'accent', 'none' or null");
+    }
 
     private static string? Footer(JsonProperty key)
     {

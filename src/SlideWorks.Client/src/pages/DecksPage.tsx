@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
 import type { DecksLibraryView } from '../api/types';
 import { NewDeckDialog } from '../look/NewDeckDialog';
@@ -22,8 +22,18 @@ export function DecksPage() {
   const navigate = useNavigate();
   const [library, setLibrary] = useState<Library>({ kind: 'loading' });
   const [search, setSearch] = useState('');
-  const [newDeckOpen, setNewDeckOpen] = useState(false);
+  // /decks?template=<ref> opens the New deck dialog on that template. The parameter is read once and removed.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [startTemplate, setStartTemplate] = useState(() => searchParams.get('template') || null);
+  const [newDeckOpen, setNewDeckOpen] = useState(startTemplate !== null);
   const newDeckButton = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!searchParams.has('template')) return;
+    const rest = new URLSearchParams(searchParams);
+    rest.delete('template');
+    setSearchParams(rest, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     let active = true;
@@ -69,8 +79,10 @@ export function DecksPage() {
 
       <NewDeckDialog
         open={newDeckOpen}
+        initialTemplate={startTemplate}
         onClose={() => {
           setNewDeckOpen(false);
+          setStartTemplate(null);
           newDeckButton.current?.focus();
         }}
         onCreated={(created) => navigate(`/decks/${created.id}`)}

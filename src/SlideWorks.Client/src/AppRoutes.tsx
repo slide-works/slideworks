@@ -15,6 +15,10 @@ import { RenderPage } from './pages/RenderPage';
 import { SignInPage } from './pages/SignInPage';
 import { SpeakerPage } from './pages/SpeakerPage';
 import { SignedInGate } from './SignedInGate';
+import { TemplateEditor } from './templates/editor/TemplateEditor';
+import { LayoutReviewPage } from './templates/LayoutReviewPage';
+import { TemplatePublicPage } from './templates/TemplatePublicPage';
+import { TemplatesPage } from './templates/TemplatesPage';
 
 // K12. The player, sign-in and pending pages sit outside the auth gate (App); everything else
 // is for a signed-in person. So do the render and share-card pages (SW-2 L9), which a
@@ -33,6 +37,8 @@ const routes: RouteObject[] = [
   { path: '/render/:id/:n', element: <RenderPage /> },
   { path: '/card/generic', element: <CardPage /> },
   { path: '/card/:id', element: <CardPage /> },
+  // A template's page, where its share link leads: open without a sign-in, as the player is.
+  { path: '/t/:id', element: <TemplatePublicPage /> },
   {
     element: <SignedInGate>{(me) => <Outlet context={me} />}</SignedInGate>,
     children: [
@@ -47,6 +53,9 @@ const routes: RouteObject[] = [
       { index: true, element: <Navigate to="/decks" replace /> },
       { path: 'decks', element: <DecksPage /> },
       { path: 'decks/:id', element: <DeckPage /> },
+      { path: 'templates', element: <TemplatesPage /> },
+      { path: 'templates/:id/edit', element: <TemplateEditor /> },
+      { path: 'templates/:id/layouts/:name', element: <LayoutReviewPage /> },
       { path: 'admin/users', element: <AdminUsersPage /> },
       { path: 'oauth/consent', element: <ConsentPage /> },
       { path: '*', element: <Navigate to="/decks" replace /> },

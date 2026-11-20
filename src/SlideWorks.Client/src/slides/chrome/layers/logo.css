@@ -1,0 +1,29 @@
+/* The template's logos (D12). Every copy is hidden until a rule below shows it
+   for its slide, read from the frame's own attributes. */
+.sw-tlogo {
+  display: none;
+  flex: none;
+  width: auto;
+  height: 34px;
+}
+
+/* In the footer: the light logo on a light slide, the dark one on a dark slide.
+   They sit in .sw-footer-end after the deck's logo, which keeps the footer's
+   own gap. */
+.sw-frame[data-surface='light'] .sw-footer-end .sw-tlogo-light,
+.sw-frame[data-surface='dark'] .sw-footer-end .sw-tlogo-dark {
+  display: block;
+}
+
+/* In the corner of the three chromeless slides that have no footer: its right
+   edge on the slide's side padding and its vertical centre on the footer's text
+   line (17 px high, 40 px from the bottom), so it does not jump between a
+   divider and the next slide. Not on a join slide. */
+.sw-frame[data-layout='title'] .sw-tlogo-corner,
+.sw-frame[data-layout='divider'] .sw-tlogo-corner,
+.sw-frame[data-layout='close'] .sw-tlogo-corner {
+  position: absolute;
+  right: var(--sw-slide-pad-x);
+  bottom: calc(40px + (17px - 34px) / 2);
+  display: block;
+}

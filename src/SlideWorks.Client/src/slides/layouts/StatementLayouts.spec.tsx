@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Locator, Page } from 'playwright/test';
+import { partsOf } from '../../api/parts';
 import { lookViewOf } from '../../test-support/fixtures/lookViewOf';
 import { sampleDeck } from '../../test-support/fixtures/screens';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
@@ -180,7 +181,7 @@ test('divider shows part number and journey state', async ({ mount, page }) => {
     'Why the quarter-long launch keeps slipping.',
   );
   const parts = page.getByTestId('journey-part');
-  await expect(parts.locator('b')).toHaveText(deck.parts);
+  await expect(parts.locator('b')).toHaveText(partsOf(deck.parts).map((p) => p.name));
   await expect(parts.nth(0)).toHaveAttribute('data-state', 'on');
   await expect(parts.nth(0)).toHaveAttribute('aria-current', 'step');
   await expect(parts.nth(1)).toHaveAttribute('data-state', 'next');

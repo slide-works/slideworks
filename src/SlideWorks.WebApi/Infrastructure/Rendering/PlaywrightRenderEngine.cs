@@ -22,6 +22,8 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
     public const string FAILED = "Rendering failed: ";
 
     private const int MAX_PAGES = 2;
+    private const string MEASURE_TIMED_OUT = "Measuring the font timed out";
+    private static readonly TimeSpan MEASURE_TIMEOUT = TimeSpan.FromSeconds(15);
     private const string CARD_TEST_ID = "share-card";
     private const string SETTLED = "() => { const card = document.querySelector('[data-testid=share-card]'); return !!card && (card.dataset.ready === 'true' || card.hasAttribute('data-error')); }";
     private const string IMAGE = "image";
@@ -33,6 +35,149 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
     public Task<byte[]> RenderCardAsync(string deckId, CancellationToken ct) => RenderAsync(deckId, ct);
 
     public Task<byte[]> RenderGenericCardAsync(CancellationToken ct) => RenderAsync(null, ct);
+
+    public const int SLIDE_WIDTH = 1920;
+    public const int SLIDE_HEIGHT = 1080;
+
+    private const string SLIDE_TEST_ID = "render-slide";
+    private const string SLIDE_SETTLED = "() => { const slide = document.querySelector('[data-testid=render-slide]'); return !!slide && (slide.dataset.ready === 'true' || slide.hasAttribute('data-error')); }";
+
+    // A slide of the deck, on the render route, with a Preview token. The card path is left as it is.
+    public async Task<byte[]> RenderSlideAsync(string deckId, int slide, CancellationToken ct)
+    {
+        var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(_options.Timeout);
+        var deadlineToken = deadline.Token;
+        var render = RenderSlideInSlotAsync(deckId, slide, deadlineToken);
+        _ = render.ContinueWith(_ => deadline.Dispose(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using (deadlineToken.Register(() => stopped.TrySetResult()))
+        {
+            if (await Task.WhenAny(render, stopped.Task) == render && !(render.IsCanceled && deadlineToken.IsCancellationRequested))
+            {
+                return await render;
+            }
+        }
+
+        ct.ThrowIfCancellationRequested();
+        throw new System.TimeoutException(TIMED_OUT);
+    }
+
+    private async Task<byte[]> RenderSlideInSlotAsync(string deckId, int slide, CancellationToken ct)
+    {
+        await _pages.WaitAsync(ct);
+        try
+        {
+            var chromium = await browser.GetAsync(ct);
+            try
+            {
+                ct.ThrowIfCancellationRequested();
+                return await RenderSlidePageAsync(chromium, deckId, slide, ct);
+            }
+            catch (PlaywrightException) when (!chromium.IsConnected && !ct.IsCancellationRequested)
+            {
+                var restarted = await browser.GetAsync(ct);
+                ct.ThrowIfCancellationRequested();
+                return await RenderSlidePageAsync(restarted, deckId, slide, ct);
+            }
+        }
+        catch (PlaywrightException)
+        {
+            ct.ThrowIfCancellationRequested();
+            throw Failed(PAGE_ERROR);
+        }
+        finally
+        {
+            ReleaseSlot();
+        }
+    }
+
+    private async Task<byte[]> RenderSlidePageAsync(IBrowser chromium, string deckId, int slide, CancellationToken ct)
+    {
+        var origin = BaseUrl();
+        var token = tokens.Issue(deckId, RenderPurpose.Preview);
+        var url = new Uri(origin, $"render/{Uri.EscapeDataString(deckId)}/{slide}#token={Uri.EscapeDataString(token)}");
+        await using var context = await chromium.NewContextAsync(new BrowserNewContextOptions
+        {
+            ViewportSize = new ViewportSize { Width = SLIDE_WIDTH, Height = SLIDE_HEIGHT },
+            ExtraHTTPHeaders = new Dictionary<string, string> { [RenderSessions.HEADER] = token },
+        });
+        await using var closeOnDeadline = ct.Register(() => _ = context.CloseAsync());
+        context.SetDefaultTimeout((float)_options.Timeout.TotalMilliseconds);
+        await context.RouteAsync("**/*", route => SameOrigin(route.Request.Url, origin) ? route.ContinueAsync() : route.AbortAsync());
+
+        var imageFailed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var page = await context.NewPageAsync();
+        page.RequestFailed += (_, request) => FailOnImage(imageFailed, request, ok: false);
+        page.Response += (_, response) => FailOnImage(imageFailed, response.Request, response.Ok);
+        await page.GotoAsync(url.ToString());
+        var settled = page.WaitForFunctionAsync(SLIDE_SETTLED);
+        if (await Task.WhenAny(settled, imageFailed.Task) == imageFailed.Task)
+        {
+            throw Failed(await imageFailed.Task);
+        }
+
+        await settled;
+        var frame = page.GetByTestId(SLIDE_TEST_ID);
+        var error = await frame.GetAttributeAsync("data-error");
+        if (error != null)
+        {
+            throw Failed(error);
+        }
+
+        return await frame.ScreenshotAsync(new LocatorScreenshotOptions { Type = ScreenshotType.Png });
+    }
+
+    // Measures an uploaded font in a context of its own: no network, a CSP that allows only data: fonts, and a deadline
+    // (MEASURE_TIMEOUT, covering the slot, the browser start and the page) after which it is a TimeoutException.
+    public async Task<double> MeasureFontAsync(byte[] woff2, CancellationToken ct)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(MEASURE_TIMEOUT);
+        try
+        {
+            await _pages.WaitAsync(deadline.Token);
+            try
+            {
+                var chromium = await browser.GetAsync(deadline.Token);
+                try
+                {
+                    return await MeasurePageAsync(chromium, woff2, deadline.Token);
+                }
+                catch (PlaywrightException) when (!chromium.IsConnected && !deadline.IsCancellationRequested)
+                {
+                    return await MeasurePageAsync(await browser.GetAsync(deadline.Token), woff2, deadline.Token);
+                }
+            }
+            finally
+            {
+                ReleaseSlot();
+            }
+        }
+        catch (Exception e) when (e is OperationCanceledException or PlaywrightException && !ct.IsCancellationRequested && deadline.IsCancellationRequested)
+        {
+            throw new System.TimeoutException(MEASURE_TIMED_OUT);
+        }
+        catch (PlaywrightException e) when (e.Message.Contains("font not loaded", StringComparison.Ordinal))
+        {
+            throw new InvalidDataException("The font could not be decoded");
+        }
+        catch (PlaywrightException)
+        {
+            throw new RendererUnavailableException("The font could not be measured");
+        }
+    }
+
+    private static async Task<double> MeasurePageAsync(IBrowser chromium, byte[] woff2, CancellationToken ct)
+    {
+        await using var context = await chromium.NewContextAsync(new BrowserNewContextOptions { ViewportSize = new ViewportSize { Width = 1200, Height = 400 }, Offline = true, ServiceWorkers = ServiceWorkerPolicy.Block });
+        await using var closeOnDeadline = ct.Register(() => _ = context.CloseAsync());
+        await context.RouteAsync("**/*", route => route.AbortAsync());
+        var page = await context.NewPageAsync();
+        await page.SetContentAsync(FontMeasurePage.Html(woff2));
+        var width = await page.EvaluateAsync<double>(FontMeasurePage.MEASURE);
+        return FontMeasurePage.Raw(width);
+    }
 
     public void Dispose() => _pages.Dispose();
 

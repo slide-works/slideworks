@@ -32,7 +32,7 @@ test('rows are grouped under their part headings', async ({ mount, page }) => {
     />,
   );
   await expect(page.getByTestId('slides-sheet-group')).toHaveCount(view.parts.length);
-  await expect(page.getByRole('heading', { name: view.parts[0] })).toBeVisible();
+  await expect(page.getByRole('heading', { name: view.parts[0].name })).toBeVisible();
 });
 
 test('the current row is marked and in view on open', async ({ mount, page }) => {

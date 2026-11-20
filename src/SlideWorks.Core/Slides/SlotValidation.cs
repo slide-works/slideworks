@@ -9,6 +9,10 @@ public sealed class SlotValidation
 
     private readonly List<string> _errors = [];
     private readonly List<string> _imageIds = [];
+    private readonly List<FitRegion> _regions = [];
+
+    // The glyph widths the fit rules wrap text with: the built-in fonts', unless the deck's template brings its own.
+    public FitWidths Widths { get; init; } = FitWidths.Default;
 
     // Every failure counted, including those past MAX_ERRORS.
     public int ErrorCount { get; private set; }
@@ -18,6 +22,11 @@ public sealed class SlotValidation
         : _errors;
 
     public IReadOnlyList<string> ImageIds => _imageIds;
+
+    // Every region a fit check measured, in the order the layout measured them.
+    public IReadOnlyList<FitRegion> Regions => _regions;
+
+    public void RecordFit(FitRegion region) => _regions.Add(region);
 
     public void Fail(string path, string message)
     {

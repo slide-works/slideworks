@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "root": [
+    {
+      "tag": "div",
+      "classes": [
+        "chart"
+      ],
+      "vars": [],
+      "variants": [],
+      "children": [
+        {
+          "tag": "div",
+          "classes": [
+            "headline"
+          ],
+          "slot": "headline",
+          "vars": [],
+          "variants": [],
+          "children": []
+        },
+        {
+          "tag": "div",
+          "classes": [
+            "bars"
+          ],
+          "vars": [],
+          "variants": [],
+          "children": [
+            {
+              "tag": "div",
+              "classes": [
+                "row"
+              ],
+              "each": "bars",
+              "step": 0,
+              "vars": [],
+              "variants": [],
+              "children": [
+                {
+                  "tag": "span",
+                  "classes": [
+                    "label"
+                  ],
+                  "slot": "label",
+                  "vars": [],
+                  "variants": [],
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "classes": [
+                    "track"
+                  ],
+                  "vars": [],
+                  "variants": [],
+                  "children": [
+                    {
+                      "tag": "div",
+                      "classes": [
+                        "bar"
+                      ],
+                      "vars": [
+                        {
+                          "name": "--v",
+                          "slot": "share"
+                        }
+                      ],
+                      "variants": [
+                        "state"
+                      ],
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "p",
+          "classes": [
+            "note"
+          ],
+          "slot": "note",
+          "if": "note",
+          "vars": [],
+          "variants": [],
+          "children": []
+        }
+      ]
+    }
+  ]
+}

@@ -69,6 +69,35 @@ public class SetNotesTests : ApiTestFixture
         (await DeckSeed.ActivityAsync(Client, deck)).Count.ShouldBe(3);
     }
 
+    [Test]
+    public async Task UpdateSlide_WhenNotesAreSetAndThenCleared_ShouldKeepTheSlots()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckOfQuotesAsync(agent, "A");
+        var before = (await SlidesAsync(agent, deck))[0];
+        var revision = before.GetProperty("revision").GetInt64();
+        var slots = before.GetProperty("slots").GetRawText();
+
+        var set = await McpWire.CallToolAsync(
+            Factory,
+            agent.Tokens.AccessToken,
+            "update_slide",
+            $$$"""{"deck":"{{{deck}}}","slide":1,"revision":{{{revision}}},"slots":{{{slots}}},"notes":"Say this."}""");
+        (set.TryGetProperty("isError", out var setError) && setError.GetBoolean()).ShouldBeFalse(set.GetRawText());
+        (await SlidesAsync(agent, deck))[0].GetProperty("notes").GetString().ShouldBe("Say this.");
+
+        var next = (await SlidesAsync(agent, deck))[0].GetProperty("revision").GetInt64();
+        var cleared = await McpWire.CallToolAsync(
+            Factory,
+            agent.Tokens.AccessToken,
+            "update_slide",
+            $$$"""{"deck":"{{{deck}}}","slide":1,"revision":{{{next}}},"slots":{{{slots}}},"notes":null}""");
+        (cleared.TryGetProperty("isError", out var clearError) && clearError.GetBoolean()).ShouldBeFalse(cleared.GetRawText());
+        var slide = (await SlidesAsync(agent, deck))[0];
+        slide.GetProperty("notes").ValueKind.ShouldBe(JsonValueKind.Null);
+        slide.GetProperty("slots").GetRawText().ShouldBe(slots);
+    }
+
     // The notes argument is a list of objects, which the MCP SDK binds itself, so it is checked on the raw wire too.
     [Test]
     public async Task SetNotes_OnTheWire_ShouldBindNotesAndSendAnObject()

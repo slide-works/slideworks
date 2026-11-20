@@ -224,7 +224,7 @@ Ask the agent for a deck, for example: "Make a 10-slide deck on why small batche
 
 | Tool | What it does |
 |---|---|
-| `list_layouts`, `list_blocks` | The 19 layouts, their slots and limits, and the inline blocks |
+| `list_layouts`, `list_blocks` | The 28 layouts, their slots and limits, and the inline blocks |
 | `create_deck` | Creates a deck with a title and optional parts |
 | `add_slide`, `update_slide`, `move_slide`, `delete_slide`, `set_notes` | Change slides. The server checks each slide against its layout and names the field that broke. A poll slide with a round open can't be deleted or given another layout, and its options can't shrink or change order, until the poll is closed |
 | `update_poll` | Changes a poll slide's settings: one pick or up to some, when the room sees the counts, the correct answer and when it opens. Refused while a round is open |

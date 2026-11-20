@@ -2,13 +2,19 @@ import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page, Request } from 'playwright/test';
 import type { CardView } from '../api/types';
 import { AppRoutes } from '../AppRoutes';
-import { card } from '../test-support/fixtures/screens';
+import { card as sampleCard } from '../test-support/fixtures/screens';
 import { SAMPLE_IMAGE_ID } from '../test-support/fixtures/layoutSlots';
 import { stubApi } from '../test-support/stubApi';
 
 const DECK = 'deck123';
 const TOKEN = 'card-token';
 const cardPath = `/api/render/${DECK}/card`;
+// The card sample is a built-in deck's, with no title art. The page draws the look's art, so the cards mounted here
+// name the waves themselves.
+const card: CardView = {
+  ...sampleCard,
+  look: { ...sampleCard.look, art: { kind: 'generator', generator: 'waves', url: null } },
+};
 const linkCard: CardView = {
   ...card,
   look: { ...card.look, logo: null },
@@ -170,6 +176,116 @@ test('generic card says only SlideWorks and makes no request', async ({ mount, p
   await expect(shareCard).toHaveAttribute('data-generic', 'true');
   await expect(shareCard).toHaveText('SlideWorks');
   expect(requests).toEqual([]);
+});
+
+test("card page draws the look's waves in accent-2", async ({ mount, page }) => {
+  await stubCard(page, linkCard);
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  const shareCard = page.getByTestId('share-card');
+  await expect(shareCard).toHaveAttribute('data-ready', 'true');
+  const waves = shareCard.locator('svg path').first();
+  await expect(waves).toBeVisible();
+  const [stroke, accent] = await Promise.all([
+    waves.evaluate((el) => getComputedStyle(el).stroke),
+    shareCard.evaluate((el) => {
+      const probe = document.createElement('i');
+      probe.style.color = 'var(--sw-accent-2)';
+      el.appendChild(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    }),
+  ]);
+  expect(stroke).toBe(accent);
+});
+
+test('card page draws an uploaded art image', async ({ mount, page }) => {
+  const url = '/api/templates/tpl_t/assets/art';
+  await page.route(`**${url}`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      body: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+        'base64',
+      ),
+    }),
+  );
+  await stubCard(page, {
+    ...linkCard,
+    look: { ...linkCard.look, art: { kind: 'image', generator: null, url } },
+  });
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  const shareCard = page.getByTestId('share-card');
+  await expect(shareCard).toHaveAttribute('data-ready', 'true');
+  await expect(shareCard.locator(`img[src='${url}']`)).toHaveCount(1);
+  await expect(shareCard.locator('svg')).toHaveCount(0);
+});
+
+const PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64',
+);
+const artCard = (url: string): CardView => ({
+  ...linkCard,
+  look: { ...linkCard.look, art: { kind: 'image', generator: null, url } },
+});
+
+test('card page is not ready until its art image has loaded', async ({ mount, page }) => {
+  const url = '/api/templates/tpl_t/assets/art';
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(`**${url}`, async (route) => {
+    await held;
+    await route.fulfill({ status: 200, contentType: 'image/png', body: PIXEL });
+  });
+  await stubCard(page, artCard(url));
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  const shareCard = page.getByTestId('share-card');
+  await expect(shareCard.getByTestId('share-card-title')).toBeVisible();
+  // Fonts settle well within this; the held image is the only thing left to wait for.
+  await page.waitForTimeout(500);
+  await expect(shareCard).not.toHaveAttribute('data-ready');
+  release();
+  await expect(shareCard).toHaveAttribute('data-ready', 'true');
+});
+
+test('card page hides a broken art image and is still ready', async ({ mount, page }) => {
+  const url = '/api/templates/tpl_t/assets/missing';
+  await page.route(`**${url}`, (route) => route.fulfill({ status: 404 }));
+  await stubCard(page, artCard(url));
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  const shareCard = page.getByTestId('share-card');
+  await expect(shareCard).toHaveAttribute('data-ready', 'true');
+  await expect(shareCard).not.toHaveAttribute('data-error');
+  await expect(shareCard.locator('img')).toHaveCount(0);
+});
+
+test('card page draws no art from a url outside the template assets', async ({ mount, page }) => {
+  await stubCard(page, artCard('https://example.com/art.png'));
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  const shareCard = page.getByTestId('share-card');
+  await expect(shareCard).toHaveAttribute('data-ready', 'true');
+  await expect(shareCard.locator('img')).toHaveCount(0);
+  await expect(shareCard.locator('svg')).toHaveCount(0);
+});
+
+test('card page draws no art when the look has none', async ({ mount, page }) => {
+  await stubCard(page, {
+    ...linkCard,
+    look: { ...linkCard.look, art: { kind: 'none', generator: null, url: null } },
+  });
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  const shareCard = page.getByTestId('share-card');
+  await expect(shareCard).toHaveAttribute('data-ready', 'true');
+  await expect(shareCard.locator('svg')).toHaveCount(0);
+  await expect(shareCard.locator('img')).toHaveCount(0);
 });
 
 // Baselines come from CI's playwright job (ct-new-baselines), never this host.

@@ -1,6 +1,8 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using SlideWorks.Core.Slides;
+using SlideWorks.Core.Slides.Layouts;
 
 namespace SlideWorks.UnitTest.Slides;
 
@@ -11,27 +13,56 @@ public class LayoutCatalogueTests
     private static readonly HashSet<string> _keywords =
     [
         "$schema", "title", "description", "type", "properties", "required", "additionalProperties", "items",
-        "minItems", "maxItems", "minLength", "maxLength", "pattern", "minimum", "maximum", "enum", "oneOf", "not",
+        "minItems", "maxItems", "minLength", "maxLength", "pattern", "minimum", "maximum", "enum", "oneOf", "not", "format",
     ];
 
     private static readonly HashSet<string> _types = ["string", "number", "integer", "object", "array", "boolean", "null"];
 
     [Test]
-    public void Layouts_ShouldBeTheNineteenFrozenNames()
+    public void Layouts_WhenCollected_ShouldMatchTheNamesFile()
     {
-        LayoutCatalogue.LayoutNames.ShouldBe(
-        [
-            "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote", "image",
-            "table", "chart", "gantt", "numbered-cards", "rules", "cards", "close", "join", "poll", "qa",
-        ]);
+        using var names = JsonDocument.Parse(File.ReadAllText(ContractFiles.PathOf("layout-names.json")));
+
+        LayoutCatalogue.LayoutNames.ShouldBe(names.RootElement.GetProperty("layouts").EnumerateArray().Select(n => n.GetString()!));
         LayoutCatalogue.Layouts.Where(l => l.Dark).Select(l => l.Name).ShouldBe(["title", "divider", "close", "join"]);
     }
 
     [Test]
-    public void Blocks_ShouldBeTheFiveFrozenNames()
+    public void Layouts_WhenSurfaceTrackerAndSteps_ShouldSayThemOnEveryDefinition()
     {
-        LayoutCatalogue.Blocks.Select(b => b.Name).ShouldBe(["callout", "chip", "badge", "stamp", "journey"]);
-        LayoutCatalogue.Blocks.Where(b => !b.SetByAgent).Select(b => b.Name).ShouldBe(["journey"]);
+        LayoutCatalogue.Layouts.Where(l => l.Surface == LayoutSurface.Either).Select(l => l.Name).ShouldBe(["bullets", "two-column", "practice", "big-number", "quote", "cards", "statement"]);
+        LayoutCatalogue.Layouts.Where(l => !l.Tracker).Select(l => l.Name).ShouldBe(["statement"]);
+        LayoutCatalogue.Layouts.Where(l => l.Steps is not null).Select(l => (l.Name, l.StepsFrom))
+            .ShouldBe([("bullets", "items"), ("two-column", null), ("compare", null), ("big-number", null), ("quote", null), ("image", "points"), ("table", "rows"), ("numbered-cards", "cards"), ("rules", "rules"), ("cards", "cards"), ("statement", null), ("stack", "segments"), ("bars", "bars"), ("flow", "nodes")]);
+    }
+
+    [Test]
+    public void Layouts_WhenCollected_ShouldKeepTheFrozenOrder()
+    {
+        LayoutDefinition[] definitions =
+        [
+            TitleLayout.Definition, DividerLayout.Definition, BulletsLayout.Definition, TwoColumnLayout.Definition,
+            PracticeLayout.Definition, CompareLayout.Definition, BigNumberLayout.Definition, QuoteLayout.Definition,
+            ImageLayout.Definition, TableLayout.Definition, ChartLayout.Definition, GanttLayout.Definition,
+            NumberedCardsLayout.Definition, RulesLayout.Definition, CardsLayout.Definition, StatementLayout.Definition,
+            LinksLayout.Definition, StackLayout.Definition, BarsLayout.Definition, FlowLayout.Definition,
+            LevelsLayout.Definition, ColumnsListLayout.Definition, TimelineLayout.Definition, LoopLayout.Definition,
+            CloseLayout.Definition, JoinLayout.Definition, PollLayout.Definition,
+            QaLayout.Definition,
+        ];
+
+        LayoutCatalogue.Layouts.Count.ShouldBe(definitions.Length);
+        for (var i = 0; i < definitions.Length; i++)
+        {
+            LayoutCatalogue.Layouts[i].ShouldBeSameAs(definitions[i]);
+        }
+
+        definitions.Select(d => d.Name).ShouldBe(
+        [
+            "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote", "image",
+            "table", "chart", "gantt", "numbered-cards", "rules", "cards", "statement", "links", "stack", "bars",
+            "flow", "levels", "columns-list", "timeline", "loop", "close", "join", "poll", "qa",
+        ]);
     }
 
     [Test]
@@ -80,14 +111,15 @@ public class LayoutCatalogueTests
     }
 
     [Test]
-    public void ToJsonSchema_WhenPractice_ShouldRequireDoWithLeadAndText()
+    public void ToJsonSchema_WhenPractice_ShouldRequireDoTextAndLeaveLeadOptional()
     {
         var schema = LayoutCatalogue.Find("practice")!.ToJsonSchema();
 
         var doItems = schema["properties"]!["do"]!;
         doItems["type"]!.GetValue<string>().ShouldBe("array");
         doItems["maxItems"]!.GetValue<int>().ShouldBe(5);
-        doItems["items"]!["required"]!.AsArray().Select(n => n!.GetValue<string>()).ShouldBe(["lead", "text"]);
+        doItems["items"]!["required"]!.AsArray().Select(n => n!.GetValue<string>()).ShouldBe(["text"]);
+        schema["required"]!.AsArray().Select(n => n!.GetValue<string>()).ShouldNotContain("comes_back");
     }
 
     // A oneOf branch such as { "required": ["items"] } names the properties of the schema around it.

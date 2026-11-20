@@ -94,7 +94,7 @@ public class Sw2AgentJourneyTests : AcceptanceTest
     private async Task<Dictionary<int, byte[]>> PreviewAsync(ModelContextProtocol.Client.McpClient agent, string deck, params int[] slides)
     {
         var preview = await AgentSeed.CallAsync(agent, "preview_deck", new() { ["deck"] = deck, ["slides"] = slides });
-        preview.GetProperty("slides").EnumerateArray().Select(s => s.GetProperty("number").GetInt32()).ShouldBe(slides);
+        preview.GetProperty("slides").EnumerateArray().Select(s => s.GetInt32()).ShouldBe(slides);
         return await AgentSeed.ScreenshotPreviewAsync(Browser, preview);
     }
 }

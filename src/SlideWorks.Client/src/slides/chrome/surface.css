@@ -1,0 +1,31 @@
+/* The dark surface of a slide (K6). The frame carries data-surface, and on
+   dark the light tokens point at the palette's night set here, so no layout
+   component changes. Tokens and color-mix() of tokens only. The always-dark
+   layouts (title, divider, close, join) carry data-dark as well: they keep
+   their night backdrop from chrome.css and their own tokens (the join slide
+   reads the light good-soft), so the block leaves them out. */
+
+.sw-frame[data-surface='dark']:not([data-dark='true']) {
+  --sw-paper: var(--sw-night);
+  --sw-ink: var(--sw-night-ink);
+  --sw-muted: var(--sw-night-2);
+  --sw-grid: var(--sw-night-line);
+  --sw-card: color-mix(in srgb, var(--sw-night-ink) 7%, var(--sw-night));
+  --sw-chip: color-mix(in srgb, var(--sw-night-ink) 12%, var(--sw-night));
+  --sw-accent-dark: var(--sw-accent-glow);
+  --sw-accent-light: color-mix(in srgb, var(--sw-accent) 24%, var(--sw-night));
+  --sw-good-soft: color-mix(in srgb, var(--sw-good) 22%, var(--sw-night));
+  --sw-good-ink: var(--sw-night-ink);
+  --sw-bad-soft: color-mix(in srgb, var(--sw-bad) 22%, var(--sw-night));
+  --sw-bad-ink: var(--sw-night-ink);
+  --sw-info-soft: var(--sw-accent-light);
+  --sw-info-ink: var(--sw-night-ink);
+}
+
+/* The look layers (T8): one box over the whole slide that takes no space and
+   no pointer events. Each layer positions itself inside it. */
+.sw-layers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}

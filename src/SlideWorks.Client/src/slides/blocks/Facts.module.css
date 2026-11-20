@@ -1,0 +1,33 @@
+/* The facts block, in canvas px: equal tiles 20 px apart, each at least 120 px
+   tall, in 18/22 px padding under a 5 px rule in the tone (a plain tile's rule
+   is the grid line). A 15 px small-capitals label, and a 24 px/1.25 bold value. */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(var(--facts-count), minmax(0, 1fr));
+  gap: 20px;
+  overflow: hidden;
+}
+
+.tile {
+  box-sizing: border-box;
+  min-height: 120px;
+  min-width: 0;
+  padding: 18px 22px;
+  border-top: 5px solid var(--tile-rule, var(--sw-grid));
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-card);
+}
+
+.label {
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+  color: var(--sw-muted);
+  font: 600 15px/18px var(--sw-font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.value {
+  overflow-wrap: anywhere;
+  font: 700 24px/1.25 var(--sw-font-head);
+}

@@ -1,4 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { partsOf } from '../../api/parts';
 import { Journey } from '../blocks/Journey';
 import { useSlidePart } from '../slidePart';
 import type { LayoutProps } from '../slots';
@@ -36,11 +37,14 @@ function stackHeight(root: HTMLElement): number {
 // optional sub, the journey through the deck's parts and, when the template's
 // chrome lists them (deepDivesOnDivider), the headlines of the part's deep
 // dives. The number is the slide's part, so a divider outside any part shows
-// none, and lists none.
+// none, and lists none; in an unnumbered part the mark is the number.
 export function DividerLayout({ slots, deck }: LayoutProps<'divider'>) {
   const part = useSlidePart();
+  // An unnumbered part shows its mark in place of the number, with no journey
+  // and no deep-dive list.
+  const mark = part === null ? null : (partsOf(deck.parts)[part - 1]?.mark ?? null);
   const deepDives =
-    deck.look.template.chrome.deepDivesOnDivider && part !== null
+    deck.look.template.chrome.deepDivesOnDivider && part !== null && mark === null
       ? deck.deepDives.filter((deepDive) => deepDive.part === part)
       : [];
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -54,7 +58,9 @@ export function DividerLayout({ slots, deck }: LayoutProps<'divider'>) {
   const stack = [
     slots.title,
     slots.sub ?? '',
-    deck.parts.join('\n'),
+    partsOf(deck.parts)
+      .map((part) => part.name)
+      .join('\n'),
     deepDives.map((deepDive) => deepDive.headline).join('\n'),
   ].join('\n\n');
   const [fit, setFit] = useState({ stack, shown: MOST_DEEP_DIVES });
@@ -79,7 +85,7 @@ export function DividerLayout({ slots, deck }: LayoutProps<'divider'>) {
     <div ref={rootRef} data-testid="layout-divider" className={`sw-layout ${styles.divider}`}>
       {part !== null ? (
         <p data-testid="divider-number" className={styles.number}>
-          {String(part).padStart(2, '0')}
+          {mark ?? String(part).padStart(2, '0')}
         </p>
       ) : null}
       <h2 ref={titleRef} data-testid="divider-title" className={styles.heading}>
@@ -90,7 +96,7 @@ export function DividerLayout({ slots, deck }: LayoutProps<'divider'>) {
           {slots.sub}
         </p>
       ) : null}
-      {deck.parts.length > 0 ? <Journey parts={deck.parts} part={part} /> : null}
+      {deck.parts.length > 0 && mark === null ? <Journey parts={deck.parts} part={part} /> : null}
       {deepDives.length > 0 ? (
         <div ref={listRef} data-testid="divider-deep-dives" className={styles.deepDives}>
           <p id={labelId} className={styles.deepDivesLabel}>

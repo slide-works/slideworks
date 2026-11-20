@@ -6,6 +6,17 @@ namespace SlideWorks.WebApi.Tests.Support;
 // lowercase enums such as "link" and "agent").
 public static class ScreenShapes
 {
+    // What a template may leave out of a look (T7): a built-in has no logo pair and no versions, and an art has a generator
+    // or a file, never both. Declared first: the options below are built from it.
+    public static readonly IReadOnlyList<string> LookNullablePaths =
+    [
+        "look.logos.light", "look.logos.dark", "look.art.generator", "look.art.url", "look.templateVersion", "look.latestVersion",
+    ];
+
+    // What a built-in deck's look leaves null in a sample: the six above and its template's title art, which no built-in
+    // has. The art above is derived from it, so a sample with a title art beside art "none" is one the server cannot send.
+    public static readonly IReadOnlyList<string> BuiltInLookNullablePaths = ["look.template.titleArt", .. LookNullablePaths];
+
     public static readonly JsonShapeOptions DecksLibrary = new()
     {
         NullablePaths = ["decks[].subtitle", "decks[].lastChange", "sharedWithMe[].subtitle", "sharedWithMe[].lastChange"],
@@ -15,8 +26,9 @@ public static class ScreenShapes
     {
         NullablePaths =
         [
-            "author", "slides[].part", "slides[].headline", "slides[].notes", "activity[].tool",
+            "author", "parts[].caption", "parts[].mark", "slides[].part", "slides[].headline", "slides[].notes", "activity[].tool",
             "look.template.titleArt", "look.logo", "look.chromeOverrides.tracker", "look.chromeOverrides.footer", "look.chromeOverrides.progress",
+            .. LookNullablePaths,
         ],
         OpaquePaths = ["slides[].slots"],
     };
@@ -24,13 +36,24 @@ public static class ScreenShapes
     // The play view (deck-play.json), also returned by the render API.
     public static readonly JsonShapeOptions DeckPlay = new()
     {
-        NullablePaths = ["author", "slides[].part", "look.template.titleArt", "look.logo"],
+        NullablePaths =
+        [
+            "author", "parts[].caption", "parts[].mark", "slides[].part", "look.template.titleArt", "look.logo",
+            .. LookNullablePaths,
+        ],
         OpaquePaths = ["slides[].slots"],
     };
 
-    public static readonly JsonShapeOptions Looks = new() { NullablePaths = ["templates[].titleArt", "templates[].lockedPalette"] };
+    public static readonly JsonShapeOptions Looks = new() { NullablePaths = ["templates[].titleArt", "templates[].lockedPalette", "templates[].version", "templates[].owner"] };
 
-    public static readonly JsonShapeOptions Card = new() { NullablePaths = ["title", "subtitle", "author", "look.template.titleArt", "look.logo"] };
+    public static readonly JsonShapeOptions Card = new()
+    {
+        NullablePaths =
+        [
+            "title", "subtitle", "author", "look.template.titleArt", "look.logo",
+            .. LookNullablePaths,
+        ],
+    };
 
     public static readonly JsonShapeOptions Sharing = new() { NullablePaths = ["lastChange"] };
 
@@ -42,7 +65,11 @@ public static class ScreenShapes
     // deck's talk length.
     public static readonly JsonShapeOptions Presenter = new()
     {
-        NullablePaths = ["author", "slides[].part", "slides[].notes", "slides[].headline", "talkMinutes", "look.template.titleArt", "look.logo"],
+        NullablePaths =
+        [
+            "author", "parts[].caption", "parts[].mark", "slides[].part", "slides[].notes", "slides[].headline", "talkMinutes", "look.template.titleArt", "look.logo",
+            .. LookNullablePaths,
+        ],
         OpaquePaths = ["slides[].slots"],
     };
 
@@ -61,17 +88,22 @@ public static class ScreenShapes
     // samples are null where a live guest has a slide, so they are checked as the same shape with these paths nullable.
     public static readonly JsonShapeOptions Guest = new()
     {
-        NullablePaths = ["deckUrl", "state.current", "state.activity", "state.room", "state.room.round", "look.logo", "look.template.titleArt"],
+        NullablePaths =
+        [
+            "deckUrl", "state.current", "state.activity", "state.room", "state.room.round", "look.logo", "look.template.titleArt",
+            .. LookNullablePaths,
+        ],
         OpaquePaths = ["state.current.slots"],
     };
 
-    // The same paths for the whole file, which JsonShape checks against itself.
+    // The same paths for the whole file, which JsonShape checks against itself. Each sample's look is a built-in's.
     public static readonly JsonShapeOptions GuestFile = new()
     {
         NullablePaths =
         [
             "live.state.activity", "lobby.deckUrl", "lobby.state.current", "lobby.state.activity", "lobby.state.room",
             "ended.state.current", "ended.state.activity", "ended.state.room",
+            .. BuiltInLookNullablePathsUnder("live."), .. BuiltInLookNullablePathsUnder("lobby."), .. BuiltInLookNullablePathsUnder("ended."),
         ],
         OpaquePaths = ["live.state.current.slots"],
     };
@@ -195,10 +227,24 @@ public static class ScreenShapes
         NullablePaths = ["live.questions[].name", "notLive.round", "notLive.here", "notLive.onScreen"],
     };
 
+    // A sample that carries a built-in deck's look, checked against itself: only what a built-in leaves null in a look
+    // may be null (T7), under the look's place in the file.
+    private static JsonShapeOptions BuiltInLookFile(string under = "", params string[] extra) => new()
+    {
+        NullablePaths = [.. BuiltInLookNullablePathsUnder(under), .. extra],
+        OpaquePaths = ["slides[].slots"],
+    };
+
+    private static IReadOnlyList<string> BuiltInLookNullablePathsUnder(string prefix) => BuiltInLookNullablePaths.Select(path => prefix + path).ToList();
+
     // The nullable and opaque paths for each screen file when JsonShapeTests checks a sample against itself. A file with
-    // no entry is checked with slides[].slots opaque, which is every play-shaped screen.
+    // no entry is checked with slides[].slots opaque, which is every play-shaped screen. The six deck samples show a
+    // built-in deck as the server sends it, so their looks hold a built-in's nulls.
     public static JsonShapeOptions SelfCheckOf(string file) => file switch
     {
+        "deck-play.json" or "deck-page.json" or "presenter.json" => BuiltInLookFile("", "parts[].caption", "parts[].mark"),
+        "card.json" => BuiltInLookFile(),
+        "look-change.json" => BuiltInLookFile("response."),
         "guest.json" => GuestFile,
         "audience-events.json" => AudienceEvents,
         "poll-activity.json" => _pollActivityFile,
@@ -212,6 +258,10 @@ public static class ScreenShapes
         "question-votes.json" => QuestionVotes,
         "qa-control.json" => _qaControlFile,
         "questions-report.json" => QuestionsReport,
+        TemplateScreenShapes.TEMPLATES_FILE => TemplateScreenShapes.Templates,
+        TemplateScreenShapes.EDITOR_FILE => TemplateScreenShapes.Editor,
+        TemplateScreenShapes.LAYOUT_REVIEW_FILE => TemplateScreenShapes.LayoutReview,
+        TemplateScreenShapes.PUBLIC_FILE => TemplateScreenShapes.Public,
         _ => new JsonShapeOptions { OpaquePaths = ["slides[].slots"] },
     };
 }

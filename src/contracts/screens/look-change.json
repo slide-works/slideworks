@@ -1,6 +1,7 @@
 {
   "request": {
     "template": "workshop",
+    "templateVersion": "latest",
     "palette": "ember",
     "logo": "img_logo0001",
     "draft": true,
@@ -8,7 +9,8 @@
       "tracker": false,
       "footer": "date",
       "progress": true,
-      "joinBar": true
+      "joinBar": true,
+      "topBar": "none"
     }
   },
   "response": {
@@ -54,7 +56,7 @@
           "shadow": "0 1px 2px rgb(15 23 42 / 0.06), 0 14px 36px rgb(15 23 42 / 0.09)"
         },
         "ornament": "dots",
-        "titleArt": "waves"
+        "titleArt": null
       },
       "palette": {
         "name": "ember",
@@ -67,6 +69,7 @@
           "ink": "#1c1917",
           "muted": "#6b6058",
           "accent": "#c2410c",
+          "accent-2": "#c2410c",
           "accent-dark": "#7c2d12",
           "accent-light": "#fdebdd",
           "accent-glow": "#fdba74",
@@ -89,7 +92,7 @@
           "night-2": "#e7dcd3",
           "night-muted": "#a8998d",
           "night-line": "#4a3b33",
-          "night-glow": "rgb(194 65 12)",
+          "night-glow": "#c2410c",
           "number-from": "#fed7aa",
           "number-to": "#ea580c",
           "stamp": "#fcd34d",
@@ -106,9 +109,30 @@
       "logo": {
         "url": "/api/images/img_logo0001"
       },
+      "fonts": [],
+      "logos": {
+        "light": null,
+        "dark": null,
+        "showOnDark": false
+      },
+      "art": {
+        "kind": "none",
+        "generator": null,
+        "url": null
+      },
+      "ornament": {
+        "colours": []
+      },
+      "topBar": "none",
+      "templateRef": "workshop",
+      "templateVersion": null,
+      "latestVersion": null,
+      "extras": [],
+      "customLayouts": [],
       "draft": true,
       "footerDateLabel": "16 Nov 2026",
       "joinBar": true,
+      "templateMissing": false,
       "chromeOverrides": {
         "tracker": false,
         "footer": "date",

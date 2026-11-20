@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-50 mockups: layout gaps, group B (new or wider layouts)</title>
+<style>
+/* =====================================================================
+   Review-page chrome: the same light ledger as sw-50-mockups.html.
+   No web fonts are loaded: the page names Inter and Plus Jakarta Sans and
+   falls back to the system sans, so text can run a little wider here than
+   in the app.
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --ui: "Inter", system-ui, "Segoe UI", Arial, sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 20px 80px; }
+h1, h2, h3, h4, p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+p, li, td, th, h1, h2, h3, h4 { overflow-wrap: anywhere; }
+.page-head { display: grid; gap: 10px; margin-bottom: 26px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { color: var(--muted); max-width: 880px; font-size: 15px; }
+.toc { display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+section.block { margin: 46px 0 0; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 940px; }
+h3.sub-h { font: 600 14px/1.3 var(--ui); margin: 26px 0 10px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.pad { padding: 16px 18px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.grid2 > *, .grid3 > * { min-width: 0; }
+.note { color: var(--muted); font-size: 12.5px; }
+.card h3 { font: 600 13.5px/1.3 var(--ui); margin-bottom: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+ul.plain { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+ul.plain li { position: relative; padding-left: 20px; }
+ul.plain li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+table.ledger { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-size: 13px; }
+.ledger th { white-space: nowrap; text-align: left; font: 600 11px/1.2 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.ledger td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ledger tr:last-child td { border-bottom: 0; }
+.ledger td.t { font-weight: 600; white-space: nowrap; }
+.ledger td code { color: var(--accent-dark); }
+.ledger td:first-child { overflow-wrap: normal; }
+.ledger td:first-child code { white-space: nowrap; }
+.fig { display: grid; gap: 6px; }
+.fig figcaption, .cap { font-size: 12.5px; color: var(--muted); }
+.cap b { color: var(--text); font-weight: 600; }
+figure { margin: 0; }
+pre.json { margin: 0; padding: 10px 12px; background: #0f172a; color: #e2e8f0; border-radius: 8px; font: 400 11.5px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+pre.json b { color: #93c5fd; font-weight: 500; }
+pre.json i { color: #fca5a5; font-style: normal; }
+
+/* =====================================================================
+   Slides. Each .sl holds a real 1920×1080 canvas (.cv) scaled to the
+   box by the script at the end, so every size below is the canvas px the
+   spec quotes. Colours are the Cobalt palette's tokens.
+   ===================================================================== */
+.sl { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 6px; border: 1px solid var(--line); background: #f7f8fa; }
+.cv {
+  --paper: #f7f8fa; --cardc: #ffffff; --chip: #eef1f6; --grid: #e3e6ec; --ink: #111827; --mut: #5b6474;
+  --acc: #2f5bea; --acc-dark: #1e3a8a; --acc-light: #e4eafd; --acc-glow: #a5b8ff; --acc-past: #b9c8f8; --on-acc: #ffffff;
+  --good: #16a34a; --good-soft: #dcfce7; --good-ink: #166534; --bad: #dc2626; --bad-soft: #fdecec; --bad-ink: #991b1b;
+  --night: #0b1020; --night-ink: #ffffff; --night-2: #cbd5e1; --night-muted: #8c97ad; --night-line: #334155; --night-glow: #2f5bea;
+  --p-acc: #2f5bea; --p-pos: #15803d; --p-neg: #b91c1c; --p-inv: #0b1020; --inv-soft: #0b1020;
+  --head: "Plus Jakarta Sans", "Inter", "Segoe UI", "Helvetica Neue", Arial, "Liberation Sans", sans-serif; --bodyf: "Inter", "Segoe UI", "Helvetica Neue", Arial, "Liberation Sans", sans-serif;
+  --lift: 0 1px 2px rgb(16 24 40 / .05), 0 10px 30px -12px rgb(16 24 40 / .18);
+  --kick: var(--acc); --sub: var(--acc-dark);
+  position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; transform: scale(var(--k, .3));
+  padding: 150px 120px 120px; display: flex; flex-direction: column;
+  background: var(--paper); color: var(--ink); font-family: var(--bodyf); text-align: left;
+}
+.cv * { margin: 0; }
+/* SW-359: a dark slide resolves the light tokens to the palette's night set. */
+.cv.dark {
+  --ink: var(--night-ink); --mut: var(--night-2); --grid: var(--night-line);
+  --cardc: color-mix(in srgb, var(--night-ink) 7%, var(--night)); --chip: color-mix(in srgb, var(--night-ink) 12%, var(--night));
+  --acc-dark: var(--acc-glow); --acc-light: color-mix(in srgb, var(--acc) 24%, var(--night));
+  --good-soft: color-mix(in srgb, var(--good) 22%, var(--night)); --good-ink: var(--night-ink);
+  --bad-soft: color-mix(in srgb, var(--bad) 22%, var(--night)); --bad-ink: var(--night-ink);
+  --inv-soft: color-mix(in srgb, var(--night-ink) 10%, var(--night));
+  --kick: var(--acc-glow); --sub: var(--acc-glow); --lift: none;
+  background: radial-gradient(1100px 700px at 88% 112%, color-mix(in srgb, var(--night-glow) 45%, transparent), transparent 62%), var(--night);
+}
+.cv::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 8px; background: var(--acc); }
+.trk { position: absolute; top: 40px; left: 120px; right: 120px; display: flex; gap: 8px; list-style: none; padding: 0; }
+.trk li { flex: 1; padding-top: 12px; border-top: 4px solid var(--grid); color: var(--mut); font: 700 14px/1 var(--bodyf); letter-spacing: .14em; text-transform: uppercase; opacity: .75; white-space: nowrap; overflow: hidden; }
+.trk li.past { border-top-color: var(--acc-past); }
+.trk li.on { border-top-color: var(--acc); color: var(--acc-dark); opacity: 1; }
+.dark .trk li { color: var(--night-muted); }
+.dark .trk li.past { border-top-color: color-mix(in srgb, var(--acc) 45%, var(--night)); }
+.dark .trk li.on { color: var(--acc-glow); }
+.ft { position: absolute; left: 120px; right: 120px; bottom: 40px; height: 17px; display: flex; align-items: center; justify-content: space-between; color: var(--mut); font: 500 17px/1 var(--bodyf); }
+.ft b { color: var(--acc-dark); }
+.dark .ft { color: var(--night-muted); }
+.ft .lg { display: flex; align-items: center; gap: 10px; font: 800 24px/1 var(--head); letter-spacing: -.01em; color: var(--ink); }
+.ft .lg i { width: 26px; height: 26px; border-radius: 7px; background: var(--acc); display: block; }
+.dark .ft .lg i { background: var(--night-ink); }
+.prog { position: absolute; left: 0; bottom: 0; height: 5px; background: var(--acc); }
+.dark .prog { background: var(--acc-glow); opacity: .7; }
+.kick { font: 700 20px/1 var(--bodyf); letter-spacing: .18em; text-transform: uppercase; color: var(--kick); margin-bottom: 22px; }
+.hl { font: 800 64px/1.08 var(--head); letter-spacing: -.025em; max-width: 1560px; }
+.bd { flex: 1; min-height: 0; margin-top: 46px; display: flex; flex-direction: column; }
+em.e { font-style: normal; color: var(--acc); }
+.dark em.e { color: var(--acc-glow); }
+.later-step { outline: 3px dashed color-mix(in srgb, var(--acc) 55%, transparent); outline-offset: 8px; }
+.stepn { position: absolute; transform: translate(-6px, -34px); font: 700 15px/1 var(--bodyf); letter-spacing: .1em; text-transform: uppercase; color: var(--acc); background: var(--paper); padding: 3px 7px; border-radius: 6px; }
+.dark .stepn { background: var(--night); color: var(--acc-glow); }
+
+/* bullets and callout (existing blocks, shown for SW-359) */
+.bl { list-style: none; padding: 0; display: grid; gap: 30px; max-width: 1500px; }
+.bl li { position: relative; padding-left: 52px; font: 400 36px/1.35 var(--bodyf); }
+.bl li::before { content: ""; position: absolute; left: 0; top: 14px; width: 20px; height: 20px; border-radius: 5px; background: var(--acc); }
+.call { margin-top: 30px; padding: 28px 36px; border-radius: 14px; font: 700 28px/1.35 var(--head); background: var(--acc-light); color: var(--acc-dark); }
+.call.neg { background: var(--bad-soft); color: var(--bad-ink); box-shadow: inset 6px 0 0 var(--bad); }
+.call.pos { background: var(--good-soft); color: var(--good-ink); box-shadow: inset 6px 0 0 var(--good); }
+.bn { display: flex; align-items: center; gap: 70px; margin: auto 0; }
+.bn .v { font: 800 300px/.9 var(--head); letter-spacing: -.04em; color: var(--acc); }
+.dark .bn .v { color: var(--acc-glow); }
+.bn .v small { font-size: .38em; letter-spacing: -.02em; margin-left: 12px; }
+.bn .c { font: 700 44px/1.2 var(--head); max-width: 760px; }
+.bn .d { font: 400 28px/1.4 var(--bodyf); color: var(--mut); margin-top: 18px; max-width: 760px; }
+.src { font: 400 20px/1.35 var(--bodyf); color: var(--mut); }
+.dark .src { color: var(--night-muted); }
+
+/* SW-358 statement */
+.stmt { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.stmt h2 { font: 800 210px/1 var(--head); letter-spacing: -.035em; max-width: 1680px; }
+.stmt h2 span { display: block; }
+.stmt .sub { margin-top: 44px; font: 600 56px/1.25 var(--head); letter-spacing: -.015em; color: var(--sub); max-width: 1680px; }
+
+/* SW-362 cards */
+.cards { flex: 1; min-height: 0; display: grid; gap: 32px; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; padding: 0; }
+.cards.two { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 28px 32px; }
+.cards.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; }
+.cards.start { flex: none; align-items: start; }
+.cd { position: relative; min-width: 0; padding: 34px 36px; border-radius: 20px; background: var(--cardc); box-shadow: var(--lift); display: flex; flex-direction: column; }
+.cd .bdg { align-self: flex-start; padding: 7px 12px; border-radius: 999px; background: var(--acc-light); color: var(--acc-dark); font: 700 15px/1 var(--bodyf); letter-spacing: .14em; text-transform: uppercase; margin-bottom: 18px; }
+.cd h4 { font: 700 34px/1.15 var(--head); margin-bottom: 12px; overflow-wrap: anywhere; }
+.cd p { font: 400 24px/1.4 var(--bodyf); color: var(--mut); overflow-wrap: anywhere; }
+.cd .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.cd .chips span { padding: 9px 16px; border-radius: 999px; background: var(--chip); font: 600 18px/1 var(--bodyf); }
+.cd .ico { width: 56px; height: 56px; border-radius: 14px; border: 3px dashed color-mix(in srgb, var(--rule, var(--acc)) 60%, transparent); margin-bottom: 22px; display: grid; place-items: center; font: 700 13px/1 var(--bodyf); color: var(--rule, var(--acc)); letter-spacing: .08em; }
+.cd .num { font: 800 64px/1 var(--head); color: var(--acc); margin-bottom: 22px; }
+.cards.four .cd { padding: 34px 32px 38px; }
+.cards.four .cd h4 { font: 700 30px/1.2 var(--head); margin-bottom: 14px; }
+.cards.four .cd p { font: 400 23px/1.4 var(--bodyf); }
+/* large scale */
+.cards.lg .cd { padding: 40px; }
+.cards.lg .cd h4 { font: 800 50px/1.12 var(--head); letter-spacing: -.02em; margin-bottom: 16px; }
+.cards.lg .cd p { font: 400 30px/1.4 var(--bodyf); }
+.cards.lg .cd .num { font-size: 96px; margin-bottom: 26px; }
+.cards.two.lg .cd { padding: 32px 40px; }
+.cards.two.lg .cd h4 { font: 800 44px/1.12 var(--head); margin-bottom: 12px; }
+.cards.two.lg .cd p { font: 400 28px/1.4 var(--bodyf); }
+.cards.two .cd { padding: 28px 36px; }
+.cards.four.lg .cd h4 { font: 800 40px/1.15 var(--head); }
+.cards.four.lg .cd p { font: 400 28px/1.4 var(--bodyf); }
+/* fill: plain keeps the card surface and takes the tone on an 8 px top rule */
+.cd.plain { border-top: 8px solid var(--rule); }
+.cd.t-acc { --rule: var(--acc); } .cd.t-pos { --rule: var(--good); } .cd.t-neg { --rule: var(--bad); } .cd.t-inv { --rule: var(--night); }
+.cd.solid { background: var(--p-acc); color: #fff; box-shadow: var(--lift); }
+.cd.solid p { color: color-mix(in srgb, #fff 86%, var(--p-acc)); }
+.cd.solid .num { color: color-mix(in srgb, #fff 70%, var(--p-acc)); }
+.cd .pin { position: absolute; right: 28px; bottom: 28px; padding: 9px 14px; border-radius: 999px; font: 700 15px/1 var(--bodyf); letter-spacing: .14em; text-transform: uppercase; background: var(--acc-light); color: var(--acc-dark); }
+.cd.solid .pin { background: color-mix(in srgb, #fff 22%, var(--p-acc)); color: #fff; }
+
+/* SW-363 compare */
+.cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.pn { --surf: var(--cardc); --pink: var(--ink); --edge: var(--acc); min-width: 0; padding: 44px 48px; border-top: 10px solid var(--edge); border-radius: 24px; background: var(--surf); color: var(--pink); box-shadow: var(--lift); display: flex; flex-direction: column; }
+.pn.soft.neg { --surf: var(--bad-soft); --pink: var(--bad-ink); --edge: var(--bad); }
+.pn.soft.pos { --surf: var(--good-soft); --pink: var(--good-ink); --edge: var(--good); }
+.pn.plain.inv { --edge: var(--night); --tagc: var(--night); }
+.pn.plain.acc { --edge: var(--acc); --tagc: var(--acc-dark); }
+.pn.plain.neg { --edge: var(--bad); --tagc: var(--bad-ink); }
+.pn.plain.pos { --edge: var(--good); --tagc: var(--good-ink); }
+.pn.solid.acc { --surf: var(--p-acc); --pink: #fff; --edge: var(--p-acc); }
+.pn .tag { font: 800 18px/1 var(--bodyf); letter-spacing: .16em; text-transform: uppercase; color: var(--tagc, var(--pink)); }
+.pn h4 { font: 800 44px/1.1 var(--head); letter-spacing: -.02em; margin-top: 18px; }
+.pn .rows { margin-top: 26px; display: grid; }
+.pn .rows div { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; align-items: baseline; padding: 12px 0; border-top: 1px solid color-mix(in srgb, var(--pink) 14%, transparent); }
+.pn .rows small { font: 700 16px/1.2 var(--bodyf); letter-spacing: .14em; text-transform: uppercase; color: color-mix(in srgb, var(--pink) 62%, var(--surf)); }
+.pn .rows b { font: 700 32px/1.2 var(--head); }
+.pn .line { margin-top: 26px; font: 700 40px/1.25 var(--head); letter-spacing: -.01em; }
+.pn .stmp { align-self: flex-start; margin-top: 24px; padding: 10px 20px; border: 4px solid var(--edge); border-radius: 10px; color: var(--edge); font: 800 26px/1 var(--bodyf); letter-spacing: .16em; text-transform: uppercase; transform: rotate(-4deg); }
+.pn.solid .stmp { border-color: var(--pink); color: var(--pink); }
+.pn .foot { margin-top: auto; font: 400 24px/1.4 var(--bodyf); color: color-mix(in srgb, var(--pink) 80%, var(--surf)); }
+.pn .foot::before { content: ""; display: block; height: 1px; background: color-mix(in srgb, var(--pink) 16%, transparent); margin: 20px 0 14px; }
+.pn ul { margin-top: 26px; padding-left: 30px; display: grid; gap: 16px; font: 400 27px/1.4 var(--bodyf); }
+
+/* SW-365 quote */
+.qt { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+.qt figure { padding-left: 48px; border-left: 8px solid var(--acc); max-width: 1480px; }
+.qt blockquote { font: 700 62px/1.22 var(--head); letter-spacing: -.02em; }
+.qt .att { display: flex; gap: 48px; align-items: flex-end; justify-content: space-between; margin-top: 34px; }
+.qt .who { font: 400 28px/1.3 var(--bodyf); color: var(--mut); }
+.qt .who b { color: var(--ink); font-weight: 700; }
+.qt .stat { flex: none; width: 420px; padding: 24px 30px; border-radius: 16px; background: var(--bad-soft); color: var(--bad-ink); box-shadow: inset 6px 0 0 var(--bad); }
+.qt .stat b { display: block; font: 800 72px/1 var(--head); letter-spacing: -.03em; }
+.qt .stat span { display: block; margin-top: 10px; font: 400 22px/1.3 var(--bodyf); }
+.qt .fu { margin-top: 34px; padding-top: 34px; border-top: 1px solid var(--grid); font: 600 32px/1.35 var(--bodyf); max-width: 1432px; }
+.qt .src { margin-top: 24px; max-width: 1480px; }
+
+/* SW-366 links */
+.lk { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 64px; align-items: start; }
+.lk.qr { grid-template-columns: minmax(0, 1fr) 400px; }
+.lk ul { list-style: none; padding: 0; display: grid; gap: 12px; }
+.lk li { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 20px; align-items: center; padding: 14px 28px; border-radius: 14px; background: var(--cardc); box-shadow: var(--lift); }
+.lk li small { font: 700 15px/1.2 var(--bodyf); letter-spacing: .14em; text-transform: uppercase; color: var(--acc); }
+.lk li a { display: block; font: 700 28px/1.25 var(--head); color: var(--acc-dark); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; text-decoration-color: color-mix(in srgb, var(--acc) 40%, transparent); }
+.lk li span { display: block; margin-top: 4px; font: 400 20px/1.3 var(--bodyf); color: var(--mut); }
+.lk aside { display: grid; gap: 14px; justify-items: center; }
+.lk aside .q { width: 400px; height: 400px; padding: 0; border-radius: 16px; overflow: hidden; background: #fff; box-shadow: var(--lift); }
+.lk aside .q svg { display: block; width: 100%; height: 100%; }
+.lk aside p { font: 500 20px/1.3 var(--mono); color: var(--mut); text-align: center; overflow-wrap: anywhere; }
+
+/* SW-368 image */
+.im { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 64px; }
+.im.pts { grid-template-columns: minmax(0, 1fr) 680px; }
+.im figure { display: flex; flex-direction: column; align-items: center; min-height: 0; }
+.im .pic { flex: 1; min-height: 0; display: flex; align-items: flex-start; justify-content: center; width: 100%; }
+.im .pic svg { height: 100%; width: auto; max-width: 100%; display: block; }
+.im .pic.framed svg { background: var(--cardc); border-radius: 20px; box-shadow: var(--lift); }
+.im figcaption { margin-top: 16px; font: 400 20px/1.3 var(--bodyf); color: var(--mut); text-align: center; }
+.pts2 { list-style: none; padding: 0; display: grid; gap: 22px; align-content: start; }
+.pts2 li { position: relative; padding-left: 44px; font: 400 26px/1.35 var(--bodyf); }
+.pts2 li::before { content: ""; position: absolute; left: 0; top: 9px; width: 16px; height: 16px; border-radius: 4px; background: var(--acc); }
+.pts2 li b { color: var(--acc-dark); font-weight: 700; }
+/* position: right. The layout owns both columns: the heading moves into the left one. */
+.side { flex: 1; min-height: 0; display: grid; grid-template-columns: 760px minmax(0, 1fr); gap: 64px; margin-bottom: -36px; }
+.side .l { display: flex; flex-direction: column; min-height: 0; }
+.side .l .hl { max-width: none; }
+.side .l .pts2 { margin-top: 46px; }
+.side .l .call { margin-top: auto; }
+.side .r { min-height: 0; display: flex; align-items: center; justify-content: center; }
+.side .r svg { height: 100%; width: auto; max-width: 100%; display: block; }
+.side .r.framed svg { background: var(--cardc); border-radius: 20px; box-shadow: var(--lift); }
+</style>
+</head>
+<body>
+<main>
+<header class="page-head">
+  <span class="eyebrow">SlideWorks · SW-50 part 2 · group B</span>
+  <h1>Layout gaps: new or wider layouts</h1>
+  <p>Seven stories from the 44-slide deck rebuilt on 17 Nov. Each section shows the slide model change and the slide drawn at 16:9 in the built-in look (Cobalt palette), with the largest content the server accepts. The build spec is <code>gaps-b.md</code> in this folder. The example brand is the made-up Northwind.</p>
+</header>
+<nav class="toc">
+  <a href="#scope">00 Scope</a><a href="#surface">01 Dark per slide</a><a href="#statement">02 Statement</a><a href="#cards">03 Cards</a>
+  <a href="#compare">04 Compare</a><a href="#quote">05 Quote</a><a href="#links">06 Links</a><a href="#image">07 Image</a><a href="#decisions">08 Decisions</a>
+</nav>
+
+<!-- ============================================================ 00 -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">00</span><h2>What group B changes</h2><span class="pill grey">design only, not built</span></div>
+  <p class="sec-sub">Two new layouts, one new slide field and five wider layouts. Nothing here parses slot text: emphasis, icons, the generic callout slot and the step rules come from group A and are only placed here.</p>
+  <div class="table-wrap">
+  <table class="ledger">
+    <tr><th>Story</th><th>Change to the slide model</th><th>Source slides</th><th>Size</th></tr>
+    <tr><td class="t">SW-359</td><td>A slide field <code>surface: "light" | "dark"</code>, next to <code>part</code> and <code>deep_dive</code>. A layout's surface is <code>light</code>, <code>dark</code> or <code>either</code>. <code>statement</code>, <code>quote</code>, <code>bullets</code> and <code>big-number</code> are <code>either</code>.</td><td>20, 27, 31, 35</td><td>M</td></tr>
+    <tr><td class="t">SW-358</td><td>New layout <code>statement</code>: <code>kicker</code>, <code>statement</code>, <code>sub</code>, <code>reveal</code>.</td><td>26, 28</td><td>S</td></tr>
+    <tr><td class="t">SW-362</td><td><code>cards</code> takes 1–4 cards, 4 as 2×2. Cards fill the body height. Two type scales, picked by a fixed rule. <code>pin</code> on a card. <code>fill: "plain"</code> gives a toned top rule. <code>numbered-cards</code> cards take <code>tone</code>, <code>fill</code> and <code>pin</code>.</td><td>2, 4, 15, 23, 38, 42</td><td>L</td></tr>
+    <tr><td class="t">SW-363</td><td>A <code>compare</code> panel holds exactly one of <code>points</code>, <code>rows</code> or <code>line</code>, plus an optional <code>stamp</code> and <code>footer</code>, and <code>fill: "plain"</code>.</td><td>6, 29, 30</td><td>M</td></tr>
+    <tr><td class="t">SW-365</td><td><code>quote</code> gains <code>headline</code>, <code>role</code>, <code>stat</code>, <code>follow_up</code>, <code>source</code> and <code>reveal</code>.</td><td>20, 31, 35</td><td>M</td></tr>
+    <tr><td class="t">SW-366</td><td>New layout <code>links</code>: 1–6 rows of <code>kind</code>, <code>title</code>, <code>source</code>, <code>url</code>, and an optional <code>qr</code>. New slot kind <code>link</code>: an http or https address.</td><td>40</td><td>M</td></tr>
+    <tr><td class="t">SW-368</td><td><code>image</code> gains <code>frame: "card" | "none"</code> and <code>position: "below" | "right"</code>. Points take <code>{lead, text}</code>. The callout is group A's slot, placed here.</td><td>7, 14, 24</td><td>M</td></tr>
+  </table>
+  </div>
+  <div class="grid3" style="margin-top:16px">
+    <div class="card pad"><h3>From group A, assumed</h3><ul class="plain">
+      <li><b>Emphasis</b> (SW-360) in <code>statement.statement</code>, <code>quote.quote</code> and a compare panel's <code>line</code>. Drawn here as an accent-coloured word.</li>
+      <li><b>Icons</b> (SW-361) on <code>cards[].icon</code> and a compare panel's <code>icon</code>. Drawn here as a dashed square.</li>
+      <li><b>Callout slot</b> (SW-357) on <code>image</code>, and on <code>statement</code>, <code>quote</code>, <code>links</code>, <code>cards</code> and <code>compare</code> if A adds it there. Group B only says where it sits and counts its height.</li>
+      <li><b>Steps</b> (SW-364): <code>reveal: "one-by-one"</code> walks a layout's ordered step targets. Group B names the targets.</li>
+    </ul></div>
+    <div class="card pad"><h3>Rules kept</h3><ul class="plain">
+      <li>A slide is a layout plus typed slots. Slot text is plain text.</li>
+      <li>Every colour is a <code>--sw-*</code> token. Dark slides use the night set.</li>
+      <li>Display text fits on the client (<code>useFitText</code>). Body text is checked on the server (<code>SlideFit</code>).</li>
+      <li>Hidden steps stay rendered (<code>Reveal</code>).</li>
+    </ul></div>
+    <div class="card pad"><h3>How to read the slides</h3><ul class="plain">
+      <li>A dashed outline marks a part that appears on a later step. The label gives the step.</li>
+      <li>A dashed square is an icon from group A.</li>
+      <li>"Maximum" slides hold the most text the server accepts for that arrangement.</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ============================================================ 01 -->
+<section class="block" id="surface">
+  <div class="sec-head"><span class="n">01</span><h2>SW-359 · A dark variant per slide</h2><span class="pill acc">slide field <code>surface</code></span></div>
+  <p class="sec-sub">The source deck sets three quotes and one ownership slide on the dark surface for emphasis. The slide says so with one field. The layout does not change, and no slot is added. The word and its meaning match D16 for custom layouts: a layout declares <code>light</code>, <code>dark</code> or <code>either</code>, and with <code>either</code> the slide picks.</p>
+  <div class="grid2">
+    <figure class="fig"><div class="sl"><div class="cv" data-n="27" data-part="6">
+      <p class="kick">Ownership</p><h3 class="hl">Someone has to own the decision, and a tool can't own anything</h3>
+      <div class="bd"><ul class="bl"><li>The agent can help in the war room. A person still has to own the decision.</li><li>That person needs the authority to stop the release.</li></ul>
+      <p class="call neg">When a change breaks production, who goes to the war room?</p></div>
+    </div></div><figcaption><b>Light</b> (the default): <code>bullets</code> with a soft negative callout, as today.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv dark" data-n="27" data-part="6">
+      <p class="kick">Ownership</p><h3 class="hl">Someone has to own the decision, and a tool can't own anything</h3>
+      <div class="bd"><ul class="bl"><li>The agent can help in the war room. A person still has to own the decision.</li><li>That person needs the authority to stop the release.</li></ul>
+      <p class="call neg">When a change breaks production, who goes to the war room?</p></div>
+    </div></div><figcaption><b>Dark</b>: the same slots with <code>"surface": "dark"</code>. The tracker and footer stay, in their night colours, with the dark logo (D12).</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv dark" data-n="18" data-part="4">
+      <p class="kick">The cost of a seat</p><h3 class="hl">Tokens are a small part of what a seat costs</h3>
+      <div class="bd"><div class="bn"><div class="v">5<small>%</small></div><div><p class="c">added to the cost of every engineer's seat</p><p class="d">The token budget comes with the person. We planned for 10% more output in return.</p></div></div>
+      <p class="src">Source: Northwind engineering budget, 2026</p></div>
+    </div></div><figcaption><b><code>big-number</code>, dark.</b> The value takes <code>accent-glow</code>.</figcaption></figure>
+    <div class="fig">
+<pre class="json">add_slide {
+  "deck": "RzvK5rWa20ye",
+  "layout": "bullets",
+  <b>"surface": "dark"</b>,
+  "part": 6,
+  "slots": { "kicker": "Ownership", "headline": "…", "items": ["…"],
+    "callout": { "tone": "negative", "text": "…" } }
+}
+
+add_slide { "layout": "cards", <i>"surface": "dark"</i>, … }
+→ surface: the 'cards' layout is always light; statement,
+  quote, bullets and big-number can be dark
+
+add_slide { "layout": "title", <i>"surface": "light"</i>, … }
+→ surface: the 'title' layout is always dark</pre>
+      <p class="cap">Left out, the slide takes the layout's own surface. <code>list_layouts</code> gives each layout <code>surface</code> and keeps <code>dark</code> (true only for the always-dark layouts).</p>
+    </div>
+  </div>
+  <h3 class="sub-h">How the tokens switch</h3>
+  <div class="grid2">
+    <table class="ledger">
+      <tr><th>On a dark slide</th><th>resolves to</th></tr>
+      <tr><td><code>ink</code></td><td><code>night-ink</code></td></tr>
+      <tr><td><code>muted</code></td><td><code>night-2</code> (body), <code>night-muted</code> (tracker, footer, source)</td></tr>
+      <tr><td><code>grid</code></td><td><code>night-line</code></td></tr>
+      <tr><td><code>card</code>, <code>chip</code></td><td><code>night-ink</code> mixed 7% and 12% into <code>night</code></td></tr>
+      <tr><td><code>accent-dark</code>, the kicker, the statement's sub</td><td><code>accent-glow</code></td></tr>
+      <tr><td><code>accent-light</code>, <code>good-soft</code>, <code>bad-soft</code></td><td>the role colour mixed 22–24% into <code>night</code>, with <code>night-ink</code> text</td></tr>
+      <tr><td>solid panels</td><td>unchanged: <code>panel-*</code> and <code>panel-*-ink</code></td></tr>
+    </table>
+    <div class="card pad"><h3>What this means for the build</h3><ul class="plain">
+      <li>One block of CSS on <code>.sw-frame[data-dark='true']</code> re-points the light tokens. Layout components do not change.</li>
+      <li>The four always-dark layouts use only night tokens today, so the block does not touch them.</li>
+      <li>Tracker and footer are hidden by layout (<code>title</code>, <code>divider</code>, <code>close</code>, <code>join</code>), no longer by darkness.</li>
+      <li>Five new contrast pairs join the palette check, so a custom palette is held to them too.</li>
+      <li>Other layouts stay light until someone checks them dark and adds a baseline. Turning one on is a one-word change.</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ============================================================ 02 -->
+<section class="block" id="statement">
+  <div class="sec-head"><span class="n">02</span><h2>SW-358 · Statement layout</h2><span class="pill acc">new layout <code>statement</code></span></div>
+  <p class="sec-sub">One sentence that carries the slide, light or dark, with an optional sub line. It is not <code>close</code>: it has a kicker, sits anywhere in the deck, keeps the tracker and footer, and its sub is a plain line, not a box. The sentence is display text: set at 210 px, shrinking to 110 px to keep three lines and the height that is left.</p>
+  <div class="grid2">
+    <figure class="fig"><div class="sl"><div class="cv" data-n="26" data-part="6">
+      <div class="stmt"><p class="kick">After all of that</p><h2 data-fit="210,110,3,1"><span>You still need</span><span><em class="e">people.</em></span></h2><p class="sub">Individuals and interactions over processes and tools.</p></div>
+    </div></div><figcaption><b>Light.</b> Source slide 26. The accent word is group A's emphasis (SW-360).</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv dark" data-n="28" data-part="6">
+      <div class="stmt"><h2 data-fit="210,110,3,1"><span>AI is not coming</span><span>to your war room.</span></h2><p class="sub later-step"><span class="stepn">step 1</span>It can help. It can't answer for it. That has to be you.</p></div>
+    </div></div><figcaption><b>Dark, with the sub on step 1</b> (<code>"reveal": "one-by-one"</code>). Source slide 28. The sentence shrinks until its two written lines fit the width.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="26" data-part="6">
+      <div class="stmt"><p class="kick">Weekly Metrics Show Where Work Waits See</p><h2 data-fit="210,110,3,1"><span>Make Every Merge</span><span>Small And Reviewable</span><span>Momentum Matters More</span></h2><p class="sub">Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Small And Reviewable</p></div>
+    </div></div><figcaption><b>Maximum.</b> Three written lines (58 of 70 characters), a 40-character kicker and a two-line sub of 100 characters. The sentence shrinks to keep its height.</figcaption></figure>
+    <div class="fig">
+      <table class="ledger">
+        <tr><th>Slot</th><th>Kind</th><th>Limits</th></tr>
+        <tr><td><code>kicker</code></td><td>text, optional</td><td>40</td></tr>
+        <tr><td><code>statement</code></td><td>text, required</td><td>70, line breaks allowed, at most 3 written and 3 shown lines. Takes emphasis (A)</td></tr>
+        <tr><td><code>sub</code></td><td>text, optional</td><td>100, at most 2 lines at 56 px</td></tr>
+        <tr><td><code>reveal</code></td><td><code>all</code> or <code>one-by-one</code></td><td>one-by-one puts <code>sub</code> on step 1</td></tr>
+      </table>
+      <p class="cap">Surface: <code>either</code>. Refused: <code>statement.statement: too long to fit: it wraps to about 4 lines at the statement's smallest size, and at most 3 fit</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 03 -->
+<section class="block" id="cards">
+  <div class="sec-head"><span class="n">03</span><h2>SW-362 · Cards that use the slide's height</h2><span class="pill acc"><code>cards</code>, <code>numbered-cards</code></span></div>
+  <p class="sec-sub">Cards fill the body height. When every card is short the type is set large, by a fixed rule on character counts that the server and the client share, so nothing is measured in the browser. <code>cards</code> takes a fourth card and lays four out 2×2. A card can be highlighted (solid fill), carry a pin, or take its tone on a top rule (<code>fill: "plain"</code>).</p>
+  <div class="grid2">
+    <figure class="fig"><div class="sl"><div class="cv" data-n="2">
+      <p class="kick">Before we start</p><h3 class="hl">Three questions every leader is asking about AI and their teams</h3>
+      <div class="bd"><ul class="cards start"><li class="cd"><span class="bdg">Money</span><h4>What does a team cost now?</h4><p>And where does AI go in the budget?</p></li><li class="cd"><span class="bdg">Process</span><h4>Can I automate it?</h4><p>And what happens to the way the team works?</p></li><li class="cd"><span class="bdg">Risk</span><h4>Who's accountable when it breaks?</h4><p>And can that be anyone other than us?</p></li></ul></div>
+    </div></div><figcaption><b>Today.</b> Cards are as tall as their text, and half the slide is empty.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="2">
+      <p class="kick">Before we start</p><h3 class="hl">Three questions every leader is asking about AI and their teams</h3>
+      <div class="bd"><ul class="cards lg"><li class="cd plain t-acc"><span class="ico">A</span><span class="bdg">Money</span><h4>What does a team cost now?</h4><p>And where does AI go in the budget?</p></li><li class="cd plain t-pos"><span class="ico">A</span><span class="bdg">Process</span><h4>Can I automate it?</h4><p>And what happens to the way the team works?</p></li><li class="cd plain t-neg"><span class="ico">A</span><span class="bdg">Risk</span><h4>Who's accountable when it breaks?</h4><p>And can that be anyone other than us?</p></li></ul></div>
+    </div></div><figcaption><b>New, large scale.</b> Source slide 2. Each card has <code>tone</code> with <code>fill: "plain"</code>: its own top rule. The dashed square is A's icon.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="4" data-part="1">
+      <p class="kick">The agile manifesto</p><h3 class="hl">Agile was always about people and customers, not process</h3>
+      <div class="bd"><ul class="cards two lg"><li class="cd solid"><h4>Individuals and interactions</h4><p>over processes and tools</p><span class="pin">Hold on to this one</span></li><li class="cd"><h4>Working software</h4><p>over comprehensive documentation</p></li><li class="cd"><h4>Customer collaboration</h4><p>over contract negotiation</p></li><li class="cd"><h4>Responding to change</h4><p>over following a plan</p></li></ul></div>
+    </div></div><figcaption><b>Four cards, 2×2.</b> Source slide 4. The first card is <code>tone: "accent", fill: "solid"</code> with <code>pin</code>.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="15" data-part="4">
+      <p class="kick">Managing the spend</p><h3 class="hl">We manage token spend by asking questions, not by setting caps</h3>
+      <div class="bd"><ul class="cards lg"><li class="cd"><span class="num">1</span><h4>Talk to the high spenders</h4><p>Have a conversation, not a punishment.</p></li><li class="cd"><span class="num">2</span><h4>Talk to the low spenders too</h4><p>Are they missing out, or have they found something worth sharing?</p></li><li class="cd solid"><span class="num">3</span><h4>Hunt the forgotten agents</h4><p>Agents running for hours with nobody waiting on the result.</p></li></ul></div>
+    </div></div><figcaption><b><code>numbered-cards</code>, three across, the third highlighted.</b> Source slide 15. Two or three cards now share three columns; four keep four.</figcaption></figure>
+  </div>
+  <h3 class="sub-h">Maximum content</h3>
+  <div class="grid3">
+    <figure class="fig"><div class="sl"><div class="cv" data-n="23" data-part="5">
+      <p class="kick">Weekly Metrics Show Where Work Waits See</p><h3 class="hl">Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working</h3>
+      <div class="bd"><ul class="cards"><li class="cd"><span class="bdg">Weekly Metrics Show</span><h4>Every Merge Small And Reviewable Momentum Matters</h4><p>Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every</p><div class="chips"><span>Momentum Matters More</span><span>Working Software Weekly</span></div></li><li class="cd"><span class="bdg">Weekly Metrics Show</span><h4>Every Merge Small And Reviewable Momentum Matters</h4><p>Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every</p><div class="chips"><span>Momentum Matters More</span><span>Working Software Weekly</span></div></li><li class="cd"><span class="bdg">Weekly Metrics Show</span><h4>Every Merge Small And Reviewable Momentum Matters</h4><p>Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every</p><div class="chips"><span>Momentum Matters More</span><span>Working Software Weekly</span></div></li></ul></div>
+    </div></div><figcaption><b>Row, regular scale.</b> Badge, 50-character title, 140-character text, two chips.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="23" data-part="5">
+      <p class="kick">Weekly Metrics Show Where Work Waits See</p><h3 class="hl">Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working</h3>
+      <div class="bd"><ul class="cards two"><li class="cd"><h4>Every Merge Small And Reviewable Momentum Matters</h4><p>Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every</p></li><li class="cd"><h4>Every Merge Small And Reviewable Momentum Matters</h4><p>Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every</p></li><li class="cd"><h4>Every Merge Small And Reviewable Momentum Matters</h4><p>Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every</p></li><li class="cd"><h4>Every Merge Small And Reviewable Momentum Matters</h4><p>Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every</p></li></ul></div>
+    </div></div><figcaption><b>2×2, regular scale.</b> Each card has 282 px: a full title and text fit, a badge or chips on top of them do not and are refused.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="23" data-part="5">
+      <p class="kick">Weekly Metrics Show Where Work Waits See</p><h3 class="hl">Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working</h3>
+      <div class="bd"><ul class="cards four"><li class="cd"><span class="num">1</span><h4>Every Merge Small And Reviewable Momentum</h4><p>Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every</p></li><li class="cd"><span class="num">2</span><h4>Every Merge Small And Reviewable Momentum</h4><p>Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every</p></li><li class="cd"><span class="num">3</span><h4>Every Merge Small And Reviewable Momentum</h4><p>Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every</p></li><li class="cd solid"><span class="num">4</span><h4>Every Merge Small And Reviewable Momentum</h4><p>Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every</p><span class="pin">Hold on to this one</span></li></ul></div>
+    </div></div><figcaption><b><code>numbered-cards</code>, four, regular scale</b>, the last one solid with a pin. The pin's 44 px count in the fit.</figcaption></figure>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <table class="ledger">
+      <tr><th>Slot</th><th>Change</th></tr>
+      <tr><td><code>cards.cards</code></td><td>1–4 items (was 1–3). Four are laid out 2×2</td></tr>
+      <tr><td><code>cards[].fill</code></td><td><code>soft</code>, <code>solid</code> or <code>plain</code> (new). Plain keeps the card surface and draws an 8 px top rule in the tone's colour</td></tr>
+      <tr><td><code>cards[].pin</code></td><td>new, text, optional, 24. A small label in the card's bottom right corner</td></tr>
+      <tr><td><code>cards[].icon</code></td><td>group A's icon type (SW-361)</td></tr>
+      <tr><td><code>numbered-cards.cards[]</code></td><td>gains <code>tone</code>, <code>fill</code> and <code>pin</code>, the same as <code>cards</code></td></tr>
+    </table>
+    <div class="card pad"><h3>The scale rule</h3><ul class="plain">
+      <li><b>Large</b> when every card's title is at most 32 characters, its text at most 70, and it has no chips. Otherwise <b>regular</b>, today's sizes.</li>
+      <li>Large: 50 px title and 30 px text in a row, 44 and 28 in the 2×2, 40 and 28 in four numbered columns.</li>
+      <li><code>CardScale</code> in Core and <code>cardScale.ts</code> in the client hold the same rule. A shared fixture file keeps them the same.</li>
+      <li>The server then checks the tallest card against the height it gets: 620 px in a row, 296 px in the 2×2.</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ============================================================ 04 -->
+<section class="block" id="compare">
+  <div class="sec-head"><span class="n">04</span><h2>SW-363 · Compare panels: rows, a stamp and a large line</h2><span class="pill acc"><code>compare</code></span></div>
+  <p class="sec-sub">A panel's body is exactly one of <code>points</code> (today), <code>rows</code> of label and value, or one quote-sized <code>line</code>. A panel can also carry a <code>stamp</code>, which can land on a step, and a <code>footer</code> pinned to its bottom edge. <code>fill: "plain"</code> draws the panel as a white card with the tone on its top edge and tag.</p>
+  <div class="grid2">
+    <figure class="fig"><div class="sl"><div class="cv" data-n="6" data-part="1">
+      <p class="kick">Before AI, and still true</p><h3 class="hl">There have always been two kinds of teams</h3>
+      <div class="bd"><div class="cmp"><div class="pn plain inv"><p class="tag">Feature factory</p><h4>Ships the spec</h4><div class="rows"><div><small>Starts with</small><b>A spec</b></div><div><small>Job</small><b>Ship the feature</b></div><div><small>Done when</small><b>It ships</b></div></div></div>
+      <div class="pn plain acc"><p class="tag">Product engineering team</p><h4>Owns the problem</h4><div class="rows"><div><small>Starts with</small><b>A customer problem</b></div><div><small>Job</small><b>Work out the answer</b></div><div><small>Done when</small><b>The result moves</b></div></div></div></div></div>
+    </div></div><figcaption><b>Rows, plain panels.</b> Source slide 6. <code>failure</code> is <code>tone: "inverse", fill: "plain"</code>, <code>success</code> is <code>tone: "accent", fill: "plain"</code>.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="29" data-part="6">
+      <p class="kick">Back to the two kinds of teams</p><h3 class="hl">AI amplifies teams that own problems, and replaces teams that only ship specs</h3>
+      <div class="bd"><div class="cmp"><div class="pn plain neg"><p class="tag">Feature factory</p><h4>Ships the spec</h4><div class="rows"><div><small>Starts with</small><b>A spec</b></div><div><small>Done when</small><b>It ships</b></div></div><p class="stmp later-step"><span class="stepn" style="transform:translate(-6px,-40px) rotate(4deg)">step 1</span>Replaceable</p><p class="foot">If all a team does is ship features from a spec, AI will be doing that soon.</p></div>
+      <div class="pn plain pos"><p class="tag">Product engineering team</p><h4>Owns the problem</h4><div class="rows"><div><small>Starts with</small><b>A customer problem</b></div><div><small>Done when</small><b>The result moves</b></div></div><p class="stmp later-step">Amplified</p><p class="foot">A team that owns the problem uses AI to move faster.</p></div></div></div>
+    </div></div><figcaption><b>Rows, stamps on step 1, footers.</b> Source slide 29. Both stamps land together.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="30" data-part="6">
+      <p class="kick">A true story</p><h3 class="hl">The difference is understanding the problem, not the ticket</h3>
+      <div class="bd"><div class="cmp"><div class="pn plain inv"><p class="tag">The ticket</p><h4>What the team was asked for</h4><p class="line">“Search for a student when a family member calls.”</p><p class="foot">AI can build this one perfectly.</p></div>
+      <div class="pn solid acc"><p class="tag">The registrar</p><h4>What she actually said</h4><p class="line">“Connect them quickly in an emergency, so the caller doesn't become distressed.”</p><p class="foot">Only a team that understands the customer builds this one.</p></div></div></div>
+    </div></div><figcaption><b>A large line and a footer.</b> Source slide 30. The line is 78 characters at 40 px; the title's limit stays 50.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="29" data-part="6">
+      <p class="kick">Weekly Metrics Show Where Work Waits See</p><h3 class="hl">Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working</h3>
+      <div class="bd"><div class="cmp"><div class="pn soft neg"><p class="tag">Weekly Metrics Show Work</p><h4>Every Merge Small And Review</h4><div class="rows"><div><small>Weekly Metrics</small><b>Throughput Ship Working</b></div><div><small>Weekly Metrics</small><b>Throughput Ship Working</b></div><div><small>Weekly Metrics</small><b>Throughput Ship Working</b></div><div><small>Weekly Metrics</small><b>Throughput Ship Working</b></div></div><p class="stmp">Momentum Matters</p><p class="foot">Customers See Real Progress Weekly Metrics Show Work</p></div>
+      <div class="pn soft pos"><p class="tag">Weekly Metrics Show Work</p><h4>Every Merge Small And Review</h4><div class="rows"><div><small>Weekly Metrics</small><b>Throughput Ship Working</b></div><div><small>Weekly Metrics</small><b>Throughput Ship Working</b></div><div><small>Weekly Metrics</small><b>Throughput Ship Working</b></div><div><small>Weekly Metrics</small><b>Throughput Ship Working</b></div></div><p class="stmp">Momentum Matters</p><p class="foot">Customers See Real Progress Weekly Metrics Show Work</p></div></div></div>
+    </div></div><figcaption><b>Maximum with rows.</b> A one-line title, four one-line rows, a 16-character stamp and a one-line footer: about 610 of 620 px. A longer title or value is refused by the fit rule.</figcaption></figure>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <table class="ledger">
+      <tr><th>Panel slot</th><th>Kind</th><th>Limits</th></tr>
+      <tr><td><code>points</code></td><td>list of text</td><td>1–4, each 90. Now optional: exactly one of <code>points</code>, <code>rows</code>, <code>line</code></td></tr>
+      <tr><td><code>rows</code></td><td>list of <code>{label, value}</code></td><td>1–4; label 16, value 40</td></tr>
+      <tr><td><code>line</code></td><td>text</td><td>100. Set at 40 px. Takes emphasis (A)</td></tr>
+      <tr><td><code>stamp</code></td><td>block <code>stamp</code></td><td>16. A step target</td></tr>
+      <tr><td><code>footer</code></td><td>text</td><td>90</td></tr>
+      <tr><td><code>fill</code></td><td><code>soft</code>, <code>solid</code>, <code>plain</code></td><td>plain is new</td></tr>
+      <tr><td><code>icon</code></td><td>group A</td><td>beside the tag</td></tr>
+    </table>
+    <div class="card pad"><h3>Notes</h3><ul class="plain">
+      <li><code>compare.reveal</code> is new: <code>one-by-one</code> puts the stamps on step 1. With no stamp the slide has no steps.</li>
+      <li>Panels stay as tall as the taller one's content. They are not stretched to the body, so a short panel is not left half empty.</li>
+      <li><code>title</code> stays required and stays at 50 characters. The long quoted sentence goes in <code>line</code>.</li>
+      <li>Existing slides have <code>points</code> and draw exactly as before.</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ============================================================ 05 -->
+<section class="block" id="quote">
+  <div class="sec-head"><span class="n">05</span><h2>SW-365 · A fuller quote</h2><span class="pill acc"><code>quote</code></span></div>
+  <p class="sec-sub">The quote keeps its look and gains what the source slides had to push into the notes: a headline, a role line beside the name, a supporting stat, a follow-up line and a source. The quote is still display text and shrinks to the room the other parts leave, never below 36 px. The server refuses a slide where it would not fit at 36 px.</p>
+  <div class="grid2">
+    <figure class="fig"><div class="sl"><div class="cv dark" data-n="20" data-part="5">
+      <p class="kick">What happened to the people who tried it</p><h3 class="hl">The people who tried lights-out turned the lights back on</h3>
+      <div class="qt" style="margin-top:46px"><figure><blockquote data-fit="62,36,7,1.22">“We went full lights-off. You just have to go and dig into that codebase that you <em class="e">stopped reading three months ago</em> to figure out what's broken.”</blockquote>
+      <div class="att"><p class="who"><b>Mira Okafor</b>, platform lead at a 40-person product company, speaking at the Northwind engineering summit</p><div class="stat later-step"><span class="stepn">step 1</span><b>4 months</b><span>from going lights-off to throwing the whole system out</span></div></div></figure>
+      <p class="src">Sources: Northwind engineering summit, session 12. A study of open-source projects that adopted an AI editor found the same pattern: the speed-up faded and the mess stayed.</p></div>
+    </div></div><figcaption><b>Dark, with a headline, a role, a stat on step 1 and a source.</b> Source slide 20.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv dark" data-n="35" data-part="7">
+      <p class="kick">The pitch</p>
+      <div class="qt"><figure><blockquote data-fit="62,36,7,1.22">“Unlike any technology we've ever dealt with, the business model here is to generate <em class="e">mass unemployment</em>. That is not an unintended consequence; it is the business model.”</blockquote>
+      <div class="att"><p class="who"><b>Dr Alex Reyes</b>, co-director of a policy institute, to a parliamentary committee on AI, 16 October 2026</p></div>
+      <p class="fu later-step"><span class="stepn">step 1</span>Company valuations “are literally based on the assumption that hundreds of millions of people will lose their jobs.”</p></figure></div>
+    </div></div><figcaption><b>Dark, with a follow-up line on step 1.</b> Source slide 35. The role line is 97 characters; the old attribution stopped at 80.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="31" data-part="6">
+      <p class="kick">Weekly Metrics Show Where Work Waits See</p><h3 class="hl">Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working</h3>
+      <div class="qt" style="margin-top:30px"><figure><blockquote data-fit="62,36,7,1.22">“Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn”</blockquote>
+      <div class="att" style="margin-top:22px"><p class="who"><b>Customers See Real Progress Weekly Metrics Show</b>, Where Work Waits Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software Every</p><div class="stat" style="padding:18px 26px"><b style="font-size:60px">11 weeks</b><span>Every Merge Small And Reviewable Momentum Matters More Than</span></div></div>
+      <p class="fu" style="margin-top:22px;padding-top:22px">Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Small And Reviewable Momentum</p></figure>
+      <p class="src" style="margin-top:16px">Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Small</p></div>
+    </div></div><figcaption><b>Maximum, light.</b> A two-line headline, a 200-character quote at its 36 px floor, name and role, a stat, a one-line follow-up and a source. A longer quote here is refused.</figcaption></figure>
+    <div class="fig">
+      <table class="ledger">
+        <tr><th>Slot</th><th>Kind</th><th>Limits</th></tr>
+        <tr><td><code>headline</code></td><td>text, optional, new</td><td>80</td></tr>
+        <tr><td><code>quote</code></td><td>text, required</td><td>280. Takes emphasis (A)</td></tr>
+        <tr><td><code>attribution</code></td><td>text, required</td><td>80. The name, drawn bold when <code>role</code> is set</td></tr>
+        <tr><td><code>role</code></td><td>text, optional, new</td><td>160</td></tr>
+        <tr><td><code>stat</code></td><td><code>{value, caption}</code>, optional, new</td><td>value 12, caption 90. A step target</td></tr>
+        <tr><td><code>follow_up</code></td><td>text, optional, new</td><td>160. A step target</td></tr>
+        <tr><td><code>source</code></td><td>text, optional, new</td><td>200, without a "Source:" prefix</td></tr>
+        <tr><td><code>reveal</code></td><td><code>all</code> or <code>one-by-one</code>, new</td><td>one step each for <code>stat</code>, then <code>follow_up</code></td></tr>
+      </table>
+      <p class="cap">Surface: <code>either</code>. The stat takes the negative tone on both surfaces. The two-point timeline on slide 20 is left to the diagram blocks (group C).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 06 -->
+<section class="block" id="links">
+  <div class="sec-head"><span class="n">06</span><h2>SW-366 · Links slide</h2><span class="pill acc">new layout <code>links</code>, new slot kind <code>link</code></span></div>
+  <p class="sec-sub">Up to six resources, each a kind, a linked title and a source line, with an optional QR code for one address. The QR code is the component the join slide already uses (<code>src/qr/QrCode.tsx</code>, error correction M, black on white whatever the palette). A link is its own slot kind, so the address is checked on the server and never parsed out of text.</p>
+  <div class="grid2">
+    <figure class="fig"><div class="sl"><div class="cv" data-n="40">
+      <p class="kick">If you want to go deeper</p><h3 class="hl">Further watching for leaders</h3>
+      <div class="bd"><div class="lk qr"><ul>
+        <li><small>Talk</small><div><a>Harness engineering is not enough: why software factories fail</a><span>Mira Okafor, Northwind engineering summit · talks.northwind.example</span></div></li>
+        <li><small>Podcast</small><div><a>Context engineering, with Mira Okafor</a><span>The Practical Engineer · podcast.northwind.example</span></div></li>
+        <li><small>Article</small><div><a>The five levels: from spicy autocomplete to the dark factory</a><span>Sam Carter · blog.northwind.example</span></div></li>
+        <li><small>Testimony</small><div><a>Alex Reyes to the committee on AI</a><span>Hansard, 16 October 2026 · records.northwind.example</span></div></li>
+      </ul><aside><div class="q" data-qr></div><p>northwind.example/watch</p></aside></div></div>
+    </div></div><figcaption><b>Four links and a QR code.</b> Source slide 40. In the player a title opens in a new tab and does not move the deck.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="40">
+      <p class="kick">Weekly Metrics Show Where Work Waits See</p><h3 class="hl">Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working</h3>
+      <div class="bd"><div class="lk qr"><ul>
+        <li><small>Weekly Metrics</small><div><a>Throughput Ship Working Software Every Week Teams Learn</a><span>Customers See Real Progress Weekly Metrics Show Where Work Waits Make</span></div></li>
+        <li><small>Weekly Metrics</small><div><a>Throughput Ship Working Software Every Week Teams Learn</a><span>Customers See Real Progress Weekly Metrics Show Where Work Waits Make</span></div></li>
+        <li><small>Weekly Metrics</small><div><a>Throughput Ship Working Software Every Week Teams Learn</a><span>Customers See Real Progress Weekly Metrics Show Where Work Waits Make</span></div></li>
+        <li><small>Weekly Metrics</small><div><a>Throughput Ship Working Software Every Week Teams Learn</a><span>Customers See Real Progress Weekly Metrics Show Where Work Waits Make</span></div></li>
+        <li><small>Weekly Metrics</small><div><a>Throughput Ship Working Software Every Week Teams Learn</a><span>Customers See Real Progress Weekly Metrics Show Where Work Waits Make</span></div></li>
+        <li><small>Weekly Metrics</small><div><a>Throughput Ship Working Software Every Week Teams Learn</a><span>Customers See Real Progress Weekly Metrics Show Where Work Waits Make</span></div></li>
+      </ul><aside><div class="q" data-qr></div><p>Customers See Real Progress Weekly Metrics Show Where Work</p></aside></div></div>
+    </div></div><figcaption><b>Maximum.</b> Six rows with one-line titles and a QR code: about 594 of 620 px. Titles that wrap leave room for fewer rows; the fit rule counts the lines.</figcaption></figure>
+    <div class="fig">
+      <table class="ledger">
+        <tr><th>Slot</th><th>Kind</th><th>Limits</th></tr>
+        <tr><td><code>kicker</code>, <code>headline</code></td><td>text</td><td>40, 80 (headline required)</td></tr>
+        <tr><td><code>links</code></td><td>list of object, required</td><td>1–6</td></tr>
+        <tr><td><code>links[].kind</code></td><td>text, optional</td><td>16, such as "Talk"</td></tr>
+        <tr><td><code>links[].title</code></td><td>text, required</td><td>90. Drawn as the link</td></tr>
+        <tr><td><code>links[].source</code></td><td>text, optional</td><td>100</td></tr>
+        <tr><td><code>links[].url</code></td><td>link, required</td><td>500</td></tr>
+        <tr><td><code>qr</code></td><td><code>{url, caption}</code>, optional</td><td><code>url</code> link, 200. <code>caption</code> text, 60; left out, the address without its scheme</td></tr>
+      </table>
+    </div>
+    <div class="fig">
+<pre class="json">"links": [
+  { "kind": "Talk", "title": "Harness engineering is not enough",
+    "source": "Mira Okafor, Northwind engineering summit",
+    <b>"url": "https://talks.northwind.example/harness"</b> }
+],
+"qr": { "url": "https://northwind.example/watch" }
+
+<i>"url": "javascript:alert(1)"</i>
+→ links.links[0].url: must be an http or https address,
+  such as https://example.com/page
+<i>"url": "https://sam:secret@northwind.example"</i>
+→ links.links[0].url: must not hold a user name or password
+<i>"url": "northwind.example/watch"</i>
+→ links.links[0].url: must be an http or https address,
+  such as https://example.com/page</pre>
+      <p class="cap">A link is a whole address with the scheme <code>http</code> or <code>https</code>, a host, no user name or password, no spaces or control characters. The client checks the scheme again before it writes an <code>href</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 07 -->
+<section class="block" id="image">
+  <div class="sec-head"><span class="n">07</span><h2>SW-368 · Image layout: no frame, image on the right</h2><span class="pill acc"><code>image</code></span></div>
+  <p class="sec-sub">Two choices on the slide, not guessed from the file. <code>frame: "none"</code> draws the image straight on the slide for a transparent picture. <code>position: "right"</code> gives the image the right column at the full height, with the kicker, headline, points and callout on the left. Points take a bold lead. The callout is group A's slot; the small caption line stays for a real caption.</p>
+  <div class="grid2">
+    <figure class="fig"><div class="sl"><div class="cv" data-n="7" data-part="1">
+      <p class="kick">The cost of a seat</p><h3 class="hl">An engineer doesn't cost their salary. They cost a seat.</h3>
+      <div class="bd"><div class="im"><figure><div class="pic framed"><svg viewBox="0 0 792 882" data-seat></svg></div><figcaption>Hold this picture. It changes in act three.</figcaption></figure></div></div>
+    </div></div><figcaption><b>Today.</b> A portrait picture ends up about 480 px wide on a white card, and the slide's main point is a small grey line.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="7" data-part="1">
+      <div class="side"><div class="l"><p class="kick">The cost of a seat</p><h3 class="hl">An engineer doesn't cost their salary. They cost a seat.</h3><p class="call">Hold this picture. It changes in act three.</p></div><div class="r"><svg viewBox="0 0 792 882" data-seat></svg></div></div>
+    </div></div><figcaption><b>New: <code>position: "right"</code>, <code>frame: "none"</code>, with a callout.</b> Source slide 7. The picture is 760 px wide and 846 px tall.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="24" data-part="5">
+      <p class="kick">Where we're landing</p><h3 class="hl">Where we're landing: lights on, with qualified people checking</h3>
+      <div class="bd"><div class="im pts"><figure><div class="pic"><svg viewBox="0 0 900 520" preserveAspectRatio="xMidYMin meet" data-gauge></svg></div></figure><ul class="pts2"><li><b>Every month</b> the machines do more of the work.</li><li><b>Qualified people</b> still check it, and own it.</li></ul></div></div>
+    </div></div><figcaption><b><code>position: "below"</code> (the default), <code>frame: "none"</code>, points with a lead.</b> Source slide 24.</figcaption></figure>
+    <figure class="fig"><div class="sl"><div class="cv" data-n="14" data-part="4">
+      <div class="side"><div class="l"><p class="kick">Weekly Metrics Show Where Work Waits See</p><h3 class="hl">Make Every Merge Small And Reviewable Momentum Matters More</h3><ul class="pts2"><li><b>Weekly Metrics Show Where Work</b> Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Small</li><li><b>Weekly Metrics Show Where Work</b> Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Small</li><li><b>Weekly Metrics Show Where Work</b> Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Small</li></ul><p class="call">Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real</p></div><div class="r framed"><svg viewBox="0 0 792 882" data-seat></svg></div></div>
+    </div></div><figcaption><b>Maximum for <code>position: "right"</code>,</b> with the default frame. A three-line headline (60 characters), three points with a lead and a two-line callout. A fourth line of headline is refused.</figcaption></figure>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <table class="ledger">
+      <tr><th>Slot</th><th>Kind</th><th>Limits</th></tr>
+      <tr><td><code>frame</code></td><td><code>card</code> or <code>none</code>, optional, new</td><td>default <code>card</code>: white backing, corners and shadow, as today</td></tr>
+      <tr><td><code>position</code></td><td><code>below</code> or <code>right</code>, optional, new</td><td>default <code>below</code>: headline on top, as today</td></tr>
+      <tr><td><code>points</code></td><td>list of text or <code>{lead, text}</code></td><td>1–4; text 80; lead 30, text 80</td></tr>
+      <tr><td><code>caption</code></td><td>text, optional</td><td>140, unchanged. Under the image on both positions</td></tr>
+      <tr><td><code>callout</code></td><td>group A's callout slot</td><td>below: under the image and points. right: at the foot of the left column</td></tr>
+    </table>
+    <div class="card pad"><h3>Notes</h3><ul class="plain">
+      <li>Transparency is the author's choice. The server does not look inside the file.</li>
+      <li>With <code>position: "right"</code> the headline wraps in a 760 px column, so it may be at most three lines there (about 21 characters a line). The server says so.</li>
+      <li>The image is still never cropped and grows to at most twice its own size.</li>
+      <li>Existing slides have neither slot and draw exactly as before.</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ============================================================ 08 -->
+<section class="block" id="decisions">
+  <div class="sec-head"><span class="n">08</span><h2>Design choices, recorded on SW-50 as recommended</h2><span class="pill warn">stand unless Joel changes them</span></div>
+  <div class="table-wrap">
+  <table class="ledger">
+    <tr><th>Question</th><th>Designed</th><th>Other answers</th></tr>
+    <tr><td>How does a slide say it is dark?</td><td>A slide field <code>surface</code>, next to <code>part</code> and <code>deep_dive</code>. Same word and meaning as D16.</td><td>A <code>surface</code> slot in each layout. Separate layouts (<code>quote-dark</code>).</td></tr>
+    <tr><td>Which built-in layouts can be dark?</td><td><code>statement</code>, <code>quote</code>, <code>bullets</code>, <code>big-number</code>: the ones the deck used.</td><td>Every content layout now.</td></tr>
+    <tr><td>How do colours switch on a dark slide?</td><td>The frame re-points the light tokens to the night set. No new palette tokens; five new contrast pairs.</td><td>New <code>night-*</code> tokens for cards and soft panels in every palette.</td></tr>
+    <tr><td>Do dark content slides show the tracker and footer?</td><td>Yes, in night colours. Only title, divider, close and join go without.</td><td>No chrome on any dark slide, as today.</td></tr>
+    <tr><td>How do cards get larger type?</td><td>A fixed rule on character counts, the same on server and client.</td><td>Measure in the browser. A <code>size</code> slot the agent sets.</td></tr>
+    <tr><td>When are cards laid out 2×2?</td><td><code>cards</code> with four cards, always. <code>numbered-cards</code> stays in a row.</td><td>A <code>grid</code> slot on both layouts.</td></tr>
+    <tr><td>How does a card or panel get its own rule colour, or go plain?</td><td><code>fill: "plain"</code> with the four existing tones.</td><td>A new <code>caution</code> tone (two new palette tokens). A separate <code>rule</code> slot.</td></tr>
+    <tr><td>What can a compare panel's body be?</td><td>Exactly one of <code>points</code>, <code>rows</code>, <code>line</code>; panels keep their content height.</td><td>Allow rows and points together. Stretch panels to the body.</td></tr>
+    <tr><td>Does the quote's stat carry the two-point timeline?</td><td>No. The stat is a value and a caption.</td><td><code>stat.from</code> and <code>stat.to</code> labels drawn as a line.</td></tr>
+    <tr><td>What is a link, and how is the QR made?</td><td>A <code>link</code> slot kind: http or https only, checked on the server. The join slide's <code>QrCode</code> component, drawn in the browser.</td><td>Allow <code>mailto:</code>. Render the QR on the server as an image.</td></tr>
+    <tr><td>How does the image layout know to drop the frame?</td><td>A <code>frame</code> slot. No sniffing.</td><td>Read the file's alpha channel at upload.</td></tr>
+    <tr><td>Where does the image go beside the headline?</td><td><code>position: "right"</code> only.</td><td>Also <code>left</code>.</td></tr>
+  </table>
+  </div>
+</section>
+</main>
+<script>
+// Scale every 1920×1080 canvas to its box, and draw the chrome each one shares.
+const PARTS = ['Before', 'Autocomplete', 'Chat', 'Agentic', 'Factory', 'Unchanged', 'Next'];
+for (const cv of document.querySelectorAll('.cv')) {
+  const n = Number(cv.dataset.n || 1);
+  const part = cv.dataset.part ? Number(cv.dataset.part) : null;
+  const trk = document.createElement('ol');
+  trk.className = 'trk';
+  PARTS.forEach((p, i) => {
+    const li = document.createElement('li');
+    li.textContent = p;
+    if (part !== null) li.className = i + 1 < part ? 'past' : i + 1 === part ? 'on' : '';
+    trk.append(li);
+  });
+  const ft = document.createElement('div');
+  ft.className = 'ft';
+  ft.innerHTML = '<span><b>' + n + '</b> / 44 · Seats, not salaries · Sam Carter</span><span class="lg"><i></i>Northwind</span>';
+  const prog = document.createElement('div');
+  prog.className = 'prog';
+  prog.style.width = (n / 44 * 100) + '%';
+  cv.append(trk, ft, prog);
+}
+const fitText = () => {
+  // A stand-in for useFitText: the largest size that keeps the line budget and stays above y = 996.
+  for (const el of document.querySelectorAll('[data-fit]')) {
+    const [start, floor, lines, lh] = el.dataset.fit.split(',').map(Number);
+    const cv = el.closest('.cv');
+    const bottom = () => { const o = cv.getBoundingClientRect(), k = o.width / 1920; let m = 0; for (const e of cv.querySelectorAll('.stmt > *, .qt > *, .qt figure > *')) m = Math.max(m, (e.getBoundingClientRect().bottom - o.top) / k); return m; };
+    const natural = (size) => { el.style.fontSize = size + 'px'; return [...el.children].filter((c) => c.tagName === 'SPAN').every((c) => c.offsetHeight <= size * lh + 2) || el.children.length === 0 || el.querySelector('span') === null; };
+    let size = start;
+    for (; size > floor; size -= 2) {
+      el.style.fontSize = size + 'px';
+      const spans = el.querySelector(':scope > span') !== null;
+      const okLines = spans ? natural(size) : el.offsetHeight <= lines * lh * size + 1;
+      const centred = cv.querySelector('.stmt, .qt');
+      if (okLines && centred.scrollHeight <= centred.clientHeight + 36 && bottom() <= 996) break;
+    }
+    el.style.fontSize = size + 'px';
+  }
+};
+const fit = () => { for (const sl of document.querySelectorAll('.sl')) sl.firstElementChild.style.setProperty('--k', sl.clientWidth / 1920); };
+fit();
+new ResizeObserver(fit).observe(document.body);
+fitText();
+
+// A drawing of a QR code (finder patterns and a fixed pattern of modules). Not scannable: the app draws a real one.
+for (const box of document.querySelectorAll('[data-qr]')) {
+  const N = 33, Q = 4, S = N + Q * 2;
+  let seed = 7, d = '';
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const finder = (x, y) => (x < 7 && y < 7) || (x >= N - 7 && y < 7) || (x < 7 && y >= N - 7);
+  const inFinder = (x, y) => { const fx = x < 7 ? x : x - (N - 7), fy = y < 7 ? y : y - (N - 7); const m = Math.max(Math.abs(fx - 3), Math.abs(fy - 3)); return m !== 2; };
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const near = (x < 8 && y < 8) || (x >= N - 8 && y < 8) || (x < 8 && y >= N - 8);
+    const on = finder(x, y) ? inFinder(x, y) : near ? false : rnd() < 0.48;
+    if (on) d += 'M' + (x + Q) + ' ' + (y + Q) + 'h1v1h-1z';
+  }
+  box.innerHTML = '<svg viewBox="0 0 ' + S + ' ' + S + '" shape-rendering="crispEdges"><rect width="' + S + '" height="' + S + '" fill="#fff"/><path d="' + d + '" fill="#000"/></svg>';
+}
+
+// Stand-ins for uploaded transparent pictures: a stacked seat and a gauge.
+const seat = [['A share of admin and support', 70, '#334155'], ['Electricity', 34, '#7dd3fc'], ['Equipment', 48, '#0ea5e9'], ['Office space', 66, '#0369a1'], ['Benefits and on-costs', 84, '#51829b'], ['Salary', 190, '#0c4a6e']];
+for (const svg of document.querySelectorAll('[data-seat]')) {
+  let y = 60, s = '';
+  for (const [label, h, c] of seat) {
+    const hh = h * 1.38;
+    s += '<rect x="90" y="' + y + '" width="240" height="' + (hh - 8) + '" rx="8" fill="' + c + '"/><text x="370" y="' + (y + hh / 2 + 4) + '" font-size="26" font-weight="700" font-family="Inter, Arial, Liberation Sans, sans-serif" fill="currentColor">' + label + '</text>';
+    y += hh;
+  }
+  s += '<text x="210" y="' + (y + 34) + '" text-anchor="middle" font-size="20" font-weight="700" letter-spacing="3" font-family="Inter, Arial, Liberation Sans, sans-serif" fill="currentColor" opacity=".7">ONE SEAT</text>';
+  svg.innerHTML = s;
+}
+for (const svg of document.querySelectorAll('[data-gauge]')) {
+  svg.innerHTML = '<defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#fbbf24"/><stop offset=".55" stop-color="#0369a1"/><stop offset="1" stop-color="#0b1020"/></linearGradient></defs>'
+    + '<path d="M110 430 A340 340 0 0 1 790 430" fill="none" stroke="url(#g)" stroke-width="56" stroke-linecap="round"/>'
+    + '<line x1="450" y1="430" x2="270" y2="210" stroke="#111827" stroke-width="12" stroke-linecap="round"/><circle cx="450" cy="430" r="24" fill="#fff" stroke="#111827" stroke-width="14"/>'
+    + '<text x="110" y="505" text-anchor="middle" font-size="30" font-weight="700" font-family="Inter, Arial, Liberation Sans, sans-serif">Lights on</text><text x="790" y="505" text-anchor="middle" font-size="30" font-weight="700" font-family="Inter, Arial, Liberation Sans, sans-serif">Lights out</text>';
+}
+</script>
+</body>
+</html>
