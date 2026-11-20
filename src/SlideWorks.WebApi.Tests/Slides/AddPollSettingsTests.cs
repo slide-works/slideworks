@@ -85,6 +85,33 @@ public class AddPollSettingsTests : ApiTestFixture
         stored[1].GetProperty("slots").GetProperty("quote").GetString().ShouldBe("Still");
     }
 
+    [TestCase("max", "2", "max: must be a whole number")]
+    [TestCase("correct", "1", "correct: must be a whole number")]
+    public async Task AddSlide_WhenACountIsNotANumber_ShouldStoreNothing(string field, string text, string expected)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        await DeckSeed.AddQuoteAsync(agent, deck, "Keep");
+
+        var error = await SlideCalls.ErrorAsync(agent, "add_slide", new
+        {
+            deck,
+            layout = "poll",
+            slots = PollSlots(),
+            poll = new Dictionary<string, object> { [field] = text },
+        });
+
+        error.ShouldBe(expected);
+        var again = await DeckSeed.AddQuoteAsync(agent, deck, "Still");
+        again.GetProperty("slide").GetInt32().ShouldBe(2);
+        again.GetProperty("revision").GetInt64().ShouldBe(2);
+        var stored = await SlideCalls.SlidesAsync(agent, deck);
+        stored.Count.ShouldBe(2);
+        stored[0].GetProperty("revision").GetInt64().ShouldBe(1);
+        stored[0].GetProperty("slots").GetProperty("quote").GetString().ShouldBe("Keep");
+        stored[1].GetProperty("slots").GetProperty("quote").GetString().ShouldBe("Still");
+    }
+
     [Test]
     public async Task AddSlide_WhenAQuoteCarriesPoll_ShouldStoreNothing()
     {
@@ -179,6 +206,42 @@ public class AddPollSettingsTests : ApiTestFixture
         stored[1].GetProperty("revision").GetInt64().ShouldBe(2);
         stored[2].GetProperty("slots").GetProperty("quote").GetString().ShouldBe("Also");
         stored[2].GetProperty("revision").GetInt64().ShouldBe(2);
+    }
+
+    [TestCase("max", "2", "max: must be a whole number")]
+    [TestCase("correct", "1", "correct: must be a whole number")]
+    public async Task AddSlides_WhenACountIsNotANumber_ShouldLeaveThatSlideOutAndStoreTheOthers(string field, string text, string expected)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        await DeckSeed.AddQuoteAsync(agent, deck, "Keep");
+
+        var added = await SlideCalls.OkAsync(agent, "add_slides", new
+        {
+            deck,
+            slides = new object[]
+            {
+                new { layout = "quote", slots = new { quote = "Yes", attribution = "Sam" } },
+                new { layout = "poll", slots = PollSlots(), poll = new Dictionary<string, object> { [field] = text } },
+                new { layout = "quote", slots = new { quote = "Also", attribution = "Sam" } },
+            },
+        });
+
+        added.GetProperty("added").GetInt32().ShouldBe(2);
+        var slides = added.GetProperty("slides").EnumerateArray().ToList();
+        slides[0].GetProperty("ok").GetBoolean().ShouldBeTrue();
+        slides[0].GetProperty("slide").GetInt32().ShouldBe(2);
+        slides[1].GetProperty("ok").GetBoolean().ShouldBeFalse();
+        slides[1].GetProperty("error").GetString().ShouldBe(expected);
+        slides[1].GetProperty("slide").ValueKind.ShouldBe(JsonValueKind.Null);
+        slides[2].GetProperty("ok").GetBoolean().ShouldBeTrue();
+        slides[2].GetProperty("slide").GetInt32().ShouldBe(3);
+        var stored = await SlideCalls.SlidesAsync(agent, deck);
+        stored.Count.ShouldBe(3);
+        stored[0].GetProperty("revision").GetInt64().ShouldBe(1);
+        stored[0].GetProperty("slots").GetProperty("quote").GetString().ShouldBe("Keep");
+        stored[1].GetProperty("slots").GetProperty("quote").GetString().ShouldBe("Yes");
+        stored[2].GetProperty("slots").GetProperty("quote").GetString().ShouldBe("Also");
     }
 
     [Test]

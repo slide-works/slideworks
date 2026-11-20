@@ -107,7 +107,7 @@ public class PollSettingsCommands(SlideEdits edits, AppDbContext db, PollReader 
         {
             return null;
         }
-        if (!value.TryGetInt32(out var number))
+        if (value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out var number))
         {
             throw new BadRequestException(typeError);
         }
