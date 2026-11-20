@@ -19,8 +19,6 @@ public class Sw8OpenTextJourneyTests : AcceptanceTest
     // One UTF-16 code unit over the 200 an answer may hold (SW-8 D3).
     private static readonly string TooLong = new('x', 201);
 
-    private const string TOO_LONG_SENTENCE = "Your answer can be at most 200 characters.";
-
     private const float PUSH_TIMEOUT = 15_000;
     private static readonly TimeSpan FRAME_TIMEOUT = TimeSpan.FromSeconds(15);
 
@@ -30,8 +28,8 @@ public class Sw8OpenTextJourneyTests : AcceptanceTest
     // Criteria: the wall opens by itself when the presenter reaches its slide. One guest sends a sentence: the big screen's
     // wall shows it, the panel lists it and the other phone shows it in the room's answers. The presenter hides it: the
     // big screen and the other phone drop it once their own connection has the hide, the panel still lists it, marked
-    // hidden, and the guest who sent it still sees its own answer. A 201-character answer shows the error sentence on the
-    // phone, and the wall gains no row.
+    // hidden, and the guest who sent it still sees its own answer. Filling the other phone's box with 201 characters
+    // leaves 200 in it (SW-8 D3), with no error sentence, and the wall gains no row.
     [Test]
     public async Task Journey_WhenAGuestSendsOpenText_ShouldShowTheWallUntilHide()
     {
@@ -88,12 +86,15 @@ public class Sw8OpenTextJourneyTests : AcceptanceTest
         }
         await Expect(first.Card.Mine).ToHaveTextAsync(ANSWER);
 
+        // The box counts as D3 does and stops at 200, so the 201st character never reaches it and there is nothing to send.
         await second.Card.Box.FillAsync(TooLong);
-        await second.Card.Submit.ClickAsync();
 
-        await Expect(second.Card.Error).ToHaveTextAsync(TOO_LONG_SENTENCE, new() { Timeout = PUSH_TIMEOUT });
+        await Expect(second.Card.Box).ToHaveValueAsync(TooLong[..200]);
+        (await second.Guest.Root.Page.EvaluateAsync<bool>(SETTLE)).ShouldBeTrue();
+        await Expect(second.Card.Error).ToHaveCountAsync(0);
         await Expect(second.Card.Mine).ToHaveCountAsync(0);
         await Expect(talk.Panel.Entries).ToHaveCountAsync(1);
+        (await talk.Audience.AudienceMode.Page.EvaluateAsync<bool>(SETTLE)).ShouldBeTrue();
         await Expect(talk.Screen.Answers).ToHaveCountAsync(0);
     }
 
