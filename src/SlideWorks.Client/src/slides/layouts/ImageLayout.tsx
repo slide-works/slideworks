@@ -26,7 +26,8 @@ const ICON_SIZE = 34;
 // point n appears at step n; a callout shows from the start or, with reveal
 // 'last', as the step after the last point.
 export function ImageLayout({ slots, step }: LayoutProps<'image'>) {
-  const { kicker, headline, image, frame, position, points, caption, link, reveal, callout } = slots;
+  const { kicker, headline, image, frame, position, points, caption, link, reveal, callout } =
+    slots;
   const [natural, setNatural] = useState<Natural | null>(null);
   const size =
     natural === null
@@ -184,7 +185,13 @@ function Picture({
   const href = safeHref(link);
   if (href === undefined) return img;
   return (
-    <a data-testid="image-link" className={styles.link} href={href} target="_blank" rel="noopener noreferrer">
+    <a
+      data-testid="image-link"
+      className={styles.link}
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
       {img}
     </a>
   );

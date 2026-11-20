@@ -62,7 +62,10 @@ export function OpenAnswerCard({
           >
             {kind}
           </p>
-          <h2 data-testid={POLL_CARD_TEST_IDS.question} className="font-head text-[17px] leading-snug font-bold">
+          <h2
+            data-testid={POLL_CARD_TEST_IDS.question}
+            className="font-head text-[17px] leading-snug font-bold"
+          >
             {activity.question}
           </h2>
         </header>
@@ -89,7 +92,10 @@ export function OpenAnswerCard({
         {sent ? <p data-testid="poll-open-sent">Answer sent</p> : null}
         {error ? <p data-testid="poll-open-error">{error}</p> : null}
       </article>
-      <p data-testid={POLL_CARD_TEST_IDS.privacy} className="shrink-0 px-1 text-[11px] text-(--sw-night-muted)">
+      <p
+        data-testid={POLL_CARD_TEST_IDS.privacy}
+        className="shrink-0 px-1 text-[11px] text-(--sw-night-muted)"
+      >
         {`Your name is not shown. ${presenter} sees the words, not who wrote them.`}
       </p>
     </div>

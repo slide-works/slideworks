@@ -79,23 +79,23 @@ export function PollLayout({ slots }: LayoutProps<'poll'>) {
           {open ? (
             <OpenAnswers screen={screen} />
           ) : (
-          <ol
-            data-testid={POLL_SLIDE_TEST_IDS.rows}
-            data-density={densityOf(options.length)}
-            className={styles.rows}
-          >
-            {options.map((option, position) => (
-              <PollBar
-                key={position}
-                position={position}
-                label={option}
-                percent={percents[position]}
-                hatched={hidden}
-                correct={correct === position + 1}
-                faded={correct !== null && correct !== position + 1}
-              />
-            ))}
-          </ol>
+            <ol
+              data-testid={POLL_SLIDE_TEST_IDS.rows}
+              data-density={densityOf(options.length)}
+              className={styles.rows}
+            >
+              {options.map((option, position) => (
+                <PollBar
+                  key={position}
+                  position={position}
+                  label={option}
+                  percent={percents[position]}
+                  hatched={hidden}
+                  correct={correct === position + 1}
+                  faded={correct !== null && correct !== position + 1}
+                />
+              ))}
+            </ol>
           )}
         </div>
         {screen === null ? null : (
@@ -166,5 +166,9 @@ function OpenAnswers({ screen }: { screen: PollScreen | null }) {
       </ul>
     );
   }
-  return <p data-testid="poll-open-waiting" className={styles.waiting}>Phones answer this in their own words.</p>;
+  return (
+    <p data-testid="poll-open-waiting" className={styles.waiting}>
+      Phones answer this in their own words.
+    </p>
+  );
 }
