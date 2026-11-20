@@ -247,7 +247,15 @@ test('WordCard_WhenTheHubOpensTheRoundDuringTheFirstRead_ShouldSendForTheOpenRou
   await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
   await first.reached;
 
-  hub.pushWordCloud({ ...ROUND, type: 'wordCloud', slide: 3, revision: 1, guests: 0, words: [] });
+  hub.pushWordCloud({
+    ...ROUND,
+    type: 'wordCloud',
+    slide: 3,
+    revision: 1,
+    guests: 1,
+    words: [{ text: 'Ready', count: 1, hidden: false }],
+  });
+  await expect(page.getByTestId(IDS.roomEntry)).toHaveText(['Ready']);
   first.release();
 
   await expect(page.getByTestId(IDS.submit)).toBeEnabled();
