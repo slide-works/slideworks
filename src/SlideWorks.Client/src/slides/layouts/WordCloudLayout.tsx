@@ -25,7 +25,10 @@ const CLOUD: CSSProperties = {
 function wordStyle(count: number, highest: number): CSSProperties {
   return {
     color: 'var(--sw-ink)',
-    font: `800 ${Math.round(SMALLEST_PX + ((LARGEST_PX - SMALLEST_PX) * count) / highest)}px/1.1 var(--sw-font-head)`,
+    fontWeight: 800,
+    fontSize: Math.round(SMALLEST_PX + ((LARGEST_PX - SMALLEST_PX) * count) / highest),
+    lineHeight: 1.1,
+    fontFamily: 'var(--sw-font-head)',
     whiteSpace: 'nowrap',
   };
 }
