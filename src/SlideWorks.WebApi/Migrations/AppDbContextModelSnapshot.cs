@@ -431,6 +431,122 @@ namespace SlideWorks.WebApi.Migrations
                     b.ToTable("OAuthRequests");
                 });
 
+            modelBuilder.Entity("SlideWorks.WebApi.Features.OpenResponses.Data.OpenEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GuestId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("HiddenAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("RoundId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TextKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoundId", "TextKey");
+
+                    b.HasIndex("RoundId", "GuestId", "Position")
+                        .IsUnique();
+
+                    b.ToTable("OpenEntries", t =>
+                        {
+                            t.HasCheckConstraint("CK_OpenEntries_Position", "\"Position\" >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.OpenResponses.Data.OpenResponse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeckId")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SlideId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeckId");
+
+                    b.HasIndex("SlideId")
+                        .IsUnique();
+
+                    b.ToTable("OpenResponses", t =>
+                        {
+                            t.HasCheckConstraint("CK_OpenResponses_Kind", "\"Kind\" IN ('WordCloud', 'OpenText')");
+                        });
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.OpenResponses.Data.OpenRound", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("ClosedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("OpenResponseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("OpenedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("RevealedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("OpenResponseId", "SessionId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("OpenRounds", t =>
+                        {
+                            t.HasCheckConstraint("CK_OpenRounds_Number", "\"Number\" >= 1");
+
+                            t.HasCheckConstraint("CK_OpenRounds_Revision", "\"Revision\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("SlideWorks.WebApi.Features.Polls.Data.Poll", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1002,6 +1118,39 @@ namespace SlideWorks.WebApi.Migrations
                         .WithMany()
                         .HasForeignKey("DeckId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.OpenResponses.Data.OpenEntry", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.OpenResponses.Data.OpenRound", null)
+                        .WithMany()
+                        .HasForeignKey("RoundId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.OpenResponses.Data.OpenResponse", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Decks.Deck", null)
+                        .WithMany()
+                        .HasForeignKey("DeckId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.OpenResponses.Data.OpenRound", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.OpenResponses.Data.OpenResponse", null)
+                        .WithMany()
+                        .HasForeignKey("OpenResponseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SlideWorks.WebApi.Features.Live.AudienceSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
