@@ -1,42 +1,192 @@
+using System.Text.Json;
 using Agoda.IoC.Core;
+using Microsoft.EntityFrameworkCore;
 using SlideWorks.Core.OpenResponses;
+using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Join;
 using SlideWorks.WebApi.Features.OpenResponses.Contracts;
+using SlideWorks.WebApi.Features.OpenResponses.Data;
+using SlideWorks.WebApi.Features.Slides;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Realtime;
 
 namespace SlideWorks.WebApi.Features.OpenResponses;
 
-// A guest's view of a word-cloud slide and their words submit (word-cloud.json). A code with no session is 404
-// no_session. A submit is checked against the round the phone saw and OpenTextRules before anything is written.
+// A guest's view of a word-cloud slide and their words submit (word-cloud.json, D2, D13, D14). A code with no live
+// session is 404 no_session. A submit is refused before any write, in order: no session, guest off the roster, the
+// rate limit, a stale or non-open round, then OpenTextRules (which refuses a profane word last).
 [RegisterPerRequest]
-public class WordSubmissions(IAudienceSessions sessions)
+public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenResponseLimiter limiter, IWordCloudPublisher publisher)
 {
-    private static readonly GuestResponseView OPEN = new(
-        OpenResponseKind.WordCloud,
-        OpenResponsePhase.Open,
-        "6e2f9a14-3c7b-4d58-a1e0-9b4c7d2f5a63",
-        1,
-        9,
-        "One word for how this sprint felt?",
-        true,
-        12,
-        ["Focused", "Calm"],
-        null);
+    public const string NO_GUEST = "no_guest";
 
-    public async Task<GuestResponseView> ViewAsync(string code, int slide, string? guestId)
+    private const string WORD_CLOUD = "word-cloud";
+
+    public async Task<GuestResponseView> ViewAsync(string code, int slide, string? guestId, CancellationToken cancellationToken)
     {
-        _ = await sessions.FindAsync(code) ?? throw new NotFoundException(GuestViews.NO_SESSION);
-        // TODO: read the slide's question and its round in the session from the rows, with the guest's own words.
-        return OPEN;
+        var live = await LiveAsync(code);
+        return await ReadAsync(live, slide, guestId, cancellationToken);
     }
 
-    public async Task<StoredWords> SubmitAsync(string code, int slide, string guestId, WordsRequest request)
+    public async Task<StoredWords> SubmitAsync(string code, int slide, string guestId, WordsRequest request, CancellationToken cancellationToken)
     {
-        var view = await ViewAsync(code, slide, guestId);
+        var live = await LiveAsync(code);
+        if (!await db.AudienceJoins.AsNoTracking().AnyAsync(j => j.SessionId == live.SessionId && j.GuestId == guestId, cancellationToken))
+        {
+            throw new NotFoundException(NO_GUEST);
+        }
+
+        limiter.Take(guestId, code, slide);
+
+        var view = await ReadAsync(live, slide, guestId, cancellationToken);
         OpenRoundChecks.RequireCurrent(view, request.Round, request.Revision);
         OpenRoundChecks.RequireValid(OpenTextRules.Check(request.Words));
-        // TODO: replace the guest's entries in the round with these words and bump its revision, in one transaction.
-        return new StoredWords(OpenTextRules.WordsOf(request.Words));
+
+        if (view.Round is not { } roundKey)
+        {
+            throw new ConflictException(OpenRoundChecks.WRONG_PHASE);
+        }
+
+        var held = await ReplaceAsync(live.SessionId, Guid.Parse(roundKey), guestId, OpenTextRules.WordsOf(request.Words), request.Revision, cancellationToken);
+        await publisher.PublishAsync(live.DeckId, slide, cancellationToken);
+        return new StoredWords(held);
     }
+
+    private async Task<Live> LiveAsync(string code)
+    {
+        if (await sessions.FindAsync(code) is not { Phase: AudiencePhase.Live, SessionId: { } id } found)
+        {
+            throw new NotFoundException(GuestViews.NO_SESSION);
+        }
+
+        return new Live(found.DeckId, Guid.Parse(id));
+    }
+
+    private async Task<GuestResponseView> ReadAsync(Live live, int slide, string? guestId, CancellationToken cancellationToken)
+    {
+        var row = await db.Slides.AsNoTracking()
+            .Where(s => s.DeckId == live.DeckId && s.DeletedAt == null && s.Position == slide - 1)
+            .Select(s => new { s.Id, s.Layout, s.SlotsJson })
+            .SingleOrDefaultAsync(cancellationToken) ?? throw new NotFoundException(GuestViews.NO_SESSION);
+        if (row.Layout != WORD_CLOUD)
+        {
+            throw new NotFoundException(GuestViews.NO_SESSION);
+        }
+
+        var question = QuestionOf(row.SlotsJson);
+        var responseId = await db.OpenResponses.AsNoTracking()
+            .Where(r => r.SlideId == row.Id && r.Kind == OpenResponseKind.WordCloud)
+            .Select(r => (Guid?)r.Id)
+            .SingleOrDefaultAsync(cancellationToken);
+        var round = responseId == null
+            ? null
+            : await db.OpenRounds.AsNoTracking()
+                .Where(r => r.OpenResponseId == responseId && r.SessionId == live.SessionId)
+                .OrderByDescending(r => r.Number)
+                .FirstOrDefaultAsync(cancellationToken);
+        if (round?.OpenedAt == null)
+        {
+            return new GuestResponseView(
+                OpenResponseKind.WordCloud,
+                OpenResponsePhase.Draft,
+                null,
+                round?.Number ?? 1,
+                round?.Revision ?? 0,
+                question,
+                true,
+                0,
+                [],
+                null);
+        }
+
+        var entries = await db.OpenEntries.AsNoTracking()
+            .Where(e => e.RoundId == round.Id)
+            .Select(e => new { e.GuestId, e.Position, e.Text })
+            .ToListAsync(cancellationToken);
+        var mine = guestId == null
+            ? []
+            : entries.Where(e => e.GuestId == guestId).OrderBy(e => e.Position).Select(e => e.Text).ToArray();
+        return new GuestResponseView(
+            OpenResponseKind.WordCloud,
+            round.ClosedAt == null ? OpenResponsePhase.Open : OpenResponsePhase.Closed,
+            round.Id.ToString(),
+            round.Number,
+            round.Revision,
+            question,
+            true,
+            entries.Select(e => e.GuestId).Distinct().Count(),
+            mine,
+            null);
+    }
+
+    // Deletes this guest's rows and inserts the new set, keeping the first casing already stored for a word, in one
+    // transaction. The round is checked again here so a round that closed or moved on after the read writes nothing.
+    private async Task<IReadOnlyList<string>> ReplaceAsync(
+        Guid sessionId,
+        Guid roundId,
+        string guestId,
+        IReadOnlyList<string> words,
+        int revision,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var round = await db.OpenRounds.SingleAsync(r => r.Id == roundId, cancellationToken);
+        if (round.SessionId != sessionId || round.OpenedAt == null || round.ClosedAt != null)
+        {
+            throw new ConflictException(OpenRoundChecks.WRONG_PHASE);
+        }
+
+        if (round.Revision != revision)
+        {
+            throw new ConflictException(OpenRoundChecks.STALE);
+        }
+
+        var saved = await db.OpenEntries.AsNoTracking()
+            .Where(e => e.RoundId == roundId)
+            .OrderBy(e => e.GuestId)
+            .ThenBy(e => e.Position)
+            .Select(e => new { e.TextKey, e.Text })
+            .ToListAsync(cancellationToken);
+        var first = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var entry in saved)
+        {
+            first.TryAdd(entry.TextKey, entry.Text);
+        }
+
+        await db.OpenEntries.Where(e => e.RoundId == roundId && e.GuestId == guestId).ExecuteDeleteAsync(cancellationToken);
+        var held = new string[words.Count];
+        for (var i = 0; i < words.Count; i++)
+        {
+            var key = OpenTextRules.KeyOf(words[i]);
+            var text = first.TryGetValue(key, out var casing) ? casing : words[i];
+            held[i] = text;
+            db.OpenEntries.Add(new OpenEntry
+            {
+                Id = Guid.NewGuid(),
+                RoundId = roundId,
+                GuestId = guestId,
+                Position = i,
+                Text = text,
+                TextKey = key,
+            });
+        }
+
+        round.Revision++;
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return held;
+    }
+
+    private static string QuestionOf(string slotsJson)
+    {
+        using var document = JsonDocument.Parse(slotsJson);
+        if (!document.RootElement.TryGetProperty("question", out var question) || question.GetString() is not { } text)
+        {
+            throw new InvalidOperationException("A word-cloud slide has no question slot.");
+        }
+
+        return text;
+    }
+
+    private readonly record struct Live(string DeckId, Guid SessionId);
 }

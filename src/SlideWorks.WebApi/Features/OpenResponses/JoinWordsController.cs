@@ -10,14 +10,15 @@ namespace SlideWorks.WebApi.Features.OpenResponses;
 // code is the only credential. A submit with no sw_guest cookie is 404 no_session, the same as a code with no session.
 [Route("api/join/{code}/slides/{slide:int}")]
 [AllowAnonymous]
-public class JoinWordsController(WordSubmissions words, OpenResponseLimiter limiter) : ApiControllerBase
+public class JoinWordsController(WordSubmissions words) : ApiControllerBase
 {
     // TODO: serve an open-text slide's view from OpenAnswers, by the slide's layout.
     [HttpGet("response")]
     [SetsGuestCookie]
     [ProducesResponseType<GuestResponseView>(StatusCodes.Status200OK)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
-    public Task<GuestResponseView> Get(string code, int slide) => words.ViewAsync(code, slide, GuestCookie.From(Request));
+    public Task<GuestResponseView> Get(string code, int slide, CancellationToken cancellationToken)
+        => words.ViewAsync(code, slide, GuestCookie.From(Request), cancellationToken);
 
     [HttpPut("words")]
     [ProducesResponseType<StoredWords>(StatusCodes.Status200OK)]
@@ -25,10 +26,9 @@ public class JoinWordsController(WordSubmissions words, OpenResponseLimiter limi
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status429TooManyRequests)]
-    public Task<StoredWords> Put(string code, int slide, WordsRequest request)
+    public Task<StoredWords> Put(string code, int slide, WordsRequest request, CancellationToken cancellationToken)
     {
         var guestId = GuestCookie.From(Request) ?? throw new NotFoundException(GuestViews.NO_SESSION);
-        limiter.Take(guestId, code, slide);
-        return words.SubmitAsync(code, slide, guestId, request);
+        return words.SubmitAsync(code, slide, guestId, request, cancellationToken);
     }
 }
