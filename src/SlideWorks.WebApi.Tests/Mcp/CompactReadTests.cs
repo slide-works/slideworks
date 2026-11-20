@@ -21,7 +21,9 @@ public class CompactReadTests : ApiTestFixture
 
         Encoding.UTF8.GetByteCount(compact.GetRawText()).ShouldBeLessThan(Encoding.UTF8.GetByteCount(full.GetRawText()) / 2);
         compact.GetProperty("icons").EnumerateArray().Select(i => i.GetString()).ShouldBe(IconCatalogue.Names);
-        compact.GetProperty("blocks").EnumerateObject().Select(b => b.Name).ShouldBe(InlineBlocks.All.Select(b => b.Name));
+        var blockNames = compact.GetProperty("blocks").EnumerateObject().Select(b => b.Name).ToList();
+        InlineBlocks.All.Select(b => b.Name).ShouldAllBe(name => blockNames.Contains(name));
+        blockNames.ShouldContain("emphasis");
         compact.GetProperty("blocks").EnumerateObject().ShouldAllBe(b => b.Value.GetProperty("slots").ValueKind == JsonValueKind.Array);
         var layouts = compact.GetProperty("layouts").EnumerateArray().ToList();
         layouts.Select(l => l.GetProperty("name").GetString()).ShouldBe(LayoutCatalogue.Layouts.Select(l => l.Name));
@@ -30,6 +32,11 @@ public class CompactReadTests : ApiTestFixture
         slots.All(s => s.TryGetProperty("max", out _)).ShouldBeTrue();
         compact.GetRawText().ShouldNotContain("\"pattern\"");
         compact.GetRawText().ShouldNotContain("$schema");
+        Flatten(slots).Where(s => s.GetProperty("kind").GetString() == "block").ShouldAllBe(s => blockNames.Contains(s.GetProperty("block").GetString()!));
+        var emphasis = compact.GetProperty("blocks").GetProperty("emphasis").GetProperty("slots").EnumerateArray().Single();
+        emphasis.GetProperty("kind").GetString().ShouldBe("list");
+        emphasis.GetProperty("max").GetInt32().ShouldBe(3);
+        emphasis.GetProperty("item").GetProperty("slots").EnumerateArray().Select(f => f.GetProperty("name").GetString()).ShouldBe(["text", "tone", "in"]);
         var icon = Flatten(slots).First(s => s.GetProperty("kind").GetString() == "icon");
         icon.TryGetProperty("values", out _).ShouldBeFalse();
         var headline = layouts.First(l => l.GetProperty("name").GetString() == "quote").GetProperty("slots").EnumerateArray()
