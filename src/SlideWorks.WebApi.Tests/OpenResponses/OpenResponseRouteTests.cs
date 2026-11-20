@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.Core.OpenResponses;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Join;
+using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.OpenResponses.Data;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Tests.Decks;
@@ -17,7 +18,7 @@ using SlideWorks.WebApi.Tests.Support;
 namespace SlideWorks.WebApi.Tests.OpenResponses;
 
 // The SW-8 HTTP routes: a guest's GET and submits on a word-cloud or open-text slide, and the presenter's control view.
-// A refused submit or control action writes nothing. The open round in word-cloud.json is the one a phone answers.
+// A refused submit or control action writes nothing. A word-cloud submit is against a live round the guest has joined.
 [TestFixture]
 [CancelAfter(30000)]
 public class OpenResponseRouteTests : JoinFixture
@@ -27,26 +28,38 @@ public class OpenResponseRouteTests : JoinFixture
     [Test]
     public async Task Get_WhenTheSlideIsAWordCloud_ShouldMatchTheContract()
     {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
+        var guest = GuestCookie.NewId();
+        var cloud = await OpenJoinedWordCloudAsync(guest);
         using var anonymous = ClientFor(TestUser.Anonymous);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/join/{CODE}/slides/1/response");
+        request.Headers.Add("Cookie", $"{GuestCookie.NAME}={guest}");
 
-        using var response = await anonymous.GetAsync($"/api/join/{CODE}/slides/1/response");
+        using var response = await anonymous.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
         response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
         using var sample = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "word-cloud.json")));
         JsonShape.AssertMatches(JsonDocument.Parse(body).RootElement, sample.RootElement.GetProperty("open"), "word-cloud.json");
+        using var json = JsonDocument.Parse(body);
+        json.RootElement.GetProperty("kind").GetString().ShouldBe("word-cloud");
+        json.RootElement.GetProperty("phase").GetString().ShouldBe("open");
+        json.RootElement.GetProperty("round").GetString().ShouldBe(cloud.Round);
+        json.RootElement.GetProperty("number").GetInt32().ShouldBe(1);
+        json.RootElement.GetProperty("revision").GetInt32().ShouldBe(cloud.Revision);
+        json.RootElement.GetProperty("question").GetString().ShouldBe("How do you feel?");
+        json.RootElement.GetProperty("revealed").GetBoolean().ShouldBeTrue();
+        json.RootElement.GetProperty("guests").GetInt32().ShouldBe(0);
+        json.RootElement.GetProperty("mineWords").GetArrayLength().ShouldBe(0);
     }
 
     [Test]
     public async Task Words_WhenWellFormed_ShouldReturnTheStoredWords()
     {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
+        var guest = GuestCookie.NewId();
+        var cloud = await OpenJoinedWordCloudAsync(guest);
         using var anonymous = ClientFor(TestUser.Anonymous);
 
-        using var response = await anonymous.SendAsync(Words(GuestCookie.NewId(), ROUND, 9, "  Focused ", "Calm"));
+        using var response = await anonymous.SendAsync(Words(guest, cloud.Round, cloud.Revision, "  Focused ", "Calm"));
 
         var body = await response.Content.ReadAsStringAsync();
         response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
@@ -77,12 +90,12 @@ public class OpenResponseRouteTests : JoinFixture
     [Test]
     public async Task Words_WhenAWordIsProfane_ShouldRefuseAndLeaveTheRowCount()
     {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
+        var guest = GuestCookie.NewId();
+        var cloud = await OpenJoinedWordCloudAsync(guest);
         using var anonymous = ClientFor(TestUser.Anonymous);
         var before = await EntryCountAsync();
 
-        using var response = await anonymous.SendAsync(Words(GuestCookie.NewId(), ROUND, 9, "Calm", "Bollocks!"));
+        using var response = await anonymous.SendAsync(Words(guest, cloud.Round, cloud.Revision, "Calm", "Bollocks!"));
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await response.Content.ReadAsStringAsync()).ShouldBe("""{"error":"profane"}""");
@@ -92,12 +105,12 @@ public class OpenResponseRouteTests : JoinFixture
     [Test]
     public async Task Words_WhenThereAreTooManyWords_ShouldRefuseWithConflict()
     {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
+        var guest = GuestCookie.NewId();
+        var cloud = await OpenJoinedWordCloudAsync(guest);
         using var anonymous = ClientFor(TestUser.Anonymous);
         var before = await EntryCountAsync();
 
-        using var response = await anonymous.SendAsync(Words(GuestCookie.NewId(), ROUND, 9, "Calm", "Busy", "Focused", "Tired"));
+        using var response = await anonymous.SendAsync(Words(guest, cloud.Round, cloud.Revision, "Calm", "Busy", "Focused", "Tired"));
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await response.Content.ReadAsStringAsync()).ShouldBe("""{"error":"too_many_words"}""");
@@ -121,12 +134,12 @@ public class OpenResponseRouteTests : JoinFixture
     [Test]
     public async Task Words_WhenTheRevisionIsStale_ShouldRefuse()
     {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
+        var guest = GuestCookie.NewId();
+        var cloud = await OpenJoinedWordCloudAsync(guest);
         using var anonymous = ClientFor(TestUser.Anonymous);
         var before = await EntryCountAsync();
 
-        using var response = await anonymous.SendAsync(Words(GuestCookie.NewId(), ROUND, 8, "Calm"));
+        using var response = await anonymous.SendAsync(Words(guest, cloud.Round, cloud.Revision + 1, "Calm"));
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await response.Content.ReadAsStringAsync()).ShouldBe("""{"error":"stale"}""");
@@ -136,18 +149,21 @@ public class OpenResponseRouteTests : JoinFixture
     [Test]
     public async Task Words_WhenTheGuestPassesTheLimit_ShouldRefuseWithTooManyAnswers()
     {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
-        using var anonymous = ClientFor(TestUser.Anonymous);
         var guest = GuestCookie.NewId();
+        var other = GuestCookie.NewId();
+        var cloud = await OpenJoinedWordCloudAsync(guest, other);
+        using var anonymous = ClientFor(TestUser.Anonymous);
+        var revision = cloud.Revision;
         for (var i = 0; i < 30; i++)
         {
-            using var allowed = await anonymous.SendAsync(Words(guest, ROUND, 9, "Calm"));
-            allowed.StatusCode.ShouldBe(HttpStatusCode.OK);
+            using var allowed = await anonymous.SendAsync(Words(guest, cloud.Round, revision, "Calm"));
+            var allowedBody = await allowed.Content.ReadAsStringAsync();
+            allowed.StatusCode.ShouldBe(HttpStatusCode.OK, allowedBody);
+            revision++;
         }
 
-        using var response = await anonymous.SendAsync(Words(guest, ROUND, 9, "Calm"));
-        using var otherGuest = await anonymous.SendAsync(Words(GuestCookie.NewId(), ROUND, 9, "Calm"));
+        using var response = await anonymous.SendAsync(Words(guest, cloud.Round, revision, "Calm"));
+        using var otherGuest = await anonymous.SendAsync(Words(other, cloud.Round, revision, "Calm"));
 
         response.StatusCode.ShouldBe((HttpStatusCode)429);
         (await response.Content.ReadAsStringAsync()).ShouldBe("""{"error":"too_many_answers"}""");
@@ -213,6 +229,35 @@ public class OpenResponseRouteTests : JoinFixture
         return (deckId, round);
     }
 
+    // A word-cloud on slide 1, taken live, its round opened, and each guest joined to that session.
+    private async Task<JoinedCloud> OpenJoinedWordCloudAsync(params string[] guestIds)
+    {
+        using var sam = ClientFor(TestUser.Sam);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deckId = await DeckSeed.CreateDeckAsync(agent);
+        await DeckSeed.AddSlideAsync(agent, deckId, "word-cloud", """{"question":"How do you feel?"}""");
+        using var live = await sam.PostAsync($"/api/decks/{deckId}/live", null);
+        live.EnsureSuccessStatusCode();
+        var sessionId = (await live.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sessionId").GetString()
+            ?? throw new InvalidOperationException("Go live returned no session.");
+        Sessions.Set(CODE, deckId, sessionId, AudiencePhase.Live);
+        using var opened = await sam.PostAsync($"/api/decks/{deckId}/slides/1/response/open", null);
+        opened.EnsureSuccessStatusCode();
+        var view = await opened.Content.ReadFromJsonAsync<JsonElement>();
+        var round = view.GetProperty("round").GetString() ?? throw new InvalidOperationException("Open returned no round.");
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var now = Clock.GetUtcNow();
+        var session = Guid.Parse(sessionId);
+        foreach (var guestId in guestIds)
+        {
+            db.AudienceJoins.Add(new AudienceJoin { SessionId = session, GuestId = guestId, JoinedAt = now });
+        }
+
+        await db.SaveChangesAsync();
+        return new JoinedCloud(round, view.GetProperty("revision").GetInt32());
+    }
+
     private static HttpRequestMessage Words(string guestId, string round, int revision, params string[] words)
     {
         var request = new HttpRequestMessage(HttpMethod.Put, $"/api/join/{CODE}/slides/1/words")
@@ -228,4 +273,6 @@ public class OpenResponseRouteTests : JoinFixture
         await using var scope = Factory.Services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<AppDbContext>().OpenEntries.CountAsync();
     }
+
+    private sealed record JoinedCloud(string Round, int Revision);
 }
