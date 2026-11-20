@@ -7,10 +7,15 @@ export const OPEN_RESPONSE_ERRORS = {
   text_too_long: 'Your answer can be at most 200 characters.',
   profane: 'That word isn’t allowed here. Try a different one.',
   too_many_answers: 'You’re sending too fast. Wait a moment and try again.',
+  stale: 'The question moved on. Check it and send again.',
+  wrong_phase: 'This question isn’t taking answers right now.',
 } as const;
 
-// The sentence for a failed call whose code is not one of the above: a network failure or a refusal this page has no
-// words for.
+// The refusals that mean the phone's copy of the round is out of date, so the hook reads it again.
+export const OPEN_RESPONSE_REREAD: readonly string[] = ['stale', 'wrong_phase'];
+
+// The sentence for a failed call whose code is not one of OPEN_RESPONSE_ERRORS: a network failure or a refusal this page
+// has no words for.
 export const OPEN_RESPONSE_FAILED = 'That didn’t go through. Try again.';
 
 export function openResponseErrorSentence(code: string | undefined): string {

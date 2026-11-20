@@ -56,6 +56,19 @@ test('WordCard_WhenTheSubmitIsProfane_ShouldShowTheSentence', async ({ mount, pa
   await expect(page.getByTestId(IDS.mine)).toHaveCount(0);
 });
 
+test('WordCard_WhenTheSubmitIsStale_ShouldReadTheViewAgain', async ({ mount, page }) => {
+  const stub = await stubOpenResponses(page, { slide: 3, view: wordsView([]) });
+  stub.reply({ status: 409, json: { error: 'stale', message: 'Stale.' } });
+  await mount(<WordCard code="482913" slide={3} status="live" />);
+  await expect(page.getByTestId(IDS.question)).toHaveText(QUESTION);
+
+  await page.getByTestId(IDS.input).first().fill('Calm');
+  await page.getByTestId(IDS.submit).click();
+
+  await expect(page.getByTestId(IDS.error)).toHaveText(OPEN_RESPONSE_ERRORS.stale);
+  await expect.poll(() => stub.gets).toBe(2);
+});
+
 test('OpenAnswerCard_WhenTheGetReturnsText_ShouldShowThatText', async ({ mount, page }) => {
   await stubOpenResponses(page, { slide: 3, view: textView('More demos please') });
   await mount(<OpenAnswerCard code="482913" slide={3} status="live" />);

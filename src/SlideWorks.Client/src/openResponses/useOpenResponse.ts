@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { ApiError, api } from '../api/client';
 import type { AudienceOpenResponses, AudienceStatus } from '../guest/useAudience';
-import { openResponseErrorSentence } from './errors';
+import { OPEN_RESPONSE_REREAD, openResponseErrorSentence } from './errors';
 import type {
   GuestResponseView,
   OpenTextEvent,
@@ -49,6 +49,8 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
   const [room, setRoom] = useState<Held<RoomEvent> | null>(null);
   const [error, setError] = useState<Held<string | null> | null>(null);
   const [sending, setSending] = useState(false);
+  // Counts stale and wrong_phase refusals: each reads the view again so the next send carries the current round.
+  const [rereads, setRereads] = useState(0);
   const live = status === 'live';
 
   useEffect(() => {
@@ -63,7 +65,7 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
       (value) => {
         if (gone) return;
         setView({ key, value });
-        setError({ key, value: null });
+        if (rereads === 0) setError({ key, value: null });
       },
       (failure: unknown) => {
         if (gone) return;
@@ -76,7 +78,7 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
       stopWords?.();
       stopText?.();
     };
-  }, [live, audience, base, key, slide]);
+  }, [live, audience, base, key, slide, rereads]);
 
   const current = view?.key === key ? view.value : null;
 
@@ -90,6 +92,8 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
         return true;
       } catch (failure) {
         setError({ key, value: sentenceOf(failure) });
+        if (failure instanceof ApiError && OPEN_RESPONSE_REREAD.includes(failure.code ?? ''))
+          setRereads((count) => count + 1);
         return false;
       } finally {
         setSending(false);
