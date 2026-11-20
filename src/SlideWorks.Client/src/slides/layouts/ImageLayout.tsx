@@ -7,7 +7,9 @@ import { SlideHeading } from '../blocks/SlideHeading';
 import { emphasisFor } from '../emphasis';
 import { Reveal } from '../Reveal';
 import type { LayoutProps } from '../slots';
+import { safeHref } from '../safeHref';
 import { calloutStep } from '../steps';
+import { videoEmbed } from '../videoEmbed';
 import styles from './ImageLayout.module.css';
 
 type Natural = { width: number; height: number };
@@ -24,7 +26,7 @@ const ICON_SIZE = 34;
 // point n appears at step n; a callout shows from the start or, with reveal
 // 'last', as the step after the last point.
 export function ImageLayout({ slots, step }: LayoutProps<'image'>) {
-  const { kicker, headline, image, frame, position, points, caption, reveal, callout } = slots;
+  const { kicker, headline, image, frame, position, points, caption, link, reveal, callout } = slots;
   const [natural, setNatural] = useState<Natural | null>(null);
   const size =
     natural === null
@@ -46,19 +48,7 @@ export function ImageLayout({ slots, step }: LayoutProps<'image'>) {
   const figure = (
     <figure className={styles.figure}>
       <div className={styles.frame}>
-        <img
-          data-testid="image-picture"
-          className={styles.image}
-          style={size}
-          src={`/api/images/${encodeURIComponent(image.image)}`}
-          alt={image.alt}
-          onLoad={(event) => {
-            const { naturalWidth, naturalHeight } = event.currentTarget;
-            if (naturalWidth > 0 && naturalHeight > 0) {
-              setNatural({ width: naturalWidth, height: naturalHeight });
-            }
-          }}
-        />
+        <Picture image={image} link={link} size={size} onLoad={setNatural} />
       </div>
       {caption !== undefined ? (
         <figcaption data-testid="image-caption" className={styles.caption}>
@@ -144,5 +134,58 @@ export function ImageLayout({ slots, step }: LayoutProps<'image'>) {
         {note !== null ? <div className={styles.under}>{note}</div> : null}
       </div>
     </div>
+  );
+}
+
+// The uploaded image. A YouTube or Vimeo link plays on the slide, with the image behind it. Any other link opens
+// from the image. The anchor uses display: contents, so a link does not change the image's box.
+function Picture({
+  image,
+  link,
+  size,
+  onLoad,
+}: {
+  image: LayoutProps<'image'>['slots']['image'];
+  link: string | undefined;
+  size: CSSProperties | undefined;
+  onLoad: (natural: Natural) => void;
+}) {
+  const img = (
+    <img
+      data-testid="image-picture"
+      className={styles.image}
+      style={size}
+      src={`/api/images/${encodeURIComponent(image.image)}`}
+      alt={image.alt}
+      onLoad={(event) => {
+        const { naturalWidth, naturalHeight } = event.currentTarget;
+        if (naturalWidth > 0 && naturalHeight > 0) {
+          onLoad({ width: naturalWidth, height: naturalHeight });
+        }
+      }}
+    />
+  );
+  const embed = videoEmbed(link);
+  if (embed !== undefined) {
+    return (
+      <>
+        {img}
+        <iframe
+          data-testid="image-video"
+          className={styles.video}
+          src={embed}
+          title={image.alt}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </>
+    );
+  }
+  const href = safeHref(link);
+  if (href === undefined) return img;
+  return (
+    <a data-testid="image-link" className={styles.link} href={href} target="_blank" rel="noopener noreferrer">
+      {img}
+    </a>
   );
 }

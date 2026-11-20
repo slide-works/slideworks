@@ -32,6 +32,9 @@ public class Poll
 
     public PollPrivacy Privacy { get; set; }
 
+    // Choice (the option list), text or cloud. Choice on every poll from before open questions.
+    public PollAnswersForm Answers { get; set; }
+
     public static Poll From(Guid slideId, string deckId, PollSettings settings) => new()
     {
         Id = Guid.NewGuid(),
@@ -44,6 +47,7 @@ public class Poll
         Correct = settings.Correct,
         Opens = settings.Opens,
         Privacy = settings.Privacy,
+        Answers = settings.Answers,
     };
 
     // The deck's Q&A poll (SW-9 Q2): pick any (a guest's upvotes), results live, opened by the Q&A rounds service and never
@@ -62,5 +66,5 @@ public class Poll
         Privacy = PollPrivacy.Private,
     };
 
-    public PollSettings ToSettings() => new(Pick, Max, Results, Correct, Opens, Privacy);
+    public PollSettings ToSettings() => new(Pick, Max, Results, Correct, Opens, Privacy, Answers);
 }

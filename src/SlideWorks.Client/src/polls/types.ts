@@ -28,6 +28,8 @@ export type PollSettings = {
   correct: number | null;
   opens: PollOpens;
   privacy: PollPrivacy;
+  // Left off a choice poll. text is a free answer shown as a list; cloud is a word cloud.
+  answers?: 'choice' | 'text' | 'cloud';
 };
 
 // audienceState.activity for a poll slide (V5). `round` is null in draft; `number` is the round's number, or in draft
@@ -45,6 +47,8 @@ export type PollActivity = {
   results: PollResults;
   roomSeesCounts: boolean;
   correct: number | null;
+  // Left off a choice poll.
+  answers?: 'choice' | 'text' | 'cloud';
 };
 
 // How many have answered and, when the receiver may see them, one count per option (null while hidden). A tally with
@@ -70,7 +74,7 @@ export type GuestPollView = {
 };
 
 // The body of PUT /api/join/{code}/poll/answer. `revision` is the answer the guest holds (0 for a first answer).
-export type AnswerRequest = { round: string; picks: number[]; revision: number };
+export type AnswerRequest = { round: string; picks: number[]; revision: number; text?: string };
 
 // The 409 body: nothing was written, and `current` is what the phone should show now.
 export type StaleAnswer = { error: 'stale'; current: GuestPollView };
@@ -100,6 +104,8 @@ export type PollControlView = {
   revealed: boolean;
   answerShown: boolean;
   rounds: PollRoundSummary[];
+  replies?: string[] | null;
+  words?: { text: string; count: number }[] | null;
 };
 
 // Sent only to the presenter's screens (audience-watch group).

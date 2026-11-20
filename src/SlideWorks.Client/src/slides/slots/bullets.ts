@@ -7,6 +7,8 @@ export type BulletsSlots = {
   kicker?: string;
   headline: string;
   items: BulletItem[];
+  // 'markers' (the default) draws a square; 'numbered' draws 1, 2, 3.
+  style?: 'markers' | 'numbered';
   reveal?: Reveal;
   callout?: CalloutBlock;
   emphasis?: Emphasis[];
@@ -18,6 +20,7 @@ export const KEYS = [
   'kicker',
   'headline',
   'items',
+  'style',
   'reveal',
   'callout',
   'emphasis',

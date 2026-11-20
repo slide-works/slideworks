@@ -1,5 +1,5 @@
 // The quote layout's slots (K5). Field names are frozen; the server sets the limits.
-import type { Emphasis } from './blocks';
+import type { Emphasis, ImageRef } from './blocks';
 import type { AssertTrue, ListsEveryKey } from './keyChecks';
 import type { Reveal } from './shared';
 
@@ -17,6 +17,7 @@ export type QuoteSlots = {
   stat?: QuoteStat;
   follow_up?: string;
   source?: string;
+  image?: ImageRef;
   reveal?: Reveal;
   emphasis?: Emphasis[];
 };
@@ -32,6 +33,7 @@ export const KEYS = [
   'stat',
   'follow_up',
   'source',
+  'image',
   'reveal',
   'emphasis',
 ] as const satisfies readonly (keyof QuoteSlots)[];

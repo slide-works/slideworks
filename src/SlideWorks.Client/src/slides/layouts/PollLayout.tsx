@@ -14,7 +14,9 @@ const QUESTION_FIT: FitBudget = { start: 60, floor: 40, lines: 2, lineHeight: 1.
 
 const PHASE_LABEL = { draft: 'Not open yet', open: 'Open', closed: 'Closed' } as const;
 
-function kindOf(screen: PollScreen | null): string {
+function kindOf(screen: PollScreen | null, open: boolean): string {
+  if (screen?.answers === 'cloud') return 'Word cloud';
+  if (screen?.answers === 'text' || open) return 'Open question';
   if (screen === null) return 'Poll';
   return screen.pick === 'upTo' && screen.max !== null
     ? `Poll · Pick up to ${screen.max}`
@@ -52,6 +54,7 @@ export function PollLayout({ slots }: LayoutProps<'poll'>) {
   useFitText(questionRef, QUESTION_FIT, slots.question);
 
   const { options } = slots;
+  const open = options.length === 0;
   const hidden = screen !== null && screen.phase === 'open' && screen.counts === null;
   const percents = percentsOf(screen, options.length);
   const correct = screen !== null && screen.answerShown ? screen.correct : null;
@@ -64,7 +67,7 @@ export function PollLayout({ slots }: LayoutProps<'poll'>) {
             {joined.join.hostLabel} · <b>{joined.join.codeLabel}</b>
           </p>
         ) : null}
-        <Kicker testId={POLL_SLIDE_TEST_IDS.kind} text={kindOf(screen)} />
+        <Kicker testId={POLL_SLIDE_TEST_IDS.kind} text={kindOf(screen, open)} />
         <h2
           ref={questionRef}
           data-testid={POLL_SLIDE_TEST_IDS.question}
@@ -73,6 +76,9 @@ export function PollLayout({ slots }: LayoutProps<'poll'>) {
           {slots.question}
         </h2>
         <div className={`sw-body ${styles.body}`}>
+          {open ? (
+            <OpenAnswers screen={screen} />
+          ) : (
           <ol
             data-testid={POLL_SLIDE_TEST_IDS.rows}
             data-density={densityOf(options.length)}
@@ -90,6 +96,7 @@ export function PollLayout({ slots }: LayoutProps<'poll'>) {
               />
             ))}
           </ol>
+          )}
         </div>
         {screen === null ? null : (
           <div className={styles.foot}>
@@ -131,4 +138,33 @@ export function PollLayout({ slots }: LayoutProps<'poll'>) {
       </div>
     </div>
   );
+}
+
+// An open question has no option rows. The big screen lists the replies, or draws them as a word cloud, once the room
+// may see them. Before that it says phones answer it.
+function OpenAnswers({ screen }: { screen: PollScreen | null }) {
+  const words = screen?.words ?? [];
+  const replies = screen?.replies ?? [];
+  if (screen?.answers === 'cloud' && words.length > 0) {
+    const top = words[0]?.count ?? 1;
+    return (
+      <div data-testid="poll-cloud" className={styles.cloud}>
+        {words.map((word) => (
+          <span key={word.text} style={{ fontSize: `${16 + (28 * word.count) / top}px` }}>
+            {word.text}
+          </span>
+        ))}
+      </div>
+    );
+  }
+  if (replies.length > 0) {
+    return (
+      <ul data-testid="poll-replies" className={styles.replies}>
+        {replies.map((reply, index) => (
+          <li key={`${index}-${reply}`}>{reply}</li>
+        ))}
+      </ul>
+    );
+  }
+  return <p data-testid="poll-open-waiting" className={styles.waiting}>Phones answer this in their own words.</p>;
 }

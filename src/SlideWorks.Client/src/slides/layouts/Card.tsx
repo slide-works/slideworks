@@ -37,7 +37,14 @@ export function Card({ card, at, step }: CardProps) {
   return (
     <Reveal as="li" at={at} step={step} className={styles.item}>
       <div data-testid="cards-card" className={styles.card} {...toned}>
-        {card.icon !== undefined && iconFor(card.icon) !== undefined ? (
+        {card.image !== undefined ? (
+          <img
+            data-testid="cards-image"
+            className={styles.picture}
+            src={`/api/images/${encodeURIComponent(card.image.image)}`}
+            alt={card.image.alt}
+          />
+        ) : card.icon !== undefined && iconFor(card.icon) !== undefined ? (
           <div data-testid="cards-icon" className={styles.icon}>
             <Icon name={card.icon} size={44} />
           </div>

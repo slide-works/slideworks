@@ -33,7 +33,7 @@ export function ActivitySlot({ code, activity, status, presenter }: ActivitySlot
         className="flex min-h-0 flex-1 flex-col"
       >
         <PollAnswerLive code={code} activity={activity} status={status} polls={polls}>
-          <PollCard activity={activity} presenter={presenter} />
+          <PollCard activity={activity} presenter={presenter} code={code} />
         </PollAnswerLive>
       </section>
     );

@@ -32,12 +32,12 @@ public sealed class PollTallies(IServiceScopeFactory scopes, TimeProvider time, 
     private ImmutableList<Func<PollRoundRef, Task>> _handlers = [];
     private DateTimeOffset _lastSweep = DateTimeOffset.MinValue;
 
-    public async Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks)
+    public async Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks, bool hadText = false, bool hasText = false)
     {
         var (tally, loadedHere) = await TouchAsync(round.RoundId);
         if (!loadedHere)
         {
-            tally.Apply(oldPicks, newPicks);
+            tally.Apply(oldPicks, newPicks, hadText, hasText);
         }
         foreach (var handler in _handlers)
         {
@@ -123,8 +123,14 @@ public sealed class PollTallies(IServiceScopeFactory scopes, TimeProvider time, 
         {
             return (RoundTally.Empty(now), false);
         }
-        var answers = await db.PollAnswers.AsNoTracking().Where(a => a.RoundId == id).Select(a => a.Picks).ToListAsync();
-        return (RoundTally.From(answers, now), round.ClosedAt is null);
+        var answers = await db.PollAnswers.AsNoTracking().Where(a => a.RoundId == id).Select(a => new { a.Picks, a.Text }).ToListAsync();
+        var tally = RoundTally.Empty(now);
+        foreach (var answer in answers)
+        {
+            tally.Apply([], answer.Picks, hasText: !string.IsNullOrEmpty(answer.Text));
+        }
+
+        return (tally, round.ClosedAt is null);
     }
 
     // Drops kept rounds that have not been touched for a while and whose rows say they have closed. Runs at most once per
@@ -186,18 +192,6 @@ public sealed class PollTallies(IServiceScopeFactory scopes, TimeProvider time, 
 
         public static RoundTally Empty(DateTimeOffset now) => new(0, [], now);
 
-        // Answered is the number of guests with an answer row, not the number of picks: with pick several a guest's row
-        // adds one to each option it picks.
-        public static RoundTally From(IReadOnlyList<IReadOnlyList<int>> answers, DateTimeOffset now)
-        {
-            var tally = Empty(now);
-            foreach (var picks in answers)
-            {
-                tally.Apply([], picks);
-            }
-            return tally;
-        }
-
         public void Touch(DateTimeOffset now)
         {
             lock (_gate)
@@ -208,15 +202,17 @@ public sealed class PollTallies(IServiceScopeFactory scopes, TimeProvider time, 
 
         // A first answer (no old picks) adds a guest; every old pick loses one and every new pick gains one. A pick past
         // the known options (one was appended) grows the list.
-        public void Apply(IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks)
+        public void Apply(IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks, bool hadText = false, bool hasText = false)
         {
             lock (_gate)
             {
-                if (oldPicks.Count == 0 && newPicks.Count > 0)
+                var wasAnswered = oldPicks.Count > 0 || hadText;
+                var nowAnswered = newPicks.Count > 0 || hasText;
+                if (!wasAnswered && nowAnswered)
                 {
                     _answered++;
                 }
-                else if (oldPicks.Count > 0 && newPicks.Count == 0)
+                else if (wasAnswered && !nowAnswered)
                 {
                     _answered--;
                 }

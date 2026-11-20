@@ -13,5 +13,5 @@ public interface IRoundAnswerWriter
     // Replaces the guest's answer in the round with picks (0-based option positions) when the guest's stored revision is
     // still expectedRevision (0 for no answer yet), and completes once its group has committed. Throws what the group's
     // commit threw when it failed; nothing of that group is written or counted.
-    Task<RoundWrite> ReplaceAsync(PollRoundRef round, string guestId, IReadOnlyList<int> picks, int expectedRevision);
+    Task<RoundWrite> ReplaceAsync(PollRoundRef round, string guestId, IReadOnlyList<int> picks, int expectedRevision, string? text = null);
 }

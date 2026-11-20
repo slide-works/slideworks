@@ -39,6 +39,26 @@
   content: none;
 }
 
+/* Numbered lists keep the same indent and replace the square with 1, 2, 3. */
+.items[data-style='numbered'] {
+  counter-reset: sw-item;
+}
+
+.items[data-style='numbered'] .item {
+  counter-increment: sw-item;
+}
+
+.items[data-style='numbered'] .item::before {
+  content: counter(sw-item);
+  top: 6px;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: none;
+  color: var(--sw-accent);
+  font: 700 28px/1 var(--sw-font-body);
+}
+
 .icon {
   position: absolute;
   top: 4px;

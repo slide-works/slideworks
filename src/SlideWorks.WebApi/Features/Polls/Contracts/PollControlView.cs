@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using SlideWorks.Core.Polls;
 
 namespace SlideWorks.WebApi.Features.Polls.Contracts;
@@ -22,4 +23,6 @@ public sealed record PollControlView(
     bool RoomSeesCounts,
     bool Revealed,
     bool AnswerShown,
-    IReadOnlyList<PollRoundSummary> Rounds);
+    IReadOnlyList<PollRoundSummary> Rounds,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? Replies = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<PollWord>? Words = null);

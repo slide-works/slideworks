@@ -6,4 +6,4 @@ namespace SlideWorks.WebApi.Features.Slides;
 // null slots never gets here: McpArgumentCheck refuses it on the wire as "slots: required". DeepDive true marks the slide
 // as a deep dive (D4); null or false leaves it unmarked. Surface is "light" or "dark" where the layout lets the
 // slide pick; null is the layout's own.
-public sealed record AddSlideRequest(string Deck, string Layout, JsonElement Slots, int? Part, int? Position, string? Notes, bool? DeepDive = null, string? Surface = null);
+public sealed record AddSlideRequest(string Deck, string Layout, JsonElement Slots, int? Part, int? Position, string? Notes, bool? DeepDive = null, string? Surface = null, JsonElement? Poll = null);

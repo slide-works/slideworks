@@ -83,6 +83,14 @@ export function DividerLayout({ slots, deck }: LayoutProps<'divider'>) {
   }, [stack, shown]);
   return (
     <div ref={rootRef} data-testid="layout-divider" className={`sw-layout ${styles.divider}`}>
+      {slots.image !== undefined ? (
+        <img
+          data-testid="divider-image"
+          className={styles.photo}
+          src={`/api/images/${encodeURIComponent(slots.image.image)}`}
+          alt={slots.image.alt}
+        />
+      ) : null}
       {part !== null ? (
         <p data-testid="divider-number" className={styles.number}>
           {mark ?? String(part).padStart(2, '0')}

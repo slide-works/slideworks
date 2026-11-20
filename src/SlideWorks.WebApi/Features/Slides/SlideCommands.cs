@@ -1,11 +1,14 @@
+using System.Text.Json;
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
+using SlideWorks.Core.Polls;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Look;
+using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Templates;
@@ -53,6 +56,7 @@ public class SlideCommands(
             // Checked inside the transaction, against the template the deck has now. A refusal rolls the revision back.
             template = await templates.ForDeckAsync(deck, CancellationToken.None);
             var definition = await SlideChecks.ValidateAsync(images, deck.Id, template, request.Layout, slots, request.Surface);
+            var pollSettings = ResolvePoll(request.Layout, slots, request.Poll);
             if (request.Notes is { Length: > SlideChecks.NOTES_MAX_LENGTH })
             {
                 throw new BadRequestException($"notes: at most {SlideChecks.NOTES_MAX_LENGTH} characters");
@@ -83,7 +87,7 @@ public class SlideCommands(
             await db.SaveChangesAsync();
             if (slide.Layout == PollRows.LAYOUT)
             {
-                await pollRows.EnsureAsync(slide.Id, deck.Id);
+                await pollRows.EnsureAsync(slide.Id, deck.Id, pollSettings);
             }
             await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, ADD_TOOL, $"added slide {position + 1} ({slide.Layout}){(slide.DeepDive ? " as a deep dive" : "")}"));
             await transaction.CommitAsync();
@@ -162,7 +166,7 @@ public class SlideCommands(
             if (slide.Layout == PollRows.LAYOUT)
             {
                 await db.SaveChangesAsync();
-                await pollRows.EnsureAsync(slide.Id, deck.Id);
+                await pollRows.EnsureAsync(slide.Id, deck.Id, item.Poll);
             }
 
             item.Stored(number, deck.Revision, urls.Deck(deck.Id, deck.Slug, number), LayoutWarnings.For(template.Template, number, slide.Layout));
@@ -187,14 +191,36 @@ public class SlideCommands(
             }
 
             var (definition, result) = await SlideChecks.ReportAsync(images, deckId, template, draft.Layout, draft.Slots, draft.Surface);
-            return result.IsValid
-                ? new PreparedSlide(index, draft, SlideSteps.Count(definition, draft.Slots), result.Regions)
-                : new PreparedSlide(index, draft, 0, result.Regions, result.Error);
+            if (!result.IsValid)
+            {
+                return new PreparedSlide(index, draft, 0, result.Regions, result.Error);
+            }
+
+            var pollSettings = ResolvePoll(draft.Layout, draft.Slots, draft.Poll);
+            return new PreparedSlide(index, draft, SlideSteps.Count(definition, draft.Slots), result.Regions, poll: pollSettings);
         }
         catch (BadRequestException exception)
         {
             return new PreparedSlide(index, draft, 0, [], exception.Message);
         }
+    }
+
+    // The settings a poll slide is stored with. A poll object on any other layout is refused. A choice poll with fewer
+    // than 2 options, or an open question that still has options, is refused before the slide is written.
+    private static PollSettings? ResolvePoll(string layout, JsonElement slots, JsonElement? poll)
+    {
+        if (poll is not null && layout != PollRows.LAYOUT)
+        {
+            throw new BadRequestException("poll: only on a poll slide");
+        }
+
+        if (layout != PollRows.LAYOUT)
+        {
+            return null;
+        }
+
+        var count = PollDrafts.OptionCount(slots);
+        return poll is null ? PollSettingsCommands.Apply(PollSettings.Default, count) : PollDrafts.Settings(poll.Value, count);
     }
 
     // The 0-based position for a 1-based number, which may be one past the last slide.
@@ -222,16 +248,19 @@ public class SlideCommands(
         private string? url;
         private IReadOnlyList<string> warnings = [];
 
-        public PreparedSlide(int index, SlideDraft draft, int steps, IReadOnlyList<FitRegion> fit, string? error = null)
+        public PreparedSlide(int index, SlideDraft draft, int steps, IReadOnlyList<FitRegion> fit, string? error = null, PollSettings? poll = null)
         {
             this.index = index;
             Draft = draft;
             this.steps = steps;
             this.fit = fit;
             this.error = error;
+            Poll = poll;
         }
 
         public SlideDraft Draft { get; }
+
+        public PollSettings? Poll { get; }
 
         public string? Error => error;
 

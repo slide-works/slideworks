@@ -8,5 +8,6 @@ public static class DividerLayout
     [
         Req("title", new TextSlot(44), "Set at 104 px: two lines at most, shrinking to 64 px to keep them"),
         Opt("sub", new TextSlot(110)),
+        Opt("image", new ImageSlot(), "A full-bleed photo behind the title. The title stays on top"),
     ]);
 }

@@ -71,7 +71,7 @@ public class GuestPollViews(AppDbContext db, IAudienceSessions sessions, IAudien
     public async Task<MyAnswer?> MineAsync(Guid roundId, string guestId)
     {
         var answer = await db.PollAnswers.AsNoTracking().SingleOrDefaultAsync(a => a.RoundId == roundId && a.GuestId == guestId);
-        return answer is null ? null : new MyAnswer(answer.Picks, answer.Revision);
+        return answer is null ? null : new MyAnswer(answer.Picks, answer.Revision, answer.Text);
     }
 
     private static PollCounts FinalOf(PollRound round)

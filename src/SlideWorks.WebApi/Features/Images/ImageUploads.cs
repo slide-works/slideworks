@@ -34,6 +34,8 @@ public class ImageUploads(
     TimeProvider clock)
 {
     public const string TOOL = "upload_image";
+    public const string MANY_TOOL = "upload_images";
+    public const int MAX_BATCH = 40;
     public const string UPLOAD_NOT_FOUND = "Upload not found";
     public const string IMAGE_NOT_FOUND = "Image not found";
 
@@ -75,6 +77,96 @@ public class ImageUploads(
         }
         await events.PublishAsync(new DeckChanged(deckId));
         return new UploadImageResult(image.Id, $"{urls.Base}/api/uploads/{token}", "PUT", (int)UPLOAD_LIFETIME.TotalSeconds);
+    }
+
+    // One call for many images. Each still needs its own PUT of the bytes; the upload addresses come back together.
+    public async Task<UploadImagesResult> CreateManyAsync(string deckId, IReadOnlyList<ImageUploadRequest> files, string? tool)
+    {
+        if (!await access.CanEditAsync(deckId, actor))
+        {
+            throw new NotFoundException(DeckReader.NOT_FOUND);
+        }
+
+        if (files.Count is < 1 or > MAX_BATCH)
+        {
+            throw new BadRequestException(files.Count == 0 ? "files: at least 1" : $"files: at most {MAX_BATCH}");
+        }
+
+        var prepared = files.Select(file => (Label: CheckName(file.Name ?? ""), Type: ImageTypes.Normalise(file.ContentType ?? "") ?? throw new BadRequestException($"contentType: must be {ImageTypes.ACCEPTED_LIST}"))).ToList();
+        var started = new List<UploadImageFile>(prepared.Count);
+        await using (var transaction = await db.Database.BeginTransactionAsync())
+        {
+            foreach (var (label, type) in prepared)
+            {
+                var (image, result) = Pending(deckId, label, type);
+                db.DeckImages.Add(image);
+                started.Add(new UploadImageFile(result.Image, label, result.UploadUrl, result.Method, result.ExpiresInSeconds));
+            }
+
+            await db.SaveChangesAsync();
+            var summary = prepared.Count == 1 ? $"started uploading {prepared[0].Label}" : $"started uploading {prepared.Count} images";
+            await activity.RecordAsync(deckId, ActivityEntry.By(actor, tool, summary));
+            await transaction.CommitAsync();
+        }
+
+        await events.PublishAsync(new DeckChanged(deckId));
+        return new UploadImagesResult(started);
+    }
+
+    // A completed image copied onto another deck, already uploaded. Returns the new image's id. The file is in place
+    // before the row is added; the caller deletes it with DeleteFile when the surrounding write does not commit.
+    public string CopyCompleted(DeckImage source, string targetDeckId)
+    {
+        if (source.UploadedAt is null)
+        {
+            throw new BadRequestException("like: that deck's logo has not finished uploading");
+        }
+
+        var from = store.PathFor(source.DeckId, source.Id);
+        if (!File.Exists(from))
+        {
+            throw new BadRequestException("like: that deck's logo file is missing");
+        }
+
+        var id = ID_PREFIX + RandomNumberGenerator.GetString(ALPHABET, ID_RANDOM_LENGTH);
+        var to = store.PathFor(targetDeckId, id);
+        Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+        File.Copy(from, to, overwrite: false);
+        db.DeckImages.Add(new DeckImage
+        {
+            Id = id,
+            DeckId = targetDeckId,
+            Name = source.Name,
+            ContentType = source.ContentType,
+            SizeBytes = new FileInfo(from).Length,
+            StoragePath = ImageStore.RelativePathFor(targetDeckId, id),
+            UploadedAt = clock.GetUtcNow(),
+        });
+        return id;
+    }
+
+    public void DeleteFile(string deckId, string imageId)
+    {
+        var path = store.PathFor(deckId, imageId);
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+    }
+
+    private (DeckImage Image, UploadImageResult Result) Pending(string deckId, string label, string type)
+    {
+        var token = SecretTokens.New();
+        var image = new DeckImage
+        {
+            Id = ID_PREFIX + RandomNumberGenerator.GetString(ALPHABET, ID_RANDOM_LENGTH),
+            DeckId = deckId,
+            Name = label,
+            ContentType = type,
+            UploadTokenHash = SecretTokens.Hash(token),
+            UploadExpiresAt = clock.GetUtcNow() + UPLOAD_LIFETIME,
+        };
+        return (image, new UploadImageResult(image.Id, $"{urls.Base}/api/uploads/{token}", "PUT", (int)UPLOAD_LIFETIME.TotalSeconds));
     }
 
     // 404 for a token that is unknown, used or expired, or whose deck's owner is no longer approved; 413 over 10 MB; 400 when the bytes aren't the declared type. The
