@@ -75,9 +75,11 @@ async function stubLive(page: Page) {
   return { hub, reads };
 }
 
+// The live session always takes the viewer for the owner (GET /live confirms them); `owner` is the flag the screen
+// provider itself gets.
 function player(owner: boolean) {
   return (
-    <JoinProvider deckId={deckId} join={liveJoin} owner={owner}>
+    <JoinProvider deckId={deckId} join={liveJoin} owner>
       <OpenResponseScreenLive deckId={deckId} owner={owner}>
         {SLIDES.map((slide) => (
           <SlideRenderer key={slide.number} slide={slide} deck={deck} total={6} step={0} />
@@ -87,6 +89,9 @@ function player(owner: boolean) {
   );
 }
 
+// Lets the page run its pending work, so a call or render it should not make has had its chance.
+const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 300)));
+
 const word = (page: Page, slide: number, index: number) =>
   page.getByTestId(`slide-${slide}`).getByTestId(`word-cloud-word-${index}`);
 
@@ -94,8 +99,9 @@ test('OpenResponseScreenLive_WhenThePresenterIsLive_ShouldWatchTheAudience', asy
   const { hub } = await stubLive(page);
   await mount(player(true));
 
+  // One watch is the live session's; the other is the screen provider's own.
+  await expect.poll(() => hub.watches.filter((id) => id === deckId)).toHaveLength(2);
   await expect(word(page, 2, 0)).toHaveText('Slide2');
-  expect(hub.watches).toContain(deckId);
 });
 
 test('OpenResponseScreenLive_WhenTwoSlidesAreMarked_ShouldReadEachSlideOnce', async ({ mount, page }) => {
@@ -104,7 +110,7 @@ test('OpenResponseScreenLive_WhenTwoSlidesAreMarked_ShouldReadEachSlideOnce', as
 
   await expect(word(page, 2, 0)).toHaveText('Slide2');
   await expect(word(page, 3, 0)).toHaveText('Slide3');
-  expect([...reads].sort()).toEqual([2, 3]);
+  expect([...reads].sort((a, b) => a - b)).toEqual([2, 3]);
 });
 
 test('OpenResponseScreenLive_WhenAnEventHasAHiddenWord_ShouldDropIt', async ({ mount, page }) => {
@@ -137,12 +143,30 @@ test('OpenResponseScreenLive_WhenAnEventHasAHiddenWord_ShouldDropIt', async ({ m
 });
 
 test('OpenResponseScreenLive_WhenTheViewerIsNotTheOwner_ShouldGiveNoRound', async ({ mount, page }) => {
-  const { reads } = await stubLive(page);
+  const { hub, reads } = await stubLive(page);
   await mount(player(false));
+  await expect.poll(() => hub.watches).toEqual([deckId]);
 
+  hub.pushWordCloud(
+    {
+      type: 'wordCloud',
+      slide: 2,
+      phase: 'open',
+      round: ROUND,
+      number: 1,
+      revision: 6,
+      revealed: true,
+      guests: 1,
+      words: [{ text: 'Calm', count: 1, hidden: false }],
+    },
+    { target: 'screen' },
+  );
+  await settle(page);
+
+  expect(hub.watches).toEqual([deckId]);
+  expect(reads).toEqual([]);
   await expect(page.getByTestId('slide-2').getByTestId('layout-word-cloud')).toBeVisible();
   await expect(page.getByTestId('slide-3').getByTestId('layout-word-cloud')).toBeVisible();
   await expect(word(page, 2, 0)).toHaveCount(0);
   await expect(word(page, 3, 0)).toHaveCount(0);
-  expect(reads).toEqual([]);
 });

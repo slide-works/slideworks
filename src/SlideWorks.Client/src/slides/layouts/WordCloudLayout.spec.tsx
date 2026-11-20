@@ -51,12 +51,19 @@ function control(revision: number, entries: OpenResponseControlView['entries']):
   };
 }
 
-// The deck is live, GET /live confirms the viewer, and the slide's control view is `view`. Each GET of a slide's view
-// is recorded by its slide number.
-async function stubLive(page: Page, view: OpenResponseControlView) {
+// The deck is live and the slide's control view is `view`. GET /live confirms the viewer as someone who can present, or
+// with canPresent false answers 403 as it does for anyone else; liveAnswers counts the answers it has sent. Each GET of
+// a slide's view is recorded by its slide number.
+async function stubLive(page: Page, view: OpenResponseControlView, { canPresent = true } = {}) {
   const hub = await stubDeckHub(page, { audience: { state: guestView('live').state } });
-  await page.route('**/api/decks/*/live', (route) =>
-    route.fulfill({
+  let liveAnswers = 0;
+  await page.route('**/api/decks/*/live', async (route) => {
+    if (!canPresent) {
+      await route.fulfill({ status: 403, json: { error: 'forbidden' } });
+      liveAnswers += 1;
+      return;
+    }
+    await route.fulfill({
       json: {
         sessionId: 'session-1',
         code: liveJoin.code,
@@ -67,20 +74,28 @@ async function stubLive(page: Page, view: OpenResponseControlView) {
         joinedCount: 3,
         joinBar: false,
       },
-    }),
-  );
+    });
+    liveAnswers += 1;
+  });
   const reads: number[] = [];
   await page.route('**/api/decks/*/slides/*/response', (route) => {
     reads.push(Number(new URL(route.request().url()).pathname.split('/')[5]));
     return route.fulfill({ json: view });
   });
-  return { hub, reads };
+  return {
+    hub,
+    reads,
+    get liveAnswers() {
+      return liveAnswers;
+    },
+  };
 }
 
-function player(owner: boolean) {
+// The player as a viewer the page takes for the owner; GET /live decides whether they can present.
+function player() {
   return (
-    <JoinProvider deckId={deckId} join={liveJoin} owner={owner}>
-      <OpenResponseScreenLive deckId={deckId} owner={owner}>
+    <JoinProvider deckId={deckId} join={liveJoin} owner>
+      <OpenResponseScreenLive deckId={deckId} owner>
         <SlideRenderer slide={cloudSlide} deck={deck} total={6} step={0} />
       </OpenResponseScreenLive>
     </JoinProvider>
@@ -89,6 +104,8 @@ function player(owner: boolean) {
 
 const slide = (page: Page) => page.getByTestId(`slide-${SLIDE}`);
 const word = (page: Page, index: number) => slide(page).getByTestId(`word-cloud-word-${index}`);
+// Lets the page run its pending work, so a call or render it should not make has had its chance.
+const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 300)));
 const fontPx = (page: Page, index: number) =>
   word(page, index).evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
 
@@ -97,7 +114,7 @@ test('WordCloudLayout_WhenOneWordHasAHigherCount_ShouldRenderItLarger', async ({
     { number: 1, text: 'Calm', count: 2, hidden: false },
     { number: 2, text: 'Busy', count: 1, hidden: false },
   ]));
-  await mount(player(true));
+  await mount(player());
 
   await expect(word(page, 0)).toHaveText('Calm');
   await expect(word(page, 1)).toHaveText('Busy');
@@ -106,7 +123,7 @@ test('WordCloudLayout_WhenOneWordHasAHigherCount_ShouldRenderItLarger', async ({
 
 test('WordCloudLayout_WhenAWordIsHidden_ShouldLeaveItOutAndKeepTheQuestion', async ({ mount, page }) => {
   const { hub } = await stubLive(page, control(5, [{ number: 1, text: 'Calm', count: 1, hidden: false }]));
-  await mount(player(true));
+  await mount(player());
   await expect(word(page, 0)).toHaveText('Calm');
 
   const hidden: WordCloudEvent = {
@@ -134,18 +151,24 @@ test('WordCloudLayout_WhenAWordIsHidden_ShouldLeaveItOutAndKeepTheQuestion', asy
 });
 
 test('Cloud_WhenTheViewerCannotPresent_ShouldShowTheQuestionOnly', async ({ mount, page }) => {
-  const { reads } = await stubLive(page, control(5, [{ number: 1, text: 'Calm', count: 4, hidden: false }]));
-  await mount(player(false));
+  const live = await stubLive(page, control(5, [{ number: 1, text: 'Calm', count: 4, hidden: false }]), {
+    canPresent: false,
+  });
+  await mount(player());
+  await expect.poll(() => live.liveAnswers).toBe(1);
+  await expect.poll(() => live.hub.sockets).toBeGreaterThanOrEqual(1);
+  await settle(page);
 
+  expect(live.hub.watches).toEqual([]);
+  expect(live.reads).toEqual([]);
   await expect(slide(page).getByText(QUESTION)).toBeVisible();
   await expect(slide(page).getByRole('list')).toHaveCount(0);
   await expect(word(page, 0)).toHaveCount(0);
-  expect(reads).toEqual([]);
 });
 
 test('WordCloudLayout_WhenOneWordIsShownScreenshot_ShouldMatchTheBaseline', async ({ mount, page }) => {
   await stubLive(page, control(5, [{ number: 1, text: 'Focused', count: 3, hidden: false }]));
-  await mount(player(true));
+  await mount(player());
   await expect(word(page, 0)).toHaveText('Focused');
 
   await expect(slide(page)).toHaveScreenshot('word-cloud-one-word.png');
