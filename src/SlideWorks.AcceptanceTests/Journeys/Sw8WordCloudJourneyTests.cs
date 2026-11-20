@@ -15,10 +15,10 @@ public class Sw8WordCloudJourneyTests : AcceptanceTest
     private const int CLOUD = 2;
     private const string QUESTION = "One word for this sprint?";
 
-    // The two guests send one word in different casings, the first in lower case: the cloud shows the first casing
-    // anyone sent (SW-8 D2), so the rule that picked the ordinal least would show the second.
+    // The second guest sends the first guest's word with a typo and a capital: it counts with the first word (SW-606), and
+    // the cloud shows the first casing anyone sent (SW-8 D2), so the rule that picked the ordinal least would show the second.
     private const string FIRST_CASING = "ship";
-    private const string SECOND_CASING = "Ship";
+    private const string SECOND_CASING = "Shipp";
 
     // On ProfanityList in SlideWorks.Core.
     private const string PROFANE = "shit";
@@ -31,8 +31,9 @@ public class Sw8WordCloudJourneyTests : AcceptanceTest
     // Resolves after two animation frames: a hub message the page has received has been handled and rendered.
     private const string SETTLE = "() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(() => done(true))))";
 
-    // Criteria: the cloud opens by itself when the presenter reaches its slide. Two guests send the same word in different
-    // casings: the big screen shows one word, in the first casing, that its connection received with count 2; the panel
+    // Criteria: the cloud opens by itself when the presenter reaches its slide. Two guests send the same word, the second
+    // one typo off and in another casing: the big screen shows one word, in the first casing, that its connection received
+    // with count 2; the panel
     // lists it with count 2 and each phone shows it in the room's words with count 2. The presenter hides it: the big
     // screen and each phone drop it once their own connection has the hide, and the panel still lists it, marked hidden.
     // A third submit with a profane word shows the refusal on the phone and leaves the count at 2.
@@ -66,7 +67,8 @@ public class Sw8WordCloudJourneyTests : AcceptanceTest
         await Expect(talk.Panel.Guests).ToHaveTextAsync("1 guest submitted", new() { Timeout = PUSH_TIMEOUT });
         await second.Card.Word(0).FillAsync(SECOND_CASING);
         await second.Card.Submit.ClickAsync();
-        // The server stores a later guest's word in the casing already stored for it, so the phone lists it that way.
+        // The server stores a later guest's near miss under the word it matches, in the casing already stored for it, so
+        // the phone lists it that way.
         await Expect(second.Card.Mine).ToHaveTextAsync([FIRST_CASING]);
 
         var twice = talk.ScreenHub.SeenAsync(words => words.Any(w => w.Text == FIRST_CASING && w.Count == 2 && !w.Hidden));
