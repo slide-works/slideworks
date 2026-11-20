@@ -174,7 +174,17 @@ function PollKeys({ onToggle }: { onToggle: () => void }) {
 }
 
 test('Keys_WhenTheSlideIsAWordCloud_ShouldToggleOnPAndDoNothingOnR', async () => {
-  const control = structuredClone(controlSample.wordCloud) as OpenResponseControlView;
+  const control = structuredClone(controlSample.draft) as OpenResponseControlView & {
+    phase: 'draft' | 'open' | 'closed';
+    round?: string;
+  };
+  const openPath = `POST /api/decks/${DECK}/slides/${SLIDE}/response/open`;
+  const closePath = `POST /api/decks/${DECK}/slides/${SLIDE}/response/close`;
+  await page.route(`**/api/decks/${DECK}/slides/${SLIDE}/response/open`, (route) => {
+    control.phase = 'open';
+    control.round = '6e2f9a14-3c7b-4d58-a1e0-9b4c7d2f5a63';
+    return route.fulfill({ status: 200, json: structuredClone(control) });
+  });
   await page.route(`**/api/decks/${DECK}/slides/${SLIDE}/response/close`, (route) => {
     control.phase = 'closed';
     return route.fulfill({ status: 200, json: structuredClone(control) });
@@ -193,22 +203,34 @@ test('Keys_WhenTheSlideIsAWordCloud_ShouldToggleOnPAndDoNothingOnR', async () =>
       </OpenResponseControlLive>,
     );
   });
-  await until(() => document.querySelector(`[data-testid="${IDS.phase}"]`)?.textContent === 'Open');
+  await until(
+    () => document.querySelector(`[data-testid="${IDS.phase}"]`)?.textContent === 'Draft',
+  );
 
+  expect(document.querySelector(`[data-testid="${IDS.phase}"]`)?.textContent).toBe('Draft');
+  await act(async () => press('p'));
+  await until(() => document.querySelector(`[data-testid="${IDS.phase}"]`)?.textContent === 'Open');
+  expect(page.calls).toContain(openPath);
   expect(document.querySelector(`[data-testid="${IDS.phase}"]`)?.textContent).toBe('Open');
+
+  const whileOpen = [...page.calls];
+  await act(async () => press('r'));
+  await settle();
+  expect(page.calls).toEqual(whileOpen);
+  expect(document.querySelector(`[data-testid="${IDS.phase}"]`)?.textContent).toBe('Open');
+
   await act(async () => press('p'));
   await until(
     () => document.querySelector(`[data-testid="${IDS.phase}"]`)?.textContent === 'Closed',
   );
+  expect(page.calls).toContain(closePath);
   expect(document.querySelector(`[data-testid="${IDS.phase}"]`)?.textContent).toBe('Closed');
-  expect(page.calls).toContain(`POST /api/decks/${DECK}/slides/${SLIDE}/response/close`);
 
-  const afterToggle = [...page.calls];
-  await act(async () => press('r'));
+  const whileClosed = [...page.calls];
+  await act(async () => press('p'));
   await settle();
-  expect(page.calls).toEqual(afterToggle);
+  expect(page.calls).toEqual(whileClosed);
   expect(document.querySelector(`[data-testid="${IDS.phase}"]`)?.textContent).toBe('Closed');
-  expect(page.calls.some((call) => call.toLowerCase().includes('reveal'))).toBe(false);
 });
 
 test('Keys_WhenTheSlideIsNotOpenResponse_ShouldLeavePAlone', async () => {

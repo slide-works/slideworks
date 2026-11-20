@@ -1,4 +1,4 @@
-// Presenter open-response controls (SW-596). The panel sits in the presenter window; the strip sits on the phone remote.
+// Presenter open-response controls. The panel sits in the presenter window; the strip sits on the phone remote.
 export const OPEN_PRESENTER_IDS = {
   panel: 'open-response-panel',
   strip: 'open-response-strip',
