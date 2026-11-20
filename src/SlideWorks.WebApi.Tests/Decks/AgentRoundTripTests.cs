@@ -157,8 +157,10 @@ public class AgentRoundTripTests : ApiTestFixture
         compact.TryGetProperty("$defs", out _).ShouldBeFalse();
         compact.GetProperty("layouts")[0].TryGetProperty("schema", out _).ShouldBeFalse();
         compact.GetProperty("layouts")[0].GetProperty("slots").GetArrayLength().ShouldBeGreaterThan(0);
-        full.GetProperty("$defs").GetProperty("icon").GetProperty("enum").GetArrayLength().ShouldBeGreaterThan(20);
-        full.GetRawText().Length.ShouldBeLessThan(80_000);
+        var iconEnum = full.GetProperty("$defs").GetProperty("icon").GetProperty("enum").GetRawText();
+        iconEnum.Length.ShouldBeGreaterThan(20);
+        // The icon catalogue is written once, in $defs. A new layout must not copy it back into every schema.
+        full.GetRawText().Split(iconEnum).Length.ShouldBe(2);
     }
 
     [Test]
