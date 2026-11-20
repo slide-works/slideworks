@@ -14,6 +14,8 @@ import { usePresentation, type Presentation } from '../presentation/usePresentat
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { JoinProvider } from '../slides/JoinContext';
 import { SlidesSheet } from '../remote/SlidesSheet';
+import { OpenResponseControlLive } from '../openResponses/presenter/OpenResponseControlLive';
+import { SpeakerOpenStrip } from '../openResponses/presenter/SpeakerOpenStrip';
 import { PollControlLive } from '../polls/presenter/PollControlLive';
 import { PollStrip } from '../polls/presenter/PollStrip';
 import { QaControlLive } from '../qa/presenter/QaControlLive';
@@ -137,15 +139,17 @@ export function SpeakerPage() {
   return (
     <JoinProvider deckId={load.view.id} join={load.view.join} owner>
       <PollControlLive deckId={id} slide={presentation.state.slide}>
-        <QaControlLive deckId={id} slide={presentation.state.slide}>
-          <SpeakerMode
-            id={id}
-            view={load.view}
-            state={presentation.state}
-            presentation={presentation}
-            refreshFailed={refreshFailed}
-          />
-        </QaControlLive>
+        <OpenResponseControlLive deckId={id} slide={presentation.state.slide}>
+          <QaControlLive deckId={id} slide={presentation.state.slide}>
+            <SpeakerMode
+              id={id}
+              view={load.view}
+              state={presentation.state}
+              presentation={presentation}
+              refreshFailed={refreshFailed}
+            />
+          </QaControlLive>
+        </OpenResponseControlLive>
       </PollControlLive>
     </JoinProvider>
   );
@@ -332,6 +336,7 @@ function SpeakerMode({
             />
           </div>
           <PollStrip deckId={id} />
+          <SpeakerOpenStrip deckId={id} />
           <QaStrip deckId={id} />
           <div className="mt-3 flex min-h-0 flex-1 flex-col">
             <SpeakerNotes view={view} slide={state.slide} step={state.step} lastKnown={!live} />

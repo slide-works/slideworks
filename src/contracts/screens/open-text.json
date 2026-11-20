@@ -1,0 +1,42 @@
+{
+  "draft": {
+    "kind": "open-text",
+    "phase": "draft",
+    "number": 1,
+    "revision": 0,
+    "question": "What would help your team ship smaller changes?",
+    "revealed": true,
+    "guests": 0,
+    "mineText": ""
+  },
+  "open": {
+    "kind": "open-text",
+    "phase": "open",
+    "round": "a3d81c5e-7f2b-4e96-b0c4-1d8e6f9a2b57",
+    "number": 1,
+    "revision": 6,
+    "question": "What would help your team ship smaller changes?",
+    "revealed": true,
+    "guests": 4,
+    "mineText": "A shared definition of done"
+  },
+  "closed": {
+    "kind": "open-text",
+    "phase": "closed",
+    "round": "a3d81c5e-7f2b-4e96-b0c4-1d8e6f9a2b57",
+    "number": 1,
+    "revision": 8,
+    "question": "What would help your team ship smaller changes?",
+    "revealed": true,
+    "guests": 4,
+    "mineText": "A shared definition of done"
+  },
+  "request": {
+    "round": "a3d81c5e-7f2b-4e96-b0c4-1d8e6f9a2b57",
+    "revision": 6,
+    "text": "A shared   definition of done "
+  },
+  "stored": {
+    "text": "A shared definition of done"
+  }
+}

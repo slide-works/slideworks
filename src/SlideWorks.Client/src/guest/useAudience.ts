@@ -1,6 +1,7 @@
 import { HubConnectionState, type HubConnection } from '@microsoft/signalr';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, api } from '../api/client';
+import type { OpenTextEvent, WordCloudEvent } from '../openResponses/types';
 import type { PollTally } from '../polls/types';
 import type { QuestionTally } from '../qa/types';
 import { createAudienceConnection } from '../realtime/audienceConnection';
@@ -43,12 +44,22 @@ export type AudienceQuestions = {
   onTally(listener: (tally: QuestionTally) => void): () => void;
 };
 
+// The word-cloud and open-text side of the audience connection (SW-8 D9), for the phone's cards. Its identity never
+// changes. Each on* calls listener with every event of its type the connection receives, in order, and returns the
+// unsubscribe. Only events that arrive after subscribing are delivered, so subscribe before GET
+// /api/join/{code}/slides/{slide}/response.
+export type AudienceOpenResponses = {
+  onWordCloud(listener: (event: WordCloudEvent) => void): () => void;
+  onOpenText(listener: (event: OpenTextEvent) => void): () => void;
+};
+
 export type Audience = {
   view: GuestView;
   state: AudienceState;
   status: AudienceStatus;
   polls: AudiencePolls;
   questions: AudienceQuestions;
+  openResponses: AudienceOpenResponses;
 };
 
 // Calls each listener with value, on a copy of the set, so a listener that unsubscribes while being called doesn't skip
@@ -126,6 +137,21 @@ export function useAudience(
       onTally: (listener) => {
         questionListeners.current.add(listener);
         return () => void questionListeners.current.delete(listener);
+      },
+    }),
+    [],
+  );
+  const wordCloudListeners = useRef(new Set<(event: WordCloudEvent) => void>());
+  const openTextListeners = useRef(new Set<(event: OpenTextEvent) => void>());
+  const openResponses = useMemo<AudienceOpenResponses>(
+    () => ({
+      onWordCloud: (listener) => {
+        wordCloudListeners.current.add(listener);
+        return () => void wordCloudListeners.current.delete(listener);
+      },
+      onOpenText: (listener) => {
+        openTextListeners.current.add(listener);
+        return () => void openTextListeners.current.delete(listener);
       },
     }),
     [],
@@ -263,6 +289,8 @@ export function useAudience(
       } else if (event.type === 'pollTally' && active) handToEach(tallyListeners.current, event);
       else if (event.type === 'questionTally' && active)
         handToEach(questionListeners.current, event);
+      else if (event.type === 'wordCloud' && active) handToEach(wordCloudListeners.current, event);
+      else if (event.type === 'openText' && active) handToEach(openTextListeners.current, event);
       // pollControl, questionControl and reactions go only to the presenter's screens: a guest never receives them, so
       // nothing reads them here.
     });
@@ -293,5 +321,5 @@ export function useAudience(
   }, [code, initial]);
 
   if (failure) throw failure;
-  return { view, state, status, polls, questions };
+  return { view, state, status, polls, questions, openResponses };
 }

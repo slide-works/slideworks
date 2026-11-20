@@ -1,0 +1,54 @@
+{
+  "draft": {
+    "kind": "word-cloud",
+    "phase": "draft",
+    "number": 1,
+    "revision": 0,
+    "question": "One word for how this sprint felt?",
+    "revealed": true,
+    "guests": 0,
+    "mineWords": []
+  },
+  "open": {
+    "kind": "word-cloud",
+    "phase": "open",
+    "round": "6e2f9a14-3c7b-4d58-a1e0-9b4c7d2f5a63",
+    "number": 1,
+    "revision": 9,
+    "question": "One word for how this sprint felt?",
+    "revealed": true,
+    "guests": 12,
+    "mineWords": [
+      "Focused",
+      "Calm"
+    ]
+  },
+  "closed": {
+    "kind": "word-cloud",
+    "phase": "closed",
+    "round": "6e2f9a14-3c7b-4d58-a1e0-9b4c7d2f5a63",
+    "number": 1,
+    "revision": 11,
+    "question": "One word for how this sprint felt?",
+    "revealed": true,
+    "guests": 12,
+    "mineWords": [
+      "Focused",
+      "Calm"
+    ]
+  },
+  "request": {
+    "round": "6e2f9a14-3c7b-4d58-a1e0-9b4c7d2f5a63",
+    "revision": 9,
+    "words": [
+      "  Focused ",
+      "Calm"
+    ]
+  },
+  "stored": {
+    "words": [
+      "Focused",
+      "Calm"
+    ]
+  }
+}

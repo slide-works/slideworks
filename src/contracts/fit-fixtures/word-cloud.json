@@ -1,0 +1,12 @@
+{
+  "wordCloudQuestion": {
+    "layout": "word-cloud",
+    "grow": [
+      "/question"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "question": "Which Practice Helped Your Team Ship Smaller Changes Every Week While Keeping Review Fast And Feedback Close To The Fast"
+    }
+  }
+}

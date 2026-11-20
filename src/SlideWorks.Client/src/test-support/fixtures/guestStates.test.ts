@@ -64,11 +64,13 @@ describe('audience-events.json', () => {
       'audienceEnded',
       'audienceState',
       'joinedCount',
+      'openText',
       'pollControl',
       'pollTally',
       'questionControl',
       'questionTally',
       'reactions',
+      'wordCloud',
     ]);
     for (const [name, sample] of Object.entries(audienceEventsJson)) expect(sample.type).toBe(name);
   });

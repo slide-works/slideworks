@@ -28,6 +28,8 @@
     "close",
     "join",
     "poll",
-    "qa"
+    "qa",
+    "word-cloud",
+    "open-text"
   ]
 }

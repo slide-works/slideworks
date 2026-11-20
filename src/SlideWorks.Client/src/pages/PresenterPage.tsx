@@ -23,6 +23,8 @@ import {
 } from '../presentation/presenter/usePresenterKeys';
 import type { PresentationState, PresentationUpdate, TimerCommand } from '../presentation/types';
 import { usePresentation, type Presentation } from '../presentation/usePresentation';
+import { OpenResponseControlLive } from '../openResponses/presenter/OpenResponseControlLive';
+import { PresenterOpenPanel } from '../openResponses/presenter/PresenterOpenPanel';
 import { PollControlLive } from '../polls/presenter/PollControlLive';
 import { PollPanel } from '../polls/presenter/PollPanel';
 import { QaControlLive } from '../qa/presenter/QaControlLive';
@@ -224,6 +226,9 @@ export function PresenterPage() {
               <PollControlLive deckId={id} slide={state.slide}>
                 <PollPanel deckId={id} overlayOpen={overviewOpen || phoneOpen} />
               </PollControlLive>
+              <OpenResponseControlLive deckId={id} slide={state.slide}>
+                <PresenterOpenPanel deckId={id} overlayOpen={overviewOpen || phoneOpen} />
+              </OpenResponseControlLive>
               {questionsOpen && <QaPanel deckId={id} />}
               {notesShown && (
                 <NotesPanel

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using SlideWorks.WebApi.Features.OpenResponses.Contracts;
 using SlideWorks.WebApi.Features.Polls.Contracts;
 using SlideWorks.WebApi.Features.Qa.Contracts;
 
@@ -18,4 +19,6 @@ namespace SlideWorks.WebApi.Realtime;
 [JsonDerivedType(typeof(QuestionTally), "questionTally")]
 [JsonDerivedType(typeof(QuestionControl), "questionControl")]
 [JsonDerivedType(typeof(ReactionsBurst), "reactions")]
+[JsonDerivedType(typeof(WordCloudTally), "wordCloud")]
+[JsonDerivedType(typeof(OpenTextTally), "openText")]
 public abstract record AudienceEvent([property: JsonIgnore] string DeckId);

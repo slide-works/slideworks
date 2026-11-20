@@ -1,0 +1,12 @@
+{
+  "openTextQuestion": {
+    "layout": "open-text",
+    "grow": [
+      "/question"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "question": "What One Thing Would Help Your Team Ship Smaller Changes Every Week While Keeping Review Fast And Feedback Close To Them"
+    }
+  }
+}

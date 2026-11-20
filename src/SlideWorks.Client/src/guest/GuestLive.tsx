@@ -1,3 +1,4 @@
+import { AudienceOpenResponsesContext } from '../openResponses/useOpenResponse';
 import { AudienceQuestionsContext } from '../qa/guest/AudienceQuestionsContext';
 import { AudiencePollsContext } from './AudiencePollsContext';
 import { GuestErrorBoundary } from './GuestErrorBoundary';
@@ -7,11 +8,13 @@ import { useAudience } from './useAudience';
 import type { Retry } from './useRetry';
 
 function Screens({ code, view: initial, onRetry }: Props) {
-  const { view, state, status, polls, questions } = useAudience(code, initial);
+  const { view, state, status, polls, questions, openResponses } = useAudience(code, initial);
   return (
     <AudiencePollsContext value={polls}>
       <AudienceQuestionsContext value={questions}>
-        <GuestScreens view={view} state={state} status={status} onRetry={onRetry} />
+        <AudienceOpenResponsesContext value={openResponses}>
+          <GuestScreens view={view} state={state} status={status} onRetry={onRetry} />
+        </AudienceOpenResponsesContext>
       </AudienceQuestionsContext>
     </AudiencePollsContext>
   );
