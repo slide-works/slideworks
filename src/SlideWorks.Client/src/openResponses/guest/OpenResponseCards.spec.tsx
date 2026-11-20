@@ -31,6 +31,37 @@ const textView = (mineText: string): GuestResponseView => ({
 });
 
 const PROFANE = { status: 409, json: { error: 'profane', message: 'That word is not allowed.' } };
+const STALE = { status: 409, json: { error: 'stale', message: 'Stale.' } };
+
+const DRAFT: GuestResponseView = {
+  phase: 'draft',
+  number: 1,
+  revision: 0,
+  revealed: true,
+  kind: 'word-cloud',
+  question: QUESTION,
+  guests: 0,
+  mineWords: [],
+};
+
+type Reply = { status: number; json: unknown };
+
+// Holds the nth GET of a slide's response until release, then answers it with reply or lets it through to the stub.
+async function holdRead(page: Parameters<typeof stubOpenResponses>[0], slide: number, nth: number) {
+  let reach = () => {};
+  const reached = new Promise<void>((resolve) => (reach = resolve));
+  let release: (reply?: Reply) => void = () => {};
+  const released = new Promise<Reply | undefined>((resolve) => (release = resolve));
+  let reads = 0;
+  await page.route(`**/api/join/482913/slides/${slide}/response`, async (route) => {
+    reads += 1;
+    if (reads !== nth) return route.fallback();
+    reach();
+    const reply = await released;
+    return reply ? route.fulfill(reply) : route.fallback();
+  });
+  return { reached, release: (reply?: Reply) => release(reply) };
+}
 
 test('WordCard_WhenTheGetReturnsWords_ShouldShowThoseWords', async ({ mount, page }) => {
   await stubOpenResponses(page, { slide: 3, view: wordsView(['Calm', 'Ready']) });
@@ -157,17 +188,7 @@ test('WordCard_WhenTheHubOpensADraftRound_ShouldSendForThatRoundAndCloseWithIt',
   const guest = liveOn('word-cloud');
   const hub = await stubDeckHub(page, { audience: { state: guest.state } });
   await stubApi(page, { '/api/join/482913': { json: guest } });
-  const draft: GuestResponseView = {
-    phase: 'draft',
-    number: 1,
-    revision: 0,
-    revealed: true,
-    kind: 'word-cloud',
-    question: QUESTION,
-    guests: 0,
-    mineWords: [],
-  };
-  const stub = await stubOpenResponses(page, { slide: 3, view: draft });
+  const stub = await stubOpenResponses(page, { slide: 3, view: DRAFT });
   await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
   await expect(page.getByTestId(IDS.question)).toHaveText(QUESTION);
   await expect(page.getByTestId(IDS.submit)).toBeDisabled();
@@ -212,4 +233,83 @@ test('OpenAnswerCard_WhenTheHubStartsANewRound_ShouldClearTheAnswerAndSendForThe
 
   await expect(page.getByTestId(IDS.mine)).toHaveText('Again');
   expect(stub.sends).toEqual([{ round: 'round_2', revision: 0, text: 'Again' }]);
+});
+
+test('WordCard_WhenTheHubOpensTheRoundDuringTheFirstRead_ShouldSendForTheOpenRound', async ({
+  mount,
+  page,
+}) => {
+  const guest = liveOn('word-cloud');
+  const hub = await stubDeckHub(page, { audience: { state: guest.state } });
+  await stubApi(page, { '/api/join/482913': { json: guest } });
+  const stub = await stubOpenResponses(page, { slide: 3, view: DRAFT });
+  const first = await holdRead(page, 3, 1);
+  await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+  await first.reached;
+
+  hub.pushWordCloud({ ...ROUND, type: 'wordCloud', slide: 3, revision: 1, guests: 0, words: [] });
+  first.release();
+
+  await expect(page.getByTestId(IDS.submit)).toBeEnabled();
+  await page.getByTestId(IDS.input).first().fill('Calm');
+  await page.getByTestId(IDS.submit).click();
+  await expect(page.getByTestId(IDS.mineEntry)).toHaveText(['Calm']);
+  expect(stub.sends).toEqual([{ round: 'round_1', revision: 1, words: ['Calm'] }]);
+});
+
+test('WordCard_WhenARefusalRereadAnswersAfterTheSlideChanged_ShouldKeepTheNewSlide', async ({
+  mount,
+  page,
+}) => {
+  const next = 'And one more?';
+  const stub = await stubOpenResponses(page, { slide: 3, view: wordsView([]) });
+  stub.reply(STALE);
+  const reread = await holdRead(page, 3, 2);
+  await page.route('**/api/join/482913/slides/4/response', (route) =>
+    route.fulfill({ json: { ...wordsView([]), question: next } }),
+  );
+  const card = await mount(<WordCard code="482913" slide={3} status="live" />);
+  await expect(page.getByTestId(IDS.question)).toHaveText(QUESTION);
+  await page.getByTestId(IDS.input).first().fill('Calm');
+  await page.getByTestId(IDS.submit).click();
+  await reread.reached;
+
+  await card.update(<WordCard code="482913" slide={4} status="live" />);
+  await expect(page.getByTestId(IDS.question)).toHaveText(next);
+  const answered = page.waitForResponse('**/api/join/482913/slides/3/response');
+  reread.release();
+  await answered;
+
+  await expect(page.getByTestId(IDS.submit)).toBeEnabled();
+  await expect(page.getByTestId(IDS.question)).toHaveText(next);
+});
+
+test('WordCard_WhenARefusalRereadFailsAfterANewerReadSucceeded_ShouldKeepTheErrorCleared', async ({
+  mount,
+  page,
+}) => {
+  const stub = await stubOpenResponses(page, { slide: 3, view: wordsView([]) });
+  stub.reply(STALE);
+  const reread = await holdRead(page, 3, 2);
+  await page.route('**/api/join/482913/slides/4/response', (route) =>
+    route.fulfill({ json: { ...wordsView([]), question: 'And one more?' } }),
+  );
+  const card = await mount(<WordCard code="482913" slide={3} status="live" />);
+  await expect(page.getByTestId(IDS.question)).toHaveText(QUESTION);
+  await page.getByTestId(IDS.input).first().fill('Calm');
+  await page.getByTestId(IDS.submit).click();
+  await reread.reached;
+  await expect(page.getByTestId(IDS.error)).toHaveText(OPEN_RESPONSE_ERRORS.stale);
+
+  await card.update(<WordCard code="482913" slide={4} status="live" />);
+  await expect(page.getByTestId(IDS.question)).toHaveText('And one more?');
+  await card.update(<WordCard code="482913" slide={3} status="live" />);
+  await expect(page.getByTestId(IDS.question)).toHaveText(QUESTION);
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+  const answered = page.waitForResponse('**/api/join/482913/slides/3/response');
+  reread.release({ status: 500, json: { error: 'unavailable', message: 'Down.' } });
+  await answered;
+
+  await expect(page.getByTestId(IDS.submit)).toBeEnabled();
+  await expect(page.getByTestId(IDS.error)).toHaveCount(0);
 });

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ApiError, api } from '../api/client';
 import type { AudienceOpenResponses, AudienceStatus } from '../guest/useAudience';
 import { OPEN_RESPONSE_REREAD, openResponseErrorSentence } from './errors';
@@ -72,7 +72,7 @@ function advance(view: GuestResponseView, event: RoomEvent): GuestResponseView {
 // The phone's one hook for a word-cloud or open-text slide (SW-8 D9, D13). While status is live it subscribes to the
 // slide's audience events, then GETs the guest's view, again after each reconnect, so no event falls between the read
 // and the subscription and nothing missed while offline shows. Each newer event moves the view to its round. A stale or
-// wrong_phase refusal reads the view again and keeps its sentence. One send is in flight at a time.
+// wrong_phase refusal reads the view again and keeps its sentence. One send, with its reread, is in flight at a time.
 export function useOpenResponse(code: string, slide: number, status: AudienceStatus): OpenResponse {
   const audience = useContext(AudienceOpenResponsesContext);
   const key = `${code}:${slide}`;
@@ -81,6 +81,8 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
   const [room, setRoom] = useState<Held<RoomEvent> | null>(null);
   const [error, setError] = useState<Held<string | null> | null>(null);
   const [sending, setSending] = useState(false);
+  // Moves on each effect cleanup and each send, so a send's late answer never lands on a later slide, connection or send.
+  const generation = useRef(0);
   const live = status === 'live';
 
   // A read never takes the view back to an older round than one an event already brought.
@@ -95,8 +97,11 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
   useEffect(() => {
     if (!live) return;
     let gone = false;
+    // The newest event so far, laid over the read when it answers: before the first read there is no view to advance.
+    let pending: RoomEvent | null = null;
     const take = (event: RoomEvent) => {
       if (gone || event.slide !== slide) return;
+      if (pending === null || newerRound(event, pending)) pending = event;
       setRoom((held) =>
         held?.key === key && !newerRound(event, held.value) ? held : { key, value: event },
       );
@@ -107,7 +112,7 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
     api.get<GuestResponseView>(`${base}/response`).then(
       (value) => {
         if (gone) return;
-        accept(value);
+        accept(pending ? advance(value, pending) : value);
         setError({ key, value: null });
       },
       (failure: unknown) => {
@@ -118,6 +123,7 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
     );
     return () => {
       gone = true;
+      generation.current += 1;
       stopWords?.();
       stopText?.();
     };
@@ -133,6 +139,8 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
       body: unknown,
       store: (held: GuestResponseView, value: T) => GuestResponseView,
     ) => {
+      const mine = ++generation.current;
+      const ours = () => generation.current === mine;
       setSending(true);
       try {
         const value = await api.put<T>(`${base}/${path}`, body);
@@ -141,14 +149,19 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
             ? { key, value: store(held.value, value) }
             : held,
         );
-        setError({ key, value: null });
+        if (ours()) setError({ key, value: null });
         return true;
       } catch (failure) {
+        if (!ours()) return false;
         setError({ key, value: sentenceOf(failure) });
-        if (failure instanceof ApiError && OPEN_RESPONSE_REREAD.includes(failure.code ?? ''))
-          api
-            .get<GuestResponseView>(`${base}/response`)
-            .then(accept, (reread: unknown) => setError({ key, value: sentenceOf(reread) }));
+        if (failure instanceof ApiError && OPEN_RESPONSE_REREAD.includes(failure.code ?? '')) {
+          try {
+            const reread = await api.get<GuestResponseView>(`${base}/response`);
+            if (ours()) accept(reread);
+          } catch (reread) {
+            if (ours()) setError({ key, value: sentenceOf(reread) });
+          }
+        }
         return false;
       } finally {
         setSending(false);
