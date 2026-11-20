@@ -46,21 +46,34 @@ const DRAFT: GuestResponseView = {
 
 type Reply = { status: number; json: unknown };
 
-// Holds the nth GET of a slide's response until release, then answers it with reply or lets it through to the stub.
-async function holdRead(page: Parameters<typeof stubOpenResponses>[0], slide: number, nth: number) {
+type Page = Parameters<typeof stubOpenResponses>[0];
+
+// Holds the nth call to /api/join/482913/{path} until release, then answers it with reply or lets it through to the stub.
+async function hold(page: Page, path: string, nth: number) {
   let reach = () => {};
   const reached = new Promise<void>((resolve) => (reach = resolve));
   let release: (reply?: Reply) => void = () => {};
   const released = new Promise<Reply | undefined>((resolve) => (release = resolve));
-  let reads = 0;
-  await page.route(`**/api/join/482913/slides/${slide}/response`, async (route) => {
-    reads += 1;
-    if (reads !== nth) return route.fallback();
+  let calls = 0;
+  await page.route(`**/api/join/482913/${path}`, async (route) => {
+    calls += 1;
+    if (calls !== nth) return route.fallback();
     reach();
     const reply = await released;
     return reply ? route.fulfill(reply) : route.fallback();
   });
   return { reached, release: (reply?: Reply) => release(reply) };
+}
+
+// Waits for a response's body and two frames after it, so whatever the hook does with it has rendered.
+async function painted(page: Page, response: ReturnType<Page['waitForResponse']>) {
+  await (await response).finished();
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
 }
 
 test('WordCard_WhenTheGetReturnsWords_ShouldShowThoseWords', async ({ mount, page }) => {
@@ -243,7 +256,7 @@ test('WordCard_WhenTheHubOpensTheRoundDuringTheFirstRead_ShouldSendForTheOpenRou
   const hub = await stubDeckHub(page, { audience: { state: guest.state } });
   await stubApi(page, { '/api/join/482913': { json: guest } });
   const stub = await stubOpenResponses(page, { slide: 3, view: DRAFT });
-  const first = await holdRead(page, 3, 1);
+  const first = await hold(page, 'slides/3/response', 1);
   await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
   await first.reached;
 
@@ -272,7 +285,7 @@ test('WordCard_WhenARefusalRereadAnswersAfterTheSlideChanged_ShouldKeepTheNewSli
   const next = 'And one more?';
   const stub = await stubOpenResponses(page, { slide: 3, view: wordsView([]) });
   stub.reply(STALE);
-  const reread = await holdRead(page, 3, 2);
+  const reread = await hold(page, 'slides/3/response', 2);
   await page.route('**/api/join/482913/slides/4/response', (route) =>
     route.fulfill({ json: { ...wordsView([]), question: next } }),
   );
@@ -281,15 +294,17 @@ test('WordCard_WhenARefusalRereadAnswersAfterTheSlideChanged_ShouldKeepTheNewSli
   await page.getByTestId(IDS.input).first().fill('Calm');
   await page.getByTestId(IDS.submit).click();
   await reread.reached;
+  await expect(page.getByTestId(IDS.submit)).toBeDisabled();
 
   await card.update(<WordCard code="482913" slide={4} status="live" />);
   await expect(page.getByTestId(IDS.question)).toHaveText(next);
+  await expect(page.getByTestId(IDS.submit)).toBeEnabled();
   const answered = page.waitForResponse('**/api/join/482913/slides/3/response');
   reread.release();
-  await answered;
+  await painted(page, answered);
 
-  await expect(page.getByTestId(IDS.submit)).toBeEnabled();
   await expect(page.getByTestId(IDS.question)).toHaveText(next);
+  await expect(page.getByTestId(IDS.submit)).toBeEnabled();
 });
 
 test('WordCard_WhenARefusalRereadFailsAfterANewerReadSucceeded_ShouldKeepTheErrorCleared', async ({
@@ -298,7 +313,7 @@ test('WordCard_WhenARefusalRereadFailsAfterANewerReadSucceeded_ShouldKeepTheErro
 }) => {
   const stub = await stubOpenResponses(page, { slide: 3, view: wordsView([]) });
   stub.reply(STALE);
-  const reread = await holdRead(page, 3, 2);
+  const reread = await hold(page, 'slides/3/response', 2);
   await page.route('**/api/join/482913/slides/4/response', (route) =>
     route.fulfill({ json: { ...wordsView([]), question: 'And one more?' } }),
   );
@@ -308,16 +323,51 @@ test('WordCard_WhenARefusalRereadFailsAfterANewerReadSucceeded_ShouldKeepTheErro
   await page.getByTestId(IDS.submit).click();
   await reread.reached;
   await expect(page.getByTestId(IDS.error)).toHaveText(OPEN_RESPONSE_ERRORS.stale);
+  await expect(page.getByTestId(IDS.submit)).toBeDisabled();
 
   await card.update(<WordCard code="482913" slide={4} status="live" />);
   await expect(page.getByTestId(IDS.question)).toHaveText('And one more?');
   await card.update(<WordCard code="482913" slide={3} status="live" />);
   await expect(page.getByTestId(IDS.question)).toHaveText(QUESTION);
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.submit)).toBeEnabled();
   const answered = page.waitForResponse('**/api/join/482913/slides/3/response');
   reread.release({ status: 500, json: { error: 'unavailable', message: 'Down.' } });
-  await answered;
+  await painted(page, answered);
 
-  await expect(page.getByTestId(IDS.submit)).toBeEnabled();
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
+  await expect(page.getByTestId(IDS.question)).toHaveText(QUESTION);
+});
+
+test('WordCard_WhenAnEarlierPutAnswersAfterANewerSendOnTheSameRound_ShouldKeepTheNewerWords', async ({
+  mount,
+  page,
+}) => {
+  const stub = await stubOpenResponses(page, { slide: 3, view: wordsView([]) });
+  const put = await hold(page, 'slides/3/words', 1);
+  await page.route('**/api/join/482913/slides/4/response', (route) =>
+    route.fulfill({ json: { ...wordsView([]), question: 'And one more?' } }),
+  );
+  const card = await mount(<WordCard code="482913" slide={3} status="live" />);
+  await expect(page.getByTestId(IDS.question)).toHaveText(QUESTION);
+  await page.getByTestId(IDS.input).first().fill('Calm');
+  await page.getByTestId(IDS.submit).click();
+  await put.reached;
+
+  await card.update(<WordCard code="482913" slide={4} status="live" />);
+  await expect(page.getByTestId(IDS.question)).toHaveText('And one more?');
+  await card.update(<WordCard code="482913" slide={3} status="live" />);
+  await expect(page.getByTestId(IDS.question)).toHaveText(QUESTION);
+  await page.getByTestId(IDS.input).first().fill('Ready');
+  await page.getByTestId(IDS.submit).click();
+  await expect(page.getByTestId(IDS.mineEntry)).toHaveText(['Ready']);
+  const answered = page.waitForResponse('**/api/join/482913/slides/3/words');
+  put.release();
+  await painted(page, answered);
+
+  await expect(page.getByTestId(IDS.mineEntry)).toHaveText(['Ready']);
+  expect(stub.sends).toEqual([
+    { round: 'round_1', revision: 4, words: ['Ready'] },
+    { round: 'round_1', revision: 4, words: ['Calm'] },
+  ]);
 });
