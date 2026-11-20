@@ -533,3 +533,52 @@ test('link opens in a new tab and does not advance the slide', async ({ mount, p
   await expectHash(page, '#2');
   await expectOnSlide(page, 2);
 });
+
+test('a video plays in the slide, links to YouTube, and stops when the slide is left', async ({
+  mount,
+  page,
+}) => {
+  const id = 'M7lc1UVf-VE';
+  const given = `https://www.youtube.com/watch?v=${id}&list=PLsecret`;
+  const deck = structuredClone(sampleDeck);
+  deck.slides = deck.slides.map((slide) =>
+    slide.number === 2
+      ? {
+          ...slide,
+          layout: 'video',
+          steps: 0,
+          slots: { headline: 'Watch the slice ship', url: given, caption: 'Two minutes' },
+        }
+      : slide,
+  );
+  await page.route('https://i.ytimg.com/**', (route) => route.abort());
+  await page.route('https://www.youtube-nocookie.com/**', (route) => route.abort());
+  await page.route('https://www.youtube.com/**', (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<p>youtube</p>' }),
+  );
+  await openAt(page, '#2');
+  await mountPlayer(mount, page, <Player deck={deck} />);
+  await expectOnSlide(page, 2);
+  await expect(page.getByTestId('video-frame')).toHaveCount(0);
+
+  await page.getByTestId('video-play').click();
+  await expect(page.getByTestId('video-frame')).toHaveAttribute(
+    'src',
+    `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1&playsinline=1&autoplay=1`,
+  );
+  await expectHash(page, '#2');
+
+  const popup = page.waitForEvent('popup');
+  await page.getByTestId('video-youtube').click();
+  expect((await popup).url()).toBe(`https://www.youtube.com/watch?v=${id}`);
+  await (await popup).close();
+  await expectHash(page, '#2');
+
+  await page.keyboard.press('ArrowRight');
+  await expectOnSlide(page, 3);
+  await expect(page.getByTestId('video-frame')).toHaveCount(0);
+
+  await page.keyboard.press('ArrowLeft');
+  await expectOnSlide(page, 2);
+  await expect(page.getByTestId('video-frame')).toHaveCount(1);
+});

@@ -224,7 +224,7 @@ Ask the agent for a deck, for example: "Make a 10-slide deck on why small batche
 
 | Tool | What it does |
 |---|---|
-| `list_layouts`, `list_blocks` | The 28 layouts, their slots and limits, and the inline blocks. `detail` `compact` leaves the schema out. Icon, emphasis and callout schemas are shared in `$defs` on the full response |
+| `list_layouts`, `list_blocks` | The 29 layouts, their slots and limits, and the inline blocks. `detail` `compact` leaves the schema out. Icon, emphasis and callout schemas are shared in `$defs` on the full response |
 | `create_deck` | Creates a deck with a title and optional parts. `like` copies another deck's template, palette, logo, chrome and draft mark |
 | `add_slide`, `update_slide`, `move_slide`, `delete_slide`, `set_notes` | Change slides. The server checks each slide against its layout and names the field that broke. A poll slide can take its settings in the same call, including a free-text or word-cloud question (`answers` `text` or `cloud`, with no options). A poll slide with a round open can't be deleted or given another layout, and its options can't shrink or change order, until the poll is closed |
 | `update_poll` | Changes a poll slide's settings: one pick or up to some, when the room sees the counts, the correct answer, when it opens, and whether answers are choices, free text or a word cloud. Refused while a round is open |

@@ -15,6 +15,7 @@ import {
 } from './layoutSlots/big-number';
 import { REQUIRED as QUOTE_REQUIRED, SLOTS as QUOTE_SLOTS } from './layoutSlots/quote';
 import { REQUIRED as IMAGE_REQUIRED, SLOTS as IMAGE_SLOTS } from './layoutSlots/image';
+import { REQUIRED as VIDEO_REQUIRED, SLOTS as VIDEO_SLOTS } from './layoutSlots/video';
 import { REQUIRED as TABLE_REQUIRED, SLOTS as TABLE_SLOTS } from './layoutSlots/table';
 import { REQUIRED as CHART_REQUIRED, SLOTS as CHART_SLOTS } from './layoutSlots/chart';
 import { REQUIRED as GANTT_REQUIRED, SLOTS as GANTT_SLOTS } from './layoutSlots/gantt';
@@ -55,6 +56,7 @@ export const LAYOUT_SLOTS: { [L in keyof Slots]: Slots[L] } = {
   'big-number': BIG_NUMBER_SLOTS,
   quote: QUOTE_SLOTS,
   image: IMAGE_SLOTS,
+  video: VIDEO_SLOTS,
   table: TABLE_SLOTS,
   chart: CHART_SLOTS,
   gantt: GANTT_SLOTS,
@@ -89,6 +91,7 @@ export const REQUIRED_SLOT_KEYS = {
   'big-number': BIG_NUMBER_REQUIRED,
   quote: QUOTE_REQUIRED,
   image: IMAGE_REQUIRED,
+  video: VIDEO_REQUIRED,
   table: TABLE_REQUIRED,
   chart: CHART_REQUIRED,
   gantt: GANTT_REQUIRED,
