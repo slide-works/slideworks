@@ -14,7 +14,7 @@ public sealed record LayoutInfo(string Name, string Description, bool Dark, stri
     public static LayoutInfo From(LayoutDefinition layout)
         => new(layout.Name, layout.Description, layout.Dark, layout.StepsFrom, layout.ToJsonSchema(), SurfaceName(layout.Surface), layout.Steps?.Phrase, layout.Tracker, LayoutCapacity.Of(layout));
 
-    private static string SurfaceName(LayoutSurface surface) => surface switch
+    public static string SurfaceName(LayoutSurface surface) => surface switch
     {
         LayoutSurface.Light => "light",
         LayoutSurface.Dark => "dark",
