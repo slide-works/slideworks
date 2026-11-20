@@ -10,15 +10,21 @@ namespace SlideWorks.WebApi.Features.OpenResponses;
 // code is the only credential. A submit with no sw_guest cookie is 404 no_session, the same as a code with no session.
 [Route("api/join/{code}/slides/{slide:int}")]
 [AllowAnonymous]
-public class JoinWordsController(WordSubmissions words) : ApiControllerBase
+public class JoinWordsController(WordSubmissions words, OpenAnswers answers) : ApiControllerBase
 {
-    // TODO: serve an open-text slide's view from OpenAnswers, by the slide's layout.
     [HttpGet("response")]
     [SetsGuestCookie]
     [ProducesResponseType<GuestResponseView>(StatusCodes.Status200OK)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
-    public Task<GuestResponseView> Get(string code, int slide, CancellationToken cancellationToken)
-        => words.ViewAsync(code, slide, GuestCookie.From(Request), cancellationToken);
+    public async Task<GuestResponseView> Get(string code, int slide, CancellationToken cancellationToken)
+    {
+        var guestId = GuestCookie.From(Request);
+        if (await answers.IsOpenTextAsync(code, slide, cancellationToken))
+        {
+            return await answers.ViewAsync(code, slide, guestId, cancellationToken);
+        }
+        return await words.ViewAsync(code, slide, guestId, cancellationToken);
+    }
 
     [HttpPut("words")]
     [ProducesResponseType<StoredWords>(StatusCodes.Status200OK)]
