@@ -12,15 +12,16 @@ public class PollRows(AppDbContext db)
 {
     public const string LAYOUT = "poll";
 
-    // Makes the slide's settings row with the defaults, unless it already has one (a slide that was a poll before keeps its
-    // settings). Called inside the slide write's transaction when a slide is added as a poll or its layout becomes poll.
-    public async Task EnsureAsync(Guid slideId, string deckId)
+    // Makes the slide's settings row, unless it already has one (a slide that was a poll before keeps its settings).
+    // settings null uses the defaults. Called inside the slide write's transaction when a slide is added as a poll or its
+    // layout becomes poll.
+    public async Task EnsureAsync(Guid slideId, string deckId, PollSettings? settings = null)
     {
         if (await db.Polls.AnyAsync(p => p.SlideId == slideId))
         {
             return;
         }
-        db.Polls.Add(Poll.From(slideId, deckId, PollSettings.Default));
+        db.Polls.Add(Poll.From(slideId, deckId, settings ?? PollSettings.Default));
         await db.SaveChangesAsync();
     }
 

@@ -1,11 +1,14 @@
+using System.Text.Json;
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
+using SlideWorks.Core.Polls;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Look;
+using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Templates;
@@ -37,11 +40,14 @@ public class SlideCommands(
         {
             throw new NotFoundException(DeckReader.NOT_FOUND);
         }
+        // Shape and layout, before any write. A rule that needs the option count waits until the slots have passed.
+        var change = PollChange(request.Layout, request.Poll);
         var slots = request.Slots;
 
         Slide slide;
         Deck deck;
         ResolvedTemplate template;
+        PollSettings? settings = null;
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
             // EF opens a SQLite transaction with BEGIN IMMEDIATE, which takes the database's write lock at once, so writes run
@@ -58,6 +64,7 @@ public class SlideCommands(
                 throw new BadRequestException($"notes: at most {SlideChecks.NOTES_MAX_LENGTH} characters");
             }
             SlideChecks.CheckPart(request.Part, DeckParts.Read(deck).Count);
+            settings = request.Layout == PollRows.LAYOUT ? SettingsForNewPoll(change, slots) : null;
             var count = await db.Slides.CountAsync(s => s.DeckId == deck.Id && s.DeletedAt == null);
             var position = Position(request.Position, count);
 
@@ -83,7 +90,7 @@ public class SlideCommands(
             await db.SaveChangesAsync();
             if (slide.Layout == PollRows.LAYOUT)
             {
-                await pollRows.EnsureAsync(slide.Id, deck.Id);
+                await pollRows.EnsureAsync(slide.Id, deck.Id, settings);
             }
             await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, ADD_TOOL, $"added slide {position + 1} ({slide.Layout}){(slide.DeepDive ? " as a deep dive" : "")}"));
             await transaction.CommitAsync();
@@ -92,7 +99,7 @@ public class SlideCommands(
         await events.PublishAsync(new DeckChanged(deck.Id));
         var number = slide.Position + 1;
         var warnings = LayoutWarnings.For(template.Template, number, slide.Layout);
-        return new AddSlideResult(number, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, number), warnings);
+        return new AddSlideResult(number, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, number), warnings, settings);
     }
 
     public const string ADD_MANY_TOOL = "add_slides";
@@ -162,7 +169,7 @@ public class SlideCommands(
             if (slide.Layout == PollRows.LAYOUT)
             {
                 await db.SaveChangesAsync();
-                await pollRows.EnsureAsync(slide.Id, deck.Id);
+                await pollRows.EnsureAsync(slide.Id, deck.Id, item.Settings);
             }
 
             item.Stored(number, deck.Revision, urls.Deck(deck.Id, deck.Slug, number), LayoutWarnings.For(template.Template, number, slide.Layout));
@@ -180,6 +187,7 @@ public class SlideCommands(
     {
         try
         {
+            var change = PollChange(draft.Layout, draft.Poll);
             SlideChecks.CheckPart(draft.Part, partCount);
             if (draft.Notes is { Length: > SlideChecks.NOTES_MAX_LENGTH })
             {
@@ -187,15 +195,34 @@ public class SlideCommands(
             }
 
             var (definition, result) = await SlideChecks.ReportAsync(images, deckId, template, draft.Layout, draft.Slots, draft.Surface);
-            return result.IsValid
-                ? new PreparedSlide(index, draft, SlideSteps.Count(definition, draft.Slots), result.Regions)
-                : new PreparedSlide(index, draft, 0, result.Regions, result.Error);
+            if (!result.IsValid)
+            {
+                return new PreparedSlide(index, draft, 0, result.Regions, result.Error);
+            }
+
+            var settings = draft.Layout == PollRows.LAYOUT ? SettingsForNewPoll(change, draft.Slots) : null;
+            return new PreparedSlide(index, draft, SlideSteps.Count(definition, draft.Slots), result.Regions, settings: settings);
         }
         catch (BadRequestException exception)
         {
             return new PreparedSlide(index, draft, 0, [], exception.Message);
         }
     }
+
+    // The poll object, or null when the entry leaves it out. A poll object on any other layout, or a poll that is not an
+    // object, is a slide error. The rules that need the option count run only after the slots have passed.
+    private static PollSettingsChange? PollChange(string layout, JsonElement? poll)
+    {
+        var change = PollSettingsCommands.ReadOptional(poll);
+        if (change is not null && layout != PollRows.LAYOUT)
+        {
+            throw new BadRequestException(PollSettingsCommands.ONLY_POLL_LAYOUT);
+        }
+        return change;
+    }
+
+    private static PollSettings SettingsForNewPoll(PollSettingsChange? change, JsonElement slots)
+        => PollSettingsCommands.ForNewPoll(change, PollReader.SlotsOf(SlideJson.ForStorage(slots)).Options.Count);
 
     // The 0-based position for a 1-based number, which may be one past the last slide.
     private static int Position(int? number, int count)
@@ -222,16 +249,19 @@ public class SlideCommands(
         private string? url;
         private IReadOnlyList<string> warnings = [];
 
-        public PreparedSlide(int index, SlideDraft draft, int steps, IReadOnlyList<FitRegion> fit, string? error = null)
+        public PreparedSlide(int index, SlideDraft draft, int steps, IReadOnlyList<FitRegion> fit, string? error = null, PollSettings? settings = null)
         {
             this.index = index;
             Draft = draft;
             this.steps = steps;
             this.fit = fit;
             this.error = error;
+            Settings = settings;
         }
 
         public SlideDraft Draft { get; }
+
+        public PollSettings? Settings { get; }
 
         public string? Error => error;
 
@@ -254,6 +284,7 @@ public class SlideCommands(
             url,
             warnings,
             error,
-            fit);
+            fit,
+            error is null ? Settings : null);
     }
 }

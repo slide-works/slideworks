@@ -30,6 +30,90 @@ public class PollSettingsCommands(SlideEdits edits, AppDbContext db, PollReader 
     public const string UPDATE_TOOL = "update_poll";
     public const string ADD_OPTION_TOOL = "add_poll_option";
 
+    // add_slide / add_slides: a poll object on any layout but poll.
+    public const string ONLY_POLL_LAYOUT = "poll: only the poll layout takes settings";
+
+    // The poll object on add_slide and on an add_slides entry. Null or omitted keeps the defaults. Anything else is the
+    // same refusal update_poll gives that field: a mistyped value, an unknown name, or a value the parsers refuse.
+    public static PollSettingsChange? ReadOptional(JsonElement? poll)
+    {
+        if (poll is null || poll.Value.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
+        {
+            return null;
+        }
+        return Read(poll.Value);
+    }
+
+    public static PollSettingsChange Read(JsonElement poll)
+    {
+        if (poll.ValueKind != JsonValueKind.Object)
+        {
+            throw new BadRequestException("poll: must be an object");
+        }
+
+        string? pick = null;
+        int? max = null;
+        string? results = null;
+        int? correct = null;
+        string? opens = null;
+        foreach (var property in poll.EnumerateObject())
+        {
+            switch (property.Name)
+            {
+                case "pick":
+                    pick = Text(property.Value, "pick: must be text");
+                    break;
+                case "max":
+                    max = Whole(property.Value, "max: must be a whole number");
+                    break;
+                case "results":
+                    results = Text(property.Value, "results: must be text");
+                    break;
+                case "correct":
+                    correct = Whole(property.Value, "correct: must be a whole number");
+                    break;
+                case "opens":
+                    opens = Text(property.Value, "opens: must be text");
+                    break;
+                default:
+                    throw new BadRequestException($"{property.Name}: unknown argument");
+            }
+        }
+
+        return new PollSettingsChange(pick, max, results, correct, opens);
+    }
+
+    // A new poll slide's settings: omitted fields keep the defaults, then PollSettingsRules checks the result. Correct 0
+    // clears the correct answer, as update_poll does.
+    public static PollSettings ForNewPoll(PollSettingsChange? change, int optionCount)
+        => change is null ? PollSettings.Default : Merge(PollSettings.Default, change, optionCount);
+
+    private static string? Text(JsonElement value, string typeError)
+    {
+        if (value.ValueKind is JsonValueKind.Null)
+        {
+            return null;
+        }
+        if (value.ValueKind != JsonValueKind.String)
+        {
+            throw new BadRequestException(typeError);
+        }
+        return value.GetString();
+    }
+
+    private static int? Whole(JsonElement value, string typeError)
+    {
+        if (value.ValueKind is JsonValueKind.Null)
+        {
+            return null;
+        }
+        if (!value.TryGetInt32(out var number))
+        {
+            throw new BadRequestException(typeError);
+        }
+        return number;
+    }
+
     public async Task<PollSettings> UpdateAsync(string deckId, int slide, PollSettingsChange change)
     {
         var settings = await edits.EditAsync(deckId, UPDATE_TOOL, async deck =>
