@@ -553,7 +553,7 @@ test('a video plays in the slide, links to YouTube, and stops when the slide is 
   );
   await page.route('https://i.ytimg.com/**', (route) => route.abort());
   await page.route('https://www.youtube-nocookie.com/**', (route) => route.abort());
-  await page.route('https://www.youtube.com/**', (route) =>
+  await page.context().route('https://www.youtube.com/**', (route) =>
     route.fulfill({ contentType: 'text/html', body: '<p>youtube</p>' }),
   );
   await openAt(page, '#2');
