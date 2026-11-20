@@ -96,6 +96,15 @@ public class ImageStore(IConfiguration configuration)
         return path;
     }
 
+    // Copies a completed image file onto a new deck and image id. It never replaces an existing file, and returns the new file's path.
+    public string Copy(string fromDeckId, string fromImageId, string toDeckId, string toImageId)
+    {
+        var path = PathFor(toDeckId, toImageId);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.Copy(PathFor(fromDeckId, fromImageId), path, overwrite: false);
+        return path;
+    }
+
     private string ImagesRoot()
         => Path.GetFullPath(Path.Combine(configuration[DATA_PATH_SETTING] is { Length: > 0 } dataPath ? dataPath : DEFAULT_DATA_PATH, IMAGES_FOLDER));
 

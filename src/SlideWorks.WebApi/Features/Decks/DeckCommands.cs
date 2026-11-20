@@ -7,6 +7,8 @@ using SlideWorks.Core.Join;
 using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
+using SlideWorks.WebApi.Features.Images;
+using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Templates;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
@@ -16,8 +18,10 @@ namespace SlideWorks.WebApi.Features.Decks;
 
 // Creates decks (K5), for POST /api/decks and the create_deck tool. A new deck is private to the person creating it, or
 // for an agent, to the presenter it acts for. Its look comes from LookRules (L3): the named or default template and
-// palette, and Draft from the template's chrome. The template comes from ITemplates (T4): only one the caller may pick,
-// pinned at its latest published version (null on a built-in).
+// palette, and Draft from the template's chrome. Like names a deck the caller owns and copies that deck's look instead:
+// template, version, palette, colours, logo bytes on a new image, chrome, draft and talk length. The template comes from
+// ITemplates (T4): only one the caller may pick, pinned at its latest published version (null on a built-in), or the
+// source deck's own pin when like names it.
 [RegisterPerRequest]
 public class DeckCommands(
     AppDbContext db,
@@ -27,7 +31,9 @@ public class DeckCommands(
     TimeProvider clock,
     ITemplates templates,
     IPaletteCatalogue palettes,
-    ILogger<DeckCommands> logger)
+    ILogger<DeckCommands> logger,
+    IDeckAccess access,
+    ImageCopies images)
 {
     private const int TITLE_MAX_LENGTH = 120;
     private const int SUBTITLE_MAX_LENGTH = 200;
@@ -40,57 +46,143 @@ public class DeckCommands(
     {
         var title = Required("title", request.Title, TITLE_MAX_LENGTH);
         var parts = Parts(request.Parts);
-        Deck deck;
+        if (request.Like is not null && (request.Template is not null || request.Palette is not null || request.Colors is not null))
+        {
+            throw new BadRequestException("like: leave out template, palette and colors");
+        }
 
+        Deck deck;
         // The may-pick check, the look and the write are one unit: the transaction opens before the template is picked. A
-        // refusal throws before anything is written, and leaving the block rolls back.
+        // refusal throws before anything is written, and leaving the block rolls back. A copied logo file is deleted when
+        // the transaction does not commit, so a refusal leaves no file either.
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
-            var target = await PickAsync(request.Template);
-            var catalogues = ResolvedCatalogues.For(palettes, target);
-            var look = new LookRules(catalogues.Templates, catalogues.Palettes).Resolve(target.Ref, request.Palette);
-            if (look.Error is not null)
+            string? copiedLogo = null;
+            try
             {
-                throw new BadRequestException(look.Error);
-            }
-            var template = look.Template!;
-            var palette = look.Palette!;
-            if (request.Colors is { Count: > 0 })
-            {
-                var refused = PaletteTokens.Check(palette, request.Colors);
-                if (refused is not null)
+                string templateName;
+                string paletteLabel;
+                if (request.Like is { } like)
                 {
-                    throw new BadRequestException(refused);
+                    (deck, templateName, paletteLabel, copiedLogo) = await CopiedAsync(like, request, title, parts);
                 }
-            }
+                else
+                {
+                    (deck, templateName, paletteLabel) = await FreshAsync(request, title, parts);
+                }
 
-            var now = clock.GetUtcNow();
-            deck = new Deck
+                await SaveWithJoinCodeAsync(deck);
+                await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, $"created the deck from the {templateName} template with the {paletteLabel} palette"));
+                await transaction.CommitAsync();
+                copiedLogo = null;
+            }
+            catch
             {
-                Id = DeckIds.New(),
-                Slug = DeckIds.Slugify(title),
-                Title = title,
-                Subtitle = Optional("subtitle", request.Subtitle, SUBTITLE_MAX_LENGTH),
-                Author = Optional("author", request.Author, AUTHOR_MAX_LENGTH),
-                PartsJson = DeckParts.Write(parts),
-                OwnerId = actor.PresenterId ?? throw new InvalidOperationException("Creating a deck needs a signed-in caller."),
-                Sharing = DeckSharing.Private,
-                Revision = 0,
-                Template = target.Ref,
-                TemplateVersion = target.Version,
-                Palette = palette.Name,
-                PaletteTokensJson = PaletteTokens.Write(request.Colors),
-                Draft = template.Chrome.Draft,
-                CreatedAt = now,
-                UpdatedAt = now,
-            };
-            await SaveWithJoinCodeAsync(deck);
-            await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, $"created the deck from the {template.Name} template with the {palette.Label} palette"));
-            await transaction.CommitAsync();
+                if (copiedLogo is not null)
+                {
+                    File.Delete(copiedLogo);
+                }
+
+                throw;
+            }
         }
 
         await events.PublishAsync(new DeckChanged(deck.Id));
         return deck;
+    }
+
+    private async Task<(Deck Deck, string TemplateName, string PaletteLabel)> FreshAsync(CreateDeckRequest request, string title, IReadOnlyList<DeckPart> parts)
+    {
+        var target = await PickAsync(request.Template);
+        var catalogues = ResolvedCatalogues.For(palettes, target);
+        var look = new LookRules(catalogues.Templates, catalogues.Palettes).Resolve(target.Ref, request.Palette);
+        if (look.Error is not null)
+        {
+            throw new BadRequestException(look.Error);
+        }
+        var template = look.Template!;
+        var palette = look.Palette!;
+        if (request.Colors is { Count: > 0 })
+        {
+            var refused = PaletteTokens.Check(palette, request.Colors);
+            if (refused is not null)
+            {
+                throw new BadRequestException(refused);
+            }
+        }
+
+        var now = clock.GetUtcNow();
+        var deck = new Deck
+        {
+            Id = DeckIds.New(),
+            Slug = DeckIds.Slugify(title),
+            Title = title,
+            Subtitle = Optional("subtitle", request.Subtitle, SUBTITLE_MAX_LENGTH),
+            Author = Optional("author", request.Author, AUTHOR_MAX_LENGTH),
+            PartsJson = DeckParts.Write(parts),
+            OwnerId = actor.PresenterId ?? throw new InvalidOperationException("Creating a deck needs a signed-in caller."),
+            Sharing = DeckSharing.Private,
+            Revision = 0,
+            Template = target.Ref,
+            TemplateVersion = target.Version,
+            Palette = palette.Name,
+            PaletteTokensJson = PaletteTokens.Write(request.Colors),
+            Draft = template.Chrome.Draft,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        return (deck, template.Name, palette.Label);
+    }
+
+    // The source deck is the one get_deck would open: the owner, and anyone else hears "Deck not found". A template this
+    // caller could not put on a new deck is refused the same way, before the logo is copied.
+    private async Task<(Deck Deck, string TemplateName, string PaletteLabel, string? CopiedFile)> CopiedAsync(
+        string like, CreateDeckRequest request, string title, IReadOnlyList<DeckPart> parts)
+    {
+        if (!await access.CanEditAsync(like, actor))
+        {
+            throw new NotFoundException(DeckReader.NOT_FOUND);
+        }
+
+        var source = await db.Decks.AsNoTracking().SingleAsync(deck => deck.Id == like);
+        var target = await PickAsync(source.Template);
+        var now = clock.GetUtcNow();
+        var deck = new Deck
+        {
+            Id = DeckIds.New(),
+            Slug = DeckIds.Slugify(title),
+            Title = title,
+            Subtitle = Optional("subtitle", request.Subtitle, SUBTITLE_MAX_LENGTH),
+            Author = Optional("author", request.Author, AUTHOR_MAX_LENGTH),
+            PartsJson = DeckParts.Write(parts),
+            OwnerId = actor.PresenterId ?? throw new InvalidOperationException("Creating a deck needs a signed-in caller."),
+            Sharing = DeckSharing.Private,
+            Revision = 0,
+            Template = source.Template,
+            TemplateVersion = source.TemplateVersion,
+            Palette = source.Palette,
+            PaletteTokensJson = source.PaletteTokensJson,
+            ChromeJson = source.ChromeJson,
+            Draft = source.Draft,
+            TalkMinutes = source.TalkMinutes,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        string? copied = null;
+        if (source.LogoImageId is { } logo)
+        {
+            (deck.LogoImageId, copied) = await images.CopyOntoAsync(source.Id, logo, deck.Id, now);
+        }
+
+        return (deck, target.Template.Name, PaletteLabel(target, source.Palette), copied);
+    }
+
+    private string PaletteLabel(ResolvedTemplate template, string name)
+    {
+        var palette = string.Equals(name, ResolvedCatalogues.OWN_PALETTE, StringComparison.Ordinal)
+            ? template.OwnPalette
+            : palettes.Find(name);
+        return palette?.Label ?? throw new InvalidOperationException($"A deck look names an unknown palette '{name}'.");
     }
 
     // The template a new deck goes on: the named one, or the default built-in. Only a template the caller may pick is
