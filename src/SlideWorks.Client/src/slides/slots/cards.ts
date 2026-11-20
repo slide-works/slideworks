@@ -1,6 +1,6 @@
 // The cards layout's slots (K5). Field names are frozen; the server sets the limits.
 import type { AssertTrue, ListsEveryKey } from './keyChecks';
-import type { CalloutBlock, Emphasis, PanelFill } from './blocks';
+import type { CalloutBlock, Emphasis, ImageRef, PanelFill } from './blocks';
 import type { Reveal, Tone } from './shared';
 
 // A card with no tone is the plain card. `icon` is a name from icons.json and
@@ -8,6 +8,8 @@ import type { Reveal, Tone } from './shared';
 export type Card = {
   badge?: string;
   icon?: string;
+  // A picture drawn in the icon's place; with both, only the picture shows.
+  image?: ImageRef;
   title: string;
   text: string;
   chips?: string[];

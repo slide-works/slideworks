@@ -16,7 +16,7 @@ type CardProps = {
   step: number;
 };
 
-// One card of the cards layout, a list item: an optional icon and badge, a title, text
+// One card of the cards layout, a list item: an optional picture (or icon) and badge, a title, text
 // its chips, if it has any, and a pin. A card with a tone is drawn on its tone's
 // surface and ink (soft unless its fill says solid); without one it is the
 // plain card.
@@ -37,7 +37,14 @@ export function Card({ card, at, step }: CardProps) {
   return (
     <Reveal as="li" at={at} step={step} className={styles.item}>
       <div data-testid="cards-card" className={styles.card} {...toned}>
-        {card.icon !== undefined && iconFor(card.icon) !== undefined ? (
+        {card.image !== undefined ? (
+          <img
+            data-testid="cards-picture"
+            className={styles.picture}
+            src={`/api/images/${encodeURIComponent(card.image.image)}`}
+            alt={card.image.alt}
+          />
+        ) : card.icon !== undefined && iconFor(card.icon) !== undefined ? (
           <div data-testid="cards-icon" className={styles.icon}>
             <Icon name={card.icon} size={44} />
           </div>

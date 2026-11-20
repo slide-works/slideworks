@@ -88,6 +88,40 @@ public class CardsLayoutTests
         Count(Cards(CARD, 3, """, "reveal": "one-by-one", "callout": { "tone": "accent", "text": "c", "reveal": "last" } """)).ShouldBe(4);
     }
 
+    [Test]
+    public void Cards_WhenACardHasAnImage_ShouldRecordTheImageId()
+    {
+        var result = Validate(Cards("""{ "image": { "image": "img_1", "alt": "a" }, "title": "t", "text": "x" }""", 3));
+
+        result.Errors.ShouldBeEmpty();
+        result.ImageIds.ShouldBe(["img_1"]);
+    }
+
+    [Test]
+    public void Cards_WhenACardHasAnImageAndAnIcon_ShouldAcceptIt()
+    {
+        Validate(Cards("""{ "icon": "coins", "image": { "image": "img_1", "alt": "a" }, "title": "t", "text": "x" }""", 3)).Errors.ShouldBeEmpty();
+    }
+
+    [Test]
+    public void Cards_WhenTheImageIdIsMalformed_ShouldRefuseIt()
+    {
+        Validate(Cards("""{ "image": { "image": "bad id!", "alt": "a" }, "title": "t", "text": "x" }""", 1)).Errors
+            .ShouldContain(e => e.StartsWith("cards.cards[0].image.image: not an image id", StringComparison.Ordinal));
+    }
+
+    [Test]
+    public void Cards_WhenThePictureMakesTheCardTooTall_ShouldRefuseIt()
+    {
+        // Four short cards are the large scale in the 2×2: 64 + 144 (picture) + 49.3 + 12 + 39.2 is 308.5 px,
+        // over the 296 px of half the body less the gap. The same cards in a row of three fit.
+        var card = """{ "image": { "image": "img_1", "alt": "a" }, "title": "t", "text": "x" }""";
+
+        Validate(Cards(card, 3)).Errors.ShouldBeEmpty();
+        Validate(Cards(card, 4)).Errors.ShouldHaveSingleItem()
+            .ShouldStartWith("cards.cards[0]: too much text to fit on the slide (about 308 px of 296 px)");
+    }
+
     private static string Cards(string card, int count, string extra = "") =>
         $$"""{ "headline": "h", "cards": [{{string.Join(", ", Enumerable.Repeat(card, count))}}]{{extra}} }""";
 

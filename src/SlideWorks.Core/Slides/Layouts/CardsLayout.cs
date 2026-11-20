@@ -17,18 +17,20 @@ public static class CardsLayout
     private const double GRID_GAP = 28;
 
     private const double ICON_ROW = IconSlot.BLOCK_HEIGHT;
+    private const double PICTURE_ROW = 144;
     private const double BADGE_ROW = 48;
     private const double BADGE_TWO_LINES_ROW = 68;
     private const double PIN_ROW = 44;
     private const double RULE = 8;
 
-    public static LayoutDefinition Definition { get; } = new("cards", "1–4 cards, each with an optional icon and badge, a title, text, chips and a pin. Four cards lay out 2×2. A card can be plain with a top rule, and a callout can sit under the cards. Can reveal one card per step. Light or dark.", LayoutSurface.Either,
+    public static LayoutDefinition Definition { get; } = new("cards", "1–4 cards, each with an optional picture or icon and a badge, a title, text, chips and a pin. Four cards lay out 2×2. A card can be plain with a top rule, and a callout can sit under the cards. Can reveal one card per step. Light or dark.", LayoutSurface.Either,
     [
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),
         Emphasis("headline"),
         Req("cards", new ListSlot(Obj(
             Opt("icon", new IconSlot()),
+            Opt("image", new ImageSlot()),
             Opt("badge", new BlockSlot(InlineBlocks.Badge)),
             Req("title", new TextSlot(70)),
             Req("text", new TextSlot(140)),
@@ -88,13 +90,24 @@ public static class CardsLayout
         };
         var height = padding
             + BadgeHeight(card, width)
-            + (ObjectSlot.IsPresent(card, "icon", out _) ? ICON_ROW : 0)
+            + LeadHeight(card)
             + (SlideFit.Lines(Text(card, "title"), width, titleSize, widths.Head) * titleLine)
             + titleGap
             + (SlideFit.Lines(Text(card, "text"), width, textSize, widths.Body) * textLine)
             + ChipsHeight(card, width)
             + (ObjectSlot.IsPresent(card, "pin", out _) ? PIN_ROW : 0);
         return Text(card, "fill") == "plain" ? height + RULE : height;
+    }
+
+    // A picture takes the icon's place: a card with both draws the picture only.
+    private static double LeadHeight(JsonElement card)
+    {
+        if (ObjectSlot.IsPresent(card, "image", out _))
+        {
+            return PICTURE_ROW;
+        }
+
+        return ObjectSlot.IsPresent(card, "icon", out _) ? ICON_ROW : 0;
     }
 
     // The badge row is 48 px, or 68 when the badge wraps (bold capitals with tracking: 0.85 em, the one
