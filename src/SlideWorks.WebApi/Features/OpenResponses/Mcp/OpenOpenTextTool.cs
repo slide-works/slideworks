@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using SlideWorks.Core.OpenResponses;
 using SlideWorks.WebApi.Infrastructure.Mcp;
 
 namespace SlideWorks.WebApi.Features.OpenResponses.Mcp;
@@ -10,12 +11,11 @@ public sealed class OpenOpenTextTool
 {
     public const string NAME = "open_open_text";
 
-    // TODO: let an agent with edit access run it only while the deck is live, and refuse a slide of the other kind (D7).
     [McpServerTool(Name = NAME)]
-    [Description("Open the open-text slide's round in a deck that is live, so guests can send answers. Opening an open round changes nothing. Returns the slide's control view. It cannot reveal, hide, restore or start a new round.")]
+    [Description("Open the open-text slide's round in a deck you can edit that a person has taken live, so guests can send answers. Opening an open round changes nothing; a closed round stays closed until the presenter starts a new one. Returns the slide's control view. It cannot hide, restore or start a new round.")]
     public Task<CallToolResult> Open(
         OpenResponseControls controls,
         [Description("The deck's id.")] string deck,
         [Description("The open-text slide's 1-based number.")] int slide)
-        => McpToolErrors.Run(() => controls.OpenAsync(deck, slide));
+        => McpToolErrors.Run(() => controls.OpenAsAgentAsync(deck, slide, OpenResponseKind.OpenText));
 }
