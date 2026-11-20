@@ -135,7 +135,8 @@ public class DeckCommands(
     }
 
     // The source deck is the one get_deck would open: the owner, and anyone else hears "Deck not found". A template this
-    // caller could not put on a new deck is refused the same way, before the logo is copied.
+    // caller could not put on a new deck is refused the same way. The activity names the source deck's pinned template,
+    // not the latest published one, and that name is known before the logo file is copied.
     private async Task<(Deck Deck, string TemplateName, string PaletteLabel, string? CopiedFile)> CopiedAsync(
         string like, CreateDeckRequest request, string title, IReadOnlyList<DeckPart> parts)
     {
@@ -145,7 +146,10 @@ public class DeckCommands(
         }
 
         var source = await db.Decks.AsNoTracking().SingleAsync(deck => deck.Id == like);
-        var target = await PickAsync(source.Template);
+        await PickAsync(source.Template);
+        var pinned = await templates.ForDeckAsync(source, CancellationToken.None);
+        var templateName = pinned.Template.Name;
+        var paletteLabel = PaletteLabel(pinned, source.Palette);
         var now = clock.GetUtcNow();
         var deck = new Deck
         {
@@ -174,7 +178,7 @@ public class DeckCommands(
             (deck.LogoImageId, copied) = await images.CopyOntoAsync(source.Id, logo, deck.Id, now);
         }
 
-        return (deck, target.Template.Name, PaletteLabel(target, source.Palette), copied);
+        return (deck, templateName, paletteLabel, copied);
     }
 
     private string PaletteLabel(ResolvedTemplate template, string name)
