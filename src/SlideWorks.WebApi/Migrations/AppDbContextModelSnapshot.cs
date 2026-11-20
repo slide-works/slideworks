@@ -471,6 +471,10 @@ namespace SlideWorks.WebApi.Migrations
                     b.ToTable("OpenEntries", t =>
                         {
                             t.HasCheckConstraint("CK_OpenEntries_Position", "\"Position\" >= 0");
+
+                            t.HasCheckConstraint("CK_OpenEntries_TextKey_Length", "length(\"TextKey\") <= 200");
+
+                            t.HasCheckConstraint("CK_OpenEntries_Text_Length", "length(\"Text\") <= 200");
                         });
                 });
 
@@ -1135,6 +1139,12 @@ namespace SlideWorks.WebApi.Migrations
                     b.HasOne("SlideWorks.WebApi.Features.Decks.Deck", null)
                         .WithMany()
                         .HasForeignKey("DeckId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SlideWorks.WebApi.Features.Slides.Slide", null)
+                        .WithOne()
+                        .HasForeignKey("SlideWorks.WebApi.Features.OpenResponses.Data.OpenResponse", "SlideId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

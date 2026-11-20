@@ -5,7 +5,8 @@ using SlideWorks.WebApi.Infrastructure;
 namespace SlideWorks.WebApi.Features.OpenResponses;
 
 // The checks a guest's submit passes before anything is written: the round it was typed against is the open one and the
-// phone saw its latest revision, and the text keeps OpenTextRules. A profane submit is 409; any other rule is 400.
+// phone saw its latest revision, and the text keeps OpenTextRules. Every refusal here is 409 with its error code; only a
+// body that is not JSON is the framework's 400.
 public static class OpenRoundChecks
 {
     public const string STALE = "stale";
@@ -25,13 +26,9 @@ public static class OpenRoundChecks
 
     public static void RequireValid(string? broken)
     {
-        if (broken == OpenTextRules.PROFANE)
-        {
-            throw new ConflictException(broken);
-        }
         if (broken is not null)
         {
-            throw new BadRequestException(broken);
+            throw new ConflictException(broken);
         }
     }
 }

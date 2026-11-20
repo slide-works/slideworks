@@ -87,6 +87,21 @@ public class OpenResponseRouteTests : JoinFixture
     }
 
     [Test]
+    public async Task Words_WhenThereAreTooManyWords_ShouldRefuseWithConflict()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
+        using var anonymous = ClientFor(TestUser.Anonymous);
+        var before = await EntryCountAsync();
+
+        using var response = await anonymous.SendAsync(Words(GuestCookie.NewId(), ROUND, 9, "Calm", "Busy", "Focused", "Tired"));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync()).ShouldBe("""{"error":"too_many_words"}""");
+        (await EntryCountAsync()).ShouldBe(before);
+    }
+
+    [Test]
     public async Task Words_WhenThereIsNoSession_ShouldRefuse()
     {
         Sessions.Clear(CODE);
@@ -159,7 +174,7 @@ public class OpenResponseRouteTests : JoinFixture
         using var sam = ClientFor(TestUser.Sam);
         var before = await EntryCountAsync();
 
-        using var response = await sam.PostAsync($"/api/decks/{deckId}/slides/1/response/hide/99", null);
+        using var response = await sam.PostAsync($"/api/decks/{deckId}/slides/1/response/entries/99/hide", null);
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await response.Content.ReadAsStringAsync()).ShouldBe("""{"error":"no_entry"}""");

@@ -361,6 +361,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             response.Property(r => r.DeckId).HasMaxLength(DeckIds.LENGTH);
             response.Property(r => r.Kind).HasConversion<string>();
             response.HasOne<Deck>().WithMany().HasForeignKey(r => r.DeckId).OnDelete(DeleteBehavior.Restrict);
+            response.HasOne<Slide>().WithOne().HasForeignKey<OpenResponse>(r => r.SlideId).OnDelete(DeleteBehavior.Restrict);
             response.HasIndex(r => r.SlideId).IsUnique();
             response.ToTable(table => table.HasCheckConstraint("CK_OpenResponses_Kind", OneOf<OpenResponseKind>("Kind")));
         });
@@ -385,7 +386,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entry.Property(e => e.TextKey).HasMaxLength(OpenTextRules.MAX_TEXT_LENGTH);
             entry.HasIndex(e => new { e.RoundId, e.GuestId, e.Position }).IsUnique();
             entry.HasIndex(e => new { e.RoundId, e.TextKey });
-            entry.ToTable(table => table.HasCheckConstraint("CK_OpenEntries_Position", "\"Position\" >= 0"));
+            // SQLite ignores a column's length, so the limits are checks.
+            entry.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_OpenEntries_Position", "\"Position\" >= 0");
+                table.HasCheckConstraint("CK_OpenEntries_Text_Length", $"length(\"Text\") <= {OpenTextRules.MAX_TEXT_LENGTH}");
+                table.HasCheckConstraint("CK_OpenEntries_TextKey_Length", $"length(\"TextKey\") <= {OpenTextRules.MAX_TEXT_LENGTH}");
+            });
         });
     }
 

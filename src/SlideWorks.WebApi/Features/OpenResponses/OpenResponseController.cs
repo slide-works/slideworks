@@ -10,6 +10,7 @@ namespace SlideWorks.WebApi.Features.OpenResponses;
 [ProducesResponseType<OpenResponseControlView>(StatusCodes.Status200OK)]
 [ProducesResponseType<ErrorResponse>(StatusCodes.Status403Forbidden)]
 [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
+[ProducesResponseType<ErrorResponse>(StatusCodes.Status409Conflict)]
 public class OpenResponseController(OpenResponseControls controls, OpenResponseModeration moderation) : ApiControllerBase
 {
     [HttpGet]
@@ -24,9 +25,9 @@ public class OpenResponseController(OpenResponseControls controls, OpenResponseM
     [HttpPost("new-round")]
     public Task<OpenResponseControlView> NewRound(string id, int slide) => controls.NewRoundAsync(id, slide);
 
-    [HttpPost("hide/{number:int}")]
+    [HttpPost("entries/{number:int}/hide")]
     public Task<OpenResponseControlView> Hide(string id, int slide, int number) => moderation.HideAsync(id, slide, number);
 
-    [HttpPost("restore/{number:int}")]
+    [HttpPost("entries/{number:int}/restore")]
     public Task<OpenResponseControlView> Restore(string id, int slide, int number) => moderation.RestoreAsync(id, slide, number);
 }
