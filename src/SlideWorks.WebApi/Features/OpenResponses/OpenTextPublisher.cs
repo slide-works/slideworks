@@ -14,8 +14,11 @@ public sealed class OpenTextPublisher(IServiceScopeFactory scopes, IAudienceEven
     {
         cancellationToken.ThrowIfCancellationRequested();
         await using var scope = scopes.CreateAsyncScope();
-        var (audience, presenter) = await scope.ServiceProvider.GetRequiredService<OpenAnswers>().TalliesAsync(deckId, slide, cancellationToken);
-        await events.PublishAsync(audience);
-        await events.PublishAsync(presenter);
+        if (await scope.ServiceProvider.GetRequiredService<OpenAnswers>().TalliesAsync(deckId, slide, cancellationToken) is not { } tallies)
+        {
+            return;
+        }
+        await events.PublishAsync(tallies.Audience);
+        await events.PublishAsync(tallies.Presenter);
     }
 }

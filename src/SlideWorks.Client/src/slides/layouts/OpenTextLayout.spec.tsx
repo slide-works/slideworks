@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/experimental-ct-react';
+import type { ReactElement } from 'react';
 import { OpenResponseScreenLive } from '../../openResponses/OpenResponseScreenLive';
 import type { OpenTextEvent, WallAnswer } from '../../openResponses/types';
 import { guestView } from '../../test-support/fixtures/guestStates';
@@ -38,7 +39,7 @@ function eventOf(answers: WallAnswer[]): OpenTextEvent {
 
 async function show(
   page: Parameters<typeof stubDeckHub>[0],
-  mount: (node: JSX.Element) => Promise<unknown>,
+  mount: (node: ReactElement) => Promise<unknown>,
   answers: WallAnswer[],
 ) {
   const hub = await stubDeckHub(page, { audience: { state: guestView('live').state } });

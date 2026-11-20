@@ -12,10 +12,11 @@ using SlideWorks.WebApi.Realtime;
 namespace SlideWorks.WebApi.Features.OpenResponses;
 
 // A guest's view of an open-text slide and their one answer (open-text.json, D13). A code with no live session is 404
-// no_session, and so is a guest who has not joined that session: a guessed code and a guessed guest learn the same thing.
-// A submit is then counted by OpenResponseLimiter, refused while the round is not the open one the phone saw, and refused
-// by OpenTextRules, before anything is written. One row per guest, at position 0. Its wall number is 1-based in insert
-// order (SQLite rowid, which an update leaves alone), so sending again keeps the number.
+// no_session. The view only needs that session: a phone with no cookie still reads the round, and the shared GET sets one.
+// A submit with no cookie, or from a guest who has not joined, is the same 404, so a guessed code and a guessed guest
+// learn the same thing. A submit is then counted by OpenResponseLimiter, refused while the round is not the open one the
+// phone saw, and refused by OpenTextRules, before anything is written. One row per guest, at position 0. Its wall number
+// is 1-based in insert order (SQLite rowid, which an update leaves alone), so sending again keeps the number.
 [RegisterPerRequest]
 public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenResponseLimiter limiter, IOpenTextPublisher publisher)
 {
@@ -39,7 +40,7 @@ public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenRespon
 
     public async Task<GuestResponseView> ViewAsync(string code, int slide, string? guestId, CancellationToken cancellationToken)
     {
-        var seated = await SeatAsync(code, guestId, cancellationToken);
+        var seated = await LiveAsync(code);
         return ViewOf(await RoundAsync(seated, slide, cancellationToken), guestId);
     }
 
@@ -61,13 +62,22 @@ public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenRespon
     }
 
     // The audience copy leaves hidden answers out. The presenter copy keeps every answer and its hidden flag. Revealed
-    // stays true: a round opens already showing its answers (D14), and there is no reveal.
-    public async Task<(OpenTextTally Audience, OpenTextTally Presenter)> TalliesAsync(string deckId, int slide, CancellationToken cancellationToken)
+    // stays true: a round opens already showing its answers (D14), and there is no reveal. Null when the deck is no
+    // longer live, or the slide is no longer open-text: ending the session and changing the layout publish nothing.
+    public async Task<(OpenTextTally Audience, OpenTextTally Presenter)?> TalliesAsync(string deckId, int slide, CancellationToken cancellationToken)
     {
-        var found = await sessions.ForDeckAsync(deckId) ?? throw new InvalidOperationException($"Deck {deckId} has no session to publish an open-text round for.");
+        var found = await sessions.ForDeckAsync(deckId);
         if (found is not { Phase: AudiencePhase.Live, SessionId: not null })
         {
-            throw new InvalidOperationException($"Deck {deckId} has no live session to publish an open-text round for.");
+            return null;
+        }
+        var layout = await db.Slides.AsNoTracking()
+            .Where(s => s.DeckId == deckId && s.DeletedAt == null && s.Position == slide - 1)
+            .Select(s => s.Layout)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (layout != LAYOUT)
+        {
+            return null;
         }
         var round = await RoundAsync(new Seat(deckId, Guid.Parse(found.SessionId)), slide, cancellationToken);
         var answers = AnswersOf(round);
@@ -75,24 +85,25 @@ public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenRespon
         return (Tally(deckId, slide, round, OpenResponseTarget.Audience, audience), Tally(deckId, slide, round, OpenResponseTarget.Presenter, answers));
     }
 
+    private async Task<Seat> LiveAsync(string code)
+    {
+        if (await sessions.FindAsync(code) is not { Phase: AudiencePhase.Live, SessionId: { } id } found)
+        {
+            throw new NotFoundException(GuestViews.NO_SESSION);
+        }
+        return new Seat(found.DeckId, Guid.Parse(id));
+    }
+
     private async Task<Seat> SeatAsync(string code, string? guestId, CancellationToken cancellationToken)
     {
-        var found = await sessions.FindAsync(code);
-        if (found is not { Phase: AudiencePhase.Live, SessionId: not null })
-        {
-            throw new NotFoundException(GuestViews.NO_SESSION);
-        }
-        if (guestId is null)
-        {
-            throw new NotFoundException(GuestViews.NO_SESSION);
-        }
-        var sessionId = Guid.Parse(found.SessionId);
-        var joined = await db.AudienceJoins.AsNoTracking().AnyAsync(j => j.SessionId == sessionId && j.GuestId == guestId, cancellationToken);
+        var seated = await LiveAsync(code);
+        var joined = guestId is not null && await db.AudienceJoins.AsNoTracking()
+            .AnyAsync(j => j.SessionId == seated.SessionId && j.GuestId == guestId, cancellationToken);
         if (!joined)
         {
             throw new NotFoundException(GuestViews.NO_SESSION);
         }
-        return new Seat(found.DeckId, sessionId);
+        return seated;
     }
 
     private async Task<LoadedRound> RoundAsync(Seat seated, int slide, CancellationToken cancellationToken)

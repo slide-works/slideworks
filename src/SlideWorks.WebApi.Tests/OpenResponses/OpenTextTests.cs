@@ -16,13 +16,29 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.OpenResponses;
 
-// A guest sends one answer on an open-text slide and the wall shows it in number order. The round is seeded: opening a
-// round belongs to the presenter controls, which still return a fixed view.
+// A guest sends one answer on an open-text slide and the wall shows it in number order. The round is seeded.
 [TestFixture]
 [CancelAfter(30000)]
 public class OpenTextTests : ApiTestFixture
 {
     private const string QUESTION = "What would help your team ship smaller changes?";
+
+    [Test]
+    public async Task Get_WhenThereIsNoGuestCookie_ShouldSucceedAndSetOne()
+    {
+        var room = await OpenRoomAsync();
+        var http = ClientFor(TestUser.Anonymous);
+        _clients.Add(http);
+
+        using var response = await http.GetAsync($"/api/join/{room.Code}/slides/{room.Slide}/response");
+
+        var body = await response.Content.ReadAsStringAsync();
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
+        using var json = JsonDocument.Parse(body);
+        json.RootElement.GetProperty("kind").GetString().ShouldBe("open-text");
+        json.RootElement.GetProperty("mineText").GetString().ShouldBe("");
+        response.Headers.GetValues("Set-Cookie").Single().ShouldMatch("^sw_guest=[0-9a-f]{32}; ");
+    }
 
     [Test]
     public async Task Answer_WhenTextIsSent_ShouldStoreIt()
