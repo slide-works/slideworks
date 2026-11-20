@@ -74,6 +74,10 @@ jobs:
         working-directory: src/SlideWorks.Client
     steps:
       - uses: actions/checkout@v4
+        with:
+          # A pull request diffs against its base. Depth 1 does not contain that commit, and
+          # --only-changed then refuses to guess.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: src/SlideWorks.Client/package.json
@@ -82,7 +86,17 @@ jobs:
       # differs still fails. Baselines are only ever made in this container, never on a laptop. Playwright writes a
       # missing baseline but still fails that test, so the first run may fail, and the second reruns only its failed
       # tests, now with the written baselines: what fails there fails the job.
-      - run: pnpm run test-ct --update-snapshots=missing
+      # On a pull request, only the component tests that import a changed file run. main still runs the full set.
+      - name: Component tests
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            pnpm run test-ct --update-snapshots=missing --only-changed="$PR_BASE" --pass-with-no-tests
+          else
+            pnpm run test-ct --update-snapshots=missing
+          fi
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
         continue-on-error: true
       - run: pnpm run test-ct --last-failed --pass-with-no-tests
       - uses: actions/upload-artifact@v4
