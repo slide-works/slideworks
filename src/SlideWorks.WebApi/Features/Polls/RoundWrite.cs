@@ -9,7 +9,7 @@ public abstract record RoundWrite
     }
 
     // The answer committed: its picks, ascending, and its new revision.
-    public sealed record Written(IReadOnlyList<int> Picks, int Revision) : RoundWrite;
+    public sealed record Written(IReadOnlyList<int> Picks, int Revision, string? Text = null) : RoundWrite;
 
     // The round is open but the guest's revision was no longer the expected one when its group committed, which includes a
     // second answer from the same guest in one group.

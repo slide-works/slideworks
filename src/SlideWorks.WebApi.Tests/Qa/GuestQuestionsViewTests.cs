@@ -217,7 +217,7 @@ public class GuestQuestionsViewTests : QaTestFixture
         // Whether the round's step is still waiting for a read.
         public bool Pending(string roundId) => _hooks.ContainsKey(roundId);
 
-        public Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks) => inner.ApplyAsync(round, oldPicks, newPicks);
+        public Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks, bool hadText = false, bool hasText = false) => inner.ApplyAsync(round, oldPicks, newPicks, hadText, hasText);
 
         public async Task<PollCounts> ReadAsync(string roundId, int optionCount)
         {

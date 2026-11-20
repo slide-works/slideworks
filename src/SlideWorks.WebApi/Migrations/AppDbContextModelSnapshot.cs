@@ -557,6 +557,12 @@ namespace SlideWorks.WebApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Answers")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Choice");
+
                     b.Property<int?>("Correct")
                         .HasColumnType("INTEGER");
 
@@ -624,12 +630,19 @@ namespace SlideWorks.WebApi.Migrations
                     b.Property<int>("Revision")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Text")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("UpdatedAt")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("RoundId", "GuestId");
 
-                    b.ToTable("PollAnswers");
+                    b.ToTable("PollAnswers", t =>
+                        {
+                            t.HasCheckConstraint("CK_PollAnswers_Text_Length", "\"Text\" IS NULL OR length(\"Text\") <= 200");
+                        });
                 });
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.Polls.Data.PollOption", b =>

@@ -50,15 +50,33 @@ public class PollAnswers(AppDbContext db, GuestPollViews views, PollRows rows, A
             .Select(s => new { s.DeckId, s.Position, s.SlotsJson })
             .SingleAsync();
         var optionCount = OptionCountOf(slide.SlotsJson);
-        if (AnswerRules.Check(request.Picks, settings, optionCount) is { } broken)
+        var open = settings.Answers is PollAnswersForm.Text or PollAnswersForm.Cloud;
+        if (open)
+        {
+            if (request.Picks.Count > 0)
+            {
+                return new AnswerResult.Invalid("picks: an open question takes text, not options");
+            }
+
+            if (OpenAnswers.Problem(request.Text) is { } problem)
+            {
+                return new AnswerResult.Invalid(problem);
+            }
+        }
+        else if (AnswerRules.Check(request.Picks, settings, optionCount) is { } broken)
         {
             return new AnswerResult.Invalid(broken);
         }
 
         var target = new PollRoundRef(slide.DeckId, PollKind.Slide, slide.Position + 1, round.SlideId, sessionId.ToString(), round.Id.ToString(), optionCount);
-        return await writer.ReplaceAsync(target, guestId, [.. request.Picks.Order()], request.Revision) is RoundWrite.Written written
-            ? new AnswerResult.Accepted(written.Picks, written.Revision)
-            : await StaleAsync(seat, code, guestId);
+        var text = open ? OpenAnswers.Clean(request.Text!) : null;
+        var picks = open ? Array.Empty<int>() : request.Picks.Order().ToArray();
+        if (await writer.ReplaceAsync(target, guestId, picks, request.Revision, text) is not RoundWrite.Written written)
+        {
+            return await StaleAsync(seat, code, guestId);
+        }
+
+        return new AnswerResult.Accepted(written.Picks, written.Revision, written.Text);
     }
 
     public async Task<GuestPollView?> ViewAsync(string code, string guestId)

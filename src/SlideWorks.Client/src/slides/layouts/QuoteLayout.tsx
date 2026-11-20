@@ -85,7 +85,8 @@ export function QuoteLayout({ slots, step }: LayoutProps<'quote'>) {
     role !== undefined ||
     stat !== undefined ||
     follow_up !== undefined ||
-    source !== undefined;
+    source !== undefined ||
+    slots.image !== undefined;
   if (!extras) {
     return (
       <div data-testid="layout-quote" className="sw-layout">
@@ -136,6 +137,14 @@ export function QuoteLayout({ slots, step }: LayoutProps<'quote'>) {
         <figure className={styles.figureInBody}>
           {quoteBlock}
           <figcaption data-testid="quote-attribution" className={styles.attributionRow}>
+            {slots.image !== undefined ? (
+              <img
+                data-testid="quote-portrait"
+                className={styles.portrait}
+                src={`/api/images/${encodeURIComponent(slots.image.image)}`}
+                alt={slots.image.alt}
+              />
+            ) : null}
             <span data-testid="quote-who" className={styles.who}>
               {role !== undefined ? (
                 <>

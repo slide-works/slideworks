@@ -32,6 +32,7 @@ public static class LayoutCatalogue
         BigNumberLayout.Definition,
         QuoteLayout.Definition,
         ImageLayout.Definition,
+        VideoLayout.Definition,
         TableLayout.Definition,
         ChartLayout.Definition,
         GanttLayout.Definition,

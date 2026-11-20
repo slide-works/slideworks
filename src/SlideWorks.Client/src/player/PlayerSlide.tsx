@@ -1,5 +1,6 @@
 import type { DeckPlaySlide } from '../api/types';
 import { SlideRenderer } from '../slides/SlideRenderer';
+import { SlideShowingContext } from '../slides/slideShowing';
 import type { SlideDeck } from '../slides/slots';
 
 type PlayerSlideProps = {
@@ -25,7 +26,9 @@ export function PlayerSlide({ slide, deck, total, active, step }: PlayerSlidePro
       className="absolute inset-0 motion-safe:transition-[opacity,visibility] motion-safe:duration-300"
       style={{ visibility: active ? 'visible' : 'hidden', opacity: active ? 1 : 0 }}
     >
-      <SlideRenderer slide={slide} deck={deck} total={total} step={step} />
+      <SlideShowingContext value={active}>
+        <SlideRenderer slide={slide} deck={deck} total={total} step={step} />
+      </SlideShowingContext>
     </div>
   );
 }

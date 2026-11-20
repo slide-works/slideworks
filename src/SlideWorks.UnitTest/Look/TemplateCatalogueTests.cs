@@ -16,9 +16,9 @@ public class TemplateCatalogueTests
         catalogue.All.Select(t => t.Name).ShouldBe(["talk", "workshop", "update"]);
         catalogue.Default.ShouldBe(talk);
 
-        talk.Layouts.ShouldBe(["title", "divider", "bullets", "two-column", "compare", "big-number", "quote", "image", "chart", "cards", "numbered-cards", "rules", "table", "statement", "links", "stack", "bars", "flow", "levels", "close"]);
-        workshop.Layouts.ShouldBe(["title", "divider", "bullets", "two-column", "practice", "compare", "quote", "image", "table", "numbered-cards", "rules", "cards", "statement", "links", "stack", "bars", "flow", "levels", "gantt", "columns-list", "timeline", "loop", "close"]);
-        update.Layouts.ShouldBe(["title", "bullets", "big-number", "table", "chart", "gantt", "numbered-cards", "cards", "stack", "bars", "flow", "levels", "close"]);
+        talk.Layouts.ShouldBe(["title", "divider", "bullets", "two-column", "compare", "big-number", "quote", "image", "video", "chart", "cards", "numbered-cards", "rules", "table", "statement", "links", "stack", "bars", "flow", "levels", "close"]);
+        workshop.Layouts.ShouldBe(["title", "divider", "bullets", "two-column", "practice", "compare", "quote", "image", "video", "table", "numbered-cards", "rules", "cards", "statement", "links", "stack", "bars", "flow", "levels", "gantt", "columns-list", "timeline", "loop", "close"]);
+        update.Layouts.ShouldBe(["title", "bullets", "big-number", "table", "chart", "gantt", "numbered-cards", "cards", "stack", "bars", "flow", "levels", "video", "close"]);
 
         talk.Chrome.ShouldBe(new TemplateChrome { Tracker = true, Footer = "author", Progress = true, DeepDivesOnDivider = false, Draft = false });
         workshop.Chrome.ShouldBe(new TemplateChrome { Tracker = true, Footer = "author", Progress = true, DeepDivesOnDivider = true, Draft = true });

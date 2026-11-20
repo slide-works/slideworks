@@ -11,6 +11,7 @@ import { CompareLayout } from './CompareLayout';
 import { BigNumberLayout } from './BigNumberLayout';
 import { QuoteLayout } from './QuoteLayout';
 import { ImageLayout } from './ImageLayout';
+import { VideoLayout } from './VideoLayout';
 import { TableLayout } from './TableLayout';
 import { ChartLayout } from './ChartLayout';
 import { GanttLayout } from './GanttLayout';
@@ -43,6 +44,7 @@ export const LAYOUTS: { [L in LayoutName]: ComponentType<LayoutProps<L>> } = {
   'big-number': BigNumberLayout,
   quote: QuoteLayout,
   image: ImageLayout,
+  video: VideoLayout,
   table: TableLayout,
   chart: ChartLayout,
   gantt: GanttLayout,

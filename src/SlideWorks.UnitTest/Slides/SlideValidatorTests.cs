@@ -110,7 +110,7 @@ public class SlideValidatorTests
         var result = Validate("foo", "{}");
 
         result.Error.ShouldBe("layout: unknown layout 'foo' (known: title, divider, bullets, two-column, practice, compare, "
-            + "big-number, quote, image, table, chart, gantt, numbered-cards, rules, cards, statement, links, stack, bars, flow, levels, "
+            + "big-number, quote, image, video, table, chart, gantt, numbered-cards, rules, cards, statement, links, stack, bars, flow, levels, "
             + "columns-list, timeline, loop, close, join, poll, qa, word-cloud, open-text)");
     }
 
@@ -141,9 +141,10 @@ public class SlideValidatorTests
     }
 
     [Test]
-    public void Validate_WhenPollHasOneOption_ShouldRefuseIt()
+    public void Validate_WhenPollHasNoOptions_ShouldAcceptIt()
     {
-        Validate("poll", """{ "question": "Pick one", "options": ["Only"] }""").Error.ShouldBe("poll.options: at least 2 items");
+        // An open question has none. A choice poll's 2-option rule is the poll settings check, not the layout.
+        Validate("poll", """{ "question": "One word for the quarter", "options": [] }""").Error.ShouldBeEmpty();
     }
 
     [Test]

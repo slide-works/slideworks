@@ -15,6 +15,7 @@ import { KEYS as COMPARE_KEYS, type CompareSlots } from './slots/compare';
 import { KEYS as BIG_NUMBER_KEYS, type BigNumberSlots } from './slots/big-number';
 import { KEYS as QUOTE_KEYS, type QuoteSlots } from './slots/quote';
 import { KEYS as IMAGE_KEYS, type ImageSlots } from './slots/image';
+import { KEYS as VIDEO_KEYS, type VideoSlots } from './slots/video';
 import { KEYS as TABLE_KEYS, type TableSlots } from './slots/table';
 import { KEYS as CHART_KEYS, type ChartSlots } from './slots/chart';
 import { KEYS as GANTT_KEYS, type GanttSlots } from './slots/gantt';
@@ -60,6 +61,7 @@ export type { CompareSide, CompareSlots } from './slots/compare';
 export type { BigNumberSlots } from './slots/big-number';
 export type { QuoteSlots } from './slots/quote';
 export type { ImageSlots } from './slots/image';
+export type { VideoSlots } from './slots/video';
 export type { CellTone, TableCell, TableSlots } from './slots/table';
 export type { ChartSeries, ChartSlots } from './slots/chart';
 export type { GanttRow, GanttSlots, GanttStatus } from './slots/gantt';
@@ -92,6 +94,7 @@ export const LAYOUT_NAMES = [
   'big-number',
   'quote',
   'image',
+  'video',
   'table',
   'chart',
   'gantt',
@@ -132,6 +135,7 @@ export const LAYOUT_SURFACE: Record<LayoutName, Surface | 'either'> = {
   'big-number': 'either',
   quote: 'either',
   image: 'light',
+  video: 'light',
   table: 'light',
   chart: 'light',
   gantt: 'light',
@@ -171,6 +175,7 @@ export type Slots = {
   'big-number': BigNumberSlots;
   quote: QuoteSlots;
   image: ImageSlots;
+  video: VideoSlots;
   table: TableSlots;
   chart: ChartSlots;
   gantt: GanttSlots;
@@ -207,6 +212,7 @@ export const SLOT_KEYS = {
   'big-number': BIG_NUMBER_KEYS,
   quote: QUOTE_KEYS,
   image: IMAGE_KEYS,
+  video: VIDEO_KEYS,
   table: TABLE_KEYS,
   chart: CHART_KEYS,
   gantt: GANTT_KEYS,

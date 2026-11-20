@@ -46,6 +46,7 @@ public class PollSettingsCommands(SlideEdits edits, AppDbContext db, PollReader 
             row.Results = next.Results;
             row.Correct = next.Correct;
             row.Opens = next.Opens;
+            row.Answers = next.Answers;
             await db.SaveChangesAsync();
             return (next, $"changed the settings of the poll on slide {slide}");
         });
@@ -89,7 +90,7 @@ public class PollSettingsCommands(SlideEdits edits, AppDbContext db, PollReader 
 
     // The settings with what was given changed. Switching pick to one clears max unless a max is given with it, which the
     // rules then refuse; correct 0 clears the correct answer. The merged settings are checked by PollSettingsRules.
-    private static PollSettings Merge(PollSettings current, PollSettingsChange change, int optionCount)
+    public static PollSettings Merge(PollSettings current, PollSettingsChange change, int optionCount)
     {
         var pick = change.Pick == null ? current.Pick : ParsePick(change.Pick);
         var max = change.Max ?? (change.Pick != null && pick == PollPick.One ? null : current.Max);
@@ -101,11 +102,18 @@ public class PollSettingsCommands(SlideEdits edits, AppDbContext db, PollReader 
             var given => given,
         };
         var opens = change.Opens == null ? current.Opens : ParseOpens(change.Opens);
-        var next = current with { Pick = pick, Max = max, Results = results, Correct = correct, Opens = opens };
+        var answers = change.Answers == null ? current.Answers : ParseAnswers(change.Answers);
+        return Apply(current with { Pick = pick, Max = max, Results = results, Correct = correct, Opens = opens, Answers = answers }, optionCount);
+    }
+
+    // The settings, refused when they don't fit this many options. correct names 0 as the way to clear it.
+    public static PollSettings Apply(PollSettings next, int optionCount)
+    {
         if (PollSettingsRules.Check(next, optionCount) is { } broken)
         {
             throw new BadRequestException(broken.StartsWith("correct:", StringComparison.Ordinal) ? $"{broken}, or 0 to clear it" : broken);
         }
+
         return next;
     }
 
@@ -129,5 +137,13 @@ public class PollSettingsCommands(SlideEdits edits, AppDbContext db, PollReader 
         "onArrival" => PollOpens.OnArrival,
         "manual" => PollOpens.Manual,
         _ => throw new BadRequestException("opens: must be one of 'onArrival', 'manual'"),
+    };
+
+    private static PollAnswersForm ParseAnswers(string value) => value switch
+    {
+        "choice" => PollAnswersForm.Choice,
+        "text" => PollAnswersForm.Text,
+        "cloud" => PollAnswersForm.Cloud,
+        _ => throw new BadRequestException("answers: must be one of 'choice', 'text', 'cloud'"),
     };
 }

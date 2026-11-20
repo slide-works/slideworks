@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SlideWorks.Core.OpenResponses;
+using SlideWorks.Core.Polls;
 using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Features.Activity;
@@ -185,6 +186,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             poll.Property(p => p.Results).HasConversion<string>();
             poll.Property(p => p.Opens).HasConversion<string>();
             poll.Property(p => p.Privacy).HasConversion<string>();
+            poll.Property(p => p.Answers).HasConversion<string>().HasDefaultValue(PollAnswersForm.Choice);
             poll.ToTable(table => table.HasCheckConstraint(
                 "CK_Polls_Kind_SlideId", "(\"Kind\" = 'Slide' AND \"SlideId\" IS NOT NULL) OR (\"Kind\" = 'Qa' AND \"SlideId\" IS NULL)"));
         });
@@ -219,6 +221,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             answer.HasKey(a => new { a.RoundId, a.GuestId });
             answer.HasOne<PollRound>().WithMany().HasForeignKey(a => a.RoundId).OnDelete(DeleteBehavior.Restrict);
+            answer.Property(a => a.Text).HasMaxLength(OpenAnswers.MAX_TEXT);
+            answer.ToTable(table => table.HasCheckConstraint(
+                "CK_PollAnswers_Text_Length", $"\"Text\" IS NULL OR length(\"Text\") <= {OpenAnswers.MAX_TEXT}"));
         });
     }
 

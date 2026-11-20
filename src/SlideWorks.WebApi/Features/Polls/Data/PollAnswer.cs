@@ -12,6 +12,9 @@ public class PollAnswer
 
     public required IReadOnlyList<int> Picks { get; set; }
 
+    // The guest's own words on a text or word-cloud question, or null on a choice poll.
+    public string? Text { get; set; }
+
     public int Revision { get; set; }
 
     public DateTimeOffset UpdatedAt { get; set; }

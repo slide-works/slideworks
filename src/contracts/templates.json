@@ -14,6 +14,7 @@
         "big-number",
         "quote",
         "image",
+        "video",
         "chart",
         "cards",
         "numbered-cards",
@@ -83,6 +84,7 @@
         "compare",
         "quote",
         "image",
+        "video",
         "table",
         "numbered-cards",
         "rules",
@@ -160,6 +162,7 @@
         "bars",
         "flow",
         "levels",
+        "video",
         "close"
       ],
       "chrome": {

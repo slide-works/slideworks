@@ -61,7 +61,7 @@ public sealed class FakePollTallies : IPollTallies
         }
     }
 
-    public async Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks)
+    public async Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks, bool hadText = false, bool hasText = false)
     {
         lock (_gate)
         {

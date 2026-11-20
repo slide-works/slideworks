@@ -70,7 +70,8 @@ public class DeckReadToolsTests : ApiTestFixture
 
         var structured = result.GetProperty("structuredContent");
         structured.ValueKind.ShouldBe(JsonValueKind.Object);
-        structured.EnumerateObject().Select(p => p.Name).ShouldBe(["layouts"]);
+        structured.EnumerateObject().Select(p => p.Name).ShouldBe(["layouts", "$defs"]);
+        structured.GetProperty("$defs").GetProperty("icon").GetProperty("enum").GetArrayLength().ShouldBeGreaterThan(20);
         McpWire.TextOf(result).ShouldBe(structured.GetRawText());
         var layouts = structured.GetProperty("layouts").EnumerateArray().ToList();
         layouts.Select(l => l.GetProperty("name").GetString()).ShouldBe(LayoutCatalogue.LayoutNames);

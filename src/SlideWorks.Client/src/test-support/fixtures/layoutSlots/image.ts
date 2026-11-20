@@ -15,6 +15,7 @@ export const SLOTS: ImageSlots = {
   position: 'below',
   points: ['One row is one release.'],
   caption: 'The first row shipped in a week.',
+  link: 'https://example.com/story',
   reveal: 'all',
   callout: { tone: 'info', text: 'Read it left to right.' },
   emphasis: [{ text: 'story map', tone: 'accent' }],

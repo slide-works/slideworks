@@ -35,7 +35,7 @@ public class MeasureJourney : AcceptanceTest
     {
         var layouts = (await agent.CallAsync("list_layouts", new { })).GetProperty("layouts").EnumerateArray()
             .Select(l => l.GetProperty("name").GetString()).ToList();
-        layouts.Count.ShouldBe(30);
+        layouts.Count.ShouldBe(31);
         LAYOUTS.Cast<string?>().ShouldBeSubsetOf(layouts);
 
         var created = await agent.CallAsync("create_deck", new { title = TITLE, subtitle = "Small batches, sooner feedback", author = "Sam Rivera", parts = PARTS });
