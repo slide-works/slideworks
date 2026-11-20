@@ -71,19 +71,21 @@ public class OpenResponseRouteTests : JoinFixture
     [Test]
     public async Task Answer_WhenWellFormed_ShouldReturnTheStoredText()
     {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        Open(CODE, await DeckSeed.CreateDeckAsync(agent));
+        var guest = GuestCookie.NewId();
+        var opened = await OpenJoinedOpenTextAsync(guest);
         using var anonymous = ClientFor(TestUser.Anonymous);
         using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/join/{CODE}/slides/1/answer")
         {
-            Content = JsonContent.Create(new { round = "a3d81c5e-7f2b-4e96-b0c4-1d8e6f9a2b57", revision = 6, text = "A shared   definition of done " }),
+            Content = JsonContent.Create(new { round = opened.Round, revision = opened.Revision, text = "A shared   definition of done " }),
         };
-        request.Headers.Add("Cookie", $"{GuestCookie.NAME}={GuestCookie.NewId()}");
+        request.Headers.Add("Cookie", $"{GuestCookie.NAME}={guest}");
 
         using var response = await anonymous.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
         response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
+        using var sample = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "open-text.json")));
+        JsonShape.AssertMatches(JsonDocument.Parse(body).RootElement, sample.RootElement.GetProperty("stored"), "open-text.json");
         body.ShouldBe("""{"text":"A shared definition of done"}""");
     }
 
@@ -236,6 +238,35 @@ public class OpenResponseRouteTests : JoinFixture
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deckId = await DeckSeed.CreateDeckAsync(agent);
         await DeckSeed.AddSlideAsync(agent, deckId, "word-cloud", """{"question":"How do you feel?"}""");
+        using var live = await sam.PostAsync($"/api/decks/{deckId}/live", null);
+        live.EnsureSuccessStatusCode();
+        var sessionId = (await live.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sessionId").GetString()
+            ?? throw new InvalidOperationException("Go live returned no session.");
+        Sessions.Set(CODE, deckId, sessionId, AudiencePhase.Live);
+        using var opened = await sam.PostAsync($"/api/decks/{deckId}/slides/1/response/open", null);
+        opened.EnsureSuccessStatusCode();
+        var view = await opened.Content.ReadFromJsonAsync<JsonElement>();
+        var round = view.GetProperty("round").GetString() ?? throw new InvalidOperationException("Open returned no round.");
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var now = Clock.GetUtcNow();
+        var session = Guid.Parse(sessionId);
+        foreach (var guestId in guestIds)
+        {
+            db.AudienceJoins.Add(new AudienceJoin { SessionId = session, GuestId = guestId, JoinedAt = now });
+        }
+
+        await db.SaveChangesAsync();
+        return new JoinedCloud(round, view.GetProperty("revision").GetInt32());
+    }
+
+    // An open-text slide on slide 1, taken live, its round opened, and each guest joined to that session.
+    private async Task<JoinedCloud> OpenJoinedOpenTextAsync(params string[] guestIds)
+    {
+        using var sam = ClientFor(TestUser.Sam);
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deckId = await DeckSeed.CreateDeckAsync(agent);
+        await DeckSeed.AddSlideAsync(agent, deckId, "open-text", """{"question":"What would help your team ship smaller changes?"}""");
         using var live = await sam.PostAsync($"/api/decks/{deckId}/live", null);
         live.EnsureSuccessStatusCode();
         var sessionId = (await live.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sessionId").GetString()
