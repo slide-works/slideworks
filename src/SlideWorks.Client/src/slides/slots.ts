@@ -34,6 +34,8 @@ import { KEYS as CLOSE_KEYS, type CloseSlots } from './slots/close';
 import { KEYS as JOIN_KEYS, type JoinSlots } from './slots/join';
 import { KEYS as POLL_KEYS, type PollSlots } from './slots/poll';
 import { KEYS as QA_KEYS, type QaSlots } from './slots/qa';
+import { KEYS as WORD_CLOUD_KEYS, type WordCloudSlots } from './slots/word-cloud';
+import { KEYS as OPEN_TEXT_KEYS, type OpenTextSlots } from './slots/open-text';
 
 export type {
   BulletItem,
@@ -77,6 +79,8 @@ export type { CloseSlots } from './slots/close';
 export type { JoinSlots } from './slots/join';
 export type { PollSlots } from './slots/poll';
 export type { QaSlots } from './slots/qa';
+export type { WordCloudSlots } from './slots/word-cloud';
+export type { OpenTextSlots } from './slots/open-text';
 
 export const LAYOUT_NAMES = [
   'title',
@@ -107,6 +111,8 @@ export const LAYOUT_NAMES = [
   'join',
   'poll',
   'qa',
+  'word-cloud',
+  'open-text',
 ] as const;
 
 export type LayoutName = (typeof LAYOUT_NAMES)[number];
@@ -145,6 +151,8 @@ export const LAYOUT_SURFACE: Record<LayoutName, Surface | 'either'> = {
   join: 'dark',
   poll: 'light',
   qa: 'light',
+  'word-cloud': 'light',
+  'open-text': 'light',
 };
 
 // The layouts the frame draws without a tracker or a footer, whatever their surface.
@@ -182,6 +190,8 @@ export type Slots = {
   join: JoinSlots;
   poll: PollSlots;
   qa: QaSlots;
+  'word-cloud': WordCloudSlots;
+  'open-text': OpenTextSlots;
 };
 
 // Every top-level slot key of each layout, at runtime, built from each layout's
@@ -216,6 +226,8 @@ export const SLOT_KEYS = {
   join: JOIN_KEYS,
   poll: POLL_KEYS,
   qa: QA_KEYS,
+  'word-cloud': WORD_CLOUD_KEYS,
+  'open-text': OPEN_TEXT_KEYS,
 } as const satisfies { [L in LayoutName]: readonly (keyof Slots[L])[] };
 
 type UnlistedSlotKey = {

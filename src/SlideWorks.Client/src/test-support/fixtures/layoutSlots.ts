@@ -40,6 +40,14 @@ import { REQUIRED as CLOSE_REQUIRED, SLOTS as CLOSE_SLOTS } from './layoutSlots/
 import { REQUIRED as JOIN_REQUIRED, SLOTS as JOIN_SLOTS } from './layoutSlots/join';
 import { REQUIRED as POLL_REQUIRED, SLOTS as POLL_SLOTS } from './layoutSlots/poll';
 import { REQUIRED as QA_REQUIRED, SLOTS as QA_SLOTS } from './layoutSlots/qa';
+import {
+  REQUIRED as WORD_CLOUD_REQUIRED,
+  SLOTS as WORD_CLOUD_SLOTS,
+} from './layoutSlots/word-cloud';
+import {
+  REQUIRED as OPEN_TEXT_REQUIRED,
+  SLOTS as OPEN_TEXT_SLOTS,
+} from './layoutSlots/open-text';
 
 export { SAMPLE_IMAGE_ID } from './layoutSlots/sampleImage';
 
@@ -74,6 +82,8 @@ export const LAYOUT_SLOTS: { [L in keyof Slots]: Slots[L] } = {
   join: JOIN_SLOTS,
   poll: POLL_SLOTS,
   qa: QA_SLOTS,
+  'word-cloud': WORD_CLOUD_SLOTS,
+  'open-text': OPEN_TEXT_SLOTS,
 };
 
 // The slot keys a layout can't do without, built from each layout's own
@@ -108,6 +118,8 @@ export const REQUIRED_SLOT_KEYS = {
   join: JOIN_REQUIRED,
   poll: POLL_REQUIRED,
   qa: QA_REQUIRED,
+  'word-cloud': WORD_CLOUD_REQUIRED,
+  'open-text': OPEN_TEXT_REQUIRED,
 } as const satisfies { [L in LayoutName]: readonly RequiredKey<Slots[L]>[] };
 
 type UnlistedRequiredKey = {
