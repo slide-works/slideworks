@@ -34,10 +34,12 @@ public class ImageUploads(
     TimeProvider clock)
 {
     public const string TOOL = "upload_image";
+    public const string MANY_TOOL = "upload_images";
     public const string UPLOAD_NOT_FOUND = "Upload not found";
     public const string IMAGE_NOT_FOUND = "Image not found";
 
     private const int NAME_MAX_LENGTH = 200;
+    private const int MAX_FILES_PER_CALL = 30;
     private const string ID_PREFIX = "img_";
     private const int ID_RANDOM_LENGTH = 10;
     private const string ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -53,8 +55,57 @@ public class ImageUploads(
         {
             throw new NotFoundException(DeckReader.NOT_FOUND);
         }
-        var label = CheckName(name ?? "");
-        var type = ImageTypes.Normalise(contentType ?? "") ?? throw new BadRequestException($"contentType: must be {ImageTypes.ACCEPTED_LIST}");
+        var (image, token) = NewImage(deckId, name, contentType);
+        await using (var transaction = await db.Database.BeginTransactionAsync())
+        {
+            db.DeckImages.Add(image);
+            await db.SaveChangesAsync();
+            await activity.RecordAsync(deckId, ActivityEntry.By(actor, tool, $"started uploading {image.Name}"));
+            await transaction.CommitAsync();
+        }
+        await events.PublishAsync(new DeckChanged(deckId));
+        return new UploadImageResult(image.Id, UploadUrl(token), "PUT", (int)UPLOAD_LIFETIME.TotalSeconds);
+    }
+
+    // upload_images: the same rules as CreateAsync for every file, in one transaction. Every file is checked before the
+    // first row is added, and the rows and their change-log entries commit together, so a refusal writes nothing.
+    public async Task<UploadImagesResult> CreateManyAsync(string deckId, IReadOnlyList<UploadImagesFile>? files, string tool)
+    {
+        if (!await access.CanEditAsync(deckId, actor))
+        {
+            throw new NotFoundException(DeckReader.NOT_FOUND);
+        }
+        if (files is null || files.Count < 1 || files.Count > MAX_FILES_PER_CALL)
+        {
+            throw new BadRequestException($"files: between 1 and {MAX_FILES_PER_CALL} files");
+        }
+
+        var started = new List<(DeckImage Image, string Token)>();
+        for (var i = 0; i < files.Count; i++)
+        {
+            started.Add(NewImage(deckId, files[i]?.Name, files[i]?.ContentType, $"files[{i}]."));
+        }
+        await using (var transaction = await db.Database.BeginTransactionAsync())
+        {
+            db.DeckImages.AddRange(started.Select(s => s.Image));
+            await db.SaveChangesAsync();
+            foreach (var (image, _) in started)
+            {
+                await activity.RecordAsync(deckId, ActivityEntry.By(actor, tool, $"started uploading {image.Name}"));
+            }
+            await transaction.CommitAsync();
+        }
+        await events.PublishAsync(new DeckChanged(deckId));
+        return new UploadImagesResult([.. started.Select(s => new UploadImagesItem(s.Image.Id, s.Image.Name, UploadUrl(s.Token), "PUT", (int)UPLOAD_LIFETIME.TotalSeconds))]);
+    }
+
+    private string UploadUrl(string token) => $"{urls.Base}/api/uploads/{token}";
+
+    // A new image row, not yet saved, and the token its upload URL carries. fieldPrefix names the file in a refusal.
+    private (DeckImage Image, string Token) NewImage(string deckId, string? name, string? contentType, string fieldPrefix = "")
+    {
+        var label = CheckName(name ?? "", fieldPrefix);
+        var type = ImageTypes.Normalise(contentType ?? "") ?? throw new BadRequestException($"{fieldPrefix}contentType: must be {ImageTypes.ACCEPTED_LIST}");
 
         var token = SecretTokens.New();
         var image = new DeckImage
@@ -66,15 +117,7 @@ public class ImageUploads(
             UploadTokenHash = SecretTokens.Hash(token),
             UploadExpiresAt = clock.GetUtcNow() + UPLOAD_LIFETIME,
         };
-        await using (var transaction = await db.Database.BeginTransactionAsync())
-        {
-            db.DeckImages.Add(image);
-            await db.SaveChangesAsync();
-            await activity.RecordAsync(deckId, ActivityEntry.By(actor, tool, $"started uploading {label}"));
-            await transaction.CommitAsync();
-        }
-        await events.PublishAsync(new DeckChanged(deckId));
-        return new UploadImageResult(image.Id, $"{urls.Base}/api/uploads/{token}", "PUT", (int)UPLOAD_LIFETIME.TotalSeconds);
+        return (image, token);
     }
 
     // 404 for a token that is unknown, used or expired, or whose deck's owner is no longer approved; 413 over 10 MB; 400 when the bytes aren't the declared type. The
@@ -167,20 +210,20 @@ public class ImageUploads(
         }
     }
 
-    private static string CheckName(string name)
+    private static string CheckName(string name, string fieldPrefix)
     {
         if (name.Any(char.IsControl))
         {
-            throw new BadRequestException("name: must not contain control characters");
+            throw new BadRequestException($"{fieldPrefix}name: must not contain control characters");
         }
         var label = name.Trim();
         if (label.Length == 0)
         {
-            throw new BadRequestException("name: required");
+            throw new BadRequestException($"{fieldPrefix}name: required");
         }
         if (label.Length > NAME_MAX_LENGTH)
         {
-            throw new BadRequestException($"name: at most {NAME_MAX_LENGTH} characters");
+            throw new BadRequestException($"{fieldPrefix}name: at most {NAME_MAX_LENGTH} characters");
         }
         return label;
     }
