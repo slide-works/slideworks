@@ -1,0 +1,83 @@
+{
+  "draft": {
+    "kind": "word-cloud",
+    "phase": "draft",
+    "number": 1,
+    "revision": 0,
+    "results": "live",
+    "opens": "arrival",
+    "revealed": true,
+    "guests": 0,
+    "entries": []
+  },
+  "wordCloud": {
+    "kind": "word-cloud",
+    "phase": "open",
+    "round": "6e2f9a14-3c7b-4d58-a1e0-9b4c7d2f5a63",
+    "number": 1,
+    "revision": 10,
+    "results": "live",
+    "opens": "arrival",
+    "revealed": true,
+    "guests": 12,
+    "entries": [
+      {
+        "number": 1,
+        "text": "Focused",
+        "count": 5,
+        "hidden": false
+      },
+      {
+        "number": 2,
+        "text": "Busy",
+        "count": 4,
+        "hidden": false
+      },
+      {
+        "number": 3,
+        "text": "Calm",
+        "count": 2,
+        "hidden": false
+      },
+      {
+        "number": 4,
+        "text": "Rubbish",
+        "count": 1,
+        "hidden": true
+      }
+    ]
+  },
+  "openText": {
+    "kind": "open-text",
+    "phase": "closed",
+    "round": "a3d81c5e-7f2b-4e96-b0c4-1d8e6f9a2b57",
+    "number": 1,
+    "revision": 8,
+    "results": "live",
+    "opens": "arrival",
+    "revealed": true,
+    "guests": 4,
+    "entries": [
+      {
+        "number": 1,
+        "text": "Smaller stories, so review is quick",
+        "hidden": false
+      },
+      {
+        "number": 2,
+        "text": "A shared definition of done",
+        "hidden": false
+      },
+      {
+        "number": 3,
+        "text": "Nothing, it is all fine",
+        "hidden": true
+      },
+      {
+        "number": 4,
+        "text": "Pairing on the risky changes",
+        "hidden": false
+      }
+    ]
+  }
+}

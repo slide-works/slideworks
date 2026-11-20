@@ -1,3 +1,4 @@
+import type { OpenTextEvent, WordCloudEvent } from '../openResponses/types';
 import type { PollActivity, PollControl, PollTally } from '../polls/types';
 import type { QaRoom, QuestionControl, QuestionTally, ReactionsBurst } from '../qa/types';
 import type { LayoutName, Slots } from '../slides/slots';
@@ -46,6 +47,8 @@ export type JoinedCount = { type: 'joinedCount'; count: number };
 // presenter's poll view, to the presenter's screens only. Their shapes are in polls/types.ts.
 // SW-9 (Q5): the questions' votes, to guests and the big screen; the presenter's Q&A view and the reaction taps, to the
 // presenter's screens only. Their shapes are in qa/types.ts.
+// SW-8: a word-cloud or open-text slide's round, to guests and the big screen and to the presenter's screens. Their
+// shapes are in openResponses/types.ts.
 export type AudienceEvent =
   | AudienceState
   | AudienceEnded
@@ -54,7 +57,9 @@ export type AudienceEvent =
   | PollControl
   | QuestionTally
   | QuestionControl
-  | ReactionsBurst;
+  | ReactionsBurst
+  | WordCloudEvent
+  | OpenTextEvent;
 
 export function isAudienceEvent(value: unknown): value is AudienceEvent {
   if (typeof value !== 'object' || value === null) return false;
@@ -67,6 +72,8 @@ export function isAudienceEvent(value: unknown): value is AudienceEvent {
     type === 'pollControl' ||
     type === 'questionTally' ||
     type === 'questionControl' ||
-    type === 'reactions'
+    type === 'reactions' ||
+    type === 'wordCloud' ||
+    type === 'openText'
   );
 }

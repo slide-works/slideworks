@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Agoda.IoC.Core;
 using Microsoft.AspNetCore.SignalR;
+using SlideWorks.WebApi.Features.OpenResponses.Contracts;
 using SlideWorks.WebApi.Features.Polls.Contracts;
 using SlideWorks.WebApi.Features.Qa.Contracts;
 
@@ -60,6 +61,8 @@ public sealed class AudienceEventsRelay(IAudienceEvents events, IHubContext<Deck
         QuestionTally tally => SendAsync(DeckHub.AudienceGroupName(tally.DeckId), tally),
         QuestionControl control => SendAsync(DeckHub.AudienceWatchGroupName(control.DeckId), control),
         ReactionsBurst burst => SendAsync(DeckHub.AudienceWatchGroupName(burst.DeckId), burst),
+        WordCloudTally tally => SendAsync(OpenResponseGroup(tally.DeckId, tally.Target), tally),
+        OpenTextTally tally => SendAsync(OpenResponseGroup(tally.DeckId, tally.Target), tally),
         _ => throw new InvalidOperationException($"No hub group for the audience event {audienceEvent.GetType().Name}"),
     };
 
@@ -69,6 +72,15 @@ public sealed class AudienceEventsRelay(IAudienceEvents events, IHubContext<Deck
         PollTallyTarget.Audience => DeckHub.AudienceGroupName(tally.DeckId),
         PollTallyTarget.Results => DeckHub.PollResultsGroupName(tally.Round),
         _ => throw new InvalidOperationException($"No hub group for the poll tally target {tally.Target}"),
+    };
+
+    // A word cloud's or open-text slide's Target names its group: the audience copy to the guests and the big screen, the
+    // presenter copy, hidden entries included, to the presenter's screens.
+    private static string OpenResponseGroup(string deckId, OpenResponseTarget target) => target switch
+    {
+        OpenResponseTarget.Audience => DeckHub.AudienceGroupName(deckId),
+        OpenResponseTarget.Presenter => DeckHub.AudienceWatchGroupName(deckId),
+        _ => throw new InvalidOperationException($"No hub group for the open-response target {target}"),
     };
 
     private Task SendAsync(string group, AudienceEvent audienceEvent)
