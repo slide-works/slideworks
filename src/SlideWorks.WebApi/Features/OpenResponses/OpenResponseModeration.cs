@@ -18,23 +18,32 @@ public class OpenResponseModeration(AppDbContext db, OpenResponseControls contro
 
     public Task<OpenResponseControlView> RestoreAsync(string deckId, int slide, int number) => SetHiddenAsync(deckId, slide, number, hidden: false);
 
+    // One write transaction (EF begins SQLite's BEGIN IMMEDIATE) around the read, the check and the write, so two hides
+    // can't lose a revision; the event goes out only after the commit.
     private async Task<OpenResponseControlView> SetHiddenAsync(string deckId, int slide, int number, bool hidden)
     {
-        var located = await controls.LocateForPresenterAsync(deckId, slide);
-        var entry = OpenResponseControls.EntriesOf(located.Kind, located.Rows).SingleOrDefault(found => found.Entry.Number == number);
-        if (entry.Entry == null)
+        await controls.RequirePresenterAsync(deckId);
+        OpenResponseControls.Located located;
+        bool changed;
+        await using (var transaction = await db.Database.BeginTransactionAsync())
         {
-            throw new NotFoundException(NO_ENTRY);
+            located = await controls.LocateAsync(deckId, slide);
+            var entry = OpenResponseControls.EntriesOf(located.Kind, located.Rows).SingleOrDefault(found => found.Entry.Number == number);
+            if (entry.Entry == null)
+            {
+                throw new NotFoundException(NO_ENTRY);
+            }
+            var changing = entry.Rows.Where(row => (row.HiddenAt != null) != hidden).ToList();
+            changed = changing.Count > 0;
+            if (changed)
+            {
+                var now = clock.GetUtcNow();
+                changing.ForEach(row => row.HiddenAt = hidden ? now : null);
+                located.Current!.Revision++;
+                await db.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
         }
-        var changing = entry.Rows.Where(row => (row.HiddenAt != null) != hidden).ToList();
-        if (changing.Count == 0)
-        {
-            return OpenResponseControls.ViewOf(located);
-        }
-        var now = clock.GetUtcNow();
-        changing.ForEach(row => row.HiddenAt = hidden ? now : null);
-        located.Current!.Revision++;
-        await db.SaveChangesAsync();
-        return await controls.AnnounceAsync(located);
+        return changed ? await controls.AnnounceAsync(located) : OpenResponseControls.ViewOf(located);
     }
 }

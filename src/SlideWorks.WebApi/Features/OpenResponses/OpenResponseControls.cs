@@ -42,76 +42,88 @@ public class OpenResponseControls(
     public async Task<OpenResponseControlView> OpenAsync(string deckId, int slide)
     {
         await RequirePresenterAsync(deckId);
-        return await OpenAsync(await LocateAsync(deckId, slide));
+        return await ChangeAsync(deckId, slide, agentKind: null, WithOpenRound);
     }
 
     public async Task<OpenResponseControlView> CloseAsync(string deckId, int slide)
     {
         await RequirePresenterAsync(deckId);
-        return await CloseAsync(await LocateAsync(deckId, slide));
+        return await ChangeAsync(deckId, slide, agentKind: null, WithClosedRound);
     }
 
-    // Closes the slide's round when it is open, then opens the next number with no entries.
     public async Task<OpenResponseControlView> NewRoundAsync(string deckId, int slide)
     {
         await RequirePresenterAsync(deckId);
-        var located = await LocateAsync(deckId, slide);
-        var session = located.Session ?? throw new ConflictException(NOT_LIVE);
-        var current = located.Current ?? throw new ConflictException(OpenRoundChecks.WRONG_PHASE);
-        if (PhaseOf(current) == OpenResponsePhase.Open)
-        {
-            MarkClosed(current);
-        }
-        var next = Insert(located, session, current.Number + 1);
-        await db.SaveChangesAsync();
-        return await AnnounceAsync(located with { Current = next, Rows = [] });
+        return await ChangeAsync(deckId, slide, agentKind: null, WithNextRound);
     }
 
     // An agent needs edit access, not the right to present, and a slide of the tool's kind (D7).
     public async Task<OpenResponseControlView> OpenAsAgentAsync(string deckId, int slide, OpenResponseKind kind)
-        => await OpenAsync(await LocateForAgentAsync(deckId, slide, kind));
+    {
+        await RequireEditorAsync(deckId);
+        return await ChangeAsync(deckId, slide, kind, WithOpenRound);
+    }
 
     public async Task<OpenResponseControlView> CloseAsAgentAsync(string deckId, int slide, OpenResponseKind kind)
-        => await CloseAsync(await LocateForAgentAsync(deckId, slide, kind));
+    {
+        await RequireEditorAsync(deckId);
+        return await ChangeAsync(deckId, slide, kind, WithClosedRound);
+    }
 
     // The presenter is on the slide: every other slide's open round in the live session closes, and this slide's round opens
     // when the session has none for it yet, so coming back to a slide does not reopen it.
     public async Task ArriveAsync(string deckId, int slide, CancellationToken cancellationToken)
     {
-        if (await LiveSessionAsync(deckId) is not { } session)
+        List<(OpenRound Round, OpenResponseKind Kind, int? Slide)> leaving;
+        Located? opened;
+        await using (var transaction = await db.Database.BeginTransactionAsync(cancellationToken))
         {
-            return;
+            if (await LiveSessionAsync(deckId) is not { } session)
+            {
+                return;
+            }
+            var row = await SlideAsync(deckId, slide);
+            leaving = await OpenRoundsAsync(deckId, session, row?.Id, cancellationToken);
+            leaving.ForEach(open => MarkClosed(open.Round));
+            var arriving = row == null || KindOf(row) == null ? null : await LocateAsync(row, session);
+            opened = arriving is { Current: null } ? arriving : null;
+            if (opened != null)
+            {
+                Insert(opened, session, 1);
+            }
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
-        var row = await SlideAsync(deckId, slide);
-        var leaving = await OpenRoundsAsync(deckId, session, row?.Id, cancellationToken);
-        leaving.ForEach(open => MarkClosed(open.Round));
-        var arriving = row == null || KindOf(row) == null ? null : await LocateAsync(row, session);
-        if (arriving is { Current: null })
-        {
-            Insert(arriving, session, 1);
-        }
-        await db.SaveChangesAsync(cancellationToken);
         await PublishAsync(deckId, leaving, cancellationToken);
-        if (arriving is { Current: null })
+        if (opened != null)
         {
-            await PublishAsync(deckId, slide, arriving.Kind, cancellationToken);
+            await PublishAsync(deckId, slide, opened.Kind, cancellationToken);
         }
     }
 
     // The live session is ending: every open round in it closes, keeping its entries.
     public async Task EndSessionAsync(string deckId, Guid sessionId, CancellationToken cancellationToken)
     {
-        var open = await OpenRoundsAsync(deckId, sessionId, exceptSlide: null, cancellationToken);
-        open.ForEach(found => MarkClosed(found.Round));
-        await db.SaveChangesAsync(cancellationToken);
+        List<(OpenRound Round, OpenResponseKind Kind, int? Slide)> open;
+        await using (var transaction = await db.Database.BeginTransactionAsync(cancellationToken))
+        {
+            open = await OpenRoundsAsync(deckId, sessionId, exceptSlide: null, cancellationToken);
+            open.ForEach(found => MarkClosed(found.Round));
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
         await PublishAsync(deckId, open, cancellationToken);
     }
 
-    // The slide's latest round in the live session, for OpenResponseModeration, after the presenter check.
-    public async Task<Located> LocateForPresenterAsync(string deckId, int slide)
+    // The slide's latest round in the live session and its rows. A slide that is not word-cloud or open-text is 404.
+    public async Task<Located> LocateAsync(string deckId, int slide)
     {
-        await RequirePresenterAsync(deckId);
-        return await LocateAsync(deckId, slide);
+        var row = await SlideAsync(deckId, slide);
+        if (row == null || KindOf(row) == null)
+        {
+            throw new NotFoundException(NOT_AN_OPEN_RESPONSE);
+        }
+        return await LocateAsync(row, await LiveSessionAsync(deckId));
     }
 
     // Publishes the slide's event and reads its control view back.
@@ -122,7 +134,8 @@ public class OpenResponseControls(
     }
 
     // The control entries of a round and the rows behind each (D11): a word is every row with its text key, numbered by
-    // count descending then text key; an answer is its guest's row, numbered by guest id.
+    // count descending then text key; an answer is its guest's row, numbered by guest id. An entry is hidden only when every
+    // row behind it is, as the audience sees it, so a row sent after a hide shows the entry again.
     // TODO: an open-text number is the guest's place by guest id, because OpenEntry has no time it was first sent; a
     // first-sent time on the row replaces this ordering.
     public static IReadOnlyList<(ControlEntry Entry, IReadOnlyList<OpenEntry> Rows)> EntriesOf(OpenResponseKind kind, IReadOnlyList<OpenEntry> rows)
@@ -131,25 +144,48 @@ public class OpenResponseControls(
                 .Select(word => (Key: word.Key, Rows: (IReadOnlyList<OpenEntry>)[.. word], Count: word.Select(row => row.GuestId).Distinct(StringComparer.Ordinal).Count()))
                 .OrderByDescending(word => word.Count)
                 .ThenBy(word => word.Key, StringComparer.Ordinal)
-                .Select((word, index) => (new ControlEntry(index + 1, word.Rows.Select(row => row.Text).Order(StringComparer.Ordinal).First(), word.Count, word.Rows.Any(row => row.HiddenAt != null)), word.Rows))]
+                .Select((word, index) => (new ControlEntry(index + 1, word.Rows.Select(row => row.Text).Order(StringComparer.Ordinal).First(), word.Count, word.Rows.All(row => row.HiddenAt != null)), word.Rows))]
             : [.. rows.GroupBy(row => row.GuestId, StringComparer.Ordinal)
                 .OrderBy(guest => guest.Key, StringComparer.Ordinal)
                 .Select((guest, index) => (Answer: guest.MinBy(row => row.Position)!, Rows: (IReadOnlyList<OpenEntry>)[.. guest], Number: index + 1))
-                .Select(guest => (new ControlEntry(guest.Number, guest.Answer.Text, null, guest.Rows.Any(row => row.HiddenAt != null)), guest.Rows))];
+                .Select(guest => (new ControlEntry(guest.Number, guest.Answer.Text, null, guest.Rows.All(row => row.HiddenAt != null)), guest.Rows))];
 
-    private async Task<OpenResponseControlView> OpenAsync(Located located)
+    // One write transaction (EF begins SQLite's BEGIN IMMEDIATE) around the read, the checks and the write, so two calls on
+    // the same slide can't both pass a check. The change returns the slide as it now stands, or null when nothing changed;
+    // the event goes out only after the commit.
+    private async Task<OpenResponseControlView> ChangeAsync(string deckId, int slide, OpenResponseKind? agentKind, Func<Located, Located?> change)
+    {
+        Located located;
+        Located? changed;
+        await using (var transaction = await db.Database.BeginTransactionAsync())
+        {
+            located = await LocateAsync(deckId, slide);
+            if (agentKind is { } kind)
+            {
+                RequireAgentSlide(located, kind);
+            }
+            changed = change(located);
+            if (changed != null)
+            {
+                await db.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+        }
+        return changed == null ? ViewOf(located) : await AnnounceAsync(changed);
+    }
+
+    // Opens round 1 when the session has no round for the slide; an open round is returned unchanged.
+    private Located? WithOpenRound(Located located)
     {
         var session = located.Session ?? throw new ConflictException(NOT_LIVE);
         if (located.Current == null)
         {
-            var opened = Insert(located, session, 1);
-            await db.SaveChangesAsync();
-            return await AnnounceAsync(located with { Current = opened });
+            return located with { Current = Insert(located, session, 1) };
         }
-        return PhaseOf(located.Current) == OpenResponsePhase.Open ? ViewOf(located) : throw new ConflictException(OpenRoundChecks.WRONG_PHASE);
+        return PhaseOf(located.Current) == OpenResponsePhase.Open ? null : throw new ConflictException(OpenRoundChecks.WRONG_PHASE);
     }
 
-    private async Task<OpenResponseControlView> CloseAsync(Located located)
+    private Located WithClosedRound(Located located)
     {
         if (located.Session == null)
         {
@@ -160,34 +196,39 @@ public class OpenResponseControls(
             throw new ConflictException(OpenRoundChecks.WRONG_PHASE);
         }
         MarkClosed(located.Current);
-        await db.SaveChangesAsync();
-        return await AnnounceAsync(located);
+        return located;
     }
 
-    private async Task<Located> LocateForAgentAsync(string deckId, int slide, OpenResponseKind kind)
+    // Closes the slide's round when it is open, then opens the next number with no entries.
+    private Located WithNextRound(Located located)
+    {
+        var session = located.Session ?? throw new ConflictException(NOT_LIVE);
+        var current = located.Current ?? throw new ConflictException(OpenRoundChecks.WRONG_PHASE);
+        if (PhaseOf(current) == OpenResponsePhase.Open)
+        {
+            MarkClosed(current);
+        }
+        return located with { Current = Insert(located, session, current.Number + 1), Rows = [] };
+    }
+
+    private async Task RequireEditorAsync(string deckId)
     {
         if (!await access.CanEditAsync(deckId, actor))
         {
             throw new NotFoundException(DeckReader.NOT_FOUND);
         }
-        var located = await LocateAsync(deckId, slide);
+    }
+
+    private static void RequireAgentSlide(Located located, OpenResponseKind kind)
+    {
         if (located.Kind != kind)
         {
             throw new NotFoundException(NOT_AN_OPEN_RESPONSE);
         }
-        return located.Session == null
-            ? throw new ConflictException($"{NOT_LIVE}: the deck is not live; a person starts the audience session with Go live")
-            : located;
-    }
-
-    private async Task<Located> LocateAsync(string deckId, int slide)
-    {
-        var row = await SlideAsync(deckId, slide);
-        if (row == null || KindOf(row) == null)
+        if (located.Session == null)
         {
-            throw new NotFoundException(NOT_AN_OPEN_RESPONSE);
+            throw new ConflictException($"{NOT_LIVE}: the deck is not live; a person starts the audience session with Go live");
         }
-        return await LocateAsync(row, await LiveSessionAsync(deckId));
     }
 
     private async Task<Located> LocateAsync(Slide row, Guid? session)
@@ -286,7 +327,7 @@ public class OpenResponseControls(
         return slide.Layout == OpenTextLayout.Definition.Name ? OpenResponseKind.OpenText : null;
     }
 
-    private async Task RequirePresenterAsync(string deckId)
+    public async Task RequirePresenterAsync(string deckId)
     {
         if (!await access.CanViewAsync(deckId, actor))
         {

@@ -76,6 +76,28 @@ public class OpenResponseControlTests : ApiTestFixture
     }
 
     [Test]
+    public async Task Get_WhenAWordHasAHiddenRowAndALaterShownRow_ShouldReportTheWordShown()
+    {
+        var live = await GoLiveWithAWordCloudAsync();
+        var round = await SeedRoundAsync(live, closedAt: null, revision: 3, ("guest-a", "Focused"), ("guest-b", "focused"));
+        await using (var scope = Factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var first = await db.OpenEntries.SingleAsync(e => e.RoundId == round.Id && e.GuestId == "guest-a");
+            first.HiddenAt = Clock.GetUtcNow().AddMinutes(-1);
+            await db.SaveChangesAsync();
+        }
+
+        using var response = await Client.GetAsync($"/api/decks/{live.DeckId}/slides/{WORD_CLOUD_SLIDE}/response");
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, body.ToString());
+        body.GetProperty("entries").GetArrayLength().ShouldBe(1);
+        body.GetProperty("entries")[0].GetProperty("count").GetInt32().ShouldBe(2);
+        body.GetProperty("entries")[0].GetProperty("hidden").GetBoolean().ShouldBeFalse();
+    }
+
+    [Test]
     public async Task Hide_WhenTheNumberIsUnknown_ShouldReturnNoEntry()
     {
         var live = await GoLiveWithAWordCloudAsync();
