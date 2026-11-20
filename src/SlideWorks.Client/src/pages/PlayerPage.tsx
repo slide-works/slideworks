@@ -8,6 +8,7 @@ import { QaScreenLive } from '../qa/screen/QaScreenLive';
 import { ScreenReactionsLive } from '../qa/screen/ScreenReactionsLive';
 import { JoinProvider } from '../slides/JoinContext';
 import { PollScreenLive } from '../slides/PollScreenLive';
+import { OpenResponseScreenLive } from '../openResponses/OpenResponseScreenLive';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { PlayerMessage } from './deck/PlayerMessage';
 
@@ -132,11 +133,13 @@ export function PlayerPage() {
         <div data-testid="player-page" data-deck-id={id} className="contents">
           <JoinProvider deckId={load.view.id} join={load.view.join} owner={load.view.isOwner}>
             <PollScreenLive deckId={load.view.id} owner={load.view.isOwner}>
-              <QaScreenLive deckId={load.view.id} owner={load.view.isOwner}>
-                <ScreenReactionsLive deckId={load.view.id} owner={load.view.isOwner}>
-                  {audience ? <AudienceFollower deck={load.view} /> : <Player deck={load.view} />}
-                </ScreenReactionsLive>
-              </QaScreenLive>
+              <OpenResponseScreenLive deckId={load.view.id} owner={load.view.isOwner}>
+                <QaScreenLive deckId={load.view.id} owner={load.view.isOwner}>
+                  <ScreenReactionsLive deckId={load.view.id} owner={load.view.isOwner}>
+                    {audience ? <AudienceFollower deck={load.view} /> : <Player deck={load.view} />}
+                  </ScreenReactionsLive>
+                </QaScreenLive>
+              </OpenResponseScreenLive>
             </PollScreenLive>
           </JoinProvider>
         </div>

@@ -1,0 +1,138 @@
+import { test, expect } from '@playwright/experimental-ct-react';
+import { AppRoutes } from '../../AppRoutes';
+import type { AudienceCurrent } from '../../guest/audienceEvents';
+import { guestView } from '../../test-support/fixtures/guestStates';
+import { stubApi } from '../../test-support/stubApi';
+import { stubDeckHub } from '../../test-support/stubDeckHub';
+import { OPEN_RESPONSE_ERRORS } from '../errors';
+import { stubOpenResponses } from '../stubOpenResponses';
+import { OPEN_RESPONSE_TEST_IDS as IDS } from '../testIds';
+import type { GuestResponseView } from '../types';
+import { OpenAnswerCard } from './OpenAnswerCard';
+import { WordCard } from './WordCard';
+
+const QUESTION = 'One word for today?';
+const ROUND = { phase: 'open', round: 'round_1', number: 1, revision: 4, revealed: true } as const;
+
+const wordsView = (mineWords: string[]): GuestResponseView => ({
+  ...ROUND,
+  kind: 'word-cloud',
+  question: QUESTION,
+  guests: 2,
+  mineWords,
+});
+
+const textView = (mineText: string): GuestResponseView => ({
+  ...ROUND,
+  kind: 'open-text',
+  question: QUESTION,
+  guests: 2,
+  mineText,
+});
+
+const PROFANE = { status: 409, json: { error: 'profane', message: 'That word is not allowed.' } };
+
+test('WordCard_WhenTheGetReturnsWords_ShouldShowThoseWords', async ({ mount, page }) => {
+  await stubOpenResponses(page, { slide: 3, view: wordsView(['Calm', 'Ready']) });
+  await mount(<WordCard code="482913" slide={3} status="live" />);
+
+  await expect(page.getByTestId(IDS.question)).toHaveText(QUESTION);
+  await expect(page.getByTestId(IDS.mineEntry)).toHaveText(['Calm', 'Ready']);
+  await expect(page.getByRole('textbox', { name: `${QUESTION} (word 1 of 3)` })).toBeVisible();
+});
+
+test('WordCard_WhenTheSubmitIsProfane_ShouldShowTheSentence', async ({ mount, page }) => {
+  const stub = await stubOpenResponses(page, { slide: 3, view: wordsView([]) });
+  stub.reply(PROFANE);
+  await mount(<WordCard code="482913" slide={3} status="live" />);
+  const first = page.getByTestId(IDS.input).first();
+
+  await first.fill('rude');
+  await page.getByTestId(IDS.submit).click();
+
+  await expect(page.getByTestId(IDS.error)).toHaveText(OPEN_RESPONSE_ERRORS.profane);
+  await expect(first).toBeFocused();
+  expect(stub.sends).toEqual([{ round: 'round_1', revision: 4, words: ['rude'] }]);
+  await expect(page.getByTestId(IDS.mine)).toHaveCount(0);
+});
+
+test('OpenAnswerCard_WhenTheGetReturnsText_ShouldShowThatText', async ({ mount, page }) => {
+  await stubOpenResponses(page, { slide: 3, view: textView('More demos please') });
+  await mount(<OpenAnswerCard code="482913" slide={3} status="live" />);
+
+  await expect(page.getByTestId(IDS.question)).toHaveText(QUESTION);
+  await expect(page.getByTestId(IDS.mine)).toHaveText('More demos please');
+  await expect(page.getByRole('textbox', { name: `${QUESTION} (your answer)` })).toBeVisible();
+});
+
+test('OpenAnswerCard_WhenTheSubmitIsProfane_ShouldShowTheSentence', async ({ mount, page }) => {
+  const stub = await stubOpenResponses(page, { slide: 3, view: textView('') });
+  stub.reply(PROFANE);
+  await mount(<OpenAnswerCard code="482913" slide={3} status="live" />);
+  const box = page.getByTestId(IDS.input);
+
+  await box.fill('rude answer');
+  await page.getByTestId(IDS.submit).click();
+
+  await expect(page.getByTestId(IDS.error)).toHaveText(OPEN_RESPONSE_ERRORS.profane);
+  await expect(box).toBeFocused();
+  expect(stub.sends).toEqual([{ round: 'round_1', revision: 4, text: 'rude answer' }]);
+  await expect(page.getByTestId(IDS.mine)).toHaveCount(0);
+});
+
+test('OpenAnswerCard_WhenTheSubmitIsStored_ShouldShowTheAnswer', async ({ mount, page }) => {
+  await stubOpenResponses(page, { slide: 3, view: textView('') });
+  await mount(<OpenAnswerCard code="482913" slide={3} status="live" />);
+  const box = page.getByTestId(IDS.input);
+
+  await box.fill('Ship it');
+  await page.getByTestId(IDS.submit).click();
+
+  await expect(page.getByTestId(IDS.mine)).toHaveText('Ship it');
+  await expect(box).toHaveValue('');
+  await expect(box).toBeFocused();
+});
+
+const view = guestView('live');
+
+const on = (layout: 'word-cloud' | 'open-text'): AudienceCurrent =>
+  ({ ...view.state.current!, layout, slots: { question: QUESTION } }) as AudienceCurrent;
+
+const liveOn = (layout: 'word-cloud' | 'open-text') => ({
+  ...view,
+  state: { ...view.state, current: on(layout) },
+});
+
+test('Following_WhenTheLayoutIsWordCloud_ShouldMountTheCard', async ({ mount, page }) => {
+  const guest = liveOn('word-cloud');
+  const hub = await stubDeckHub(page, { audience: { state: guest.state } });
+  await stubApi(page, { '/api/join/482913': { json: guest } });
+  await stubOpenResponses(page, { slide: 3, view: wordsView(['Calm']) });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+
+  await expect(page.getByTestId(IDS.wordCard)).toBeVisible();
+  await expect(page.getByTestId(IDS.mineEntry)).toHaveText(['Calm']);
+
+  hub.pushWordCloud({
+    ...ROUND,
+    type: 'wordCloud',
+    slide: 3,
+    guests: 2,
+    words: [
+      { text: 'Calm', count: 2, hidden: false },
+      { text: 'Tired', count: 1, hidden: false },
+    ],
+  });
+  await expect(page.getByTestId(IDS.roomEntry)).toHaveText(['Calm', 'Tired']);
+});
+
+test('Following_WhenTheLayoutIsOpenText_ShouldMountTheCard', async ({ mount, page }) => {
+  const guest = liveOn('open-text');
+  await stubDeckHub(page, { audience: { state: guest.state } });
+  await stubApi(page, { '/api/join/482913': { json: guest } });
+  await stubOpenResponses(page, { slide: 3, view: textView('Ship it') });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+
+  await expect(page.getByTestId(IDS.answerCard)).toBeVisible();
+  await expect(page.getByTestId(IDS.mine)).toHaveText('Ship it');
+});

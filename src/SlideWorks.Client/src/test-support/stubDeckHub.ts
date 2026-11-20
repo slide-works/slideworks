@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { Page } from 'playwright/test';
 import type { AudienceEvent, AudienceState } from '../guest/audienceEvents';
+import type { OpenTextEvent, WordCloudEvent } from '../openResponses/types';
 import type { PollActivity, PollTally } from '../polls/types';
 import type { PresentationState, PresentationUpdate, TimerCommand } from '../presentation/types';
 import type { QaRoom, QuestionTally } from '../qa/types';
@@ -446,6 +447,37 @@ export async function stubDeckHub(
     ) {
       if (target === 'results' && !watching()) return;
       send(socket!, { type: 1, target: 'audienceEvent', arguments: [tally] });
+    },
+    // Sends one wordCloud to the newest connection, as the hub does to the audience group (the default) or to the
+    // presenter's screens (target 'screen', hidden words included). Throws on an event the hub never sends: no type, a
+    // count that is not an integer, or a hidden word in an audience push.
+    pushWordCloud(
+      event: WordCloudEvent,
+      { target = 'audience' }: { target?: 'audience' | 'screen' } = {},
+    ) {
+      if ((event as Partial<WordCloudEvent>).type !== 'wordCloud')
+        throw new Error('pushWordCloud: type must be "wordCloud"');
+      const notCount = event.words.find((word) => !Number.isInteger(word.count));
+      if (notCount) throw new Error(`pushWordCloud: count ${notCount.count} is not an integer`);
+      if (!Number.isInteger(event.guests))
+        throw new Error(`pushWordCloud: count ${event.guests} is not an integer`);
+      if (target === 'audience' && event.words.some((word) => word.hidden))
+        throw new Error('pushWordCloud: an audience push never carries a hidden word');
+      send(socket!, { type: 1, target: 'audienceEvent', arguments: [event] });
+    },
+    // Sends one openText as pushWordCloud sends a wordCloud. Throws on no type, a guests count that is not an integer,
+    // or a hidden answer in an audience push.
+    pushOpenText(
+      event: OpenTextEvent,
+      { target = 'audience' }: { target?: 'audience' | 'screen' } = {},
+    ) {
+      if ((event as Partial<OpenTextEvent>).type !== 'openText')
+        throw new Error('pushOpenText: type must be "openText"');
+      if (!Number.isInteger(event.guests))
+        throw new Error(`pushOpenText: count ${event.guests} is not an integer`);
+      if (target === 'audience' && event.answers.some((answer) => answer.hidden))
+        throw new Error('pushOpenText: an audience push never carries a hidden answer');
+      send(socket!, { type: 1, target: 'audienceEvent', arguments: [event] });
     },
     // Whether a later WatchPoll is allowed: the guest has an answer in an open afterAnswer round. Starts false.
     setPollWatchable(watchable: boolean) {

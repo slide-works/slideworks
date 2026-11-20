@@ -2,6 +2,8 @@ import { useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import type { JoinView } from '../api/types';
 import { CANVAS_HEIGHT, CANVAS_WIDTH, useCanvasScale } from '../player/useCanvasScale';
+import { OpenAnswerCard } from '../openResponses/guest/OpenAnswerCard';
+import { WordCard } from '../openResponses/guest/WordCard';
 import { JoinProvider } from '../slides/JoinContext';
 import { QA_SCREEN_OFF, QA_SCREEN_PENDING, QaScreenProvider } from '../qa/screen/QaScreenContext';
 import { GuestQa } from '../qa/guest/GuestQa';
@@ -172,12 +174,18 @@ export function GuestFollowing({
           </div>
         )}
         <div className="flex min-h-0 flex-1 flex-col [@media(orientation:landscape)_and_(max-height:500px)]:hidden">
-          <ActivitySlot
-            code={code}
-            activity={state.activity}
-            status={status}
-            presenter={view.presenterName}
-          />
+          {current?.layout === 'word-cloud' ? (
+            <WordCard key={current.index} code={code} slide={current.index} status={status} />
+          ) : current?.layout === 'open-text' ? (
+            <OpenAnswerCard key={current.index} code={code} slide={current.index} status={status} />
+          ) : (
+            <ActivitySlot
+              code={code}
+              activity={state.activity}
+              status={status}
+              presenter={view.presenterName}
+            />
+          )}
         </div>
       </GuestQa>
     </main>
