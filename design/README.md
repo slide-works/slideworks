@@ -7,10 +7,10 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-1-foundation/`](sw-1-foundation/) | SW-1 Foundation: agent-built web decks over MCP | Mockups reviewed, decisions D3–D9 settled, built on the SW-1 branch |
 | [`sw-2-templates-palettes/`](sw-2-templates-palettes/) | SW-2 Templates and palettes (also covers SW-15 Wada palettes; its SW-50 sketch is replaced by `sw-50-custom-templates/`) | Built (SW-2's sections; Wada palettes and uploaded templates are still to come) |
 | [`sw-4-presenter/`](sw-4-presenter/) | SW-4 Presenter view and phone remote (SW-7 merged in) | Built (decisions D1–D6 settled, plan decisions D7–D17 as built; the user guide is [`docs/presenting.md`](../docs/presenting.md)) |
-| [`sw-5-audience-join/`](sw-5-audience-join/) | SW-5 Audience join: QR code, join code and guest mode | Mockups reviewed, decisions D1–D8 settled, not built |
+| [`sw-5-audience-join/`](sw-5-audience-join/) | SW-5 Audience join: QR code, join code and guest mode | Built (decisions D1–D8 settled) |
 | [`sw-6-polls/`](sw-6-polls/) | SW-6 Live multiple-choice polls | Built (decisions D1–D8 settled; the mockups differ in a few places, listed under "As built" in the SW-6 section) |
-| [`sw-9-qa-reactions/`](sw-9-qa-reactions/) | SW-9 Audience Q&A and reactions | Mockups reviewed, decisions D1–D9 settled, D10 proposed, not built |
-| [`sw-50-custom-templates/`](sw-50-custom-templates/) | SW-50 Custom templates, and the layout gaps a real deck found | Template mockups reviewed, decisions D4–D17 settled. Layout gaps designed (three pages, decisions D18–D48 recorded as recommended, not reviewed). Not built |
+| [`sw-9-qa-reactions/`](sw-9-qa-reactions/) | SW-9 Audience Q&A and reactions | Built (decisions D1–D9 settled, D10 proposed) |
+| [`sw-50-custom-templates/`](sw-50-custom-templates/) | SW-50 Custom templates, and the layout gaps a real deck found | Partly built: the template editor and the new layouts are on main; template bundles (upload and download) and custom layouts are not built yet. Decisions D4–D17 settled; D18–D48 recorded as recommended, not reviewed |
 
 ## SW-1 Foundation
 
