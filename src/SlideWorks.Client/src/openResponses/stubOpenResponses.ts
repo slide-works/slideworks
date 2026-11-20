@@ -58,8 +58,9 @@ export async function stubOpenResponses(
     }),
   );
   if (control !== undefined && deckId !== undefined)
-    await page.route(`**/api/decks/${encodeURIComponent(deckId)}/slides/${slide}/response`, (route) =>
-      route.fulfill({ status: 200, json: control }),
+    await page.route(
+      `**/api/decks/${encodeURIComponent(deckId)}/slides/${slide}/response`,
+      (route) => route.fulfill({ status: 200, json: control }),
     );
 
   return {

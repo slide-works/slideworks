@@ -36,7 +36,10 @@ const deck: SlideDeck = {
 
 const ROUND = '6e2f9a14-3c7b-4d58-a1e0-9b4c7d2f5a63';
 
-function control(revision: number, entries: OpenResponseControlView['entries']): OpenResponseControlView {
+function control(
+  revision: number,
+  entries: OpenResponseControlView['entries'],
+): OpenResponseControlView {
   return {
     kind: 'word-cloud',
     phase: 'open',
@@ -110,10 +113,13 @@ const fontPx = (page: Page, index: number) =>
   word(page, index).evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
 
 test('WordCloudLayout_WhenOneWordHasAHigherCount_ShouldRenderItLarger', async ({ mount, page }) => {
-  await stubLive(page, control(5, [
-    { number: 1, text: 'Calm', count: 2, hidden: false },
-    { number: 2, text: 'Busy', count: 1, hidden: false },
-  ]));
+  await stubLive(
+    page,
+    control(5, [
+      { number: 1, text: 'Calm', count: 2, hidden: false },
+      { number: 2, text: 'Busy', count: 1, hidden: false },
+    ]),
+  );
   await mount(player());
 
   await expect(word(page, 0)).toHaveText('Calm');
@@ -121,8 +127,14 @@ test('WordCloudLayout_WhenOneWordHasAHigherCount_ShouldRenderItLarger', async ({
   expect(await fontPx(page, 0)).toBeGreaterThan(await fontPx(page, 1));
 });
 
-test('WordCloudLayout_WhenAWordIsHidden_ShouldLeaveItOutAndKeepTheQuestion', async ({ mount, page }) => {
-  const { hub } = await stubLive(page, control(5, [{ number: 1, text: 'Calm', count: 1, hidden: false }]));
+test('WordCloudLayout_WhenAWordIsHidden_ShouldLeaveItOutAndKeepTheQuestion', async ({
+  mount,
+  page,
+}) => {
+  const { hub } = await stubLive(
+    page,
+    control(5, [{ number: 1, text: 'Calm', count: 1, hidden: false }]),
+  );
   await mount(player());
   await expect(word(page, 0)).toHaveText('Calm');
 
@@ -151,9 +163,13 @@ test('WordCloudLayout_WhenAWordIsHidden_ShouldLeaveItOutAndKeepTheQuestion', asy
 });
 
 test('Cloud_WhenTheViewerCannotPresent_ShouldShowTheQuestionOnly', async ({ mount, page }) => {
-  const live = await stubLive(page, control(5, [{ number: 1, text: 'Calm', count: 4, hidden: false }]), {
-    canPresent: false,
-  });
+  const live = await stubLive(
+    page,
+    control(5, [{ number: 1, text: 'Calm', count: 4, hidden: false }]),
+    {
+      canPresent: false,
+    },
+  );
   await mount(player());
   await expect.poll(() => live.liveAnswers).toBe(1);
   await expect.poll(() => live.hub.sockets).toBeGreaterThanOrEqual(1);
@@ -166,7 +182,10 @@ test('Cloud_WhenTheViewerCannotPresent_ShouldShowTheQuestionOnly', async ({ moun
   await expect(word(page, 0)).toHaveCount(0);
 });
 
-test('WordCloudLayout_WhenOneWordIsShownScreenshot_ShouldMatchTheBaseline', async ({ mount, page }) => {
+test('WordCloudLayout_WhenOneWordIsShownScreenshot_ShouldMatchTheBaseline', async ({
+  mount,
+  page,
+}) => {
   await stubLive(page, control(5, [{ number: 1, text: 'Focused', count: 3, hidden: false }]));
   await mount(player());
   await expect(word(page, 0)).toHaveText('Focused');

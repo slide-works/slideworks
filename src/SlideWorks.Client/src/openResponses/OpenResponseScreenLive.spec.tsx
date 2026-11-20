@@ -95,7 +95,10 @@ const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTime
 const word = (page: Page, slide: number, index: number) =>
   page.getByTestId(`slide-${slide}`).getByTestId(`word-cloud-word-${index}`);
 
-test('OpenResponseScreenLive_WhenThePresenterIsLive_ShouldWatchTheAudience', async ({ mount, page }) => {
+test('OpenResponseScreenLive_WhenThePresenterIsLive_ShouldWatchTheAudience', async ({
+  mount,
+  page,
+}) => {
   const { hub } = await stubLive(page);
   await mount(player(true));
 
@@ -104,7 +107,10 @@ test('OpenResponseScreenLive_WhenThePresenterIsLive_ShouldWatchTheAudience', asy
   await expect(word(page, 2, 0)).toHaveText('Slide2');
 });
 
-test('OpenResponseScreenLive_WhenTwoSlidesAreMarked_ShouldReadEachSlideOnce', async ({ mount, page }) => {
+test('OpenResponseScreenLive_WhenTwoSlidesAreMarked_ShouldReadEachSlideOnce', async ({
+  mount,
+  page,
+}) => {
   const { reads } = await stubLive(page);
   await mount(player(true));
 
@@ -142,7 +148,10 @@ test('OpenResponseScreenLive_WhenAnEventHasAHiddenWord_ShouldDropIt', async ({ m
   await expect(word(page, 2, 0)).toHaveText('Slide2');
 });
 
-test('OpenResponseScreenLive_WhenTheViewerIsNotTheOwner_ShouldGiveNoRound', async ({ mount, page }) => {
+test('OpenResponseScreenLive_WhenTheViewerIsNotTheOwner_ShouldGiveNoRound', async ({
+  mount,
+  page,
+}) => {
   const { hub, reads } = await stubLive(page);
   await mount(player(false));
   await expect.poll(() => hub.watches).toEqual([deckId]);

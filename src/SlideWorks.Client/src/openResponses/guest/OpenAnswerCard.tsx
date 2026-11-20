@@ -68,7 +68,11 @@ export function OpenAnswerCard({
         </p>
       )}
       {room && room.answers.length > 0 && (
-        <ul data-testid={IDS.room} aria-label="The room's answers" className="flex flex-col gap-1.5">
+        <ul
+          data-testid={IDS.room}
+          aria-label="The room's answers"
+          className="flex flex-col gap-1.5"
+        >
           {room.answers.map((answer) => (
             <li key={answer.number} data-testid={IDS.roomEntry}>
               {answer.text}

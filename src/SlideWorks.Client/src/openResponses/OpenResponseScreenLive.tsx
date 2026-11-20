@@ -53,9 +53,7 @@ function shownOf(event: RoomEvent): RoomEvent {
 
 function screenOfControl(slide: number, view: OpenResponseControlView): RoomEvent {
   const round =
-    view.phase === 'draft'
-      ? { phase: view.phase }
-      : { phase: view.phase, round: view.round };
+    view.phase === 'draft' ? { phase: view.phase } : { phase: view.phase, round: view.round };
   const fields = {
     ...round,
     slide,

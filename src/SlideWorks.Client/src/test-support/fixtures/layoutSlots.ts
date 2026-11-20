@@ -45,10 +45,7 @@ import {
   REQUIRED as WORD_CLOUD_REQUIRED,
   SLOTS as WORD_CLOUD_SLOTS,
 } from './layoutSlots/word-cloud';
-import {
-  REQUIRED as OPEN_TEXT_REQUIRED,
-  SLOTS as OPEN_TEXT_SLOTS,
-} from './layoutSlots/open-text';
+import { REQUIRED as OPEN_TEXT_REQUIRED, SLOTS as OPEN_TEXT_SLOTS } from './layoutSlots/open-text';
 
 export { SAMPLE_IMAGE_ID } from './layoutSlots/sampleImage';
 

@@ -12,8 +12,7 @@ export type OpenResponseOpens = 'arrival' | 'manual';
 // round is left out while phase is draft and present otherwise. number is the round's number, or in draft the number
 // the next round will get.
 export type OpenResponseRound =
-  | { phase: 'draft'; round?: never }
-  | { phase: 'open' | 'closed'; round: string };
+  { phase: 'draft'; round?: never } | { phase: 'open' | 'closed'; round: string };
 
 // One word of a cloud: the first casing anyone sent, how many guests hold it now, and whether the presenter hid it.
 export type CloudWord = { text: string; count: number; hidden: boolean };
