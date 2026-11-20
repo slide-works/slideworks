@@ -14,7 +14,7 @@ import { useDeckConnection } from '../realtime/useDeckConnection';
 import { useJoin } from '../slides/JoinContext';
 import { useSlideNumber } from '../slides/slideNumber';
 import type { OpenResponseControlView } from './types';
-import type { RoomEvent } from './useOpenResponse';
+import { newerRound, type RoomEvent } from './useOpenResponse';
 
 export type OpenResponseScreenLiveProps = {
   deckId: string;
@@ -78,15 +78,6 @@ function screenOfControl(slide: number, view: OpenResponseControlView): RoomEven
       };
 }
 
-// A round is newer when its number is higher, or it is the same round at the same or a higher revision.
-function newer(next: RoomEvent, held: RoomEvent | undefined): boolean {
-  return (
-    held === undefined ||
-    next.number > held.number ||
-    (next.number === held.number && next.revision >= held.revision)
-  );
-}
-
 // The word-cloud and open-text slides' live screen in the player and the audience window (SW-8 D6), inside JoinProvider.
 // For a person who can present the deck, while the live session confirms them and the deck is live, it watches the deck's
 // audience (WatchAudience, again after every reconnect), reads GET /api/decks/{id}/slides/{slide}/response for each slide
@@ -107,7 +98,9 @@ export function OpenResponseScreenLive({ deckId, owner, children }: OpenResponse
   const apply = useCallback((event: RoomEvent) => {
     const shown = shownOf(event);
     setScreens((held) =>
-      newer(shown, held.get(shown.slide)) ? new Map(held).set(shown.slide, shown) : held,
+      held.has(shown.slide) && !newerRound(shown, held.get(shown.slide)!)
+        ? held
+        : new Map(held).set(shown.slide, shown),
     );
   }, []);
 
@@ -143,13 +136,14 @@ export function OpenResponseScreenLive({ deckId, owner, children }: OpenResponse
     };
   }, [active, connection, deckId, apply]);
 
-  const slides = useMemo(() => [...marked.keys()], [marked]);
+  // The marked slides as a stable key, so marking a slide again does not read every slide again.
+  const slides = [...marked.keys()].sort((x, y) => x - y).join(',');
   useEffect(() => {
     if (!active || watched === 0) return;
     let gone = false;
     // A failed read leaves the slide as it was; the next watch or event brings it up to date. The big screen shows the
     // room no error.
-    for (const slide of slides) {
+    for (const slide of slides === '' ? [] : slides.split(',').map(Number)) {
       api
         .get<OpenResponseControlView>(
           `/api/decks/${encodeURIComponent(deckId)}/slides/${slide}/response`,
