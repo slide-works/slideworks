@@ -7,7 +7,7 @@ import { stubDeckHub } from '../../test-support/stubDeckHub';
 import { OPEN_RESPONSE_ERRORS } from '../errors';
 import { stubOpenResponses } from '../stubOpenResponses';
 import { OPEN_RESPONSE_TEST_IDS as IDS } from '../testIds';
-import type { GuestResponseView } from '../types';
+import type { GuestResponseView, WordCloudEvent } from '../types';
 import { OpenAnswerCard } from './OpenAnswerCard';
 import { WordCard } from './WordCard';
 
@@ -148,4 +148,68 @@ test('Following_WhenTheLayoutIsOpenText_ShouldMountTheCard', async ({ mount, pag
 
   await expect(page.getByTestId(IDS.answerCard)).toBeVisible();
   await expect(page.getByTestId(IDS.mine)).toHaveText('Ship it');
+});
+
+test('WordCard_WhenTheHubOpensADraftRound_ShouldSendForThatRoundAndCloseWithIt', async ({
+  mount,
+  page,
+}) => {
+  const guest = liveOn('word-cloud');
+  const hub = await stubDeckHub(page, { audience: { state: guest.state } });
+  await stubApi(page, { '/api/join/482913': { json: guest } });
+  const draft: GuestResponseView = {
+    phase: 'draft',
+    number: 1,
+    revision: 0,
+    revealed: true,
+    kind: 'word-cloud',
+    question: QUESTION,
+    guests: 0,
+    mineWords: [],
+  };
+  const stub = await stubOpenResponses(page, { slide: 3, view: draft });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+  await expect(page.getByTestId(IDS.question)).toHaveText(QUESTION);
+  await expect(page.getByTestId(IDS.submit)).toBeDisabled();
+
+  const open: WordCloudEvent = { ...ROUND, type: 'wordCloud', slide: 3, guests: 0, words: [] };
+  hub.pushWordCloud({ ...open, revision: 1 });
+  await expect(page.getByTestId(IDS.submit)).toBeEnabled();
+  await page.getByTestId(IDS.input).first().fill('Calm');
+  await page.getByTestId(IDS.submit).click();
+  await expect(page.getByTestId(IDS.mineEntry)).toHaveText(['Calm']);
+  expect(stub.sends).toEqual([{ round: 'round_1', revision: 1, words: ['Calm'] }]);
+
+  hub.pushWordCloud({ ...open, phase: 'closed', revision: 2 });
+  await expect(page.getByTestId(IDS.submit)).toBeDisabled();
+  await expect(page.getByTestId(IDS.mineEntry)).toHaveText(['Calm']);
+});
+
+test('OpenAnswerCard_WhenTheHubStartsANewRound_ShouldClearTheAnswerAndSendForTheNewRound', async ({
+  mount,
+  page,
+}) => {
+  const guest = liveOn('open-text');
+  const hub = await stubDeckHub(page, { audience: { state: guest.state } });
+  await stubApi(page, { '/api/join/482913': { json: guest } });
+  const stub = await stubOpenResponses(page, { slide: 3, view: textView('Ship it') });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+  await expect(page.getByTestId(IDS.mine)).toHaveText('Ship it');
+
+  hub.pushOpenText({
+    ...ROUND,
+    type: 'openText',
+    slide: 3,
+    round: 'round_2',
+    number: 2,
+    revision: 0,
+    guests: 0,
+    answers: [],
+  });
+  await expect(page.getByTestId(IDS.mine)).toHaveCount(0);
+  await page.getByTestId(IDS.input).fill('Again');
+  await page.getByTestId(IDS.submit).click();
+
+  await expect(page.getByTestId(IDS.mine)).toHaveText('Again');
+  expect(stub.sends).toEqual([{ round: 'round_2', revision: 0, text: 'Again' }]);
 });
