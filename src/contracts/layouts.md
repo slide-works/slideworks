@@ -16,6 +16,7 @@ Error paths name the failing field with 0-based indexes, such as `practice.do[2]
 - [`big-number`](layouts/big-number.md)
 - [`quote`](layouts/quote.md)
 - [`image`](layouts/image.md)
+- [`video`](layouts/video.md)
 - [`table`](layouts/table.md)
 - [`chart`](layouts/chart.md)
 - [`gantt`](layouts/gantt.md)

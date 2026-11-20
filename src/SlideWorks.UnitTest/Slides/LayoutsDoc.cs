@@ -142,6 +142,7 @@ public static class LayoutsDoc
         ListSlot list => ($"list of {Describe(list.Item).Kind}", Join($"{list.MinItems}–{list.MaxItems} items", Describe(list.Item).Limits)),
         IconSlot => ("icon", $"one of the {IconCatalogue.Names.Count} icon names in icons.json (list_blocks returns them)"),
         LinkSlot link => ("link", $"http or https address, printable ASCII, no user info, never trimmed; up to {link.MaxLength} chars"),
+        YouTubeSlot => ("youtube", $"one YouTube video (watch, youtu.be, embed, shorts or live), up to {LinkSlot.MAX_LENGTH} chars"),
         EmphasisSlot emphasis => ("emphasis", EmphasisLimits(emphasis)),
         _ => (type.Kind, ""),
     };

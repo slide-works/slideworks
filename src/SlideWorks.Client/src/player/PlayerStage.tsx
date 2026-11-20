@@ -27,8 +27,14 @@ export function PlayerStage({ deck, slideDeck, position, onNext, onPrevious }: P
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const onClick = (event: MouseEvent<HTMLDivElement>) => {
-    // A click on a link opens its tab and leaves the slide where it is.
-    if (event.target instanceof Element && event.target.closest('a[href]') !== null) return;
+    // A click on a link opens its tab, and a click on an embedded video plays it.
+    // Either one leaves the slide where it is.
+    if (
+      event.target instanceof Element &&
+      event.target.closest('a[href], [data-video-player]') !== null
+    ) {
+      return;
+    }
     const box = event.currentTarget.getBoundingClientRect();
     const x = (event.clientX - box.left) / box.width;
     if (x < 1 / 3) onPrevious();
