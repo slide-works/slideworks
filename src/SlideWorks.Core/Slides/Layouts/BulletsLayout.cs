@@ -10,6 +10,7 @@ public static class BulletsLayout
         Opt("kicker", new TextSlot(KICKER)),
         Req("headline", new TextSlot(HEADLINE)),
         Emphasis("headline"),
+        Opt("style", new EnumSlot("markers", "numbered") { Default = "markers" }, "'markers' (the default) draws a square before each point; 'numbered' draws 1, 2, 3"),
         Req("items", new ListSlot(Point(200, 80, 160), 1, 8), "Each point is a string, or {icon?, lead?, text} for an icon and a bold lead-in"),
         Opt("reveal", Reveal(), REVEAL),
         Opt("callout", new BlockSlot(InlineBlocks.Callout)),

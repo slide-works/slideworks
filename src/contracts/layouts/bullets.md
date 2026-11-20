@@ -9,6 +9,7 @@ A headline over 1–8 points, each plain text or an optional icon, bold lead and
 | `kicker` | text | no | up to 60 chars |  |
 | `headline` | text | yes | up to 100 chars |  |
 | `emphasis` | emphasis | no | 1–3 entries, each `text` (up to 60 chars; the phrase must occur exactly once in its target), `tone` and optional `in`; targets `headline` | Phrases of the slide's display text drawn in a tone. Each must occur exactly once in the text it is in |
+| `style` | `markers` or `numbered` | no | default `markers` | 'markers' (the default) draws a square before each point; 'numbered' draws 1, 2, 3 |
 | `items` | list of text or object | yes | 1–8 items; each text up to 200 chars | Each point is a string, or {icon?, lead?, text} for an icon and a bold lead-in |
 | `items[].icon` | icon | no | one of the 48 icon names in icons.json (list_blocks returns them) |  |
 | `items[].lead` | text | no | up to 80 chars |  |

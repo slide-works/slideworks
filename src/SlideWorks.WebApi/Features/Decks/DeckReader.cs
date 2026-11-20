@@ -46,14 +46,17 @@ public class DeckReader(
     }
 
     // Only the owner, or an agent acting for the owner: the slides carry notes and revisions.
-    public async Task<GetDeckResult> GetForOwnerAsync(string deckId)
+    public async Task<object> GetForOwnerAsync(string deckId, bool summary = false)
     {
         if (!await access.CanEditAsync(deckId, actor))
         {
             throw new NotFoundException(NOT_FOUND);
         }
         var deck = await LoadDeckAsync(deckId);
-        return GetDeckResult.From(deck, await LiveSlidesAsync(deckId), await templates.ForDeckAsync(deck, CancellationToken.None), urls.Deck(deck.Id, deck.Slug));
+        var slides = await LiveSlidesAsync(deckId);
+        var template = await templates.ForDeckAsync(deck, CancellationToken.None);
+        var url = urls.Deck(deck.Id, deck.Slug);
+        return summary ? GetDeckSummary.From(deck, slides, template, url) : GetDeckResult.From(deck, slides, template, url);
     }
 
     private async Task<DeckPlayView> PlayAsync(Deck deck, bool isOwner)

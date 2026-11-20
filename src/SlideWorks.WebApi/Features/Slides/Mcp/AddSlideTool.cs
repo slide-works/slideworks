@@ -12,7 +12,7 @@ namespace SlideWorks.WebApi.Features.Slides.Mcp;
 public sealed class AddSlideTool
 {
     [McpServerTool(Name = SlideCommands.ADD_TOOL)]
-    [Description("Add a slide to a deck you own. Pick a layout (list_layouts gives each one's slots) and fill its slots with plain text: no Markdown or HTML. A slide that can't render is refused with an error naming the field, such as \"practice.do[2].text: required\". Returns the slide's number, its steps, its revision, its url and warnings: a layout outside the deck's template is kept and still renders, with a warning, so consider another layout.")]
+    [Description("Add a slide to a deck you own. Pick a layout (list_layouts gives each one's slots) and fill its slots with plain text: no Markdown or HTML. A slide that can't render is refused with an error naming the field, such as \"practice.do[2].text: required\". On a poll slide, poll sets pick, max, correct, results, opens and answers (choice, text or cloud) in the same call. Returns the slide's number, its steps, its revision, its url and warnings: a layout outside the deck's template is kept and still renders, with a warning, so consider another layout.")]
     public Task<CallToolResult> AddSlide(
         SlideCommands commands,
         [Description("The deck's id.")] string deck,
@@ -22,6 +22,7 @@ public sealed class AddSlideTool
         [Description("The 1-based number the new slide takes; later slides move down. Leave it out to add the slide at the end.")] int? position = null,
         [Description("Speaker notes. Viewers never see them. Notes are plain text with two marks: **bold** for cues such as **Say:**, and a line that starts with '- ' for a list item. Nothing else is formatted.")] string? notes = null,
         [Description("true marks the slide as a deep dive: it shows the deep-dive mark, a divider that lists its part's deep dives lists it, and its notes read with a prefix telling the speaker to skip it if short of time. Leave it out for an ordinary slide.")] bool? deep_dive = null,
-        [Description("\"light\" or \"dark\", for a layout whose surface is 'either' (list_layouts says which). Leave it out for the layout's own surface. A surface the layout cannot take is refused.")] JsonElement? surface = null)
-        => McpToolErrors.Run(() => commands.AddAsync(new AddSlideRequest(deck, layout, JsonSerializer.SerializeToElement(slots), part, position, notes, deep_dive, SlideChecks.SurfaceWord(surface))));
+        [Description("\"light\" or \"dark\", for a layout whose surface is 'either' (list_layouts says which). Leave it out for the layout's own surface. A surface the layout cannot take is refused.")] JsonElement? surface = null,
+        [Description("On a poll slide only: {pick?, max?, correct?, results?, opens?, answers?}. answers is \"choice\" (the default), \"text\" or \"cloud\". An open question (text or cloud) has an empty options list. Leave it out and the poll starts as pick one, results live, opens on arrival.")] JsonElement? poll = null)
+        => McpToolErrors.Run(() => commands.AddAsync(new AddSlideRequest(deck, layout, JsonSerializer.SerializeToElement(slots), part, position, notes, deep_dive, SlideChecks.SurfaceWord(surface), poll)));
 }

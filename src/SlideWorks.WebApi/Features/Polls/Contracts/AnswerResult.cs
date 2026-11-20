@@ -10,7 +10,7 @@ public abstract record AnswerResult
     }
 
     // The answer committed: its picks and its new revision.
-    public sealed record Accepted(IReadOnlyList<int> Picks, int Revision) : AnswerResult;
+    public sealed record Accepted(IReadOnlyList<int> Picks, int Revision, string? Text = null) : AnswerResult;
 
     // Nothing was written: the round isn't the open one, the revision doesn't match, or the poll isn't open.
     public sealed record Stale(GuestPollView Current) : AnswerResult;

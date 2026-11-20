@@ -141,9 +141,10 @@ public class SlideValidatorTests
     }
 
     [Test]
-    public void Validate_WhenPollHasOneOption_ShouldRefuseIt()
+    public void Validate_WhenPollHasNoOptions_ShouldAcceptIt()
     {
-        Validate("poll", """{ "question": "Pick one", "options": ["Only"] }""").Error.ShouldBe("poll.options: at least 2 items");
+        // An open question has none. A choice poll's 2-option rule is the poll settings check, not the layout.
+        Validate("poll", """{ "question": "One word for the quarter", "options": [] }""").Error.ShouldBeEmpty();
     }
 
     [Test]

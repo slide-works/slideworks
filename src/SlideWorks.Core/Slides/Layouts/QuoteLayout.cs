@@ -34,6 +34,7 @@ public static class QuoteLayout
             Req("caption", new TextSlot(STAT_CAPTION_MAX)))),
         Opt("follow_up", new TextSlot(FOLLOW_UP_MAX)),
         Opt("source", new TextSlot(SOURCE_MAX), "Without a 'Source:' prefix"),
+        Opt("image", new ImageSlot(), "A portrait of the speaker, drawn beside the attribution"),
         Opt("reveal", Reveal(), "'one-by-one' shows the stat, then the follow-up line, on steps; 'all' (the default) shows them with the slide"),
         Emphasis("quote", "headline"),
     ], steps: StepPlan.When("stat", 1, "the stat").Then(StepPlan.When("follow_up", 1, "the follow-up line")), rules: Rule);
@@ -62,8 +63,15 @@ public static class QuoteLayout
             statHeight = 58 + 72 + (SlideFit.Lines(Text(value, "caption")!, STAT_CAPTION_WIDTH, 22, widths.Body) * 28.6);
         }
 
+        var portrait = ObjectSlot.IsPresent(slots, "image", out _);
         var whoWidth = stat is null ? TEXT_WIDTH : TEXT_WIDTH_WITH_STAT;
-        fixedHeight += 34 + Math.Max(SlideFit.Lines(who, whoWidth, 28, widths.Body) * 36.4, statHeight);
+        if (portrait)
+        {
+            whoWidth -= 180;
+        }
+
+        var whoHeight = SlideFit.Lines(who, whoWidth, 28, widths.Body) * 36.4;
+        fixedHeight += 34 + Math.Max(whoHeight, Math.Max(statHeight, portrait ? 160 : 0));
         if (Text(slots, "follow_up") is { } followUp)
         {
             fixedHeight += 69 + (SlideFit.Lines(followUp, TEXT_WIDTH, 32, widths.Body) * 43.2);

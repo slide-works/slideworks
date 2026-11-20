@@ -14,6 +14,7 @@ export const SLOTS: BulletsSlots = {
     { lead: 'Merges get scary.', text: 'Long branches collide.' },
     { icon: 'bolt', text: 'Small slices ship fast.' },
   ],
+  style: 'markers',
   reveal: 'one-by-one',
   callout: { tone: 'info', text: 'Nobody can say no to a slice.', reveal: 'last' },
   emphasis: [{ text: 'big batch', tone: 'negative' }],

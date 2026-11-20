@@ -18,6 +18,9 @@ export type PollScreen = {
   // How many picks a guest makes ("Poll · Pick up to 2"), and the note that percentages can add up to more than 100.
   pick: PollPick;
   max: number | null;
+  answers?: 'choice' | 'text' | 'cloud';
+  replies?: string[] | null;
+  words?: { text: string; count: number }[] | null;
 };
 
 // What a provider gives: the live screen of one poll slide, the one the presenter is on, by its 1-based number. Every
@@ -59,6 +62,9 @@ export function pollScreenOf(control: PollControlView): PollScreenSource {
       correct: control.answerShown ? control.settings.correct : null,
       pick: control.settings.pick,
       max: control.settings.max,
+      answers: control.settings.answers,
+      replies: control.roomSeesCounts ? (control.replies ?? null) : null,
+      words: control.roomSeesCounts ? (control.words ?? null) : null,
     },
   };
 }

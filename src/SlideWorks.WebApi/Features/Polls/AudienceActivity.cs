@@ -67,9 +67,9 @@ public class AudienceActivity(AppDbContext db, IAudienceSessions sessions, IPres
 
     private static PollActivity Draft(int number, string question, IReadOnlyList<string> options, PollSettings settings)
         => new(null, number, PollPhase.Draft, question, options, settings.Pick, settings.Max, settings.Results,
-            PollVisibility.RoomSees(settings.Results, revealed: false, closed: false), null);
+            PollVisibility.RoomSees(settings.Results, revealed: false, closed: false), null, settings.Answers);
 
     private static PollActivity Activity(PollRound round, PollPhase phase, string question, IReadOnlyList<string> options, PollSettings settings, int? correct)
         => new(round.Id.ToString(), round.Number, phase, question, options, settings.Pick, settings.Max, settings.Results,
-            PollVisibility.RoomSees(settings.Results, round.RevealedAt != null, closed: phase == PollPhase.Closed), correct);
+            PollVisibility.RoomSees(settings.Results, round.RevealedAt != null, closed: phase == PollPhase.Closed), correct, settings.Answers);
 }

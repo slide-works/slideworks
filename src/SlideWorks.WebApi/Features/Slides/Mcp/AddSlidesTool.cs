@@ -12,7 +12,7 @@ namespace SlideWorks.WebApi.Features.Slides.Mcp;
 public sealed class AddSlidesTool
 {
     [McpServerTool(Name = SlideCommands.ADD_MANY_TOOL)]
-    [Description("Add several slides to a deck you own, in the order given. Each entry is a layout, its slots, and optionally part, notes, deep_dive and surface, as add_slide takes them. A slide that cannot render is reported and left out: it does not move the others and it does not take a number. The slides that fit are stored together at one position. Returns each slide's fit, and for each stored slide its number, steps, revision, url and warnings.")]
+    [Description("Add several slides to a deck you own, in the order given. Each entry is a layout, its slots, and optionally part, notes, deep_dive, surface and poll, as add_slide takes them. A poll entry can carry its settings, including answers text or cloud, so the poll is complete when this returns. A slide that cannot render is reported and left out: it does not move the others and it does not take a number. The slides that fit are stored together at one position. Returns each slide's fit, and for each stored slide its number, steps, revision, url and warnings.")]
     public Task<CallToolResult> AddSlides(
         SlideCommands commands,
         [Description("The deck's id.")] string deck,
@@ -70,7 +70,10 @@ public sealed class AddSlidesTool
             string? surface = item.TryGetProperty("surface", out var surfaceValue) && surfaceValue.ValueKind == JsonValueKind.String
                 ? surfaceValue.GetString()
                 : null;
-            list.Add(new SlideDraft(layout, slots, part, notes, deepDive, surface));
+            JsonElement? poll = item.TryGetProperty("poll", out var pollValue) && pollValue.ValueKind != JsonValueKind.Null
+                ? pollValue
+                : null;
+            list.Add(new SlideDraft(layout, slots, part, notes, deepDive, surface, poll));
         }
 
         return list;

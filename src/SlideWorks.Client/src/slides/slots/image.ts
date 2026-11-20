@@ -13,6 +13,8 @@ export type ImageSlots = {
   position?: 'below' | 'right';
   points?: BulletItem[];
   caption?: string;
+  // An https address. A YouTube or Vimeo address plays on the slide; any other opens from the image.
+  link?: string;
   reveal?: Reveal;
   callout?: CalloutBlock;
   emphasis?: Emphasis[];
@@ -28,6 +30,7 @@ export const KEYS = [
   'position',
   'points',
   'caption',
+  'link',
   'reveal',
   'callout',
   'emphasis',

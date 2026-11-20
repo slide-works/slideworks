@@ -9,4 +9,5 @@ public sealed record SlideDraft(
     int? Part,
     string? Notes,
     bool? DeepDive,
-    string? Surface);
+    string? Surface,
+    JsonElement? Poll = null);

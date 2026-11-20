@@ -17,6 +17,7 @@ public static class CardsLayout
     private const double GRID_GAP = 28;
 
     private const double ICON_ROW = IconSlot.BLOCK_HEIGHT;
+    private const double IMAGE_ROW = 160;
     private const double BADGE_ROW = 48;
     private const double BADGE_TWO_LINES_ROW = 68;
     private const double PIN_ROW = 44;
@@ -29,6 +30,7 @@ public static class CardsLayout
         Emphasis("headline"),
         Req("cards", new ListSlot(Obj(
             Opt("icon", new IconSlot()),
+            Opt("image", new ImageSlot(), "A picture in place of the icon"),
             Opt("badge", new BlockSlot(InlineBlocks.Badge)),
             Req("title", new TextSlot(70)),
             Req("text", new TextSlot(140)),
@@ -86,9 +88,19 @@ public static class CardsLayout
             (true, false) => (56.0, 34, 39.1, 12.0, 24, 33.6),
             (true, true) => (64.0, 44, 49.3, 12.0, 28, 39.2),
         };
+        double mark = 0;
+        if (ObjectSlot.IsPresent(card, "image", out _))
+        {
+            mark = IMAGE_ROW;
+        }
+        else if (ObjectSlot.IsPresent(card, "icon", out _))
+        {
+            mark = ICON_ROW;
+        }
+
         var height = padding
             + BadgeHeight(card, width)
-            + (ObjectSlot.IsPresent(card, "icon", out _) ? ICON_ROW : 0)
+            + mark
             + (SlideFit.Lines(Text(card, "title"), width, titleSize, widths.Head) * titleLine)
             + titleGap
             + (SlideFit.Lines(Text(card, "text"), width, textSize, widths.Body) * textLine)

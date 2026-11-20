@@ -36,18 +36,18 @@ public sealed class FakeRoundAnswerWriter : IRoundAnswerWriter
         }
     }
 
-    public Task<RoundWrite> ReplaceAsync(PollRoundRef round, string guestId, IReadOnlyList<int> picks, int expectedRevision)
+    public Task<RoundWrite> ReplaceAsync(PollRoundRef round, string guestId, IReadOnlyList<int> picks, int expectedRevision, string? text = null)
     {
-        var call = new RoundAnswerCall(round, guestId, [.. picks], expectedRevision);
+        var call = new RoundAnswerCall(round, guestId, [.. picks], expectedRevision, text);
         Func<RoundAnswerCall, RoundWrite>? answer;
         lock (_gate)
         {
             _calls.Add(call);
             answer = _answers.GetValueOrDefault(round.RoundId);
         }
-        return Task.FromResult(answer is null ? new RoundWrite.Written([.. picks.Order()], expectedRevision + 1) : answer(call));
+        return Task.FromResult(answer is null ? new RoundWrite.Written([.. picks.Order()], expectedRevision + 1, text) : answer(call));
     }
 
-    // One call to ReplaceAsync, as it was made.
-    public sealed record RoundAnswerCall(PollRoundRef Round, string GuestId, IReadOnlyList<int> Picks, int ExpectedRevision);
+    // One call to ReplaceAsync, as it was made. Text is the free answer, or null on a choice poll.
+    public sealed record RoundAnswerCall(PollRoundRef Round, string GuestId, IReadOnlyList<int> Picks, int ExpectedRevision, string? Text = null);
 }

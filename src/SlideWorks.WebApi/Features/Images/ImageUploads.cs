@@ -120,6 +120,47 @@ public class ImageUploads(
         return (image, token);
     }
 
+    // A completed image copied onto another deck, already uploaded. Returns the new image's id. The file is in place
+    // before the row is added; the caller deletes it with DeleteFile when the surrounding write does not commit.
+    public string CopyCompleted(DeckImage source, string targetDeckId)
+    {
+        if (source.UploadedAt is null)
+        {
+            throw new BadRequestException("like: that deck's logo has not finished uploading");
+        }
+
+        var from = store.PathFor(source.DeckId, source.Id);
+        if (!File.Exists(from))
+        {
+            throw new BadRequestException("like: that deck's logo file is missing");
+        }
+
+        var id = ID_PREFIX + RandomNumberGenerator.GetString(ALPHABET, ID_RANDOM_LENGTH);
+        var to = store.PathFor(targetDeckId, id);
+        Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+        File.Copy(from, to, overwrite: false);
+        db.DeckImages.Add(new DeckImage
+        {
+            Id = id,
+            DeckId = targetDeckId,
+            Name = source.Name,
+            ContentType = source.ContentType,
+            SizeBytes = new FileInfo(from).Length,
+            StoragePath = ImageStore.RelativePathFor(targetDeckId, id),
+            UploadedAt = clock.GetUtcNow(),
+        });
+        return id;
+    }
+
+    public void DeleteFile(string deckId, string imageId)
+    {
+        var path = store.PathFor(deckId, imageId);
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+    }
+
     // 404 for a token that is unknown, used or expired, or whose deck's owner is no longer approved; 413 over 10 MB; 400 when the bytes aren't the declared type. The
     // file is written to a temp file, checked, moved into place, and only then is UploadedAt set; a failure on the way
     // leaves no file and UploadedAt null.

@@ -11,6 +11,9 @@ Surface: either. Steps: one per `cards` item when `reveal` is `one-by-one`.
 | `emphasis` | emphasis | no | 1–3 entries, each `text` (up to 60 chars; the phrase must occur exactly once in its target), `tone` and optional `in`; targets `headline` | Phrases of the slide's display text drawn in a tone. Each must occur exactly once in the text it is in |
 | `cards` | list of object | yes | 1–4 items |  |
 | `cards[].icon` | icon | no | one of the 48 icon names in icons.json (list_blocks returns them) |  |
+| `cards[].image` | image `{image, alt}` | no |  | A picture in place of the icon |
+| `cards[].image.image` | text | yes | up to 64 chars | The image id that upload_image returned |
+| `cards[].image.alt` | text | yes | up to 500 chars | What the image shows, for screen readers |
 | `cards[].badge` | block `badge` | no | up to 36 chars |  |
 | `cards[].title` | text | yes | up to 70 chars |  |
 | `cards[].text` | text | yes | up to 140 chars |  |

@@ -12,7 +12,7 @@ public static class AnswerResults
 
     public static IActionResult ToActionResult(AnswerResult result) => result switch
     {
-        AnswerResult.Accepted accepted => new OkObjectResult(new MyAnswer(accepted.Picks, accepted.Revision)),
+        AnswerResult.Accepted accepted => new OkObjectResult(new MyAnswer(accepted.Picks, accepted.Revision, accepted.Text)),
         AnswerResult.Stale stale => new ConflictObjectResult(new StaleAnswer(stale.Current)),
         AnswerResult.Invalid invalid => new BadRequestObjectResult(new ErrorResponse(invalid.Message)),
         AnswerResult.Limited => new ObjectResult(new ErrorResponse(TOO_MANY_ANSWERS)) { StatusCode = StatusCodes.Status429TooManyRequests },
