@@ -63,7 +63,10 @@ public class Sw8OpenTextJourneyTests : AcceptanceTest
         await Expect(talk.Panel.Guests).ToHaveTextAsync("1 guest submitted", new() { Timeout = PUSH_TIMEOUT });
         await Expect(talk.Panel.Entries).ToHaveCountAsync(1);
         await Expect(talk.Panel.Entry(1)).ToHaveTextAsync(new Regex($"^{Regex.Escape(ANSWER)}\\s*Hide$"));
-        await Expect(second.Card.Room).ToHaveTextAsync([ANSWER], new() { Timeout = PUSH_TIMEOUT });
+        foreach (var phone in new[] { first, second })
+        {
+            await Expect(phone.Card.Room).ToHaveTextAsync([ANSWER], new() { Timeout = PUSH_TIMEOUT });
+        }
 
         // Each surface's own connection gets the frame for the hide before its absence is checked; the frames are
         // watched from before the click, so an earlier frame without the answer cannot stand in for it.
