@@ -48,7 +48,7 @@ public class LayoutCatalogueTests
             LinksLayout.Definition, StackLayout.Definition, BarsLayout.Definition, FlowLayout.Definition,
             LevelsLayout.Definition, ColumnsListLayout.Definition, TimelineLayout.Definition, LoopLayout.Definition,
             CloseLayout.Definition, JoinLayout.Definition, PollLayout.Definition,
-            QaLayout.Definition,
+            QaLayout.Definition, WordCloudLayout.Definition, OpenTextLayout.Definition,
         ];
 
         LayoutCatalogue.Layouts.Count.ShouldBe(definitions.Length);
@@ -61,7 +61,7 @@ public class LayoutCatalogueTests
         [
             "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote", "image",
             "table", "chart", "gantt", "numbered-cards", "rules", "cards", "statement", "links", "stack", "bars",
-            "flow", "levels", "columns-list", "timeline", "loop", "close", "join", "poll", "qa",
+            "flow", "levels", "columns-list", "timeline", "loop", "close", "join", "poll", "qa", "word-cloud", "open-text",
         ]);
     }
 

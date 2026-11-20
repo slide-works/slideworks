@@ -35,5 +35,7 @@ Error paths name the failing field with 0-based indexes, such as `practice.do[2]
 - [`join`](layouts/join.md)
 - [`poll`](layouts/poll.md)
 - [`qa`](layouts/qa.md)
+- [`word-cloud`](layouts/word-cloud.md)
+- [`open-text`](layouts/open-text.md)
 
 Inline blocks: [`_blocks`](layouts/_blocks.md)
