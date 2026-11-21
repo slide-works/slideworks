@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.WebApi.Data;
@@ -13,9 +14,27 @@ namespace SlideWorks.WebApi.Features.Checks;
 // Editors only; anyone else gets "Deck not found". A slide that fails to render is a renderFailed finding and the run goes on;
 // no renderer, or a render that times out, stops the measuring and keeps what was collected.
 [RegisterPerRequest]
-public class DeckChecks(AppDbContext db, ICurrentActor actor, IDeckAccess access, IRenderEngine engine, IStoredSlideChecks stored)
+public class DeckChecks(AppDbContext db, ICurrentActor actor, IDeckAccess access, IRenderEngine engine, IStoredSlideChecks stored, ILogger<DeckChecks> logger)
 {
     public async Task<DeckChecksResult> CheckAsync(string deckId, IReadOnlyList<int>? slides, bool measure)
+    {
+        var result = await RunAsync(deckId, slides, measure);
+
+        // One line per call is the Measure (problems per deck, first call against last): counts only, never a token.
+        var rules = string.Join(",", result.Findings.GroupBy(f => f.Rule).Select(g => $"{JsonNamingPolicy.CamelCase.ConvertName(g.Key.ToString())}={g.Count()}"));
+        logger.LogInformation(
+            "Checked deck {DeckId}: {Slides} slides, {Errors} errors, {Warnings} warnings, {Notes} notes, measured {Measured}; by rule {Rules}",
+            deckId,
+            result.Slides.Count,
+            result.Findings.Count(f => f.Severity == FindingSeverity.Error),
+            result.Findings.Count(f => f.Severity == FindingSeverity.Warning),
+            result.Findings.Count(f => f.Severity == FindingSeverity.Note),
+            result.Measured,
+            rules);
+        return result;
+    }
+
+    private async Task<DeckChecksResult> RunAsync(string deckId, IReadOnlyList<int>? slides, bool measure)
     {
         if (!await access.CanEditAsync(deckId, actor))
         {

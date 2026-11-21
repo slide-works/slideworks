@@ -113,8 +113,8 @@ colour or a font.
 
 ## Slide previews and share cards
 
-- **Previews are rendered by the agent.** `preview_deck` returns one render URL per slide, the player URL, the share
-  card URL and instructions. The agent screenshots each URL at 1920×1080 in its own headless Chromium. The
+- **Previews are rendered by the agent.** `preview_deck` returns one render URL template (with `{slide}` in it), the player URL, the share
+  card URL, the rendered images, the findings for those slides and instructions. `check_deck` returns the same findings without the images. The agent screenshots each URL at 1920×1080 in its own headless Chromium. The
   instructions pin Playwright 1.62.0 and install only what's needed (`npx -y playwright@1.62.0 install --only-shell
   chromium`). The server renders no slides.
 - **The share card is rendered by the server.** `GET /api/cards/{id}.png` is anonymous and returns a 1200×630 PNG for

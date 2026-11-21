@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.Core.Rendering;
 using SlideWorks.WebApi.Features.Checks;
+using SlideWorks.WebApi.Infrastructure.Rendering;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Support;
@@ -41,6 +42,57 @@ public class PreviewDeckToolTests : ApiTestFixture
         isError.ShouldBeFalse(json.GetRawText());
         json.GetProperty("findings").EnumerateArray().Select(f => $"{f.GetProperty("slide").GetInt32()} {f.GetProperty("rule").GetString()} {f.GetProperty("source").GetString()}")
             .ShouldBe(["1 overflow measured", "1 fit stored", "2 textOnImage measured"]);
+    }
+
+    [Test]
+    public async Task PreviewDeck_WhenSlidesAreListed_ShouldReturnFindingsForThoseOnly()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await ThreeSlideDeckAsync(agent);
+        Factory.Services.GetRequiredService<FakeStoredSlideChecks>().FindingsFor(1, new SlideFinding(1, FindingRule.Fit, FindingSeverity.Error, FindingSource.Stored, "items", "Shorten it."));
+        Factory.Services.GetRequiredService<FakeStoredSlideChecks>().FindingsFor(3, new SlideFinding(3, FindingRule.GenericAlt, FindingSeverity.Warning, FindingSource.Stored, "image", "Describe it."));
+        Factory.Services.GetRequiredService<FakeRenderEngine>().FindingsFor(3, new SlideFinding(3, FindingRule.Overflow, FindingSeverity.Error, FindingSource.Measured, "text", "Cut it."));
+
+        var (isError, json) = await agent.CallToolAsync("preview_deck", new { deck, slides = new[] { 1, 2 } });
+
+        isError.ShouldBeFalse(json.GetRawText());
+        json.GetProperty("findings").EnumerateArray().Select(f => f.GetProperty("slide").GetInt32()).ShouldBe([1]);
+    }
+
+    [Test]
+    public async Task PreviewDeck_WhenRenderingStopsAtSlide2_ShouldKeepStoredFindingsForAllAndMeasuredForSlide1Only()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await ThreeSlideDeckAsync(agent);
+        var stored = Factory.Services.GetRequiredService<FakeStoredSlideChecks>();
+        var engine = Factory.Services.GetRequiredService<FakeRenderEngine>();
+        stored.FindingsFor(1, new SlideFinding(1, FindingRule.Fit, FindingSeverity.Error, FindingSource.Stored, "items", "Shorten it."));
+        stored.FindingsFor(3, new SlideFinding(3, FindingRule.GenericAlt, FindingSeverity.Warning, FindingSource.Stored, "image", "Describe it."));
+        engine.FindingsFor(1, new SlideFinding(1, FindingRule.Overflow, FindingSeverity.Error, FindingSource.Measured, "text", "Cut it."));
+        engine.FindingsFor(2, new SlideFinding(2, FindingRule.LowContrast, FindingSeverity.Warning, FindingSource.Measured, "text", "Darken it."));
+        engine.FindingsFor(3, new SlideFinding(3, FindingRule.SmallText, FindingSeverity.Warning, FindingSource.Measured, "text", "Enlarge it."));
+        engine.FailSlide(2, new RendererUnavailableException("Card rendering isn't available"));
+
+        var (isError, json) = await agent.CallToolAsync("preview_deck", new { deck });
+
+        isError.ShouldBeFalse(json.GetRawText());
+        json.GetProperty("images_included").GetInt32().ShouldBe(1);
+        json.GetProperty("findings").EnumerateArray().Select(f => $"{f.GetProperty("slide").GetInt32()} {f.GetProperty("rule").GetString()} {f.GetProperty("source").GetString()}")
+            .ShouldBe(["1 overflow measured", "1 fit stored", "3 genericAlt stored"]);
+    }
+
+    [Test]
+    public async Task PreviewDeck_WhenTheInstructionsAreRead_ShouldTellTheAgentToFixFindings()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await ThreeSlideDeckAsync(agent);
+
+        var (_, json) = await agent.CallToolAsync("preview_deck", new { deck });
+
+        var instructions = json.GetProperty("instructions").GetString()!;
+        instructions.ShouldContain("read `findings`: fix every error and warning, and preview again");
+        instructions.ShouldContain("Notes are for your eyes");
+        instructions.ShouldContain("6. The URL expires");
     }
 
     [Test]

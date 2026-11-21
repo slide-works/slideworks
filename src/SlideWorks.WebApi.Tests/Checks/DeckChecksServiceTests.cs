@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Checks;
@@ -31,7 +32,7 @@ public class DeckChecksServiceTests : ApiTestFixture
         // The tool always measures, so the service is reached directly; the access stub ignores the actor.
         await using var scope = Factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var result = await new DeckChecks(db, null!, new AllowEdit(), engine, stored).CheckAsync(deck, null, false);
+        var result = await new DeckChecks(db, null!, new AllowEdit(), engine, stored, NullLogger<DeckChecks>.Instance).CheckAsync(deck, null, false);
 
         result.Measured.ShouldBeFalse();
         result.Error.ShouldBeNull();
