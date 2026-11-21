@@ -315,7 +315,7 @@ count (not the `served` line) is the proof that the real publisher ran.
 | 2026-11-21 10:45 | 6f9df26 | 1,000 | 30 | 6.2 | 88 | 1,055 | 2,598 | 667 | 0 of 1,000 (0 dropped) | 7.95 / 8.02 | **fail** (write p95; started straight after run 1) |
 | 2026-11-21 10:46 | 6f9df26 | 1,000 | 30 | 2.5 | 16 | 310 | 545 | 505 | 0 of 1,000 (0 dropped) | 5.33 / 4.14 | pass |
 | 2026-11-21 10:48 | 6f9df26 | 1,000 | 30 | 2.5 | 15 | 404 | 567 | 517 | 0 of 1,000 (0 dropped) | 1.52 / 2.51 | pass |
-| 2026-11-21 10:51 | 6f9df26 | 1,000 | 30 | 2.5 | 14 | 202 | 360 | 499 | 0 of 1,000 (0 dropped) | 1.22 / n/r | pass |
+| 2026-11-21 10:51 | 6f9df26 | 1,000 | 30 | 2.7 | 14 | 202 | 360 | 499 | 0 of 1,000 (0 dropped) | 1.22 / n/r | pass |
 
 Smoke run before these (same app, 50 guests, 10 s window): write p95 31 ms, tally p95 487 ms, 0 errors, pass.
 
