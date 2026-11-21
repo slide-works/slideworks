@@ -19,31 +19,18 @@ public class AgentPreviewTests : AcceptanceTest
 
         var slides = preview.GetProperty("slides").EnumerateArray().Select(s => s.GetInt32()).ToList();
         slides.ShouldBe([1, 2]);
-        var template = preview.GetProperty("render_url").GetString()!;
-        template.ShouldContain("{slide}");
-        var viewport = preview.GetProperty("viewport");
-        var width = viewport.GetProperty("width").GetInt32();
-        var height = viewport.GetProperty("height").GetInt32();
-        var waitFor = preview.GetProperty("wait_for").GetString()!;
-        var instructions = preview.GetProperty("instructions").GetString()!;
-        await using var context = await Browser.NewContextAsync(new() { ViewportSize = new() { Width = width, Height = height } });
-        var pngs = new List<byte[]>();
-        instructions.ShouldContain($"\"{template.Replace("{slide}", "$n")}\"");
-        foreach (var slide in slides)
+        preview.GetProperty("render_url").GetString()!.ShouldContain("{slide}");
+        var shots = await AgentSeed.ScreenshotPreviewAsync(Browser, preview);
+
+        foreach (var shot in shots.Values)
         {
-            var url = template.Replace("{slide}", slide.ToString());
-            var page = await context.NewPageAsync();
-            await page.GotoAsync(url);
-            await page.WaitForSelectorAsync(waitFor);
-            (await page.GetByTestId("render-slide").GetAttributeAsync("data-error")).ShouldBeNull();
-            new Uri(page.Url).Fragment.ShouldBeEmpty();
-            pngs.Add(await page.ScreenshotAsync());
+            new Uri(shot.Url).Fragment.ShouldBeEmpty();
         }
 
-        foreach (var png in pngs)
+        foreach (var png in shots.Values.Select(shot => shot.Png))
         {
             AgentSeed.PngSize(png).ShouldBe((1920, 1080));
         }
-        pngs[0].SequenceEqual(pngs[1]).ShouldBeFalse("The two slides rendered the same PNG.");
+        shots[1].Png.SequenceEqual(shots[2].Png).ShouldBeFalse("The two slides rendered the same PNG.");
     }
 }
