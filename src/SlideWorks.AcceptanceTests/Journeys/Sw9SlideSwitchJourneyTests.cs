@@ -128,7 +128,9 @@ public class Sw9SlideSwitchJourneyTests : AcceptanceTest
         await Expect(talk.Presenter.Live.GoLive).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
         await talk.Presenter.Live.GoLive.ClickAsync();
         await Expect(talk.Presenter.Live.End).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
-        var newJoinUrl = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/live", "joinUrl");
+        var newJoinUrlRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/live", "joinUrl");
+        newJoinUrlRead.Status.ShouldBe(200, newJoinUrlRead.Body);
+        var newJoinUrl = newJoinUrlRead.Value.ShouldNotBeNull();
 
         await Expect(talk.Panel.EmptyOpen).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
         await Expect(talk.Panel.Row(1)).ToHaveCountAsync(0);
@@ -177,11 +179,15 @@ public class Sw9SlideSwitchJourneyTests : AcceptanceTest
         await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
         await presenter.Live.GoLive.ClickAsync();
         await Expect(presenter.Live.End).ToBeVisibleAsync();
-        var joinUrl = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/live", "joinUrl");
+        var joinUrlRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/live", "joinUrl");
+        joinUrlRead.Status.ShouldBe(200, joinUrlRead.Body);
+        var joinUrl = joinUrlRead.Value.ShouldNotBeNull();
 
         var audienceTab = await Context.NewPageAsync();
         var audience = new PlayerPage(audienceTab);
-        await audienceTab.GotoAsync(await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/presenter", "audienceUrl"));
+        var audienceRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/presenter", "audienceUrl");
+        audienceRead.Status.ShouldBe(200, audienceRead.Body);
+        await audienceTab.GotoAsync(audienceRead.Value.ShouldNotBeNull());
         await Expect(audience.AudienceMode).ToBeVisibleAsync();
         await Expect(audience.Layer(1)).ToHaveAttributeAsync("data-active", "true");
         await Expect(presenter.AudienceChips).ToHaveCountAsync(1);

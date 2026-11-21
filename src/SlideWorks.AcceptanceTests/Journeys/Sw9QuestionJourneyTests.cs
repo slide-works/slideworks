@@ -197,11 +197,20 @@ public class Sw9QuestionJourneyTests : AcceptanceTest
             await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deckId, ["layout"] = "qa", ["slots"] = new { } });
         }
 
-        var (presenter, joinUrl) = await PollJourney.GoLiveAsync(Page, deckId, SLIDES);
+        var presenter = await PollJourney.OpenPresenterAsync(Page, deckId);
+        await Expect(presenter.Connecting).ToHaveCountAsync(0);
+        await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
+        await presenter.Live.GoLive.ClickAsync();
+        await Expect(presenter.Live.End).ToBeVisibleAsync();
+        var joinRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/live", "joinUrl");
+        joinRead.Status.ShouldBe(200, joinRead.Body);
+        var joinUrl = joinRead.Value.ShouldNotBeNull();
 
         var audienceTab = await Context.NewPageAsync();
         var audience = new PlayerPage(audienceTab);
-        await audienceTab.GotoAsync(await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/presenter", "audienceUrl"));
+        var audienceRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/presenter", "audienceUrl");
+        audienceRead.Status.ShouldBe(200, audienceRead.Body);
+        await audienceTab.GotoAsync(audienceRead.Value.ShouldNotBeNull());
         await Expect(audience.AudienceMode).ToBeVisibleAsync();
         await Expect(audience.Layer(1)).ToHaveAttributeAsync("data-active", "true");
         await Expect(presenter.AudienceChips).ToHaveCountAsync(1);
