@@ -9,7 +9,8 @@ Run inside a worktree. Loads the host env, prints the scratch dir, runs
 'pnpm install --frozen-lockfile' in src/SlideWorks.Client when node_modules is missing
 or older than pnpm-lock.yaml, runs 'dotnet tool restore', then builds the solution.
 --client-bundle also runs 'pnpm run build' (the acceptance tests serve that bundle).
-Safe to run twice: the second run skips the install."
+Steps time out after AGENT_INSTALL_TIMEOUT (600 s). Exit 4: a missing tool or a failed
+install or download; 3: a failed build; 124: a timeout. Safe to run twice: the second run skips the install."
 bundle=0
 for arg in "$@"; do
   case "$arg" in
@@ -33,31 +34,33 @@ client="$root/src/SlideWorks.Client"
 scratch="$(agent_scratch)"
 echo "scratch: $scratch"
 
-# in_dir <dir> <command...>: runs a command in a directory.
+# in_dir <dir> <command...>: runs a command in a directory, under AGENT_INSTALL_TIMEOUT (default 600 s).
 # shellcheck disable=SC2329  # called through step
 in_dir() (
   cd "$1"
   shift
-  "$@"
+  timeout -k 10 "${AGENT_INSTALL_TIMEOUT:-600}" "$@"
 )
 
-# step <name> <command...>: runs one command in the repo, output to the log, dies with its exit code.
+# step <name> <exit code on failure> <command...>: runs one command, output to the log.
+# A timeout exits 124; any other failure exits with the given code (4 install or download, 3 build).
 step() {
-  local name="$1" rc=0
-  shift
+  local name="$1" failcode="$2" rc=0
+  shift 2
   echo "== $name" >>"$AGENT_LOG"
   "$@" >>"$AGENT_LOG" 2>&1 || rc=$?
-  [[ $rc -eq 0 ]] || agent_die 1 "$name failed (exit $rc); see the log" reason="$name-failed"
+  [[ $rc -ne 124 && $rc -ne 137 ]] || agent_die 124 "$name timed out; see the log" reason="$name-timed-out"
+  [[ $rc -eq 0 ]] || agent_die "$failcode" "$name failed (exit $rc); see the log" reason="$name-failed"
 }
 
 installed=skipped
 if [[ ! -d "$client/node_modules" || "$client/node_modules" -ot "$client/pnpm-lock.yaml" ]]; then
-  step pnpm-install in_dir "$client" pnpm install --frozen-lockfile
+  step pnpm-install 4 in_dir "$client" pnpm install --frozen-lockfile
   touch "$client/node_modules"
   installed=ran
 fi
 echo "pnpm install: $installed"
-step dotnet-tool-restore in_dir "$root" dotnet tool restore
+step dotnet-tool-restore 4 in_dir "$root" dotnet tool restore
 
 rc=0
 AGENT_BUILD_LOG="$AGENT_LOG" agent_build || rc=$?
@@ -70,6 +73,6 @@ case $rc in
 esac
 
 if [[ $bundle -eq 1 ]]; then
-  step client-bundle in_dir "$client" pnpm run build
+  step client-bundle 3 in_dir "$client" pnpm run build
 fi
 agent_finish 0 "scratch=$scratch"

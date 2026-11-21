@@ -454,6 +454,3 @@ src/SlideWorks.WebApi/wwwroot/
 
 # TypeScript incremental build output
 *.tsbuildinfo
-
-# Client type-check cache
-*.tsbuildinfo

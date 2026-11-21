@@ -21,10 +21,25 @@ agent_start
 [[ $# -eq 0 ]] || agent_die 2 "$usage" reason=too-many-arguments
 agent_require git timeout df
 reviewer_override="${AGENT_REVIEWER_CHECK-}"
+# agent_env (K2) exits through agent_die when dotnet is missing; probe it in a subshell so that
+# becomes a `fail dotnet` line instead of ending the run.
 env_file="${SLIDEWORKS_AGENT_ENV:-$HOME/.config/slideworks/agent.env}"
-if [[ -f "$env_file" ]]; then
-  # shellcheck source=/dev/null
-  source "$env_file"
+dotnet_error="$(
+  agent_die() {
+    echo "$2"
+    exit 1
+  }
+  agent_env 2>&1
+)" || true
+dotnet_ok=0
+if [[ -z "$dotnet_error" ]]; then
+  dotnet_ok=1
+  agent_env
+else
+  if [[ -f "$env_file" ]]; then
+    # shellcheck source=/dev/null
+    source "$env_file"
+  fi
 fi
 # A reviewer check set in the environment wins over the env file.
 [[ -z "$reviewer_override" ]] || AGENT_REVIEWER_CHECK="$reviewer_override"
@@ -42,17 +57,15 @@ report() {
 }
 
 # dotnet 10 SDK
-dotnet_bin="${DOTNET_ROOT:+$DOTNET_ROOT/}dotnet"
-[[ -n "${DOTNET_ROOT:-}" ]] || dotnet_bin="$(command -v dotnet || echo "$HOME/.dotnet/dotnet")"
-if [[ -x "$dotnet_bin" ]]; then
-  sdk="$("$dotnet_bin" --list-sdks 2>>"$AGENT_LOG" | awk '$1 ~ /^10\./ {print $1}' | tail -1)"
-  if [[ -n "$sdk" ]]; then
-    report ok dotnet "SDK $sdk at $dotnet_bin"
-  else
-    report fail dotnet "no 10.x SDK found by $dotnet_bin (set DOTNET_ROOT in $env_file)"
-  fi
+if [[ $dotnet_ok -eq 0 ]]; then
+  report fail dotnet "$dotnet_error"
 else
-  report fail dotnet "dotnet not found (set DOTNET_ROOT in $env_file)"
+  sdk="$(dotnet --list-sdks 2>>"$AGENT_LOG" | awk '$1 ~ /^10\./ {print $1}' | tail -1)"
+  if [[ -n "$sdk" ]]; then
+    report ok dotnet "SDK $sdk at $DOTNET_ROOT"
+  else
+    report fail dotnet "no 10.x SDK in $DOTNET_ROOT"
+  fi
 fi
 
 # node and pnpm
@@ -63,7 +76,7 @@ else
 fi
 want="$(sed -n 's/.*"packageManager": *"pnpm@\([^"]*\)".*/\1/p' "$client/package.json")"
 if command -v pnpm >/dev/null 2>&1; then
-  have="$(cd "$client" && pnpm --version 2>>"$AGENT_LOG" | tail -1)"
+  have="$(cd "$client" && pnpm --version 2>>"$AGENT_LOG" | tail -1)" || have="unknown (pnpm --version failed, see the log)"
   if [[ "$have" == "$want" ]]; then
     report ok pnpm "$have"
   else
@@ -74,13 +87,14 @@ else
 fi
 
 # disk and memory
-free_gb="$(df -BG --output=avail / | tail -1 | tr -dc '0-9')"
-if ((free_gb < 5)); then
-  report fail disk "${free_gb} GB free on / (under 5 GB)"
-elif ((free_gb < 20)); then
-  report warn disk "${free_gb} GB free on / (under 20 GB)"
+free_kb="$(df -k --output=avail / | tail -1 | tr -dc '0-9')"
+free_gb="$(awk -v k="$free_kb" 'BEGIN {printf "%.1f", k / 1048576}')"
+if ((free_kb < 5 * 1048576)); then
+  report fail disk "$free_gb GB free on / (under 5 GB)"
+elif ((free_kb < 20 * 1048576)); then
+  report warn disk "$free_gb GB free on / (under 20 GB)"
 else
-  report ok disk "${free_gb} GB free on /"
+  report ok disk "$free_gb GB free on /"
 fi
 avail_kb="$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)"
 avail_mb=$((avail_kb / 1024))
@@ -113,7 +127,7 @@ if [[ -e "$lock" ]]; then
     pid="${pid%%/*}"
     [[ "$pid" != "$$" ]] || continue
     cmd="$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null || true)"
-    holders+="${holders:+; }pid $pid: ${cmd:0:80}"
+    holders+="${holders:+; }pid $pid: ${cmd% }"
     if [[ "$cmd" == *"MSBuild.dll"*"/nodemode:1"* && "$orphans" == *" $pid "* ]]; then
       msbuild_holder=1
     fi
@@ -153,17 +167,24 @@ if [[ -z "${AGENT_REVIEWER_CHECK:-}" ]]; then
 else
   rc=0
   out="$(timeout -k 5 90 bash -c "$AGENT_REVIEWER_CHECK" 2>>"$AGENT_LOG")" || rc=$?
-  out="$(printf '%s' "$out" | tail -1 | tr -d '[:space:]')"
+  out="${out#"${out%%[![:space:]]*}"}"
+  out="${out%"${out##*[![:space:]]}"}"
   if [[ $rc -eq 124 ]]; then
     report fail reviewer "check timed out after 90 s"
-  elif [[ "$out" == "ok" ]]; then
-    report ok reviewer "check printed ok"
+  elif [[ $rc -eq 0 && "$out" == "ok" ]]; then
+    report ok reviewer "check exited 0 and printed ok"
   else
-    report fail reviewer "check printed '${out:0:60}' (exit $rc), expected ok"
+    report fail reviewer "check exited $rc and printed '${out:0:60}', expected exit 0 and exactly ok"
   fi
 fi
 
+# K1: a failed check is `fail` with exit 4 (agent_finish would print `blocked` for 4).
+rc=0 status=ok
 if [[ $fails -gt 0 ]]; then
-  agent_finish 4 "fails=$fails" "warns=$warns"
+  rc=4 status=fail
 fi
-agent_finish 0 "fails=0" "warns=$warns"
+AGENT_FINISHED=1
+line="$(agent_result preflight "$status" "$AGENT_LOG" "fails=$fails" "warns=$warns")"
+printf '%s\n' "$line" | tee -a "$AGENT_LOG"
+agent_mark_done "$AGENT_LOG" "$rc"
+exit "$rc"
