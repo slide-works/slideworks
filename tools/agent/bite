@@ -343,6 +343,7 @@ if [[ $runner_rc -eq 1 && "${failed:-0}" -gt 0 ]]; then
     # One line per red test: its name and the first lines of its message.
     awk 'function flush() { if (name != "") print "RED " name ": " substr(msg, 1, 200) }
       /^### / { flush(); name = substr($0, 5); msg = ""; n = 0; next }
+      /^ *(❯ |at )/ { n = 5 }
       n < 5 && NF { line = $0; gsub(/^ +| +$/, "", line); msg = msg (n ? " " : "") line; n++ }
       END { flush() }' "$BACKUP_DIR/red.txt" | head -n 10 || true
   else
