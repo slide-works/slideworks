@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds a test project, checks what the filter selects, then runs only those tests under the lock.
 set -euo pipefail
-# shellcheck source=lib.sh
+# shellcheck source-path=SCRIPTDIR source=lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 usage='usage: tools/agent/test-dotnet <project dir or csproj> <filter>   e.g. tools/agent/test-dotnet src/SlideWorks.UnitTest "FullyQualifiedName~DisplayDateTests"'

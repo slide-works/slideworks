@@ -38,6 +38,13 @@ jobs:
       - run: pwsh src/SlideWorks.AcceptanceTests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       - run: dotnet test src/SlideWorks.AcceptanceTests --configuration Release --no-build
 
+  agent-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Every script in tools/agent: *.sh plus every file without an extension (README.md and *.example are skipped).
+      - run: find tools/agent -maxdepth 1 -type f \( -name '*.sh' -o ! -name '*.*' \) -print0 | xargs -0 shellcheck -x
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

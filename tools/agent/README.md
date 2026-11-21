@@ -22,7 +22,7 @@ These scripts are the one sanctioned way for coding agents (and people) to build
 | `ct-preview` | (lands in wave 1) Renders screenshot specs into a scratch folder, never into `src`. | `tools/agent/ct-preview src/components/Slide/Slide.spec.tsx` |
 | `ct-baselines` | (lands in wave 1) Fetches screenshot baselines from a CI run's artifact. | `tools/agent/ct-baselines <run id>` |
 
-Each script's `--help` gives its full usage.
+Each script's `--help` gives its full usage. A new script starts like `build`: `#!/usr/bin/env bash`, `set -euo pipefail`, then `# shellcheck source-path=SCRIPTDIR source=lib.sh` above `source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"`, so CI's shellcheck job (every file here without an extension, plus `*.sh`) can follow it. `agent_start` prints the log path and makes sure the run ends with a summary line and a `.done` marker; `agent_finish <code> [k=v ...]` and `agent_die <code> <message> [k=v ...]` end it.
 
 ## Output and exit codes
 
