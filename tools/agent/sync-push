@@ -5,29 +5,29 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 usage="usage: tools/agent/sync-push --branch <shared branch> [--test '<runner command>']..."
-branch="" tests=()
+branch="" tests=() bad=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h | --help)
       echo "$usage"
       exit 0
       ;;
-    --branch) branch="${2:-}"; shift 2 || true ;;
-    --test) tests+=("${2:-}"); shift 2 || true ;;
-    *) branch="__bad__"; break ;;
+    --branch | --test)
+      [[ $# -ge 2 && -n "$2" ]] || { bad=1; break; }
+      if [[ "$1" == "--branch" ]]; then branch="$2"; else tests+=("$2"); fi
+      shift 2
+      ;;
+    *) bad=1; break ;;
   esac
 done
 agent_start
-[[ -n "$branch" && "$branch" != "__bad__" ]] || agent_die 2 "$usage" reason=bad-usage
-for t in "${tests[@]}"; do
-  [[ -n "$t" ]] || agent_die 2 "empty --test command. $usage" reason=empty-test
-done
+[[ $bad -eq 0 && -n "$branch" ]] || agent_die 2 "$usage" reason=bad-usage
 agent_require git
 agent_env
 cd "$(agent_root)"
 
-if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
-  agent_die 2 "uncommitted changes: commit them first" reason=uncommitted-changes
+if [[ -n "$(git status --porcelain)" ]]; then
+  agent_die 2 "uncommitted or untracked files (git status --porcelain is not empty): commit or ignore them first" reason=uncommitted-changes
 fi
 
 # A path the build must see: a source, project, props, contract or editorconfig change.
@@ -51,7 +51,8 @@ for attempt in 1 2 3; do
       agent_finish 1 reason=rebase-conflict "files=$conflicts"
     fi
     rebased=1
-    incoming="$(git diff --name-only "$(git merge-base "$before" "$remote")" "$remote")"
+    # Every incoming commit's files, so a change that a later incoming commit reverts still counts.
+    incoming="$(git log --name-only --format= "$before..$remote")"
     if needs_build <<<"$incoming"; then
       echo "incoming commits touch built files: building"
       rc=0
@@ -70,11 +71,17 @@ for attempt in 1 2 3; do
   if git push origin "HEAD:refs/heads/$branch" >>"$AGENT_LOG" 2>&1; then
     pushed="$(git rev-parse --short HEAD)"
     if command -v gh >/dev/null 2>&1; then
-      pr="$(gh pr list --head "$branch" --json url,isDraft --jq '.[] | "\(.url) draft=\(.isDraft)"' 2>>"$AGENT_LOG" | head -1 || true)"
+      if prs="$(gh pr list --head "$branch" --json url,isDraft --jq '.[] | "\(.url) draft=\(.isDraft)"' 2>>"$AGENT_LOG")"; then
+        pr="$(head -1 <<<"$prs")"
+      else
+        pr="gh-failed"
+      fi
     else
-      pr=""
+      pr="gh-failed"
     fi
-    if [[ -n "$pr" ]]; then
+    if [[ "$pr" == "gh-failed" ]]; then
+      echo "warning: could not list pull requests (gh missing or failed, see log); check that one is open for $branch"
+    elif [[ -n "$pr" ]]; then
       echo "pull request: $pr"
     else
       echo "warning: no open pull request for $branch; CI runs only on pull requests and main"

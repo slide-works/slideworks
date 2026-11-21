@@ -44,8 +44,9 @@ if [[ -n "$config" ]]; then
   problems=$((problems + 1))
 fi
 
-stray="$(git diff --name-only --diff-filter=d "$base" HEAD | grep -E "$stray_re" || true)"
-pngs="$(git diff --name-only --diff-filter=A "$base" HEAD | grep -E -- '-snapshots/.*\.png$' || true)"
+# Per commit, so a stray file committed and deleted again later is still listed.
+stray="$(git log --diff-filter=d --name-only --format= "$base..HEAD" | grep -E "$stray_re" | sort -u || true)"
+pngs="$(git log --diff-filter=A --name-only --format= "$base..HEAD" | grep -E -- '-snapshots/.*\.png$' | sort -u || true)"
 if [[ -n "$stray$pngs" ]]; then
   echo "stray files committed since $base (remove them, or confirm a PNG is a CI baseline):"
   [[ -z "$stray" ]] || indent '  ' <<<"$stray"
