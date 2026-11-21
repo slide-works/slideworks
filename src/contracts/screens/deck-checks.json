@@ -1,0 +1,32 @@
+{
+  "deck": "dk_sample",
+  "slides": [1, 2, 3],
+  "findings": [
+    {
+      "slide": 1,
+      "rule": "fit",
+      "severity": "error",
+      "source": "stored",
+      "where": "items",
+      "message": "items: too much text to fit on the slide (about 664 px of 620 px); use fewer or shorter items. It fitted when it was added; the deck's look has changed since. Shorten it, or check it with validate_slide."
+    },
+    {
+      "slide": 2,
+      "rule": "overflow",
+      "severity": "error",
+      "source": "measured",
+      "where": "text \"WWW MMM WWW MMM WWW MMM WWW MMM WWW\"",
+      "message": "Text runs below the footer (y 1031–1098; the footer starts at y 1023). Shorten it or split the slide."
+    },
+    {
+      "slide": 3,
+      "rule": "textOnImage",
+      "severity": "note",
+      "source": "measured",
+      "where": "text \"Our team at the summit\"",
+      "message": "Text \"Our team at the summit\" sits on an image or gradient, so its contrast can't be checked. Look at it in preview_deck."
+    }
+  ],
+  "measured": true,
+  "error": null
+}
