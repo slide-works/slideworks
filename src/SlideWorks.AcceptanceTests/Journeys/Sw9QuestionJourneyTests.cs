@@ -95,7 +95,7 @@ public class Sw9QuestionJourneyTests : AcceptanceTest
             await Expect(phone.Questions.QuestionOnScreen(1)).ToHaveCountAsync(0);
             await Expect(phone.Questions.QuestionUpvote(1)).ToHaveCountAsync(0);
             await Expect(phone.Questions.ListAnswered).ToBeVisibleAsync();
-            await Expect(phone.Questions.ListAnswered.GetByTestId("qa-question-1")).ToBeVisibleAsync();
+            await Expect(phone.Questions.AnsweredQuestion(1)).ToBeVisibleAsync();
             await Expect(phone.Questions.QuestionVotes(1)).ToContainTextAsync("2 votes");
         }
     }

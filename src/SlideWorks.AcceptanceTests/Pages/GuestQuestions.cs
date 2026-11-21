@@ -61,6 +61,9 @@ public sealed class GuestQuestions(IPage page)
     // "Answered · 2"
     public ILocator ListAnswered => page.GetByTestId("qa-list-answered");
 
+    // One question inside the answered group (1-based number).
+    public ILocator AnsweredQuestion(int number) => ListAnswered.GetByTestId($"qa-question-{number}");
+
     public ILocator ListAnsweredHeading => page.GetByTestId("qa-list-answered-heading");
 
     // While the first read is on its way
