@@ -3,6 +3,20 @@ import type { Canvas } from './canvas';
 
 export type { DeckChecksView, FindingRule, FindingSeverity, SlideFinding } from '../api/types';
 
+// Every rule in the order of the C# FindingRule enum (the server's sort order within a severity; the C# order is the source of truth).
+export const RULE_ORDER: readonly FindingRule[] = [
+  'overflow',
+  'fit',
+  'imageNotLoaded',
+  'renderFailed',
+  'smallText',
+  'lowContrast',
+  'imageLowResolution',
+  'genericAlt',
+  'layoutOutsideTemplate',
+  'textOnImage',
+];
+
 // The fixed severity of each rule (D5).
 export function severityOf(rule: FindingRule): FindingSeverity {
   switch (rule) {

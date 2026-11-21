@@ -35,8 +35,9 @@ public class DeckChecks(AppDbContext db, ICurrentActor actor, IDeckAccess access
             return new DeckChecksResult(deckId, numbers, SlideFinding.Sorted(findings), false, null);
         }
 
-        foreach (var number in numbers)
+        for (var i = 0; i < numbers.Count; i++)
         {
+            var number = numbers[i];
             try
             {
                 findings.AddRange((await engine.RenderSlideAsync(deckId, number, CancellationToken.None)).Findings);
@@ -49,15 +50,28 @@ public class DeckChecks(AppDbContext db, ICurrentActor actor, IDeckAccess access
                     SlideFinding.SeverityOf(FindingRule.RenderFailed),
                     FindingSource.Measured,
                     "slide",
-                    $"This slide didn't render: {error.Message[PlaywrightRenderEngine.FAILED.Length..]}. Fix what the reason names, then check again."));
+                    $"This slide didn't render: {error.Reason}. Fix what the reason names, then check again."));
             }
             catch (Exception error) when (error is RendererUnavailableException or TimeoutException)
             {
-                var stoppedAt = $"Rendering stopped at slide {number}, so slides {number}–{numbers.Max()} have only the stored checks.";
+                var stoppedAt = $"Rendering stopped at slide {number}, so {Unmeasured(numbers.Skip(i).ToList())} the stored checks.";
                 return new DeckChecksResult(deckId, numbers, SlideFinding.Sorted(findings), false, stoppedAt);
             }
         }
 
         return new DeckChecksResult(deckId, numbers, SlideFinding.Sorted(findings), true, null);
+    }
+
+    // "slide 5 has only", "slides 4, 5 and 9 have only", or "slides 4–12 have only" for a run of three or more.
+    private static string Unmeasured(IReadOnlyList<int> left)
+    {
+        if (left.Count == 1)
+        {
+            return $"slide {left[0]} has only";
+        }
+
+        var contiguous = left.Count >= 3 && left.Zip(left.Skip(1), (a, b) => b == a + 1).All(x => x);
+        var names = contiguous ? $"{left[0]}–{left[^1]}" : $"{string.Join(", ", left.Take(left.Count - 1))} and {left[^1]}";
+        return $"slides {names} have only";
     }
 }

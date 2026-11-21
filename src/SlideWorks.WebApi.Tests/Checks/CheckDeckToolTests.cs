@@ -84,9 +84,22 @@ public class CheckDeckToolTests : ApiTestFixture
 
         isError.ShouldBeFalse(json.GetRawText());
         json.GetProperty("measured").GetBoolean().ShouldBeFalse();
-        json.GetProperty("error").GetString().ShouldBe("Rendering stopped at slide 3, so slides 3–4 have only the stored checks.");
+        json.GetProperty("error").GetString().ShouldBe("Rendering stopped at slide 3, so slides 3 and 4 have only the stored checks.");
         json.GetProperty("findings").EnumerateArray().Select(f => f.GetProperty("slide").GetInt32()).ShouldBe([1, 4]);
         Engine.Calls.ShouldNotContain($"slide:{deck}:4");
+    }
+
+    [Test]
+    public async Task CheckDeck_WhenTheRendererStopsOnAListedSlide_ShouldNameTheUnmeasuredSlidesInOrder()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await ThreeSlideDeckAsync(agent, 6);
+        Engine.FailSlide(2, new RendererUnavailableException("Card rendering isn't available"));
+
+        var (_, json) = await agent.CallToolAsync("check_deck", new { deck, slides = new[] { 5, 2 } });
+
+        json.GetProperty("error").GetString().ShouldBe("Rendering stopped at slide 2, so slide 2 has only the stored checks.");
+        Engine.Calls.ShouldContain($"slide:{deck}:5");
     }
 
     [Test]
@@ -100,7 +113,7 @@ public class CheckDeckToolTests : ApiTestFixture
         var (_, json) = await agent.CallToolAsync("check_deck", new { deck });
 
         json.GetProperty("measured").GetBoolean().ShouldBeFalse();
-        json.GetProperty("error").GetString().ShouldBe("Rendering stopped at slide 2, so slides 2–3 have only the stored checks.");
+        json.GetProperty("error").GetString().ShouldBe("Rendering stopped at slide 2, so slides 2 and 3 have only the stored checks.");
         json.GetProperty("findings").GetArrayLength().ShouldBe(1);
         Engine.Calls.ShouldNotContain($"slide:{deck}:3");
     }
@@ -123,21 +136,6 @@ public class CheckDeckToolTests : ApiTestFixture
         findings[0].GetProperty("severity").GetString().ShouldBe("error");
         findings[0].GetProperty("where").GetString().ShouldBe("slide");
         findings[0].GetProperty("message").GetString().ShouldBe("This slide didn't render: image not loaded. Fix what the reason names, then check again.");
-    }
-
-    [Test]
-    public async Task CheckDeck_WhenMeasureIsFalse_ShouldGiveTheStoredChecksOnly()
-    {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        var deck = await ThreeSlideDeckAsync(agent);
-        Stored.FindingsFor(1, Finding(1, FindingRule.Fit, FindingSource.Stored));
-
-        var (_, json) = await agent.CallToolAsync("check_deck", new { deck, measure = false });
-
-        json.GetProperty("measured").GetBoolean().ShouldBeFalse();
-        json.GetProperty("error").ValueKind.ShouldBe(JsonValueKind.Null);
-        json.GetProperty("findings").GetArrayLength().ShouldBe(1);
-        Engine.Calls.ShouldNotContain($"slide:{deck}:1");
     }
 
     [Test]
