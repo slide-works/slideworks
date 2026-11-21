@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Sharing;
@@ -71,6 +72,48 @@ public class JoinGetTests : JoinFixture
         body.GetProperty("state").GetProperty("type").GetString().ShouldBe("audienceState");
         body.GetProperty("state").GetProperty("phase").GetString().ShouldBe("live");
         body.GetProperty("look").GetProperty("joinBar").GetBoolean().ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task Get_WhenLobby_ShouldHaveNoCurrentSlide()
+    {
+        var (status, state) = await GetStateAsync(AudiencePhase.Lobby, "lobby");
+
+        status.ShouldBe(HttpStatusCode.OK);
+        state.GetProperty("phase").GetString().ShouldBe("lobby");
+        state.GetProperty("current").ValueKind.ShouldBe(JsonValueKind.Null);
+        state.GetProperty("room").ValueKind.ShouldBe(JsonValueKind.Null);
+        state.GetProperty("activity").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    [Test]
+    public async Task Get_WhenEnded_ShouldHaveNoCurrentSlide()
+    {
+        var (status, state) = await GetStateAsync(AudiencePhase.Ended, "ended");
+
+        status.ShouldBe(HttpStatusCode.OK);
+        state.GetProperty("phase").GetString().ShouldBe("ended");
+        state.GetProperty("current").ValueKind.ShouldBe(JsonValueKind.Null);
+        state.GetProperty("room").ValueKind.ShouldBe(JsonValueKind.Null);
+        state.GetProperty("activity").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    // Reads the guest view in a phase and checks its key set against that phase's sample in guest.json.
+    private async Task<(HttpStatusCode Status, JsonElement State)> GetStateAsync(AudiencePhase phase, string phaseName)
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        Sessions.Set(CODE, deck, null, phase);
+        // The relay is a fake here, so it is given the state the real one gives outside live: no slide, no room, no activity.
+        Relay.Set(new AudienceState(deck, 1, phase, null, 0, null, null));
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        using var response = await anonymous.GetAsync($"/api/join/{CODE}");
+
+        var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+        using var sample = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "guest.json")));
+        JsonShape.AssertMatches(body, sample.RootElement.GetProperty(phaseName), "guest.json", ScreenShapes.Guest);
+        return (response.StatusCode, body.GetProperty("state"));
     }
 
     [Test]

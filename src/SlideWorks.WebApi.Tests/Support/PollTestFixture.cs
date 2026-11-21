@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Realtime.Presenting;
 using SlideWorks.WebApi.Tests.Realtime;
 
@@ -28,6 +29,11 @@ public abstract class PollTestFixture : ApiTestFixture
     // Puts the presenter on a slide as SW-4's registry does on an accepted change: records the state, then tells every
     // observer (the audience relay and, once it is real, the poll arrival rule).
     protected Task MoveAsync(string deckId, int slide, int step = 0) => PollSeed.MoveAsync(Factory.Services, deckId, slide, step);
+
+    // What the poll, Q&A and slide-switch services do after they change something guests see (IAudienceRelay.RefreshAsync): the
+    // relay answers a join from the last state it composed, so a test that writes rows or sets a double behind its back
+    // calls this before the join reads, as the real change would have.
+    protected Task RefreshAudienceAsync(string deckId) => Factory.Services.GetRequiredService<IAudienceRelay>().RefreshAsync(deckId);
 
     // A deck owned by SignedInAs with a poll slide, gone live, the presenter on the poll slide (see PollSeed).
     protected Task<SeededPoll> SeedPollAsync(string question = PollSeed.QUESTION, string[]? options = null, bool notify = false)

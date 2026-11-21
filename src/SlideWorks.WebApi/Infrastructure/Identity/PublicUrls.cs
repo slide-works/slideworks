@@ -18,11 +18,11 @@ public class PublicUrls : IPublicUrls
     // AG0009 is about passing the whole HttpContext into helpers. The accessor is the only way a singleton reaches the
     // current request, and it is read only in Development with no configured URL.
 #pragma warning disable AG0009
-    public PublicUrls(IConfiguration configuration, IHostEnvironment environment, IHttpContextAccessor httpContextAccessor, IJoinUrls joinUrls)
+    public PublicUrls(IConfiguration configuration, IHostEnvironment environment, IHttpContextAccessor httpContextAccessor, JoinUrlSetting joinUrlSetting)
 #pragma warning restore AG0009
     {
-        // SLIDEWORKS_JOIN_URL is checked when IJoinUrls is built, so taking it here makes a bad join URL fail at startup too.
-        ArgumentNullException.ThrowIfNull(joinUrls);
+        // SLIDEWORKS_JOIN_URL is checked when JoinUrlSetting is built, so taking it here makes a bad join URL fail at startup too.
+        ArgumentNullException.ThrowIfNull(joinUrlSetting);
         _httpContextAccessor = httpContextAccessor;
         _configured = Parse(configuration[CONFIG_KEY]);
         if (_configured == null && !environment.IsDevelopment())

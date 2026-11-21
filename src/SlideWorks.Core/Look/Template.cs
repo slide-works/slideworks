@@ -1,3 +1,5 @@
+using SlideWorks.Core.Slides.Layouts;
+
 namespace SlideWorks.Core.Look;
 
 // A template (L1): structure, type and shape, never a colour. The built-ins live in
@@ -25,7 +27,7 @@ public sealed record Template
     // The layouts of the live room, which belong to a talk whatever its template: the join slide, the poll and the questions slide. A template
     // lists the layouts it is about, so these are in none of them, and Allows is the one place that lets them through (the
     // layout warning and list_layouts both ask it).
-    private static readonly string[] EveryTemplate = ["join", "poll", "qa", "word-cloud", "open-text"];
+    private static readonly string[] EveryTemplate = [JoinLayout.NAME, "poll", "qa", "word-cloud", "open-text"];
 
     public bool Allows(string layout) => EveryTemplate.Contains(layout, StringComparer.Ordinal) || Layouts.Contains(layout, StringComparer.Ordinal);
 }

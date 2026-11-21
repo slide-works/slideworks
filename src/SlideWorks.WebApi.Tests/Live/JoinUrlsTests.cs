@@ -55,7 +55,7 @@ public class JoinUrlsTests
         }
     }
 
-    // Reads the three links inside the host's lifetime: IJoinUrls reads IPublicUrls when it is asked.
+    // Reads the three links inside the host's lifetime.
     private static (string JoinUrl, string Keypad, string HostLabel) Resolve(string? joinUrl)
     {
         var dbPath = TestAppFactory.NewDatabasePath();

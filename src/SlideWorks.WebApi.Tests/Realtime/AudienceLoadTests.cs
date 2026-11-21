@@ -10,9 +10,9 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Realtime;
 
-// A room of guests on the real hub, the real registry and the real relay, over WebSockets. The relay holds a per-deck gate
-// across its database reads and the registry awaits its observers inline, so joins arriving while the presenter moves
-// could slow the moves. The presenter walks the deck first with nobody in the room, then again while GUESTS guests join in
+// A room of guests on the real hub, the real registry and the real relay, over WebSockets. The relay serves joins from its
+// last composed state under a per-deck gate, the roster writes joins in batches, and the registry awaits its observers
+// inline, so joins arriving while the presenter moves could still slow the moves (SW-286). The presenter walks the deck first with nobody in the room, then again while GUESTS guests join in
 // batches, one batch starting with each move and none waiting for the walk to begin. Each JoinAudience answer is timed on
 // one monotonic stopwatch, and the test asserts that a good share of them answered between the first move and the last, so
 // it fails if the joins stop overlapping the walk. Every move must be acknowledged within MOVE_BOUND. Sam owns the deck.
