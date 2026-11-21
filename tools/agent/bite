@@ -281,10 +281,16 @@ label=()
 # Vitest neither builds nor type-checks, so type-check the client before trusting a test-vitest run.
 if [[ "$runner_name" == test-vitest ]]; then
   tsc_out="$BACKUP_DIR/tsc.out"
-  bite_run "$tsc_out" timeout -k 10 "${AGENT_BUILD_TIMEOUT:-900}" pnpm --dir "$client" exec tsc --noEmit -p .
+  # From the client folder: corepack picks the pnpm version from the package.json in the current folder.
+  cd "$client"
+  bite_run "$tsc_out" timeout -k 10 "${AGENT_BUILD_TIMEOUT:-900}" pnpm exec tsc --noEmit -p .
+  cd "$ROOT"
   { echo "== tsc --noEmit (exit $BG_RC)"; cat "$tsc_out"; } >>"$AGENT_LOG"
   [[ $BG_RC -ne 124 ]] || bite_finish 124 blocked "${label[@]}" reason=tsc-timed-out
   if [[ $BG_RC -ne 0 ]]; then
+    if ! grep -qE 'error TS[0-9]+' "$tsc_out"; then
+      bite_die 4 "tsc exited $BG_RC without a type error, so the type-check did not run; see the log" reason=type-check-did-not-run
+    fi
     bite_compiler_errors "$tsc_out"
     bite_finish 3 blocked "${label[@]}" reason=mutation-does-not-compile
   fi
