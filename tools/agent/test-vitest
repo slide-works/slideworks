@@ -39,19 +39,19 @@ line="$(grep -E '^ *Tests +' "$AGENT_LOG" | tail -n 1 || true)"
 [[ -n "$line" ]] || agent_finish 1 reason=no-result-line
 count() { sed -nE "s/.*[^0-9]([0-9]+) $1.*/\1/p" <<<"$line" | head -n 1; }
 passed="$(count passed)" failed="$(count failed)" skipped="$(count skipped)"
-mapfile -t failures < <(sed -nE 's/^ *(FAIL|×) +(.+)$/\2/p' "$AGENT_LOG" | sort -u)
+mapfile -t failures < <(sed -nE 's/^ *FAIL +(.+)$/\1/p' "$AGENT_LOG" | sort -u)
 names=()
 for name in "${failures[@]:0:10}"; do
   echo "FAILED $name"
-  names+=("${name// /_}")
+  names+=("$name")
 done
 if [[ ${#failures[@]} -gt 10 ]]; then
   echo "+$((${#failures[@]} - 10)) more"
-  names+=("+$((${#failures[@]} - 10))_more")
+  names+=("+$((${#failures[@]} - 10)) more")
 fi
 counts=("passed=${passed:-0}" "failed=${failed:-0}" "skipped=${skipped:-0}")
 if [[ ${#names[@]} -gt 0 ]]; then
-  counts+=("failed_tests=$(IFS=,; echo "${names[*]}")")
+  counts+=("failed_tests=$(IFS='|'; echo "${names[*]}")")
 fi
 if [[ $rc -eq 0 && -z "$failed" ]]; then
   agent_finish 0 "${counts[@]}"

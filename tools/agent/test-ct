@@ -64,15 +64,15 @@ mapfile -t failures < <(grep '✘' "$AGENT_LOG" | sed -E 's/^ *✘ +[0-9]+ +//; 
 names=()
 for name in "${failures[@]:0:10}"; do
   echo "FAILED $name"
-  names+=("${name// /_}")
+  names+=("$name")
 done
 if [[ ${#failures[@]} -gt 10 ]]; then
   echo "+$((${#failures[@]} - 10)) more"
-  names+=("+$((${#failures[@]} - 10))_more")
+  names+=("+$((${#failures[@]} - 10)) more")
 fi
 counts=("passed=$passed" "failed=$failed" "skipped=$skipped")
 if [[ ${#names[@]} -gt 0 ]]; then
-  counts+=("failed_tests=$(IFS=,; echo "${names[*]}")")
+  counts+=("failed_tests=$(IFS='|'; echo "${names[*]}")")
 fi
 if [[ $rc -eq 0 && "$failed" -eq 0 ]]; then
   agent_finish 0 "${counts[@]}"
