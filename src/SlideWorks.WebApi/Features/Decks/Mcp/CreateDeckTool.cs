@@ -15,7 +15,7 @@ public sealed class CreateDeckTool
     public const string NAME = "create_deck";
 
     [McpServerTool(Name = NAME)]
-    [Description("Create a new, private deck owned by the person you act for. Returns its id (deck), its player url, its sharing level, its look (template and palette), and the template's layouts, outline and house style to follow. Pass like with another deck's id to copy its template, version, palette, logo, chrome and draft mark in this one call. Add slides with add_slide.")]
+    [Description("Create a new, private deck owned by the person you act for. Returns its id (deck), its player url, its sharing level, its look (template and palette), and the template's layouts, outline and house style to follow. Pass like with the id of another deck you own to copy its template, version, palette and colours, logo, chrome, draft mark and talk length in this one call. Add slides with add_slide.")]
     public Task<CallToolResult> CreateDeck(
         DeckCommands commands,
         IPublicUrls urls,
@@ -27,7 +27,7 @@ public sealed class CreateDeckTool
         [Description("A template's name, as list_templates gives it. Left out, the default template (is_default in list_templates). It sets the layouts, chrome, outline and house style.")] string? template = null,
         [Description("A palette's name, as list_palettes gives it. Left out, the template's own palette, else the default palette (is_default in list_palettes).")] string? palette = null,
         [Description("Custom colours for this deck, without a template: an object of palette token names to # and six hex digits. A colour that fails the contrast check is refused.")] JsonElement? colors = null,
-        [Description("Another deck's id. Copies its template and version, palette, logo, chrome and draft mark. Leave template, palette and colors out.")] string? like = null)
+        [Description("The id of another deck you own. Copies its template and version, palette and colours, logo, chrome, draft mark and talk length, not its slides, title or parts. Leave template, palette and colors out.")] string? like = null)
         => McpToolErrors.Run(async () =>
         {
             var deck = await commands.CreateAsync(new CreateDeckRequest(title, subtitle, author, parts, template, palette, colors is null ? null : ReadColors(colors.Value), like), NAME);

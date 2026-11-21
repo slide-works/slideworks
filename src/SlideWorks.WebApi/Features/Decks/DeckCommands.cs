@@ -92,6 +92,7 @@ public class DeckCommands(
                 PaletteTokensJson = source is null ? PaletteTokens.Write(request.Colors) : source.PaletteTokensJson,
                 Draft = source?.Draft ?? template.Chrome.Draft,
                 ChromeJson = source?.ChromeJson,
+                TalkMinutes = source?.TalkMinutes,
                 CreatedAt = now,
                 UpdatedAt = now,
             };
@@ -126,8 +127,9 @@ public class DeckCommands(
         }
     }
 
-    // The deck whose look a new deck copies, or null. The caller must be able to view it. template, palette and colors
-    // stay out: they would disagree with the copy.
+    // The deck whose look a new deck copies, or null. Only the owner may copy it, as only the owner may get_deck it: a deck
+    // shared by link or with named people is "Deck not found" to anyone else (SW-568). template, palette and colors stay
+    // out: they would disagree with the copy.
     private async Task<Deck?> SourceAsync(CreateDeckRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Like))
@@ -140,7 +142,7 @@ public class DeckCommands(
             throw new BadRequestException("like: leave template, palette and colors out; they come from that deck");
         }
 
-        if (!await access.CanViewAsync(request.Like, actor))
+        if (!await access.CanEditAsync(request.Like, actor))
         {
             throw new NotFoundException(DeckReader.NOT_FOUND);
         }
