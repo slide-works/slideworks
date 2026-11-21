@@ -72,15 +72,17 @@ public partial class PhoneRemoteJourneyTests : AcceptanceTest
     [Test]
     public async Task PhoneOpensRemote_WhenNothingIsLiveAndThenTheQrLinkNamesALiveDeck_ShouldShowEmptyThenGoStraightToSpeakerMode()
     {
-        await using var phone = await OpenPhoneAsync(TestUser.Mira);
+        // A fresh person: nothing else in the shared app presents as them, so nothing of theirs can be live.
+        var owner = TestUser.NewApproved();
+        await using var phone = await OpenPhoneAsync(owner);
         var remote = new RemotePage(phone.Page);
         await remote.GotoAsync();
         await remote.IsLoadedAsync();
         await Expect(remote.Empty).ToBeVisibleAsync();
         await Expect(remote.LiveCards).ToHaveCountAsync(0);
 
-        var id = await CreateDeckAsync(TestUser.Mira, $"Straight to speaker {Guid.NewGuid():N}");
-        var presenter = await OpenPresenterAsync(TestUser.Mira, id);
+        var id = await CreateDeckAsync(owner, $"Straight to speaker {Guid.NewGuid():N}");
+        var presenter = await OpenPresenterAsync(owner, id);
         await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
 
         await remote.GotoAsync(id);

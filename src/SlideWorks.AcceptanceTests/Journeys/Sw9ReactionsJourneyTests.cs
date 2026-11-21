@@ -58,7 +58,7 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
         await talk.AudiencePage.EvaluateAsync<bool>(WATCH_FLOATS, QaSlide.FLOAT_TEST_ID);
         var screen = new QaSlide(talk.Audience.Slide(1));
         await Expect(screen.ReactionsLayer).ToHaveCountAsync(1);
-        var phoneBStatesBefore = StateFrames(phoneB.Frames);
+        var phoneBStatesBefore = Probes.FrameCount(phoneB.Frames, "audienceState");
 
         await phoneA.Questions.Reaction("clap").ClickAsync();
 
@@ -74,15 +74,12 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
         // socket would pass; then no frame it ever received is a reactions burst.
         await talk.Presenter.PressAsync("ArrowRight");
         await Expect(talk.Presenter.Count).ToHaveTextAsync($"2 / {SLIDES}", new() { Timeout = PUSH_TIMEOUT });
-        (await Eventually.ReadAsync(() => Task.FromResult(StateFrames(phoneB.Frames)), count => count > phoneBStatesBefore))
+        (await Probes.CaughtUpAsync(phoneB.Frames, "audienceState", phoneBStatesBefore))
             .ShouldBeGreaterThan(phoneBStatesBefore, "phone B's socket should still deliver events after the tap");
         phoneB.Frames.ShouldNotBeEmpty();
         phoneB.Frames.Where(frame => frame.Contains(REACTIONS_TYPE, StringComparison.Ordinal)).ShouldBeEmpty();
         await Expect(phoneB.Questions.ReactionError).ToHaveCountAsync(0);
     }
-
-    private static int StateFrames(ConcurrentQueue<string> frames) =>
-        frames.Count(frame => frame.Contains("\"type\":\"audienceState\"", StringComparison.Ordinal));
 
     // Criteria (D7): a phone on the Questions tab switches to the Slide tab, and shows the poll, when the poll opens; a phone
     // with the ask sheet open stays on Questions and shows "A poll just opened. It is on the Slide tab." with Go to poll,
