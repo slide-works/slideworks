@@ -2,10 +2,19 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, devices } from '@playwright/experimental-ct-react';
 import { contractsDir } from './vite.config';
 
+// tools/agent/ct-preview sets CT_PREVIEW_DIR: every screenshot is then written under that folder, outside the repo,
+// so a render can be looked at. Playwright writes no actual image for a missing or a matching baseline.
+const previewDir = process.env.CT_PREVIEW_DIR;
+
 export default defineConfig({
   testDir: './src',
   testMatch: '**/*.spec.tsx',
   timeout: 30_000,
+  // Baselines are only ever written in CI's container: a local run against a missing baseline fails and writes nothing.
+  updateSnapshots: previewDir ? 'all' : process.env.CI ? 'missing' : 'none',
+  ...(previewDir && {
+    snapshotPathTemplate: `${previewDir}/{testFilePath}-snapshots/{arg}{-projectName}{-snapshotSuffix}{ext}`,
+  }),
   reporter: [['list'], ['html', { open: 'never' }]],
   expect: {
     // Baselines are generated inside the same Docker image CI runs in, so
@@ -16,6 +25,8 @@ export default defineConfig({
   },
   use: {
     ...devices['Desktop Chrome'],
+    // CI's playwright-report carries a trace for every failure; local runs stay light.
+    trace: process.env.CI ? 'retain-on-failure' : 'off',
     // Playwright CT bundles components with its own internal Vite instance —
     // it does not read plugins from vite.config.ts, so Tailwind has to be
     // registered here too or component screenshots render unstyled.

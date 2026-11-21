@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Renders one spec's screenshot tests into the scratch folder and prints the actual PNGs; never writes into src.
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage='usage: tools/agent/ct-preview <spec file> [-g <title regex>]   e.g. tools/agent/ct-preview src/slides/layouts/BarsLayout.sw50.spec.tsx -g "six"'
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<EOF
+$usage
+
+Runs the spec'"'"'s screenshot tests with --output=<scratch>/ct-preview/<timestamp> and CT_PREVIEW_DIR set to the same
+folder, which makes playwright-ct.config.ts write every screenshot there (Playwright writes no actual image for a
+missing or a matching baseline, so --update-snapshots=none alone shows nothing). Prints the path of each PNG so you
+can open them. Afterwards it checks that git status of src is unchanged: no file was written into src.
+
+Screenshot baselines
+  Local runs never write baselines (playwright-ct.config.ts uses updateSnapshots 'none' outside CI).
+  ct-preview is how to look at a render locally. ct-baselines takes the baselines CI made.
+EOF
+  exit 0
+fi
+agent_start
+agent_refuse_repeat_each "$@"
+spec="" grep_re=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -g)
+      [[ $# -ge 2 ]] || agent_die 2 "-g needs a title regex. $usage" reason=missing-grep
+      grep_re="$2"
+      shift 2
+      ;;
+    --update-snapshots* | -u) agent_die 2 "--update-snapshots is not allowed: baselines are only made by CI" reason=update-snapshots ;;
+    -*) agent_die 2 "unknown option $1. $usage" reason=option ;;
+    *)
+      [[ -z "$spec" ]] || agent_die 2 "one spec file only. $usage" reason=many-files
+      spec="$1"
+      shift
+      ;;
+  esac
+done
+[[ -n "$spec" ]] || agent_die 2 "a spec file is required. $usage" reason=missing-file
+root="$(agent_root)"
+client="$root/src/SlideWorks.Client"
+path="$spec"
+[[ -e "$path" ]] || path="$root/$spec"
+[[ -e "$path" ]] || path="$client/$spec"
+[[ ! -d "$path" ]] || agent_die 2 "a directory is a full run: name one spec file ($spec)" reason=directory
+[[ -f "$path" ]] || agent_die 2 "no such spec file: $spec" reason=no-file
+path="$(realpath "$path")"
+rel="${path#"$client"/}"
+agent_require pnpm flock timeout git
+agent_env
+[[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run pnpm install --frozen-lockfile there" missing=node_modules
+grep -q 'toHaveScreenshot' "$path" ||
+  agent_die 2 "$rel has no screenshot tests (no toHaveScreenshot call)" reason=no-screenshot-tests
+
+out="$(agent_scratch)/ct-preview/$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$out"
+before="$(git -C "$root" status --porcelain -- src)"
+args=("$rel" --output="$out" --reporter=list)
+[[ -z "$grep_re" ]] || args+=(-g "$grep_re")
+rc=0
+(
+  cd "$client"
+  export LD_LIBRARY_PATH="${PLAYWRIGHT_LD_LIBRARY_PATH:+$PLAYWRIGHT_LD_LIBRARY_PATH:}${LD_LIBRARY_PATH:-}"
+  export NO_COLOR=1 FORCE_COLOR=0 CT_PREVIEW_DIR="$out"
+  agent_locked timeout -k 10 "${AGENT_TEST_TIMEOUT:-600}" pnpm exec playwright test -c playwright-ct.config.ts "${args[@]}"
+) >>"$AGENT_LOG" 2>&1 || rc=$?
+[[ $rc -ne 5 ]] || agent_finish 5 reason=lock-wait-timed-out
+[[ $rc -ne 124 ]] || agent_finish 124 reason=test-timed-out
+
+after="$(git -C "$root" status --porcelain -- src)"
+if [[ "$before" != "$after" ]]; then
+  echo "src changed during the preview:" >&2
+  diff <(echo "$before") <(echo "$after") >&2 || true
+  agent_finish 1 reason=src-changed
+fi
+mapfile -t pngs < <(find "$out" -name '*.png' | sort)
+for png in "${pngs[@]}"; do
+  echo "preview: $png"
+done
+if [[ ${#pngs[@]} -eq 0 ]]; then
+  if [[ $rc -ne 0 ]]; then
+    agent_finish 1 reason=failed-without-png "output=$out"
+  fi
+  agent_finish 1 reason=no-png "output=$out"
+fi
+agent_finish 0 "pngs=${#pngs[@]}" "output=$out"

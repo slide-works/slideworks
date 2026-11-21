@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Lists (and with --apply, copies into the repo) the screenshot baselines CI made, from the ct-new-baselines artifact.
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage='usage: tools/agent/ct-baselines [--run <run id>] [--apply]'
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<EOF
+$usage
+
+Downloads the ct-new-baselines artifact of the newest CI run of the current branch (or of --run) with
+gh run download and lists each file. With --apply it copies each file to its repo path, cmp-checks each copy
+against the artifact and prints the list so you can open the images before you commit. It never commits.
+
+Screenshot baselines
+  Local runs never write baselines (playwright-ct.config.ts uses updateSnapshots 'none' outside CI).
+  ct-preview is how to look at a render locally. ct-baselines takes the baselines CI made.
+EOF
+  exit 0
+fi
+agent_start
+run="" apply=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --run)
+      [[ $# -ge 2 && -n "$2" ]] || agent_die 2 "--run needs a run id. $usage" reason=missing-run
+      run="$2"
+      shift 2
+      ;;
+    --apply)
+      apply=1
+      shift
+      ;;
+    *) agent_die 2 "unknown argument $1. $usage" reason=option ;;
+  esac
+done
+[[ -z "$run" || "$run" =~ ^[0-9]+$ ]] || agent_die 2 "the run id must be a number: $run" reason=bad-run
+agent_require gh git cmp
+root="$(agent_root)"
+cd "$root"
+if ! gh auth status >/dev/null 2>&1; then
+  agent_die 4 "gh is not authenticated: set GH_TOKEN or run gh auth login" missing=gh-auth
+fi
+if [[ -z "$run" ]]; then
+  branch="$(git rev-parse --abbrev-ref HEAD)"
+  run="$(gh run list --branch "$branch" --workflow ci.yml --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>>"$AGENT_LOG")" ||
+    agent_die 4 "gh run list failed (see log)" reason=gh-failed
+  [[ -n "$run" ]] || agent_die 4 "no CI run found for branch $branch" reason=no-runs
+fi
+dest="$(agent_scratch)/ct-baselines/$run"
+rm -rf "$dest"
+mkdir -p "$dest"
+if ! gh run download "$run" --name ct-new-baselines --dir "$dest" >>"$AGENT_LOG" 2>&1; then
+  agent_die 4 "run $run has no ct-new-baselines artifact (or it expired after 14 days, or the download failed): $(tail -n 1 "$AGENT_LOG")" reason=no-artifact run="$run"
+fi
+mapfile -t files < <(cd "$dest" && find . -type f | sed 's|^\./||' | sort)
+if [[ ${#files[@]} -eq 0 ]]; then
+  echo "run $run has a ct-new-baselines artifact with no files: CI wrote no new baselines"
+  agent_finish 0 run="$run" files=0
+fi
+for f in "${files[@]}"; do
+  echo "baseline: $f"
+done
+if [[ $apply -eq 0 ]]; then
+  agent_finish 0 run="$run" "files=${#files[@]}" "artifact=$dest"
+fi
+for f in "${files[@]}"; do
+  mkdir -p "$(dirname "$root/src/SlideWorks.Client/$f")"
+  cp "$dest/$f" "$root/src/SlideWorks.Client/$f"
+  cmp -s "$dest/$f" "$root/src/SlideWorks.Client/$f" || agent_die 1 "copy differs from the artifact: $f" reason=cmp-failed
+  echo "applied: src/SlideWorks.Client/$f"
+done
+echo "Open each applied image before you commit it."
+agent_finish 0 run="$run" "files=${#files[@]}" applied="${#files[@]}"
