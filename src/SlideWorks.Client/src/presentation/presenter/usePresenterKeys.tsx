@@ -42,8 +42,8 @@ function isTyping(target: EventTarget | null): boolean {
   );
 }
 
-// A button, link or checkbox activates itself with Space (and Enter), so those keys are left to it. A checkbox does not
-// use the arrows, so they still move the talk (SW-668).
+// A button or link activates itself with Space and Enter, and a checkbox toggles with Space, so Space is left to them.
+// A checkbox does not use the arrows, so they still move the talk (SW-668).
 function activates(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLButtonElement ||
