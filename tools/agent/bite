@@ -12,7 +12,8 @@ Applies one mutation to committed files, runs the runner (tools/agent/test-*; it
 takes the lock), restores the files from a scratch copy (never from git), and prints:
   RESULT bite ok bit=yes failed=<n> tests=<names> log=...   the runner reported failures: the test bites (exit 0)
   RESULT bite fail bit=no ... log=...                       everything stayed green (exit 1)
-  RESULT bite blocked reason=mutation-does-not-compile ...  the runner's build failed (exit 3); not a bite
+  RESULT bite blocked reason=mutation-does-not-compile ...  the build or type-check failed (exit 3); not a bite
+With test-vitest, which neither builds nor type-checks, bite first runs tsc --noEmit on the client.
 The log holds, for every red test, its name and its failure message.
 
   --file/--from/--to  replace <exact text> with <replacement>; the text must occur exactly once.
@@ -45,15 +46,20 @@ BACKUP_DIR=""
 TARGETS=()
 ROOT=""
 
-# Copies every target back from its scratch copy. Idempotent; never uses git.
+RESTORE_FAILED=0
+
+# Copies every target back from its scratch copy. Idempotent; never uses git, never exits.
 bite_restore() {
   [[ $RESTORED -eq 0 ]] || return 0
+  RESTORED=1
   local rel
   for rel in "${TARGETS[@]}"; do
-    cp -p "$BACKUP_DIR/$rel" "$ROOT/$rel"
+    if ! cp -p "$BACKUP_DIR/$rel" "$ROOT/$rel" 2>>"$AGENT_LOG"; then
+      RESTORE_FAILED=1
+      echo "bite: could not restore $rel; copy it back by hand from $BACKUP_DIR/$rel" | tee -a "$AGENT_LOG" >&2
+    fi
   done
-  RESTORED=1
-  echo "restored ${#TARGETS[@]} file(s) from $BACKUP_DIR" >>"$AGENT_LOG"
+  [[ $RESTORE_FAILED -eq 1 ]] || echo "restored ${#TARGETS[@]} file(s) from $BACKUP_DIR" >>"$AGENT_LOG"
 }
 
 # Stops the runner and everything it started (it runs in its own process group).
@@ -85,9 +91,17 @@ bite_on_exit() {
 }
 
 # Like agent_finish, but with an explicit status word (bite reports a build failure as blocked).
+# It stops the runner and restores first, so the RESULT line and <log>.done never appear while a
+# mutation is still in the tree.
 bite_finish() {
   local rc="$1" status="$2"
   shift 2
+  bite_stop_runner
+  bite_restore
+  if [[ $RESTORE_FAILED -eq 1 ]]; then
+    rc=4 status=blocked
+    set -- reason=restore-failed "backup=$BACKUP_DIR"
+  fi
   AGENT_FINISHED=1
   local line
   line="$(agent_result bite "$status" "$AGENT_LOG" "$@")"
@@ -95,6 +109,60 @@ bite_finish() {
   printf '%s\n' "$line"
   agent_mark_done "$AGENT_LOG" "$rc"
   exit "$rc"
+}
+
+# agent_die for after the restore is armed: the message, then bite_finish (which restores first).
+bite_die() {
+  local rc="$1" msg="$2"
+  shift 2
+  echo "bite: $msg" | tee -a "$AGENT_LOG" >&2
+  bite_finish "$rc" "$(agent_status_for "$rc")" "$@"
+}
+
+# Runs a command in its own process group, in the background, and waits for it. A signal to bite
+# then runs the trap at once (bash defers traps while a foreground child runs), and the trap can
+# stop the whole group. Sets BG_RC.
+bite_run() {
+  local out="$1"
+  shift
+  setsid "$@" >"$out" 2>&1 &
+  RUNNER_PID=$!
+  BG_RC=0
+  wait "$RUNNER_PID" || BG_RC=$?
+  RUNNER_PID=""
+}
+
+# The first compiler errors (C# or TypeScript) in a log, at most 10. Never fails.
+bite_compiler_errors() {
+  local errors=""
+  [[ ! -f "$1" ]] || errors="$(grep -E ': error (CS|TS)[0-9]+' "$1" | sort -u | head -n 10 || true)"
+  echo "== first compiler errors" >>"$AGENT_LOG"
+  if [[ -n "$errors" ]]; then
+    printf '%s\n' "$errors" | tee -a "$AGENT_LOG"
+  else
+    echo "(no compiler error lines found; see $1)" | tee -a "$AGENT_LOG"
+  fi
+}
+
+# Writes each red test's failure block from a runner log as "### <name>" followed by its message.
+bite_red_blocks() {
+  local runner="$1" log="$2"
+  case "$runner" in
+    test-dotnet | test-acceptance)
+      # VSTest: "  Failed <name> [<time>]", "  Error Message:", the message, then "  Stack Trace:".
+      awk '/^ +Failed .+ \[[^]]*\]$/ { on = 1; sub(/^ +Failed /, ""); print "### " $0; next }
+        /^ +Stack Trace:/ { on = 0 } /^ +Error Message:/ { next } on' "$log" ;;
+    test-vitest)
+      # Vitest: a "Failed Tests" section of " FAIL  <file> > <name>" blocks, each closed by a ⎯[i/n]⎯ rule.
+      awk '/⎯ Failed (Tests|Suites) [0-9]+ ⎯/ { section = 1; next }
+        section && /^ *FAIL +/ { on = 1; sub(/^ *FAIL +/, ""); print "### " $0; next }
+        /⎯\[[0-9]+\/[0-9]+\]⎯/ { on = 0; next } on' "$log" ;;
+    test-ct)
+      # Playwright list reporter: "  <n>) [project] › <file>:<line> › <name> ───" blocks, up to the next
+      # block or the "  <n> failed" summary.
+      awk '/^  [0-9]+\) / { on = 1; sub(/^  [0-9]+\) /, ""); sub(/ (─)+$/, ""); print "### " $0; next }
+        /^  [0-9]+ (failed|flaky|passed|skipped|did not run)/ { on = 0 } on' "$log" ;;
+  esac
 }
 
 agent_start
@@ -138,6 +206,12 @@ case "$runner_path" in
 esac
 [[ -x "$runner_path" ]] || agent_die 4 "runner not found or not executable: ${runner[0]}" reason=missing-runner "missing=${runner[0]}"
 agent_refuse_repeat_each "${runner[@]}"
+runner_name="$(basename "$runner_path")"
+client="$ROOT/src/SlideWorks.Client"
+if [[ "$runner_name" == test-vitest ]]; then
+  agent_require pnpm timeout
+  [[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run pnpm install --frozen-lockfile there" missing=node_modules
+fi
 
 # The files the mutation touches, relative to the repo root.
 if [[ -n "$patch" ]]; then
@@ -186,28 +260,43 @@ RESTORED=0
 
 # 3. Apply, then assert it applied.
 if [[ -n "$patch" ]]; then
-  git apply "$patch" >>"$AGENT_LOG" 2>&1 || agent_die 2 "git apply failed; see the log" reason=patch-does-not-apply
+  git apply "$patch" >>"$AGENT_LOG" 2>&1 || bite_die 2 "git apply failed; see the log" reason=patch-does-not-apply
 else
-  printf '%s' "${content/"$from"/"$to"}" >"$ROOT/${TARGETS[0]}"
+  # A literal replacement: split around the one occurrence instead of ${var/pattern/replacement},
+  # whose replacement treats & specially when bash has patsub_replacement on (5.2+).
+  prefix="${content%%"$from"*}"
+  printf '%s%s%s' "$prefix" "$to" "${content:$((${#prefix} + ${#from}))}" >"$ROOT/${TARGETS[0]}"
 fi
 if git diff --quiet -- "${TARGETS[@]}"; then
-  agent_die 2 "mutation did not apply" reason=mutation-did-not-apply
+  bite_die 2 "mutation did not apply" reason=mutation-did-not-apply
 fi
 {
   echo "== mutation diff"
   git diff -- "${TARGETS[@]}"
-  echo "== runner output"
 } >>"$AGENT_LOG"
 
+label=()
+[[ -z "$name" ]] || label=("name=${name// /_}")
+
+# Vitest neither builds nor type-checks, so type-check the client before trusting a test-vitest run.
+if [[ "$runner_name" == test-vitest ]]; then
+  tsc_out="$BACKUP_DIR/tsc.out"
+  bite_run "$tsc_out" timeout -k 10 "${AGENT_BUILD_TIMEOUT:-900}" pnpm --dir "$client" exec tsc --noEmit -p .
+  { echo "== tsc --noEmit (exit $BG_RC)"; cat "$tsc_out"; } >>"$AGENT_LOG"
+  [[ $BG_RC -ne 124 ]] || bite_finish 124 blocked "${label[@]}" reason=tsc-timed-out
+  if [[ $BG_RC -ne 0 ]]; then
+    bite_compiler_errors "$tsc_out"
+    bite_finish 3 blocked "${label[@]}" reason=mutation-does-not-compile
+  fi
+fi
+
 # 4. Run the runner in its own process group, so a signal to bite can stop it and its children.
+echo "== runner output" >>"$AGENT_LOG"
 runner_out="$BACKUP_DIR/runner.out"
 cd "$caller_dir"
-setsid "${runner[@]}" >"$runner_out" 2>&1 &
-RUNNER_PID=$!
+bite_run "$runner_out" "${runner[@]}"
 cd "$ROOT"
-runner_rc=0
-wait "$RUNNER_PID" || runner_rc=$?
-RUNNER_PID=""
+runner_rc=$BG_RC
 cat "$runner_out" >>"$AGENT_LOG"
 
 # 5. Restore, and prove the tree is as it was.
@@ -231,14 +320,9 @@ echo "runner: exit $runner_rc, ${runner_result:-no RESULT line}"
 field() { sed -nE "s/.* $1=([^ ]*).*/\1/p" <<<"$runner_result"; }
 # failed_tests keeps exact names (spaces included, joined by |), so it runs up to the closing " log=".
 failed_tests="$(sed -nE 's/.* failed_tests=(.*) log=[^ ]*$/\1/p' <<<"$runner_result")"
-label=()
-[[ -z "$name" ]] || label=("name=${name// /_}")
 
 if [[ $runner_rc -eq 3 ]]; then
-  echo "== first compiler errors" >>"$AGENT_LOG"
-  if [[ -n "$runner_log" && -f "$runner_log" ]]; then
-    grep -E ': error [A-Z]+[0-9]+' "$runner_log" | sort -u | head -n 10 | tee -a "$AGENT_LOG"
-  fi
+  bite_compiler_errors "${runner_log:-none}"
   bite_finish 3 blocked "${label[@]}" reason=mutation-does-not-compile "runner_log=${runner_log:-none}"
 fi
 
@@ -246,20 +330,17 @@ failed="$(field failed)"
 if [[ $runner_rc -eq 1 && "${failed:-0}" -gt 0 ]]; then
   echo "== red tests" >>"$AGENT_LOG"
   if [[ -n "$runner_log" && -f "$runner_log" ]]; then
-    # dotnet test (VSTest) prints "  Failed <name> [<time>]" then "  Error Message:" up to "  Stack Trace:".
-    awk '/^ +Failed .+ \[[^]]*\]$/ { on = 1 } /^ +Stack Trace:/ { on = 0 } on' "$runner_log" >"$BACKUP_DIR/red.txt"
-    if [[ -s "$BACKUP_DIR/red.txt" ]]; then
-      cat "$BACKUP_DIR/red.txt" >>"$AGENT_LOG"
-      # One line per red test: its name and the first lines of its message.
-      awk 'function flush() { if (name != "") print "RED " name ": " substr(msg, 1, 200) }
-        /^ +Failed / { flush(); sub(/^ +Failed /, ""); name = $0; msg = ""; n = 0; next }
-        /^ +Error Message:/ { next }
-        n < 5 { line = $0; gsub(/^ +| +$/, "", line); msg = msg (n ? " " : "") line; n++ }
-        END { flush() }' "$BACKUP_DIR/red.txt" | head -n 10
-    else
-      # A runner with another output format: keep the lines around each failure.
-      grep -n -i -E -A 8 'fail|error|expected' "$runner_log" | head -n 300 >>"$AGENT_LOG" || true
-    fi
+    bite_red_blocks "$runner_name" "$runner_log" >"$BACKUP_DIR/red.txt"
+  fi
+  if [[ -s "$BACKUP_DIR/red.txt" ]]; then
+    cat "$BACKUP_DIR/red.txt" >>"$AGENT_LOG"
+    # One line per red test: its name and the first lines of its message.
+    awk 'function flush() { if (name != "") print "RED " name ": " substr(msg, 1, 200) }
+      /^### / { flush(); name = substr($0, 5); msg = ""; n = 0; next }
+      n < 5 && NF { line = $0; gsub(/^ +| +$/, "", line); msg = msg (n ? " " : "") line; n++ }
+      END { flush() }' "$BACKUP_DIR/red.txt" | head -n 10 || true
+  else
+    echo "bite: found no failure blocks for $runner_name in ${runner_log:-no log}; read the runner log" | tee -a "$AGENT_LOG" >&2
   fi
   bite_finish 0 ok bit=yes "failed=$failed" "tests=\"$failed_tests\"" "${label[@]}" "runner_log=${runner_log:-none}"
 fi
