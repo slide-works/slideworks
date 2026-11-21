@@ -11,9 +11,16 @@ declare global {
 
 // Component tests only: the deck page with a stand-in for measureSlide. A CT prop that is a function runs in Node, so
 // the stand-in is defined here, in the browser bundle, and answers with the findings the test passes as data.
-export function DeckPageChecksHarness({ measured }: { measured: SlideFinding[] }) {
+export function DeckPageChecksHarness({
+  measured,
+  throwOn,
+}: {
+  measured: SlideFinding[];
+  throwOn?: number;
+}) {
   const measure = (_frame: HTMLElement, slide: number) => {
     (window.swMeasureCalls ??= []).push(slide);
+    if (slide === throwOn) throw new Error(`stand-in cannot measure slide ${slide}`);
     return measured.filter((finding) => finding.slide === slide);
   };
   return (

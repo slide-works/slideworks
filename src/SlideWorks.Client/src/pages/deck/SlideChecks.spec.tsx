@@ -8,7 +8,7 @@ import {
   looksPaletteOf,
   looksTemplateOf,
 } from '../../test-support/fixtures/lookViewOf';
-import { deckPage } from '../../test-support/fixtures/screens';
+import { deckPage, lookChangeResult } from '../../test-support/fixtures/screens';
 import { stubApi } from '../../test-support/stubApi';
 import { stubDeckHub } from '../../test-support/stubDeckHub';
 
@@ -39,6 +39,9 @@ const withFindings = (findings: SlideFinding[], revision = deckPage.revision): D
   revision,
   findings,
 });
+
+const measureCount = (page: import('playwright/test').Page) =>
+  page.evaluate(() => window.swMeasureCalls?.length ?? 0);
 
 const badge = (page: import('playwright/test').Page, slide: number) =>
   page
@@ -137,13 +140,47 @@ test('a new revision checks again', async ({ mount, page }) => {
   await mount(<DeckPageChecksHarness measured={[]} />, route);
   await expect.poll(() => hub.joined).toEqual([deckPage.id]);
   await expect.poll(() => reads).toBe(2);
-  const callsBefore = await page.evaluate(() => window.swMeasureCalls?.length ?? 0);
-  expect(callsBefore).toBeGreaterThan(0);
+  // The first pass has measured every slide before the deck is told about a change.
+  await expect.poll(() => measureCount(page)).toBe(deckPage.slides.length);
+  const settled = deckPage.slides.length;
 
   hub.push({ type: 'deckChanged', deckId: deckPage.id });
-  await expect
-    .poll(() => page.evaluate(() => window.swMeasureCalls?.length ?? 0))
-    .toBeGreaterThan(callsBefore);
+  await expect.poll(() => measureCount(page)).toBeGreaterThan(settled);
+});
+
+test('a changed look measures again', async ({ mount, page }) => {
+  await stubApi(page, { [deckPath]: { json: withFindings([]) } });
+  await page.route(`**/api/decks/${deckPage.id}/look`, (r) =>
+    r.fulfill({ json: lookChangeResult }),
+  );
+  await mount(<DeckPageChecksHarness measured={[]} />, route);
+  await expect.poll(() => measureCount(page)).toBe(deckPage.slides.length);
+  const before = await measureCount(page);
+
+  // No revision change: the look alone is saved, as showLook shows it.
+  await page.getByTestId('look-template').selectOption('workshop');
+
+  await expect.poll(() => measureCount(page)).toBeGreaterThan(before);
+});
+
+test('a slide that cannot be measured says so and the others keep their findings', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { [deckPath]: { json: withFindings([]) } });
+  await mount(
+    <DeckPageChecksHarness
+      measured={[finding(1, 'overflow', 'error', 'measured', 'Measured one.')]}
+      throwOn={2}
+    />,
+    route,
+  );
+
+  await expect(badge(page, 1)).toHaveText('1');
+  await page.getByTestId('deck-thumb').nth(1).click();
+  await expect(page.getByTestId('slide-checks-unchecked')).toHaveText('Could not check slide 2.');
+  await page.getByTestId('deck-thumb').nth(0).click();
+  await expect(page.getByTestId('slide-check')).toHaveCount(1);
 });
 
 test("opening another deck drops the first deck's findings", async ({ mount, page }) => {
