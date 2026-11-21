@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using SlideWorks.WebApi.Features.Checks;
 using SlideWorks.WebApi.Features.Templates.Assets;
 using SlideWorks.WebApi.Infrastructure.Rendering;
 
@@ -53,7 +54,34 @@ public sealed class FakeRenderEngine : IRenderEngine
 
     public Task<byte[]> RenderGenericCardAsync(CancellationToken ct) => Render(GENERIC);
 
-    public Task<byte[]> RenderSlideAsync(string deckId, int slide, CancellationToken ct) => Render($"slide:{deckId}:{slide}");
+    private readonly ConcurrentDictionary<int, IReadOnlyList<SlideFinding>> _findings = new();
+    private readonly ConcurrentDictionary<int, Exception> _failures = new();
+
+    // The findings every render of this slide number carries (in any deck).
+    public void FindingsFor(int slide, params SlideFinding[] findings) => _findings[slide] = findings;
+
+    // Back to rendering every slide cleanly with no findings, for the next test of a shared fixture.
+    public void Reset()
+    {
+        ThrowOnRender = null;
+        _findings.Clear();
+        _failures.Clear();
+    }
+
+    // Makes every render of this slide number throw error. ThrowOnRender, when set, still wins for all slides.
+    public void FailSlide(int slide, Exception error) => _failures[slide] = error;
+
+    public async Task<RenderedSlide> RenderSlideAsync(string deckId, int slide, CancellationToken ct)
+    {
+        var call = $"slide:{deckId}:{slide}";
+        if (_failures.TryGetValue(slide, out var failure) && ThrowOnRender == null)
+        {
+            _calls.Enqueue(call);
+            throw failure;
+        }
+
+        return new RenderedSlide(await Render(call), _findings.GetValueOrDefault(slide, []));
+    }
 
     private Task<byte[]> Render(string call)
     {

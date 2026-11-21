@@ -1,6 +1,7 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.Core.Rendering;
+using SlideWorks.WebApi.Features.Checks;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Render.Mcp;
@@ -22,6 +23,7 @@ public class DeckPreviews(
     IPublicUrls urls,
     IRenderTokens tokens,
     IRenderEngine engine,
+    IStoredSlideChecks stored,
     PreviewInstructions instructions)
 {
     public async Task<PreviewDeckOutcome> PreviewAsync(string deckId, IReadOnlyList<int>? slides)
@@ -44,11 +46,14 @@ public class DeckPreviews(
         var playerUrl = urls.Deck(deck.Id, deck.Slug);
         var lifetime = RenderTokens.LifetimeOf(RenderPurpose.Preview);
         var images = new List<byte[]>(numbers.Count);
+        var findings = new List<SlideFinding>(await stored.CheckAsync(deck.Id, numbers, CancellationToken.None));
         foreach (var number in numbers)
         {
             try
             {
-                images.Add(await engine.RenderSlideAsync(deck.Id, number, CancellationToken.None));
+                var rendered = await engine.RenderSlideAsync(deck.Id, number, CancellationToken.None);
+                images.Add(rendered.Png);
+                findings.AddRange(rendered.Findings);
             }
             catch (Exception error) when (error is RendererUnavailableException or TimeoutException or RenderingFailedException)
             {
@@ -66,7 +71,8 @@ public class DeckPreviews(
                 playerUrl,
                 $"{urls.Base}/api/cards/{id}.png",
                 instructions.Fill(renderUrl, numbers, playerUrl, lifetime),
-                images.Count),
+                images.Count,
+                SlideFinding.Sorted(findings)),
             images);
     }
 }

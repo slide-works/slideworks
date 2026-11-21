@@ -89,7 +89,7 @@ export function BigNumberLayout({ slots, step }: LayoutProps<'big-number'>) {
         </div>
       )}
       {source !== undefined ? (
-        <p data-testid="big-number-source" className={styles.source}>
+        <p data-testid="big-number-source" data-check-size="designed" className={styles.source}>
           {`Source: ${source}`}
         </p>
       ) : null}

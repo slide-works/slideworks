@@ -1,16 +1,18 @@
-import type { DeckPageView } from '../../api/types';
+import type { DeckPageView, SlideFinding } from '../../api/types';
 import { deepDivesOf } from '../../look/deepDivesOf';
 import type { SlideDeck } from '../../slides/slots';
 import { SlideThumb } from './SlideThumb';
 
 type SlideGridProps = {
   view: DeckPageView;
+  findings: ReadonlyMap<number, SlideFinding[]>;
+  measured: boolean;
   selected: number;
   onSelect(slideNumber: number): void;
 };
 
 // Every slide of the deck as a thumbnail, in order.
-export function SlideGrid({ view, selected, onSelect }: SlideGridProps) {
+export function SlideGrid({ view, findings, measured, selected, onSelect }: SlideGridProps) {
   // The same deck the player shows, so thumbnail footers match it.
   const deck: SlideDeck = {
     title: view.title,
@@ -31,13 +33,18 @@ export function SlideGrid({ view, selected, onSelect }: SlideGridProps) {
     );
   }
   return (
-    <ol data-testid="deck-thumbs" className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+    <ol
+      data-testid="deck-thumbs"
+      data-checks-measured={measured ? 'true' : 'false'}
+      className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4"
+    >
       {view.slides.map((slide) => (
         <SlideThumb
           key={slide.number}
           slide={slide}
           deck={deck}
           total={view.slides.length}
+          findings={findings.get(slide.number) ?? []}
           selected={slide.number === selected}
           onSelect={() => onSelect(slide.number)}
         />

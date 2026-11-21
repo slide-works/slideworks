@@ -31,11 +31,15 @@ export function GanttRow({ row, line }: GanttRowProps) {
       </span>
       {status === 'ship' ? (
         <span data-testid="gantt-bar" data-status={status} className={styles.ship} style={place}>
-          <span className={styles.note}>▲ {text}</span>
+          <span className={styles.note} data-check-size="designed">
+            ▲ {text}
+          </span>
         </span>
       ) : (
         <span data-testid="gantt-bar" data-status={status} className={styles.bar} style={place}>
-          <span className={styles.note}>{text}</span>
+          <span className={styles.note} data-check-size="designed">
+            {text}
+          </span>
         </span>
       )}
     </>

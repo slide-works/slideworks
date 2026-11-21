@@ -3,6 +3,8 @@ import { useLocation, useParams } from 'react-router-dom';
 import type { DeckPlayView } from '../api/types';
 import { deepDivesOf } from '../look/deepDivesOf';
 import { fontsSettled } from '../look/fontsSettled';
+import { measureSlide } from '../checks/measureSlide';
+import type { SlideFinding } from '../checks/types';
 import { JoinProvider } from '../slides/JoinContext';
 import { SlideRenderer } from '../slides/SlideRenderer';
 import type { SlideDeck } from '../slides/slots';
@@ -70,7 +72,8 @@ function imagesLoaded(root: HTMLElement): Promise<void> {
 // gate and with no realtime subscription. The render token comes only from the
 // fragment (#token=…), never the query string, and is removed from the address
 // bar at once. data-ready="true" is set once fonts and images have loaded, or
-// data-error with the reason, which is also drawn as text in the root so a
+// data-checks (the measured findings as JSON) is written with it. A failed load
+// sets data-error with the reason, which is also drawn as text in the root so a
 // screenshot of a failed page shows why.
 export function RenderPage() {
   const { id = '', n } = useParams();
@@ -79,7 +82,9 @@ export function RenderPage() {
   const [load, setLoad] = useState<Load>(() =>
     token ? { state: 'loading' } : { state: 'failed', error: TOKEN_MISSING },
   );
-  const [ready, setReady] = useState<{ ok: true } | { ok: false; error: string } | null>(null);
+  const [ready, setReady] = useState<
+    { ok: true; checks: SlideFinding[] } | { ok: false; error: string } | null
+  >(null);
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -125,8 +130,13 @@ export function RenderPage() {
     nextFrame()
       .then(() => fontsSettled(view?.look))
       .then(() => imagesLoaded(element))
+      .then(() => {
+        const frame = element.querySelector<HTMLElement>('[data-testid="slide-frame"]');
+        if (!frame || !slide) throw new Error('Rendering failed: no slide frame');
+        return measureSlide(frame, slide.number);
+      })
       .then(
-        () => live && setReady({ ok: true }),
+        (checks) => live && setReady({ ok: true, checks }),
         (error: Error) => live && setReady({ ok: false, error: error.message }),
       );
     return () => {
@@ -150,6 +160,7 @@ export function RenderPage() {
       data-deck-id={id}
       data-slide={n}
       data-ready={ready?.ok && !error ? 'true' : undefined}
+      data-checks={ready?.ok && !error ? JSON.stringify(ready.checks) : undefined}
       data-error={error}
       className="overflow-hidden"
       style={{ width: 1920, height: 1080 }}

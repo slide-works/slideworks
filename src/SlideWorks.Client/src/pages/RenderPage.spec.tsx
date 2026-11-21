@@ -162,3 +162,28 @@ test('render page signals ready when a font fails', async ({ mount, page }) => {
   await expect(root).toHaveAttribute('data-ready', 'true');
   await expect(root).not.toHaveAttribute('data-error', /.*/);
 });
+
+test('the render page writes its checks before it is ready', async ({ mount, page }) => {
+  await stubRender(page);
+
+  await mount(<AppRoutes />, { hooksConfig: { route: route(1) } });
+
+  const root = page.getByTestId('render-slide');
+  await expect(root).toHaveAttribute('data-ready', 'true');
+  const checks = JSON.parse((await root.getAttribute('data-checks')) ?? 'null') as unknown;
+  expect(Array.isArray(checks)).toBe(true);
+});
+
+test('a failed render page writes no checks', async ({ mount, page }) => {
+  await stubRender(page, {
+    json: { ...sampleDeck, look: { ...sampleDeck.look, logo: { url: '/api/images/missing' } } },
+  });
+  await page.route('**/api/images/missing', (r) => r.fulfill({ status: 404 }));
+
+  await mount(<AppRoutes />, { hooksConfig: { route: route(3) } });
+
+  const root = page.getByTestId('render-slide');
+  await expect(root).toHaveAttribute('data-error', /image/);
+  await expect(root).not.toHaveAttribute('data-checks', /.*/);
+  await expect(root).not.toHaveAttribute('data-ready', /.*/);
+});

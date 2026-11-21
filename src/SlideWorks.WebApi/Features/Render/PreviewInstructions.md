@@ -27,6 +27,8 @@ await browser.close();
 ```
 
 4. **Look at every PNG** before you say the deck is done. A slide that couldn't be drawn shows its error as text on a blank page (for example `Deck not found` or `Rendering failed: image <id>`): report that text, or, for `Deck not found`, see step 6.
+
+   Then read `findings`: fix every error and warning, and preview again. Notes are for your eyes: look at them.
 5. The page reads the token from the part after `#` when it first loads and then removes it from the address. A reload shows `Render token missing`: open the full URL again.
 6. The URL expires in {{minutes}} minutes, and don't share it. An expired URL screenshots as `Deck not found`: call `preview_deck` again and take the screenshots again. A command that stops with a timeout after {{timeout_seconds}} seconds means the page never finished loading: run it once more, and if it times out again, report it.
 7. With no shell, or no way to install a browser, say so to the person and give them the player link instead: {{player_url}}

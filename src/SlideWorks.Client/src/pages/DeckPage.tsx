@@ -13,6 +13,8 @@ import { DeckHeader } from './deck/DeckHeader';
 import { LaterOnThisPage } from './deck/LaterOnThisPage';
 import { SelectedSlide } from './deck/SelectedSlide';
 import { SlideGrid } from './deck/SlideGrid';
+import { useSlideChecks, type Measure } from './deck/useSlideChecks';
+import { measureSlide } from '../checks/measureSlide';
 
 type Load =
   | { kind: 'loading' }
@@ -23,7 +25,7 @@ type Load =
 // /decks/:id: the deck page, from one GET /api/decks/{id} (DeckPageView): the
 // slide grid as real thumbnails, the selected slide's notes and link, the
 // activity log, Share and Present. It re-reads when the deck changes.
-export function DeckPage() {
+export function DeckPage({ measure = measureSlide }: { measure?: Measure }) {
   const { id = '' } = useParams();
   // Each read is stamped with its deck, so another deck's result never shows.
   const [result, setResult] = useState<{ id: string; load: Load } | null>(null);
@@ -84,6 +86,9 @@ export function DeckPage() {
 
   useDeckRealtime(id, () => void read(), reReadOnJoin);
 
+  const root = useRef<HTMLElement>(null);
+  const checks = useSlideChecks(root, load.kind === 'loaded' ? load.view : null, measure);
+
   // A saved look shows at once; the DeckChanged re-read brings the new revision.
   const showLook = useCallback(
     (look: DeckPageLook) =>
@@ -133,11 +138,13 @@ export function DeckPage() {
 
   return (
     <JoinProvider deckId={view.id} join={view.join} owner={view.isOwner}>
-      <section data-testid="deck-page" data-deck-id={view.id} className="grid gap-5">
+      <section ref={root} data-testid="deck-page" data-deck-id={view.id} className="grid gap-5">
         <DeckHeader view={view} onShare={() => setSharing(true)} />
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <SlideGrid
             view={view}
+            findings={checks.bySlide}
+            measured={checks.measured}
             selected={slide?.number ?? 0}
             onSelect={(number) => setSelection({ id, number })}
           />
@@ -148,7 +155,13 @@ export function DeckPage() {
                 <QaSettingsCard deckId={view.id} slide={slide?.number ?? null} />
               </QaControlLive>
             )}
-            {slide && <SelectedSlide slide={slide} />}
+            {slide && (
+              <SelectedSlide
+                slide={slide}
+                findings={checks.bySlide.get(slide.number) ?? []}
+                unchecked={checks.unchecked.has(slide.number)}
+              />
+            )}
             <ActivityFeed rows={view.activity} isOwner={view.isOwner} />
             <LaterOnThisPage />
           </div>

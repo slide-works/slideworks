@@ -47,7 +47,7 @@ export function ComparePanel({
         } as CSSProperties)
       : toneStyle(tone, fill);
   const label = (
-    <p data-testid="compare-label" className={styles.tag}>
+    <p data-testid="compare-label" className={styles.tag} data-check-size="designed">
       {side.label}
     </p>
   );

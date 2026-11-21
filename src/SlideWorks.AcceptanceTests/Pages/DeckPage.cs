@@ -56,6 +56,16 @@ public sealed class DeckPage(IPage page)
     // The thumbnail of slide {number}, counted from 1.
     public ILocator Thumbnail(int number) => Thumbnails.Nth(number - 1);
 
+    // The problem count on slide {number}'s thumbnail, and the selected slide's Checks list.
+    public ILocator ChecksBadge(int number) => Thumbnail(number).GetByTestId("slide-checks-badge");
+
+    public ILocator ChecksList() => page.GetByTestId("slide-checks");
+
+    public ILocator ChecksRows() => ChecksList().GetByTestId("slide-check");
+
+    // The slide grid; data-checks-measured is "true" once the deck's checks have been measured, "false" while measuring.
+    public ILocator ChecksMeasured() => page.GetByTestId("deck-thumbs");
+
     public async Task GotoAsync(string deckId) => await page.GotoAsync(PathFor(deckId));
 
     // Selects slide {number} in the grid, so its notes and link show beside it.

@@ -4,6 +4,7 @@ using SlideWorks.Core;
 using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
+using SlideWorks.WebApi.Features.Checks;
 using SlideWorks.WebApi.Features.Decks.Mcp;
 using SlideWorks.WebApi.Features.Decks.Views;
 using SlideWorks.WebApi.Features.Live;
@@ -28,7 +29,8 @@ public class DeckQueries(
     JoinViews joinViews,
     TimeProvider clock,
     IDeckLooks looks,
-    ITemplates templates)
+    ITemplates templates,
+    IStoredSlideChecks storedChecks)
 {
     public const int ACTIVITY_MAX = 50;
 
@@ -51,6 +53,7 @@ public class DeckQueries(
         var viewerCount = await db.DeckViewers.AsNoTracking().CountAsync(v => v.DeckId == deckId);
         var entries = await activity.ListAsync(deckId, ACTIVITY_MAX);
         var template = await templates.ForDeckAsync(deck, CancellationToken.None);
+        var findings = await storedChecks.CheckAsync(deckId, [.. Enumerable.Range(1, slides.Count)], CancellationToken.None);
         return new DeckPageView(
             deck.Id,
             deck.Slug,
@@ -64,7 +67,8 @@ public class DeckQueries(
             DeckParts.Read(deck),
             looks.PageOf(deck, template),
             slides.Select(slide => DeckPageSlide.From(deck, slide, template)).ToList(),
-            entries.Select(entry => ActivityRow.From(entry, DisplayDate.Ago(entry.At, now))).ToList());
+            entries.Select(entry => ActivityRow.From(entry, DisplayDate.Ago(entry.At, now))).ToList(),
+            findings);
     }
 
     // list_decks: the decks the agent's presenter owns, newest change first, with absolute player links.
