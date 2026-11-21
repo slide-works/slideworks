@@ -202,6 +202,32 @@ test('PresenterPage_WhenOPressed_ShouldOpenOverviewAndEscShouldCloseIt', async (
   expect(hub.updates).toEqual([{ slide: 12, step: 0, black: false, skipDeepDives: false }]);
 });
 
+test('PresenterPage_WhenACheckboxHasFocus_ShouldStillMoveWithTheArrowsAndLeaveSpaceToIt', async ({
+  mount,
+  page,
+}) => {
+  const hub = await openPresenter(page, mount);
+  await waitUntilLive(page);
+  await page.evaluate(() => {
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.id = 'probe-checkbox';
+    document.querySelector('[data-testid="presenter-page"]')!.appendChild(box);
+    box.focus();
+  });
+  await expect(page.locator('#probe-checkbox')).toBeFocused();
+
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('presenter-count')).toHaveText('9 / 16');
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.getByTestId('presenter-count')).toHaveText('8 / 16');
+  // Space toggles the checkbox and does not move the talk.
+  await page.keyboard.press(' ');
+  await expect(page.locator('#probe-checkbox')).toBeChecked();
+  await settle(page);
+  expect(hub.updates).toHaveLength(2);
+});
+
 test('PresenterPage_WhenNumberThenEnterTyped_ShouldJumpToThatSlide', async ({ mount, page }) => {
   const hub = await openPresenter(page, mount);
   await waitUntilLive(page);
