@@ -106,17 +106,20 @@ public sealed class Reactions(
         {
             return null;
         }
-        var db = services.GetRequiredService<AppDbContext>();
-        var count = await db.Slides.AsNoTracking().CountAsync(s => s.DeckId == deckId && s.DeletedAt == null);
-        if (count == 0)
+        // One read of the deck's slide ids in order (as AudienceRoom reads them), not a count and then a lookup: a tap does
+        // about fifteen reads before it is counted, and this one was two of them. A slide deleted while live can't fall
+        // between the two either.
+        var ids = await services.GetRequiredService<AppDbContext>().Slides.AsNoTracking()
+            .Where(s => s.DeckId == deckId && s.DeletedAt == null)
+            .OrderBy(s => s.Position)
+            .Select(s => s.Id)
+            .ToListAsync();
+        if (ids.Count == 0)
         {
             return null;
         }
-        var shown = Math.Clamp(presentation.Slide, 1, count);
-        var slideId = await db.Slides.AsNoTracking()
-            .Where(s => s.DeckId == deckId && s.DeletedAt == null && s.Position == shown - 1)
-            .Select(s => s.Id)
-            .SingleAsync();
+        var shown = Math.Clamp(presentation.Slide, 1, ids.Count);
+        var slideId = ids[shown - 1];
         return (shown, slideId);
     }
 
