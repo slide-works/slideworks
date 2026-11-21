@@ -46,23 +46,49 @@ if [[ $rc -ne 0 ]]; then
 fi
 
 rc=0
+json="${AGENT_LOG%.log}.json"
+rm -f "$json"
 echo "== playwright test" >>"$AGENT_LOG"
 (
   cd "$client"
   export LD_LIBRARY_PATH="${PLAYWRIGHT_LD_LIBRARY_PATH:+$PLAYWRIGHT_LD_LIBRARY_PATH:}${LD_LIBRARY_PATH:-}"
-  export NO_COLOR=1 FORCE_COLOR=0
+  export NO_COLOR=1 FORCE_COLOR=0 PLAYWRIGHT_JSON_OUTPUT_NAME="$json"
   agent_locked timeout -k 10 "${AGENT_TEST_TIMEOUT:-600}" \
-    pnpm exec playwright test -c playwright-ct.config.ts "${files[@]}" --grep-invert screenshot --reporter=list
+    pnpm exec playwright test -c playwright-ct.config.ts "${files[@]}" --grep-invert screenshot --reporter=list,json
 ) >>"$AGENT_LOG" 2>&1 || rc=$?
 [[ $rc -ne 5 ]] || agent_finish 5 reason=lock-wait-timed-out
 [[ $rc -ne 124 ]] || agent_finish 124 reason=test-timed-out
-count() { sed -nE "s/^ *([0-9]+) $1( .*)?\$/\1/p" "$AGENT_LOG" | tail -n 1; }
-passed="$(count passed)" failed="$(count failed)" skipped="$(count skipped)"
-passed="${passed:-0}" failed="${failed:-0}" skipped="${skipped:-0}"
-if [[ "$passed" -eq 0 && "$failed" -eq 0 ]]; then
-  agent_finish 1 reason=no-result-line
+# Playwright's own exit code decides pass or fail; the counts and names come from its JSON report,
+# which (unlike the list reporter's marks) knows an expected failure (test.fail) from a real one.
+if [[ ! -s "$json" ]]; then
+  agent_finish 1 reason=no-result-line "playwright_exit=$rc"
 fi
-mapfile -t failures < <(grep '✘' "$AGENT_LOG" | sed -E 's/^ *✘ +[0-9]+ +//; s/ \([0-9.]+m?s\)$//' | sort -u)
+summary="$(node - "$json" "$client" <<'NODE'
+const report = JSON.parse(require('fs').readFileSync(process.argv[2], 'utf8'));
+const path = require('path');
+const dir = path.relative(process.argv[3], report.config.rootDir);
+const bad = [];
+let expectedFail = 0;
+const walk = (suite, titles) => {
+  const here = suite.file && !suite.title.includes('/') && suite.title !== suite.file ? [...titles, suite.title] : titles;
+  for (const spec of suite.specs ?? []) {
+    for (const test of spec.tests ?? []) {
+      if (test.expectedStatus === 'failed' && test.status === 'expected') expectedFail++;
+      if (test.status === 'unexpected' || test.status === 'flaky') {
+        bad.push([`${path.join(dir, spec.file)}:${spec.line}:${spec.column}`, ...here, spec.title].join(' › '));
+      }
+    }
+  }
+  for (const child of suite.suites ?? []) walk(child, here);
+};
+for (const suite of report.suites ?? []) walk(suite, []);
+const s = report.stats;
+console.log([s.expected, s.unexpected, s.flaky, s.skipped, expectedFail].join(' '));
+for (const name of [...new Set(bad)].sort()) console.log(name);
+NODE
+)" || agent_finish 1 reason=bad-report "playwright_exit=$rc"
+{ read -r passed unexpected flaky skipped expected_fail; mapfile -t failures; } <<<"$summary"
+failed=$((unexpected + flaky))
 names=()
 for name in "${failures[@]:0:10}"; do
   echo "FAILED $name"
@@ -72,11 +98,12 @@ if [[ ${#failures[@]} -gt 10 ]]; then
   echo "+$((${#failures[@]} - 10)) more"
   names+=("+$((${#failures[@]} - 10)) more")
 fi
-counts=("passed=$passed" "failed=$failed" "skipped=$skipped")
+counts=("passed=$passed" "failed=$failed" "flaky=$flaky" "skipped=$skipped")
+[[ "$expected_fail" -eq 0 ]] || counts+=("expected_failures=$expected_fail")
 if [[ ${#names[@]} -gt 0 ]]; then
   counts+=("failed_tests=$(IFS='|'; echo "${names[*]}")")
 fi
-if [[ $rc -eq 0 && "$failed" -eq 0 ]]; then
+if [[ $rc -eq 0 && "$failed" -eq 0 && "$unexpected" -eq 0 ]]; then
   agent_finish 0 "${counts[@]}"
 fi
 agent_finish 1 "${counts[@]}"
