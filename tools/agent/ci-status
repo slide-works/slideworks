@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Lists the jobs of the newest CI run whose head contains a commit (an ancestor match, not an exact sha match).
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage="usage: tools/agent/ci-status [--branch <branch>] [<sha>]   (default sha: HEAD)"
+branch="" sha="" bad=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h | --help)
+      echo "$usage"
+      exit 0
+      ;;
+    --branch)
+      [[ $# -ge 2 ]] || bad=1
+      branch="${2:-}"
+      shift 2 || break
+      ;;
+    -*) bad=1; break ;;
+    *) [[ -z "$sha" ]] || bad=1; sha="$1"; shift ;;
+  esac
+done
+agent_start
+[[ $bad -eq 0 ]] || agent_die 2 "$usage" reason=bad-usage
+agent_require git gh jq
+cd "$(agent_root)"
+sha="$(git rev-parse --verify -q "${sha:-HEAD}^{commit}")" || agent_die 2 "not a commit: ${sha:-HEAD}" reason=unknown-commit
+
+fields="databaseId,headSha,headBranch,workflowName,status,conclusion,url"
+args=(run list --limit 40 --json "$fields")
+[[ -z "$branch" ]] || args+=(--branch "$branch")
+runs="$(gh "${args[@]}" 2>>"$AGENT_LOG")" || agent_die 4 "gh run list failed (is gh logged in? see log)" reason=gh-failed
+
+# Newest run per workflow whose head has the commit as an ancestor.
+declare -A seen=()
+picked=()
+while IFS=$'\t' read -r id head wf; do
+  [[ -z "${seen[$wf]:-}" ]] || continue
+  if git cat-file -e "$head^{commit}" 2>/dev/null || git fetch -q origin "$head" >>"$AGENT_LOG" 2>&1; then
+    if git merge-base --is-ancestor "$sha" "$head" 2>/dev/null; then
+      seen[$wf]=1
+      picked+=("$id")
+    fi
+  fi
+done < <(jq -r '.[] | [.databaseId, .headSha, .workflowName] | @tsv' <<<"$runs")
+
+if [[ ${#picked[@]} -eq 0 ]]; then
+  echo "no workflow run has $(git rev-parse --short "$sha") as an ancestor of its head (not pushed, or CI has not started)"
+  agent_finish 1 reason=no-run "sha=$(git rev-parse --short "$sha")"
+fi
+
+failed=0 running=0 total=0
+for id in "${picked[@]}"; do
+  view="$(gh run view "$id" --json jobs,url,workflowName,headSha,status 2>>"$AGENT_LOG")" \
+    || agent_die 4 "gh run view $id failed (see log)" reason=gh-failed
+  jq -r '"run \(.workflowName) \(.url) head=\(.headSha[0:7]) status=\(.status)"' <<<"$view"
+  jq -r '.jobs[] | "  \(.name): \(if .conclusion == "" or .conclusion == null then .status else .conclusion end)"' <<<"$view"
+  total=$((total + $(jq '.jobs | length' <<<"$view")))
+  running=$((running + $(jq '[.jobs[] | select(.conclusion == "" or .conclusion == null)] | length' <<<"$view")))
+  failed=$((failed + $(jq '[.jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out")] | length' <<<"$view")))
+done
+
+if [[ $failed -gt 0 ]]; then
+  agent_finish 1 "jobs=$total" "failed=$failed" "running=$running"
+elif [[ $running -gt 0 ]]; then
+  AGENT_FINISHED=1
+  line="$(agent_result ci-status blocked "$AGENT_LOG" "running" "jobs=$total" "running=$running")"
+  printf '%s\n' "$line" >>"$AGENT_LOG"
+  printf '%s\n' "$line"
+  agent_mark_done "$AGENT_LOG" 0
+  exit 0
+fi
+agent_finish 0 "jobs=$total"

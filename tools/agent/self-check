@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# Checks a task before it reports: config files changed, stray files and commit subjects since the task's base commit.
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage="usage: tools/agent/self-check --base <sha>   (the task's own base commit, never origin/main)"
+base="" bad=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h | --help)
+      echo "$usage"
+      exit 0
+      ;;
+    --base)
+      [[ $# -ge 2 ]] || bad=1
+      base="${2:-}"
+      shift 2 || break
+      ;;
+    *) bad=1; break ;;
+  esac
+done
+agent_start
+[[ $bad -eq 0 && -n "$base" ]] || agent_die 2 "$usage" reason=bad-usage
+agent_require git
+cd "$(agent_root)"
+git rev-parse --verify -q "$base^{commit}" >/dev/null || agent_die 2 "not a commit: $base" reason=unknown-base
+base="$(git rev-parse "$base^{commit}")"
+git merge-base --is-ancestor "$base" HEAD || agent_die 2 "$base is not an ancestor of HEAD" reason=base-not-ancestor
+
+config_re='(\.csproj|\.props|\.config\.ts|\.config\.js)$|(^|/)(\.editorconfig|package\.json|pnpm-lock\.yaml|BannedSymbols\.txt)$|^\.github/'
+stray_re='(^|/)timeout$|\.tsbuildinfo$|\.log$|(^|/)test-results/|(^|/)playwright-report/'
+
+indent() {
+  local prefix="$1" line
+  while IFS= read -r line; do printf '%s%s\n' "$prefix" "$line"; done
+}
+
+problems=0
+config="$(git diff --name-only "$base" HEAD | grep -E "$config_re" || true)"
+if [[ -n "$config" ]]; then
+  echo "config files changed since $base (list each in the report):"
+  indent '  ' <<<"$config"
+  problems=$((problems + 1))
+fi
+
+stray="$(git diff --name-only --diff-filter=d "$base" HEAD | grep -E "$stray_re" || true)"
+pngs="$(git diff --name-only --diff-filter=A "$base" HEAD | grep -E -- '-snapshots/.*\.png$' || true)"
+if [[ -n "$stray$pngs" ]]; then
+  echo "stray files committed since $base (remove them, or confirm a PNG is a CI baseline):"
+  [[ -z "$stray" ]] || indent '  ' <<<"$stray"
+  [[ -z "$pngs" ]] || indent '  new snapshot PNG: ' <<<"$pngs"
+  problems=$((problems + 1))
+fi
+
+task="${AGENT_TASK:-}"
+badsubjects=""
+while IFS=$'\t' read -r sha subject; do
+  [[ -n "$sha" ]] || continue
+  if [[ -n "$task" && "$subject" != "$task"* ]]; then
+    badsubjects+="  $sha does not start with $task: $subject"$'\n'
+  fi
+  if [[ ${#subject} -gt 120 ]]; then
+    badsubjects+="  $sha subject is ${#subject} characters (max 120)"$'\n'
+  fi
+done < <(git log --format='%h%x09%s' "$base..HEAD")
+if [[ -n "$badsubjects" ]]; then
+  echo "commit subjects to fix:"
+  printf '%s' "$badsubjects"
+  problems=$((problems + 1))
+fi
+
+if [[ $problems -gt 0 ]]; then
+  agent_finish 1 "findings=$problems" "base=${base:0:7}"
+fi
+agent_finish 0 "base=${base:0:7}"
