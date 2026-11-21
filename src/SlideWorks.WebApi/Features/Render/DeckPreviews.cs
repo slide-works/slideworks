@@ -48,7 +48,7 @@ public class DeckPreviews(
         {
             try
             {
-                images.Add(await engine.RenderSlideAsync(deck.Id, number, CancellationToken.None));
+                images.Add((await engine.RenderSlideAsync(deck.Id, number, CancellationToken.None)).Png);
             }
             catch (Exception error) when (error is RendererUnavailableException or TimeoutException or RenderingFailedException)
             {

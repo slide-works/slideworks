@@ -10,8 +10,8 @@ public interface IRenderEngine
 
     Task<byte[]> RenderGenericCardAsync(CancellationToken ct);
 
-    // One slide of a deck, at 1920x1080, from the render route. The same failures as a card render.
-    Task<byte[]> RenderSlideAsync(string deckId, int slide, CancellationToken ct);
+    // One slide of a deck, at 1920x1080, from the render route, with the findings its page measured. The same failures as a card render.
+    Task<RenderedSlide> RenderSlideAsync(string deckId, int slide, CancellationToken ct);
 
     // The raw width of FontMeasurePage's sample line in a woff2 font: pixels / (characters x 16). One measure per uploaded font.
     Task<double> MeasureFontAsync(byte[] woff2, CancellationToken ct);

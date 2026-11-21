@@ -1,8 +1,10 @@
 using Agoda.IoC.Core;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using System.Text.Json;
 using Microsoft.Playwright;
 using SlideWorks.Core.Rendering;
+using SlideWorks.WebApi.Features.Checks;
 using SlideWorks.WebApi.Features.Render;
 
 namespace SlideWorks.WebApi.Infrastructure.Rendering;
@@ -43,7 +45,7 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
     private const string SLIDE_SETTLED = "() => { const slide = document.querySelector('[data-testid=render-slide]'); return !!slide && (slide.dataset.ready === 'true' || slide.hasAttribute('data-error')); }";
 
     // A slide of the deck, on the render route, with a Preview token. The card path is left as it is.
-    public async Task<byte[]> RenderSlideAsync(string deckId, int slide, CancellationToken ct)
+    public async Task<RenderedSlide> RenderSlideAsync(string deckId, int slide, CancellationToken ct)
     {
         var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
         deadline.CancelAfter(_options.Timeout);
@@ -63,7 +65,7 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
         throw new System.TimeoutException(TIMED_OUT);
     }
 
-    private async Task<byte[]> RenderSlideInSlotAsync(string deckId, int slide, CancellationToken ct)
+    private async Task<RenderedSlide> RenderSlideInSlotAsync(string deckId, int slide, CancellationToken ct)
     {
         await _pages.WaitAsync(ct);
         try
@@ -92,7 +94,7 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
         }
     }
 
-    private async Task<byte[]> RenderSlidePageAsync(IBrowser chromium, string deckId, int slide, CancellationToken ct)
+    private async Task<RenderedSlide> RenderSlidePageAsync(IBrowser chromium, string deckId, int slide, CancellationToken ct)
     {
         var origin = BaseUrl();
         var token = tokens.Issue(deckId, RenderPurpose.Preview);
@@ -125,7 +127,26 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
             throw Failed(error);
         }
 
-        return await frame.ScreenshotAsync(new LocatorScreenshotOptions { Type = ScreenshotType.Png });
+        var png = await frame.ScreenshotAsync(new LocatorScreenshotOptions { Type = ScreenshotType.Png });
+        return new RenderedSlide(png, ReadChecks(await frame.GetAttributeAsync("data-checks")));
+    }
+
+    // The data-checks attribute: absent means none measured; text that isn't a list of findings is a failed render.
+    private static IReadOnlyList<SlideFinding> ReadChecks(string? json)
+    {
+        if (json == null)
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<SlideFinding>>(json, FindingJson.Options) ?? throw Failed("checks unreadable");
+        }
+        catch (JsonException)
+        {
+            throw Failed("checks unreadable");
+        }
     }
 
     // Measures an uploaded font in a context of its own: no network, a CSP that allows only data: fonts, and a deadline
