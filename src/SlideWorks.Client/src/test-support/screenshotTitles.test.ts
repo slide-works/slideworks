@@ -30,13 +30,20 @@ export function screenshotTestsWithoutTheWord(source: string): string[] {
     .map((helper) => helper[1]);
   const takesScreenshot = (body: string) =>
     body.includes('toHaveScreenshot') || helpers.some((name) => body.includes(`${name}(`));
-  const starts = [...source.matchAll(/^([ \t]*)test(?:\.\w+)?\(\s*(['"`])((?:\\.|(?!\2).)*)\2/gm)];
-  return starts.flatMap((match) => {
-    const indent = match[1];
-    const rest = source.slice(match.index);
+  // test( and it( anywhere on a line (inside a loop or a describe block), with the usual modifiers. test.describe
+  // is not a test, so its title is not checked.
+  const starts = [
+    ...source.matchAll(
+      /(?<![\w$.])(?:test|it)(?:\.(?:only|skip|fixme|fail|slow))?\(\s*(['"`])((?:\\.|(?!\1).)*)\1/g,
+    ),
+  ];
+  return starts.flatMap((match, index) => {
+    const lineStart = source.lastIndexOf('\n', match.index) + 1;
+    const indent = /^[ \t]*/.exec(source.slice(lineStart))![0];
+    const rest = source.slice(match.index, starts[index + 1]?.index);
     const closing = rest.indexOf(`\n${indent}})`);
     const body = closing === -1 ? rest : rest.slice(0, closing);
-    const title = match[3];
+    const title = match[2];
     return takesScreenshot(body) && !/screenshot/i.test(title) ? [title] : [];
   });
 }
@@ -64,6 +71,45 @@ describe('screenshotTestsWithoutTheWord', () => {
     const source = [
       "test('Screenshot: a bar', async () => { await expect(c).toHaveScreenshot('a.png'); });",
       "test('renders text', async () => { await expect(c).toBeVisible(); });",
+    ].join('\n');
+    expect(screenshotTestsWithoutTheWord(source)).toEqual([]);
+  });
+
+  it('names a bad title in an it( test', () => {
+    const source = "it('renders a bar', async () => { await expect(c).toHaveScreenshot('a.png'); });";
+    expect(screenshotTestsWithoutTheWord(source)).toEqual(['renders a bar']);
+  });
+
+  it('names a bad title in a test( that is not at the start of a line', () => {
+    const source = [
+      'for (const name of names) {',
+      "  if (name) test('renders ' + name, async () => {",
+      "    await expect(c).toHaveScreenshot('a.png');",
+      '  });',
+      '}',
+      "describe('x', () => { test('inline bar', async () => { await expect(c).toHaveScreenshot('b.png'); }); });",
+    ].join('\n');
+    expect(screenshotTestsWithoutTheWord(source)).toEqual(['renders ', 'inline bar']);
+  });
+
+  it('names a bad title in an it( inside a describe block', () => {
+    const source = [
+      "test.describe('bars', () => {",
+      "  it('renders a bar', async () => {",
+      "    await expect(c).toHaveScreenshot('a.png');",
+      '  });',
+      '});',
+    ].join('\n');
+    expect(screenshotTestsWithoutTheWord(source)).toEqual(['renders a bar']);
+  });
+
+  it('does not count a test.describe title as a test', () => {
+    const source = [
+      "test.describe('bars', () => {",
+      "  test('bar matches its screenshot', async () => {",
+      "    await expect(c).toHaveScreenshot('a.png');",
+      '  });',
+      '});',
     ].join('\n');
     expect(screenshotTestsWithoutTheWord(source)).toEqual([]);
   });

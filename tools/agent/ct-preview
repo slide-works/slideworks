@@ -9,7 +9,7 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   cat <<EOF
 $usage
 
-Runs the spec'"'"'s screenshot tests with --output=<scratch>/ct-preview/<timestamp> and CT_PREVIEW_DIR set to the same
+Runs the screenshot tests of the spec file with --output=<scratch>/ct-preview/<timestamp> and CT_PREVIEW_DIR set to the same
 folder, which makes playwright-ct.config.ts write every screenshot there (Playwright writes no actual image for a
 missing or a matching baseline, so --update-snapshots=none alone shows nothing). Prints the path of each PNG so you
 can open them. Afterwards it checks that git status of src is unchanged: no file was written into src.
@@ -55,7 +55,20 @@ agent_env
 grep -q 'toHaveScreenshot' "$path" ||
   agent_die 2 "$rel has no screenshot tests (no toHaveScreenshot call)" reason=no-screenshot-tests
 
+# Preview images must never land in the repository (src): refuse a preset or computed folder inside it.
+inside_repo() {
+  local dir rel
+  dir="$(realpath -m "$1")"
+  rel="${dir#"$root"}"
+  [[ "$dir" == "$root" || "$rel" != "$dir" && "$rel" == /* ]]
+}
+if [[ -n "${CT_PREVIEW_DIR:-}" ]] && inside_repo "$CT_PREVIEW_DIR"; then
+  agent_die 2 "CT_PREVIEW_DIR ($CT_PREVIEW_DIR) is inside the repository: preview snapshots must never land in src" reason=preview-dir-in-repo
+fi
 out="$(agent_scratch)/ct-preview/$(date +%Y%m%d-%H%M%S)"
+if inside_repo "$out"; then
+  agent_die 2 "the scratch folder ($out) is inside the repository: set AGENT_SCRATCH_ROOT outside it" reason=preview-dir-in-repo
+fi
 mkdir -p "$out"
 before="$(git -C "$root" status --porcelain -- src)"
 args=("$rel" --output="$out" --reporter=list)
@@ -80,10 +93,16 @@ mapfile -t pngs < <(find "$out" -name '*.png' | sort)
 for png in "${pngs[@]}"; do
   echo "preview: $png"
 done
-if [[ ${#pngs[@]} -eq 0 ]]; then
-  if [[ $rc -ne 0 ]]; then
-    agent_finish 1 reason=failed-without-png "output=$out"
+# A failed Playwright run stays a failure after the images are listed. The names are the list reporter's, as test-ct reports them.
+if [[ $rc -ne 0 ]]; then
+  mapfile -t failures < <(grep '✘' "$AGENT_LOG" | sed -E 's/^ *✘ +[0-9]+ +//; s/ \([0-9.]+m?s\)$//' | sort -u)
+  details=("pngs=${#pngs[@]}")
+  if [[ ${#failures[@]} -gt 0 ]]; then
+    details+=("failed_tests=$(IFS='|'; echo "${failures[*]}")")
   fi
+  agent_finish 1 reason=playwright-failed "${details[@]}" "output=$out"
+fi
+if [[ ${#pngs[@]} -eq 0 ]]; then
   agent_finish 1 reason=no-png "output=$out"
 fi
 agent_finish 0 "pngs=${#pngs[@]}" "output=$out"

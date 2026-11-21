@@ -1,10 +1,22 @@
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, devices } from '@playwright/experimental-ct-react';
+import { isAbsolute, relative, resolve } from 'node:path';
 import { contractsDir } from './vite.config';
 
 // tools/agent/ct-preview sets CT_PREVIEW_DIR: every screenshot is then written under that folder, outside the repo,
 // so a render can be looked at. Playwright writes no actual image for a missing or a matching baseline.
 const previewDir = process.env.CT_PREVIEW_DIR;
+
+// Preview snapshots must never land in src, so a preview folder inside the repository is refused.
+if (previewDir) {
+  const repoRoot = resolve(contractsDir, '..', '..');
+  const fromRepo = relative(repoRoot, resolve(previewDir));
+  if (!fromRepo.startsWith('..') && !isAbsolute(fromRepo)) {
+    throw new Error(
+      `CT_PREVIEW_DIR (${previewDir}) is inside the repository (${repoRoot}): preview snapshots must be written outside it.`,
+    );
+  }
+}
 
 export default defineConfig({
   testDir: './src',
