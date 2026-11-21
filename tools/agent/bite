@@ -248,7 +248,12 @@ if [[ $runner_rc -eq 1 && "${failed:-0}" -gt 0 ]]; then
     awk '/^ +Failed .+ \[[^]]*\]$/ { on = 1 } /^ +Stack Trace:/ { on = 0 } on' "$runner_log" >"$BACKUP_DIR/red.txt"
     if [[ -s "$BACKUP_DIR/red.txt" ]]; then
       cat "$BACKUP_DIR/red.txt" >>"$AGENT_LOG"
-      awk '/^ +Failed / { sub(/^ +Failed /, ""); name = $0; getline; getline; sub(/^ +/, ""); print "RED " name ": " $0 }' "$BACKUP_DIR/red.txt" | head -n 10
+      # One line per red test: its name and the first lines of its message.
+      awk 'function flush() { if (name != "") print "RED " name ": " substr(msg, 1, 200) }
+        /^ +Failed / { flush(); sub(/^ +Failed /, ""); name = $0; msg = ""; n = 0; next }
+        /^ +Error Message:/ { next }
+        n < 5 { line = $0; gsub(/^ +| +$/, "", line); msg = msg (n ? " " : "") line; n++ }
+        END { flush() }' "$BACKUP_DIR/red.txt" | head -n 10
     else
       # A runner with another output format: keep the lines around each failure.
       grep -n -i -E -A 8 'fail|error|expected' "$runner_log" | head -n 300 >>"$AGENT_LOG" || true
