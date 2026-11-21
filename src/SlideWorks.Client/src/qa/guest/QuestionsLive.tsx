@@ -204,6 +204,10 @@ class QuestionsSession {
       // The countdown is gone, so limited would never end if the effects run again (StrictMode, <Activity>).
       if (this.held.asking === 'limited')
         this.set({ asking: 'idle', retryIn: 0, ...this.cleared('ask') });
+      // An answer that arrives while the effects are cleaned up is dropped (`!this.active`), so a POST or a PUT still
+      // out would stay 'sending' or block every later vote for good: let both go, as the countdown does.
+      else if (this.held.asking === 'sending') this.set({ asking: 'idle', ...this.cleared('ask') });
+      this.voteOut = null;
     };
   }
 
