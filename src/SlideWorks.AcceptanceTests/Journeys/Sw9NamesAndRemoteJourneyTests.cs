@@ -31,6 +31,7 @@ public class Sw9NamesAndRemoteJourneyTests : AcceptanceTest
         var second = await JoinAsync(secondPhone, talk.JoinUrl);
         await first.Questions.QuestionsTab.ClickAsync();
         await second.Questions.QuestionsTab.ClickAsync();
+        await Expect(first.Questions.ListEmpty).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
         await Expect(second.Questions.ListEmpty).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
 
         await first.Questions.Ask.ClickAsync();
@@ -52,20 +53,23 @@ public class Sw9NamesAndRemoteJourneyTests : AcceptanceTest
         await Expect(talk.Panel.SettingsNames).ToContainTextAsync("Names off", new() { Timeout = PUSH_TIMEOUT });
         await Expect(talk.Panel.SettingsError).ToHaveCountAsync(0);
 
-        await second.Questions.Ask.ClickAsync();
-        await Expect(second.Questions.AskSheet).ToBeVisibleAsync();
-        await Expect(second.Questions.AskSheetNameRow).ToHaveCountAsync(0, new() { Timeout = PUSH_TIMEOUT });
-        await second.Questions.AskSheetText.FillAsync(ANON);
-        await Expect(second.Questions.AskSheetSend).ToContainTextAsync("anonymously");
-        await second.Questions.AskSheetSend.ClickAsync();
-        await Expect(second.Questions.AskSheet).ToHaveCountAsync(0, new() { Timeout = PUSH_TIMEOUT });
+        // The first phone still has "Show my name" on and "Priya" typed (the sheet keeps both across closes). With names off the
+        // row is gone and the question goes out anonymously; a stale name would come back refused and keep the sheet open.
+        await first.Questions.Ask.ClickAsync();
+        await Expect(first.Questions.AskSheet).ToBeVisibleAsync();
+        await Expect(first.Questions.AskSheetNameRow).ToHaveCountAsync(0, new() { Timeout = PUSH_TIMEOUT });
+        await first.Questions.AskSheetText.FillAsync(ANON);
+        await Expect(first.Questions.AskSheetSend).ToContainTextAsync("anonymously");
+        await first.Questions.AskSheetSend.ClickAsync();
+        await Expect(first.Questions.AskSheet).ToHaveCountAsync(0, new() { Timeout = PUSH_TIMEOUT });
 
         await Expect(talk.Panel.RowText(2)).ToHaveTextAsync(ANON, new() { Timeout = PUSH_TIMEOUT });
         await Expect(talk.Panel.RowMeta(2)).ToContainTextAsync("Anonymous");
         await Expect(talk.Panel.RowMeta(1)).ToContainTextAsync("Priya");
-        await Expect(first.Questions.QuestionText(2)).ToHaveTextAsync(ANON, new() { Timeout = PUSH_TIMEOUT });
-        await Expect(first.Questions.QuestionMeta(2)).ToContainTextAsync("Anonymous");
-        await Expect(first.Questions.QuestionMeta(1)).ToContainTextAsync("Priya");
+        await Expect(second.Questions.QuestionText(2)).ToHaveTextAsync(ANON, new() { Timeout = PUSH_TIMEOUT });
+        await Expect(second.Questions.QuestionMeta(2)).ToContainTextAsync("Anonymous");
+        await Expect(second.Questions.QuestionMeta(1)).ToContainTextAsync("Priya");
+        await Expect(first.Questions.AskSheetNameRow).ToHaveCountAsync(0);
     }
 
     // Criteria: on the presenter's phone remote, the questions strip shows the top open question; Show puts it on the
@@ -76,12 +80,21 @@ public class Sw9NamesAndRemoteJourneyTests : AcceptanceTest
         var talk = await PresentAsync("Remote journey");
         await using var guestPhone = await OpenPhoneAsync();
         var guest = await JoinAsync(guestPhone, talk.JoinUrl);
+        await using var otherPhone = await OpenPhoneAsync();
+        var other = await JoinAsync(otherPhone, talk.JoinUrl);
         await guest.Questions.QuestionsTab.ClickAsync();
-        await guest.Questions.Ask.ClickAsync();
-        await guest.Questions.AskSheetText.FillAsync(NAMED);
-        await guest.Questions.AskSheetSend.ClickAsync();
-        await Expect(guest.Questions.AskSheet).ToHaveCountAsync(0, new() { Timeout = PUSH_TIMEOUT });
-        await Expect(guest.Questions.Question(1)).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
+        await other.Questions.QuestionsTab.ClickAsync();
+        await Expect(guest.Questions.ListEmpty).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
+        await Expect(other.Questions.ListEmpty).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
+        await AskAsync(guest, NAMED);
+        await Expect(other.Questions.QuestionText(1)).ToHaveTextAsync(NAMED, new() { Timeout = PUSH_TIMEOUT });
+        await AskAsync(other, ANON);
+        await Expect(guest.Questions.QuestionText(2)).ToHaveTextAsync(ANON, new() { Timeout = PUSH_TIMEOUT });
+        // The earlier question was asked first, so asking order alone would pick it; the later one gets the extra vote.
+        await guest.Questions.QuestionUpvote(2).ClickAsync();
+        await talk.Presenter.PressAsync("q");
+        await Expect(talk.Panel.RowVotes(2)).ToContainTextAsync("2", new() { Timeout = PUSH_TIMEOUT });
+        await Expect(talk.Panel.RowVotes(1)).ToContainTextAsync("1");
 
         var options = ContextOptions();
         options.ViewportSize = new ViewportSize { Width = 390, Height = 844 };
@@ -94,26 +107,27 @@ public class Sw9NamesAndRemoteJourneyTests : AcceptanceTest
         await speaker.GotoAsync(talk.DeckId);
         await speaker.IsLiveAsync();
         var strip = new QaStrip(remotePage);
-        await Expect(strip.Text).ToHaveTextAsync(NAMED, new() { Timeout = PUSH_TIMEOUT });
-        await Expect(strip.Counts).ToContainTextAsync("1 open");
+        await Expect(strip.Text).ToHaveTextAsync(ANON, new() { Timeout = PUSH_TIMEOUT });
+        await Expect(strip.Counts).ToContainTextAsync("2 open");
         await Expect(talk.Screen.Card).ToHaveCountAsync(0);
 
         await strip.Show.ClickAsync();
 
         await Expect(talk.Screen.Card).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
-        await Expect(talk.Screen.CardText).ToHaveTextAsync(NAMED);
+        await Expect(talk.Screen.CardText).ToHaveTextAsync(ANON);
         await Expect(strip.OnScreen).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
         await Expect(strip.TakeOff).ToBeVisibleAsync();
         await Expect(strip.Error).ToHaveCountAsync(0);
-        await Expect(guest.Questions.QuestionOnScreen(1)).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
+        await Expect(guest.Questions.QuestionOnScreen(2)).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
 
         await strip.Answer.ClickAsync();
 
         await Expect(talk.Screen.Card).ToHaveCountAsync(0, new() { Timeout = PUSH_TIMEOUT });
-        await Expect(strip.Empty).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
+        await Expect(strip.Text).ToHaveTextAsync(NAMED, new() { Timeout = PUSH_TIMEOUT });
+        await Expect(strip.Counts).ToContainTextAsync("1 open");
         await Expect(strip.Error).ToHaveCountAsync(0);
-        await Expect(guest.Questions.QuestionAnswered(1)).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
-        await Expect(guest.Questions.QuestionOnScreen(1)).ToHaveCountAsync(0);
+        await Expect(guest.Questions.QuestionAnswered(2)).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
+        await Expect(guest.Questions.QuestionOnScreen(2)).ToHaveCountAsync(0);
     }
 
     // Sam's deck over MCP: a quote, then a qa slide. Sam opens the presenter window, waits for it to join the
@@ -148,6 +162,14 @@ public class Sw9NamesAndRemoteJourneyTests : AcceptanceTest
         await Expect(presenter.AudienceChips).ToHaveCountAsync(1);
         await Page.BringToFrontAsync();
         return new Talk(presenter, audience, new QaPanel(Page), new QaSlide(audience.Slide(QA)), joinUrl, deckId);
+    }
+
+    private async Task AskAsync(Phone phone, string text)
+    {
+        await phone.Questions.Ask.ClickAsync();
+        await phone.Questions.AskSheetText.FillAsync(text);
+        await phone.Questions.AskSheetSend.ClickAsync();
+        await Expect(phone.Questions.AskSheet).ToHaveCountAsync(0, new() { Timeout = PUSH_TIMEOUT });
     }
 
     private static async Task<Phone> JoinAsync(IBrowserContext context, string joinUrl)
