@@ -229,8 +229,8 @@ Both read from the audience sessions SlideWorks keeps for each Go live.
 **Where it reads from:**
 
 - `AudienceSessions` has one row for each time a deck went live, and `AudienceJoins` one row for each guest who joined it.
-- `PollRounds` with `Kind = 'Qa'` is the session's Q&A round. Go live opens it, and it is the only kind of round the
-  questions live in.
+- `PollRounds` with `Kind = 'Qa'` is the session's Q&A round. Go live opens it unless questions are off for the deck, and turning questions on while live opens it then. With
+  questions off there is no round. It is the only kind of round the questions live in.
 - `Questions` has one row for each question asked, keyed by the round and a position. `GuestId` is the guest who asked.
   A question that is hidden, waiting for approval or answered is still a question asked, so the count includes them.
 - `PollAnswers` on a Q&A round is one guest's upvotes: `Picks` is a JSON array of the positions they upvoted, and an empty
@@ -271,7 +271,7 @@ A guest counts once however many of the three they did, and only if they have a 
 
 **Columns:** `session_id`, `deck_id`, `started_at` (UTC), `joined` (guests who joined), `asked`, `upvoted` and `reacted` (how
 many of them did each, so the three can add up to more than `took_part`), `took_part` (guests who did at least one) and
-`share`, the Measure: `took_part` over `joined`, from 0 to 1. A session nobody joined has `share` null. Rows are newest
+`share`, the Measure: `took_part` over `joined`, from 0 to 1. A session nobody joined has a row with `joined` 0 and `share` null. Rows are newest
 session first.
 
 ```sql
@@ -280,9 +280,10 @@ WITH bounds AS (
          ((CAST(strftime('%s', @to) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS hi
 ),
 guests AS (
-  SELECT j.SessionId AS session_id,
+  SELECT s.Id AS session_id,
          s.DeckId AS deck_id,
          s.StartedAt AS started,
+         j.GuestId AS guest_id,
          EXISTS (SELECT 1 FROM Questions q
                  JOIN PollRounds r ON r.Id = q.RoundId
                  WHERE r.SessionId = j.SessionId AND r.Kind = 'Qa' AND q.GuestId = j.GuestId) AS asked,
@@ -292,19 +293,20 @@ guests AS (
                    AND json_array_length(a.Picks) > 0) AS upvoted,
          EXISTS (SELECT 1 FROM ReactionGuests g
                  WHERE g.SessionId = j.SessionId AND g.GuestId = j.GuestId) AS reacted
-  FROM AudienceJoins j
-  JOIN AudienceSessions s ON s.Id = j.SessionId, bounds b
+  FROM AudienceSessions s
+  CROSS JOIN bounds b
+  LEFT JOIN AudienceJoins j ON j.SessionId = s.Id
   WHERE s.StartedAt >= b.lo AND s.StartedAt < b.hi
 )
 SELECT session_id,
        deck_id,
        datetime((started >> 11) / 10000 - 62135596800, 'unixepoch') AS started_at,
-       COUNT(*) AS joined,
+       COUNT(guest_id) AS joined,
        SUM(asked) AS asked,
        SUM(upvoted) AS upvoted,
        SUM(reacted) AS reacted,
        SUM(asked OR upvoted OR reacted) AS took_part,
-       ROUND(1.0 * SUM(asked OR upvoted OR reacted) / COUNT(*), 4) AS share
+       ROUND(1.0 * SUM(asked OR upvoted OR reacted) / NULLIF(COUNT(guest_id), 0), 4) AS share
 FROM guests
 GROUP BY session_id
 ORDER BY started DESC, session_id;

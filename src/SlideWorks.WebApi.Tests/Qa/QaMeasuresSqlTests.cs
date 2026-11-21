@@ -32,6 +32,9 @@ public partial class QaMeasuresSqlTests : PollTestFixture
         await Qa.QuestionAsync(round, "First?", guestId: "guest-a");
         await Qa.QuestionAsync(round, "Second?", guestId: "guest-b", hidden: true);
         await Qa.QuestionAsync(round, "Third?", guestId: "guest-b", state: SlideWorks.Core.Qa.QuestionState.Answered);
+        var other = await SeedPollAsync();
+        var otherRound = await QaRoundAsync(other.SessionId);
+        await Qa.QuestionAsync(otherRound, "Elsewhere?", guestId: "guest-c");
         Clock.Advance(TimeSpan.FromMinutes(1));
 
         var rows = await RunAsync(ASKED_HEADING, from, Clock.GetUtcNow().AddMinutes(1));
@@ -39,6 +42,23 @@ public partial class QaMeasuresSqlTests : PollTestFixture
         var row = rows.Single(r => r["session_id"]!.ToString() == Upper(poll.SessionId));
         row["deck_id"].ShouldBe(poll.DeckId);
         row["asked"].ShouldBe(3L);
+        rows.Single(r => r["session_id"]!.ToString() == Upper(other.SessionId))["asked"].ShouldBe(1L);
+    }
+
+    [Test]
+    public async Task Asked_WhenSessionHasNoQuestions_ShouldBeZero()
+    {
+        var from = Clock.GetUtcNow().AddMinutes(-1);
+        var withRound = await SeedPollAsync();
+        await QaRoundAsync(withRound.SessionId);
+        var noRound = await SeedPollAsync();
+        await Qa.SqlAsync($"DELETE FROM PollRounds WHERE SessionId = {QaRowSeed.SqlGuid(noRound.SessionId)} AND Kind = 'Qa'");
+        Clock.Advance(TimeSpan.FromMinutes(1));
+
+        var rows = await RunAsync(ASKED_HEADING, from, Clock.GetUtcNow().AddMinutes(1));
+
+        rows.Single(r => r["session_id"]!.ToString() == Upper(withRound.SessionId))["asked"].ShouldBe(0L);
+        rows.Single(r => r["session_id"]!.ToString() == Upper(noRound.SessionId))["asked"].ShouldBe(0L);
     }
 
     [Test]
@@ -117,6 +137,67 @@ public partial class QaMeasuresSqlTests : PollTestFixture
 
         row["upvoted"].ShouldBe(0L);
         row["share"].ShouldBe(0.0);
+    }
+
+    // A session nobody joined still has a row: nobody joined, so there is no share to give.
+    [Test]
+    public async Task Share_WhenNobodyJoined_ShouldBeNull()
+    {
+        var from = Clock.GetUtcNow().AddMinutes(-1);
+        var poll = await SeedPollAsync();
+        var round = await QaRoundAsync(poll.SessionId);
+        await Qa.QuestionAsync(round, "Anyone?", guestId: "stranger");
+        Clock.Advance(TimeSpan.FromMinutes(1));
+
+        var row = await ShareRowAsync(poll, from);
+
+        row["joined"].ShouldBe(0L);
+        row["took_part"].ShouldBe(0L);
+        row["share"].ShouldBeNull();
+    }
+
+    // Guest "g" is in both sessions but acts only in B, so A counts nobody and B counts them.
+    [Test]
+    public async Task Share_WhenAGuestActedOnlyInAnotherSession_ShouldNotCountThem()
+    {
+        var from = Clock.GetUtcNow().AddMinutes(-1);
+        var a = await SeedPollAsync();
+        var b = await SeedPollAsync();
+        await QaRoundAsync(a.SessionId);
+        var roundB = await QaRoundAsync(b.SessionId);
+        await JoinAsync(a.SessionId, "g");
+        await JoinAsync(b.SessionId, "g");
+        await Qa.QuestionAsync(roundB, "In B?", guestId: "g");
+        await Qa.VoteAsync(roundB, "g", 1);
+        await Qa.ReactionGuestAsync(b.SessionId, "g");
+        Clock.Advance(TimeSpan.FromMinutes(1));
+
+        var rowA = await ShareRowAsync(a, from);
+        var rowB = await ShareRowAsync(b, from);
+
+        rowA["asked"].ShouldBe(0L);
+        rowA["upvoted"].ShouldBe(0L);
+        rowA["reacted"].ShouldBe(0L);
+        rowA["took_part"].ShouldBe(0L);
+        rowB["took_part"].ShouldBe(1L);
+    }
+
+    // An answer on the slide's own poll is a vote on the slide, not an upvote of a question.
+    [Test]
+    public async Task Share_WhenAGuestAnsweredOnlyASlidePoll_ShouldNotCountAsUpvoted()
+    {
+        var from = Clock.GetUtcNow().AddMinutes(-1);
+        var poll = await SeedPollAsync();
+        await QaRoundAsync(poll.SessionId);
+        await JoinAsync(poll.SessionId, "voter");
+        var slideRound = await new PollRowSeed(Factory.Services).RoundAsync(poll.SlideId, poll.SessionId);
+        await new PollRowSeed(Factory.Services).AnswerAsync(slideRound.Id, "voter", 0);
+        Clock.Advance(TimeSpan.FromMinutes(1));
+
+        var row = await ShareRowAsync(poll, from);
+
+        row["upvoted"].ShouldBe(0L);
+        row["took_part"].ShouldBe(0L);
     }
 
     private async Task<Dictionary<string, object?>> ShareRowAsync(SeededPoll poll, DateTimeOffset from)
