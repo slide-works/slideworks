@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using SlideWorks.WebApi.Features.Checks;
 
 namespace SlideWorks.WebApi.Features.Render.Mcp;
 
@@ -13,4 +14,5 @@ public sealed record PreviewDeckResult(
     [property: JsonPropertyName("player_url")] string PlayerUrl,
     [property: JsonPropertyName("share_card_url")] string ShareCardUrl,
     string Instructions,
-    [property: JsonPropertyName("images_included")] int ImagesIncluded);
+    [property: JsonPropertyName("images_included")] int ImagesIncluded,
+    IReadOnlyList<SlideFinding> Findings);

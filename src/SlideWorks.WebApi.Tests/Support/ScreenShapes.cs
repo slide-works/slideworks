@@ -206,6 +206,9 @@ public static class ScreenShapes
     // "control". Round, here and onScreen are null when not live.
     public static readonly JsonShapeOptions QaControl = new() { NullablePaths = ["round", "here", "onScreen", "questions[].name"] };
 
+    // deck-checks.json (SW-3 K2): the error is null in the sample, so error strings are asserted directly, not through JsonShape.
+    public static readonly JsonShapeOptions DeckChecks = new() { NullablePaths = ["error"] };
+
     // get_questions (questions-report.json, Q10).
     public static readonly JsonShapeOptions QuestionsReport = new() { NullablePaths = ["sessions[].questions[].name"] };
 
@@ -253,6 +256,7 @@ public static class ScreenShapes
     {
         "deck-play.json" or "deck-page.json" or "presenter.json" => BuiltInLookFile("", "parts[].caption", "parts[].mark"),
         "card.json" => BuiltInLookFile(),
+        "deck-checks.json" => DeckChecks,
         "look-change.json" => BuiltInLookFile("response."),
         "guest.json" => GuestFile,
         "audience-events.json" => AudienceEvents,

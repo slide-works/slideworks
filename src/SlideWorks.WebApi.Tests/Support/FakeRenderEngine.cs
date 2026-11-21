@@ -60,6 +60,14 @@ public sealed class FakeRenderEngine : IRenderEngine
     // The findings every render of this slide number carries (in any deck).
     public void FindingsFor(int slide, params SlideFinding[] findings) => _findings[slide] = findings;
 
+    // Back to rendering every slide cleanly with no findings, for the next test of a shared fixture.
+    public void Reset()
+    {
+        ThrowOnRender = null;
+        _findings.Clear();
+        _failures.Clear();
+    }
+
     // Makes every render of this slide number throw error. ThrowOnRender, when set, still wins for all slides.
     public void FailSlide(int slide, Exception error) => _failures[slide] = error;
 
