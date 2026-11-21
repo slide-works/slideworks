@@ -76,7 +76,8 @@ describe('screenshotTestsWithoutTheWord', () => {
   });
 
   it('names a bad title in an it( test', () => {
-    const source = "it('renders a bar', async () => { await expect(c).toHaveScreenshot('a.png'); });";
+    const source =
+      "it('renders a bar', async () => { await expect(c).toHaveScreenshot('a.png'); });";
     expect(screenshotTestsWithoutTheWord(source)).toEqual(['renders a bar']);
   });
 
