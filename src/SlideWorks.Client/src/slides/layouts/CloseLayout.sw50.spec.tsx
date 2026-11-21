@@ -6,6 +6,7 @@ import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { CloseSlots } from '../slots/close';
 import type { SlideDeck } from '../slots';
+import { wideLetters } from '../../test-support/text/maxText';
 
 // The close layout's SW-50 addition: emphasis in the headline, applied per
 // written line, and in the sub. It is a dark slide, so accent draws as the glow.
@@ -97,11 +98,7 @@ test('a slide without emphasis draws the bare text', async ({ mount, page }) => 
 
 // Capitals and wide letters of the same lengths.
 const WIDE = 'Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT ';
-function wide(length: number): string {
-  let text = '';
-  while (text.length < length) text += WIDE;
-  return text.slice(0, length).trimEnd().padEnd(length, 'M');
-}
+const wide = (length: number): string => wideLetters(length, WIDE);
 
 test('an emphasised wide close slide stays inside the box', async ({ mount, page }) => {
   await stubApi(page, {});

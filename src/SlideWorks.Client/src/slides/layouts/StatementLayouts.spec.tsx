@@ -3,6 +3,7 @@ import type { Locator, Page } from 'playwright/test';
 import { partsOf } from '../../api/parts';
 import { lookViewOf } from '../../test-support/fixtures/lookViewOf';
 import { sampleDeck } from '../../test-support/fixtures/screens';
+import { proseFill, wideCapitals } from '../../test-support/text/maxText';
 import type { Box } from '../../test-support/measure/box';
 import { drawnBox } from '../../test-support/measure/drawnBox';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
@@ -32,22 +33,8 @@ function render(slide: RenderableSlide, slideDeck: SlideDeck = deck) {
   return <SlideRenderer slide={slide} deck={slideDeck} total={sampleDeck.slides.length} step={0} />;
 }
 
-// Text of exactly `length` characters made of ordinary words, wide letters first.
-function fill(length: number): string {
-  const words = ['Maximum', 'Width', 'words', 'wrap', 'across', 'the', 'whole', 'slide'];
-  let text = '';
-  for (let i = 0; text.length < length; i++) text += (text ? ' ' : '') + words[i % words.length];
-  return text.slice(0, length).trimEnd().padEnd(length, 'm');
-}
-
-// Text of exactly `length` characters in the widest letters: capitals, mostly
-// W and M, in words a line can still break between.
-function wide(length: number): string {
-  const words = ['WWWWWW', 'MAXIMUM', 'WMW', 'MMMMMM', 'WOMBAT', 'WWW'];
-  let text = '';
-  for (let i = 0; text.length < length; i++) text += (text ? ' ' : '') + words[i % words.length];
-  return text.slice(0, length).trimEnd().padEnd(length, 'W');
-}
+const fill = proseFill;
+const wide = wideCapitals;
 
 // The font size an element is drawn at, in px.
 async function fontSize(page: Page, testId: string): Promise<number> {

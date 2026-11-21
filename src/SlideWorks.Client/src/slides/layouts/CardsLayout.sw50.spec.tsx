@@ -7,6 +7,7 @@ import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { CardsSlots } from '../slots/cards';
 import type { SlideDeck } from '../slots';
+import { wideLetters } from '../../test-support/text/maxText';
 
 // The cards layout's SW-50 additions: the list fills the body's height, four
 // cards lay out 2x2, large type for short cards, a plain fill, a pin, an icon,
@@ -44,11 +45,7 @@ const box = (page: Page, testId: string, index = 0) =>
 const WIDE_TEXT =
   'Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, ' +
   'Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. ';
-function wide(length: number): string {
-  let text = '';
-  while (text.length < length) text += WIDE_TEXT;
-  return text.slice(0, length).trimEnd().padEnd(length, 'M');
-}
+const wide = (length: number): string => wideLetters(length, WIDE_TEXT);
 
 // Keys whose strings are not text: they stay as they are.
 const NOT_TEXT = new Set(['tone', 'fill', 'icon', 'reveal', 'in', 'surface', 'emphasis']);

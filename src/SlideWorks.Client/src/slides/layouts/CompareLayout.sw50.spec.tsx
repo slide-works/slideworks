@@ -7,6 +7,7 @@ import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { CompareSlots } from '../slots/compare';
 import type { SlideDeck } from '../slots';
+import { wideLetters } from '../../test-support/text/maxText';
 
 // The compare layout's SW-50 additions: label-and-value rows, one large line,
 // an inline stamp, a footer, a plain fill, an icon, a callout, headline
@@ -35,11 +36,7 @@ function render(slide: RenderableSlide, step = 0) {
 const WIDE_TEXT =
   'Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, ' +
   'Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. ';
-function wide(length: number): string {
-  let text = '';
-  while (text.length < length) text += WIDE_TEXT;
-  return text.slice(0, length).trimEnd().padEnd(length, 'M');
-}
+const wide = (length: number): string => wideLetters(length, WIDE_TEXT);
 
 // Keys whose strings are not text: they stay as they are.
 const NOT_TEXT = new Set(['tone', 'fill', 'icon', 'reveal', 'in']);

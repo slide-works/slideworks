@@ -7,6 +7,7 @@ import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { PracticeSlots } from '../slots/practice';
 import type { SlideDeck } from '../slots';
+import { wideLetters } from '../../test-support/text/maxText';
 
 // The practice layout's SW-50 additions: emphasis in the headline, and a
 // callout that goes through the shared block and can arrive on the last step,
@@ -104,11 +105,7 @@ test('a callout without reveal shows from the start', async ({ mount, page }) =>
 // Capitals and wide letters of the same lengths.
 const WIDE =
   'Many Women Who Wander Wide Meadows Mow Moss With Me When Warm, Whom We Name WOMBAT MUMMY ';
-function wide(length: number): string {
-  let text = '';
-  while (text.length < length) text += WIDE;
-  return text.slice(0, length).trimEnd().padEnd(length, 'M');
-}
+const wide = (length: number): string => wideLetters(length, WIDE);
 
 test('the practice fixture and a wide twin stay inside the box sideways', async ({
   mount,
