@@ -122,9 +122,8 @@ colour or a font.
   route answers 503 with `Retry-After`. If a deck's card fails to render (for example a broken logo), the route serves
   the generic card. `GET /d/{id}/{slug}` serves the player with Open Graph tags that point at the card.
 - **The image carries Chromium for the share card only.** The Dockerfile installs it with the Playwright driver that
-  ships with `Microsoft.Playwright`, into `/ms-playwright`. It makes the runtime image much larger: about 0.7 GB
-  without it, and roughly 1.7–2.1 GB with it, depending on whether the full browser or only the headless shell is
-  installed.
+  ships with `Microsoft.Playwright`, into `/ms-playwright`, and installs only the headless shell, not the full
+  browser. It makes the runtime image much larger: about 0.7 GB without it, and roughly 1.7 GB with it.
 - Render URLs carry a short-lived signed token in the URL fragment, never in a query string. Pages send it as the
   `X-Render-Token` header. A token reads only the one deck it names, for one purpose: a preview token lasts 10
   minutes, and a card token 60 seconds.
