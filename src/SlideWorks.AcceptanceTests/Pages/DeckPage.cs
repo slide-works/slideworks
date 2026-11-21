@@ -61,6 +61,11 @@ public sealed class DeckPage(IPage page)
 
     public ILocator ChecksList() => page.GetByTestId("slide-checks");
 
+    public ILocator ChecksRows() => ChecksList().GetByTestId("slide-check");
+
+    // The slide grid; data-checks-measured is "true" once the deck's checks have been measured, "false" while measuring.
+    public ILocator ChecksMeasured() => page.GetByTestId("deck-thumbs");
+
     public async Task GotoAsync(string deckId) => await page.GotoAsync(PathFor(deckId));
 
     // Selects slide {number} in the grid, so its notes and link show beside it.

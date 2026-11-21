@@ -19,7 +19,8 @@ public class Sw3CheckJourneyTests : AcceptanceTest
     public async Task CheckDeck_WhenAWideLetterSlideIsAccepted_ShouldReportOverflow()
     {
         await using var agent = await AgentSeed.ConnectAsync(TestUser.Sam);
-        var deck = await OverflowDeckAsync(agent);
+        var (deck, warnings) = await OverflowDeckAsync(agent);
+        warnings.GetArrayLength().ShouldBe(0);
 
         var result = await AgentSeed.CallAsync(agent, "check_deck", new() { ["deck"] = deck });
 
@@ -36,7 +37,7 @@ public class Sw3CheckJourneyTests : AcceptanceTest
     public async Task PreviewDeck_WhenASlideOverflows_ShouldReturnTheFindingWithThePng()
     {
         await using var agent = await AgentSeed.ConnectAsync(TestUser.Sam);
-        var deck = await OverflowDeckAsync(agent);
+        var (deck, _) = await OverflowDeckAsync(agent);
 
         var result = await agent.CallToolAsync("preview_deck", new Dictionary<string, object?> { ["deck"] = deck, ["slides"] = new[] { 2 } });
 
@@ -64,7 +65,7 @@ public class Sw3CheckJourneyTests : AcceptanceTest
     public async Task DeckPage_WhenASlideOverflows_ShouldShowTheBadgeAndTheList()
     {
         await using var agent = await AgentSeed.ConnectAsync(TestUser.Sam);
-        var deck = await OverflowDeckAsync(agent);
+        var (deck, _) = await OverflowDeckAsync(agent);
         var checks = await AgentSeed.CallAsync(agent, "check_deck", new() { ["deck"] = deck });
         var problems = FindingsOf(checks, 2).Count(f => f.GetProperty("severity").GetString() != "note");
 
@@ -74,8 +75,9 @@ public class Sw3CheckJourneyTests : AcceptanceTest
         await deckPage.SelectSlideAsync(2);
 
         await Expect(deckPage.ChecksBadge(2)).ToHaveAttributeAsync("aria-label", new Regex($"^Slide 2: {problems} problems?$"));
-        await Expect(deckPage.ChecksList().GetByTestId("slide-check").Filter(new() { HasText = OVERFLOW_MESSAGE }).First).ToBeVisibleAsync();
-        // The measure writes every slide at once, so the clean quotes have been measured by now.
+        await Expect(deckPage.ChecksRows().Filter(new() { HasText = OVERFLOW_MESSAGE }).First).ToBeVisibleAsync();
+        // The measure writes every slide at once; wait for its marker so "no badge" means "measured clean".
+        await Expect(deckPage.ChecksMeasured()).ToHaveAttributeAsync("data-checks-measured", "true");
         await Expect(deckPage.ChecksBadge(1)).ToHaveCountAsync(0);
         await Expect(deckPage.ChecksBadge(3)).ToHaveCountAsync(0);
     }
@@ -91,7 +93,7 @@ public class Sw3CheckJourneyTests : AcceptanceTest
         await deckPage.GotoAsync(deck);
         await deckPage.SelectSlideAsync(2);
 
-        // Waits on the selected slide's list: it says "none" once the page has the answer for that slide.
+        await Expect(deckPage.ChecksMeasured()).ToHaveAttributeAsync("data-checks-measured", "true");
         await Expect(deckPage.ChecksList()).ToBeVisibleAsync();
         await Expect(Page.GetByTestId("slide-checks-none")).ToBeVisibleAsync();
         await Expect(Page.GetByTestId("slide-checks-badge")).ToHaveCountAsync(0);
@@ -130,7 +132,8 @@ public class Sw3CheckJourneyTests : AcceptanceTest
         var result = await AgentSeed.CallAsync(agent, "check_deck", new() { ["deck"] = deck });
 
         result.GetProperty("measured").GetBoolean().ShouldBeTrue();
-        FindingsOf(result, 2).ShouldContain(f => f.GetProperty("rule").GetString() == "renderFailed");
+        var failed = FindingsOf(result, 2).Single(f => f.GetProperty("rule").GetString() == "renderFailed");
+        failed.GetProperty("message").GetString().ShouldNotBeNull().ShouldContain(upload.GetProperty("image").GetString()!);
         FindingsOf(result, 1).ShouldBeEmpty();
     }
 
@@ -143,13 +146,19 @@ public class Sw3CheckJourneyTests : AcceptanceTest
     // src/contracts/fit-fixtures/levels.json, found by walking up from the test binaries to the folder with the solution.
     private static string FixturePath()
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        var start = AppContext.BaseDirectory;
+        var directory = new DirectoryInfo(start);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "SlideWorks.slnx")))
         {
             directory = directory.Parent;
         }
 
-        return Path.Combine(directory.ShouldNotBeNull().FullName, "contracts", "fit-fixtures", "levels.json");
+        if (directory is null)
+        {
+            throw new DirectoryNotFoundException($"SlideWorks.slnx was not found in or above {start}");
+        }
+
+        return Path.Combine(directory.FullName, "contracts", "fit-fixtures", "levels.json");
     }
 
     private static async Task<string> NewDeckAsync(McpClient agent)
@@ -166,15 +175,14 @@ public class Sw3CheckJourneyTests : AcceptanceTest
     }
 
     // Slide 1 and 3 are clean quotes; slide 2 is levelsTextWide, which add_slide accepts without a warning (SW-664).
-    private static async Task<string> OverflowDeckAsync(McpClient agent)
+    private static async Task<(string Deck, JsonElement Warnings)> OverflowDeckAsync(McpClient agent)
     {
         var deck = await NewDeckAsync(agent);
         await AgentSeed.AddQuotesAsync(TestUser.Sam, deck, "Ship small, ship often");
-        var fixtures = JsonDocument.Parse(await File.ReadAllTextAsync(FixturePath()));
+        using var fixtures = JsonDocument.Parse(await File.ReadAllTextAsync(FixturePath()));
         var slots = fixtures.RootElement.GetProperty("levelsTextWide").GetProperty("slots").Clone();
         var added = await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deck, ["layout"] = "levels", ["slots"] = slots });
-        added.GetProperty("warnings").GetArrayLength().ShouldBe(0);
         await AgentSeed.AddQuotesAsync(TestUser.Sam, deck, "Measure twice, cut once");
-        return deck;
+        return (deck, added.GetProperty("warnings").Clone());
     }
 }

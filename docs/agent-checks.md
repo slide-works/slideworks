@@ -10,8 +10,8 @@
 { "deck": "...", "slides": [1, 2], "findings": [{ "slide": 2, "rule": "overflow", "severity": "error", "source": "measured", "where": "...", "message": "..." }], "measured": true, "error": null }
 ```
 
-- `measured: true` means every requested slide was rendered, or reported as `renderFailed`. When it is false, read `error`: the renderer was unavailable or timed out. The findings then hold only the stored (write-time) checks, so call again.
-- Enums are camelCase. Findings are sorted by severity, then by rule in the order of the table below.
+- `measured: true` means every requested slide was rendered, or reported as `renderFailed`. When it is false, read `error`: the renderer was unavailable or timed out. The slides from the one named in `error` onward then have only the stored (write-time) checks (earlier slides keep their measured findings), so call again.
+- Enums are camelCase. Findings are sorted by slide, then severity, then rule, in the order of the table below.
 
 ## Rules and what to do
 
