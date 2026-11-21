@@ -111,7 +111,11 @@ public class Sw9QuestionJourneyTests : AcceptanceTest
         await Expect(talk.Audience.Layer(QA)).ToHaveAttributeAsync("data-active", "true", new() { Timeout = PUSH_TIMEOUT });
         await Expect(talk.Screen.Empty).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
 
-        // Seven guests; guest g asks question g, then upvotes every question from g up, so question k has k votes.
+        // Seven guests; guest g asks question g. The votes are a permutation unrelated to the asking order on purpose:
+        // by votes the top five are 3, 6, 1, 7, 4; newest first would give 7, 6, 5, 4, 3 and oldest first 1 to 5, so
+        // a slide that sorted by recency or by number could not pass. The asker's own question already carries its vote,
+        // so question k collects votes[k] - 1 upvotes from the other guests, taken in guest order.
+        var votes = new Dictionary<int, int> { [3] = 7, [6] = 6, [1] = 5, [7] = 4, [4] = 3, [2] = 2, [5] = 1 };
         var guests = new List<ApiGuest>();
         var contexts = new List<IBrowserContext>();
         for (var g = 1; g <= 7; g++)
@@ -126,37 +130,43 @@ public class Sw9QuestionJourneyTests : AcceptanceTest
         }
         for (var g = 1; g <= 7; g++)
         {
-            await guests[g - 1].UpvoteAsync(Enumerable.Range(g, 8 - g).ToArray());
+            var picks = votes.Where(v => v.Key != g && Enumerable.Range(1, 7).Where(o => o != v.Key).Take(v.Value - 1).Contains(g)).Select(v => v.Key).ToArray();
+            if (picks.Length > 0)
+            {
+                await guests[g - 1].UpvoteAsync(picks);
+            }
         }
 
         try
         {
-            await Expect(talk.Screen.Row(7)).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
-            await Expect(talk.Screen.RowVotes(7)).ToContainTextAsync("7", new() { Timeout = PUSH_TIMEOUT });
-            await Expect(talk.Screen.RowVotes(3)).ToContainTextAsync("3", new() { Timeout = PUSH_TIMEOUT });
-            await Expect(talk.Screen.RowText(7)).ToContainTextAsync("Question 7 of seven");
+            await Expect(talk.Screen.Row(3)).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
+            foreach (var (number, count) in votes.Where(v => v.Key is 3 or 6 or 1 or 7 or 4))
+            {
+                await Expect(talk.Screen.RowVotes(number)).ToContainTextAsync($"{count}", new() { Timeout = PUSH_TIMEOUT });
+            }
+            await Expect(talk.Screen.RowText(3)).ToContainTextAsync("Question 3 of seven");
             await Expect(talk.Screen.Row(2)).ToHaveCountAsync(0);
-            await Expect(talk.Screen.Row(1)).ToHaveCountAsync(0);
+            await Expect(talk.Screen.Row(5)).ToHaveCountAsync(0);
             await Expect(talk.Screen.Total).ToContainTextAsync("7 questions");
             await Expect(talk.Screen.FooterNote).ToContainTextAsync("Top 5 of 7");
             await Expect(talk.Screen.OneUp).ToHaveCountAsync(0);
-            (await RowOrderAsync(talk.Screen)).ShouldBe(["7", "6", "5", "4", "3"]);
+            (await RowOrderAsync(talk.Screen)).ShouldBe(["3", "6", "1", "7", "4"]);
 
             await talk.Presenter.PressAsync("q");
             await Expect(talk.Panel.Root).ToBeVisibleAsync();
-            await talk.Panel.Show(2).ClickAsync();
+            await talk.Panel.Show(5).ClickAsync();
 
             await Expect(talk.Screen.OneUp).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
-            await Expect(talk.Screen.OneUpText).ToHaveTextAsync("Question 2 of seven");
-            await Expect(talk.Screen.OneUpVotes).ToContainTextAsync("2");
+            await Expect(talk.Screen.OneUpText).ToHaveTextAsync("Question 5 of seven");
+            await Expect(talk.Screen.OneUpVotes).ToContainTextAsync("1");
             await Expect(talk.Screen.Rows).ToHaveCountAsync(0);
             await Expect(talk.Screen.Card).ToHaveCountAsync(0);
 
-            await talk.Panel.Unshow(2).ClickAsync();
+            await talk.Panel.Unshow(5).ClickAsync();
 
             await Expect(talk.Screen.OneUp).ToHaveCountAsync(0, new() { Timeout = PUSH_TIMEOUT });
             await Expect(talk.Screen.Rows).ToBeVisibleAsync();
-            (await RowOrderAsync(talk.Screen)).ShouldBe(["7", "6", "5", "4", "3"]);
+            (await RowOrderAsync(talk.Screen)).ShouldBe(["3", "6", "1", "7", "4"]);
         }
         finally
         {
