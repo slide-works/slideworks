@@ -255,6 +255,32 @@ test('Slide is selected at first; choosing Questions and then Slide swaps the ta
   await expect(questionsPanel).toBeHidden();
 });
 
+test('the arrow keys, Home and End move between the tabs and select them; only the selected tab is a tab stop', async ({
+  mount,
+  page,
+}) => {
+  await mount(guest(null));
+  await expect(slideTab(page)).toHaveAttribute('tabindex', '0');
+  await expect(questionsTab(page)).toHaveAttribute('tabindex', '-1');
+
+  await slideTab(page).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(questionsTab(page)).toBeFocused();
+  await expect(questionsTab(page)).toHaveAttribute('aria-selected', 'true');
+  await expect(questionsTab(page)).toHaveAttribute('tabindex', '0');
+  await expect(slideTab(page)).toHaveAttribute('tabindex', '-1');
+
+  await page.keyboard.press('ArrowLeft');
+  await expect(slideTab(page)).toBeFocused();
+  await expect(slideTab(page)).toHaveAttribute('aria-selected', 'true');
+
+  await page.keyboard.press('End');
+  await expect(questionsTab(page)).toBeFocused();
+  await page.keyboard.press('Home');
+  await expect(slideTab(page)).toBeFocused();
+  await expect(slideTab(page)).toHaveAttribute('aria-selected', 'true');
+});
+
 test('both tabs are at least 44 px tall', async ({ mount, page }) => {
   await mount(tabs());
   for (const tab of [slideTab(page), questionsTab(page)])
