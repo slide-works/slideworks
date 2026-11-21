@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -55,12 +56,14 @@ public class Sw9QuestionsSettingJourneyTests : AcceptanceTest
         // The server holds the closed state: the setting reads back as closed.
         (await QuestionsSettingAsync(deckId)).ShouldBe("closed");
 
+        await Expect(other.Questions.QuestionVotes(1)).ToHaveTextAsync("1");
+        await Expect(panel.RowVotes(1)).ToHaveTextAsync(new Regex(@"^\D*1 vote$"), new() { Timeout = PUSH_TIMEOUT });
         await other.Questions.QuestionUpvote(1).ClickAsync();
 
         await Expect(other.Questions.QuestionUpvote(1)).ToHaveAttributeAsync("aria-pressed", "true");
         await Expect(other.Questions.QuestionVotes(1)).ToHaveTextAsync("2");
         await Expect(other.Questions.ListError).ToHaveCountAsync(0);
-        await Expect(panel.RowVotes(1)).ToContainTextAsync("2", new() { Timeout = PUSH_TIMEOUT });
+        await Expect(panel.RowVotes(1)).ToHaveTextAsync(new Regex(@"^\D*2 votes$"), new() { Timeout = PUSH_TIMEOUT });
         await Expect(asker.Questions.QuestionVotes(1)).ToHaveTextAsync("2", new() { Timeout = PUSH_TIMEOUT });
     }
 
@@ -94,6 +97,8 @@ public class Sw9QuestionsSettingJourneyTests : AcceptanceTest
         await guest.IsFollowingAsync();
         var questions = new GuestQuestions(page);
         await Expect(guest.Following).ToBeVisibleAsync();
+        // Reactions are on, so a visible row proves the phone holds a live room, not a null one.
+        await Expect(questions.ReactionRow).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
         await Expect(questions.QuestionsTab).ToHaveCountAsync(0);
         await Expect(questions.TabBar).ToHaveCountAsync(0);
 
