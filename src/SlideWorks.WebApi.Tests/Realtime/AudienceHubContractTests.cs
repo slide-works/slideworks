@@ -471,6 +471,8 @@ public class AudienceHubContractTests : ApiTestFixture
 
         public Task<int> CountAsync(string sessionId) => Task.FromResult(0);
 
+        public Task<int> JoinedAsync(string sessionId) => Task.FromResult(0);
+
         public Task OpenedAsync(string deckId, string sessionId) => Task.CompletedTask;
 
         public Task ClosedAsync(string deckId, string sessionId) => Task.CompletedTask;
