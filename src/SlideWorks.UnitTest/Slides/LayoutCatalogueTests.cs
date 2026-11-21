@@ -23,7 +23,11 @@ public class LayoutCatalogueTests
     {
         using var names = JsonDocument.Parse(File.ReadAllText(ContractFiles.PathOf("layout-names.json")));
 
-        LayoutCatalogue.LayoutNames.ShouldBe(names.RootElement.GetProperty("layouts").EnumerateArray().Select(n => n.GetString()!));
+        // layout-names.json is the hand-kept freeze of the names (an expectation independent of the catalogue).
+        LayoutCatalogue.LayoutNames.ShouldBe(
+            names.RootElement.GetProperty("layouts").EnumerateArray().Select(n => n.GetString()!),
+            "a layout was added, renamed or removed: update src/contracts/layout-names.json, regenerate src/contracts/layout-catalogue.json "
+            + "and the layout docs (UPDATE_LAYOUTS_DOC=1), then run src/SlideWorks.Client/src/slides/layoutCatalogueMirror.test.ts for the client files");
         LayoutCatalogue.Layouts.Where(l => l.Dark).Select(l => l.Name).ShouldBe(["title", "divider", "close", "join"]);
     }
 
