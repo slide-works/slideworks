@@ -179,7 +179,16 @@ function AskSheetDialog({
   const named = names && showName && trimmedName !== '' ? trimmedName : null;
   const count = countOf(text);
   const busy = asking === 'sending' || asking === 'limited';
-  const canSend = count > 0 && count <= MAX_TEXT && !busy;
+  // Questions closed or turned off while the sheet is open: Send is off and the reason shows, with the draft kept.
+  const refusal =
+    room?.questions === 'closed'
+      ? 'questions_closed'
+      : room?.questions === 'offHere'
+        ? 'questions_off_here'
+        : room?.questions === 'off'
+          ? 'questions_off'
+          : null;
+  const canSend = count > 0 && count <= MAX_TEXT && !busy && refusal === null;
 
   const limitedText =
     asking === 'limited' ? questionErrorText('too_many_questions', { presenter, retryIn }) : '';
@@ -362,7 +371,15 @@ function AskSheetDialog({
             {limitedText}
           </p>
         )}
-        {asking === 'failed' && errorFrom === 'ask' && (
+        {refusal !== null ? (
+          <p
+            data-testid={QA_ASK_SHEET_TEST_IDS.failed}
+            role="alert"
+            className="rounded-[10px] bg-[rgb(252_165_165/0.14)] px-3 py-2.5 text-[12.5px] leading-[1.4] text-[#fecaca]"
+          >
+            {questionErrorText(refusal, { presenter })}
+          </p>
+        ) : asking === 'failed' && errorFrom === 'ask' ? (
           <p
             data-testid={QA_ASK_SHEET_TEST_IDS.failed}
             role="alert"
@@ -370,7 +387,7 @@ function AskSheetDialog({
           >
             {questionErrorText(error ?? '', { presenter })}
           </p>
-        )}
+        ) : null}
         <p aria-live="polite" role="status" className="sr-only">
           {said}
         </p>
