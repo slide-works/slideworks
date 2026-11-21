@@ -93,14 +93,39 @@ const testIdFiles = fs
   .filter((path) => path.endsWith('/testIds.ts') || path === 'testIds.ts')
   .sort();
 
-// Every quoted id in a testIds file: the value of an entry (`key: 'id'`) and the text of a template id (`id-${n}`
-// counts up to its first ${). Imports, comments and other strings are not ids.
-function idsIn(file: string): string[] {
-  const text = fs.readFileSync(new URL(file, clientSrc), 'utf8');
-  const ids: string[] = [];
-  for (const match of text.matchAll(/^\s+\w+:\s*'([^']+)',?$/gm)) ids.push(match[1]);
-  for (const match of text.matchAll(/=>\s*`([^`]+)`/g)) ids.push(match[1].split('${')[0]);
+interface ParsedId {
+  id: string;
+  // A template id (`id-${n}`) is cut at its first ${, so it is a prefix; any other id is a whole string.
+  isTemplate: boolean;
+}
+
+// Every id in the text of a testIds file: the value of an entry (`key: 'id'` or `key: "id"`, optionally followed by a
+// comment) and the text of a template id (`id-${n}` counts up to its first ${). Imports, comments and the arrow
+// functions around template ids are not entries. An indented `key: value` line that is not a quoted id throws, naming
+// the file and line, so an entry this parser cannot read is never skipped.
+function parseIds(text: string, file: string): ParsedId[] {
+  const ids: ParsedId[] = [];
+  text.split('\n').forEach((line, index) => {
+    if (!/^\s+\w+:/.test(line)) return;
+    // An entry that is an arrow function over a template id is read by the template pass below.
+    if (/^\s+\w+:\s*\([^)]*\)\s*=>/.test(line)) return;
+    const entry = /^\s+\w+:\s*(?:'([^']+)'|"([^"]+)"),?\s*(?:\/\/.*)?$/.exec(line);
+    if (entry === null) {
+      throw new Error(`${file}:${index + 1}: cannot read this testIds entry: ${line.trim()}`);
+    }
+    ids.push({ id: entry[1] ?? entry[2], isTemplate: false });
+  });
+  for (const match of text.matchAll(/=>\s*`([^`]+)`/g)) {
+    ids.push({ id: match[1].split('${')[0], isTemplate: true });
+  }
   return ids;
+}
+
+// A literal id is used when a page object has it as a whole quoted string ("id" or 'id'); only a template id may be
+// matched as the start of a longer quoted string.
+function isUsedIn(pagesText: string, { id, isTemplate }: ParsedId): boolean {
+  if (pagesText.includes(`"${id}"`) || pagesText.includes(`'${id}'`)) return true;
+  return isTemplate && (pagesText.includes(`"${id}`) || pagesText.includes(`'${id}`));
 }
 
 const pages = fs
@@ -109,9 +134,64 @@ const pages = fs
   .map((path) => fs.readFileSync(new URL(path, pagesDir), 'utf8'))
   .join('\n');
 
-const allIds: TestId[] = testIdFiles.flatMap((file) => idsIn(file).map((id) => ({ file, id })));
-const isUsed = ({ id }: TestId) =>
-  pages.includes(`"${id}"`) || (!id.endsWith('"') && pages.includes(`"${id}`));
+const allIds: (TestId & ParsedId)[] = testIdFiles.flatMap((file) =>
+  parseIds(fs.readFileSync(new URL(file, clientSrc), 'utf8'), file).map((parsed) => ({
+    file,
+    ...parsed,
+  })),
+);
+const isUsed = (entry: ParsedId) => isUsedIn(pages, entry);
+
+describe('parseIds and isUsedIn', () => {
+  it('reads single-quoted, double-quoted and commented entries', () => {
+    const text = [
+      'export const IDS = {',
+      "  single: 'a-single',",
+      '  double: "a-double",',
+      "  commented: 'a-commented', // why",
+      '  doubleCommented: "a-double-commented" // why',
+      "  last: 'a-last'",
+      '} as const;',
+    ].join('\n');
+
+    expect(parseIds(text, 'x/testIds.ts').map(({ id }) => id)).toEqual([
+      'a-single',
+      'a-double',
+      'a-commented',
+      'a-double-commented',
+      'a-last',
+    ]);
+  });
+
+  it('reads a template id up to its first ${ and marks it as a prefix', () => {
+    const text = 'export const rowTestId = (n: number) => `row-${n}-x`;';
+
+    expect(parseIds(text, 'x/testIds.ts')).toEqual([{ id: 'row-', isTemplate: true }]);
+  });
+
+  it('fails loudly, naming the file and line, on an entry it cannot read', () => {
+    const text = ['export const IDS = {', "  ok: 'fine',", '  bad: `tick`,', '};'].join('\n');
+
+    expect(() => parseIds(text, 'x/testIds.ts')).toThrow(/x\/testIds\.ts:3: cannot read/);
+  });
+
+  it('does not count a longer id as a use of a literal id', () => {
+    const pagesText = 'By.TestId("qa-tab-slide")';
+
+    expect(isUsedIn(pagesText, { id: 'qa-tab', isTemplate: false })).toBe(false);
+    expect(isUsedIn(pagesText, { id: 'qa-tab-slide', isTemplate: false })).toBe(true);
+  });
+
+  it('counts a whole quoted string in either quote style as a use', () => {
+    expect(isUsedIn("Id('a')", { id: 'a', isTemplate: false })).toBe(true);
+    expect(isUsedIn('Id("a")', { id: 'a', isTemplate: false })).toBe(true);
+  });
+
+  it('lets a template id match the start of a longer quoted string', () => {
+    expect(isUsedIn('Id($"qa-tab-{n}")', { id: 'qa-tab-', isTemplate: true })).toBe(true);
+    expect(isUsedIn('Id("other")', { id: 'qa-tab-', isTemplate: true })).toBe(false);
+  });
+});
 
 describe('test ids and the acceptance page objects', () => {
   it('finds the testIds files and their ids', () => {
