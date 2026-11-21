@@ -316,6 +316,13 @@ count (not the `served` line) is the proof that the real publisher ran.
 | 2026-11-21 10:46 | 6f9df26 | 1,000 | 30 | 2.5 | 16 | 310 | 545 | 505 | 0 of 1,000 (0 dropped) | 5.33 / 4.14 | pass |
 | 2026-11-21 10:48 | 6f9df26 | 1,000 | 30 | 2.5 | 15 | 404 | 567 | 517 | 0 of 1,000 (0 dropped) | 1.52 / 2.51 | pass |
 | 2026-11-21 10:51 | 6f9df26 | 1,000 | 30 | 2.7 | 14 | 202 | 360 | 499 | 0 of 1,000 (0 dropped) | 1.22 / n/r | pass |
+| 2026-11-21 10:54 | 6f9df26 + SW-670 baseline (no app change) | 1,000 | 30 | 4.8 | 19 | 265 | 606 | 490 | 0 of 1,000 (0 dropped) | 4.93 / n/r | pass (SW-670: first run on a freshly started app) |
+| 2026-11-21 10:55 | same | 1,000 | 30 | 2.9 | 54 | 3,166 | 3,662 | 1,805 | 0 of 1,000 (0 dropped) | 6.70 / n/r | **fail** (SW-670: straight after the run above; another agent was building on the host, load average 9.4 a minute later) |
+| 2026-11-21 10:56 | same, after a 100-guest 10 s warm-up | 1,000 | 30 | 3.8 | 13 | 207 | 465 | 490 | 0 of 1,000 (0 dropped) | 4.24 / n/r | pass |
+| 2026-11-21 10:58 | same | 1,000 | 30 | 2.5 | 12 | 241 | 353 | 488 | 0 of 1,000 (0 dropped) | 4.24 / n/r | pass |
+| 2026-11-21 10:58 | same | 1,000 | 30 | 2.4 | 13 | 253 | 375 | 493 | 0 of 1,000 (0 dropped) | 2.98 / 2.62 | pass |
+| 2026-11-21 11:04 | 79ca1a8 | 1,000 | 30 | 4.3 | 14 | 289 | 503 | 489 | 0 of 1,000 (0 dropped) | 5.48 / n/r | pass (SW-670: cold, freshly started app) |
+| 2026-11-21 11:04 | 79ca1a8 | 1,000 | 30 | 2.5 | 13 | 216 | 388 | 488 | 0 of 1,000 (0 dropped) | 6.56 / n/r | pass (straight after the cold run) |
 
 Smoke run before these (same app, 50 guests, 10 s window): write p95 31 ms, tally p95 487 ms, 0 errors, pass.
 
@@ -334,4 +341,15 @@ errors (0) were fine in every run. The slow writes were reactions: in run 1 the 
 run 2 began as run 1 ended, with the load average already at 8. No cause was measured, so none is claimed here: the
 app was warming up in run 1, and the host was still busy from it in run 2. A tap does about four reads before it is counted
 (seat, room, slide count, slide id), which is the first place to look. The tally p95 sits at the 500 ms pump interval, as
+
+SW-670 (the two failures). Five more runs on a freshly started app with no app change, and two on 79ca1a8: the first run on a
+cold app passed both times (write p95 265 and 289 ms), so a cold start alone does not breach the gate; a 100-guest 10 s
+warm-up first changed nothing (207 ms). The one failure (3,166 ms, run 2 of the first batch, started straight after run 1)
+fell while another agent's `dotnet build` ran on the same 7 GB host (load average 9.4 a minute later, against 3 to 5 in the
+passing runs); SW-341's two failures also began at load averages of 1.5 to 8 with the host busy. A tap costs about fifteen
+reads before it is counted (three for the code check, three and the join row for the seat, six for the room, two for the slide on
+screen), so it has little headroom when the cores are shared. The one saving that
+was safe to make was the slide on screen (a count and a lookup became one read, 79ca1a8); the room and seat reads are left as
+they are, because serving them from memory would let a tap outlive the presenter turning reactions off. Cold-start warm-up
+is not built: it was not the cause. Run the gate on a host with nothing else building.
 the poll's did.
