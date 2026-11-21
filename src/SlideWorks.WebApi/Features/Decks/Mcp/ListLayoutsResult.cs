@@ -11,6 +11,3 @@ public sealed record ListLayoutsResult(
     [property: JsonPropertyName("$defs")]
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     JsonObject? Defs = null);
-
-// list_layouts with detail "compact": the slots, their limits and how many items fit. No schema and no $defs.
-public sealed record ListLayoutsCompactResult(IReadOnlyList<LayoutOutline> Layouts);

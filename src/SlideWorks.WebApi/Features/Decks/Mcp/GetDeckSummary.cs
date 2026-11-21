@@ -34,12 +34,19 @@ public sealed record GetDeckSummary(
             slides.Select(GetDeckSummarySlide.From).ToList());
 }
 
-public sealed record GetDeckSummarySlide(int Number, string Layout, int? Part, string? Headline)
+public sealed record GetDeckSummarySlide(int Number, string Layout, int? Part, string Headline)
 {
-    public static GetDeckSummarySlide From(Slide slide)
-        => new(slide.Position + 1, slide.Layout, slide.Part, HeadlineOf(SlideJson.Slots(slide)));
+    // A summary headline is cut to this many characters (SW-568), so a long quote does not make the short read long.
+    public const int HEADLINE_MAX_LENGTH = 120;
 
-    // The line a summary shows: the headline, else the title, the question, or the quote.
+    public static GetDeckSummarySlide From(Slide slide)
+        => new(slide.Position + 1, slide.Layout, slide.Part, Cut(HeadlineOf(SlideJson.Slots(slide)) ?? ""));
+
+    private static string Cut(string headline)
+        => headline.Length <= HEADLINE_MAX_LENGTH ? headline : headline[..HEADLINE_MAX_LENGTH];
+
+    // The line a summary shows: the headline, else the title, the question, or the quote. A slide with none of them
+    // shows "".
     private static string? HeadlineOf(JsonElement slots)
     {
         foreach (var name in new[] { "headline", "title", "question" })

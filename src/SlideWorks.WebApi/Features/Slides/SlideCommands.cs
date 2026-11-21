@@ -45,6 +45,7 @@ public class SlideCommands(
         Slide slide;
         Deck deck;
         ResolvedTemplate template;
+        PollSettings? storedPoll = null;
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
             // EF opens a SQLite transaction with BEGIN IMMEDIATE, which takes the database's write lock at once, so writes run
@@ -88,6 +89,7 @@ public class SlideCommands(
             if (slide.Layout == PollRows.LAYOUT)
             {
                 await pollRows.EnsureAsync(slide.Id, deck.Id, pollSettings);
+                storedPoll = pollSettings;
             }
             await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, ADD_TOOL, $"added slide {position + 1} ({slide.Layout}){(slide.DeepDive ? " as a deep dive" : "")}"));
             await transaction.CommitAsync();
@@ -96,7 +98,7 @@ public class SlideCommands(
         await events.PublishAsync(new DeckChanged(deck.Id));
         var number = slide.Position + 1;
         var warnings = LayoutWarnings.For(template.Template, number, slide.Layout);
-        return new AddSlideResult(number, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, number), warnings);
+        return new AddSlideResult(number, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, number), warnings, storedPoll);
     }
 
     public const string ADD_MANY_TOOL = "add_slides";
@@ -283,6 +285,7 @@ public class SlideCommands(
             url,
             warnings,
             error,
-            fit);
+            fit,
+            slide is null ? null : Poll);
     }
 }
