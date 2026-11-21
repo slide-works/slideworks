@@ -58,3 +58,31 @@ test('Stub_WhenNothingHasConnected_ShouldThrowFromEveryPush', async ({ page }) =
     'pushQuestionTally: no hub connection yet',
   );
 });
+
+test('Stub_WhenNothingHasConnected_ShouldThrowFromEveryPushMethod', async ({ page }) => {
+  const hub = await stubDeckHub(page, { audience: { state: { seq: 1 } as never } });
+  const anything = {} as never;
+  const pushes: Record<string, () => void> = {
+    push: () => hub.push({ type: 'deckChanged' }),
+    pushAudienceEvent: () => hub.pushAudienceEvent(anything),
+    pushPollTally: () => hub.pushPollTally(anything),
+    pushPollTallyResults: () => hub.pushPollTally(anything, { target: 'results' }),
+    pushWordCloud: () => hub.pushWordCloud({ ...ROUND, type: 'wordCloud', guests: 0, words: [] }),
+    pushOpenText: () => hub.pushOpenText({ ...ROUND, type: 'openText', guests: 0, answers: [] }),
+    pushActivity: () => hub.pushActivity(null),
+    pushQuestionTally: () => hub.pushQuestionTally(anything),
+    pushRoom: () => hub.pushRoom(null),
+    pushState: () => hub.pushState(anything),
+  };
+  for (const [name, call] of Object.entries(pushes))
+    expect(call, name).toThrow(`${name.replace('Results', '')}: no hub connection yet`);
+});
+
+test('Stub_WhenNothingHasConnectedAndThereIsNoAudienceState_ShouldThrowTheConnectionError', async ({
+  page,
+}) => {
+  const hub = await stubDeckHub(page);
+
+  expect(() => hub.pushActivity(null)).toThrow('pushActivity: no hub connection yet');
+  expect(() => hub.pushRoom(null)).toThrow('pushRoom: no hub connection yet');
+});

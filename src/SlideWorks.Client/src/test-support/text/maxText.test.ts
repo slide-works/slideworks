@@ -9,6 +9,10 @@ describe('maxText', () => {
     expect(wideLetters(length, 'Whom We Name ')).toHaveLength(length);
   });
 
+  it('wideLetters throws on an empty unit instead of looping for ever', () => {
+    expect(() => wideLetters(5, '')).toThrow('wideLetters: unit must not be empty');
+  });
+
   it('allW is only W and spaces', () => {
     expect(allW(30)).toMatch(/^[W ]+$/);
   });

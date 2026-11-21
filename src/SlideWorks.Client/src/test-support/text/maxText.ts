@@ -14,6 +14,7 @@ function cycleWords(words: readonly string[], length: number, pad: string): stri
  * 'Whom We Name WOMBAT ', ending in a space so a line can break between copies.
  */
 export function wideLetters(length: number, unit: string, pad = 'M'): string {
+  if (unit === '') throw new Error('wideLetters: unit must not be empty');
   let text = '';
   while (text.length < length) text += unit;
   return text.slice(0, length).trimEnd().padEnd(length, pad);

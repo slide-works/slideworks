@@ -458,8 +458,9 @@ export async function stubDeckHub(
       tally: PollTally,
       { target = 'audience' }: { target?: 'audience' | 'results' } = {},
     ) {
+      const ws = connection('pushPollTally');
       if (target === 'results' && !watching()) return;
-      send(connection('pushPollTally'), { type: 1, target: 'audienceEvent', arguments: [tally] });
+      send(ws, { type: 1, target: 'audienceEvent', arguments: [tally] });
     },
     // Sends one wordCloud to the newest connection, as the hub does to the audience group (the default) or to the
     // presenter's screens (target 'screen', hidden words included). Throws on an event the hub never sends: no type, a
@@ -503,8 +504,9 @@ export async function stubDeckHub(
     // Puts activity on the audience state with the seq one higher and sends it, as the server does when a poll opens,
     // closes or changes on screen. Later joins get that state too.
     pushActivity(activity: PollActivity | null) {
+      const ws = connection('pushActivity');
       audienceState = { ...audienceState!, seq: audienceState!.seq + 1, activity };
-      send(connection('pushActivity'), {
+      send(ws, {
         type: 1,
         target: 'audienceEvent',
         arguments: [audienceState],
@@ -521,8 +523,9 @@ export async function stubDeckHub(
     // Puts room on the audience state with the seq one higher and sends it, as the server does when a setting, the
     // slide's switch, the round or the list revision changes (SW-9 Q1). Later joins get that state too.
     pushRoom(room: QaRoom | null) {
+      const ws = connection('pushRoom');
       audienceState = { ...audienceState!, seq: audienceState!.seq + 1, room };
-      send(connection('pushRoom'), {
+      send(ws, {
         type: 1,
         target: 'audienceEvent',
         arguments: [audienceState],
@@ -543,8 +546,9 @@ export async function stubDeckHub(
     // Makes state the presentation's current state and broadcasts it to the newest connection as the hub does. A
     // later JoinPresentation answers with it.
     pushState(state: PresentationState) {
+      const ws = connection('pushState');
       current = structuredClone(state);
-      broadcast(current);
+      send(ws, { type: 1, target: 'presentationState', arguments: [current] });
     },
     // Makes the next call of target fail (every call, when sticky) as the real hub does when the method throws
     // HubException(message), such as DeckHub's "Not presenting". The call is still recorded, changes nothing and is
