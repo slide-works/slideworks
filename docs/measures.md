@@ -220,3 +220,98 @@ ORDER BY r.ClosedAt DESC, r.SessionId, r.Number;
 **Keep in step:** the query reads these columns, so a change to them changes the query. From `PollRounds`: `Kind` (stored as
 the enum's name, `Slide` or `Qa`), `SessionId`, `SlideId`, `Number`, `OpenedAt`, `ClosedAt`, `JoinedAtClose` and `Final`
 (JSON with an `answered` key). From `AudienceSessions`: `Id` and `DeckId`. `PollResponseRateQueryTests` runs this query as written and fails when they drift.
+
+## Q&A and reactions (SW-9)
+
+Two queries, one for each Measure of Q&A and reactions: how many questions a talk drew, and how much of the room took part.
+Both read from the audience sessions SlideWorks keeps for each Go live.
+
+**Where it reads from:**
+
+- `AudienceSessions` has one row for each time a deck went live, and `AudienceJoins` one row for each guest who joined it.
+- `PollRounds` with `Kind = 'Qa'` is the session's Q&A round. Go live opens it, and it is the only kind of round the
+  questions live in.
+- `Questions` has one row for each question asked, keyed by the round and a position. `GuestId` is the guest who asked.
+  A question that is hidden, waiting for approval or answered is still a question asked, so the count includes them.
+- `PollAnswers` on a Q&A round is one guest's upvotes: `Picks` is a JSON array of the positions they upvoted, and an empty
+  array means they took every upvote back. A guest counts as having upvoted only when `Picks` is not empty.
+- `ReactionGuests` has one row for each guest who tapped a reaction at all in the session. Never a row per tap.
+
+**Parameters:** `@from` (inclusive) and `@to` (exclusive), as UTC date-times such as `2026-11-16 00:00:00`. A session is in
+the window when it started in it. Times are stored in the encoding described under Look adoption, and both queries
+convert the parameters themselves.
+
+### Questions asked per session
+
+**Columns:** `session_id`, `deck_id`, `started_at` (UTC) and `asked`, the Measure. A session with no questions has a row with
+`asked` 0. Rows are newest session first.
+
+```sql
+WITH bounds AS (
+  SELECT ((CAST(strftime('%s', @from) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS lo,
+         ((CAST(strftime('%s', @to) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS hi
+)
+SELECT s.Id AS session_id,
+       s.DeckId AS deck_id,
+       datetime((s.StartedAt >> 11) / 10000 - 62135596800, 'unixepoch') AS started_at,
+       COUNT(q.RoundId) AS asked
+FROM AudienceSessions s
+CROSS JOIN bounds b
+LEFT JOIN PollRounds r ON r.SessionId = s.Id AND r.Kind = 'Qa'
+LEFT JOIN Questions q ON q.RoundId = r.Id
+WHERE s.StartedAt >= b.lo AND s.StartedAt < b.hi
+GROUP BY s.Id
+ORDER BY s.StartedAt DESC, s.Id;
+```
+
+### Share of joined guests who asked, upvoted or reacted
+
+A guest counts once however many of the three they did, and only if they have a row in the session's `AudienceJoins`. A
+`Question`, upvote or reaction from a guest who never joined is not counted.
+
+**Columns:** `session_id`, `deck_id`, `started_at` (UTC), `joined` (guests who joined), `asked`, `upvoted` and `reacted` (how
+many of them did each, so the three can add up to more than `took_part`), `took_part` (guests who did at least one) and
+`share`, the Measure: `took_part` over `joined`, from 0 to 1. A session nobody joined has `share` null. Rows are newest
+session first.
+
+```sql
+WITH bounds AS (
+  SELECT ((CAST(strftime('%s', @from) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS lo,
+         ((CAST(strftime('%s', @to) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS hi
+),
+guests AS (
+  SELECT j.SessionId AS session_id,
+         s.DeckId AS deck_id,
+         s.StartedAt AS started,
+         EXISTS (SELECT 1 FROM Questions q
+                 JOIN PollRounds r ON r.Id = q.RoundId
+                 WHERE r.SessionId = j.SessionId AND r.Kind = 'Qa' AND q.GuestId = j.GuestId) AS asked,
+         EXISTS (SELECT 1 FROM PollAnswers a
+                 JOIN PollRounds r ON r.Id = a.RoundId
+                 WHERE r.SessionId = j.SessionId AND r.Kind = 'Qa' AND a.GuestId = j.GuestId
+                   AND json_array_length(a.Picks) > 0) AS upvoted,
+         EXISTS (SELECT 1 FROM ReactionGuests g
+                 WHERE g.SessionId = j.SessionId AND g.GuestId = j.GuestId) AS reacted
+  FROM AudienceJoins j
+  JOIN AudienceSessions s ON s.Id = j.SessionId, bounds b
+  WHERE s.StartedAt >= b.lo AND s.StartedAt < b.hi
+)
+SELECT session_id,
+       deck_id,
+       datetime((started >> 11) / 10000 - 62135596800, 'unixepoch') AS started_at,
+       COUNT(*) AS joined,
+       SUM(asked) AS asked,
+       SUM(upvoted) AS upvoted,
+       SUM(reacted) AS reacted,
+       SUM(asked OR upvoted OR reacted) AS took_part,
+       ROUND(1.0 * SUM(asked OR upvoted OR reacted) / COUNT(*), 4) AS share
+FROM guests
+GROUP BY session_id
+ORDER BY started DESC, session_id;
+```
+
+**Keep in step:** the queries read these columns, so a change to them changes the queries. From `AudienceSessions`: `Id`,
+`DeckId` and `StartedAt`. From `AudienceJoins`: `SessionId` and `GuestId`. From `PollRounds`: `Id`, `SessionId` and `Kind`
+(stored as the enum's name, `Slide` or `Qa`). From `Questions`: `RoundId` and `GuestId`. From `PollAnswers`: `RoundId`,
+`GuestId` and `Picks`. From `ReactionGuests`: `SessionId` and `GuestId`. `QaMeasuresSqlTests` runs both queries as written
+and fails when they drift.
