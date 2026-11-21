@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import { LAYOUT_SLOTS } from '../../test-support/fixtures/layoutSlots';
 import { lookViewOf } from '../../test-support/fixtures/lookViewOf';
+import { decodeQr } from '../../test-support/decodeQr';
 import { deckPlay } from '../../test-support/fixtures/screens';
 import type { LookView } from '../../api/types';
 import { lookStyle } from '../../look/lookStyle';
@@ -53,6 +54,11 @@ test('the join bar draws a QR code and the code while live with the join bar on'
   await expect(bar).toBeVisible();
   await expect(page.getByTestId('join-bar-code')).toHaveText(deckPlay.join.codeLabel);
   await expect(page.getByTestId('join-bar-qr').locator('rect')).toHaveAttribute('fill', '#ffffff');
+});
+
+test('the join bar QR code decodes to the join URL', async ({ mount, page }) => {
+  await mount(mountSlide(true, true));
+  expect(await decodeQr(page, page.getByTestId('join-bar-qr'))).toBe(deckPlay.join.joinUrl);
 });
 
 test('the join bar stays off when the deck is not live', async ({ mount, page }) => {

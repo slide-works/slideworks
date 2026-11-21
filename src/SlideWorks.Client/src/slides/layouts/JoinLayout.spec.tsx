@@ -5,6 +5,7 @@ import { LAYOUT_SLOTS } from '../../test-support/fixtures/layoutSlots';
 import { lookViewOf } from '../../test-support/fixtures/lookViewOf';
 import { guestView } from '../../test-support/fixtures/guestStates';
 import { deckPlay } from '../../test-support/fixtures/screens';
+import { decodeQr } from '../../test-support/decodeQr';
 import { stubDeckHub } from '../../test-support/stubDeckHub';
 import { JoinProvider } from '../JoinContext';
 import { SlideRenderer } from '../SlideRenderer';
@@ -63,6 +64,15 @@ test('JoinLayout draws the QR code 780 px wide, black on white', async ({ mount,
   expect(box?.height).toBe(780);
   await expect(qr.locator('rect')).toHaveAttribute('fill', '#ffffff');
   await expect(qr.locator('path')).toHaveAttribute('fill', '#000000');
+});
+
+test('JoinLayout QR code decodes to the join URL', async ({ mount, page }) => {
+  await mount(
+    <JoinProvider deckId={deckPlay.id} join={join} owner={false}>
+      <SlideRenderer slide={slide({})} deck={deck} total={1} step={0} />
+    </JoinProvider>,
+  );
+  expect(await decodeQr(page, page.getByTestId('join-qr'))).toBe(join.joinUrl);
 });
 
 test('JoinLayout leaves the count off when the slot hides it', async ({ mount, page }) => {
