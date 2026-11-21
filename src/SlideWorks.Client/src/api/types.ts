@@ -108,6 +108,7 @@ export type DeckPageView = {
   parts: DeckPart[];
   slides: DeckPageSlide[];
   activity: ActivityRow[];
+  findings: SlideFinding[];
 };
 
 // Never carries speaker notes.
