@@ -5,4 +5,6 @@ namespace SlideWorks.WebApi.Infrastructure.Rendering;
 // An InvalidOperationException, so a caller written against D3's first wording still catches it.
 public sealed class RenderingFailedException(string text) : InvalidOperationException(PlaywrightRenderEngine.FAILED + text)
 {
+    // The text after "Rendering failed: ".
+    public string Reason { get; } = text;
 }

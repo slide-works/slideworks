@@ -15,7 +15,6 @@ public sealed class CheckDeckTool
     public Task<CallToolResult> CheckDeck(
         DeckChecks checks,
         [Description("The deck's id.")] string deck,
-        [Description("The 1-based slide numbers to check. Leave out for every slide.")] int[]? slides = null,
-        [Description("Render the slides and measure them. Pass false for the stored checks only, which is quick.")] bool measure = true)
-        => McpToolErrors.Run(() => checks.CheckAsync(deck, slides, measure));
+        [Description("The 1-based slide numbers to check. Leave out for every slide.")] int[]? slides = null)
+        => McpToolErrors.Run(() => checks.CheckAsync(deck, slides, true));
 }

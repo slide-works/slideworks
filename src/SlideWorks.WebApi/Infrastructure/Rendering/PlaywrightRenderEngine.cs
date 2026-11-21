@@ -124,15 +124,15 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
         var error = await frame.GetAttributeAsync("data-error");
         if (error != null)
         {
-            throw Failed(error);
+            throw Failed(error.StartsWith(FAILED, StringComparison.Ordinal) ? error[FAILED.Length..] : error);
         }
 
         var png = await frame.ScreenshotAsync(new LocatorScreenshotOptions { Type = ScreenshotType.Png });
-        return new RenderedSlide(png, ReadChecks(await frame.GetAttributeAsync("data-checks")));
+        return new RenderedSlide(png, ParseChecks(await frame.GetAttributeAsync("data-checks")));
     }
 
     // The data-checks attribute: absent means none measured; text that isn't a list of findings is a failed render.
-    private static IReadOnlyList<SlideFinding> ReadChecks(string? json)
+    public static IReadOnlyList<SlideFinding> ParseChecks(string? json)
     {
         if (json == null)
         {
@@ -141,7 +141,13 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
 
         try
         {
-            return JsonSerializer.Deserialize<List<SlideFinding>>(json, FindingJson.Options) ?? throw Failed("checks unreadable");
+            var list = JsonSerializer.Deserialize<List<SlideFinding>>(json, FindingJson.Options);
+            if (list == null || list.Any(f => f == null || f.Where == null || f.Message == null))
+            {
+                throw Failed("checks unreadable");
+            }
+
+            return list;
         }
         catch (JsonException)
         {
