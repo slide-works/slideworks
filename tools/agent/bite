@@ -229,6 +229,8 @@ runner_log="$(sed -n 's/^log: //p' "$runner_out" | head -n 1)"
 runner_result="$(grep '^RESULT ' "$runner_out" | tail -n 1 || true)"
 echo "runner: exit $runner_rc, ${runner_result:-no RESULT line}"
 field() { sed -nE "s/.* $1=([^ ]*).*/\1/p" <<<"$runner_result"; }
+# failed_tests keeps exact names (spaces included, joined by |), so it runs up to the closing " log=".
+failed_tests="$(sed -nE 's/.* failed_tests=(.*) log=[^ ]*$/\1/p' <<<"$runner_result")"
 label=()
 [[ -z "$name" ]] || label=("name=${name// /_}")
 
@@ -259,7 +261,7 @@ if [[ $runner_rc -eq 1 && "${failed:-0}" -gt 0 ]]; then
       grep -n -i -E -A 8 'fail|error|expected' "$runner_log" | head -n 300 >>"$AGENT_LOG" || true
     fi
   fi
-  bite_finish 0 ok bit=yes "failed=$failed" "tests=$(field failed_tests)" "${label[@]}" "runner_log=${runner_log:-none}"
+  bite_finish 0 ok bit=yes "failed=$failed" "tests=\"$failed_tests\"" "${label[@]}" "runner_log=${runner_log:-none}"
 fi
 
 if [[ $runner_rc -eq 0 ]]; then
