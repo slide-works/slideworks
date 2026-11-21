@@ -24,7 +24,7 @@ public class PollActivityTests : PollTestFixture
         await Rows.SettingsAsync(poll.SlideId, _upToTwo);
         var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
 
-        var activity = await ActivityAsync(poll.Code);
+        var activity = await ActivityAsync(poll);
 
         PollActivityKeys.Of(activity).ShouldBe(PollActivityKeys.All, ignoreOrder: true);
         activity.GetProperty("type").GetString().ShouldBe("poll");
@@ -48,7 +48,7 @@ public class PollActivityTests : PollTestFixture
         var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
         await Rows.CloseAsync(round.Id, joinedAtClose: 3);
 
-        var activity = await ActivityAsync(poll.Code);
+        var activity = await ActivityAsync(poll);
 
         activity.GetProperty("phase").GetString().ShouldBe("closed");
         activity.GetProperty("round").GetString().ShouldBe(round.Id.ToString());
@@ -64,7 +64,7 @@ public class PollActivityTests : PollTestFixture
         var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
         await Rows.CloseAsync(round.Id, joinedAtClose: 3, answerShown: true);
 
-        var activity = await ActivityAsync(poll.Code);
+        var activity = await ActivityAsync(poll);
 
         activity.GetProperty("phase").GetString().ShouldBe("closed");
         activity.GetProperty("correct").GetInt32().ShouldBe(2);
@@ -76,7 +76,7 @@ public class PollActivityTests : PollTestFixture
         var poll = await SeedPollAsync();
         Presentations.Set(SettablePresentations.At(poll.DeckId, poll.OtherSlide));
 
-        var activity = await ActivityAsync(poll.Code);
+        var activity = await ActivityAsync(poll);
 
         activity.ValueKind.ShouldBe(JsonValueKind.Null);
     }
@@ -89,7 +89,7 @@ public class PollActivityTests : PollTestFixture
         var poll = await SeedPollAsync();
         Presentations.Set(SettablePresentations.At(poll.DeckId, poll.Slide + 3));
 
-        var activity = await ActivityAsync(poll.Code);
+        var activity = await ActivityAsync(poll);
 
         activity.GetProperty("type").GetString().ShouldBe("poll");
         activity.GetProperty("question").GetString().ShouldBe(PollSeed.QUESTION);
@@ -102,7 +102,7 @@ public class PollActivityTests : PollTestFixture
         var poll = await SeedPollAsync();
         await Rows.SettingsAsync(poll.SlideId, PollSettings.Default with { Opens = PollOpens.Manual });
 
-        var activity = await ActivityAsync(poll.Code);
+        var activity = await ActivityAsync(poll);
 
         PollActivityKeys.Of(activity).ShouldBe(PollActivityKeys.All, ignoreOrder: true);
         activity.GetProperty("phase").GetString().ShouldBe("draft");
@@ -120,7 +120,7 @@ public class PollActivityTests : PollTestFixture
         await Rows.CloseAsync(first.Id, joinedAtClose: 0);
         await Rows.RoundAsync(poll.SlideId, poll.SessionId, PollPhase.Draft, number: 2);
 
-        var activity = await ActivityAsync(poll.Code);
+        var activity = await ActivityAsync(poll);
 
         activity.GetProperty("phase").GetString().ShouldBe("draft");
         activity.GetProperty("round").ValueKind.ShouldBe(JsonValueKind.Null);
@@ -159,9 +159,10 @@ public class PollActivityTests : PollTestFixture
     }
 
     // audienceState.activity as the join page reads it.
-    private async Task<JsonElement> ActivityAsync(string code)
+    private async Task<JsonElement> ActivityAsync(SeededPoll poll)
     {
-        var body = await Client.GetFromJsonAsync<JsonElement>($"/api/join/{code}");
+        await RefreshAudienceAsync(poll.DeckId);
+        var body = await Client.GetFromJsonAsync<JsonElement>($"/api/join/{poll.Code}");
         return body.GetProperty("state").GetProperty("activity");
     }
 }

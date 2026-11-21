@@ -52,7 +52,7 @@ public static class LookViews
     {
         var look = template.Look;
         return new LookView(
-            LookTemplateView.From(template.Template, overrides),
+            LookTemplateView.From(template.Template, overrides, palette.Tokens.GetValueOrDefault("paper")),
             LookPaletteView.From(palette),
             logo,
             look.Fonts.Select(font => LookFontView.From(template.Ref, font)).ToList(),

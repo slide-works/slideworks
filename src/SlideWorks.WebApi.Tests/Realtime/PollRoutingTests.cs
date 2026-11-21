@@ -43,6 +43,7 @@ public class PollRoutingTests : PollTestFixture
         var poll = await SeedPollAsync();
         var round = Guid.NewGuid().ToString();
         Activity.Set(poll.Code, poll.DeckId, ActivityOf(round));
+        await RefreshAudienceAsync(poll.DeckId);
         await using var guest = await GuestClient.ConnectAsync(Factory, transport);
 
         var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", poll.Code);

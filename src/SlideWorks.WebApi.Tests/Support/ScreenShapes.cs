@@ -50,7 +50,7 @@ public static class ScreenShapes
     {
         NullablePaths =
         [
-            "title", "subtitle", "author", "look.template.titleArt", "look.logo",
+            "kicker", "title", "subtitle", "author", "look.template.titleArt", "look.logo",
             .. LookNullablePaths,
         ],
     };

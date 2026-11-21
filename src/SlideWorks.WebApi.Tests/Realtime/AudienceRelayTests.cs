@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Live;
+using SlideWorks.WebApi.Features.Qa;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Realtime.Presenting;
 using SlideWorks.WebApi.Tests.Decks;
@@ -381,6 +382,10 @@ public class AudienceRelayTests : ApiTestFixture
         var (_, code) = await GoLiveAsync(await SeedAsync());
         await using var guest = await GuestClient.ConnectAsync(Factory);
         const long NEWER_REVISION = 9_999;
+        // A join is answered from the state the relay holds, with no read, unless a new question has moved the room's revision:
+        // move it, so this join composes through the registry as the test needs.
+        var room = (await Client.GetFromJsonAsync<JsonElement>($"/api/join/{code}")).GetProperty("state").GetProperty("room");
+        Factory.Services.GetRequiredService<QaRevisions>().Bump(room.GetProperty("round").GetString()!);
         Presentations.AfterNextGet(id => Factory.Services.GetRequiredService<IAudienceEvents>()
             .PublishAsync(new AudienceState(id, long.MaxValue / 2, AudiencePhase.Live, null, NEWER_REVISION, null, null)));
 

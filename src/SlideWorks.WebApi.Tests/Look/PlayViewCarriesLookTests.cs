@@ -35,6 +35,29 @@ public class PlayViewCarriesLookTests : ApiTestFixture
         play.GetProperty("slides")[0].GetProperty("deepDive").GetBoolean().ShouldBeFalse();
     }
 
+    // SW-148: on a dark palette a card's lift is the dark one, since the template's shadow doesn't show on dark paper.
+    [Test]
+    public async Task Play_WhenThePaletteIsDark_ShouldCarryTheDarkCardLift()
+    {
+        var id = await CreateWithSlideAsync(template: "workshop", palette: "midnight");
+
+        var play = await Client.GetFromJsonAsync<JsonElement>($"/api/play/{id}");
+
+        play.GetProperty("look").GetProperty("template").GetProperty("shape").GetProperty("shadow").GetString()
+            .ShouldBe(CardLift.DARK);
+    }
+
+    [Test]
+    public async Task Play_WhenThePaletteIsLight_ShouldCarryTheTemplatesShadow()
+    {
+        var id = await CreateWithSlideAsync(template: "workshop", palette: "cobalt");
+
+        var play = await Client.GetFromJsonAsync<JsonElement>($"/api/play/{id}");
+
+        play.GetProperty("look").GetProperty("template").GetProperty("shape").GetProperty("shadow").GetString()
+            .ShouldBe(new TemplateCatalogue().Find("workshop")!.Shape.Shadow);
+    }
+
     [Test]
     public async Task Play_WhenTheDeckHasCustomColours_ShouldMergeThemOntoThePalette()
     {

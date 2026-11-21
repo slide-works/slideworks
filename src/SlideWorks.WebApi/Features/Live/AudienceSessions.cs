@@ -1,5 +1,6 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
+using SlideWorks.Core.Slides.Layouts;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Look.Views;
 using SlideWorks.WebApi.Realtime;
@@ -15,8 +16,6 @@ namespace SlideWorks.WebApi.Features.Live;
 public class AudienceSessions(AppDbContext db, TimeProvider clock) : IAudienceSessions
 {
     public static readonly TimeSpan ENDED_WINDOW = TimeSpan.FromHours(2);
-
-    private const string JOIN_LAYOUT = "join";
 
     public async Task<AudienceSessionRef?> FindAsync(string code)
     {
@@ -48,7 +47,7 @@ public class AudienceSessions(AppDbContext db, TimeProvider clock) : IAudienceSe
         }
         var hasLobby = lastEnded != null
             || ChromeOverridesView.From(deck.ChromeJson).JoinBar
-            || await db.Slides.AsNoTracking().AnyAsync(s => s.DeckId == deckId && s.DeletedAt == null && s.Layout == JOIN_LAYOUT);
+            || await db.Slides.AsNoTracking().AnyAsync(s => s.DeckId == deckId && s.DeletedAt == null && s.Layout == JoinLayout.NAME);
         return hasLobby ? new AudienceSessionRef(deckId, null, AudiencePhase.Lobby) : null;
     }
 }

@@ -362,10 +362,12 @@ const LOOK_CHANGE_REQUEST = keys<LookChangeRequest>({
 const LOOK_CHANGE_RESULT = keys<LookChangeResult>({ look: true, warnings: true });
 const CARD = keys<CardView>({
   generic: true,
+  kicker: true,
   title: true,
   subtitle: true,
   author: true,
   slideCount: true,
+  host: true,
   look: true,
 });
 const IMAGE_UPLOAD_REQUEST = keys<ImageUploadRequest>({ name: true, contentType: true });

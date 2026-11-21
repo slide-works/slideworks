@@ -7,7 +7,7 @@ import type { GuestView } from '../../guest/guestView';
 import type { Widen } from './widen';
 
 // tsc can't tie a JSON slide's slots to its layout (see JsonView in widen.ts), so the slots are opaque here and the test
-// checks them against the sample deck's slide at run time.
+// checks them against the layout's slot keys at run time.
 type JsonCurrent = Widen<Omit<NonNullable<AudienceState['current']>, 'slots'>> & { slots: object };
 type JsonState = Widen<Omit<AudienceState, 'current'>> & { current: JsonCurrent | null };
 type JsonGuest = Widen<Omit<GuestView, 'state'>> & { state: JsonState };

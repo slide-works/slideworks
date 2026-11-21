@@ -55,6 +55,7 @@ public class QaRoutingTests : PollTestFixture
         var poll = await SeedPollAsync();
         var round = Guid.NewGuid().ToString();
         Room.Set(poll.DeckId, new QaRoom(round, QaRoomQuestions.Closed, false, true, 57));
+        await RefreshAudienceAsync(poll.DeckId);
         await using var guest = await GuestClient.ConnectAsync(Factory, transport);
 
         var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", poll.Code);

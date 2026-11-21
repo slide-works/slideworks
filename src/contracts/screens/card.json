@@ -1,9 +1,11 @@
 {
   "generic": false,
+  "kicker": "Team offsite · 2026",
   "title": "Ship smaller",
   "subtitle": "Why small batches beat big plans, and how to start on Monday",
   "author": "Sam Rivera",
   "slideCount": 16,
+  "host": "slideworks.example",
   "look": {
     "template": {
       "name": "workshop",
