@@ -37,9 +37,12 @@ public class Sw9ModerationJourneyTests : AcceptanceTest
         await Expect(talk.Panel.TabReview).ToContainTextAsync("1", new() { Timeout = PUSH_TIMEOUT });
         await talk.Panel.TabReview.ClickAsync();
         await Expect(talk.Panel.RowText(1)).ToHaveTextAsync(QUESTION);
-        // The server has the question and has told the room's side; the other phone still holds nothing and offers nothing.
+        // B asks its own question (waiting too, so B sees it as its own) and waits for it to show. B's list was then read
+        // after question 1 was stored, so the checks below prove the waiting question did not leak into it.
+        await AskAsync(other, "Which tests do you run first?");
+        await Expect(other.Questions.QuestionText(2)).ToHaveTextAsync("Which tests do you run first?", new() { Timeout = PUSH_TIMEOUT });
+        await Expect(other.Questions.QuestionWaiting(2)).ToContainTextAsync("Waiting for");
         await Expect(other.Questions.Question(1)).ToHaveCountAsync(0);
-        await Expect(other.Questions.ListEmpty).ToBeVisibleAsync();
         await Expect(other.Questions.QuestionsBadge).ToHaveCountAsync(0);
 
         await talk.Panel.Approve(1).ClickAsync();
