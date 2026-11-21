@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Gets a fresh worktree to a built state: pnpm install, dotnet tool restore, solution build.
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage="usage: tools/agent/bootstrap [--client-bundle]
+Run inside a worktree. Loads the host env, prints the scratch dir, runs
+'pnpm install --frozen-lockfile' in src/SlideWorks.Client when node_modules is missing
+or older than pnpm-lock.yaml, runs 'dotnet tool restore', then builds the solution.
+--client-bundle also runs 'pnpm run build' (the acceptance tests serve that bundle).
+Safe to run twice: the second run skips the install."
+bundle=0
+for arg in "$@"; do
+  case "$arg" in
+    -h | --help)
+      echo "$usage"
+      exit 0
+      ;;
+    --client-bundle) bundle=1 ;;
+    *)
+      agent_start
+      agent_die 2 "unknown argument: $arg
+$usage" reason=bad-argument
+      ;;
+  esac
+done
+agent_start
+agent_require git flock timeout pnpm
+agent_env
+root="$(agent_root)"
+client="$root/src/SlideWorks.Client"
+scratch="$(agent_scratch)"
+echo "scratch: $scratch"
+
+# in_dir <dir> <command...>: runs a command in a directory.
+# shellcheck disable=SC2329  # called through step
+in_dir() (
+  cd "$1"
+  shift
+  "$@"
+)
+
+# step <name> <command...>: runs one command in the repo, output to the log, dies with its exit code.
+step() {
+  local name="$1" rc=0
+  shift
+  echo "== $name" >>"$AGENT_LOG"
+  "$@" >>"$AGENT_LOG" 2>&1 || rc=$?
+  [[ $rc -eq 0 ]] || agent_die 1 "$name failed (exit $rc); see the log" reason="$name-failed"
+}
+
+installed=skipped
+if [[ ! -d "$client/node_modules" || "$client/node_modules" -ot "$client/pnpm-lock.yaml" ]]; then
+  step pnpm-install in_dir "$client" pnpm install --frozen-lockfile
+  touch "$client/node_modules"
+  installed=ran
+fi
+echo "pnpm install: $installed"
+step dotnet-tool-restore in_dir "$root" dotnet tool restore
+
+rc=0
+AGENT_BUILD_LOG="$AGENT_LOG" agent_build || rc=$?
+case $rc in
+  0) ;;
+  3) agent_die 3 "build failed; see the log" reason=build-failed ;;
+  4) agent_die 4 "post-build step failed; see the log" reason=post-build-failed ;;
+  5) agent_die 5 "lock wait timed out" reason=lock-wait-timed-out ;;
+  *) agent_die "$rc" "build timed out" reason=timed-out ;;
+esac
+
+if [[ $bundle -eq 1 ]]; then
+  step client-bundle in_dir "$client" pnpm run build
+fi
+agent_finish 0 "scratch=$scratch"
