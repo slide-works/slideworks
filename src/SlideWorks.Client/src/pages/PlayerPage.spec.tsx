@@ -7,6 +7,7 @@ import { LocationProbe } from '../test-support/LocationProbe';
 import { deckPlay, me } from '../test-support/fixtures/screens';
 import { guestView } from '../test-support/fixtures/guestStates';
 import { stubApi } from '../test-support/stubApi';
+import { gate, settle } from '../test-support/gate';
 import { stubDeckHub } from '../test-support/stubDeckHub';
 
 const playPath = `/api/play/${deckPlay.id}`;
@@ -20,19 +21,6 @@ async function setWindowHash(page: Page, hash: string) {
 }
 
 const windowHash = (page: Page) => page.evaluate(() => window.location.hash);
-
-// A response held until release(), to land answers out of order.
-function gate() {
-  let release!: () => void;
-  const opened = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  return { opened, release };
-}
-
-// Lets the page settle after a held response is released: the fetch resolves,
-// its JSON is parsed and React renders.
-const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 200)));
 
 // The fixture deck after an agent added a fourth slide.
 const longerDeck: DeckPlayView = {
