@@ -41,9 +41,9 @@ public class Sw9SlideSwitchJourneyTests : AcceptanceTest
         await Expect(talk.Panel.SlideQuestions).ToBeCheckedAsync(new() { Checked = false });
         await talk.Panel.SlideReactions.ClickAsync();
         await Expect(talk.Panel.SlideReactions).ToBeCheckedAsync(new() { Checked = false });
-        await Expect(talk.Panel.SettingsError).ToHaveCountAsync(0);
         // The server holds both switches for slide 2.
         (await Eventually.ReadAsync(() => SlideSwitchAsync(talk.DeckId, QA), value => value == "false/false")).ShouldBe("false/false");
+        await Expect(talk.Panel.SettingsError).ToHaveCountAsync(0);
         await ExpectOffAsync(phone);
 
         await MoveToAsync(talk, QUOTE);
@@ -107,17 +107,21 @@ public class Sw9SlideSwitchJourneyTests : AcceptanceTest
 
         await talk.Panel.Show(1).ClickAsync();
 
-        // The phones know it is on screen, so the audience window has had its push; the quote slide still has no card.
+        // The phones know it is on screen.
         await Expect(phone.Questions.QuestionOnScreen(1)).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
         await Expect(talk.Panel.Unshow(1)).ToBeVisibleAsync();
-        await Expect(talk.Audience.Layer(QUOTE)).ToHaveAttributeAsync("data-active", "true");
-        await Expect(talk.Screen.Card).ToHaveCountAsync(0);
 
         await MoveToAsync(talk, QA);
 
         await Expect(talk.Screen.OneUp).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
         await Expect(talk.Screen.OneUpText).ToHaveTextAsync(QUESTION);
         await Expect(talk.Screen.Card).ToHaveCountAsync(0);
+
+        // The audience window now holds the shown question, so an empty card layer on the quote slide is a real answer.
+        await MoveToAsync(talk, QUOTE);
+        await Expect(talk.Screen.CardLayer).ToBeAttachedAsync();
+        await Expect(talk.Screen.Card).ToHaveCountAsync(0);
+        await Expect(phone.Questions.QuestionOnScreen(1)).ToBeVisibleAsync();
 
         await talk.Presenter.Live.End.ClickAsync();
         await Expect(talk.Presenter.Live.GoLive).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
@@ -139,8 +143,6 @@ public class Sw9SlideSwitchJourneyTests : AcceptanceTest
     // The presenter moves one slide at a time and waits on the presenter's count and the audience window's layer.
     private async Task MoveToAsync(Talk talk, int slide)
     {
-        // A switch the presenter just clicked keeps the focus and takes the arrow keys, so the keys go to the window.
-        await Page.EvaluateAsync("() => document.activeElement instanceof HTMLElement && document.activeElement.blur()");
         await talk.Presenter.PressAsync(slide > 1 ? "ArrowRight" : "ArrowLeft");
         await Expect(talk.Presenter.Count).ToHaveTextAsync($"{slide} / {SLIDES}", new() { Timeout = PUSH_TIMEOUT });
         await Expect(talk.Audience.Layer(slide)).ToHaveAttributeAsync("data-active", "true", new() { Timeout = PUSH_TIMEOUT });
