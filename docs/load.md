@@ -311,3 +311,27 @@ count (not the `served` line) is the proof that the real publisher ran.
 
 | Date (UTC) | Build | Guests | Window (s) | Joined in (s) | Write p50 (ms) | Write p95 (ms) | Write p99 (ms) | Tally p95 (ms) | Errors | Load avg start / end | Gate |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-21 10:44 | 6f9df26 | 1,000 | 30 | 3.2 | 31 | 1,785 | 2,051 | 816 | 0 of 1,000 (0 dropped) | 1.51 / 7.25 | **fail** (write p95; first run on a freshly started app) |
+| 2026-11-21 10:45 | 6f9df26 | 1,000 | 30 | 6.2 | 88 | 1,055 | 2,598 | 667 | 0 of 1,000 (0 dropped) | 7.95 / 8.02 | **fail** (write p95; started straight after run 1) |
+| 2026-11-21 10:46 | 6f9df26 | 1,000 | 30 | 2.5 | 16 | 310 | 545 | 505 | 0 of 1,000 (0 dropped) | 5.33 / 4.14 | pass |
+| 2026-11-21 10:48 | 6f9df26 | 1,000 | 30 | 2.5 | 15 | 404 | 567 | 517 | 0 of 1,000 (0 dropped) | 1.52 / 2.51 | pass |
+| 2026-11-21 10:51 | 6f9df26 | 1,000 | 30 | 2.5 | 14 | 202 | 360 | 499 | 0 of 1,000 (0 dropped) | 1.22 / n/r | pass |
+
+Smoke run before these (same app, 50 guests, 10 s window): write p95 31 ms, tally p95 487 ms, 0 errors, pass.
+
+How these were run (SW-341): `qa` scenario, `--guests 1000 --seconds 30 --questions 10` (so at least ten open questions
+exist before the window; the rounds held 15, 25, 35, 45 and 55 open questions at the starts of runs 1 to 5, because all
+five runs used one deck and round), against the seeded load host in Release with server GC, `--hub-urls` over 127.0.0.1 to
+127.0.0.8, each run under `flock -w 900 /tmp/slideworks-test.lock`. Same host as above (16 cores, 7 GB RAM, Ubuntu 20.04 under
+WSL2), harness and app on one machine over loopback, other agents active on the host. Every run served `vote 200 x3000`,
+`tap 204 x10000`, `view 200 x1000`, with 3,000 tallies received and 0 timed out. The app's test host peaked at about
+580 to 620 MB resident over runs 1 to 3 (sampled every 2 s, so approximate).
+
+Reading it. The gate (write p95 under 1 s, tally p95 under 2 s, errors under 1%) held in the last three runs, which ran
+back to back with no change in between. The first two runs failed on write p95 alone; tally p95 (500 to 816 ms) and
+errors (0) were fine in every run. The slow writes were reactions: in run 1 the upvote PUT p95 was 786 ms and the tap p95
+1,884 ms, against 120 to 166 ms and 222 to 419 ms in the passing runs. Run 1 was the first 1,000-guest load on a freshly started app;
+run 2 began as run 1 ended, with the load average already at 8. No cause was measured, so none is claimed here: the
+app was warming up in run 1, and the host was still busy from it in run 2. A tap does about four reads before it is counted
+(seat, room, slide count, slide id), which is the first place to look. The tally p95 sits at the 500 ms pump interval, as
+the poll's did.
