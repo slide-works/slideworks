@@ -32,7 +32,13 @@ export function TableLayout({ slots, step }: LayoutProps<'table'>) {
           <thead>
             <tr>
               {columns.map((column, i) => (
-                <th key={i} data-testid="table-column" scope="col" className={styles.column}>
+                <th
+                  key={i}
+                  data-testid="table-column"
+                  data-check-size="designed"
+                  scope="col"
+                  className={styles.column}
+                >
                   {column}
                 </th>
               ))}

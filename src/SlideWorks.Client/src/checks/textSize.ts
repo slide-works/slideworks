@@ -11,7 +11,13 @@ export const textSize: MeasureRule = (frame, slide) => {
   const found: SlideFinding[] = [];
   const seen = new Set<HTMLElement>();
   for (const run of textRunsOf(frame)) {
-    if (seen.has(run.element) || run.element.closest('[data-check-size="designed"]')) continue;
+    // Text with no box is not drawn (an SVG <title> or <desc>).
+    if (
+      run.rects.length === 0 ||
+      seen.has(run.element) ||
+      run.element.closest('[data-check-size="designed"]')
+    )
+      continue;
     seen.add(run.element);
     const size = parseFloat(getComputedStyle(run.element).fontSize);
     if (!(size < MIN_PX)) continue;

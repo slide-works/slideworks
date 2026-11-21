@@ -6,7 +6,12 @@ import styles from './Badge.module.css';
 // a good, warn, bad or info tone.
 export function Badge({ text, tone }: { text: string; tone?: CellTone }) {
   return (
-    <span data-testid="block-badge" data-tone={tone} className={styles.badge}>
+    <span
+      data-testid="block-badge"
+      data-check-size="designed"
+      data-tone={tone}
+      className={styles.badge}
+    >
       {text}
     </span>
   );

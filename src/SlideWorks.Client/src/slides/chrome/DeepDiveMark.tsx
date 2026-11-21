@@ -2,7 +2,7 @@
 // and under the part tracker. The frame draws the deep-dive top bar itself.
 export function DeepDiveMark() {
   return (
-    <span className="sw-dd-pill" data-testid="deep-dive-pill">
+    <span className="sw-dd-pill" data-testid="deep-dive-pill" data-check-size="designed">
       Deep dive
     </span>
   );

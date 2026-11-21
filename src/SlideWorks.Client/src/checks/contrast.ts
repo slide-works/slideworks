@@ -79,7 +79,8 @@ export const contrast: MeasureRule = (frame, slide, canvas) => {
     const style = getComputedStyle(run.element);
     const fore = parseColour(style.color);
     const back = backgroundOf(run, frame);
-    if (!fore || !back) continue;
+    // Fully transparent text is drawn some other way (an outline or a clipped fill), so there is no colour to compare.
+    if (!fore || fore.alpha === 0 || !back) continue;
     const bar = parseFloat(style.fontSize) >= LARGE_TEXT_PX ? LARGE_BAR : SMALL_BAR;
     const ratio = contrastRatio(fore.hex, back);
     if (ratio >= bar) continue;

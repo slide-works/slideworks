@@ -24,6 +24,7 @@ export function GanttLayout({ slots, step }: LayoutProps<'gantt'>) {
           <span
             key={i}
             data-testid="gantt-column"
+            data-check-size="designed"
             className={styles.column}
             style={{ gridColumn: i + 2 }}
           >

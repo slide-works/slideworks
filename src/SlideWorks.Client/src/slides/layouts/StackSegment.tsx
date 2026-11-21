@@ -56,7 +56,11 @@ export function StackSegment({ segment, unit, index, count, grow, step }: StackS
           <span data-testid="stack-label" className={styles.label}>
             {label}
           </span>
-          {tag !== undefined ? <span className={styles.tag}>{tag}</span> : null}
+          {tag !== undefined ? (
+            <span className={styles.tag} data-check-size="designed">
+              {tag}
+            </span>
+          ) : null}
         </div>
         {note !== undefined ? <div className={styles.note}>{note}</div> : null}
       </div>

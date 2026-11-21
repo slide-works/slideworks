@@ -35,7 +35,9 @@ export function PracticeLayout({ slots, step }: LayoutProps<'practice'>) {
       >
         <div className={styles.column}>
           <section data-testid="practice-do" className={styles.group}>
-            <h3 className={styles.header}>Do</h3>
+            <h3 className={styles.header} data-check-size="designed">
+              Do
+            </h3>
             {doItems.map((item, i) => (
               <p key={i} data-testid="practice-card" className={styles.card}>
                 <LeadText item={item} leadClassName={styles.lead} />
@@ -46,7 +48,7 @@ export function PracticeLayout({ slots, step }: LayoutProps<'practice'>) {
         <div className={styles.column}>
           {comesBack.length > 0 ? (
             <section data-testid="practice-comes-back" className={styles.group}>
-              <h3 className={styles.header} data-tone="good">
+              <h3 className={styles.header} data-check-size="designed" data-tone="good">
                 What comes back
               </h3>
               {comesBack.map((text, i) => (
@@ -58,7 +60,7 @@ export function PracticeLayout({ slots, step }: LayoutProps<'practice'>) {
           ) : null}
           {avoid.length > 0 ? (
             <section data-testid="practice-avoid" className={styles.group}>
-              <h3 className={styles.header} data-tone="bad">
+              <h3 className={styles.header} data-check-size="designed" data-tone="bad">
                 Avoid
               </h3>
               {avoid.map((text, i) => (
