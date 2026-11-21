@@ -208,53 +208,119 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         return new Counted(deckId, sessionId, count, writePeak, fresh);
     }
 
+    // SW-286: group commit. A room of guests joining at once would each open a scope and write their own row and peak against a
+    // database that takes one writer at a time, so the writes queue on the connection pool and slow everything else (a presenter's
+    // move reads the same database). Writes wait for one turn at a time; whoever has it writes every write queued by then in one
+    // pass, so 200 guests joining together cost a handful of transactions. Each caller still returns only once its own rows landed
+    // (or its write failed), as before.
     private async Task WriteAsync(Counted counted)
     {
         // A second tab, or a count at or below the peak, has nothing to write and costs no query.
-        if (!Guid.TryParse(counted.SessionId, out var sessionId) || (counted.NewGuests.Count == 0 && !counted.WritePeak))
+        if (!Guid.TryParse(counted.SessionId, out _) || (counted.NewGuests.Count == 0 && !counted.WritePeak))
         {
             return;
         }
-        await using var scope = scopes.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var write = new PendingWrite(counted);
+        lock (_pending)
+        {
+            _pending.Add(write);
+        }
+        await _writeTurn.WaitAsync();
         try
         {
-            // A session deleted with its deck while guests were still connected has no row to write under.
-            if (!await db.AudienceSessions.AnyAsync(s => s.Id == sessionId))
+            if (!write.Done)
             {
-                return;
-            }
-            if (counted.NewGuests.Count > 0)
-            {
-                var known = await db.AudienceJoins.Where(j => j.SessionId == sessionId && counted.NewGuests.Contains(j.GuestId)).Select(j => j.GuestId).ToListAsync();
-                // A guest counted when its session opened was waiting in the lobby, so JoinedAt is the time Go live ran, not the
-                // time the guest joined. Measures of join time (E1c) must clamp or exclude it: it can be at or before the join
-                // slide's first showing.
-                var now = clock.GetUtcNow();
-                db.AudienceJoins.AddRange(counted.NewGuests.Except(known).Select(guest => new AudienceJoin { SessionId = sessionId, GuestId = guest, JoinedAt = now }));
-                await db.SaveChangesAsync();
-            }
-            if (counted.WritePeak)
-            {
-                await db.AudienceSessions.Where(s => s.Id == sessionId && s.PeakJoined < counted.Count).ExecuteUpdateAsync(s => s.SetProperty(x => x.PeakJoined, counted.Count));
+                List<PendingWrite> batch;
+                lock (_pending)
+                {
+                    batch = [.. _pending];
+                    _pending.Clear();
+                }
+                await WriteBatchAsync(batch);
             }
         }
-        catch
+        finally
+        {
+            _writeTurn.Release();
+        }
+        if (write.Error is { } error)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
+        }
+    }
+
+    private async Task WriteBatchAsync(List<PendingWrite> batch)
+    {
+        try
+        {
+            await using var scope = scopes.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            foreach (var session in batch.GroupBy(w => Guid.Parse(w.Counted.SessionId!)))
+            {
+                var sessionId = session.Key;
+                // A session deleted with its deck while guests were still connected has no row to write under.
+                if (!await db.AudienceSessions.AnyAsync(s => s.Id == sessionId))
+                {
+                    continue;
+                }
+                var guests = session.SelectMany(w => w.Counted.NewGuests).Distinct().ToList();
+                if (guests.Count > 0)
+                {
+                    var known = await db.AudienceJoins.Where(j => j.SessionId == sessionId && guests.Contains(j.GuestId)).Select(j => j.GuestId).ToListAsync();
+                    // A guest counted when its session opened was waiting in the lobby, so JoinedAt is the time Go live ran, not the
+                    // time the guest joined. Measures of join time (E1c) must clamp or exclude it: it can be at or before the join
+                    // slide's first showing.
+                    var now = clock.GetUtcNow();
+                    db.AudienceJoins.AddRange(guests.Except(known).Select(guest => new AudienceJoin { SessionId = sessionId, GuestId = guest, JoinedAt = now }));
+                    await db.SaveChangesAsync();
+                }
+                if (session.Where(w => w.Counted.WritePeak).Select(w => w.Counted.Count).DefaultIfEmpty(0).Max() is var peak and > 0)
+                {
+                    await db.AudienceSessions.Where(s => s.Id == sessionId && s.PeakJoined < peak).ExecuteUpdateAsync(s => s.SetProperty(x => x.PeakJoined, peak));
+                }
+            }
+        }
+        catch (Exception ex)
         {
             // The rows did not land: forget that they were written so the next join retries them.
             lock (_gate)
             {
-                foreach (var guest in counted.NewGuests)
+                foreach (var counted in batch.Select(w => w.Counted))
                 {
-                    _recorded.Remove((counted.SessionId, guest));
-                }
-                if (_decks.TryGetValue(counted.DeckId, out var audience) && audience.SessionId == counted.SessionId)
-                {
-                    audience.PeakWritten = 0;
+                    foreach (var guest in counted.NewGuests)
+                    {
+                        _recorded.Remove((counted.SessionId!, guest));
+                    }
+                    if (_decks.TryGetValue(counted.DeckId, out var audience) && audience.SessionId == counted.SessionId)
+                    {
+                        audience.PeakWritten = 0;
+                    }
                 }
             }
-            throw;
+            foreach (var write in batch)
+            {
+                write.Error = ex;
+            }
         }
+        finally
+        {
+            foreach (var write in batch)
+            {
+                write.Done = true;
+            }
+        }
+    }
+
+    private readonly SemaphoreSlim _writeTurn = new(1, 1);
+    private readonly List<PendingWrite> _pending = [];
+
+    private sealed class PendingWrite(Counted counted)
+    {
+        public Counted Counted { get; } = counted;
+
+        public volatile bool Done;
+
+        public Exception? Error;
     }
 
     private sealed record Connection(string DeckId, string GuestId);

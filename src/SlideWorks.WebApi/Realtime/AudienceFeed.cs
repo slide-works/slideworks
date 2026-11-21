@@ -36,12 +36,14 @@ public sealed class AudienceFeed : IDisposable
     private readonly IServiceScopeFactory _scopes;
     private readonly IAudienceEvents _audienceEvents;
     private readonly TimeProvider _clock;
+    private readonly QaRevisions _qaRevisions;
     private readonly IDisposable _deckSubscription;
     private long _lastSeq;
     private readonly ConcurrentDictionary<string, DeckFeed> _feeds = new(StringComparer.Ordinal);
 
-    public AudienceFeed(IServiceScopeFactory scopes, IAudienceEvents audienceEvents, IDeckEvents deckEvents, TimeProvider clock)
+    public AudienceFeed(IServiceScopeFactory scopes, IAudienceEvents audienceEvents, IDeckEvents deckEvents, TimeProvider clock, QaRevisions qaRevisions)
     {
+        _qaRevisions = qaRevisions;
         _scopes = scopes;
         _audienceEvents = audienceEvents;
         _clock = clock;
@@ -56,7 +58,7 @@ public sealed class AudienceFeed : IDisposable
         // Taken before the phase is read, so an answer built from an older read always carries an older seq than any push
         // that read could have missed (a lobby read that began before Go live, answered after the first live push).
         var early = NextSeq();
-        var (feed, found) = await EnterAsync(scope.ServiceProvider, deckId);
+        var (feed, found) = await EnterAsync(scope.ServiceProvider, deckId, allowCached: true);
         if (feed is null)
         {
             // A lobby or an ended deck has no position to order and gets no entry, but its answer still comes from the one seq source.
@@ -68,7 +70,14 @@ public sealed class AudienceFeed : IDisposable
             // follows is higher; its phase was read inside the gate, so it can't be older than a push that came before.
             // Reached by anonymous callers: it reads SW-4's state and never starts a presentation. A live session with no
             // presentation (a restart dropped it) is live with no current slide until the presenter's rejoin notifies us.
-            return await ComposeAsync(scope.ServiceProvider, found!, NextSeq());
+            // SW-286: the gate is held only to copy the last composed state under a new seq; a miss composes (and caches) it.
+            if (CachedFor(feed) is { } cached)
+            {
+                return cached with { Seq = NextSeq() };
+            }
+            var composed = await ComposeAsync(scope.ServiceProvider, found!, NextSeq());
+            feed.Cache = composed;
+            return composed;
         }
         finally
         {
@@ -96,6 +105,7 @@ public sealed class AudienceFeed : IDisposable
         await feed.Gate.WaitAsync();
         try
         {
+            feed.Cache = null;
             await _audienceEvents.PublishAsync(new AudienceEnded(deckId));
             Close(deckId, feed);
         }
@@ -138,9 +148,12 @@ public sealed class AudienceFeed : IDisposable
         {
             return;
         }
+        // Dropped first, so a compose that throws leaves nothing stale behind for the next join.
+        feed.Cache = null;
         try
         {
             var state = await ComposeAsync(services, found!, NextSeq());
+            feed.Cache = state;
             await StampJoinSlideAsync(services, found!.SessionId!, state);
             await _audienceEvents.PublishAsync(state);
         }
@@ -170,7 +183,9 @@ public sealed class AudienceFeed : IDisposable
     // Takes the gate of a deck whose session is open, with the session read again inside it, and returns the feed holding
     // the gate. For any other deck it returns no feed and holds nothing: an entry is only ever made for a live deck, and one
     // that finds its deck no longer live is removed again.
-    private async Task<(DeckFeed? Feed, AudienceSessionRef? Found)> EnterAsync(IServiceProvider services, string deckId)
+    // With allowCached, a feed that holds a composed state is returned without the second read of the session: the closed
+    // flag, set under the gate when the session ends, says the entry is still the open session's.
+    private async Task<(DeckFeed? Feed, AudienceSessionRef? Found)> EnterAsync(IServiceProvider services, string deckId, bool allowCached = false)
     {
         var sessions = services.GetRequiredService<IAudienceSessions>();
         var found = await sessions.ForDeckAsync(deckId);
@@ -189,6 +204,10 @@ public sealed class AudienceFeed : IDisposable
                 feed.Gate.Release();
                 continue;
             }
+            if (allowCached && CachedFor(feed) is not null)
+            {
+                return (feed, found);
+            }
             found = await sessions.ForDeckAsync(deckId);
             if (found is { Phase: AudiencePhase.Live })
             {
@@ -198,6 +217,24 @@ public sealed class AudienceFeed : IDisposable
             feed.Gate.Release();
             return (null, found);
         }
+    }
+
+    // The last composed live state, when it can still stand for a new answer. Under the feed's gate. Every publish replaces it
+    // (a move, a deck change, Go live, and the refresh a poll or Q&A settings change makes), and the end drops it with the
+    // entry. A new question moves only the room's list revision, which lives in memory, so that is compared here instead.
+    private AudienceState? CachedFor(DeckFeed feed)
+    {
+        var cached = feed.Cache;
+        if (cached is null)
+        {
+            return null;
+        }
+        if (cached.Room is { } room && room.TryGetProperty("round", out var round) && round.ValueKind == JsonValueKind.String
+            && room.TryGetProperty("listRevision", out var revision) && revision.GetInt64() != _qaRevisions.Current(round.GetString()!))
+        {
+            return null;
+        }
+        return cached;
     }
 
     // Under the feed's gate.
@@ -285,5 +322,8 @@ public sealed class AudienceFeed : IDisposable
         public SemaphoreSlim Gate { get; } = new(1, 1);
 
         public bool Closed { get; set; }
+
+        // SW-286: the last live state composed for this deck, so a join does not read the database under the gate.
+        public AudienceState? Cache { get; set; }
     }
 }
