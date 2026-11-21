@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SlideWorks.Core.Look;
+using SlideWorks.WebApi.Features.Checks;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Features.Accounts.Admin;
 using SlideWorks.WebApi.Features.Activity;
@@ -104,7 +105,8 @@ public class ScreenRecordShapeTests : ApiTestFixture
                 ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "add_slide", "added slide 3 close"), "2 min ago"),
                 ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "set_sharing", "changed sharing: Private → Anyone with the link"), "5 min ago"),
                 ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "create_deck", "created the deck"), "9 min ago"),
-            ]);
+            ],
+            example.GetProperty("findings").Deserialize<IReadOnlyList<SlideFinding>>(AppJsonOptions())!);
 
         var json = Serialise(view);
 
@@ -119,7 +121,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
         var slide = DeckPageSlide.From(deck, new Slide { DeckId = deck.Id, Layout = "bullets", SlotsJson = """{ "items": ["One"] }""" }, Workshop);
         var view = new DeckPageView(deck.Id, deck.Slug, deck.Title, null, 0, false, "/d/7Kq2xYp9LmQa/ship-smaller",
             new JoinView("482913", "482 913", "https://slideworks.live/482913", "slideworks.live", false), SharingSummary.From(DeckSharing.Private, 0), [], LookViews.ForPage(deck, Workshop, Palettes), [slide],
-            [ActivityRow.From(Entry("Sam Rivera", ActorKind.Person, ActorVia.Web, null, "created the deck"), "just now")]);
+            [ActivityRow.From(Entry("Sam Rivera", ActorKind.Person, ActorVia.Web, null, "created the deck"), "just now")], []);
 
         var json = Serialise(view);
 

@@ -130,6 +130,7 @@ const DECK_PAGE = keys<DeckPageView>({
   parts: true,
   slides: true,
   activity: true,
+  findings: true,
 });
 const DECK_PAGE_SLIDE = keys<DeckPageSlide>({
   number: true,

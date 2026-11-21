@@ -264,5 +264,15 @@
       "summary": "created the deck",
       "atLabel": "9 min ago"
     }
+  ],
+  "findings": [
+    {
+      "slide": 2,
+      "rule": "genericAlt",
+      "severity": "warning",
+      "source": "stored",
+      "where": "image",
+      "message": "The image's alt text \"image\" doesn't say what it shows. Describe it in a few words."
+    }
   ]
 }

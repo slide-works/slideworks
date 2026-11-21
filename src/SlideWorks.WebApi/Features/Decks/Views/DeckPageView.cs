@@ -1,3 +1,4 @@
+using SlideWorks.WebApi.Features.Checks;
 using SlideWorks.WebApi.Features.Join.Views;
 using SlideWorks.WebApi.Features.Look.Views;
 
@@ -19,4 +20,5 @@ public sealed record DeckPageView(
     IReadOnlyList<DeckPart> Parts,
     DeckLookView Look,
     IReadOnlyList<DeckPageSlide> Slides,
-    IReadOnlyList<ActivityRow> Activity);
+    IReadOnlyList<ActivityRow> Activity,
+    IReadOnlyList<SlideFinding> Findings);
