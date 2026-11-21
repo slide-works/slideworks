@@ -45,6 +45,20 @@ const linear = (channel: number): number => {
 const luminance = ([r, g, b]: Rgb): number =>
   0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 
+// The WCAG relative luminance (0 black, 1 white) of an opaque CSS colour written as #rgb, #rrggbb
+// or rgb(r g b), as Contrast.TryLuminance reads it on the server; null for anything else.
+export function relativeLuminance(colour: string): number | null {
+  const hex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(colour);
+  if (hex) {
+    const digits = hex[1].length === 3 ? [...hex[1]].map((c) => c + c).join('') : hex[1];
+    return luminance(rgbOf(`#${digits}`));
+  }
+  const rgb = /^rgb\((\d{1,3}) (\d{1,3}) (\d{1,3})\)$/.exec(colour);
+  if (!rgb) return null;
+  const channels = [rgb[1], rgb[2], rgb[3]].map(Number) as Rgb;
+  return channels.some((channel) => channel > 255) ? null : luminance(channels);
+}
+
 // The contrast ratio of two 6-digit hex colours, 1 to 21.
 export function contrastRatio(fore: string, back: string): number {
   const a = luminance(rgbOf(fore));

@@ -4,13 +4,13 @@ namespace SlideWorks.Core.Look;
 // palette whose paper is dark (relative luminance under 0.2, as the mockups decide it). A template's shadow is drawn in
 // its dark ink, which doesn't show on dark paper, so there a card is lifted by a faint light ring and a deeper black
 // shadow instead. A template whose shadow is none stays flat on any paper. Dark passes ManifestShadow, as every shadow
-// a custom layout's CSS can reach through --sw-lift does.
+// a custom layout's CSS can reach through --sw-lift does. The client's previews (src/look/cardLift.ts) apply the same
+// rule to the values in src/contracts/card-lift.json, which CardLiftFileTests keeps equal to these.
 public static class CardLift
 {
     public const string DARK = "0 0 0 1px rgb(255 255 255 / 0.05), 0 14px 36px rgb(0 0 0 / 0.35)";
-
-    private const double DARK_PAPER_LUMINANCE = 0.2;
-    private const string NONE = "none";
+    public const double DARK_PAPER_LUMINANCE = 0.2;
+    public const string NONE = "none";
 
     public static string For(string templateShadow, string? paper)
         => templateShadow != NONE && paper is not null && Contrast.TryLuminance(paper, out var luminance) && luminance < DARK_PAPER_LUMINANCE

@@ -2,6 +2,7 @@ import type { LookFont, LookArt, LookExtra, LookLogos } from '../../../api/look'
 import type { LookPalette, LookView, PaletteTokens } from '../../../api/types';
 import type { LayoutName } from '../../../slides/slots';
 import type { TemplateAsset, TemplateManifest } from '../../types';
+import { cardLift } from '../../../look/cardLift';
 
 // The footer date a preview slide shows when the footer is on date: the preview has no clock.
 const SAMPLE_DATE = 'Today';
@@ -16,7 +17,8 @@ function urlOf(assets: readonly TemplateAsset[], id: string | undefined): string
 // The look the draft's slides are drawn in: what the server's look would send for a deck on this
 // template, built from the manifest as it is on screen, so a changed field redraws at once. An
 // asset id becomes the url of the matching `assets` entry; a manifest with no palette of its own
-// draws in `basePalette`. Pure: no request, no clock.
+// draws in `basePalette`. The shadow is the card lift on the look's paper (cardLift), as on the
+// server. Pure: no request, no clock.
 export function lookFromManifest(
   manifest: TemplateManifest,
   assets: readonly TemplateAsset[],
@@ -55,7 +57,7 @@ export function lookFromManifest(
         draft: chrome.draft,
       },
       type: manifest.type,
-      shape: manifest.shape,
+      shape: { ...manifest.shape, shadow: cardLift(manifest.shape.shadow, tokens.paper) },
       ornament: 'dots',
       titleArt: null,
     },

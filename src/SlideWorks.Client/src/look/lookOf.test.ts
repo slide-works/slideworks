@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { looks } from '../test-support/fixtures/screens';
+import { DARK_LIFT } from './cardLift';
 import { lookOf } from './lookOf';
 
 describe('lookOf', () => {
@@ -41,6 +42,14 @@ describe('lookOf', () => {
     const [template] = looks.templates;
     const look = lookOf({ ...template, titleArt: null }, looks.palettes[0], 'x');
     expect(look.art).toEqual({ kind: 'none', generator: null, url: null });
+  });
+
+  it("lifts cards on a dark palette's paper, as the server's look does (SW-148 D2)", () => {
+    const [template] = looks.templates;
+    const palette = looks.palettes[0];
+    const dark = { ...palette, tokens: { ...palette.tokens, paper: '#0e1424' } };
+    expect(lookOf(template, palette, 'x').template.shape.shadow).toBe(template.shape.shadow);
+    expect(lookOf(template, dark, 'x').template.shape.shadow).toBe(DARK_LIFT);
   });
 
   it("takes draft from the template's chrome", () => {
