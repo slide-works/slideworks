@@ -7,6 +7,7 @@ import { PollOptions, type PollBars } from './PollOptions';
 import { PollOptionsMany } from './PollOptionsMany';
 import { PollQueued } from './PollQueued';
 import { PollVerdict } from './PollVerdict';
+import { OpenAnswerCard } from './OpenAnswerCard';
 import { usePollAnswer } from './usePollAnswer';
 
 const kindOf = (activity: PollActivity) =>
@@ -19,7 +20,22 @@ const samePicks = (a: number[], b: number[]) =>
 // conflict or the queued note in its place, then the verdict once the answer is shown. The options scroll past five and
 // the foot stays in view. A phone never shows counts before its guest has answered, whatever the setting; once the
 // poll has closed it shows the final result to everyone.
-export function PollCard({ activity, presenter }: { activity: PollActivity; presenter: string }) {
+export function PollCard({
+  activity,
+  presenter,
+  code = '',
+}: {
+  activity: PollActivity;
+  presenter: string;
+  code?: string;
+}) {
+  if (activity.answers === 'text' || activity.answers === 'cloud') {
+    return <OpenAnswerCard activity={activity} presenter={presenter} code={code} />;
+  }
+  return <ChoicePollCard activity={activity} presenter={presenter} />;
+}
+
+function ChoicePollCard({ activity, presenter }: { activity: PollActivity; presenter: string }) {
   const answer = usePollAnswer();
   const questionId = useId();
   const mine = answer.mine?.picks ?? null;

@@ -43,12 +43,12 @@ public class LayoutCatalogueTests
         [
             TitleLayout.Definition, DividerLayout.Definition, BulletsLayout.Definition, TwoColumnLayout.Definition,
             PracticeLayout.Definition, CompareLayout.Definition, BigNumberLayout.Definition, QuoteLayout.Definition,
-            ImageLayout.Definition, TableLayout.Definition, ChartLayout.Definition, GanttLayout.Definition,
+            ImageLayout.Definition, VideoLayout.Definition, TableLayout.Definition, ChartLayout.Definition, GanttLayout.Definition,
             NumberedCardsLayout.Definition, RulesLayout.Definition, CardsLayout.Definition, StatementLayout.Definition,
             LinksLayout.Definition, StackLayout.Definition, BarsLayout.Definition, FlowLayout.Definition,
             LevelsLayout.Definition, ColumnsListLayout.Definition, TimelineLayout.Definition, LoopLayout.Definition,
             CloseLayout.Definition, JoinLayout.Definition, PollLayout.Definition,
-            QaLayout.Definition,
+            QaLayout.Definition, WordCloudLayout.Definition, OpenTextLayout.Definition,
         ];
 
         LayoutCatalogue.Layouts.Count.ShouldBe(definitions.Length);
@@ -59,9 +59,9 @@ public class LayoutCatalogueTests
 
         definitions.Select(d => d.Name).ShouldBe(
         [
-            "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote", "image",
+            "title", "divider", "bullets", "two-column", "practice", "compare", "big-number", "quote", "image", "video",
             "table", "chart", "gantt", "numbered-cards", "rules", "cards", "statement", "links", "stack", "bars",
-            "flow", "levels", "columns-list", "timeline", "loop", "close", "join", "poll", "qa",
+            "flow", "levels", "columns-list", "timeline", "loop", "close", "join", "poll", "qa", "word-cloud", "open-text",
         ]);
     }
 

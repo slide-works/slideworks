@@ -14,7 +14,7 @@ public interface IPollTallies
     // already hold that answer; a delta from another commit already in those rows would still be added on top, which is why
     // the writer loads first. Then every Changed handler is awaited in order, so a handler must only note the change (the
     // pump marks the deck dirty) and return, never publish inline.
-    Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks);
+    Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks, bool hadText = false, bool hasText = false);
 
     // The round's tally, with one count per option for optionCount options (padded after an option was added). Read only
     // while the round is open: a closed round's result is its Final snapshot, which IPolls.ControlAsync returns.

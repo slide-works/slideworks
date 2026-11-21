@@ -35,11 +35,13 @@ WORKDIR /app
 COPY --from=build /app .
 
 # Headless Chromium for the share card (L9), installed as root with its system libraries by the Playwright driver that
-# Microsoft.Playwright publishes into .playwright/ (its own node; this image has no pwsh). It goes in a shared folder
+# Microsoft.Playwright publishes into .playwright/ (its own node; this image has no pwsh). Only the headless shell
+# (--only-shell, SW-155): RenderBrowser launches Playwright's default headless Chromium, which is the shell, and the full
+# browser would add about 390 MB. It goes in a shared folder
 # the non-root app user can read, and the app finds it through PLAYWRIGHT_BROWSERS_PATH. The driver in .playwright/
 # is opened up too: the app (non-root) starts its node at runtime, and the publish leaves it 0744 and root's.
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN .playwright/node/linux-x64/node .playwright/package/cli.js install --with-deps chromium \
+RUN .playwright/node/linux-x64/node .playwright/package/cli.js install --with-deps --only-shell chromium \
     && chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH" .playwright \
     && rm -rf /var/lib/apt/lists/*
 

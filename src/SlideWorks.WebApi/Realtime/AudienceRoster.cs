@@ -10,6 +10,10 @@ namespace SlideWorks.WebApi.Realtime;
 // connection goes. While a deck has an open session it also writes the session's data (J8): an AudienceJoin row the first
 // time each guest is counted in a session, and PeakJoined, the most guests counted at once.
 //
+// Two counts come out of it (SW-628). The joined count, which the owner hears, is every guest counted in the open session:
+// it never drops, because a phone that locks or switches app closes its connection and would otherwise leave. CountAsync is
+// the guests connected now, the denominator of a poll's response rate.
+//
 // The roster is a singleton and AppDbContext is per request, so each write opens its own scope, as CachingCardRenderer does.
 // It never reads the caller (ICurrentActor, IHttpContextAccessor): under long polling a hub call runs after its request has
 // finished, and a guard test checks it.
@@ -29,6 +33,7 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
     public async Task<int> JoinAsync(string deckId, string? sessionId, string guestId, string connectionId)
     {
         Counted counted;
+        var seeded = false;
         lock (_gate)
         {
             if (_connections.TryGetValue(connectionId, out var existing))
@@ -44,11 +49,16 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
             if (audience.SessionId == null && sessionId != null && sessionId != audience.LastClosedSessionId)
             {
                 audience.Open(sessionId);
+                seeded = true;
             }
             counted = CountedLocked(deckId, audience);
         }
         await WriteAsync(counted);
-        return counted.Count;
+        if (seeded && counted.SessionId != null)
+        {
+            return await SeedJoinedAsync(deckId, counted.SessionId) ?? counted.Joined;
+        }
+        return counted.Joined;
     }
 
     public async Task<RosterLeave?> LeaveAsync(string connectionId)
@@ -56,13 +66,16 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         Connection? connection;
         string? sessionId;
         int remaining;
+        int joined;
         lock (_gate)
         {
             if (!_connections.TryGetValue(connectionId, out connection))
             {
                 return null;
             }
-            sessionId = _decks.GetValueOrDefault(connection.DeckId)?.SessionId;
+            var audience = _decks.GetValueOrDefault(connection.DeckId);
+            sessionId = audience?.SessionId;
+            joined = audience?.JoinedCount ?? 0;
             RemoveLocked(connectionId, connection);
             remaining = _decks.GetValueOrDefault(connection.DeckId)?.GuestCount ?? 0;
         }
@@ -70,8 +83,9 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         {
             await ForgetIfSessionGoneAsync(connection.DeckId, sessionId);
         }
-        // A lobby or ended connection leaves quietly: there is no count for the owner to hear.
-        return sessionId == null ? null : new RosterLeave(connection.DeckId, sessionId, remaining);
+        // A lobby or ended connection leaves quietly: there is no count for the owner to hear. A live one leaves the joined
+        // count as it was (SW-628).
+        return sessionId == null ? null : new RosterLeave(connection.DeckId, sessionId, joined);
     }
 
     public Task<int> CountAsync(string sessionId)
@@ -79,6 +93,14 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         lock (_gate)
         {
             return Task.FromResult(_decks.Values.Where(d => d.SessionId == sessionId).Select(d => d.GuestCount).FirstOrDefault());
+        }
+    }
+
+    public Task<int> JoinedAsync(string sessionId)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_decks.Values.Where(d => d.SessionId == sessionId).Select(d => d.JoinedCount).FirstOrDefault());
         }
     }
 
@@ -105,7 +127,7 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
             // answers with the open session.
             log.LogError(ex, "Could not record the guests already waiting for session {SessionId}", sessionId);
         }
-        await events.PublishAsync(new JoinedCount(deckId, counted.Count));
+        await events.PublishAsync(new JoinedCount(deckId, counted.Joined));
     }
 
     public Task ClosedAsync(string deckId, string sessionId)
@@ -156,6 +178,38 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         }
     }
 
+    // The first join after a restart seeded the deck's session, so the guests counted before the restart are only in the
+    // AudienceJoins rows: add them to the joined count. Returns the joined count after it, or null when the read failed or
+    // the session changed meanwhile.
+    private async Task<int?> SeedJoinedAsync(string deckId, string sessionId)
+    {
+        if (!Guid.TryParse(sessionId, out var id))
+        {
+            return null;
+        }
+        List<string> known;
+        try
+        {
+            await using var scope = scopes.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            known = await db.AudienceJoins.AsNoTracking().Where(j => j.SessionId == id).Select(j => j.GuestId).ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Could not read the guests already joined to session {SessionId}", sessionId);
+            return null;
+        }
+        lock (_gate)
+        {
+            if (!_decks.TryGetValue(deckId, out var audience) || audience.SessionId != sessionId)
+            {
+                return null;
+            }
+            audience.AddJoined(known);
+            return audience.JoinedCount;
+        }
+    }
+
     // The last guest left a deck whose session the roster still holds open. If the session row is gone (the deck was deleted
     // while live, so ClosedAsync never ran) or has ended, the entry would stay for the life of the process.
     private async Task ForgetIfSessionGoneAsync(string deckId, string sessionId)
@@ -197,15 +251,16 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         var count = audience.GuestCount;
         if (audience.SessionId is not { } sessionId)
         {
-            return new Counted(deckId, null, count, false, []);
+            return new Counted(deckId, null, count, 0, false, []);
         }
+        audience.AddJoined(audience.GuestIds);
         var fresh = audience.GuestIds.Where(guest => _recorded.Add((sessionId, guest))).ToList();
         var writePeak = count > audience.PeakWritten;
         if (writePeak)
         {
             audience.PeakWritten = count;
         }
-        return new Counted(deckId, sessionId, count, writePeak, fresh);
+        return new Counted(deckId, sessionId, count, audience.JoinedCount, writePeak, fresh);
     }
 
     // SW-286: group commit. A room of guests joining at once would each open a scope and write their own row and peak against a
@@ -325,11 +380,15 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
 
     private sealed record Connection(string DeckId, string GuestId);
 
-    private sealed record Counted(string DeckId, string? SessionId, int Count, bool WritePeak, List<string> NewGuests);
+    // Count is the guests connected now, Joined every guest counted in the open session.
+    private sealed record Counted(string DeckId, string? SessionId, int Count, int Joined, bool WritePeak, List<string> NewGuests);
 
     private sealed class DeckAudience
     {
         private readonly Dictionary<string, HashSet<string>> _guests = new(StringComparer.Ordinal);
+
+        // Every guest counted in the open session, connected now or not (SW-628). Emptied when a session opens or closes.
+        private readonly HashSet<string> _joined = new(StringComparer.Ordinal);
 
         public string? SessionId { get; private set; }
 
@@ -345,6 +404,7 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         {
             SessionId = sessionId;
             PeakWritten = 0;
+            _joined.Clear();
         }
 
         public void Close(DateTimeOffset now, string sessionId)
@@ -352,11 +412,16 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
             LastClosedSessionId = sessionId;
             SessionId = null;
             _closedAt = now;
+            _joined.Clear();
         }
 
         public bool RemembersClosed(DateTimeOffset now, TimeSpan memory) => LastClosedSessionId != null && now - _closedAt < memory;
 
         public int GuestCount => _guests.Count;
+
+        public int JoinedCount => _joined.Count;
+
+        public void AddJoined(IEnumerable<string> guestIds) => _joined.UnionWith(guestIds);
 
         public IEnumerable<string> GuestIds => _guests.Keys;
 

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using SlideWorks.Core.Slides;
 using SlideWorks.Core.Slides.Layouts;
 
@@ -87,6 +88,14 @@ public class ImageLayoutTests
     public void Count_WhenOneByOneAndCalloutRevealsLast_ShouldBePointsPlusOne()
     {
         Count($$"""{ "headline": "h", "image": {{IMAGE}}, "points": ["a", "b"], "reveal": "one-by-one", "callout": { "tone": "accent", "text": "c", "reveal": "last" } }""").ShouldBe(3);
+    }
+
+    [Test]
+    public void Schema_WhenPositionIsRight_ShouldNameTheThreeLineHeadlineLimit()
+    {
+        var properties = ImageLayout.Definition.ToJsonSchema()["properties"]!.AsObject();
+        properties["headline"]!["description"]!.GetValue<string>().ShouldContain("at most 3");
+        properties["position"]!["description"]!.GetValue<string>().ShouldContain("3 lines");
     }
 
     private static SlideValidationResult Validate(string slots)

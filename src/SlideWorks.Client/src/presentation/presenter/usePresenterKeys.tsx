@@ -138,6 +138,52 @@ function pollHandlerFor(key: string, act: PresenterPollKeyActions): (() => void)
   return undefined;
 }
 
+// The open-response keys (SW-8 D14): P opens or closes, H hides the entry focused in the panel. R does nothing on a
+// word cloud or an open-text slide, so it is taken and runs no action. New round has no key. On any other slide this
+// hook is given null and P is left to do what it already did. A missing P or H (closed round, or no entry focused) is
+// left alone. Repeats are ignored. actions may change on every render without re-subscribing; null ignores every key.
+export type PresenterOpenKeyActions = {
+  toggle?(): void;
+  hide?(): void;
+};
+
+export function usePresenterOpenKeys(
+  actions: PresenterOpenKeyActions | null,
+  overlayOpen: boolean,
+) {
+  const latest = useRef({ actions, overlayOpen });
+  useLayoutEffect(() => {
+    latest.current = { actions, overlayOpen };
+  }, [actions, overlayOpen]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const { actions: act, overlayOpen: covered } = latest.current;
+      if (!act || covered || event.defaultPrevented || event.repeat) return;
+      if (event.isComposing || event.key === 'Process') return;
+      if (event.ctrlKey || event.metaKey || event.altKey || isTyping(event.target)) return;
+      const handler = openHandlerFor(event.key, act);
+      if (!handler) return;
+      event.preventDefault();
+      handler();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+}
+
+function openHandlerFor(key: string, act: PresenterOpenKeyActions): (() => void) | undefined {
+  switch (key.toLowerCase()) {
+    case 'p':
+      return act.toggle;
+    case 'h':
+      return act.hide;
+    case 'r':
+      return () => undefined;
+  }
+  return undefined;
+}
+
 function handlerFor(
   key: string,
   act: PresenterKeyActions,

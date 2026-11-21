@@ -37,19 +37,22 @@ public class PollReader(AppDbContext db, PollRows rows, IAudienceSessions sessio
         {
             var tally = await tallies.ReadAsync(unclosed.Id.ToString(), options.Count);
             var revealed = unclosed.RevealedAt != null;
+            var (replies, words) = await OpenOfAsync(settings, unclosed.Id);
             return new PollControlView(
                 seq.Next(), slide, unclosed.Id.ToString(), unclosed.Number, PollPhase.Open, settings, question, options,
-                tally.Answered, joined, tally.Counts, PollVisibility.RoomSees(settings.Results, revealed, closed: false), revealed, false, summaries);
+                tally.Answered, joined, tally.Counts, PollVisibility.RoomSees(settings.Results, revealed, closed: false), revealed, false, summaries,
+                replies, words);
         }
         if (unclosed == null && closed.Count > 0)
         {
             var last = closed[^1];
             var final = last.Final!;
             var revealed = last.RevealedAt != null;
+            var (replies, words) = await OpenOfAsync(settings, last.Id);
             return new PollControlView(
                 seq.Next(), slide, last.Id.ToString(), last.Number, PollPhase.Closed, settings, question, final.Options,
                 final.Answered, last.JoinedAtClose ?? 0, final.Counts, PollVisibility.RoomSees(settings.Results, revealed, closed: true), revealed,
-                last.AnswerShownAt != null, summaries);
+                last.AnswerShownAt != null, summaries, replies, words);
         }
         var number = unclosed?.Number ?? NextNumber(rounds);
         return new PollControlView(
@@ -85,6 +88,23 @@ public class PollReader(AppDbContext db, PollRows rows, IAudienceSessions sessio
 
     // The number the slide's next round gets: one more than the highest, discarded drafts included, so theirs stay used up.
     public static int NextNumber(IReadOnlyList<PollRound> rounds) => rounds.Count == 0 ? 1 : rounds.Max(r => r.Number) + 1;
+
+    // The free replies on an open question, in the order they arrived, and the word cloud when the question is one.
+    // Null on a choice poll, so the control view leaves them off.
+    private async Task<(IReadOnlyList<string>? Replies, IReadOnlyList<PollWord>? Words)> OpenOfAsync(PollSettings settings, Guid roundId)
+    {
+        if (settings.Answers == PollAnswersForm.Choice)
+        {
+            return (null, null);
+        }
+
+        var texts = await db.PollAnswers.AsNoTracking()
+            .Where(a => a.RoundId == roundId && a.Text != null)
+            .OrderBy(a => a.UpdatedAt)
+            .Select(a => a.Text!)
+            .ToListAsync();
+        return (OpenAnswers.Replies(texts), settings.Answers == PollAnswersForm.Cloud ? OpenAnswers.Words(texts) : null);
+    }
 
     // The poll layout's slots: the question and the option texts, by position.
     public static (string Question, IReadOnlyList<string> Options) SlotsOf(string slotsJson)

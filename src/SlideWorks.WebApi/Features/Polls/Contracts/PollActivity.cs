@@ -17,7 +17,8 @@ public sealed record PollActivity(
     int? Max,
     PollResults Results,
     bool RoomSeesCounts,
-    int? Correct)
+    int? Correct,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] PollAnswersForm Answers = PollAnswersForm.Choice)
 {
     public const string TYPE = "poll";
 

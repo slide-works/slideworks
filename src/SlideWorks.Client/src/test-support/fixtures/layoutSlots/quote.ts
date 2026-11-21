@@ -4,6 +4,7 @@ import type {
   ListsEveryRequiredKey,
 } from '../../../slides/slots/keyChecks';
 import type { QuoteSlots } from '../../../slides/slots/quote';
+import { SAMPLE_IMAGE_ID } from './sampleImage';
 
 // One valid quote slide's slots, with every optional slot set.
 export const SLOTS: QuoteSlots = {
@@ -15,6 +16,7 @@ export const SLOTS: QuoteSlots = {
   stat: { value: '11 wks', caption: 'From idea to customer, down from 19' },
   follow_up: 'Smaller changes meant fewer surprises on release day.',
   source: 'Search team retro notes, October',
+  image: { image: SAMPLE_IMAGE_ID, alt: 'Priya Raman' },
   reveal: 'one-by-one',
   emphasis: [{ text: 'is it out?', tone: 'accent' }],
 };

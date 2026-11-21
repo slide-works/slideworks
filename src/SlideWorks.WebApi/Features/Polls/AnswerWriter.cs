@@ -53,9 +53,9 @@ public sealed class AnswerWriter : IRoundAnswerWriter, IDisposable
     // Queues the guest's answer to the round, its picks sorted ascending, and completes once its group has committed: Written
     // with the answer as written (its picks and new revision), Closed when the round was not open at commit time, or Stale when the guest's revision
     // was no longer expectedRevision. Throws what the group's commit threw when it failed.
-    public Task<RoundWrite> ReplaceAsync(PollRoundRef round, string guestId, IReadOnlyList<int> picks, int expectedRevision)
+    public Task<RoundWrite> ReplaceAsync(PollRoundRef round, string guestId, IReadOnlyList<int> picks, int expectedRevision, string? text = null)
     {
-        var queued = new Queued(round, Guid.Parse(round.RoundId), guestId, expectedRevision, [.. picks.Order()]);
+        var queued = new Queued(round, Guid.Parse(round.RoundId), guestId, expectedRevision, [.. picks.Order()], text);
         if (!_queue.Writer.TryWrite(queued))
         {
             throw new ObjectDisposedException(nameof(AnswerWriter), "The answer writer has stopped.");
@@ -151,7 +151,7 @@ public sealed class AnswerWriter : IRoundAnswerWriter, IDisposable
             {
                 // Its Changed handlers only mark the deck dirty (the pump publishes on its own timer), so this can't stall the
                 // loop on a publish.
-                await _tallies.ApplyAsync(write.Queued.Round, write.OldPicks, write.Answer.Picks);
+                await _tallies.ApplyAsync(write.Queued.Round, write.OldPicks, write.Answer.Picks, write.HadText, !string.IsNullOrEmpty(write.Queued.Text));
             }
             catch (Exception ex)
             {
@@ -229,19 +229,21 @@ public sealed class AnswerWriter : IRoundAnswerWriter, IDisposable
                 continue;
             }
             IReadOnlyList<int> oldPicks = answer is null ? [] : [.. answer.Picks];
+            var hadText = !string.IsNullOrEmpty(answer?.Text);
             if (answer is null)
             {
-                answer = new PollAnswer { RoundId = queued.RoundId, GuestId = queued.GuestId, Picks = [.. queued.Picks], Revision = 1, UpdatedAt = now };
+                answer = new PollAnswer { RoundId = queued.RoundId, GuestId = queued.GuestId, Picks = [.. queued.Picks], Text = queued.Text, Revision = 1, UpdatedAt = now };
                 db.PollAnswers.Add(answer);
                 current[key] = answer;
             }
             else
             {
                 answer.Picks = [.. queued.Picks];
+                answer.Text = queued.Text;
                 answer.Revision++;
                 answer.UpdatedAt = now;
             }
-            written.Add(new Written(queued, oldPicks, new RoundWrite.Written(queued.Picks, answer.Revision)));
+            written.Add(new Written(queued, oldPicks, hadText, new RoundWrite.Written(queued.Picks, answer.Revision, queued.Text)));
         }
         if (written.Count > 0)
         {
@@ -251,12 +253,12 @@ public sealed class AnswerWriter : IRoundAnswerWriter, IDisposable
         return (written, open);
     }
 
-    private sealed record Queued(PollRoundRef Round, Guid RoundId, string GuestId, int ExpectedRevision, IReadOnlyList<int> Picks)
+    private sealed record Queued(PollRoundRef Round, Guid RoundId, string GuestId, int ExpectedRevision, IReadOnlyList<int> Picks, string? Text)
     {
         public TaskCompletionSource<RoundWrite> Done { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
-    private sealed record Written(Queued Queued, IReadOnlyList<int> OldPicks, RoundWrite.Written Answer);
+    private sealed record Written(Queued Queued, IReadOnlyList<int> OldPicks, bool HadText, RoundWrite.Written Answer);
 
     // Resolves IRoundAnswerWriter to the app's one AnswerWriter.
     public sealed class Seam : IComponentFactory<IRoundAnswerWriter>

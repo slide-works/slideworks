@@ -178,6 +178,9 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.3.4(@types/node@26.6.6)(jiti@2.7.0))
+      d3-cloud:
+        specifier: 2.0.0
+        version: 2.0.0
       lucide-react:
         specifier: 1.67.0
         version: 1.67.0(@types/react@19.3.0)(react@19.3.1)
@@ -885,6 +888,10 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  d3-cloud@2.0.0:
+    resolution: {integrity: sha512-zIHF7jUkviSOyC0IhrTK3hsiK+sscRYs5JDeQ+SQyeuXs4UZj7gFThBwzJpGmZBElFEQ6jLGeHPNlubvhTY1xw==}
+    engines: {node: '>=20'}
 
   data-urls@8.0.0:
     resolution: {integrity: sha512-JQUCCK+/CAGbGGx618PlFZMXH81Jtj7t73CHv9dd/zVWvxgGT2zLFRjnKb+Ng46GIwcy+f7f88qd4duqllK+WQ==}
@@ -2442,6 +2449,8 @@ snapshots:
       source-map-js: 1.2.2
 
   csstype@3.2.3: {}
+
+  d3-cloud@2.0.0: {}
 
   data-urls@8.0.0:
     dependencies:

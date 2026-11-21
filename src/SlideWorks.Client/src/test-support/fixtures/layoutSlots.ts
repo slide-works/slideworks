@@ -15,6 +15,7 @@ import {
 } from './layoutSlots/big-number';
 import { REQUIRED as QUOTE_REQUIRED, SLOTS as QUOTE_SLOTS } from './layoutSlots/quote';
 import { REQUIRED as IMAGE_REQUIRED, SLOTS as IMAGE_SLOTS } from './layoutSlots/image';
+import { REQUIRED as VIDEO_REQUIRED, SLOTS as VIDEO_SLOTS } from './layoutSlots/video';
 import { REQUIRED as TABLE_REQUIRED, SLOTS as TABLE_SLOTS } from './layoutSlots/table';
 import { REQUIRED as CHART_REQUIRED, SLOTS as CHART_SLOTS } from './layoutSlots/chart';
 import { REQUIRED as GANTT_REQUIRED, SLOTS as GANTT_SLOTS } from './layoutSlots/gantt';
@@ -40,6 +41,11 @@ import { REQUIRED as CLOSE_REQUIRED, SLOTS as CLOSE_SLOTS } from './layoutSlots/
 import { REQUIRED as JOIN_REQUIRED, SLOTS as JOIN_SLOTS } from './layoutSlots/join';
 import { REQUIRED as POLL_REQUIRED, SLOTS as POLL_SLOTS } from './layoutSlots/poll';
 import { REQUIRED as QA_REQUIRED, SLOTS as QA_SLOTS } from './layoutSlots/qa';
+import {
+  REQUIRED as WORD_CLOUD_REQUIRED,
+  SLOTS as WORD_CLOUD_SLOTS,
+} from './layoutSlots/word-cloud';
+import { REQUIRED as OPEN_TEXT_REQUIRED, SLOTS as OPEN_TEXT_SLOTS } from './layoutSlots/open-text';
 
 export { SAMPLE_IMAGE_ID } from './layoutSlots/sampleImage';
 
@@ -55,6 +61,7 @@ export const LAYOUT_SLOTS: { [L in keyof Slots]: Slots[L] } = {
   'big-number': BIG_NUMBER_SLOTS,
   quote: QUOTE_SLOTS,
   image: IMAGE_SLOTS,
+  video: VIDEO_SLOTS,
   table: TABLE_SLOTS,
   chart: CHART_SLOTS,
   gantt: GANTT_SLOTS,
@@ -74,6 +81,8 @@ export const LAYOUT_SLOTS: { [L in keyof Slots]: Slots[L] } = {
   join: JOIN_SLOTS,
   poll: POLL_SLOTS,
   qa: QA_SLOTS,
+  'word-cloud': WORD_CLOUD_SLOTS,
+  'open-text': OPEN_TEXT_SLOTS,
 };
 
 // The slot keys a layout can't do without, built from each layout's own
@@ -89,6 +98,7 @@ export const REQUIRED_SLOT_KEYS = {
   'big-number': BIG_NUMBER_REQUIRED,
   quote: QUOTE_REQUIRED,
   image: IMAGE_REQUIRED,
+  video: VIDEO_REQUIRED,
   table: TABLE_REQUIRED,
   chart: CHART_REQUIRED,
   gantt: GANTT_REQUIRED,
@@ -108,6 +118,8 @@ export const REQUIRED_SLOT_KEYS = {
   join: JOIN_REQUIRED,
   poll: POLL_REQUIRED,
   qa: QA_REQUIRED,
+  'word-cloud': WORD_CLOUD_REQUIRED,
+  'open-text': OPEN_TEXT_REQUIRED,
 } as const satisfies { [L in LayoutName]: readonly RequiredKey<Slots[L]>[] };
 
 type UnlistedRequiredKey = {

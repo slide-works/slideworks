@@ -274,7 +274,7 @@ public class PollPumpTests : PollTestFixture
 
         public bool Subscribed { get; private set; }
 
-        public Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks) => Task.CompletedTask;
+        public Task ApplyAsync(PollRoundRef round, IReadOnlyList<int> oldPicks, IReadOnlyList<int> newPicks, bool hadText = false, bool hasText = false) => Task.CompletedTask;
 
         public Task<PollCounts> ReadAsync(string roundId, int optionCount)
         {

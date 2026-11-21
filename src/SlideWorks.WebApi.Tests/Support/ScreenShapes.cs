@@ -50,7 +50,7 @@ public static class ScreenShapes
     {
         NullablePaths =
         [
-            "title", "subtitle", "author", "look.template.titleArt", "look.logo",
+            "kicker", "title", "subtitle", "author", "look.template.titleArt", "look.logo",
             .. LookNullablePaths,
         ],
     };
@@ -214,6 +214,15 @@ public static class ScreenShapes
 
     // A reactions event on its own (audience-events.json, Q7): no nulls.
     public static readonly JsonShapeOptions ReactionsBurst = new();
+
+    // A wordCloud or openText event on its own (audience-events.json, SW-8): no nulls; round is left out in draft.
+    public static readonly JsonShapeOptions OpenResponseEvent = new();
+
+    // A guest's word-cloud or open-text view, a submit body or its stored reply (word-cloud.json, open-text.json): no nulls.
+    public static readonly JsonShapeOptions GuestResponse = new();
+
+    // The presenter's open-response control view (open-response-control.json): no nulls.
+    public static readonly JsonShapeOptions OpenResponseControl = new();
 
     private static readonly JsonShapeOptions _qaRoomFile = new() { NullablePaths = ["off.round"] };
 

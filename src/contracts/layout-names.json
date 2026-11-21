@@ -9,6 +9,7 @@
     "big-number",
     "quote",
     "image",
+    "video",
     "table",
     "chart",
     "gantt",
@@ -27,6 +28,8 @@
     "close",
     "join",
     "poll",
-    "qa"
+    "qa",
+    "word-cloud",
+    "open-text"
   ]
 }

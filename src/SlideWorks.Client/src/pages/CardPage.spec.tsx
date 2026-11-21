@@ -42,7 +42,7 @@ async function stubCard(page: Page, view: CardView) {
   await stubApi(page, { [cardPath]: { json: view } });
 }
 
-test('card page for a link deck shows its title, subtitle, byline and swatch', async ({
+test('card page for a link deck shows its kicker, title, subtitle, byline, swatch and host', async ({
   mount,
   page,
 }) => {
@@ -58,6 +58,10 @@ test('card page for a link deck shows its title, subtitle, byline and swatch', a
     `${card.slideCount} slides · ${card.author}`,
   );
   await expect(page.getByTestId('share-card-swatch')).toBeVisible();
+  // Mockups section 09: the deck's own kicker at the top and the site's host at the bottom right.
+  await expect(page.getByTestId('share-card-kicker')).toHaveText(card.kicker!);
+  await expect(page.getByTestId('share-card-host')).toHaveText(card.host);
+  await expect(shareCard).not.toContainText(card.look.palette.label);
   await expect(shareCard).toHaveAttribute('data-generic', 'false');
   await expect(shareCard).not.toHaveAttribute('data-error');
 
@@ -66,6 +70,16 @@ test('card page for a link deck shows its title, subtitle, byline and swatch', a
   ).toEqual([`GET ${cardPath}`]);
   expect(await requests[0].allHeaders()).toMatchObject({ 'x-render-token': TOKEN });
   expect((await requests[0].allHeaders()).cookie).toBeUndefined();
+});
+
+test('card page for a deck with no kicker shows no kicker line', async ({ mount, page }) => {
+  await stubCard(page, { ...linkCard, kicker: null });
+  await mount(<AppRoutes />, { hooksConfig: { route: `/card/${DECK}#token=${TOKEN}` } });
+
+  await expect(page.getByTestId('share-card')).toHaveAttribute('data-ready', 'true');
+  await expect(page.getByTestId('share-card-title')).toHaveText(card.title!);
+  await expect(page.getByTestId('share-card-kicker')).toHaveCount(0);
+  await expect(page.getByTestId('share-card-host')).toHaveText(card.host);
 });
 
 test('card page waits for the logo before it is ready', async ({ mount, page }) => {
@@ -154,6 +168,7 @@ test('card page for a deck the server makes generic names nothing about it', asy
   await stubCard(page, {
     ...card,
     generic: true,
+    kicker: null,
     title: null,
     subtitle: null,
     author: null,

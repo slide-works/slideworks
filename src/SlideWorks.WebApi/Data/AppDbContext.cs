@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using SlideWorks.Core.OpenResponses;
+using SlideWorks.Core.Polls;
 using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Features.Activity;
@@ -8,6 +10,7 @@ using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.OAuth;
+using SlideWorks.WebApi.Features.OpenResponses.Data;
 using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Qa.Data;
 using SlideWorks.WebApi.Features.Sharing;
@@ -69,6 +72,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<TemplateViewer> TemplateViewers => Set<TemplateViewer>();
 
     public DbSet<TemplateUpload> TemplateUploads => Set<TemplateUpload>();
+    public DbSet<OpenResponse> OpenResponses => Set<OpenResponse>();
+    public DbSet<OpenRound> OpenRounds => Set<OpenRound>();
+    public DbSet<OpenEntry> OpenEntries => Set<OpenEntry>();
 
     // SQLite can't compare or ORDER BY a DateTimeOffset stored as TEXT, so every one is stored as a sortable integer.
     // Expiry checks and newest-first lists then run in SQL.
@@ -143,6 +149,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         ConfigureQa(modelBuilder);
 
         ConfigureTemplates(modelBuilder);
+        ConfigureOpenResponses(modelBuilder);
 
         modelBuilder.Entity<OAuthClientRow>(client => client.HasKey(c => c.ClientId));
 
@@ -179,6 +186,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             poll.Property(p => p.Results).HasConversion<string>();
             poll.Property(p => p.Opens).HasConversion<string>();
             poll.Property(p => p.Privacy).HasConversion<string>();
+            poll.Property(p => p.Answers).HasConversion<string>().HasDefaultValue(PollAnswersForm.Choice);
             poll.ToTable(table => table.HasCheckConstraint(
                 "CK_Polls_Kind_SlideId", "(\"Kind\" = 'Slide' AND \"SlideId\" IS NOT NULL) OR (\"Kind\" = 'Qa' AND \"SlideId\" IS NULL)"));
         });
@@ -213,6 +221,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             answer.HasKey(a => new { a.RoundId, a.GuestId });
             answer.HasOne<PollRound>().WithMany().HasForeignKey(a => a.RoundId).OnDelete(DeleteBehavior.Restrict);
+            answer.Property(a => a.Text).HasMaxLength(OpenAnswers.MAX_TEXT);
+            answer.ToTable(table => table.HasCheckConstraint(
+                "CK_PollAnswers_Text_Length", $"\"Text\" IS NULL OR length(\"Text\") <= {OpenAnswers.MAX_TEXT}"));
         });
     }
 
@@ -342,6 +353,50 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             {
                 table.HasCheckConstraint("CK_TemplateUploads_Kind", $"\"Kind\" IN ({kinds})");
                 table.HasCheckConstraint("CK_TemplateUploads_FileName_Length", $"length(\"FileName\") <= {TemplateAsset.FILE_NAME_MAX}");
+            });
+        });
+    }
+
+    // SW-8's open-response rows: one per word-cloud or open-text slide, its rounds per live session, and the guests' entries.
+    // Every foreign key is Restrict, so app code removes its rows itself where it removes any.
+    private static void ConfigureOpenResponses(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<OpenResponse>(response =>
+        {
+            response.Property(r => r.DeckId).HasMaxLength(DeckIds.LENGTH);
+            response.Property(r => r.Kind).HasConversion<string>();
+            response.HasOne<Deck>().WithMany().HasForeignKey(r => r.DeckId).OnDelete(DeleteBehavior.Restrict);
+            response.HasOne<Slide>().WithOne().HasForeignKey<OpenResponse>(r => r.SlideId).OnDelete(DeleteBehavior.Restrict);
+            response.HasIndex(r => r.SlideId).IsUnique();
+            response.ToTable(table => table.HasCheckConstraint("CK_OpenResponses_Kind", OneOf<OpenResponseKind>("Kind")));
+        });
+
+        modelBuilder.Entity<OpenRound>(round =>
+        {
+            round.HasOne<OpenResponse>().WithMany().HasForeignKey(r => r.OpenResponseId).OnDelete(DeleteBehavior.Restrict);
+            round.HasOne<AudienceSession>().WithMany().HasForeignKey(r => r.SessionId).OnDelete(DeleteBehavior.Restrict);
+            round.HasIndex(r => new { r.OpenResponseId, r.SessionId, r.Number }).IsUnique();
+            round.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_OpenRounds_Number", "\"Number\" >= 1");
+                table.HasCheckConstraint("CK_OpenRounds_Revision", "\"Revision\" >= 0");
+            });
+        });
+
+        modelBuilder.Entity<OpenEntry>(entry =>
+        {
+            entry.HasOne<OpenRound>().WithMany().HasForeignKey(e => e.RoundId).OnDelete(DeleteBehavior.Restrict);
+            entry.Property(e => e.GuestId).HasMaxLength(32);
+            entry.Property(e => e.Text).HasMaxLength(OpenTextRules.MAX_TEXT_LENGTH);
+            entry.Property(e => e.TextKey).HasMaxLength(OpenTextRules.MAX_TEXT_LENGTH);
+            entry.HasIndex(e => new { e.RoundId, e.GuestId, e.Position }).IsUnique();
+            entry.HasIndex(e => new { e.RoundId, e.TextKey });
+            // SQLite ignores a column's length, so the limits are checks.
+            entry.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_OpenEntries_Position", "\"Position\" >= 0");
+                table.HasCheckConstraint("CK_OpenEntries_Text_Length", $"length(\"Text\") <= {OpenTextRules.MAX_TEXT_LENGTH}");
+                table.HasCheckConstraint("CK_OpenEntries_TextKey_Length", $"length(\"TextKey\") <= {OpenTextRules.MAX_TEXT_LENGTH}");
             });
         });
     }

@@ -11,6 +11,7 @@ import { CompareLayout } from './CompareLayout';
 import { BigNumberLayout } from './BigNumberLayout';
 import { QuoteLayout } from './QuoteLayout';
 import { ImageLayout } from './ImageLayout';
+import { VideoLayout } from './VideoLayout';
 import { TableLayout } from './TableLayout';
 import { ChartLayout } from './ChartLayout';
 import { GanttLayout } from './GanttLayout';
@@ -30,6 +31,8 @@ import { CloseLayout } from './CloseLayout';
 import { JoinLayout } from './JoinLayout';
 import { PollLayout } from './PollLayout';
 import { QaLayout } from './QaLayout';
+import { WordCloudLayout } from './WordCloudLayout';
+import { OpenTextLayout } from './OpenTextLayout';
 
 export const LAYOUTS: { [L in LayoutName]: ComponentType<LayoutProps<L>> } = {
   title: TitleLayout,
@@ -41,6 +44,7 @@ export const LAYOUTS: { [L in LayoutName]: ComponentType<LayoutProps<L>> } = {
   'big-number': BigNumberLayout,
   quote: QuoteLayout,
   image: ImageLayout,
+  video: VideoLayout,
   table: TableLayout,
   chart: ChartLayout,
   gantt: GanttLayout,
@@ -60,4 +64,6 @@ export const LAYOUTS: { [L in LayoutName]: ComponentType<LayoutProps<L>> } = {
   join: JoinLayout,
   poll: PollLayout,
   qa: QaLayout,
+  'word-cloud': WordCloudLayout,
+  'open-text': OpenTextLayout,
 };

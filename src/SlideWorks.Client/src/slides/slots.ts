@@ -15,6 +15,7 @@ import { KEYS as COMPARE_KEYS, type CompareSlots } from './slots/compare';
 import { KEYS as BIG_NUMBER_KEYS, type BigNumberSlots } from './slots/big-number';
 import { KEYS as QUOTE_KEYS, type QuoteSlots } from './slots/quote';
 import { KEYS as IMAGE_KEYS, type ImageSlots } from './slots/image';
+import { KEYS as VIDEO_KEYS, type VideoSlots } from './slots/video';
 import { KEYS as TABLE_KEYS, type TableSlots } from './slots/table';
 import { KEYS as CHART_KEYS, type ChartSlots } from './slots/chart';
 import { KEYS as GANTT_KEYS, type GanttSlots } from './slots/gantt';
@@ -34,6 +35,8 @@ import { KEYS as CLOSE_KEYS, type CloseSlots } from './slots/close';
 import { KEYS as JOIN_KEYS, type JoinSlots } from './slots/join';
 import { KEYS as POLL_KEYS, type PollSlots } from './slots/poll';
 import { KEYS as QA_KEYS, type QaSlots } from './slots/qa';
+import { KEYS as WORD_CLOUD_KEYS, type WordCloudSlots } from './slots/word-cloud';
+import { KEYS as OPEN_TEXT_KEYS, type OpenTextSlots } from './slots/open-text';
 
 export type {
   BulletItem,
@@ -58,6 +61,7 @@ export type { CompareSide, CompareSlots } from './slots/compare';
 export type { BigNumberSlots } from './slots/big-number';
 export type { QuoteSlots } from './slots/quote';
 export type { ImageSlots } from './slots/image';
+export type { VideoSlots } from './slots/video';
 export type { CellTone, TableCell, TableSlots } from './slots/table';
 export type { ChartSeries, ChartSlots } from './slots/chart';
 export type { GanttRow, GanttSlots, GanttStatus } from './slots/gantt';
@@ -77,6 +81,8 @@ export type { CloseSlots } from './slots/close';
 export type { JoinSlots } from './slots/join';
 export type { PollSlots } from './slots/poll';
 export type { QaSlots } from './slots/qa';
+export type { WordCloudSlots } from './slots/word-cloud';
+export type { OpenTextSlots } from './slots/open-text';
 
 export const LAYOUT_NAMES = [
   'title',
@@ -88,6 +94,7 @@ export const LAYOUT_NAMES = [
   'big-number',
   'quote',
   'image',
+  'video',
   'table',
   'chart',
   'gantt',
@@ -107,6 +114,8 @@ export const LAYOUT_NAMES = [
   'join',
   'poll',
   'qa',
+  'word-cloud',
+  'open-text',
 ] as const;
 
 export type LayoutName = (typeof LAYOUT_NAMES)[number];
@@ -126,6 +135,7 @@ export const LAYOUT_SURFACE: Record<LayoutName, Surface | 'either'> = {
   'big-number': 'either',
   quote: 'either',
   image: 'light',
+  video: 'light',
   table: 'light',
   chart: 'light',
   gantt: 'light',
@@ -145,6 +155,8 @@ export const LAYOUT_SURFACE: Record<LayoutName, Surface | 'either'> = {
   join: 'dark',
   poll: 'light',
   qa: 'light',
+  'word-cloud': 'light',
+  'open-text': 'light',
 };
 
 // The layouts the frame draws without a tracker or a footer, whatever their surface.
@@ -163,6 +175,7 @@ export type Slots = {
   'big-number': BigNumberSlots;
   quote: QuoteSlots;
   image: ImageSlots;
+  video: VideoSlots;
   table: TableSlots;
   chart: ChartSlots;
   gantt: GanttSlots;
@@ -182,6 +195,8 @@ export type Slots = {
   join: JoinSlots;
   poll: PollSlots;
   qa: QaSlots;
+  'word-cloud': WordCloudSlots;
+  'open-text': OpenTextSlots;
 };
 
 // Every top-level slot key of each layout, at runtime, built from each layout's
@@ -197,6 +212,7 @@ export const SLOT_KEYS = {
   'big-number': BIG_NUMBER_KEYS,
   quote: QUOTE_KEYS,
   image: IMAGE_KEYS,
+  video: VIDEO_KEYS,
   table: TABLE_KEYS,
   chart: CHART_KEYS,
   gantt: GANTT_KEYS,
@@ -216,6 +232,8 @@ export const SLOT_KEYS = {
   join: JOIN_KEYS,
   poll: POLL_KEYS,
   qa: QA_KEYS,
+  'word-cloud': WORD_CLOUD_KEYS,
+  'open-text': OPEN_TEXT_KEYS,
 } as const satisfies { [L in LayoutName]: readonly (keyof Slots[L])[] };
 
 type UnlistedSlotKey = {

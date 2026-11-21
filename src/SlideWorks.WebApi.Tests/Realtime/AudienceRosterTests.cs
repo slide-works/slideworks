@@ -16,7 +16,8 @@ using SlideWorks.WebApi.Tests.Support;
 namespace SlideWorks.WebApi.Tests.Realtime;
 
 // The real roster behind the real hub (J4, J8, D22): guests count once per browser, joins and the peak are written to the
-// session, and the owner hears the count at most once a second. Sam owns every deck and the clock is fake, so the throttle
+// session, and the owner hears the joined count at most once a second. The joined count is every guest counted in the session
+// and never drops on a leave (SW-628); CountAsync is the guests connected now. Sam owns every deck and the clock is fake, so the throttle
 // steps with it.
 [TestFixture]
 [CancelAfter(60000)]
@@ -63,7 +64,9 @@ public class AudienceRosterTests : ApiTestFixture
         countWithTwoTabs.ShouldBe(1);
         countAfterFirstLeaves.ShouldBe(1);
         countWithOneTab.ShouldBe(1);
-        countAfterBoth.ShouldBe(0);
+        countAfterBoth.ShouldBe(1);
+        (await Roster.CountAsync(session)).ShouldBe(0);
+        (await Roster.JoinedAsync(session)).ShouldBe(1);
         (await JoinRowsAsync(session)).ShouldBe([guestId]);
         (await PeakAsync(session)).ShouldBe(1);
     }
@@ -77,12 +80,40 @@ public class AudienceRosterTests : ApiTestFixture
         var first = await JoinAsync(code, guestId);
         await counts.NextAsync();
         await first.DisposeAsync();
-        (await counts.NextAsync()).ShouldBe(0);
+        (await counts.NextAsync()).ShouldBe(1);
         Clock.Advance(TimeSpan.FromSeconds(30));
 
         await JoinAsync(code, guestId, HttpTransportType.LongPolling);
 
         (await JoinRowsAsync(session)).ShouldBe([guestId]);
+        (await Roster.CountAsync(session)).ShouldBe(1);
+        (await Roster.JoinedAsync(session)).ShouldBe(1);
+    }
+
+    // SW-628: a phone that locks or switches app closes its connection. The owner's count and the live view keep it.
+    [Test]
+    public async Task JoinedCount_WhenAGuestDisconnects_ShouldNotDropForTheOwner()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        var owner = await WatcherAsync(deck);
+        var session = (await PostLiveAsync(deck)).GetProperty("sessionId").GetString()!;
+        var code = (await GetLiveAsync(deck)).GetProperty("code").GetString()!;
+        (await owner.NextAudienceAsync()).GetProperty("count").GetInt32().ShouldBe(0);
+        using var counts = new CountFeed(Bus, deck);
+        await JoinAsync(code);
+        var sleeps = await JoinAsync(code);
+        await counts.NextAsync();
+        await counts.NextAsync();
+
+        await sleeps.DisposeAsync();
+        var afterLeave = await counts.NextAsync();
+        await PassTheRelayAsync();
+        Clock.Advance(TimeSpan.FromSeconds(1));
+        var heard = (await owner.NextAudienceAsync()).GetProperty("count").GetInt32();
+
+        afterLeave.ShouldBe(2);
+        heard.ShouldBe(2);
+        (await GetLiveAsync(deck)).GetProperty("joinedCount").GetInt32().ShouldBe(2);
         (await Roster.CountAsync(session)).ShouldBe(1);
     }
 
@@ -129,8 +160,9 @@ public class AudienceRosterTests : ApiTestFixture
         await guests[0].StopAsync();
         await guests[1].StopAsync();
         await counts.NextAsync();
-        (await counts.NextAsync()).ShouldBe(1);
+        (await counts.NextAsync()).ShouldBe(3);
 
+        (await Roster.CountAsync(session)).ShouldBe(1);
         (await PeakAsync(session)).ShouldBe(3);
         (await JoinRowsAsync(session)).Count.ShouldBe(3);
     }
@@ -224,6 +256,24 @@ public class AudienceRosterTests : ApiTestFixture
         (await JoinRowsAsync(session)).ShouldContain(guest);
     }
 
+    // SW-628: after a restart the guests who joined before it are only in the join rows. The first join seeds them, so the
+    // joined count doesn't fall back to the guests who happen to reconnect.
+    [Test]
+    public async Task JoinAsync_WhenFirstJoinAfterARestart_ShouldCountTheGuestsJoinedBeforeIt()
+    {
+        var (deck, code, session) = await GoLiveAsync();
+        var before = await JoinAsync(code);
+        await before.DisposeAsync();
+        await JoinAsync(code);
+        var restarted = new AudienceRoster(Factory.Services.GetRequiredService<IServiceScopeFactory>(), Bus, Clock, NullLogger<AudienceRoster>.Instance);
+
+        var joined = await restarted.JoinAsync(deck, session, Guid.NewGuid().ToString("N"), "first-after-restart");
+
+        joined.ShouldBe(3);
+        (await restarted.JoinedAsync(session)).ShouldBe(3);
+        (await restarted.CountAsync(session)).ShouldBe(1);
+    }
+
     // After a restart, before any guest rejoined, the roster has no entry for the deck: ClosedAsync must still remember the
     // session it closed, so a join already in flight at that End can't reopen it.
     [Test]
@@ -253,7 +303,8 @@ public class AudienceRosterTests : ApiTestFixture
 
         await roster.JoinAsync(deck, session, guest, "tab-2");
 
-        afterFirst.ShouldBe(1);
+        // A fresh roster is a restart: the first join writes its row and reads the session's earlier joins (SW-628).
+        afterFirst.ShouldBe(2);
         scopes.Created.ShouldBe(afterFirst);
         (await roster.CountAsync(session)).ShouldBe(1);
     }
@@ -270,7 +321,7 @@ public class AudienceRosterTests : ApiTestFixture
         try
         {
             await guest.DisposeAsync();
-            (await counts.NextAsync()).ShouldBe(0);
+            (await counts.NextAsync()).ShouldBe(1);
         }
         finally
         {

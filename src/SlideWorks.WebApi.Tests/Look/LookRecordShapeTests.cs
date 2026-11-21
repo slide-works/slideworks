@@ -106,10 +106,12 @@ public class LookRecordShapeTests : ApiTestFixture
     {
         var example = Example("card.json");
         var view = CardView.ForDeck(
+            example.GetProperty("kicker").GetString(),
             example.GetProperty("title").GetString()!,
             example.GetProperty("subtitle").GetString(),
             example.GetProperty("author").GetString(),
             example.GetProperty("slideCount").GetInt32(),
+            example.GetProperty("host").GetString()!,
             example.GetProperty("look").Deserialize<LookView>(AppJsonOptions())!);
 
         var json = Serialise(view);
@@ -121,10 +123,11 @@ public class LookRecordShapeTests : ApiTestFixture
     [Test]
     public void Card_WhenGeneric_ShouldMatchContractWithNoDeckDetails()
     {
-        var json = Serialise(CardView.GenericWith(LookViews.Default(BuiltInTemplates.Resolve(new TemplateCatalogue().Default), Palettes, Clock.GetUtcNow())));
+        var json = Serialise(CardView.GenericWith("slideworks.example", LookViews.Default(BuiltInTemplates.Resolve(new TemplateCatalogue().Default), Palettes, Clock.GetUtcNow())));
 
         JsonShape.AssertMatches(json, "card.json", ScreenShapes.Card);
         json.GetProperty("generic").GetBoolean().ShouldBeTrue();
+        json.GetProperty("kicker").ValueKind.ShouldBe(JsonValueKind.Null);
         json.GetProperty("title").ValueKind.ShouldBe(JsonValueKind.Null);
     }
 

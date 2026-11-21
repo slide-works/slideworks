@@ -16,7 +16,7 @@ const ICON_SIZE = 40;
 // point n appears at step n; the callout shows from the start, or at the step
 // after the last point when its reveal is 'last'.
 export function BulletsLayout({ slots, step }: LayoutProps<'bullets'>) {
-  const { kicker, headline, items, reveal, callout } = slots;
+  const { kicker, headline, items, style, reveal, callout } = slots;
   const oneByOne = reveal === 'one-by-one';
   const iconName = (item: (typeof items)[number]) =>
     typeof item === 'string' || item.icon === undefined || iconFor(item.icon) === undefined
@@ -33,7 +33,7 @@ export function BulletsLayout({ slots, step }: LayoutProps<'bullets'>) {
         emphasis={emphasisFor(slots, 'headline')}
       />
       <div data-testid="bullets-body" className="sw-body">
-        <ul className={styles.items}>
+        <ul className={styles.items} data-style={style === 'numbered' ? 'numbered' : undefined}>
           {items.map((item, i) => {
             const name = iconName(item);
             const className = name === undefined ? base : `${base} ${styles.iconed}`;

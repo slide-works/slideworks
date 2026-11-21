@@ -80,6 +80,9 @@ describe('PollScreenFixture', () => {
       correct: null,
       pick: control.settings.pick,
       max: control.settings.max,
+      answers: control.settings.answers,
+      replies: control.roomSeesCounts ? (control.replies ?? null) : null,
+      words: control.roomSeesCounts ? (control.words ?? null) : null,
     });
   });
 

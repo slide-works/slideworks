@@ -6,6 +6,7 @@ using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Look.Views;
+using SlideWorks.WebApi.Features.OpenResponses;
 using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Qa;
 using SlideWorks.WebApi.Features.Sharing;
@@ -33,6 +34,7 @@ public class LiveCommands(
     IPolls polls,
     IQaRounds qaRounds,
     IReactions reactions,
+    OpenResponseControls openResponses,
     TimeProvider clock)
 {
     // SQLITE_CONSTRAINT_UNIQUE: the extended code, so a NOT NULL or primary key failure is never mistaken for the race.
@@ -82,6 +84,7 @@ public class LiveCommands(
         // Then the session's Q&A round is closed, and the reactions still in memory are written (SW-9 Q6, Q7).
         await qaRounds.CloseAsync(deckId, session.Id);
         await reactions.EndSessionAsync(session.Id);
+        await openResponses.EndSessionAsync(deckId, session.Id, CancellationToken.None);
         session.EndedAt = clock.GetUtcNow();
         await db.SaveChangesAsync();
         await roster.ClosedAsync(deckId, session.Id.ToString());
@@ -143,7 +146,7 @@ public class LiveCommands(
             joinUrls.JoinUrl(deck.JoinCode),
             joinUrls.HostLabel(),
             live,
-            live ? await roster.CountAsync(sessionId!.Value.ToString()) : 0,
+            live ? await roster.JoinedAsync(sessionId!.Value.ToString()) : 0,
             ChromeOverridesView.From(deck.ChromeJson).JoinBar);
     }
 }

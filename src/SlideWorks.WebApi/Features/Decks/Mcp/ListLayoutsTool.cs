@@ -17,12 +17,35 @@ namespace SlideWorks.WebApi.Features.Decks.Mcp;
 public sealed class ListLayoutsTool
 {
     [McpServerTool(Name = "list_layouts", ReadOnly = true)]
-    [Description("List the slide layouts you can pass to add_slide: each one's name, what it is for, its surface (light, dark or either; with either, add_slide's surface picks), what its steps reveal, the JSON Schema of its slots, and how many typical items each list or table slot fits. Give a template to list only the layouts it allows. Slot text is plain text: no Markdown or HTML.")]
+    [Description("List the slide layouts you can pass to add_slide: each one's name, what it is for, its surface (light, dark or either; with either, add_slide's surface picks), what its steps reveal, the JSON Schema of its slots, and how many typical items each list or table slot fits. The icon, emphasis and callout schemas are shared in $defs; a $ref is against this response, not against a schema copied out on its own. detail \"compact\" leaves the schema out and returns each slot's kind, limits and capacity. Give a template to list only the layouts it allows. Slot text is plain text: no Markdown or HTML.")]
     public Task<CallToolResult> ListLayouts(
         ITemplates templates,
         ICurrentActor actor,
-        [Description("A template's name, as list_templates or get_deck names it, to list only its layouts. Leave it out for every layout.")] string? template = null)
-        => McpToolErrors.Run(async () => new ListLayoutsResult((await LayoutsOfAsync(templates, actor, template)).Select(LayoutInfo.From).ToList()));
+        [Description("A template's name, as list_templates or get_deck names it, to list only its layouts. Leave it out for every layout.")] string? template = null,
+        [Description("\"full\" (the default) includes each layout's JSON Schema. \"compact\" returns slots, limits and capacity only.")] string? detail = null)
+        => McpToolErrors.Run(async () =>
+        {
+            var layouts = (await LayoutsOfAsync(templates, actor, template)).ToList();
+            return Detail(detail) switch
+            {
+                "compact" => (object)new ListLayoutsCompactResult(layouts.Select(LayoutOutline.From).ToList()),
+                _ => Full(layouts),
+            };
+        });
+
+    private static ListLayoutsResult Full(IReadOnlyList<LayoutDefinition> layouts)
+    {
+        var infos = layouts.Select(LayoutInfo.From).ToList();
+        var defs = SharedLayoutSchemas.Share(infos.Select(info => info.Schema));
+        return new ListLayoutsResult(infos, defs.Count == 0 ? null : defs);
+    }
+
+    private static string Detail(string? detail) => detail switch
+    {
+        null or "" or "full" => "full",
+        "compact" => "compact",
+        _ => throw new BadRequestException("detail: must be \"full\" or \"compact\""),
+    };
 
     // A template's layouts are the ones it names and the live room's, each as the template itself finds it, in the
     // catalogue's order with any layout of the template's own after them.

@@ -76,6 +76,7 @@ publisher → IDeckEvents (in-process bus) → DeckEventsRelay → DeckHub group
 - Every deck has a standing six-digit join code. **Go live** (the live chip in the player) opens a session behind it, and **End** closes it. Guests who arrive before Go live wait in a lobby.
 - A guest opens `/join` and types the code, or scans the QR code, which opens `/j/<code>`. There is no name and no account. The phone mirrors the slide on screen, with no notes, timer or other slides sent to it.
 - The `join` layout shows the code, the QR code and, if the layout allows it, how many have joined. A deck setting puts a small QR code and the code on every slide while live.
+- The joined count, on the live chip and the `join` layout, counts each guest who joined the session once. It doesn't drop when a guest's phone locks or switches app, which closes the connection. A poll's response rate still divides by the guests connected now.
 - Set `SLIDEWORKS_JOIN_URL` for a short join domain such as `https://slideworks.live`. See [`docs/self-hosting.md`](docs/self-hosting.md#live-audience-join) for DNS, TLS and what the proxy must keep.
 - Peak joined per session and the median time from the join slide to each join are SW-5's Measures, two queries in [`docs/measures.md`](docs/measures.md).
 
@@ -122,9 +123,8 @@ colour or a font.
   route answers 503 with `Retry-After`. If a deck's card fails to render (for example a broken logo), the route serves
   the generic card. `GET /d/{id}/{slug}` serves the player with Open Graph tags that point at the card.
 - **The image carries Chromium for the share card only.** The Dockerfile installs it with the Playwright driver that
-  ships with `Microsoft.Playwright`, into `/ms-playwright`. It makes the runtime image much larger: about 0.7 GB
-  without it, and roughly 1.7–2.1 GB with it, depending on whether the full browser or only the headless shell is
-  installed.
+  ships with `Microsoft.Playwright`, into `/ms-playwright`, and installs only the headless shell, not the full
+  browser. It makes the runtime image much larger: about 0.7 GB without it, and roughly 1.7 GB with it.
 - Render URLs carry a short-lived signed token in the URL fragment, never in a query string. Pages send it as the
   `X-Render-Token` header. A token reads only the one deck it names, for one purpose: a preview token lasts 10
   minutes, and a card token 60 seconds.

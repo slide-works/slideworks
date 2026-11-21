@@ -1,0 +1,12 @@
+{
+  "videoHeadline": {
+    "layout": "video",
+    "grow": ["/headline", "/caption"],
+    "refusedBy": "length",
+    "slots": {
+      "headline": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "url": "https://www.youtube.com/watch?v=M7lc1UVf-VE",
+      "caption": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    }
+  }
+}

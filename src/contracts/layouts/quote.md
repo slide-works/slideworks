@@ -16,5 +16,8 @@ A quotation with its attribution, and optionally a headline, a supporting stat, 
 | `stat.caption` | text | yes | up to 90 chars |  |
 | `follow_up` | text | no | up to 160 chars |  |
 | `source` | text | no | up to 200 chars | Without a 'Source:' prefix |
+| `image` | image `{image, alt}` | no |  | A portrait of the speaker, drawn beside the attribution |
+| `image.image` | text | yes | up to 64 chars | The image id that upload_image returned |
+| `image.alt` | text | yes | up to 500 chars | What the image shows, for screen readers |
 | `reveal` | `all` or `one-by-one` | no |  | 'one-by-one' shows the stat, then the follow-up line, on steps; 'all' (the default) shows them with the slide |
 | `emphasis` | emphasis | no | 1–3 entries, each `text` (up to 60 chars; the phrase must occur exactly once in its target), `tone` and optional `in`; targets `quote`, `headline` | Phrases of the slide's display text drawn in a tone. Each must occur exactly once in the text it is in |

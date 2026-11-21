@@ -32,6 +32,7 @@ public static class LayoutCatalogue
         BigNumberLayout.Definition,
         QuoteLayout.Definition,
         ImageLayout.Definition,
+        VideoLayout.Definition,
         TableLayout.Definition,
         ChartLayout.Definition,
         GanttLayout.Definition,
@@ -51,6 +52,8 @@ public static class LayoutCatalogue
         JoinLayout.Definition,
         PollLayout.Definition,
         QaLayout.Definition,
+        WordCloudLayout.Definition,
+        OpenTextLayout.Definition,
     ];
 
     public static IReadOnlyList<string> LayoutNames { get; } = Layouts.Select(l => l.Name).ToArray();
