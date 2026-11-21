@@ -26,9 +26,15 @@ COPY --from=frontend /source/SlideWorks.WebApi/wwwroot/ ./SlideWorks.WebApi/wwwr
 RUN dotnet publish SlideWorks.WebApi -c Release -o /app -p:SourceRevisionId=$SOURCE_COMMIT -p:RunAnalyzers=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
+# The Ubuntu mirrors sometimes answer one request with a 5xx (an HTTP 520 on archive.ubuntu.com's InRelease failed a CI
+# build). apt retries each failed download, here and in the Playwright --with-deps install below, and both apt steps
+# rerun whole up to 3 times, since a failed InRelease fails apt-get update outright.
+RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\n' > /etc/apt/apt.conf.d/80-retries
 # curl: the HEALTHCHECK below calls GET /health with it.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+RUN for i in 1 2 3; do \
+        apt-get update && apt-get install -y --no-install-recommends curl && break; \
+        [ "$i" = 3 ] && exit 1; sleep 15; \
+    done \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -41,7 +47,10 @@ COPY --from=build /app .
 # the non-root app user can read, and the app finds it through PLAYWRIGHT_BROWSERS_PATH. The driver in .playwright/
 # is opened up too: the app (non-root) starts its node at runtime, and the publish leaves it 0744 and root's.
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN .playwright/node/linux-x64/node .playwright/package/cli.js install --with-deps --only-shell chromium \
+RUN for i in 1 2 3; do \
+        .playwright/node/linux-x64/node .playwright/package/cli.js install --with-deps --only-shell chromium && break; \
+        [ "$i" = 3 ] && exit 1; sleep 15; \
+    done \
     && chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH" .playwright \
     && rm -rf /var/lib/apt/lists/*
 
