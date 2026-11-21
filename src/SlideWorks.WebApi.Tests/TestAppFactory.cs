@@ -25,14 +25,15 @@ public static class TestAppFactory
     // never a test branch in production code. extraConfig carries any further
     // SLIDEWORKS_* values a fixture needs. configureServices runs after Program.cs has
     // registered everything, for a fixture that has to swap one more service the
-    // same way. Every host also gets TestAuthScheme, so a request signs in by naming a TestUser. Serilog owns the logger factory and ignores other providers, so a
+    // same way. publicUrl is a fixture's own SLIDEWORKS_PUBLIC_URL, such as a non-loopback https origin. Every host also gets TestAuthScheme, so a request signs in by naming a TestUser. Serilog owns the logger factory and ignores other providers, so a
     // logger is replaced per category rather than added as a provider.
     public static WebApplicationFactory<ApiMarker> Create(
         string dbPath,
         FakeTimeProvider clock,
         Dictionary<string, string?>? extraConfig = null,
         Dictionary<string, HttpMessageHandler>? namedHandlers = null,
-        Action<IServiceCollection>? configureServices = null)
+        Action<IServiceCollection>? configureServices = null,
+        string publicUrl = PUBLIC_URL)
         => new WebApplicationFactory<ApiMarker>().WithWebHostBuilder(builder =>
         {
             builder.ConfigureAppConfiguration((_, config) =>
@@ -41,7 +42,7 @@ public static class TestAppFactory
                 {
                     ["SLIDEWORKS_DB_PATH"] = dbPath,
                     ["SLIDEWORKS_DATA_PATH"] = DataPathFor(dbPath),
-                    ["SLIDEWORKS_PUBLIC_URL"] = PUBLIC_URL,
+                    ["SLIDEWORKS_PUBLIC_URL"] = publicUrl,
                     [IUserDirectory.ADMIN_EMAIL_SETTING] = TestUser.Ada.Email,
                 });
                 if (extraConfig != null)
