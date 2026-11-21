@@ -1,6 +1,7 @@
-import type { DeckPageSlide } from '../../api/types';
+import type { DeckPageSlide, SlideFinding } from '../../api/types';
 import { SlideRenderer } from '../../slides/SlideRenderer';
 import type { SlideDeck } from '../../slides/slots';
+import { SlideChecksBadge } from './SlideChecksBadge';
 import { useFitWidth } from './useFitWidth';
 
 const SLIDE_WIDTH = 1920;
@@ -9,13 +10,21 @@ type SlideThumbProps = {
   slide: DeckPageSlide;
   deck: SlideDeck;
   total: number;
+  findings?: SlideFinding[];
   selected: boolean;
   onSelect(): void;
 };
 
 // One slide of the grid: the real slide, every step revealed, scaled down with
 // a CSS transform, under a button that selects it.
-export function SlideThumb({ slide, deck, total, selected, onSelect }: SlideThumbProps) {
+export function SlideThumb({
+  slide,
+  deck,
+  total,
+  findings = [],
+  selected,
+  onSelect,
+}: SlideThumbProps) {
   const { ref, scale } = useFitWidth<HTMLDivElement>(SLIDE_WIDTH);
   return (
     <li data-testid="deck-thumb" data-slide={slide.number} className="grid gap-1">
@@ -33,6 +42,9 @@ export function SlideThumb({ slide, deck, total, selected, onSelect }: SlideThum
           style={{ transform: `scale(${scale})`, visibility: scale > 0 ? 'visible' : 'hidden' }}
         >
           <SlideRenderer slide={slide} deck={deck} total={total} step={slide.steps} />
+        </div>
+        <div className="pointer-events-none absolute top-1 right-1">
+          <SlideChecksBadge slide={slide.number} findings={findings} />
         </div>
         <button
           type="button"

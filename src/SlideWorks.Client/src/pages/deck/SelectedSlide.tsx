@@ -1,10 +1,19 @@
 import { Link } from 'react-router-dom';
 import type { DeckPageSlide } from '../../api/types';
+import type { SlideFinding } from '../../api/types';
 import { NotesText } from '../../presentation/NotesText';
+import { SlideChecksList } from './SlideChecksList';
 
 // The selected slide's details: layout, steps, the link that opens the player
 // at it, and its speaker notes (only ever shown here, never to viewers).
-export function SelectedSlide({ slide }: { slide: DeckPageSlide }) {
+export function SelectedSlide({
+  slide,
+  findings,
+}: {
+  slide: DeckPageSlide;
+  // The slide's checks; left out where there is nothing to check (the list is then not drawn).
+  findings?: SlideFinding[];
+}) {
   return (
     <section data-testid="selected-slide" className="panel grid gap-3 p-4">
       <h3 className="text-xs font-semibold tracking-wide text-ink-muted uppercase">
@@ -38,6 +47,7 @@ export function SelectedSlide({ slide }: { slide: DeckPageSlide }) {
           <NotesText text={slide.notes} />
         </div>
       )}
+      {findings && <SlideChecksList findings={findings} />}
     </section>
   );
 }
