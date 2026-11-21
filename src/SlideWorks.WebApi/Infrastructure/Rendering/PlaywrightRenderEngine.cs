@@ -6,6 +6,7 @@ using Microsoft.Playwright;
 using SlideWorks.Core.Rendering;
 using SlideWorks.WebApi.Features.Checks;
 using SlideWorks.WebApi.Features.Render;
+using SlideWorks.WebApi.Infrastructure.Identity;
 
 namespace SlideWorks.WebApi.Infrastructure.Rendering;
 
@@ -16,7 +17,7 @@ namespace SlideWorks.WebApi.Infrastructure.Rendering;
 // a failed image load fails the render with "Rendering failed: <text>", and a render that passes RenderOptions.Timeout
 // fails with "Rendering timed out". When the browser dies mid-render, it is started again and the render retried once.
 [RegisterSingleton(For = typeof(IRenderEngine))]
-public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens tokens, IConfiguration configuration, IServer server) : IRenderEngine, IDisposable
+public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens tokens, IConfiguration configuration, IServer server, IPublicUrls urls) : IRenderEngine, IDisposable
 {
     public const int WIDTH = 1200;
     public const int HEIGHT = 630;
@@ -278,6 +279,21 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
         }
     }
 
+    // The generic card's route, with the public URL's host for its bottom right (mockups section 09's private card).
+    // The host goes in the query: the page makes no request, and it is opened at the render origin, which may be a
+    // loopback address. With no public URL to read (Development, outside a request), the card shows no host.
+    private string GenericCardPath()
+    {
+        try
+        {
+            return $"card/generic?host={Uri.EscapeDataString(new Uri(urls.Base, UriKind.Absolute).Authority)}";
+        }
+        catch (InvalidOperationException)
+        {
+            return "card/generic";
+        }
+    }
+
     private async Task<byte[]> RenderPageAsync(IBrowser chromium, string? deckId, CancellationToken ct)
     {
         var origin = BaseUrl();
@@ -285,7 +301,7 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
         Uri url;
         if (deckId == null)
         {
-            url = new Uri(origin, "card/generic");
+            url = new Uri(origin, GenericCardPath());
         }
         else
         {

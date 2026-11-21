@@ -13,7 +13,9 @@ import styles from './CardPage.module.css';
 // from the fragment (#token=…) and goes only in the X-Render-Token header, on
 // every request the page makes: card.json, then the logo, fetched with the
 // header and shown from a blob URL. It sends no cookie, so no signed-in request
-// can slip in. The generic card says only "SlideWorks" and makes no request.
+// can slip in. The generic card is the mockups' private card: "Private deck",
+// SlideWorks, "Sign in to view this deck." and the site's host, which
+// /card/generic takes from ?host= because it makes no request.
 //
 // The logo isn't loaded through POST /api/render/{id}/session and the sw_render
 // cookie: the server's engine opens this page at its loopback address, and the
@@ -22,7 +24,7 @@ import styles from './CardPage.module.css';
 // The token is read once and removed from the address bar, as RenderPage does.
 export function CardPage() {
   const { id } = useParams();
-  const hash = useLocation().hash;
+  const { hash, search } = useLocation();
   const [token] = useState(() => new URLSearchParams(hash.slice(1)).get('token'));
   useEffect(() => {
     if (window.location.hash) {
@@ -33,7 +35,10 @@ export function CardPage() {
       );
     }
   }, []);
-  if (id === undefined) return <ShareCard deckId={undefined} card={undefined} error={undefined} />;
+  if (id === undefined) {
+    const host = new URLSearchParams(search).get('host') ?? undefined;
+    return <ShareCard deckId={undefined} card={undefined} host={host} error={undefined} />;
+  }
   return <DeckCard key={`${id}#${token ?? ''}`} deckId={id} token={token} />;
 }
 
@@ -111,13 +116,15 @@ type ShareCardProps = {
   deckId: string | undefined;
   card: CardView | undefined;
   logo?: string;
+  // The generic route's host, from ?host=; a card from card.json carries its own.
+  host?: string;
   error: string | undefined;
   loading?: boolean;
 };
 
 // The card itself. data-ready is set once its fonts and logo have loaded, and
 // data-error carries the first failure, so a screenshot never waits forever.
-function ShareCard({ deckId, card, logo, error, loading = false }: ShareCardProps) {
+function ShareCard({ deckId, card, logo, host, error, loading = false }: ShareCardProps) {
   const generic = deckId === undefined || card?.generic === true;
   const [logoState, setLogoState] = useState<'pending' | 'loaded' | 'failed'>('pending');
   const [fontsReady, setFontsReady] = useState(false);
@@ -163,7 +170,6 @@ function ShareCard({ deckId, card, logo, error, loading = false }: ShareCardProp
       className={styles.card}
       style={card && !card.generic ? lookStyle(card.look) : undefined}
     >
-      {shown && (card === undefined || card.generic) && <Waves />}
       {shown && card !== undefined && !card.generic && (
         <CardArt
           art={card.look.art}
@@ -171,7 +177,7 @@ function ShareCard({ deckId, card, logo, error, loading = false }: ShareCardProp
           onSettled={(state) => artUrl !== undefined && setArtResult({ url: artUrl, state })}
         />
       )}
-      {shown && generic && <h1 className={styles.title}>SlideWorks</h1>}
+      {shown && generic && <PrivateCard host={card?.host ?? host} />}
       {shown && !generic && card && (
         <>
           {card.kicker && (
@@ -201,16 +207,45 @@ function ShareCard({ deckId, card, logo, error, loading = false }: ShareCardProp
                 onError={() => setLogoState('failed')}
               />
             ) : (
-              <div className={styles.swatch} data-testid="share-card-swatch" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </div>
+              <Swatch />
             )}
             <span data-testid="share-card-host">{card.host}</span>
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// The generic card (mockups section 09's private card): it names nothing about
+// any deck, so an unknown, private or named-viewer deck all look the same.
+function PrivateCard({ host }: { host: string | undefined }) {
+  return (
+    <>
+      <div className={styles.kicker} data-testid="share-card-kicker">
+        Private deck
+      </div>
+      <h1 className={styles.title} data-testid="share-card-title">
+        SlideWorks
+      </h1>
+      <p className={styles.subtitle} data-testid="share-card-subtitle">
+        Sign in to view this deck.
+      </p>
+      <div className={styles.footer}>
+        <span data-testid="share-card-byline" />
+        <Swatch />
+        <span data-testid="share-card-host">{host}</span>
+      </div>
+    </>
+  );
+}
+
+function Swatch() {
+  return (
+    <div className={styles.swatch} data-testid="share-card-swatch" aria-hidden="true">
+      <i />
+      <i />
+      <i />
     </div>
   );
 }
@@ -241,7 +276,7 @@ function CardArt({
   failed: boolean;
   onSettled: (state: 'loaded' | 'failed') => void;
 }) {
-  if (art.kind === 'generator' && art.generator === 'waves') return <Waves tone="deck" />;
+  if (art.kind === 'generator' && art.generator === 'waves') return <Waves />;
   const url = artImageUrl(art);
   if (url !== undefined && !failed) {
     return (
@@ -257,12 +292,11 @@ function CardArt({
   return null;
 }
 
-// The waves title art (mockups section 09), stroked with the palette's glow, or
-// with accent-2 on a deck card.
-function Waves({ tone = 'glow' }: { tone?: 'glow' | 'deck' }) {
+// The waves title art (mockups section 09), stroked with the look's accent-2.
+function Waves() {
   return (
     <svg
-      className={tone === 'deck' ? `${styles.art} ${styles.artDeck}` : styles.art}
+      className={`${styles.art} ${styles.artDeck}`}
       viewBox="0 0 1920 1080"
       preserveAspectRatio="none"
       aria-hidden="true"

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import palettesJson from '@contracts/palettes.json' with { type: 'json' };
 import { templateEditor } from '../../../test-support/fixtures/templates';
 import type { LookPalette } from '../../../api/types';
+import { DARK_LIFT } from '../../../look/cardLift';
 import { PREVIEW_SLIDES } from '../EditorPreview';
 import { lookFromManifest } from './lookFromManifest';
 
@@ -18,6 +19,17 @@ describe('lookFromManifest', () => {
     expect(lookFromManifest(manifest, assets, base).topBar).toBe('accent');
     const off = { ...manifest, chrome: { ...manifest.chrome, topBar: 'none' as const } };
     expect(lookFromManifest(off, assets, base).topBar).toBe('none');
+  });
+
+  it('lifts cards on dark paper as the server does, and keeps the shadow on light paper', () => {
+    const midnight = palettesJson.palettes.find((p) => p.name === 'midnight') as LookPalette;
+    const unpaletted = without(manifest);
+    expect(lookFromManifest(unpaletted, assets, base).template.shape.shadow).toBe(
+      manifest.shape.shadow,
+    );
+    expect(lookFromManifest(unpaletted, assets, midnight).template.shape.shadow).toBe(DARK_LIFT);
+    const flat = { ...unpaletted, shape: { ...manifest.shape, shadow: 'none' } };
+    expect(lookFromManifest(flat, assets, midnight).template.shape.shadow).toBe('none');
   });
 
   it('draws three sample slides', () => {

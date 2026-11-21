@@ -179,18 +179,41 @@ test('card page for a deck the server makes generic names nothing about it', asy
   const shareCard = page.getByTestId('share-card');
   await expect(shareCard).toHaveAttribute('data-ready', 'true');
   await expect(shareCard).toHaveAttribute('data-generic', 'true');
-  await expect(shareCard).toHaveText('SlideWorks');
+  await expectPrivateCard(page, card.host);
+  await expect(shareCard).not.toContainText(card.title ?? '');
 });
 
-test('generic card says only SlideWorks and makes no request', async ({ mount, page }) => {
+// The mockups' private card (section 09, SW-169 D2): no title, subtitle or author of any deck.
+async function expectPrivateCard(page: Page, host: string) {
+  await expect(page.getByTestId('share-card-kicker')).toHaveText('Private deck');
+  await expect(page.getByTestId('share-card-title')).toHaveText('SlideWorks');
+  await expect(page.getByTestId('share-card-subtitle')).toHaveText('Sign in to view this deck.');
+  await expect(page.getByTestId('share-card-byline')).toHaveText('');
+  await expect(page.getByTestId('share-card-swatch')).toBeVisible();
+  await expect(page.getByTestId('share-card-host')).toHaveText(host);
+}
+
+test('generic card is the private card with the host it is given, and makes no request', async ({
+  mount,
+  page,
+}) => {
   const requests = recordRequests(page);
-  await mount(<AppRoutes />, { hooksConfig: { route: '/card/generic' } });
+  await mount(<AppRoutes />, {
+    hooksConfig: { route: '/card/generic?host=slideworks.example' },
+  });
 
   const shareCard = page.getByTestId('share-card');
   await expect(shareCard).toHaveAttribute('data-ready', 'true');
   await expect(shareCard).toHaveAttribute('data-generic', 'true');
-  await expect(shareCard).toHaveText('SlideWorks');
+  await expectPrivateCard(page, 'slideworks.example');
   expect(requests).toEqual([]);
+});
+
+test('generic card with no host shows none', async ({ mount, page }) => {
+  await mount(<AppRoutes />, { hooksConfig: { route: '/card/generic' } });
+
+  await expect(page.getByTestId('share-card')).toHaveAttribute('data-ready', 'true');
+  await expectPrivateCard(page, '');
 });
 
 test("card page draws the look's waves in accent-2", async ({ mount, page }) => {
@@ -314,7 +337,9 @@ test('link deck card screenshot', async ({ mount, page }) => {
 });
 
 test('generic card screenshot', async ({ mount, page }) => {
-  await mount(<AppRoutes />, { hooksConfig: { route: '/card/generic' } });
+  await mount(<AppRoutes />, {
+    hooksConfig: { route: '/card/generic?host=slideworks.example' },
+  });
 
   const shareCard = page.getByTestId('share-card');
   await expect(shareCard).toHaveAttribute('data-ready', 'true');

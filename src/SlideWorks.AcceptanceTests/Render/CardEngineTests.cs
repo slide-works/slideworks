@@ -164,7 +164,8 @@ public class CardEngineTests
             browser,
             AcceptanceApp.Services.GetRequiredService<IRenderTokens>(),
             configuration,
-            AcceptanceApp.Services.GetRequiredService<IServer>());
+            AcceptanceApp.Services.GetRequiredService<IServer>(),
+            AcceptanceApp.Services.GetRequiredService<IPublicUrls>());
     }
 
     // The width and height from a PNG's IHDR chunk.
