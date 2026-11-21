@@ -132,10 +132,11 @@ bite_run() {
   RUNNER_PID=""
 }
 
-# The first compiler errors (C# or TypeScript) in a log, at most 10. Never fails.
+# The first build errors in a log, at most 20: every MSBuild "error <CODE>:" line (CS, AG, S, CA, ...,
+# any letters then digits) and TypeScript "error TS<n>" lines, deduplicated. Never fails.
 bite_compiler_errors() {
   local errors=""
-  [[ ! -f "$1" ]] || errors="$(grep -E ': error (CS|TS)[0-9]+' "$1" | sort -u | head -n 10 || true)"
+  [[ ! -f "$1" ]] || errors="$(grep -E -e 'error [A-Za-z]+[0-9]+:' -e 'error TS[0-9]+' "$1" | awk '!seen[$0]++' | head -n 20 || true)"
   echo "== first compiler errors" >>"$AGENT_LOG"
   if [[ -n "$errors" ]]; then
     printf '%s\n' "$errors" | tee -a "$AGENT_LOG"
@@ -333,6 +334,7 @@ if [[ $runner_rc -eq 3 ]]; then
 fi
 
 failed="$(field failed)"
+unparsed=()
 if [[ $runner_rc -eq 1 && "${failed:-0}" -gt 0 ]]; then
   echo "== red tests" >>"$AGENT_LOG"
   if [[ -n "$runner_log" && -f "$runner_log" ]]; then
@@ -347,9 +349,14 @@ if [[ $runner_rc -eq 1 && "${failed:-0}" -gt 0 ]]; then
       n < 5 && NF { line = $0; gsub(/^ +| +$/, "", line); msg = msg (n ? " " : "") line; n++ }
       END { flush() }' "$BACKUP_DIR/red.txt" | head -n 10 || true
   else
-    echo "bite: found no failure blocks for $runner_name in ${runner_log:-no log}; read the runner log" | tee -a "$AGENT_LOG" >&2
+    echo "bite: found no failure blocks for $runner_name in ${runner_log:-no log}; copying the runner log's last 60 lines" | tee -a "$AGENT_LOG" >&2
+    {
+      echo "== runner log tail (last 60 lines of ${runner_log:-no log}; failure messages unparsed)"
+      if [[ -n "$runner_log" && -f "$runner_log" ]]; then tail -n 60 "$runner_log"; else tail -n 60 "$runner_out"; fi
+    } >>"$AGENT_LOG"
+    unparsed=(messages=unparsed)
   fi
-  bite_finish 0 ok bit=yes "failed=$failed" "tests=\"$failed_tests\"" "${label[@]}" "runner_log=${runner_log:-none}"
+  bite_finish 0 ok bit=yes "failed=$failed" "tests=\"$failed_tests\"" "${unparsed[@]}" "${label[@]}" "runner_log=${runner_log:-none}"
 fi
 
 if [[ $runner_rc -eq 0 ]]; then
