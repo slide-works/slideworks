@@ -49,27 +49,52 @@ public class FitFixtureLimitsTests
         ["compare"] = "SW-725",
     };
 
-    // Fixtures whose "estimate" matches none of the server's regions today: name → (the server's tallest
-    // region, or 0 when it records none, and the Bug that corrects the fixture or the layout).
-    private static readonly IReadOnlyDictionary<string, (double Height, string Bug)> _knownMisfits =
-        new Dictionary<string, (double Height, string Bug)>
+    // The region each layout's "estimate" describes: the part of the path after "<layout>.". A layout that
+    // records several regions (stack's segments and points, practice's do and comes_back) names the one its
+    // fixtures fill. A region the server does not record (compare and cards only record when over, SW-725)
+    // counts as height 0.
+    private static readonly IReadOnlyDictionary<string, string> _estimateRegionByLayout = new Dictionary<string, string>
+    {
+        ["bars"] = "bars",
+        ["bullets"] = "items",
+        ["compare"] = "left",
+        ["flow"] = "nodes",
+        ["image"] = "points",
+        ["levels"] = "levels.items",
+        ["links"] = "links",
+        ["numbered-cards"] = "cards[0]",
+        ["practice"] = "comes_back",
+        ["quote"] = "quote",
+        ["rules"] = "rules",
+        ["stack"] = "segments",
+        ["table"] = "rows",
+        ["two-column"] = "left",
+    };
+
+    // Fixtures that fill a different region from their layout's default: name → region.
+    private static readonly IReadOnlyDictionary<string, string> _estimateRegionByFixture = new Dictionary<string, string>();
+
+    // Fixtures whose "estimate" does not match the height of the region they are pinned to: name → (that
+    // region's height today, 0 when the server records none, and the Bug that corrects the fixture or the layout).
+    private static readonly IReadOnlyDictionary<string, (string Region, double Height, string Bug)> _knownMisfits =
+        new Dictionary<string, (string Region, double Height, string Bug)>
         {
-            ["compare"] = (0, "SW-725"),
-            ["compareRowsMax"] = (0, "SW-725"),
-            ["compareLineMax"] = (0, "SW-725"),
-            ["comparePointsStampFooter"] = (0, "SW-725"),
-            ["compareCallout"] = (0, "SW-725"),
-            ["flowFour"] = (591.8, "SW-726"),
-            ["flowGroup"] = (613.4, "SW-726"),
-            ["imageBelowLeadPoints"] = (487.2, "SW-726"),
-            ["levelsSeven"] = (614.4, "SW-726"),
-            ["levelsText"] = (612.8, "SW-726"),
-            ["levelsTextWide"] = (612.8, "SW-726"),
-            ["numberedCardsLargeThree"] = (477.6, "SW-726"),
-            ["numberedCardsCallout"] = (481.2, "SW-726"),
-            ["quoteFull"] = (131.7, "SW-726"),
-            ["tableCells80"] = (601.9, "SW-726"),
-            ["twoColumnCallout"] = (592.2, "SW-726"),
+            ["compare"] = ("compare.left", 0, "SW-725"),
+            ["compareRowsMax"] = ("compare.left", 0, "SW-725"),
+            ["compareLineMax"] = ("compare.left", 0, "SW-725"),
+            ["comparePointsStampFooter"] = ("compare.left", 0, "SW-725"),
+            ["compareCallout"] = ("compare.left", 0, "SW-725"),
+            ["flowFour"] = ("flow.nodes", 591.8, "SW-726"),
+            ["flowGroup"] = ("flow.nodes", 613.4, "SW-726"),
+            ["imageBelowLeadPoints"] = ("image.points", 487.2, "SW-726"),
+            ["levelsSeven"] = ("levels.levels.items", 614.4, "SW-726"),
+            ["levelsText"] = ("levels.levels.items", 612.8, "SW-726"),
+            ["levelsTextWide"] = ("levels.levels.items", 612.8, "SW-726"),
+            ["numberedCardsLargeThree"] = ("numbered-cards.cards[0]", 477.6, "SW-726"),
+            ["numberedCardsCallout"] = ("numbered-cards.cards[0]", 481.2, "SW-726"),
+            ["quoteFull"] = ("quote.quote", 131.7, "SW-726"),
+            ["tableCells80"] = ("table.rows", 601.9, "SW-726"),
+            ["twoColumnCallout"] = ("two-column.left", 592.2, "SW-726"),
         };
 
     private static readonly Lazy<IReadOnlyDictionary<string, JsonObject>> _byLayout = new(ReadFolder);
@@ -161,27 +186,36 @@ public class FitFixtureLimitsTests
             $"{name}{pointer}: an overflowing height region goes with the slide's fit error");
     }
 
-    // "estimate" is the height of the region the fixture fills (the tallest of a stacked layout's regions
-    // is not always it), so it must equal one region the server records, or 0 when it records none.
+    // "estimate" is the height of the one region the fixture fills (the tallest of a stacked layout's regions
+    // is not always it), so it is compared with that region alone, found by the maps above.
     [TestCaseSource(nameof(EstimatedFixtures))]
-    public void Estimate_WhenFixtureHasOne_ShouldBeAHeightTheServerRecords(string name)
+    public void Estimate_WhenFixtureHasOne_ShouldBeTheHeightOfItsOwnRegion(string name)
     {
         var fixture = All().Single(f => f.Name == name).Fixture;
+        var layout = fixture["layout"]!.GetValue<string>();
+        if (!_estimateRegionByFixture.TryGetValue(name, out var key))
+        {
+            _estimateRegionByLayout.TryGetValue(layout, out key);
+        }
+
+        key.ShouldNotBeNull($"fixture {name} ({layout}) has an estimate but no region is mapped for it; add it to the test's region maps");
+        var path = $"{layout}.{key}";
 
         var result = Validate(fixture, fixture["slots"]!);
 
-        var heights = result.Regions.Select(r => Math.Round(r.Height, 1)).DefaultIfEmpty(0).ToList();
+        var height = Math.Round(result.Regions.SingleOrDefault(r => r.Path == path)?.Height ?? 0, 1);
         var regions = string.Join(", ", result.Regions.Select(r => $"{r.Path} {r.Height:0.0}/{r.Budget:0.0}"));
+        var estimate = fixture["estimate"]!.GetValue<double>();
         if (_knownMisfits.TryGetValue(name, out var misfit))
         {
-            heights.Max().ShouldBe(misfit.Height, 0.05, $"{name} is listed under {misfit.Bug}; regions: {regions}");
-            heights.ShouldNotContain(h => Math.Abs(h - fixture["estimate"]!.GetValue<double>()) <= 0.05,
-                $"{name} now matches its estimate; remove it from the {misfit.Bug} list");
+            path.ShouldBe(misfit.Region, $"{name} is listed under {misfit.Bug} against another region");
+            height.ShouldBe(misfit.Height, 0.05, $"{name} is listed under {misfit.Bug}; regions: {regions}");
+            Math.Abs(height - estimate).ShouldBeGreaterThan(0.05,
+                $"{name} now matches its estimate on {path}; remove it from the {misfit.Bug} list");
         }
         else
         {
-            heights.ShouldContain(h => Math.Abs(h - fixture["estimate"]!.GetValue<double>()) <= 0.05,
-                $"{name}: estimate {fixture["estimate"]} is not a height the server records; regions: {regions}");
+            height.ShouldBe(estimate, 0.05, $"{name}: estimate {estimate} is not the height of {path}; regions: {regions}");
         }
     }
 
