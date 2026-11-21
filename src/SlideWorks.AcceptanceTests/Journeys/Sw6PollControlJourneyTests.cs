@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -260,23 +261,27 @@ public partial class Sw6PollControlJourneyTests : AcceptanceTest
             await Expect(screen.Percent(position)).ToHaveTextAsync("");
             await Expect(screen.Correct(position)).ToHaveCountAsync(0);
         }
-        (await screen.Rows.EvaluateAsync<string[]>(COUNT_PROBE)).ShouldBeEmpty("the big screen's rows while hidden");
 
         // R: the room sees the results while the poll stays open. Each key waits for the panel to show what the one before
-        // did, since the panel ignores keys while a call is out.
+        // did, since the panel ignores keys while a call is out. The probe is run before the reveal (nothing) and after it
+        // (the shares), so a probe that finds nothing at all cannot pass the hidden half.
         await Expect(panel.Reveal).ToBeVisibleAsync();
-        await presenter.PressAsync("r");
-        await Expect(panel.Room).ToHaveTextAsync("Revealed: the room sees these results.");
-        await Expect(panel.Reveal).ToHaveCountAsync(0);
-        await Expect(panel.State).ToHaveTextAsync("Open");
-        await Expect(screen.HiddenNote).ToHaveCountAsync(0);
-        await Expect(screen.Percent(0)).ToHaveTextAsync("50%");
-        await Expect(screen.Percent(1)).ToHaveTextAsync("50%");
-        await Expect(screen.Percent(2)).ToHaveTextAsync("0%");
-        await Expect(screen.Bar(1)).ToHaveAttributeAsync("style", Width(50));
+        var probe = await Probes.PairedAsync(screen.Rows, COUNT_PROBE, async () =>
+        {
+            await presenter.PressAsync("r");
+            await Expect(panel.Room).ToHaveTextAsync("Revealed: the room sees these results.");
+            await Expect(panel.Reveal).ToHaveCountAsync(0);
+            await Expect(panel.State).ToHaveTextAsync("Open");
+            await Expect(screen.HiddenNote).ToHaveCountAsync(0);
+            await Expect(screen.Percent(0)).ToHaveTextAsync("50%");
+            await Expect(screen.Percent(1)).ToHaveTextAsync("50%");
+            await Expect(screen.Percent(2)).ToHaveTextAsync("0%");
+            await Expect(screen.Bar(1)).ToHaveAttributeAsync("style", Width(50));
+        });
+        probe.Absent.ShouldBeEmpty("the big screen's rows while hidden");
+        probe.Present.ShouldNotBeEmpty("the probe should find the shares once they show");
         await Expect(screen.State).ToHaveTextAsync("Open");
         await Expect(screen.Correct(1)).ToHaveCountAsync(0);
-        (await screen.Rows.EvaluateAsync<string[]>(COUNT_PROBE)).ShouldNotBeEmpty("the probe should find the shares once they show");
 
         await presenter.PressAsync("p");
         await Expect(panel.State).ToHaveTextAsync("Closed");
