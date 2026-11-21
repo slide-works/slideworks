@@ -2,8 +2,7 @@ using System.Text.Json;
 
 namespace SlideWorks.WebApi.Tests.Support.ApiOnly;
 
-// One raw-wire case per MCP tool, grouped by feature folder. Add a case here when a tool is added (and its name to
-// ExpectedTools.Names); McpWireCoverageTests fails until both lists agree with tools/list.
+// One raw-wire case per MCP tool, grouped by feature folder. Add a case here when a tool is added; McpWireCoverageTests compares this map with tools/list only and fails until they agree.
 public static class McpWireCases
 {
     private const string QUOTE = """{"quote":"Ship it","attribution":"Sam Rivera"}""";
@@ -25,9 +24,9 @@ public static class McpWireCases
         ["list_layouts"] = Plain(_ => "{}"),
 
         // Slides
-        ["add_slide"] = Plain(c => $$$"""{"deck":"{{{c.Deck}}}","layout":"quote","slots":{{{QUOTE}}}}"""),
-        ["add_slides"] = Plain(c => $$$"""{"deck":"{{{c.Deck}}}","slides":[{"layout":"quote","slots":{{{QUOTE}}}}],"position":"end"}"""),
-        ["update_slide"] = Plain(async c => $$$"""{"deck":"{{{c.Deck}}}","slide":1,"revision":{{{await c.RevisionOfSlideAsync(1)}}},"slots":{{{QUOTE}}}}"""),
+        ["add_slide"] = Plain(c => $$$"""{"deck":"{{{c.Deck}}}","layout":"quote","surface":"dark","slots":{{{QUOTE}}}}"""),
+        ["add_slides"] = Plain(c => $$$"""{"deck":"{{{c.Deck}}}","slides":[{"layout":"quote","surface":"dark","slots":{{{QUOTE}}}}],"position":"end"}""", StoredEverySlide),
+        ["update_slide"] = Plain(async c => $$$"""{"deck":"{{{c.Deck}}}","slide":1,"revision":{{{await c.RevisionOfSlideAsync(1)}}},"surface":"dark","slots":{{{QUOTE}}}}"""),
         ["move_slide"] = Plain(c => Json(new { deck = c.Deck, slide = 1, to = 2 })),
         ["delete_slide"] = Plain(c => Json(new { deck = c.Deck, slide = 1 })),
         ["set_notes"] = Plain(c => Json(new { deck = c.Deck, notes = new[] { new { slide = 1, text = "Open with the story." } } })),
@@ -87,7 +86,20 @@ public static class McpWireCases
         ["publish_template"] = Plain(c => Json(new { template = c.Template })),
     };
 
-    private static McpWireCase Plain(Func<McpWireContext, string> arguments) => new(c => Task.FromResult(arguments(c)));
+    // add_slides answers a success object even when a slide was left out; each entry says ok and, if not, why.
+    private static string? StoredEverySlide(JsonElement result)
+    {
+        var slides = result.GetProperty("slides").EnumerateArray().ToList();
+        if (slides.Count == 0)
+        {
+            return "no slide entries returned";
+        }
+
+        var left = slides.FirstOrDefault(s => !s.GetProperty("ok").GetBoolean());
+        return left.ValueKind == JsonValueKind.Undefined ? null : $"slide was rejected: {left.GetRawText()}";
+    }
+
+    private static McpWireCase Plain(Func<McpWireContext, string> arguments, Func<JsonElement, string?>? resultFailure = null) => new(c => Task.FromResult(arguments(c)), ResultFailure: resultFailure);
 
     private static McpWireCase Plain(Func<McpWireContext, Task<string>> arguments) => new(arguments);
 

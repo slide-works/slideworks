@@ -58,6 +58,8 @@ public class McpWireCoverageTests : ApiTestFixture
             isError.ShouldBeFalse(raw);
             result.TryGetProperty("structuredContent", out var structured).ShouldBeTrue(raw);
             structured.ValueKind.ShouldBe(JsonValueKind.Object, raw);
+            var failure = wireCase.ResultFailure?.Invoke(structured);
+            failure.ShouldBeNull(raw);
         }
     }
 }
