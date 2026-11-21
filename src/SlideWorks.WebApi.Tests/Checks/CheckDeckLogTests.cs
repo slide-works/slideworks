@@ -17,9 +17,7 @@ public class CheckDeckLogTests : ApiTestFixture
     protected override Action<IServiceCollection>? ConfigureTestServices => services =>
     {
         FakeStoredSlideChecks.Register(services);
-        // Serilog owns the logger factory and ignores providers, so the logger is replaced for this one category.
-        _logs = new CapturingLoggerProvider();
-        services.AddSingleton<ILogger<DeckChecks>>(new CategoryLogger(_logs.CreateLogger(typeof(DeckChecks).FullName!)));
+        _logs = CapturingLoggerProvider.Replace<DeckChecks>(services);
     };
 
     [SetUp]
@@ -49,7 +47,11 @@ public class CheckDeckLogTests : ApiTestFixture
         lines[0].ShouldContain($"Checked deck {deck}: 2 slides, 2 errors, 1 warnings, 1 notes, measured True; by rule ");
         lines[0].ShouldContain("overflow=1");
         lines[0].ShouldContain("fit=1");
-        lines[0].ShouldNotContain("token");
+        engine.Calls.ShouldNotBeEmpty();
+        foreach (var call in engine.Calls)
+        {
+            lines[0].ShouldNotContain(call);
+        }
     }
 
     [Test]
@@ -63,15 +65,5 @@ public class CheckDeckLogTests : ApiTestFixture
         await agent.CallToolAsync("check_deck", new { deck });
 
         _logs.Lines.Single(l => l.Contains($"Checked deck {deck}:")).ShouldContain("measured False");
-    }
-
-    private sealed class CategoryLogger(ILogger inner) : ILogger<DeckChecks>
-    {
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => inner.BeginScope(state);
-
-        public bool IsEnabled(LogLevel logLevel) => inner.IsEnabled(logLevel);
-
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-            => inner.Log(logLevel, eventId, state, exception, formatter);
     }
 }
