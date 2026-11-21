@@ -59,9 +59,11 @@ public class DeckReader(
         var slides = await LiveSlidesAsync(deckId);
         var template = await templates.ForDeckAsync(deck, CancellationToken.None);
         var url = urls.Deck(deck.Id, deck.Slug);
+        var settings = await qa.SettingsAsync(deckId);
+        var reactions = await ReactionsAsync(slides);
         return summary
-            ? GetDeckSummary.From(deck, slides, template, url)
-            : GetDeckResult.From(deck, slides, template, url, await qa.SettingsAsync(deckId), await ReactionsAsync(slides));
+            ? GetDeckSummary.From(deck, slides, template, url, settings, reactions)
+            : GetDeckResult.From(deck, slides, template, url, settings, reactions);
     }
 
     // Each session's reaction totals per slide of this deck, newest session first. The totals are rows of the Q&A feature,

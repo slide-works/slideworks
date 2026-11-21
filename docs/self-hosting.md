@@ -236,7 +236,7 @@ Ask the agent for a deck, for example: "Make a 10-slide deck on why small batche
 | `upload_image` | Returns a one-time upload URL for a PNG, JPEG, WebP or GIF of up to 10 MB |
 | `upload_images` | Starts up to 30 of those uploads in one call. Each file is still PUT to its own URL |
 | `set_sharing` | Private, anyone with the link, or named people |
-| `list_decks`, `get_deck`, `get_deck_url` | Read decks back and get the link to present. `get_deck` also returns the Q&A settings as `qa` and each session's reaction totals as `reactions`. With `detail` `summary` it returns each slide's number, layout, part and headline (cut at 120 characters), without them |
+| `list_decks`, `get_deck`, `get_deck_url` | Read decks back and get the link to present. `get_deck` also returns the Q&A settings as `qa` and each session's reaction totals as `reactions`. With `detail` `summary` the slides are cut down to number, layout, part and headline (120 characters at most); `qa` and `reactions` stay |
 
 Open the link the agent returns, or find the deck in the library. The deck page shows the slides, the speaker notes and a log of every change, with the agent's name. **Present** opens the player, which works with the keyboard, clicks and swipes on a laptop or a phone.
 

@@ -1,11 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Slides;
 using SlideWorks.WebApi.Features.Templates;
 
 namespace SlideWorks.WebApi.Features.Decks.Mcp;
 
-// get_deck with detail "summary": the same deck, with each slide reduced to its number, layout, part and headline.
+// get_deck with detail "summary": the same deck, qa and reactions included, with each slide reduced to its number, layout, part and headline.
 public sealed record GetDeckSummary(
     string Id,
     string Slug,
@@ -17,9 +18,11 @@ public sealed record GetDeckSummary(
     string Url,
     GetDeckLook Look,
     [property: JsonPropertyName("talk_minutes")] int? TalkMinutes,
-    IReadOnlyList<GetDeckSummarySlide> Slides)
+    IReadOnlyList<GetDeckSummarySlide> Slides,
+    QaSettings Qa,
+    IReadOnlyList<GetDeckReactionSession> Reactions)
 {
-    public static GetDeckSummary From(Deck deck, IEnumerable<Slide> slides, ResolvedTemplate template, string url)
+    public static GetDeckSummary From(Deck deck, IEnumerable<Slide> slides, ResolvedTemplate template, string url, QaSettings qa, IReadOnlyList<GetDeckReactionSession> reactions)
         => new(
             deck.Id,
             deck.Slug,
@@ -31,7 +34,9 @@ public sealed record GetDeckSummary(
             url,
             GetDeckLook.From(deck, template),
             deck.TalkMinutes,
-            slides.Select(GetDeckSummarySlide.From).ToList());
+            slides.Select(GetDeckSummarySlide.From).ToList(),
+            qa,
+            reactions);
 }
 
 public sealed record GetDeckSummarySlide(int Number, string Layout, int? Part, string Headline)
