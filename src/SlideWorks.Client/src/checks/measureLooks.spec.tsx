@@ -18,14 +18,48 @@ const looks = [
   { template: 'workshop', palette: 'cobalt' },
 ];
 
-// Built-in palettes that draw low-contrast text today. Each is a real finding, left drawn so it is reported.
-const KNOWN_LOW_CONTRAST: Record<string, string> = {
-  'talk cobalt':
-    'gantt ship marker and practice "What comes back" heading at 3.1:1; reported to the conductor',
-  'workshop cobalt':
-    'gantt ship marker and practice "What comes back" heading at 3.1:1; reported to the conductor',
-  'talk midnight':
-    'table body text is dark on a dark table (about 1.1:1); reported to the conductor',
+// Problems the sweep finds today. Each is a real bug, left drawn so it is reported. A look's problems minus its KNOWN
+// entries must be [], and every KNOWN entry must still be found, so fixing a bug flips its test and the entry is
+// deleted.
+type Known = { slide: number; rule: string; wherePrefix: string; bug: string };
+
+// SW-3-new: the Journey part names draw at 18 px in the sample deck (slides 2 and 7), under the 20 px bar. Not yet filed.
+const journeyNames = [2, 7].flatMap((slide) =>
+  ['The cost', 'Slice it', 'Ship it', 'Make it stick'].map((name) => ({
+    slide,
+    rule: 'smallText',
+    wherePrefix: `text "${name}"`,
+    bug: 'SW-3-new',
+  })),
+);
+// SW-666: the gantt ship marker and the Practice "What comes back" heading, both 3.1:1 under cobalt.
+const cobalt: Known[] = [
+  { slide: 5, rule: 'lowContrast', wherePrefix: 'text "▲"', bug: 'SW-666' },
+  { slide: 8, rule: 'lowContrast', wherePrefix: 'text "What comes back"', bug: 'SW-666' },
+];
+const midnightTable: Known[] = [
+  'One quarter',
+  'Days',
+  'Painful',
+  'Week 10+',
+  'One sprint',
+  'Hours',
+  'Possible',
+  'Week 2–3',
+  '2–4 days',
+  'Under an hour',
+  'Flip a flag',
+  'Same week',
+  'Under a day',
+  'Minutes',
+].map((cell) => ({ slide: 11, rule: 'lowContrast', wherePrefix: `text "${cell}"`, bug: 'SW-665' }));
+const KNOWN: Record<string, Known[]> = {
+  'talk cobalt': [...journeyNames, ...cobalt],
+  'talk ember': journeyNames,
+  'talk plum': journeyNames,
+  // SW-665: still 1.0:1 after color(srgb) parsing: the table cells inherit the page ink, dark on midnight's dark card.
+  'talk midnight': [...journeyNames, ...midnightTable],
+  'workshop cobalt': [...journeyNames, ...cobalt],
 };
 
 for (const { template, palette } of looks) {
@@ -33,10 +67,6 @@ for (const { template, palette } of looks) {
     mount,
     page,
   }) => {
-    test.fail(
-      `${template} ${palette}` in KNOWN_LOW_CONTRAST,
-      KNOWN_LOW_CONTRAST[`${template} ${palette}`] ?? '',
-    );
     await stubApi(page, {});
     const deck: SlideDeck = {
       title: sampleDeck.title,
@@ -46,10 +76,10 @@ for (const { template, palette } of looks) {
       deepDives: [],
       interactive: false,
     };
-    const problems: string[] = [];
+    const problems: (Known & { message: string })[] = [];
     for (const slide of sampleDeck.slides) {
       const component = await mount(
-        <MeasureProbe slide={slide.number}>
+        <MeasureProbe slide={slide.number} look={deck.look}>
           <SlideRenderer
             slide={slide as RenderableSlide}
             deck={deck}
@@ -62,11 +92,29 @@ for (const { template, palette } of looks) {
       const found = JSON.parse((await component.getAttribute('data-findings'))!) as SlideFinding[];
       for (const f of found) {
         if (f.rule === 'lowContrast' || f.rule === 'smallText') {
-          problems.push(`slide ${slide.number} (${slide.layout}) ${f.rule}: ${f.message}`);
+          problems.push({
+            slide: slide.number,
+            rule: f.rule,
+            wherePrefix: f.where ?? '',
+            bug: '',
+            message: f.message,
+          });
         }
       }
       await component.unmount();
     }
-    expect(problems, problems.join('\n')).toEqual([]);
+    const known = KNOWN[`${template} ${palette}`] ?? [];
+    const matches = (p: Known, k: Known) =>
+      p.slide === k.slide && p.rule === k.rule && p.wherePrefix.startsWith(k.wherePrefix);
+    const unknown = problems.filter((p) => !known.some((k) => matches(p, k)));
+    expect(
+      unknown.map((p) => `slide ${p.slide} ${p.rule} ${p.wherePrefix}: ${p.message}`),
+      'new problems',
+    ).toEqual([]);
+    const gone = known.filter((k) => !problems.some((p) => matches(p, k)));
+    expect(
+      gone.map((k) => `${k.bug}: slide ${k.slide} ${k.rule} ${k.wherePrefix}`),
+      'known problems no longer found: delete the entry',
+    ).toEqual([]);
   });
 }
