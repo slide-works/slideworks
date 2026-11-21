@@ -30,4 +30,14 @@ public class CallCounterTests
 
         thrown.Message.ShouldContain("1 of 2");
     }
+
+    [Test]
+    public async Task WhenCalledAsync_WhenItTimesOut_ShouldNotKeepTheWaiter()
+    {
+        var counter = new CallCounter();
+
+        await Should.ThrowAsync<TimeoutException>(() => counter.WhenCalledAsync("deck", 1, TimeSpan.FromMilliseconds(50)));
+
+        counter.PendingWaits.ShouldBe(0);
+    }
 }

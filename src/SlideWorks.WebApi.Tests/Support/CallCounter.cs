@@ -48,31 +48,52 @@ public sealed class CallCounter
         }
     }
 
-    // Completes once the key has had count calls (at once when it already has). Not bounded: use WhenCalledAsync in a test.
-    public Task CalledAsync(string key, int count)
+    // How many waits are still registered (not yet satisfied or timed out).
+    public int PendingWaits
     {
+        get
+        {
+            lock (_gate)
+            {
+                return _waiters.Count;
+            }
+        }
+    }
+
+    // Completes once the key has had count calls (at once when it already has). Not bounded: use WhenCalledAsync in a test.
+    public Task CalledAsync(string key, int count) => Register(key, count).Task;
+
+    // Waits, at most limit (10 seconds when null), until the key has had count calls, failed ones included. Throws
+    // TimeoutException saying what was missing. A wait that timed out is dropped, so it does not stay registered.
+    public async Task WhenCalledAsync(string key, int count, TimeSpan? limit = null)
+    {
+        var done = Register(key, count);
+        var bound = limit ?? DefaultLimit;
+        if (await Task.WhenAny(done.Task, Task.Delay(bound)) != done.Task)
+        {
+            lock (_gate)
+            {
+                _waiters.RemoveAll(w => w.Done == done);
+            }
+            throw new TimeoutException($"'{key}' had {CallsFor(key)} of {count} calls within {bound.TotalSeconds:0.#} seconds.");
+        }
+        await done.Task;
+    }
+
+    private TaskCompletionSource Register(string key, int count)
+    {
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         lock (_gate)
         {
             if (_calls.GetValueOrDefault(key) >= count)
             {
-                return Task.CompletedTask;
+                done.SetResult();
             }
-            var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            _waiters.Add((key, count, done));
-            return done.Task;
+            else
+            {
+                _waiters.Add((key, count, done));
+            }
         }
-    }
-
-    // Waits, at most limit (10 seconds when null), until the key has had count calls, failed ones included. Throws
-    // TimeoutException saying what was missing.
-    public async Task WhenCalledAsync(string key, int count, TimeSpan? limit = null)
-    {
-        var wait = CalledAsync(key, count);
-        var bound = limit ?? DefaultLimit;
-        if (await Task.WhenAny(wait, Task.Delay(bound)) != wait)
-        {
-            throw new TimeoutException($"'{key}' had {CallsFor(key)} of {count} calls within {bound.TotalSeconds:0.#} seconds.");
-        }
-        await wait;
+        return done;
     }
 }
