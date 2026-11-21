@@ -46,3 +46,15 @@ test('Stub_WhenAnAudiencePushHasAHiddenEntry_ShouldRejectTheEvent', async ({ pag
     }),
   ).toThrow('pushOpenText: an audience push never carries a hidden answer');
 });
+
+test('Stub_WhenNothingHasConnected_ShouldThrowFromEveryPush', async ({ page }) => {
+  const hub = await stubDeckHub(page);
+
+  expect(() => hub.push({ type: 'deckChanged' })).toThrow('push: no hub connection yet');
+  expect(() => hub.pushAudienceEvent({} as never)).toThrow(
+    'pushAudienceEvent: no hub connection yet',
+  );
+  expect(() => hub.pushQuestionTally({} as never)).toThrow(
+    'pushQuestionTally: no hub connection yet',
+  );
+});
