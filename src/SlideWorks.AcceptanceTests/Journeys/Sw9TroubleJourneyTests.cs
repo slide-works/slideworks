@@ -96,6 +96,7 @@ public class Sw9TroubleJourneyTests : AcceptanceTest
         waitingQuestion.GetProperty("state").GetString().ShouldBe("waiting");
         waitingQuestion.GetProperty("votes").GetInt32().ShouldBe(1);
 
+        await talk.Panel.TabReview.ClickAsync();
         await talk.Panel.Approve(1).ClickAsync();
         await Expect(other.Questions.QuestionText(1)).ToHaveTextAsync(QUESTION, new() { Timeout = PUSH_TIMEOUT });
         await other.Questions.QuestionUpvote(1).ClickAsync();
