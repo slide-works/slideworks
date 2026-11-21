@@ -62,3 +62,19 @@ test('uses 1080 when there is no footer', async ({ mount }) => {
 
   await expect.poll(() => report?.footerTop).toBe(1080);
 });
+
+test('gives a footer at 486 px in a 960 px frame a top of 972', async ({ mount }) => {
+  let report: CanvasReport | undefined;
+
+  await mount(
+    <CanvasProbe width={960} onReport={(r) => (report = r)}>
+      {mark}
+      <div
+        data-testid="slide-footer"
+        style={{ position: 'absolute', left: 0, top: 486, width: 960, height: 54 }}
+      />
+    </CanvasProbe>,
+  );
+
+  await expect.poll(() => report?.footerTop).toBe(972);
+});

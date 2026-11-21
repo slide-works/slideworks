@@ -8,6 +8,8 @@ import type { SlideFinding } from './types';
 // All measured findings for one slide frame, in rule order.
 export function measureSlide(frame: HTMLElement, slide: number): SlideFinding[] {
   const canvas = canvasOf(frame);
+  // A thumbnail on the deck page has no width until it is scaled; every box would divide by a zero scale.
+  if (canvas.scale === 0) return [];
   return [
     ...overflow(frame, slide, canvas),
     ...images(frame, slide, canvas),

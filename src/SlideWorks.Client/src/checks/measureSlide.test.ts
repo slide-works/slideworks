@@ -19,6 +19,7 @@ vi.mock('./textSize', () => ({ textSize: standIn('textSize', 'smallText') }));
 
 test('runs the four rules in order and concatenates their findings', () => {
   const frame = document.createElement('div');
+  frame.getBoundingClientRect = () => ({ width: 960, height: 540 }) as DOMRect;
 
   const found = measureSlide(frame, 4);
 
@@ -29,4 +30,13 @@ test('runs the four rules in order and concatenates their findings', () => {
     'lowContrast',
     'smallText',
   ]);
+});
+
+test('measures nothing while the frame has no width', () => {
+  calls.length = 0;
+  const frame = document.createElement('div');
+  frame.getBoundingClientRect = () => ({ width: 0, height: 0 }) as DOMRect;
+
+  expect(measureSlide(frame, 4)).toEqual([]);
+  expect(calls).toEqual([]);
 });
