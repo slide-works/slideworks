@@ -24,6 +24,14 @@ public static partial class Contrast
 
     public static bool IsColour(string value) => TryParse(value, out _);
 
+    // The colour's WCAG relative luminance, 0 (black) to 1 (white); false when the value isn't an opaque CSS colour.
+    public static bool TryLuminance(string colour, out double luminance)
+    {
+        var parsed = TryParse(colour, out var rgb);
+        luminance = parsed ? Luminance(rgb) : 0;
+        return parsed;
+    }
+
     private static (int R, int G, int B) Parse(string colour) =>
         TryParse(colour, out var rgb) ? rgb : throw new FormatException($"Not an opaque CSS colour: '{colour}'");
 
