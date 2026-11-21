@@ -2,25 +2,22 @@ using Agoda.IoC.Core;
 
 namespace SlideWorks.WebApi.Infrastructure.Identity;
 
-// SLIDEWORKS_JOIN_URL is optional. When it is set it must be an absolute http or https URL with no path, query or fragment,
-// and the constructor throws otherwise. PublicUrls takes this at construction and Program.cs resolves PublicUrls at startup,
-// so a bad value stops the server from starting.
-//
-// IPublicUrls is read through the service provider at call time because PublicUrls itself takes IJoinUrls for that check.
+// The join links. SLIDEWORKS_JOIN_URL is parsed and checked by JoinUrlSetting, which PublicUrls also takes, so a bad value
+// stops the server from starting. With no join URL the links hang off IPublicUrls.
 [RegisterSingleton(For = typeof(IJoinUrls))]
 public class JoinUrls : IJoinUrls
 {
-    public const string CONFIG_KEY = "SLIDEWORKS_JOIN_URL";
+    public const string CONFIG_KEY = JoinUrlSetting.CONFIG_KEY;
 
     private const string PUBLIC_PATH = "/j";
 
     private readonly Uri? _configured;
-    private readonly IServiceProvider _services;
+    private readonly IPublicUrls _publicUrls;
 
-    public JoinUrls(IConfiguration configuration, IServiceProvider services)
+    public JoinUrls(JoinUrlSetting setting, IPublicUrls publicUrls)
     {
-        _services = services;
-        _configured = Parse(configuration[CONFIG_KEY]);
+        _publicUrls = publicUrls;
+        _configured = setting.Value;
     }
 
     public string JoinUrl(string code) => _configured == null ? $"{PublicBase()}{PUBLIC_PATH}/{code}" : $"{Origin(_configured)}/{code}";
@@ -31,29 +28,7 @@ public class JoinUrls : IJoinUrls
     public string HostLabel()
         => _configured == null ? $"{new Uri(PublicBase()).Authority}{PUBLIC_PATH}" : _configured.Authority;
 
-    private string PublicBase() => _services.GetRequiredService<IPublicUrls>().Base;
+    private string PublicBase() => _publicUrls.Base;
 
     private static string Origin(Uri uri) => uri.GetLeftPart(UriPartial.Authority);
-
-    private static Uri? Parse(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-        var text = value.Trim();
-        if (!Uri.TryCreate(text, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-        {
-            throw new InvalidOperationException($"{CONFIG_KEY} must be an absolute http or https URL, not '{value}'.");
-        }
-        if (uri.UserInfo.Length > 0)
-        {
-            throw new InvalidOperationException($"{CONFIG_KEY} must not contain a user name or password.");
-        }
-        if (uri.AbsolutePath != "/" || uri.Query.Length > 0 || uri.Fragment.Length > 0)
-        {
-            throw new InvalidOperationException($"{CONFIG_KEY} must be an origin with no path, query or fragment, such as https://slideworks.live, not '{value}'.");
-        }
-        return uri;
-    }
 }
