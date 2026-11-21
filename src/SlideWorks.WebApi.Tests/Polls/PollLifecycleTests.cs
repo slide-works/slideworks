@@ -555,7 +555,7 @@ public class PollLifecycleTests : PollTestFixture
 
         (await ActivityCountAsync(poll.DeckId)).ShouldBe(entries + 1);
         activity[0].GetProperty("summary").GetString().ShouldBe(summary);
-        Relay.Refreshed.Count(deck => deck == poll.DeckId).ShouldBe(1);
+        Relay.RefreshedFor(poll.DeckId).ShouldBe(1);
         Publisher.PublishedFor(poll.DeckId).ShouldBe([poll.Slide]);
         Order.For(poll.DeckId).ShouldBe([$"refresh after {entries + 1} entries", $"publish {poll.Slide}"]);
     }
@@ -656,7 +656,7 @@ public class PollLifecycleTests : PollTestFixture
             views,
             await ActivityCountAsync(poll.DeckId),
             Publisher.PublishedFor(poll.DeckId).Count,
-            Relay.Refreshed.Count(deck => deck == poll.DeckId));
+            Relay.RefreshedFor(poll.DeckId));
     }
 
     private async Task<JsonElement> ControlAsync(string deckId, int slide)

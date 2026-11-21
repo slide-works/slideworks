@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Realtime;
 
 namespace SlideWorks.WebApi.Tests.Support;
@@ -44,6 +43,15 @@ public sealed class FakeAudienceRelay : IAudienceRelay
             {
                 return [.. _refreshed];
             }
+        }
+    }
+
+    // The refreshes asked for this deck, as a count: each test uses a deck of its own, as with FakePollPublisher.PublishedFor.
+    public int RefreshedFor(string deckId)
+    {
+        lock (_gate)
+        {
+            return _refreshed.Count(d => d == deckId);
         }
     }
 

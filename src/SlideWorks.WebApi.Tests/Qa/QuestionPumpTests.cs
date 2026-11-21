@@ -215,14 +215,12 @@ public class QuestionPumpTests : QaTestFixture
     }
 
     // The app's IQuestionPublisher here: it passes each publish to FakeQuestionPublisher (which records it, or throws what
-    // FailWith set) and counts the calls per deck, failed ones too. PublishedAsync completes once a deck has had that many
-    // calls, so a test waits for the pump without polling.
+    // FailWith set) and counts the calls per deck in a CallCounter, failed ones too, so a test waits for the pump without
+    // polling.
     private sealed class CountingPublisher(FakeQuestionPublisher fake) : IQuestionPublisher
     {
         private readonly Lock _gate = new();
-        private readonly Dictionary<string, int> _calls = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, int> _failed = new(StringComparer.Ordinal);
-        private readonly List<(string DeckId, int Count, TaskCompletionSource Done)> _waiters = [];
+        private readonly CallCounter _counter = new();
         private readonly Dictionary<string, Hold> _holds = new(StringComparer.Ordinal);
 
         // The deck's next publish waits, once it has started, until Release is called.
@@ -234,35 +232,11 @@ public class QuestionPumpTests : QaTestFixture
             }
         }
 
-        public int CallsFor(string deckId)
-        {
-            lock (_gate)
-            {
-                return _calls.GetValueOrDefault(deckId);
-            }
-        }
+        public int CallsFor(string deckId) => _counter.CallsFor(deckId);
 
-        public int FailedFor(string deckId)
-        {
-            lock (_gate)
-            {
-                return _failed.GetValueOrDefault(deckId);
-            }
-        }
+        public int FailedFor(string deckId) => _counter.FailedFor(deckId);
 
-        public Task PublishedAsync(string deckId, int count)
-        {
-            lock (_gate)
-            {
-                if (_calls.GetValueOrDefault(deckId) >= count)
-                {
-                    return Task.CompletedTask;
-                }
-                var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                _waiters.Add((deckId, count, done));
-                return done.Task;
-            }
-        }
+        public Task PublishedAsync(string deckId, int count) => _counter.CalledAsync(deckId, count);
 
         public async Task PublishAsync(string deckId)
         {
@@ -288,19 +262,7 @@ public class QuestionPumpTests : QaTestFixture
             }
             finally
             {
-                lock (_gate)
-                {
-                    var calls = _calls[deckId] = _calls.GetValueOrDefault(deckId) + 1;
-                    if (failed)
-                    {
-                        _failed[deckId] = _failed.GetValueOrDefault(deckId) + 1;
-                    }
-                    foreach (var waiter in _waiters.Where(w => w.DeckId == deckId && w.Count <= calls).ToList())
-                    {
-                        waiter.Done.SetResult();
-                        _waiters.Remove(waiter);
-                    }
-                }
+                _counter.Record(deckId, failed);
             }
         }
     }
