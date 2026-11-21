@@ -180,7 +180,7 @@ test('a failed render page writes no checks', async ({ mount, page }) => {
   });
   await page.route('**/api/images/missing', (r) => r.fulfill({ status: 404 }));
 
-  await mount(<AppRoutes />, { hooksConfig: { route: route(1) } });
+  await mount(<AppRoutes />, { hooksConfig: { route: route(3) } });
 
   const root = page.getByTestId('render-slide');
   await expect(root).toHaveAttribute('data-error', /image/);
