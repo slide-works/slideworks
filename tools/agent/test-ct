@@ -39,8 +39,10 @@ echo "== tsc --noEmit" >>"$AGENT_LOG"
 (cd "$client" && timeout -k 10 "${AGENT_BUILD_TIMEOUT:-900}" pnpm exec tsc --noEmit -p .) >>"$AGENT_LOG" 2>&1 || rc=$?
 [[ $rc -ne 124 ]] || agent_finish 124 reason=tsc-timed-out
 if [[ $rc -ne 0 ]]; then
-  grep -E 'error TS' "$AGENT_LOG" | head -n 20
-  agent_finish 3 reason=type-errors "errors=$(grep -cE 'error TS' "$AGENT_LOG" || true)"
+  # The error lines stay in the log; stdout gets the first three.
+  mapfile -t errors < <(grep -E 'error TS' "$AGENT_LOG" || true)
+  printf '%s\n' "${errors[@]:0:3}"
+  agent_finish 3 reason=type-errors "errors=${#errors[@]}"
 fi
 
 rc=0

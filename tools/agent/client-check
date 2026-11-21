@@ -37,7 +37,6 @@ step() {
   echo "== $name" >>"$AGENT_LOG"
   (cd "$client" && timeout -k 10 "${AGENT_BUILD_TIMEOUT:-900}" "$@") >>"$AGENT_LOG" 2>&1 || rc=$?
   if [[ $rc -ne 0 ]]; then
-    tail -n 20 "$AGENT_LOG"
     [[ $rc -ne 124 ]] || agent_finish 124 "failed_step=$name" reason=timed-out
     agent_finish 1 "failed_step=$name"
   fi

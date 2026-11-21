@@ -39,7 +39,7 @@ if [[ -n "$stale" ]]; then
     0) ;;
     5) agent_finish 5 reason=lock-wait-timed-out ;;
     124) agent_finish 124 reason=bundle-timed-out ;;
-    *) grep -E 'error' "$AGENT_LOG" | head -n 20 || true; agent_finish 3 reason=bundle-build-failed ;;
+    *) agent_finish 3 reason=bundle-build-failed ;;
   esac
   [[ -f "$index" ]] || agent_die 4 "the client build wrote no $index" reason=no-bundle
   bundle=rebuilt
@@ -61,41 +61,57 @@ esac
 dll="$(dotnet msbuild "$project" -getProperty:TargetPath 2>>"$AGENT_LOG")"
 [[ -f "$dll" ]] || agent_die 4 "built test assembly not found: ${dll:-none}" reason=no-assembly "bundle=$bundle"
 
-# The .NET Playwright browser, installed the way ci.yml does, only when it is missing.
+# The .NET Playwright browser, installed the way ci.yml does, only when the revision this build wants is missing.
 browsers="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
-if ! compgen -G "$browsers/chromium-*" >/dev/null; then
+manifest="$(dirname "$dll")/.playwright/package/browsers.json"
+[[ -f "$manifest" ]] || agent_die 4 "Playwright browsers.json not found next to $dll" missing=browsers.json
+revision="$(grep -A1 '"name": "chromium"' "$manifest" | sed -nE 's/.*"revision": "([0-9]+)".*/\1/p')"
+[[ -n "$revision" ]] || agent_die 4 "no chromium revision in $manifest" missing=chromium-revision
+if [[ ! -d "$browsers/chromium-$revision" || ! -d "$browsers/chromium_headless_shell-$revision" ]]; then
   agent_require pwsh
   script="$(dirname "$dll")/playwright.ps1"
   [[ -f "$script" ]] || agent_die 4 "playwright.ps1 not found next to $dll" missing=playwright.ps1
-  echo "browser: installing chromium"
+  echo "browser: installing chromium $revision"
   rc=0
   timeout -k 10 "${AGENT_BUILD_TIMEOUT:-900}" pwsh "$script" install chromium >>"$AGENT_LOG" 2>&1 || rc=$?
+  [[ $rc -ne 124 ]] || agent_finish 124 reason=browser-install-timed-out "bundle=$bundle"
   [[ $rc -eq 0 ]] || agent_die 4 "installing the Playwright browser failed (exit $rc); see the log" reason=browser-install-failed "bundle=$bundle"
 else
-  echo "browser: installed"
+  echo "browser: chromium $revision installed"
 fi
 
 # dotnet test --list-tests ignores --filter, so the filter is resolved with vstest's
 # --ListFullyQualifiedTests, which applies --TestCaseFilter (as test-dotnet does).
-scratch="$(agent_scratch)"
-selected_file="$scratch/test-acceptance-selected.txt"
-rm -f "$selected_file"
-rc=0
-echo "== list tests $filter" >>"$AGENT_LOG"
-agent_locked timeout -k 10 120 dotnet vstest "$dll" --ListFullyQualifiedTests "--ListTestsTargetPath:$selected_file" "--TestCaseFilter:$filter" >>"$AGENT_LOG" 2>&1 || rc=$?
-case $rc in
-  0) ;;
-  5) agent_finish 5 reason=lock-wait-timed-out ;;
-  124) agent_finish 124 reason=list-timed-out ;;
-  *) agent_die 1 "listing tests failed (exit $rc); see the log" reason=list-failed ;;
-esac
-[[ -f "$selected_file" ]] || agent_die 1 "listing tests wrote no list; see the log" reason=list-failed
-selected="$(grep -c . "$selected_file" || true)"
+list_tests() {
+  local out="$1"
+  shift
+  local list_rc=0
+  rm -f "$out"
+  echo "== list tests $*" >>"$AGENT_LOG"
+  agent_locked timeout -k 10 120 dotnet vstest "$dll" --ListFullyQualifiedTests "--ListTestsTargetPath:$out" "$@" >>"$AGENT_LOG" 2>&1 || list_rc=$?
+  case $list_rc in
+    0) ;;
+    5) agent_finish 5 reason=lock-wait-timed-out ;;
+    124) agent_finish 124 reason=list-timed-out ;;
+    *) agent_die 1 "listing tests failed (exit $list_rc); see the log" reason=list-failed ;;
+  esac
+  [[ -f "$out" ]] || agent_die 1 "listing tests wrote no list; see the log" reason=list-failed
+  listed="$(grep -c . "$out" || true)"
+}
+# The list files are named after this run's log, so concurrent runs never share them.
+selected_file="${AGENT_LOG%.log}-selected.txt"
+list_tests "$selected_file" "--TestCaseFilter:$filter"
+selected="$listed"
+max="${AGENT_MAX_TESTS:-300}"
 [[ "$selected" -gt 0 ]] || agent_die 2 "the filter selects no test" reason=no-tests selected=0
+[[ "$selected" -le "$max" ]] || agent_die 2 "the filter selects $selected tests, more than $max: narrow it" reason=too-many-tests "selected=$selected"
 # A test's class is its fully qualified name without the argument list and the method.
 mapfile -t classes < <(sed -E 's/\(.*$//; s/\.[^.]+$//' "$selected_file" | sort -u)
 [[ ${#classes[@]} -eq 1 ]] || agent_die 2 "the filter selects tests from ${#classes[@]} classes; name one class" reason=many-classes "selected=$selected" "classes=${#classes[@]}"
-echo "selected: $selected in ${classes[0]##*.}"
+list_tests "${AGENT_LOG%.log}-all.txt"
+total="$listed"
+[[ "$selected" -lt "$total" ]] || agent_die 2 "the filter selects every test in the project ($total): narrow it" reason=whole-project "selected=$selected"
+echo "selected: $selected of $total in ${classes[0]##*.}"
 
 rc=0
 echo "== dotnet test" >>"$AGENT_LOG"
