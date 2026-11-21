@@ -76,6 +76,7 @@ publisher → IDeckEvents (in-process bus) → DeckEventsRelay → DeckHub group
 - Every deck has a standing six-digit join code. **Go live** (the live chip in the player) opens a session behind it, and **End** closes it. Guests who arrive before Go live wait in a lobby.
 - A guest opens `/join` and types the code, or scans the QR code, which opens `/j/<code>`. There is no name and no account. The phone mirrors the slide on screen, with no notes, timer or other slides sent to it.
 - The `join` layout shows the code, the QR code and, if the layout allows it, how many have joined. A deck setting puts a small QR code and the code on every slide while live.
+- The joined count, on the live chip and the `join` layout, counts each guest who joined the session once. It doesn't drop when a guest's phone locks or switches app, which closes the connection. A poll's response rate still divides by the guests connected now.
 - Set `SLIDEWORKS_JOIN_URL` for a short join domain such as `https://slideworks.live`. See [`docs/self-hosting.md`](docs/self-hosting.md#live-audience-join) for DNS, TLS and what the proxy must keep.
 - Peak joined per session and the median time from the join slide to each join are SW-5's Measures, two queries in [`docs/measures.md`](docs/measures.md).
 

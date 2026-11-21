@@ -75,8 +75,9 @@ public partial class MeasuresSqlTests : ApiTestFixture
         await NextCountAsync(counts);
         await NextCountAsync(counts);
         await first.DisposeAsync();
-        // The roster publishes a count for each leave, so reading it proves the leave was processed before the next join.
-        (await NextCountAsync(counts)).ShouldBe(1);
+        // The roster publishes a count for each leave, so reading it proves the leave was processed before the next join. A
+        // leave doesn't lower the joined count (SW-628).
+        (await NextCountAsync(counts)).ShouldBe(2);
         await JoinAsync(code);
 
         var peak = (await RunAsync(PEAK_HEADING, from, Clock.GetUtcNow().AddMinutes(1))).Single(r => IsSession(r, session));

@@ -146,7 +146,7 @@ public class LiveCommands(
             joinUrls.JoinUrl(deck.JoinCode),
             joinUrls.HostLabel(),
             live,
-            live ? await roster.CountAsync(sessionId!.Value.ToString()) : 0,
+            live ? await roster.JoinedAsync(sessionId!.Value.ToString()) : 0,
             ChromeOverridesView.From(deck.ChromeJson).JoinBar);
     }
 }
