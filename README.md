@@ -2,7 +2,7 @@
 
 Web slide decks that agents build over MCP and anyone presents from a URL.
 
-An agent builds a deck from ready-made building blocks (title, divider, bullets, compare, table, chart, timeline and more) without writing any HTML. A person opens the deck by link, shares it, and presents it in the browser on a laptop or a phone. A presenter can give the talk from a laptop with a presenter window (notes, timer, overview) while the audience window follows, and drives the talk from a phone remote. An audience joins a live talk from their phones with a QR code or a six-digit code and follows the slide on screen. Later work adds live polls, word clouds and Q&A.
+An agent builds a deck from ready-made building blocks (title, divider, bullets, compare, table, chart, timeline and more) without writing any HTML. A person opens the deck by link, shares it, and presents it in the browser on a laptop or a phone. A presenter can give the talk from a laptop with a presenter window (notes, timer, overview) while the audience window follows, and drives the talk from a phone remote. An audience joins a live talk from their phones with a QR code or a six-digit code and follows the slide on screen. The audience can answer live polls, ask and upvote questions, and send reactions.
 
 Designs are in [`design/`](design/). The plan lives in the ShipLean project **SW**: SW-1 is the foundation, SW-2 to SW-15 the increments after it.
 
@@ -89,6 +89,18 @@ publisher → IDeckEvents (in-process bus) → DeckEventsRelay → DeckHub group
 - Counts a guest may not see are never sent to that guest, and nobody can list who picked what: results are totals only.
 - A guest can send 30 answers a minute. The server publishes new counts at most twice a second for each deck.
 - The response rate of each closed round (the guests who answered, out of the guests who had joined when it closed) is SW-6's Measure, a query in [`docs/measures.md`](docs/measures.md). The 1,000-voter load run is in [`docs/load.md`](docs/load.md).
+
+## Audience Q&A and reactions
+
+- While a deck is live, its guests get a second tab on their phone, Questions, beside the slide. A guest asks a question of up to 200 characters and upvotes the ones they want answered. Questions and upvotes belong to the live session and start fresh on the next Go live. A guest can ask 3 questions a minute and change their upvotes 30 times a minute, counted apart from poll answers. A guest can take back an upvote on their own question, as on any other, but an upvote on an answered question can't be added or removed.
+- A question is anonymous unless the guest turns on "Show my name" and gives a name of up to 30 characters, which shows with that question only. A question is waiting, open or answered. Hidden and on screen are flags beside that: hiding works on a waiting or open question, and restoring brings back the state it had.
+- Five reactions, under the slide on the phone: thumbs up, heart, laugh, wow and clap. They float up the edge of the big screen (30 at once, the rest fold into a "+N" chip) and add to a counter in the presenter panel. Other phones don't receive them. A guest can tap 10 times in 5 seconds. The server keeps totals for each session, slide and emoji, written every 5 seconds and when the session ends, and never a row per tap, so a restart loses up to 5 seconds of counts.
+- Only a person who can present the deck sees questions and reactions on the big screen. In the presenter window `Q` opens and closes the Questions panel, where the presenter shows a question on screen, marks it answered, hides it or approves it. The phone remote has a Questions strip.
+- Settings are per deck: questions `open`, `closed` (the list and upvotes stay) or `off` (no round and no Questions tab), review first (new questions wait for approval), names, reactions, and `show_on`. With `anySlide`, the default, Show on screen lays a card over whatever slide is up. With `qaSlide` a shown question appears only while a `qa` slide is up. A slide can also turn questions, reactions or both off while it is on screen: the reaction row hides and asking says "Questions are off on this slide", while the list and upvotes stay. Anyone who can present the deck changes them, live or not, from the presenter panel, the "Q&A and reactions" card on the deck page, or `update_qa`.
+- The `qa` layout is the Q&A slide: its title over the room's five most upvoted open questions, or the one question shown on screen. An agent adds it with `add_slide`.
+- A guest who can't ask gets a 409 with `questions_closed`, `questions_off` or `questions_off_here`. Phones receive the votes of only the questions another guest may see, at most twice a second. A guest's id is never sent with a question, an upvote or a reaction, and no one can list who asked or upvoted.
+- An agent with edit access reads the room's questions with `get_questions` (text, name shown, state, votes and when asked, for each session that ran Q&A, newest first) and changes the settings with `update_qa`. It can't approve, hide, answer or show a question. `get_deck` returns the deck's `qa` settings and each session's reaction totals for each slide.
+- The Measure is the questions asked in each session, and the share of the guests who joined who asked, upvoted or reacted at least once, both queries in [`docs/measures.md`](docs/measures.md). The 1,000-guest run is in [`docs/load.md`](docs/load.md).
 
 ## Templates and palettes
 

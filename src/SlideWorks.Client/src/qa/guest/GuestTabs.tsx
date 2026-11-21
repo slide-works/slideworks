@@ -1,4 +1,11 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
 import type { PollActivity } from '../../polls/types';
 import { QA_TABS_TEST_IDS } from '../testIds';
 import type { QaRoom } from '../types';
@@ -113,6 +120,28 @@ export function GuestTabs({ tab, onTab, activity, room, presenter, children }: G
       }
     : { className: 'contents' };
 
+  // The arrow keys, Home and End move between the two tabs and select the one they land on (the tablist pattern); only
+  // the selected tab is a tab stop.
+  const onTabKeys = (event: KeyboardEvent<HTMLElement>) => {
+    const next =
+      event.key === 'ArrowRight' || event.key === 'ArrowLeft'
+        ? tab === 'slide'
+          ? 'questions'
+          : 'slide'
+        : event.key === 'Home'
+          ? 'slide'
+          : event.key === 'End'
+            ? 'questions'
+            : null;
+    if (next === null) return;
+    event.preventDefault();
+    if (next === 'questions') setSwitchNote('');
+    onTab(next);
+    event.currentTarget
+      .querySelector<HTMLElement>(next === 'slide' ? '#qa-tab-slide' : '#qa-tab-questions')
+      ?.focus();
+  };
+
   return (
     <AskSheetContext value={sheet}>
       <div {...slidePanel}>
@@ -141,6 +170,7 @@ export function GuestTabs({ tab, onTab, activity, room, presenter, children }: G
           role="tablist"
           aria-label="Guest page"
           data-testid={QA_TABS_TEST_IDS.bar}
+          onKeyDown={onTabKeys}
           className="flex shrink-0 gap-1 rounded-[14px] bg-white/10 p-1 [@media(orientation:landscape)_and_(max-height:500px)]:hidden"
         >
           <button
@@ -149,6 +179,7 @@ export function GuestTabs({ tab, onTab, activity, room, presenter, children }: G
             type="button"
             role="tab"
             aria-selected={tab === 'slide'}
+            tabIndex={tab === 'slide' ? 0 : -1}
             aria-controls="qa-panel-slide"
             data-testid={QA_TABS_TEST_IDS.slideTab}
             className={TAB_CLASS}
@@ -169,6 +200,7 @@ export function GuestTabs({ tab, onTab, activity, room, presenter, children }: G
             type="button"
             role="tab"
             aria-selected={tab === 'questions'}
+            tabIndex={tab === 'questions' ? 0 : -1}
             aria-controls="qa-panel-questions"
             data-testid={QA_TABS_TEST_IDS.questionsTab}
             className={TAB_CLASS}

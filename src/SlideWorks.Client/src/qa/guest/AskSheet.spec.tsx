@@ -228,6 +228,29 @@ test('limited: counts down in seconds, Send is disabled, and no code is shown', 
   expect(closed).toBe(0);
 });
 
+test('questions closed or off while the sheet is open: Send is disabled, the reason shows, the draft stays', async ({
+  mount,
+  page,
+}) => {
+  const component = await mount(sheet());
+  await page.getByTestId(ID.text).fill('Still here');
+  await expect(page.getByTestId(ID.send)).toBeEnabled();
+  const reasons = [
+    ['closed', 'Sam has closed questions. You can still upvote.'],
+    ['offHere', 'Questions are off on this slide. You can still upvote.'],
+    ['off', 'Sam has turned questions off.'],
+  ] as const;
+  for (const [questions, text] of reasons) {
+    await component.update(sheet({ room: qaRoom('open', { questions }) }));
+    await expect(page.getByTestId(ID.send)).toBeDisabled();
+    await expect(page.getByTestId(ID.failed)).toHaveText(text);
+    await expect(page.getByTestId(ID.text)).toHaveValue('Still here');
+  }
+  await component.update(sheet({ room: qaRoom('open', { questions: 'open' }) }));
+  await expect(page.getByTestId(ID.send)).toBeEnabled();
+  await expect(page.getByTestId(ID.failed)).toHaveCount(0);
+});
+
 test('failed: the message is a sentence, not the code, and the draft stays', async ({
   mount,
   page,

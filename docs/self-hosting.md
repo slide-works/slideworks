@@ -224,17 +224,19 @@ Ask the agent for a deck, for example: "Make a 10-slide deck on why small batche
 
 | Tool | What it does |
 |---|---|
-| `list_layouts`, `list_blocks` | The 29 layouts, their slots and limits, and the inline blocks. `detail` `compact` leaves the schema out: each slot is a short `{name, kind, required, max}` entry, and the icon names and blocks are listed once. Icon, emphasis and callout schemas are shared in `$defs` on the full response |
+| `list_layouts`, `list_blocks` | The 31 layouts, their slots and limits, and the inline blocks. `detail` `compact` leaves the schema out: each slot is a short `{name, kind, required, max}` entry, and the icon names and blocks are listed once. Icon, emphasis and callout schemas are shared in `$defs` on the full response |
 | `create_deck` | Creates a deck with a title and optional parts. `like` copies another deck you own: its template, palette and colours, logo, chrome, draft mark and talk length |
 | `add_slide`, `update_slide`, `move_slide`, `delete_slide`, `set_notes` | Change slides. The server checks each slide against its layout and names the field that broke. A poll slide can take its settings in the same call, including a free-text or word-cloud question (`answers` `text` or `cloud`, with no options). A poll slide with a round open can't be deleted or given another layout, and its options can't shrink or change order, until the poll is closed |
 | `update_poll` | Changes a poll slide's settings: one pick or up to some, when the room sees the counts, the correct answer, when it opens, and whether answers are choices, free text or a word cloud. Refused while a round is open |
 | `add_poll_option` | Appends an option to a poll slide, up to 8. Allowed while a round is open, and the phones show it at once |
 | `open_poll`, `close_poll` | Opens or closes a poll slide's round on a deck a person has taken live. They need edit access; revealing counts, showing the answer and starting a new round stay with the presenter |
 | `get_poll_results` | A poll slide's rounds for each time the deck went live: the option texts each round ran with (kept when the options change later), answered, joined, response rate (capped at 1) and the count per option. Each round says whether it is still open (then its numbers are live). Never who picked what |
+| `update_qa` | Changes a deck's audience Q&A settings, live or not: questions open, closed or off, review first, names allowed, reactions, and where a shown question appears (any slide or the Q&A slide). With a slide number it sets that slide's own questions and reactions switches instead. Answers with the settings as a sentence and as fields |
+| `get_questions` | The questions the room asked, for each time the deck went live, newest session first: the text, the name the asker chose to show, the state (waiting, open, answered or hidden), the votes and when it was asked, with the session's counts. `state` keeps one state. It reads stored questions, so past sessions still show when questions are off. Never who asked or upvoted. Approving, hiding, answering and showing stay with the presenter |
 | `upload_image` | Returns a one-time upload URL for a PNG, JPEG, WebP or GIF of up to 10 MB |
 | `upload_images` | Starts up to 30 of those uploads in one call. Each file is still PUT to its own URL |
 | `set_sharing` | Private, anyone with the link, or named people |
-| `list_decks`, `get_deck`, `get_deck_url` | Read decks back and get the link to present. `get_deck` with `detail` `summary` returns each slide's number, layout, part and headline (cut at 120 characters) |
+| `list_decks`, `get_deck`, `get_deck_url` | Read decks back and get the link to present. `get_deck` also returns the Q&A settings as `qa` and each session's reaction totals as `reactions`. With `detail` `summary` the slides are cut down to number, layout, part and headline (120 characters at most); `qa` and `reactions` stay |
 
 Open the link the agent returns, or find the deck in the library. The deck page shows the slides, the speaker notes and a log of every change, with the agent's name. **Present** opens the player, which works with the keyboard, clicks and swipes on a laptop or a phone.
 

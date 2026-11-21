@@ -31,20 +31,25 @@ export type PresenterPollKeyActions = {
 // The longest slide number the window listens for.
 const MAX_DIGITS = 4;
 
-// Elements whose own keys win: typing in them never drives the talk (K12).
+// Elements whose own keys win: typing in them never drives the talk (K12). A checkbox is not typing: it takes only Space.
 function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return (
     target.isContentEditable ||
-    target instanceof HTMLInputElement ||
+    (target instanceof HTMLInputElement && target.type !== 'checkbox') ||
     target instanceof HTMLTextAreaElement ||
     target instanceof HTMLSelectElement
   );
 }
 
-// A button or link activates itself with Space and Enter, so those keys are left to it.
+// A button or link activates itself with Space and Enter, and a checkbox toggles with Space, so Space is left to them.
+// A checkbox does not use the arrows, so they still move the talk (SW-668).
 function activates(target: EventTarget | null): boolean {
-  return target instanceof HTMLButtonElement || target instanceof HTMLAnchorElement;
+  return (
+    target instanceof HTMLButtonElement ||
+    target instanceof HTMLAnchorElement ||
+    (target instanceof HTMLInputElement && target.type === 'checkbox')
+  );
 }
 
 // The presenter window's keys (P8): → Space PgDn next; ← PgUp previous; Home and End; a number then Enter jumps; N

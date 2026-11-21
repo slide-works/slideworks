@@ -650,6 +650,37 @@ describe('QuestionsLive after review round 1', () => {
   });
 });
 
+describe('QuestionsLive cleanup with a request out (SW-504)', () => {
+  it('an ask that is sending when the effects are cleaned up is idle when they run again', async () => {
+    let answer: (outcome: AskOutcome) => void = () => undefined;
+    api.postQuestion.mockReturnValueOnce(new Promise<AskOutcome>((resolve) => (answer = resolve)));
+    await render(view.room);
+    await act(async () => void latest().ask('Why?', null));
+    expect(latest().asking).toBe('sending');
+
+    await render(view.room, 'live', false, 'hidden');
+    await act(async () => answer({ type: 'limited', retryAfter: 30 }));
+    await render(view.room, 'live', false, 'visible');
+
+    expect(latest().asking).toBe('idle');
+  });
+
+  it('a vote still out when the effects run again does not block the next vote', async () => {
+    let answer: (outcome: VoteOutcome) => void = () => undefined;
+    api.putVotes.mockReturnValueOnce(new Promise<VoteOutcome>((resolve) => (answer = resolve)));
+    await render(view.room);
+    await act(async () => latest().toggleVote(2));
+    expect(api.putVotes).toHaveBeenCalledTimes(1);
+
+    await render(view.room, 'live', false, 'hidden');
+    await act(async () => answer({ type: 'accepted', mine: { picks: [2], revision: 1 } }));
+    await render(view.room, 'live', false, 'visible');
+    await act(async () => latest().toggleVote(6));
+
+    expect(api.putVotes.mock.calls.length).toBeGreaterThan(1);
+  });
+});
+
 describe('QuestionsLive after review round 2', () => {
   const higherTally = (bump: number): QuestionTally => ({
     type: 'questionTally',
