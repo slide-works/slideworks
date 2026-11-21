@@ -61,16 +61,17 @@ agent_scratch() {
   printf '%s\n' "$dir"
 }
 
-# Prints a new log path: <scratch>/<name>-<yyyymmdd-HHMMSS>.log (a -N suffix if that name is taken).
+# Creates and prints a new log path: <scratch>/<name>-<yyyymmdd-HHMMSS>.log (a -N suffix if that name is taken).
+# Creation is atomic (noclobber), so two runs started in the same second never share a log.
 agent_log() {
   local name="${1:?agent_log needs a name}" base path n=2
   base="$(agent_scratch)/$name-$(date +%Y%m%d-%H%M%S)"
   path="$base.log"
-  while [[ -e "$path" ]]; do
+  until (set -o noclobber; : >"$path") 2>/dev/null; do
+    [[ -e "$path" ]] || agent_die 4 "cannot create log: $path" reason=no-log
     path="$base-$n.log"
     n=$((n + 1))
   done
-  : >"$path"
   printf '%s\n' "$path"
 }
 
@@ -94,7 +95,8 @@ agent_build() {
   if [[ $rc -eq 5 || $rc -eq 124 ]]; then
     return "$rc"
   fi
-  if ! tail -n +"$((start + 1))" "$AGENT_BUILD_LOG" | grep -q ' 0 Error(s)'; then
+  # Green needs both: dotnet build exited 0 and this build's output has the ' 0 Error(s)' line.
+  if [[ $rc -ne 0 ]] || ! tail -n +"$((start + 1))" "$AGENT_BUILD_LOG" | grep -q ' 0 Error(s)'; then
     return 3
   fi
   if [[ -n "${AGENT_POST_BUILD:-}" ]]; then
