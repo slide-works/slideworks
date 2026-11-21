@@ -61,8 +61,10 @@ public static class PollDrafts
             ? property.Value.GetString()!
             : throw new BadRequestException($"poll.{property.Name}: must be text");
 
+    // TryGetInt32 throws on anything but a number, so a quoted "2" is checked for its kind first and refused like any other
+    // value that is not a whole number.
     private static int Whole(JsonProperty property)
-        => property.Value.TryGetInt32(out var number)
+        => property.Value.ValueKind == JsonValueKind.Number && property.Value.TryGetInt32(out var number)
             ? number
             : throw new BadRequestException($"poll.{property.Name}: must be a whole number");
 }
