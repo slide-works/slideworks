@@ -1,11 +1,12 @@
-namespace SlideWorks.AcceptanceTests.Journeys;
+namespace SlideWorks.AcceptanceTests.Journeys.Support;
 
 // Lets a test drop one page's hub connection. An init script records the page's /hubs/deck WebSockets; DropAsync closes the
 // open one from the page with a non-normal code (the server sees it close too) and holds the page's next negotiate requests,
 // so SignalR stays in its reconnecting state until Release lets them through. Chromium's offline mode doesn't close an open
 // WebSocket. Playwright's RouteWebSocketAsync would be the natural tool, but its 1.62 .NET binding throws on a page-side
 // close that carries no code, which SignalR always sends, and that takes the whole Playwright connection down. Set it up
-// before the page navigates.
+// before the page navigates. A test that holds the reconnect some other way (HeldNegotiate) uses TrackAsync and
+// CloseOpenAsync, the same two scripts without the negotiate hold.
 public sealed class DroppableHub
 {
     private const string RECORD_SOCKETS =
@@ -46,7 +47,7 @@ public sealed class DroppableHub
     public static async Task<DroppableHub> RouteAsync(IPage page)
     {
         var hub = new DroppableHub(page);
-        await page.AddInitScriptAsync(RECORD_SOCKETS);
+        await TrackAsync(page);
         await page.RouteAsync("**/hubs/deck/negotiate**", async route =>
         {
             Task open;
@@ -60,6 +61,12 @@ public sealed class DroppableHub
         return hub;
     }
 
+    // Starts recording the page's hub WebSockets, for CloseOpenAsync. Call it before the page navigates.
+    public static Task TrackAsync(IPage page) => page.AddInitScriptAsync(RECORD_SOCKETS);
+
+    // Closes the page's open hub WebSockets with an unclean code, so SignalR reconnects. Returns how many it closed.
+    public static Task<int> CloseOpenAsync(IPage page) => page.EvaluateAsync<int>(CLOSE_SOCKETS);
+
     // Closes the page's open hub WebSocket and holds its reconnect at negotiate. Returns how many it closed.
     public async Task<int> DropAsync()
     {
@@ -67,7 +74,7 @@ public sealed class DroppableHub
         {
             _open = NewGate();
         }
-        return await _page.EvaluateAsync<int>(CLOSE_SOCKETS);
+        return await CloseOpenAsync(_page);
     }
 
     // Lets the held negotiate requests through, and every later one.

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -44,9 +45,9 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
     public async Task Reaction_WhenTapped_ShouldFloatOnTheBigScreenAndCountForThePresenterOnly()
     {
         var talk = await PresentAsync("Reactions");
-        await using var contextA = await OpenPhoneAsync();
+        await using var contextA = await PollJourney.OpenPhoneContextAsync(Browser);
         var phoneA = await JoinAsync(contextA, talk.JoinUrl);
-        await using var contextB = await OpenPhoneAsync();
+        await using var contextB = await PollJourney.OpenPhoneContextAsync(Browser);
         var phoneB = await JoinAsync(contextB, talk.JoinUrl);
         var panel = new QaPanel(Page);
         await talk.Presenter.PressAsync("q");
@@ -90,9 +91,9 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
     public async Task Poll_WhenOpensWhileOnQuestions_ShouldSwitchToTheSlideTab()
     {
         var talk = await PresentAsync("Poll switch");
-        await using var contextA = await OpenPhoneAsync();
+        await using var contextA = await PollJourney.OpenPhoneContextAsync(Browser);
         var plain = await JoinAsync(contextA, talk.JoinUrl);
-        await using var contextB = await OpenPhoneAsync();
+        await using var contextB = await PollJourney.OpenPhoneContextAsync(Browser);
         var asking = await JoinAsync(contextB, talk.JoinUrl);
         foreach (var phone in new[] { plain, asking })
         {
@@ -154,19 +155,11 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
             });
         }
 
-        await SignIn.AsAsync(Page, TestUser.Sam);
-        var presenter = new PresenterPage(Page);
-        await presenter.GotoAsync(deckId);
-        await presenter.IsLiveAsync();
-        await Expect(presenter.Connecting).ToHaveCountAsync(0);
-        await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
-        await presenter.Live.GoLive.ClickAsync();
-        await Expect(presenter.Live.End).ToBeVisibleAsync();
-        var joinUrl = await ReadAsync($"/api/decks/{deckId}/live", "joinUrl");
+        var (presenter, joinUrl) = await PollJourney.GoLiveAsync(Page, deckId, SLIDES);
 
         var audienceTab = await Context.NewPageAsync();
         var audience = new PlayerPage(audienceTab);
-        await audienceTab.GotoAsync(await ReadAsync($"/api/decks/{deckId}/presenter", "audienceUrl"));
+        await audienceTab.GotoAsync(await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/presenter", "audienceUrl"));
         await Expect(audience.AudienceMode).ToBeVisibleAsync();
         await Expect(audience.Layer(1)).ToHaveAttributeAsync("data-active", "true");
         await Expect(presenter.AudienceChips).ToHaveCountAsync(1);
@@ -185,18 +178,6 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
         await guest.IsFollowingAsync();
         return new Phone(page, guest, new GuestQuestions(page), new GuestPollCard(page), frames);
     }
-
-    private async Task<string> ReadAsync(string path, string field)
-    {
-        var response = await Page.APIRequest.GetAsync(path);
-        response.Status.ShouldBe(200, await response.TextAsync());
-        return JsonDocument.Parse(await response.TextAsync()).RootElement.GetProperty(field).GetString().ShouldNotBeNull();
-    }
-
-    private Task<IBrowserContext> OpenPhoneAsync() => Browser.NewContextAsync(new BrowserNewContextOptions
-    {
-        ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-    });
 
     private sealed record Talk(PresenterPage Presenter, PlayerPage Audience, IPage AudiencePage, string JoinUrl);
 

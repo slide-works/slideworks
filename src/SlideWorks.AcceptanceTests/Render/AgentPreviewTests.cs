@@ -1,7 +1,4 @@
-using System.Buffers.Binary;
 using System.Text.Json;
-using ModelContextProtocol.Client;
-using ModelContextProtocol.Protocol;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests.Render;
@@ -15,10 +12,10 @@ public class AgentPreviewTests : AcceptanceTest
     public async Task AgentFollowsPreviewInstructions_WhenTwoSlides_ShouldScreenshotEachAt1920x1080()
     {
         await using var agent = await AgentSeed.ConnectAsync(TestUser.Sam);
-        var deck = (await CallAsync(agent, "create_deck", new() { ["title"] = "Preview me" })).GetProperty("deck").GetString()!;
+        var deck = (await AgentSeed.CallAsync(agent, "create_deck", new() { ["title"] = "Preview me" })).GetProperty("deck").GetString()!;
         await AgentSeed.AddQuotesAsync(TestUser.Sam, deck, "Small batches ship sooner.", "Measure what the customer sees.");
 
-        var preview = await CallAsync(agent, "preview_deck", new() { ["deck"] = deck });
+        var preview = await AgentSeed.CallAsync(agent, "preview_deck", new() { ["deck"] = deck });
 
         var slides = preview.GetProperty("slides").EnumerateArray().Select(s => s.GetInt32()).ToList();
         slides.ShouldBe([1, 2]);
@@ -45,20 +42,8 @@ public class AgentPreviewTests : AcceptanceTest
 
         foreach (var png in pngs)
         {
-            SizeOf(png).ShouldBe((1920, 1080));
+            AgentSeed.PngSize(png).ShouldBe((1920, 1080));
         }
         pngs[0].SequenceEqual(pngs[1]).ShouldBeFalse("The two slides rendered the same PNG.");
     }
-
-    private static async Task<JsonElement> CallAsync(McpClient agent, string tool, Dictionary<string, object?> args)
-    {
-        var result = await agent.CallToolAsync(tool, args);
-        var text = result.Content.OfType<TextContentBlock>().Single().Text;
-        (result.IsError ?? false).ShouldBeFalse($"{tool} failed: {text}");
-        return JsonSerializer.Deserialize<JsonElement>(text);
-    }
-
-    // A PNG's width and height, from its IHDR chunk.
-    private static (int Width, int Height) SizeOf(byte[] png)
-        => (BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(16, 4)), BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(20, 4)));
 }

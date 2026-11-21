@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Realtime;
 
 namespace SlideWorks.WebApi.Tests.Support;

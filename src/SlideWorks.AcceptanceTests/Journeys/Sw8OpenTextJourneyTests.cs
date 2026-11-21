@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -34,9 +35,9 @@ public class Sw8OpenTextJourneyTests : AcceptanceTest
     public async Task Journey_WhenAGuestSendsOpenText_ShouldShowTheWallUntilHide()
     {
         var talk = await PresentAsync("Open text");
-        await using var firstPhone = await OpenPhoneAsync();
+        await using var firstPhone = await PollJourney.OpenPhoneContextAsync(Browser);
         var first = await JoinAsync(firstPhone, talk.JoinUrl);
-        await using var secondPhone = await OpenPhoneAsync();
+        await using var secondPhone = await PollJourney.OpenPhoneContextAsync(Browser);
         var second = await JoinAsync(secondPhone, talk.JoinUrl);
 
         await talk.Presenter.PressAsync("ArrowRight");
@@ -115,20 +116,12 @@ public class Sw8OpenTextJourneyTests : AcceptanceTest
             await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deckId, ["layout"] = "open-text", ["slots"] = new { question = QUESTION } });
         }
 
-        await SignIn.AsAsync(Page, TestUser.Sam);
-        var presenter = new PresenterPage(Page);
-        await presenter.GotoAsync(deckId);
-        await presenter.IsLiveAsync();
-        await Expect(presenter.Connecting).ToHaveCountAsync(0);
-        await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
-        await presenter.Live.GoLive.ClickAsync();
-        await Expect(presenter.Live.End).ToBeVisibleAsync();
-        var joinUrl = await ReadAsync($"/api/decks/{deckId}/live", "joinUrl");
+        var (presenter, joinUrl) = await PollJourney.GoLiveAsync(Page, deckId, SLIDES);
 
         var audienceTab = await Context.NewPageAsync();
         var screenHub = new WallWatch(audienceTab);
         var audience = new PlayerPage(audienceTab);
-        await audienceTab.GotoAsync(await ReadAsync($"/api/decks/{deckId}/presenter", "audienceUrl"));
+        await audienceTab.GotoAsync(await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/presenter", "audienceUrl"));
         await Expect(audience.AudienceMode).ToBeVisibleAsync();
         await Expect(audience.Layer(1)).ToHaveAttributeAsync("data-active", "true");
         await Expect(presenter.AudienceChips).ToHaveCountAsync(1);
@@ -145,18 +138,6 @@ public class Sw8OpenTextJourneyTests : AcceptanceTest
         await guest.IsFollowingAsync();
         return new Phone(guest, new AnswerCard(page), hub);
     }
-
-    private async Task<string> ReadAsync(string path, string field)
-    {
-        var response = await Page.APIRequest.GetAsync(path);
-        response.Status.ShouldBe(200, await response.TextAsync());
-        return JsonDocument.Parse(await response.TextAsync()).RootElement.GetProperty(field).GetString().ShouldNotBeNull();
-    }
-
-    private Task<IBrowserContext> OpenPhoneAsync() => Browser.NewContextAsync(new BrowserNewContextOptions
-    {
-        ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-    });
 
     private sealed record Talk(PresenterPage Presenter, PlayerPage Audience, Panel Panel, Screen Screen, WallWatch ScreenHub, string JoinUrl);
 

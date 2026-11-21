@@ -1,4 +1,5 @@
 using System.Text.Json;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -24,7 +25,7 @@ public class Sw9TroubleJourneyTests : AcceptanceTest
     public async Task Question_WhenTypedOffline_ShouldSendOnReconnect()
     {
         var talk = await PresentAsync("Question offline");
-        await using var phoneContext = await OpenPhoneAsync();
+        await using var phoneContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var (phone, hub) = await JoinDroppableAsync(phoneContext, talk.JoinUrl);
         try
         {
@@ -77,9 +78,9 @@ public class Sw9TroubleJourneyTests : AcceptanceTest
         var updated = await AgentSeed.CallAsync(agent, "update_qa", new() { ["deck"] = talk.DeckId, ["review"] = true });
         updated.GetProperty("settings").GetProperty("review").GetBoolean().ShouldBeTrue();
         await Expect(talk.Panel.SettingsReview).ToHaveTextAsync("Review first", new() { Timeout = PUSH_TIMEOUT });
-        await using var askerContext = await OpenPhoneAsync();
+        await using var askerContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var asker = await JoinAsync(askerContext, talk.JoinUrl);
-        await using var otherContext = await OpenPhoneAsync();
+        await using var otherContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var other = await JoinAsync(otherContext, talk.JoinUrl);
 
         await asker.Questions.Ask.ClickAsync();
@@ -188,11 +189,6 @@ public class Sw9TroubleJourneyTests : AcceptanceTest
         await Expect(questions.ListLoading).ToHaveCountAsync(0);
         return new Phone(guest, questions);
     }
-
-    private Task<IBrowserContext> OpenPhoneAsync() => Browser.NewContextAsync(new BrowserNewContextOptions
-    {
-        ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-    });
 
     private sealed record Talk(string DeckId, QaPanel Panel, string JoinUrl);
 

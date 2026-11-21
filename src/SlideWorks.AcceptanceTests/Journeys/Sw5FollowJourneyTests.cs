@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -41,7 +42,7 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         var code = joinUrl[^6..];
         await Expect(player.LiveChip.Code).ToHaveTextAsync($"{code[..3]} {code[3..]}");
 
-        await using var phone = await OpenPhoneAsync();
+        await using var phone = await PollJourney.OpenPhoneContextAsync(Browser);
         var first = new GuestPage(await phone.NewPageAsync());
         await first.GotoUrlAsync(joinUrl);
         await Expect(first.Joined).ToBeVisibleAsync();
@@ -52,7 +53,7 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         await Expect(player.LiveChip.Count).ToHaveTextAsync("1 joined");
         await Expect(player.JoinCount(1)).ToHaveTextAsync("1 joined");
 
-        await using var secondPhone = await OpenPhoneAsync();
+        await using var secondPhone = await PollJourney.OpenPhoneContextAsync(Browser);
         var second = new GuestPage(await secondPhone.NewPageAsync());
         await second.GotoUrlAsync(joinUrl);
         await second.IsFollowingAsync();
@@ -111,7 +112,7 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         await Expect(player.Count).ToHaveTextAsync($"1 / {SLIDES}");
         var joinUrl = await JoinUrlAsync(deckId);
 
-        await using var phone = await OpenPhoneAsync();
+        await using var phone = await PollJourney.OpenPhoneContextAsync(Browser);
         var guest = new GuestPage(await phone.NewPageAsync());
         await guest.GotoUrlAsync(joinUrl);
         await Expect(guest.Lobby).ToBeVisibleAsync();
@@ -137,7 +138,7 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         await presenter.IsLiveAsync();
         var joinUrl = await GoLiveAsync(deckId);
 
-        await using var phone = await OpenPhoneAsync();
+        await using var phone = await PollJourney.OpenPhoneContextAsync(Browser);
         var guest = new GuestPage(await phone.NewPageAsync());
         await guest.GotoUrlAsync(joinUrl);
         await guest.IsFollowingAsync();
@@ -160,7 +161,7 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         var deckId = await CreateDeckAsync("Reconnect journey");
         var player = await OwnerGoesLiveAsync(deckId);
         var joinUrl = await JoinUrlAsync(deckId);
-        await using var phone = await OpenPhoneAsync();
+        await using var phone = await PollJourney.OpenPhoneContextAsync(Browser);
         var page = await phone.NewPageAsync();
         var hub = await DroppableHub.RouteAsync(page);
         var guest = new GuestPage(page);
@@ -207,7 +208,7 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         await SignIn.AsAsync(Page, TestUser.Sam);
         var joinUrl = await GoLiveAsync(deckId);
 
-        await using var phone = await OpenPhoneAsync();
+        await using var phone = await PollJourney.OpenPhoneContextAsync(Browser);
         var guest = new GuestPage(await phone.NewPageAsync());
         await guest.GotoUrlAsync(joinUrl);
 
@@ -264,11 +265,6 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         response.Status.ShouldBe(200, await response.TextAsync());
         return JsonDocument.Parse(await response.TextAsync()).RootElement.GetProperty("joinUrl").GetString().ShouldNotBeNull();
     }
-
-    private Task<IBrowserContext> OpenPhoneAsync() => Browser.NewContextAsync(new BrowserNewContextOptions
-    {
-        ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-    });
 
     [GeneratedRegex(@"^\d{3} \d{3}$")]
     private static partial Regex CodeLabel();
