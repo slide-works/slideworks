@@ -67,6 +67,8 @@ SLIDEWORKS_DB_PATH=/tmp/x.db dotnet ef migrations add <Name> --project src/Slide
 docker compose -f src/docker-compose.yml up --build
 ```
 
+Agents build and test with the scripts in `tools/agent/` (see [tools/agent/README.md](tools/agent/README.md)) instead of the raw commands above.
+
 Branch per Feature or story (`feature/sw-<n>-<slug>`), PR to `main`, and name the SW key in the PR.
 
 ## External resources

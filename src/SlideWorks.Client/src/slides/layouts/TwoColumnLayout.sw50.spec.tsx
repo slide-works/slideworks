@@ -7,6 +7,7 @@ import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { TwoColumnSlots } from '../slots/two-column';
 import type { SlideDeck } from '../slots';
+import { wideLetters } from '../../test-support/text/maxText';
 
 // The two-column layout's SW-50 additions: a callout under the columns, icons
 // in both columns, emphasis in the headline, a right column that can arrive on
@@ -36,11 +37,7 @@ const WIDE_TEXT =
   'Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. ';
 
 // Wide-letter text (capitals, W and M) of exactly `length` characters.
-function wide(length: number): string {
-  let text = '';
-  while (text.length < length) text += WIDE_TEXT;
-  return text.slice(0, length).trimEnd().padEnd(length, 'M');
-}
+const wide = (length: number): string => wideLetters(length, WIDE_TEXT);
 
 const NOT_TEXT = new Set(['icon', 'tone']);
 

@@ -1,5 +1,6 @@
 import { legacyFitFixturesOf } from '../../test-support/fixtures/fitFixtures';
 import type { Slots } from '../slots';
+import { wideLetters } from '../../test-support/text/maxText';
 
 // The max-content fit fixtures for the image, table, chart and gantt layouts,
 // shared with the server: src/contracts/fit-fixtures/<layout>.json holds the most text
@@ -33,11 +34,7 @@ const WIDE_TEXT =
   'Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. ';
 
 // Wide-letter text (capitals, W and M) of exactly `length` characters.
-function wide(length: number): string {
-  let text = '';
-  while (text.length < length) text += WIDE_TEXT;
-  return text.slice(0, length).trimEnd().padEnd(length, 'M');
-}
+const wide = (length: number): string => wideLetters(length, WIDE_TEXT);
 
 // Slot keys whose strings are ids or names from a fixed set, not text.
 const NOT_TEXT = new Set(['image', 'kind', 'status', 'tone']);

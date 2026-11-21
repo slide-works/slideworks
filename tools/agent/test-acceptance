@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+# Runs one acceptance test (or one class) against a fresh client bundle, under the lock.
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage='usage: tools/agent/test-acceptance <filter>   e.g. tools/agent/test-acceptance "FullyQualifiedName~.SignInSmokeTests.SignedOutVisitor_WhenOpeningDecks_ShouldLandOnSignIn"'
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  echo "$usage"
+  exit 0
+fi
+agent_start
+agent_refuse_repeat_each "$@"
+[[ $# -eq 1 && -n "${1// /}" ]] || agent_die 2 "exactly one non-empty filter is required; a whole project is never run. $usage" reason=missing-filter
+filter="$1"
+agent_require git flock timeout pnpm
+agent_env
+root="$(agent_root)"
+client="$root/src/SlideWorks.Client"
+project="$root/src/SlideWorks.AcceptanceTests"
+index="$root/src/SlideWorks.WebApi/wwwroot/index.html"
+echo "filter: $filter"
+
+# The acceptance app serves the built bundle, so a stale one tests old client code.
+stale=""
+if [[ ! -f "$index" ]]; then
+  stale="missing"
+else
+  newer="$(find "$client/src" "$root/src/contracts" -type f -newer "$index" -print -quit)"
+  [[ -z "$newer" ]] || stale="${newer#"$root"/}"
+fi
+if [[ -n "$stale" ]]; then
+  [[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run pnpm install --frozen-lockfile there" missing=node_modules
+  echo "bundle: rebuilding ($stale)"
+  rc=0
+  echo "== pnpm run build" >>"$AGENT_LOG"
+  (cd "$client" && NO_COLOR=1 agent_locked timeout -k 10 "${AGENT_BUILD_TIMEOUT:-900}" pnpm run build) >>"$AGENT_LOG" 2>&1 || rc=$?
+  case $rc in
+    0) ;;
+    5) agent_finish 5 reason=lock-wait-timed-out ;;
+    124) agent_finish 124 reason=bundle-timed-out ;;
+    *) agent_finish 3 reason=bundle-build-failed ;;
+  esac
+  [[ -f "$index" ]] || agent_die 4 "the client build wrote no $index" reason=no-bundle
+  bundle=rebuilt
+else
+  echo "bundle: up to date, skipped"
+  bundle=skipped
+fi
+
+rc=0
+AGENT_BUILD_LOG="$AGENT_LOG" agent_build "$project" || rc=$?
+case $rc in
+  0) ;;
+  3) agent_finish 3 reason=build-failed "bundle=$bundle" ;;
+  4) agent_finish 4 reason=post-build-failed "bundle=$bundle" ;;
+  5) agent_finish 5 reason=lock-wait-timed-out "bundle=$bundle" ;;
+  *) agent_finish "$rc" reason=build-timed-out "bundle=$bundle" ;;
+esac
+
+dll="$(dotnet msbuild "$project" -getProperty:TargetPath 2>>"$AGENT_LOG")"
+[[ -f "$dll" ]] || agent_die 4 "built test assembly not found: ${dll:-none}" reason=no-assembly "bundle=$bundle"
+
+# The .NET Playwright browser, installed the way ci.yml does, only when the revision this build wants is missing.
+browsers="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
+manifest="$(dirname "$dll")/.playwright/package/browsers.json"
+[[ -f "$manifest" ]] || agent_die 4 "Playwright browsers.json not found next to $dll" missing=browsers.json
+revision="$(grep -A1 '"name": "chromium"' "$manifest" | sed -nE 's/.*"revision": "([0-9]+)".*/\1/p')"
+[[ -n "$revision" ]] || agent_die 4 "no chromium revision in $manifest" missing=chromium-revision
+if [[ ! -d "$browsers/chromium-$revision" || ! -d "$browsers/chromium_headless_shell-$revision" ]]; then
+  agent_require pwsh
+  script="$(dirname "$dll")/playwright.ps1"
+  [[ -f "$script" ]] || agent_die 4 "playwright.ps1 not found next to $dll" missing=playwright.ps1
+  echo "browser: installing chromium $revision"
+  rc=0
+  timeout -k 10 "${AGENT_BUILD_TIMEOUT:-900}" pwsh "$script" install chromium >>"$AGENT_LOG" 2>&1 || rc=$?
+  [[ $rc -ne 124 ]] || agent_finish 124 reason=browser-install-timed-out "bundle=$bundle"
+  [[ $rc -eq 0 ]] || agent_die 4 "installing the Playwright browser failed (exit $rc); see the log" reason=browser-install-failed "bundle=$bundle"
+else
+  echo "browser: chromium $revision installed"
+fi
+
+# dotnet test --list-tests ignores --filter, so the filter is resolved with vstest's
+# --ListFullyQualifiedTests, which applies --TestCaseFilter (as test-dotnet does).
+list_tests() {
+  local out="$1"
+  shift
+  local list_rc=0
+  rm -f "$out"
+  echo "== list tests $*" >>"$AGENT_LOG"
+  agent_locked timeout -k 10 120 dotnet vstest "$dll" --ListFullyQualifiedTests "--ListTestsTargetPath:$out" "$@" >>"$AGENT_LOG" 2>&1 || list_rc=$?
+  case $list_rc in
+    0) ;;
+    5) agent_finish 5 reason=lock-wait-timed-out ;;
+    124) agent_finish 124 reason=list-timed-out ;;
+    *) agent_die 1 "listing tests failed (exit $list_rc); see the log" reason=list-failed ;;
+  esac
+  [[ -f "$out" ]] || agent_die 1 "listing tests wrote no list; see the log" reason=list-failed
+  listed="$(grep -c . "$out" || true)"
+}
+# The list files are named after this run's log, so concurrent runs never share them.
+selected_file="${AGENT_LOG%.log}-selected.txt"
+list_tests "$selected_file" "--TestCaseFilter:$filter"
+selected="$listed"
+max="${AGENT_MAX_TESTS:-300}"
+[[ "$selected" -gt 0 ]] || agent_die 2 "the filter selects no test" reason=no-tests selected=0
+[[ "$selected" -le "$max" ]] || agent_die 2 "the filter selects $selected tests, more than $max: narrow it" reason=too-many-tests "selected=$selected"
+# A test's class is its fully qualified name without the argument list and the method.
+mapfile -t classes < <(sed -E 's/\(.*$//; s/\.[^.]+$//' "$selected_file" | sort -u)
+[[ ${#classes[@]} -eq 1 ]] || agent_die 2 "the filter selects tests from ${#classes[@]} classes; name one class" reason=many-classes "selected=$selected" "classes=${#classes[@]}"
+list_tests "${AGENT_LOG%.log}-all.txt"
+total="$listed"
+[[ "$selected" -lt "$total" ]] || agent_die 2 "the filter selects every test in the project ($total): narrow it" reason=whole-project "selected=$selected"
+echo "selected: $selected of $total in ${classes[0]##*.}"
+
+rc=0
+echo "== dotnet test" >>"$AGENT_LOG"
+(
+  export LD_LIBRARY_PATH="${PLAYWRIGHT_LD_LIBRARY_PATH:+$PLAYWRIGHT_LD_LIBRARY_PATH:}${LD_LIBRARY_PATH:-}"
+  agent_locked timeout -k 10 "${AGENT_TEST_TIMEOUT:-600}" dotnet test "$project" --no-build --filter "$filter"
+) >>"$AGENT_LOG" 2>&1 || rc=$?
+[[ $rc -ne 5 ]] || agent_finish 5 reason=lock-wait-timed-out "bundle=$bundle"
+[[ $rc -ne 124 ]] || agent_finish 124 "selected=$selected" "bundle=$bundle" reason=test-timed-out
+line="$(grep -E '^(Passed|Failed)! ' "$AGENT_LOG" | tail -n 1 || true)"
+[[ -n "$line" ]] || agent_finish 1 "selected=$selected" "bundle=$bundle" reason=no-result-line
+count() { sed -nE "s/.*$1: *([0-9]+).*/\1/p" <<<"$line"; }
+passed="$(count Passed)" failed="$(count Failed)" skipped="$(count Skipped)"
+mapfile -t failures < <(sed -nE 's/^ +Failed (.+) \[[^]]*\]$/\1/p' "$AGENT_LOG")
+names=()
+for name in "${failures[@]:0:10}"; do
+  echo "FAILED $name"
+  names+=("$name")
+done
+if [[ ${#failures[@]} -gt 10 ]]; then
+  echo "+$((${#failures[@]} - 10)) more"
+  names+=("+$((${#failures[@]} - 10)) more")
+fi
+counts=("passed=$passed" "failed=$failed" "skipped=$skipped" "bundle=$bundle")
+if [[ ${#names[@]} -gt 0 ]]; then
+  counts+=("failed_tests=$(IFS='|'; echo "${names[*]}")")
+fi
+if [[ "$line" == Passed!* && $rc -eq 0 ]]; then
+  agent_finish 0 "${counts[@]}"
+fi
+agent_finish 1 "${counts[@]}"

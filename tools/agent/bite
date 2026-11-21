@@ -1,0 +1,367 @@
+#!/usr/bin/env bash
+# Proves a test bites: applies one compile-safe mutation, runs a runner, and always restores the files.
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage="usage: tools/agent/bite --file <path> --from '<exact text>' --to '<replacement>' [--name <label>] -- <runner> <args...>
+       tools/agent/bite --patch <file.patch> [--name <label>] -- <runner> <args...>"
+help="$usage
+
+Applies one mutation to committed files, runs the runner (tools/agent/test-*; it builds first and
+takes the lock), restores the files from a scratch copy (never from git), and prints:
+  RESULT bite ok bit=yes failed=<n> tests=<names> log=...   the runner reported failures: the test bites (exit 0)
+  RESULT bite fail bit=no ... log=...                       everything stayed green (exit 1)
+  RESULT bite blocked reason=mutation-does-not-compile ...  the build or type-check failed (exit 3); not a bite
+With test-vitest, which neither builds nor type-checks, bite first runs tsc --noEmit on the client.
+The log holds, for every red test, its name and its failure message.
+
+  --file/--from/--to  replace <exact text> with <replacement>; the text must occur exactly once.
+  --patch             a multi-line mutation, applied with git apply (modified tracked files only).
+  --name              a label for the mutation, shown in the log and the summary.
+
+One mutation per call. Run at most three calls in a row, and never wrap bite in another timeout:
+the runner time-boxes itself and bite must live long enough to restore.
+
+Refuses (exit 2): a target file with uncommitted changes, --from text found 0 or 2+ times, a
+mutation that did not change the files, a runner that is not tools/agent/test-*.
+
+Mutation recipes
+- Change a literal or a condition; never delete a statement. S1144 and S1481 turn an unused
+  member or local into a build error, so a deleted call shows up as mutation-does-not-compile.
+- To remove a call and stay analyzer-clean, replace it with a read of its dependency: _ = dependency;
+- To break atomicity, break only the check-and-set and keep the structure thread-safe, so the test
+  fails on its assertion and not on a crash.
+- When a review suggests a stronger assertion, bite-test that exact assertion.
+- Never put two mutations that reach the same test in one call."
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  echo "$help"
+  exit 0
+fi
+
+RUNNER_PID=""
+RESTORED=1
+BACKUP_DIR=""
+TARGETS=()
+ROOT=""
+
+RESTORE_FAILED=0
+
+# Copies every target back from its scratch copy. Idempotent; never uses git, never exits.
+bite_restore() {
+  [[ $RESTORED -eq 0 ]] || return 0
+  RESTORED=1
+  local rel
+  for rel in "${TARGETS[@]}"; do
+    if ! cp -p "$BACKUP_DIR/$rel" "$ROOT/$rel" 2>>"$AGENT_LOG"; then
+      RESTORE_FAILED=1
+      echo "bite: could not restore $rel; copy it back by hand from $BACKUP_DIR/$rel" | tee -a "$AGENT_LOG" >&2
+    fi
+  done
+  [[ $RESTORE_FAILED -eq 1 ]] || echo "restored ${#TARGETS[@]} file(s) from $BACKUP_DIR" >>"$AGENT_LOG"
+}
+
+# Stops the runner and everything it started (it runs in its own process group).
+# shellcheck disable=SC2329 # called from a trap
+bite_stop_runner() {
+  if [[ -n "$RUNNER_PID" ]]; then
+    kill -TERM -- "-$RUNNER_PID" 2>/dev/null || true
+    wait "$RUNNER_PID" 2>/dev/null || true
+    RUNNER_PID=""
+  fi
+}
+
+# shellcheck disable=SC2329 # called from a trap
+bite_on_signal() {
+  local rc="$1"
+  trap - INT TERM
+  echo "bite: interrupted (exit $rc); stopping the runner and restoring" | tee -a "$AGENT_LOG" >&2
+  bite_stop_runner
+  bite_restore
+  bite_finish "$rc" blocked reason=interrupted
+}
+
+# shellcheck disable=SC2329 # called from a trap
+bite_on_exit() {
+  local rc="$1"
+  bite_stop_runner
+  bite_restore
+  agent__on_exit "$rc"
+}
+
+# Like agent_finish, but with an explicit status word (bite reports a build failure as blocked).
+# It stops the runner and restores first, so the RESULT line and <log>.done never appear while a
+# mutation is still in the tree.
+bite_finish() {
+  local rc="$1" status="$2"
+  shift 2
+  bite_stop_runner
+  bite_restore
+  if [[ $RESTORE_FAILED -eq 1 ]]; then
+    rc=4 status=blocked
+    set -- reason=restore-failed "backup=$BACKUP_DIR"
+  fi
+  AGENT_FINISHED=1
+  local line
+  line="$(agent_result bite "$status" "$AGENT_LOG" "$@")"
+  printf '%s\n' "$line" >>"$AGENT_LOG"
+  printf '%s\n' "$line"
+  agent_mark_done "$AGENT_LOG" "$rc"
+  exit "$rc"
+}
+
+# agent_die for after the restore is armed: the message, then bite_finish (which restores first).
+bite_die() {
+  local rc="$1" msg="$2"
+  shift 2
+  echo "bite: $msg" | tee -a "$AGENT_LOG" >&2
+  bite_finish "$rc" "$(agent_status_for "$rc")" "$@"
+}
+
+# Runs a command in its own process group, in the background, and waits for it. A signal to bite
+# then runs the trap at once (bash defers traps while a foreground child runs), and the trap can
+# stop the whole group. Sets BG_RC.
+bite_run() {
+  local out="$1"
+  shift
+  setsid "$@" >"$out" 2>&1 &
+  RUNNER_PID=$!
+  BG_RC=0
+  wait "$RUNNER_PID" || BG_RC=$?
+  RUNNER_PID=""
+}
+
+# The first build errors in a log, at most 20: every MSBuild "error <CODE>:" line (CS, AG, S, CA, ...,
+# any letters then digits) and TypeScript "error TS<n>" lines, deduplicated. Never fails.
+bite_compiler_errors() {
+  local errors=""
+  [[ ! -f "$1" ]] || errors="$(grep -E -e 'error [A-Za-z]+[0-9]+:' -e 'error TS[0-9]+' "$1" | awk '!seen[$0]++' | head -n 20 || true)"
+  echo "== first compiler errors" >>"$AGENT_LOG"
+  if [[ -n "$errors" ]]; then
+    printf '%s\n' "$errors" | tee -a "$AGENT_LOG"
+  else
+    echo "(no compiler error lines found; see $1)" | tee -a "$AGENT_LOG"
+  fi
+}
+
+# Writes each red test's failure block from a runner log as "### <name>" followed by its message.
+bite_red_blocks() {
+  local runner="$1" log="$2"
+  case "$runner" in
+    test-dotnet | test-acceptance)
+      # VSTest: "  Failed <name> [<time>]", "  Error Message:", the message, then "  Stack Trace:".
+      awk '/^ +Failed .+ \[[^]]*\]$/ { on = 1; sub(/^ +Failed /, ""); print "### " $0; next }
+        /^ +Stack Trace:/ { on = 0 } /^ +Error Message:/ { next } on' "$log" ;;
+    test-vitest)
+      # Vitest: a "Failed Tests" section of " FAIL  <file> > <name>" blocks, each closed by a ⎯[i/n]⎯ rule.
+      awk '/⎯ Failed (Tests|Suites) [0-9]+ ⎯/ { section = 1; next }
+        section && /^ *FAIL +/ { on = 1; sub(/^ *FAIL +/, ""); print "### " $0; next }
+        /⎯\[[0-9]+\/[0-9]+\]⎯/ { on = 0; next } on' "$log" ;;
+    test-ct)
+      # Playwright list reporter: "  <n>) [project] › <file>:<line> › <name> ───" blocks, up to the next
+      # block or the "  <n> failed" summary.
+      awk '/^  [0-9]+\) / { on = 1; sub(/^  [0-9]+\) /, ""); sub(/ (─)+$/, ""); print "### " $0; next }
+        /^  [0-9]+ (failed|flaky|passed|skipped|did not run)/ { on = 0 } on' "$log" ;;
+  esac
+}
+
+agent_start
+trap 'bite_on_exit $?' EXIT
+trap 'bite_on_signal 130' INT
+trap 'bite_on_signal 143' TERM
+
+file="" from="" to="" patch="" name="" have_from=0 have_to=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --file) file="${2:-}"; shift 2 || agent_die 2 "--file needs a value" reason=usage ;;
+    --from) from="${2:-}"; have_from=1; shift 2 || agent_die 2 "--from needs a value" reason=usage ;;
+    --to) to="${2:-}"; have_to=1; shift 2 || agent_die 2 "--to needs a value" reason=usage ;;
+    --patch) patch="${2:-}"; shift 2 || agent_die 2 "--patch needs a value" reason=usage ;;
+    --name) name="${2:-}"; shift 2 || agent_die 2 "--name needs a value" reason=usage ;;
+    --) shift; break ;;
+    *) agent_die 2 "unknown argument: $1. $usage" reason=usage ;;
+  esac
+done
+runner=("$@")
+[[ ${#runner[@]} -gt 0 ]] || agent_die 2 "a runner is required after --. $usage" reason=missing-runner
+if [[ -n "$patch" ]]; then
+  [[ -z "$file" && $have_from -eq 0 && $have_to -eq 0 ]] || agent_die 2 "use --patch or --file/--from/--to, not both" reason=usage
+else
+  [[ -n "$file" && $have_from -eq 1 && $have_to -eq 1 && -n "$from" ]] || agent_die 2 "--file, --from (non-empty) and --to are required, or --patch. $usage" reason=usage
+  [[ "$from" != "$to" ]] || agent_die 2 "--from and --to are the same text" reason=usage
+fi
+agent_require git cp setsid realpath
+ROOT="$(agent_root)"
+caller_dir="$PWD"
+# Paths are relative to the caller; resolve them before moving to the repo root.
+[[ -z "$file" ]] || file="$(realpath -m "$file")"
+[[ -z "$patch" ]] || patch="$(realpath -m "$patch")"
+cd "$ROOT"
+
+# The runner: an executable tools/agent/test-* script.
+runner_path="$(realpath -m "${runner[0]}")"
+case "$runner_path" in
+  "$ROOT"/tools/agent/test-*) ;;
+  *) agent_die 2 "the runner must be tools/agent/test-*, got: ${runner[0]}" reason=bad-runner ;;
+esac
+[[ -x "$runner_path" ]] || agent_die 4 "runner not found or not executable: ${runner[0]}" reason=missing-runner "missing=${runner[0]}"
+agent_refuse_repeat_each "${runner[@]}"
+runner_name="$(basename "$runner_path")"
+client="$ROOT/src/SlideWorks.Client"
+if [[ "$runner_name" == test-vitest ]]; then
+  agent_require pnpm timeout
+  [[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run pnpm install --frozen-lockfile there" missing=node_modules
+fi
+
+# The files the mutation touches, relative to the repo root.
+if [[ -n "$patch" ]]; then
+  [[ -f "$patch" ]] || agent_die 4 "patch file not found: $patch" reason=missing-file "missing=$patch"
+  summary="$(git apply --summary "$patch" 2>>"$AGENT_LOG")" || agent_die 2 "not a patch git apply can read: $patch" reason=bad-patch
+  [[ -z "$summary" ]] || agent_die 2 "the patch creates, deletes, renames or re-modes files; a mutation only modifies files" reason=bad-patch
+  mapfile -t TARGETS < <(git apply --numstat "$patch" | cut -f3-)
+  [[ ${#TARGETS[@]} -gt 0 ]] || agent_die 2 "the patch changes no file" reason=bad-patch
+else
+  [[ -f "$file" ]] || agent_die 4 "file not found: $file" reason=missing-file "missing=$file"
+  TARGETS=("$(realpath --relative-to="$ROOT" "$file")")
+  [[ "${TARGETS[0]}" != ../* ]] || agent_die 2 "the file is outside the repo: $file" reason=outside-repo
+fi
+
+# 1. A mutation runs from a committed tree: every target is tracked and clean.
+for rel in "${TARGETS[@]}"; do
+  git ls-files --error-unmatch -- "$rel" >/dev/null 2>&1 || agent_die 2 "not a tracked file: $rel" reason=untracked "file=$rel"
+  [[ -z "$(git status --porcelain -- "$rel")" ]] || agent_die 2 "$rel has uncommitted changes: commit it first, a mutation runs from a committed tree" reason=dirty "file=$rel"
+done
+status_before="$(git status --porcelain)"
+
+# The --from text must occur exactly once.
+if [[ -z "$patch" ]]; then
+  content="$(cat "$ROOT/${TARGETS[0]}"; printf x)"
+  content="${content%x}"
+  stripped="${content//"$from"/}"
+  occurrences=$(((${#content} - ${#stripped}) / ${#from}))
+  [[ $occurrences -eq 1 ]] || agent_die 2 "--from text occurs $occurrences times in ${TARGETS[0]}; it must occur exactly once" reason=from-not-unique "occurrences=$occurrences"
+else
+  git apply --check "$patch" >>"$AGENT_LOG" 2>&1 || agent_die 2 "the patch does not apply to the committed files; see the log" reason=patch-does-not-apply
+fi
+
+# 2. Copy each target to scratch, then arm the restore.
+BACKUP_DIR="$(agent_scratch)/bite/$(date +%Y%m%d-%H%M%S)-$$"
+for rel in "${TARGETS[@]}"; do
+  mkdir -p "$BACKUP_DIR/$(dirname "$rel")"
+  cp -p "$ROOT/$rel" "$BACKUP_DIR/$rel"
+done
+{
+  echo "mutation: ${name:-unnamed}"
+  echo "files: ${TARGETS[*]}"
+  echo "backup: $BACKUP_DIR"
+  echo "runner: ${runner[*]}"
+} | tee -a "$AGENT_LOG"
+RESTORED=0
+
+# 3. Apply, then assert it applied.
+if [[ -n "$patch" ]]; then
+  git apply "$patch" >>"$AGENT_LOG" 2>&1 || bite_die 2 "git apply failed; see the log" reason=patch-does-not-apply
+else
+  # A literal replacement: split around the one occurrence instead of ${var/pattern/replacement},
+  # whose replacement treats & specially when bash has patsub_replacement on (5.2+).
+  prefix="${content%%"$from"*}"
+  printf '%s%s%s' "$prefix" "$to" "${content:$((${#prefix} + ${#from}))}" >"$ROOT/${TARGETS[0]}"
+fi
+if git diff --quiet -- "${TARGETS[@]}"; then
+  bite_die 2 "mutation did not apply" reason=mutation-did-not-apply
+fi
+{
+  echo "== mutation diff"
+  git diff -- "${TARGETS[@]}"
+} >>"$AGENT_LOG"
+
+label=()
+[[ -z "$name" ]] || label=("name=${name// /_}")
+
+# Vitest neither builds nor type-checks, so type-check the client before trusting a test-vitest run.
+if [[ "$runner_name" == test-vitest ]]; then
+  tsc_out="$BACKUP_DIR/tsc.out"
+  # From the client folder: corepack picks the pnpm version from the package.json in the current folder.
+  cd "$client"
+  bite_run "$tsc_out" timeout -k 10 "${AGENT_BUILD_TIMEOUT:-900}" pnpm exec tsc --noEmit -p .
+  cd "$ROOT"
+  { echo "== tsc --noEmit (exit $BG_RC)"; cat "$tsc_out"; } >>"$AGENT_LOG"
+  [[ $BG_RC -ne 124 ]] || bite_finish 124 blocked "${label[@]}" reason=tsc-timed-out
+  if [[ $BG_RC -ne 0 ]]; then
+    if ! grep -qE 'error TS[0-9]+' "$tsc_out"; then
+      bite_die 4 "tsc exited $BG_RC without a type error, so the type-check did not run; see the log" reason=type-check-did-not-run
+    fi
+    bite_compiler_errors "$tsc_out"
+    bite_finish 3 blocked "${label[@]}" reason=mutation-does-not-compile
+  fi
+fi
+
+# 4. Run the runner in its own process group, so a signal to bite can stop it and its children.
+echo "== runner output" >>"$AGENT_LOG"
+runner_out="$BACKUP_DIR/runner.out"
+cd "$caller_dir"
+bite_run "$runner_out" "${runner[@]}"
+cd "$ROOT"
+runner_rc=$BG_RC
+cat "$runner_out" >>"$AGENT_LOG"
+
+# 5. Restore, and prove the tree is as it was.
+bite_restore
+git diff --quiet -- "${TARGETS[@]}" || agent_die 4 "the restore left a diff in ${TARGETS[*]}; restore from $BACKUP_DIR by hand" reason=restore-failed
+status_after="$(git status --porcelain)"
+if [[ "$status_after" != "$status_before" ]]; then
+  {
+    echo "== git status before"
+    echo "$status_before"
+    echo "== git status after"
+    echo "$status_after"
+  } >>"$AGENT_LOG"
+  agent_die 4 "git status differs from before the run; see the log" reason=status-changed
+fi
+
+# 6 and 7. Read the runner's summary and record every red test with its failure message.
+runner_log="$(sed -n 's/^log: //p' "$runner_out" | head -n 1)"
+runner_result="$(grep '^RESULT ' "$runner_out" | tail -n 1 || true)"
+echo "runner: exit $runner_rc, ${runner_result:-no RESULT line}"
+field() { sed -nE "s/.* $1=([^ ]*).*/\1/p" <<<"$runner_result"; }
+# failed_tests keeps exact names (spaces included, joined by |), so it runs up to the closing " log=".
+failed_tests="$(sed -nE 's/.* failed_tests=(.*) log=[^ ]*$/\1/p' <<<"$runner_result")"
+
+if [[ $runner_rc -eq 3 ]]; then
+  bite_compiler_errors "${runner_log:-none}"
+  bite_finish 3 blocked "${label[@]}" reason=mutation-does-not-compile "runner_log=${runner_log:-none}"
+fi
+
+failed="$(field failed)"
+unparsed=()
+if [[ $runner_rc -eq 1 && "${failed:-0}" -gt 0 ]]; then
+  echo "== red tests" >>"$AGENT_LOG"
+  if [[ -n "$runner_log" && -f "$runner_log" ]]; then
+    bite_red_blocks "$runner_name" "$runner_log" >"$BACKUP_DIR/red.txt"
+  fi
+  if [[ -s "$BACKUP_DIR/red.txt" ]]; then
+    cat "$BACKUP_DIR/red.txt" >>"$AGENT_LOG"
+    # One line per red test: its name and the first lines of its message.
+    awk 'function flush() { if (name != "") print "RED " name ": " substr(msg, 1, 200) }
+      /^### / { flush(); name = substr($0, 5); msg = ""; n = 0; next }
+      /^ *(❯ |at )/ { n = 5 }
+      n < 5 && NF { line = $0; gsub(/^ +| +$/, "", line); msg = msg (n ? " " : "") line; n++ }
+      END { flush() }' "$BACKUP_DIR/red.txt" | head -n 10 || true
+  else
+    echo "bite: found no failure blocks for $runner_name in ${runner_log:-no log}; copying the runner log's last 60 lines" | tee -a "$AGENT_LOG" >&2
+    {
+      echo "== runner log tail (last 60 lines of ${runner_log:-no log}; failure messages unparsed)"
+      if [[ -n "$runner_log" && -f "$runner_log" ]]; then tail -n 60 "$runner_log"; else tail -n 60 "$runner_out"; fi
+    } >>"$AGENT_LOG"
+    unparsed=(messages=unparsed)
+  fi
+  bite_finish 0 ok bit=yes "failed=$failed" "tests=\"$failed_tests\"" "${unparsed[@]}" "${label[@]}" "runner_log=${runner_log:-none}"
+fi
+
+if [[ $runner_rc -eq 0 ]]; then
+  bite_finish 1 fail bit=no "passed=$(field passed)" "${label[@]}" "runner_log=${runner_log:-none}"
+fi
+
+# Anything else (bad filter, lock wait, timeout, a failure with no failed test) proves nothing.
+bite_finish "$runner_rc" blocked "${label[@]}" "reason=runner-exit-$runner_rc" "runner_log=${runner_log:-none}"

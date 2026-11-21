@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Runs prettier --write, eslint and tsc on touched client files.
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage='usage: tools/agent/client-check <client file...>   e.g. tools/agent/client-check src/slides/videoEmbed.ts'
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  echo "$usage"
+  exit 0
+fi
+agent_start
+[[ $# -gt 0 ]] || agent_die 2 "at least one file is required. $usage" reason=missing-files
+root="$(agent_root)"
+client="$root/src/SlideWorks.Client"
+files=()
+for arg in "$@"; do
+  case "$arg" in
+    -*) agent_die 2 "options are not accepted ($arg): name files only. $usage" reason=option ;;
+  esac
+  path="$arg"
+  [[ -e "$path" ]] || path="$root/$arg"
+  [[ -e "$path" ]] || path="$client/$arg"
+  [[ ! -d "$path" ]] || agent_die 2 "a directory is a full run: name files ($arg)" reason=directory
+  [[ -f "$path" ]] || agent_die 2 "no such file: $arg" reason=no-file
+  path="$(realpath "$path")"
+  files+=("${path#"$client"/}")
+done
+agent_require pnpm timeout
+agent_env
+[[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run pnpm install --frozen-lockfile there" missing=node_modules
+echo "files: ${files[*]}"
+
+step() {
+  local name="$1" rc=0
+  shift
+  echo "== $name" >>"$AGENT_LOG"
+  (cd "$client" && timeout -k 10 "${AGENT_BUILD_TIMEOUT:-900}" "$@") >>"$AGENT_LOG" 2>&1 || rc=$?
+  if [[ $rc -ne 0 ]]; then
+    [[ $rc -ne 124 ]] || agent_finish 124 "failed_step=$name" reason=timed-out
+    agent_finish 1 "failed_step=$name"
+  fi
+}
+step prettier pnpm exec prettier --write "${files[@]}"
+step eslint pnpm exec eslint "${files[@]}"
+step tsc pnpm exec tsc --noEmit -p .
+agent_finish 0 "files=${#files[@]}"

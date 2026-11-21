@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# Integrates HEAD into a shared branch the same way every time: fetch, rebase, rebuild, rerun the tests, then push.
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage="usage: tools/agent/sync-push --branch <shared branch> [--test '<runner command>']..."
+branch="" tests=() bad=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h | --help)
+      echo "$usage"
+      exit 0
+      ;;
+    --branch | --test)
+      [[ $# -ge 2 && -n "$2" ]] || { bad=1; break; }
+      if [[ "$1" == "--branch" ]]; then branch="$2"; else tests+=("$2"); fi
+      shift 2
+      ;;
+    *) bad=1; break ;;
+  esac
+done
+agent_start
+[[ $bad -eq 0 && -n "$branch" ]] || agent_die 2 "$usage" reason=bad-usage
+agent_require git
+agent_env
+cd "$(agent_root)"
+
+if [[ -n "$(git status --porcelain)" ]]; then
+  agent_die 2 "uncommitted or untracked files (git status --porcelain is not empty): commit or ignore them first" reason=uncommitted-changes
+fi
+
+# A path the build must see: a source, project, props, contract or editorconfig change.
+needs_build() {
+  grep -qE '(\.cs|\.csproj|\.props)$|^src/contracts/|(^|/)\.editorconfig$'
+}
+
+for attempt in 1 2 3; do
+  echo "attempt $attempt: fetching origin/$branch"
+  git fetch -q origin "$branch" >>"$AGENT_LOG" 2>&1 \
+    || agent_die 4 "git fetch origin $branch failed (see log)" reason=fetch-failed
+  remote="refs/remotes/origin/$branch"
+  rebased=0
+  if git rev-parse -q --verify "$remote" >/dev/null && [[ -n "$(git rev-list "HEAD..$remote")" ]]; then
+    before="$(git rev-parse HEAD)"
+    echo "origin/$branch has commits HEAD lacks: rebasing"
+    if ! git rebase "$remote" >>"$AGENT_LOG" 2>&1; then
+      conflicts="$(git diff --name-only --diff-filter=U | paste -sd, -)"
+      git rebase --abort >>"$AGENT_LOG" 2>&1
+      echo "rebase conflict, aborted: $conflicts"
+      agent_finish 1 reason=rebase-conflict "files=$conflicts"
+    fi
+    rebased=1
+    # Every incoming commit's files, so a change that a later incoming commit reverts still counts.
+    incoming="$(git log --name-only --format= "$before..$remote")"
+    if needs_build <<<"$incoming"; then
+      echo "incoming commits touch built files: building"
+      rc=0
+      AGENT_BUILD_LOG="$AGENT_LOG" agent_build || rc=$?
+      [[ $rc -eq 0 ]] || agent_finish "$rc" reason=build-failed-after-rebase
+    else
+      echo "incoming commits touch no built files: no rebuild"
+    fi
+    for t in "${tests[@]}"; do
+      echo "running: $t"
+      rc=0
+      bash -c "$t" >>"$AGENT_LOG" 2>&1 || rc=$?
+      [[ $rc -eq 0 ]] || agent_finish 1 reason=test-failed-after-rebase "test=$t" "exit=$rc"
+    done
+  fi
+  if git push origin "HEAD:refs/heads/$branch" >>"$AGENT_LOG" 2>&1; then
+    pushed="$(git rev-parse --short HEAD)"
+    if command -v gh >/dev/null 2>&1; then
+      if prs="$(gh pr list --head "$branch" --json url,isDraft --jq '.[] | "\(.url) draft=\(.isDraft)"' 2>>"$AGENT_LOG")"; then
+        pr="$(head -1 <<<"$prs")"
+      else
+        pr="gh-failed"
+      fi
+    else
+      pr="gh-failed"
+    fi
+    if [[ "$pr" == "gh-failed" ]]; then
+      echo "warning: could not list pull requests (gh missing or failed, see log); check that one is open for $branch"
+    elif [[ -n "$pr" ]]; then
+      echo "pull request: $pr"
+    else
+      echo "warning: no open pull request for $branch; CI runs only on pull requests and main"
+    fi
+    agent_finish 0 "branch=$branch" "pushed=$pushed" "rebased=$rebased" "attempts=$attempt"
+  fi
+  echo "push rejected: looping"
+done
+agent_finish 1 reason=push-rejected-3-times "branch=$branch"

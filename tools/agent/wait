@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Waits (up to AGENT_WAIT_MAX seconds, default 170) for a tools/agent run the harness moved to the background.
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage="usage: tools/agent/wait <log>   (the log: path a script printed first; call again while it says still-running)"
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  echo "$usage"
+  exit 0
+fi
+if [[ $# -ne 1 ]]; then
+  echo "$usage" >&2
+  agent_result wait blocked "${1:-none}" reason=missing-log
+  exit 2
+fi
+log="$1"
+if [[ ! -e "$log" && ! -e "$log.done" ]]; then
+  echo "wait: no such log: $log" >&2
+  agent_result wait blocked "$log" reason=no-such-log
+  exit 2
+fi
+max="${AGENT_WAIT_MAX:-170}"
+deadline=$((SECONDS + max))
+# Watches the run's own .done marker file (written after its log is complete); never polls processes.
+while [[ ! -e "$log.done" && $SECONDS -lt $deadline ]]; do
+  sleep 1
+done
+if [[ ! -e "$log.done" ]]; then
+  agent_result wait blocked "$log" still-running
+  exit 0
+fi
+rc="$(head -n 1 "$log.done")"
+summary="$(grep '^RESULT ' "$log" | tail -n 1 || true)"
+if [[ -n "$summary" ]]; then
+  echo "$summary"
+else
+  agent_result wait fail "$log" "exit=$rc" reason=no-summary-in-log
+fi
+exit "$rc"

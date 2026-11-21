@@ -23,6 +23,10 @@ export interface StubOpenResponsesOptions {
 
 // Plays the phone's open-response routes (SW-8 D13) for one slide: the guest GET, PUT .../words and PUT .../answer, and,
 // with control, the presenter's GET. Call it before mount().
+//
+// It does NOT play the presenter's writes: POST .../response/open, .../response/close and
+// .../response/entries/{n}/hide. A test that posts them registers those routes on the same page itself (see
+// PresenterOpenPanel.test.tsx), because what they answer (the new control view) depends on the test.
 export async function stubOpenResponses(
   page: Page,
   { code = '482913', slide, view, deckId, control }: StubOpenResponsesOptions,

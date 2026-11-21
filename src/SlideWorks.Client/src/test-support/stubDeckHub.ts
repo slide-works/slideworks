@@ -143,6 +143,15 @@ export async function stubDeckHub(
   let audienceState = audience?.state && structuredClone(audience.state);
   let audienceRefusal = audience?.refuse;
 
+  // The connection a push goes to. Throws when the page has not connected to the hub yet (or the stub was not
+  // installed before mount), so a push is never silently lost.
+  const connection = (method: string): Sink => {
+    if (socket === undefined)
+      throw new Error(
+        `${method}: no hub connection yet. Call stubDeckHub before mount() and wait for the page to connect before pushing.`,
+      );
+    return socket;
+  };
   const send = (ws: Sink, message: object) => ws.send(`${JSON.stringify(message)}${RS}`);
   const broadcast = (state: PresentationState) =>
     socket && send(socket, { type: 1, target: 'presentationState', arguments: [state] });
@@ -437,7 +446,11 @@ export async function stubDeckHub(
     // Sends one "audienceEvent" to the newest connection. An audienceState also becomes the state later joins get.
     pushAudienceEvent(event: AudienceEvent) {
       if (event.type === 'audienceState') audienceState = structuredClone(event);
-      send(socket!, { type: 1, target: 'audienceEvent', arguments: [event] });
+      send(connection('pushAudienceEvent'), {
+        type: 1,
+        target: 'audienceEvent',
+        arguments: [event],
+      });
     },
     // Sends one pollTally to the newest connection as the hub does: an audience tally (counts null while hidden) always,
     // a results tally (with counts) only when that connection has watched the poll.
@@ -445,8 +458,9 @@ export async function stubDeckHub(
       tally: PollTally,
       { target = 'audience' }: { target?: 'audience' | 'results' } = {},
     ) {
+      const ws = connection('pushPollTally');
       if (target === 'results' && !watching()) return;
-      send(socket!, { type: 1, target: 'audienceEvent', arguments: [tally] });
+      send(ws, { type: 1, target: 'audienceEvent', arguments: [tally] });
     },
     // Sends one wordCloud to the newest connection, as the hub does to the audience group (the default) or to the
     // presenter's screens (target 'screen', hidden words included). Throws on an event the hub never sends: no type, a
@@ -463,7 +477,7 @@ export async function stubDeckHub(
         throw new Error(`pushWordCloud: count ${event.guests} is not an integer`);
       if (target === 'audience' && event.words.some((word) => word.hidden))
         throw new Error('pushWordCloud: an audience push never carries a hidden word');
-      send(socket!, { type: 1, target: 'audienceEvent', arguments: [event] });
+      send(connection('pushWordCloud'), { type: 1, target: 'audienceEvent', arguments: [event] });
     },
     // Sends one openText as pushWordCloud sends a wordCloud. Throws on no type, a guests count that is not an integer,
     // or a hidden answer in an audience push.
@@ -477,7 +491,7 @@ export async function stubDeckHub(
         throw new Error(`pushOpenText: count ${event.guests} is not an integer`);
       if (target === 'audience' && event.answers.some((answer) => answer.hidden))
         throw new Error('pushOpenText: an audience push never carries a hidden answer');
-      send(socket!, { type: 1, target: 'audienceEvent', arguments: [event] });
+      send(connection('pushOpenText'), { type: 1, target: 'audienceEvent', arguments: [event] });
     },
     // Whether a later WatchPoll is allowed: the guest has an answer in an open afterAnswer round. Starts false.
     setPollWatchable(watchable: boolean) {
@@ -490,18 +504,32 @@ export async function stubDeckHub(
     // Puts activity on the audience state with the seq one higher and sends it, as the server does when a poll opens,
     // closes or changes on screen. Later joins get that state too.
     pushActivity(activity: PollActivity | null) {
+      const ws = connection('pushActivity');
       audienceState = { ...audienceState!, seq: audienceState!.seq + 1, activity };
-      send(socket!, { type: 1, target: 'audienceEvent', arguments: [audienceState] });
+      send(ws, {
+        type: 1,
+        target: 'audienceEvent',
+        arguments: [audienceState],
+      });
     },
     // Sends one questionTally to the newest connection, as the hub does to the audience group (SW-9 Q5).
     pushQuestionTally(tally: QuestionTally) {
-      send(socket!, { type: 1, target: 'audienceEvent', arguments: [tally] });
+      send(connection('pushQuestionTally'), {
+        type: 1,
+        target: 'audienceEvent',
+        arguments: [tally],
+      });
     },
     // Puts room on the audience state with the seq one higher and sends it, as the server does when a setting, the
     // slide's switch, the round or the list revision changes (SW-9 Q1). Later joins get that state too.
     pushRoom(room: QaRoom | null) {
+      const ws = connection('pushRoom');
       audienceState = { ...audienceState!, seq: audienceState!.seq + 1, room };
-      send(socket!, { type: 1, target: 'audienceEvent', arguments: [audienceState] });
+      send(ws, {
+        type: 1,
+        target: 'audienceEvent',
+        arguments: [audienceState],
+      });
     },
     // Changes the state later JoinAudience calls answer with, sending nothing: the state a reconnecting guest lands on.
     setAudienceState(state: AudienceState) {
@@ -513,13 +541,14 @@ export async function stubDeckHub(
     },
     // Sends to the newest connection: the page's current deck.
     push(event: unknown) {
-      send(socket!, { type: 1, target: 'deckEvent', arguments: [event] });
+      send(connection('push'), { type: 1, target: 'deckEvent', arguments: [event] });
     },
     // Makes state the presentation's current state and broadcasts it to the newest connection as the hub does. A
     // later JoinPresentation answers with it.
     pushState(state: PresentationState) {
+      const ws = connection('pushState');
       current = structuredClone(state);
-      broadcast(current);
+      send(ws, { type: 1, target: 'presentationState', arguments: [current] });
     },
     // Makes the next call of target fail (every call, when sticky) as the real hub does when the method throws
     // HubException(message), such as DeckHub's "Not presenting". The call is still recorded, changes nothing and is
@@ -565,7 +594,7 @@ export async function stubDeckHub(
     drop() {
       // The hub forgets the connection's groups, so a reconnect must watch the poll again.
       watchingConnection = 0;
-      send(socket!, { type: 7, error: 'Server went away.', allowReconnect: true });
+      send(connection('drop'), { type: 7, error: 'Server went away.', allowReconnect: true });
     },
   };
 }

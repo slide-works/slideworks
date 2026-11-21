@@ -58,8 +58,9 @@ public static class AgentSeed
 
     // Follows a preview_deck result the way its instructions tell an agent to, as the equivalent Playwright calls: a
     // fresh anonymous context at the result's viewport, render_url with {slide} filled in for each number until wait_for matches, then a viewport
-    // screenshot. Fails on a page that shows data-error. Returns each slide's PNG by its number.
-    public static async Task<Dictionary<int, byte[]>> ScreenshotPreviewAsync(IBrowser browser, JsonElement preview)
+    // screenshot. Fails on a page that shows data-error. Returns each slide's PNG and the URL the page ended on, by its number;
+    // the test asserts on the URL (for example, that it has no fragment).
+    public static async Task<Dictionary<int, PreviewShot>> ScreenshotPreviewAsync(IBrowser browser, JsonElement preview)
     {
         var viewport = preview.GetProperty("viewport");
         var waitFor = preview.GetProperty("wait_for").GetString()!;
@@ -70,7 +71,7 @@ public static class AgentSeed
         });
         var template = preview.GetProperty("render_url").GetString()!;
         instructions.ShouldContain($"\"{template.Replace("{slide}", "$n")}\"");
-        var pngs = new Dictionary<int, byte[]>();
+        var shots = new Dictionary<int, PreviewShot>();
         foreach (var number in preview.GetProperty("slides").EnumerateArray().Select(s => s.GetInt32()))
         {
             var url = template.Replace("{slide}", number.ToString());
@@ -78,9 +79,9 @@ public static class AgentSeed
             await page.GotoAsync(url);
             await page.WaitForSelectorAsync(waitFor);
             (await page.GetByTestId("render-slide").GetAttributeAsync("data-error")).ShouldBeNull();
-            pngs[number] = await page.ScreenshotAsync();
+            shots[number] = new PreviewShot(await page.ScreenshotAsync(), page.Url);
         }
-        return pngs;
+        return shots;
     }
 
     // A PNG's width and height, from its IHDR chunk.

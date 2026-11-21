@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Threading.Channels;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Realtime.Presenting;
@@ -7,6 +6,7 @@ using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Slides;
 using SlideWorks.WebApi.Tests.Support;
+using SlideWorks.WebApi.Tests.Support.Timing;
 
 namespace SlideWorks.WebApi.Tests.Presenting;
 
@@ -24,8 +24,7 @@ public class SetTalkLengthToolTests : ApiTestFixture
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent);
-        var received = Channel.CreateUnbounded<DeckEvent>();
-        using var subscription = Factory.Services.GetRequiredService<IDeckEvents>().Subscribe(deck, e => received.Writer.WriteAsync(e).AsTask());
+        using var events = DeckEventsUntilMarker.Subscribe(Factory.Services.GetRequiredService<IDeckEvents>(), deck);
 
         var result = await SetAsync(agent, new { deck, minutes = 30 });
 
@@ -37,9 +36,7 @@ public class SetTalkLengthToolTests : ApiTestFixture
         entry.GetProperty("via").GetString().ShouldBe("mcp");
         entry.GetProperty("actorKind").GetString().ShouldBe("agent");
         entry.GetProperty("actor").GetString().ShouldBe("Claude");
-        (await received.Reader.ReadAsync()).ShouldBeOfType<DeckChanged>().DeckId.ShouldBe(deck);
-        var marker = await PublishMarkerAsync(deck);
-        (await received.Reader.ReadAsync()).ShouldBeSameAs(marker);
+        (await events.BeforeMarkerAsync()).ShouldHaveSingleItem().ShouldBeOfType<DeckChanged>().DeckId.ShouldBe(deck);
         _presentations.For(deck).ShouldBe([30]);
     }
 
@@ -71,8 +68,7 @@ public class SetTalkLengthToolTests : ApiTestFixture
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent);
-        var received = Channel.CreateUnbounded<DeckEvent>();
-        using var subscription = Factory.Services.GetRequiredService<IDeckEvents>().Subscribe(deck, e => received.Writer.WriteAsync(e).AsTask());
+        using var events = DeckEventsUntilMarker.Subscribe(Factory.Services.GetRequiredService<IDeckEvents>(), deck);
 
         (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck, minutes = 0 })).ShouldBe("minutes: must be a whole number from 1 to 600, or null to clear the talk length");
         (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck, minutes = 601 })).ShouldBe("minutes: must be a whole number from 1 to 600, or null to clear the talk length");
@@ -81,8 +77,7 @@ public class SetTalkLengthToolTests : ApiTestFixture
         (await SlideCalls.ErrorAsync(agent, "set_talk_length", new { deck, minutes = 30, extra = 1 })).ShouldBe("extra: unknown argument");
 
         (await DeckSeed.ActivityAsync(Client, deck)).Count.ShouldBe(1);
-        var marker = await PublishMarkerAsync(deck);
-        (await received.Reader.ReadAsync()).ShouldBeSameAs(marker);
+        (await events.BeforeMarkerAsync()).ShouldBeEmpty();
         (await GetDeckAsync(agent, deck)).GetProperty("talk_minutes").ValueKind.ShouldBe(JsonValueKind.Null);
         _presentations.For(deck).ShouldBeEmpty();
     }
@@ -96,25 +91,14 @@ public class SetTalkLengthToolTests : ApiTestFixture
         await using var sam = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         await using var alex = await McpTestClient.ConnectAsAsync(Factory, TestUser.Alex);
         var deck = await DeckSeed.CreateDeckAsync(sam);
-        var received = Channel.CreateUnbounded<DeckEvent>();
-        using var subscription = Factory.Services.GetRequiredService<IDeckEvents>().Subscribe(deck, e => received.Writer.WriteAsync(e).AsTask());
+        using var events = DeckEventsUntilMarker.Subscribe(Factory.Services.GetRequiredService<IDeckEvents>(), deck);
 
         (await SlideCalls.ErrorAsync(alex, "set_talk_length", new { deck, minutes })).ShouldBe("Deck not found");
 
         (await GetDeckAsync(sam, deck)).GetProperty("talk_minutes").ValueKind.ShouldBe(JsonValueKind.Null);
         (await DeckSeed.ActivityAsync(Client, deck)).Count.ShouldBe(1);
-        var marker = await PublishMarkerAsync(deck);
-        (await received.Reader.ReadAsync()).ShouldBeSameAs(marker);
+        (await events.BeforeMarkerAsync()).ShouldBeEmpty();
         _presentations.For(deck).ShouldBeEmpty();
-    }
-
-    // Delivery keeps publish order per subscriber, so once a marker published now comes through, everything the finished
-    // calls published has come through before it. Records compare by value, so the test checks the marker with ShouldBeSameAs.
-    private async Task<DeckChanged> PublishMarkerAsync(string deck)
-    {
-        var marker = new DeckChanged(deck);
-        await Factory.Services.GetRequiredService<IDeckEvents>().PublishAsync(marker);
-        return marker;
     }
 
     private static async Task<JsonElement> SetAsync(McpTestClient agent, object args)

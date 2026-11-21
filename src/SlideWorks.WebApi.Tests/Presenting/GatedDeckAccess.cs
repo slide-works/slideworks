@@ -1,11 +1,12 @@
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure.Identity;
+using SlideWorks.WebApi.Tests.Support.Timing;
 
 namespace SlideWorks.WebApi.Tests.Presenting;
 
-// The real IDeckAccess with a JoinGate in front of CanPresentAsync, so a test can hold a JoinPresentation inside the hub
+// The real IDeckAccess with a Gate in front of CanPresentAsync, so a test can hold a JoinPresentation inside the hub
 // call. A fixture swaps it in with ConfigureTestServices.
-public sealed class GatedDeckAccess(DeckAccess inner, JoinGate gate) : IDeckAccess
+public sealed class GatedDeckAccess(DeckAccess inner, Gate gate) : IDeckAccess
 {
     public Task<bool> CanViewAsync(string deckId, ICurrentActor actor) => inner.CanViewAsync(deckId, actor);
 
