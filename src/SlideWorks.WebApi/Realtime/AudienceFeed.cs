@@ -1,6 +1,7 @@
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.Core.Slides;
+using SlideWorks.Core.Slides.Layouts;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Qa;
@@ -32,8 +33,6 @@ namespace SlideWorks.WebApi.Realtime;
 [RegisterSingleton]
 public sealed class AudienceFeed : IDisposable
 {
-    private const string JOIN_LAYOUT = "join";
-
     private readonly IServiceScopeFactory _scopes;
     private readonly IAudienceEvents _audienceEvents;
     private readonly TimeProvider _clock;
@@ -269,7 +268,7 @@ public sealed class AudienceFeed : IDisposable
     // leaves the first stamp alone.
     private async Task StampJoinSlideAsync(IServiceProvider services, string sessionId, AudienceState state)
     {
-        if (state.Current is not { Layout: JOIN_LAYOUT })
+        if (state.Current is not { Layout: JoinLayout.NAME })
         {
             return;
         }
