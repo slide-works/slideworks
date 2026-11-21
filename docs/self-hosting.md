@@ -224,7 +224,7 @@ Ask the agent for a deck, for example: "Make a 10-slide deck on why small batche
 
 | Tool | What it does |
 |---|---|
-| `list_layouts`, `list_blocks` | The 29 layouts, their slots and limits, and the inline blocks. `detail` `compact` leaves the schema out: each slot is a short `{name, kind, required, max}` entry, and the icon names and blocks are listed once. Icon, emphasis and callout schemas are shared in `$defs` on the full response |
+| `list_layouts`, `list_blocks` | The 31 layouts, their slots and limits, and the inline blocks. `detail` `compact` leaves the schema out: each slot is a short `{name, kind, required, max}` entry, and the icon names and blocks are listed once. Icon, emphasis and callout schemas are shared in `$defs` on the full response |
 | `create_deck` | Creates a deck with a title and optional parts. `like` copies another deck you own: its template, palette and colours, logo, chrome, draft mark and talk length |
 | `add_slide`, `update_slide`, `move_slide`, `delete_slide`, `set_notes` | Change slides. The server checks each slide against its layout and names the field that broke. A poll slide can take its settings in the same call, including a free-text or word-cloud question (`answers` `text` or `cloud`, with no options). A poll slide with a round open can't be deleted or given another layout, and its options can't shrink or change order, until the poll is closed |
 | `update_poll` | Changes a poll slide's settings: one pick or up to some, when the room sees the counts, the correct answer, when it opens, and whether answers are choices, free text or a word cloud. Refused while a round is open |
@@ -236,7 +236,7 @@ Ask the agent for a deck, for example: "Make a 10-slide deck on why small batche
 | `upload_image` | Returns a one-time upload URL for a PNG, JPEG, WebP or GIF of up to 10 MB |
 | `upload_images` | Starts up to 30 of those uploads in one call. Each file is still PUT to its own URL |
 | `set_sharing` | Private, anyone with the link, or named people |
-| `list_decks`, `get_deck`, `get_deck_url` | Read decks back and get the link to present. `get_deck` with `detail` `summary` returns each slide's number, layout, part and headline (cut at 120 characters) |
+| `list_decks`, `get_deck`, `get_deck_url` | Read decks back and get the link to present. `get_deck` also returns the Q&A settings as `qa` and each session's reaction totals as `reactions`. With `detail` `summary` it returns each slide's number, layout, part and headline (cut at 120 characters), without them |
 
 Open the link the agent returns, or find the deck in the library. The deck page shows the slides, the speaker notes and a log of every change, with the agent's name. **Present** opens the player, which works with the keyboard, clicks and swipes on a laptop or a phone.
 
