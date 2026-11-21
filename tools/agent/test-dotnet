@@ -44,7 +44,6 @@ esac
 # --ListFullyQualifiedTests, which applies --TestCaseFilter.
 dll="$(dotnet msbuild "$project" -getProperty:TargetPath 2>>"$AGENT_LOG")"
 [[ -f "$dll" ]] || agent_die 4 "built test assembly not found: ${dll:-none}" reason=no-assembly
-scratch="$(agent_scratch)"
 list_tests() {
   local out="$1"
   shift
@@ -61,12 +60,13 @@ list_tests() {
   [[ -f "$out" ]] || agent_die 1 "listing tests wrote no list; see the log" reason=list-failed
   listed="$(grep -c . "$out" || true)"
 }
-list_tests "$scratch/test-dotnet-selected.txt" "--TestCaseFilter:$filter"
+# The list files are named after this run's log, so concurrent runs never share them.
+list_tests "${AGENT_LOG%.log}-selected.txt" "--TestCaseFilter:$filter"
 selected="$listed"
 max="${AGENT_MAX_TESTS:-300}"
 [[ "$selected" -gt 0 ]] || agent_die 2 "the filter selects no test" reason=no-tests selected=0
 [[ "$selected" -le "$max" ]] || agent_die 2 "the filter selects $selected tests, more than $max: narrow it" reason=too-many-tests "selected=$selected"
-list_tests "$scratch/test-dotnet-all.txt"
+list_tests "${AGENT_LOG%.log}-all.txt"
 total="$listed"
 [[ "$selected" -lt "$total" ]] || agent_die 2 "the filter selects every test in the project ($total): narrow it" reason=whole-project "selected=$selected"
 echo "selected: $selected of $total"
@@ -85,15 +85,16 @@ mapfile -t failures < <(sed -nE 's/^ +Failed (.+) \[[^]]*\]$/\1/p' "$AGENT_LOG")
 names=()
 for name in "${failures[@]:0:10}"; do
   echo "FAILED $name"
-  names+=("${name// /_}")
+  names+=("$name")
 done
 if [[ ${#failures[@]} -gt 10 ]]; then
   echo "+$((${#failures[@]} - 10)) more"
-  names+=("+$((${#failures[@]} - 10))_more")
+  names+=("+$((${#failures[@]} - 10)) more")
 fi
 counts=("passed=$passed" "failed=$failed" "skipped=$skipped")
 if [[ ${#names[@]} -gt 0 ]]; then
-  counts+=("failed_tests=$(IFS=,; echo "${names[*]}")")
+  # Exact names, joined by |.
+  counts+=("failed_tests=$(IFS='|'; echo "${names[*]}")")
 fi
 if [[ "$line" == Passed!* && $rc -eq 0 ]]; then
   agent_finish 0 "${counts[@]}"
