@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
@@ -14,6 +15,7 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
 {
     private const int SLIDES = 3;
     private const int POLL = 3;
+    private const string REACTIONS_TYPE = "\"type\":\"reactions\"";
     private const string QUESTION = "How big was your last change?";
 
     // The first assertion after a hub push waits as long as the repo's other journeys do (15 s).
@@ -22,12 +24,12 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
     // Records every float node the reactions layer gets, with its text, before the animation retires it.
     private const string WATCH_FLOATS =
         """
-        () => {
+        floatTestId => {
           window.__floatsSeen = [];
           const note = node => {
             if (node.nodeType !== 1) return;
-            for (const el of [node, ...node.querySelectorAll('[data-testid="qa-reactions-float"]')]) {
-              if (el.getAttribute('data-testid') === 'qa-reactions-float') window.__floatsSeen.push(el.textContent);
+            for (const el of [node, ...node.querySelectorAll(`[data-testid="${floatTestId}"]`)]) {
+              if (el.getAttribute('data-testid') === floatTestId) window.__floatsSeen.push(el.textContent);
             }
           };
           new MutationObserver(records => records.forEach(r => r.addedNodes.forEach(note)))
@@ -52,9 +54,10 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
         await Expect(panel.CounterEmpty).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
         await Expect(phoneA.Questions.ReactionRow).ToBeVisibleAsync();
         await Expect(phoneB.Questions.ReactionRow).ToBeVisibleAsync();
-        await Expect(phoneA.Page.GetByTestId("qa-reactions-layer")).ToHaveCountAsync(0);
-        await talk.AudiencePage.EvaluateAsync<bool>(WATCH_FLOATS);
-        await Expect(talk.AudiencePage.GetByTestId("qa-reactions-layer")).ToHaveCountAsync(1);
+        await talk.AudiencePage.EvaluateAsync<bool>(WATCH_FLOATS, QaSlide.FLOAT_TEST_ID);
+        var screen = new QaSlide(talk.Audience.Slide(1));
+        await Expect(screen.ReactionsLayer).ToHaveCountAsync(1);
+        var phoneBStatesBefore = StateFrames(phoneB.Frames);
 
         await phoneA.Questions.Reaction("clap").ClickAsync();
 
@@ -65,13 +68,20 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
         var floats = await talk.AudiencePage.EvaluateAsync<string[]>("() => window.__floatsSeen");
         floats.Length.ShouldBe(1);
         floats[0].ShouldContain("👏");
-        // The other phone received nothing: no layer, no float, no chip, and its own row is unchanged.
-        await Expect(phoneB.Page.GetByTestId("qa-reactions-layer")).ToHaveCountAsync(0);
-        await Expect(phoneB.Page.GetByTestId("qa-reactions-float")).ToHaveCountAsync(0);
-        await Expect(phoneB.Page.GetByTestId("qa-reactions-chip")).ToHaveCountAsync(0);
+        // The other phone received nothing. Its page never draws reactions, so its hub frames are what is checked. They are
+        // recorded from before it connected. A later event of another type must still reach it after the tap, or a dead
+        // socket would pass; then no frame it ever received is a reactions burst.
+        await talk.Presenter.PressAsync("ArrowRight");
+        await Expect(talk.Presenter.Count).ToHaveTextAsync($"2 / {SLIDES}", new() { Timeout = PUSH_TIMEOUT });
+        (await Eventually.ReadAsync(() => Task.FromResult(StateFrames(phoneB.Frames)), count => count > phoneBStatesBefore))
+            .ShouldBeGreaterThan(phoneBStatesBefore, "phone B's socket should still deliver events after the tap");
+        phoneB.Frames.ShouldNotBeEmpty();
+        phoneB.Frames.Where(frame => frame.Contains(REACTIONS_TYPE, StringComparison.Ordinal)).ShouldBeEmpty();
         await Expect(phoneB.Questions.ReactionError).ToHaveCountAsync(0);
-        await Expect(phoneA.Page.GetByTestId("qa-reactions-layer")).ToHaveCountAsync(0);
     }
+
+    private static int StateFrames(ConcurrentQueue<string> frames) =>
+        frames.Count(frame => frame.Contains("\"type\":\"audienceState\"", StringComparison.Ordinal));
 
     // Criteria (D7): a phone on the Questions tab switches to the Slide tab, and shows the poll, when the poll opens; a phone
     // with the ask sheet open stays on Questions and shows "A poll just opened. It is on the Slide tab." with Go to poll,
@@ -168,10 +178,12 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
     private static async Task<Phone> JoinAsync(IBrowserContext context, string joinUrl)
     {
         var page = await context.NewPageAsync();
+        var frames = new ConcurrentQueue<string>();
+        page.WebSocket += (_, socket) => socket.FrameReceived += (_, frame) => frames.Enqueue(frame.Text ?? "");
         var guest = new GuestPage(page);
         await guest.GotoUrlAsync(joinUrl);
         await guest.IsFollowingAsync();
-        return new Phone(page, guest, new GuestQuestions(page), new GuestPollCard(page));
+        return new Phone(page, guest, new GuestQuestions(page), new GuestPollCard(page), frames);
     }
 
     private async Task<string> ReadAsync(string path, string field)
@@ -188,5 +200,5 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
 
     private sealed record Talk(PresenterPage Presenter, PlayerPage Audience, IPage AudiencePage, string JoinUrl);
 
-    private sealed record Phone(IPage Page, GuestPage Guest, GuestQuestions Questions, GuestPollCard Card);
+    private sealed record Phone(IPage Page, GuestPage Guest, GuestQuestions Questions, GuestPollCard Card, ConcurrentQueue<string> Frames);
 }

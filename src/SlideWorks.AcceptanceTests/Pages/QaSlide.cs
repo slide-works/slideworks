@@ -90,7 +90,10 @@ public sealed class QaSlide(ILocator slide)
     public ILocator ReactionsLayer => slide.Page.GetByTestId("qa-reactions-layer");
 
     // One floating emoji; at most 30 on screen at once.
-    public ILocator ReactionFloats => slide.Page.GetByTestId("qa-reactions-float");
+    public ILocator ReactionFloats => slide.Page.GetByTestId(FLOAT_TEST_ID);
+
+    // The id of one floating emoji, for scripts that watch the page for floats.
+    public const string FLOAT_TEST_ID = "qa-reactions-float";
 
     // "+14 👏", the rest of a batch past 30, and the only thing drawn with reduced motion.
     public ILocator ReactionsChip => slide.Page.GetByTestId("qa-reactions-chip");
