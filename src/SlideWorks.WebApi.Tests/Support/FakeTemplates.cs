@@ -29,6 +29,15 @@ public sealed class FakeTemplates : ITemplates
         }
     }
 
+    // Forgets every template added, so the next test of the fixture sees the built-ins again.
+    public void Reset()
+    {
+        lock (_gate)
+        {
+            _added.Clear();
+        }
+    }
+
     public Task<ResolvedTemplate?> FindAsync(string templateRef, int? version, CancellationToken ct)
     {
         lock (_gate)

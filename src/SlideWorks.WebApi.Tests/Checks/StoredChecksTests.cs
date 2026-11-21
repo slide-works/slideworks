@@ -24,6 +24,9 @@ public class StoredChecksTests : ApiTestFixture
 
     protected override Action<IServiceCollection>? ConfigureTestServices => FakeTemplates.Register;
 
+    [TearDown]
+    public void ForgetWidenedTemplates() => Factory.Services.GetRequiredService<FakeTemplates>().Reset();
+
     [Test]
     public async Task CheckDeck_WhenTheFontsGetWiderAfterASlideWasAdded_ShouldReportFit()
     {
@@ -80,7 +83,7 @@ public class StoredChecksTests : ApiTestFixture
         wide.Select(f => f.GetProperty("rule").GetString()).ShouldBe(["fit", "layoutOutsideTemplate"]);
         wide[1].GetProperty("severity").GetString().ShouldBe("warning");
         wide[1].GetProperty("where").GetString().ShouldBe("statement");
-        wide[1].GetProperty("message").GetString().ShouldBe($"Slide 1: layout 'statement' is not in the '{template.Name}' template");
+        wide[1].GetProperty("message").GetString().ShouldBe($"Layout 'statement' is not in the '{template.Name}' template. Pick a layout from list_layouts, or change the look.");
         wide[0].GetProperty("where").GetString().ShouldStartWith("statement");
     }
 
@@ -102,6 +105,7 @@ public class StoredChecksTests : ApiTestFixture
         warning.GetProperty("source").GetString().ShouldBe("stored");
         warning.GetProperty("where").GetString().ShouldBe("image.image");
         warning.GetProperty("slide").GetInt32().ShouldBe(1);
+        warning.GetProperty("message").GetString().ShouldBe($"Alt text \"{(alt == "IMAGE_ID" ? image : alt)}\" doesn't say what the picture shows; describe it in a few words.");
     }
 
     [Test]

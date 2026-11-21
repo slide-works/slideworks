@@ -49,7 +49,7 @@ public sealed class StoredSlideChecks(AppDbContext db, ITemplates templates, IDe
 
         foreach (var warning in LayoutWarnings.For(resolved.Template, number, slide.Layout))
         {
-            findings.Add(Make(number, FindingRule.LayoutOutsideTemplate, slide.Layout, warning));
+            findings.Add(Make(number, FindingRule.LayoutOutsideTemplate, slide.Layout, OutsideMessage(warning, number)));
         }
 
         IReadOnlyList<string> errors;
@@ -71,11 +71,19 @@ public sealed class StoredSlideChecks(AppDbContext db, ITemplates templates, IDe
             findings.Add(Make(number, FindingRule.Fit, colon > 0 ? error[..colon] : slide.Layout, $"{error.TrimEnd('.')}. {FIT_SUFFIX}"));
         }
 
-        foreach (var path in GenericAlt.Paths(slots, slide.Layout))
+        foreach (var (path, alt) in GenericAlt.Paths(slots, slide.Layout))
         {
-            findings.Add(Make(number, FindingRule.GenericAlt, path, "Alt text \"image\" doesn't say what the picture shows; describe it in a few words."));
+            findings.Add(Make(number, FindingRule.GenericAlt, path, $"Alt text \"{alt}\" doesn't say what the picture shows; describe it in a few words."));
         }
         return findings;
+    }
+
+    // The finding carries the slide number itself, so the shared warning's "Slide N: " prefix goes; the fix is added.
+    private static string OutsideMessage(string warning, int number)
+    {
+        var prefix = $"Slide {number}: ";
+        var text = warning.StartsWith(prefix, StringComparison.Ordinal) ? warning[prefix.Length..] : warning;
+        return $"{char.ToUpperInvariant(text[0])}{text[1..]}. Pick a layout from list_layouts, or change the look.";
     }
 
     private static SlideFinding Make(int slide, FindingRule rule, string where, string message)

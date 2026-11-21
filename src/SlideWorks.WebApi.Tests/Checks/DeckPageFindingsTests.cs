@@ -22,6 +22,9 @@ public class DeckPageFindingsTests : ApiTestFixture
 
     protected override Action<IServiceCollection>? ConfigureTestServices => FakeTemplates.Register;
 
+    [TearDown]
+    public void ForgetWidenedTemplates() => Factory.Services.GetRequiredService<FakeTemplates>().Reset();
+
     [Test]
     public async Task Get_WhenTheOwnerAsks_ShouldMatchTheScreenShapeAndNotRender()
     {

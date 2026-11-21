@@ -19,15 +19,15 @@ public static partial class GenericAlt
         return WORDS.Contains(trimmed) || FileName().IsMatch(trimmed) || string.Equals(trimmed, imageId, StringComparison.OrdinalIgnoreCase);
     }
 
-    // The path of every {image, alt} object in the slots, at any depth, whose alt is generic: "image.image", "two-column.left.image".
-    public static IReadOnlyList<string> Paths(JsonElement slots, string layout)
+    // The path and trimmed alt of every {image, alt} object in the slots, at any depth, whose alt is generic: "image.image", "two-column.left.image".
+    public static IReadOnlyList<(string Path, string Alt)> Paths(JsonElement slots, string layout)
     {
-        var found = new List<string>();
+        var found = new List<(string Path, string Alt)>();
         Walk(slots, layout, found);
         return found;
     }
 
-    private static void Walk(JsonElement element, string path, List<string> found)
+    private static void Walk(JsonElement element, string path, List<(string Path, string Alt)> found)
     {
         if (element.ValueKind == JsonValueKind.Array)
         {
@@ -46,7 +46,7 @@ public static partial class GenericAlt
             && element.TryGetProperty("alt", out var alt) && alt.ValueKind == JsonValueKind.String
             && IsGeneric(alt.GetString()!, image.GetString()!))
         {
-            found.Add(path);
+            found.Add((path, alt.GetString()!.Trim()));
         }
         foreach (var property in element.EnumerateObject())
         {
