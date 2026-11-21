@@ -23,15 +23,6 @@ const looks = [
 // deleted.
 type Known = { slide: number; rule: string; wherePrefix: string; bug: string };
 
-// SW-3-new: the Journey part names draw at 18 px in the sample deck (slides 2 and 7), under the 20 px bar. Not yet filed.
-const journeyNames = [2, 7].flatMap((slide) =>
-  ['The cost', 'Slice it', 'Ship it', 'Make it stick'].map((name) => ({
-    slide,
-    rule: 'smallText',
-    wherePrefix: `text "${name}"`,
-    bug: 'SW-3-new',
-  })),
-);
 // SW-666: the gantt ship marker and the Practice "What comes back" heading, both 3.1:1 under cobalt.
 const cobalt: Known[] = [
   { slide: 5, rule: 'lowContrast', wherePrefix: 'text "▲"', bug: 'SW-666' },
@@ -54,12 +45,10 @@ const midnightTable: Known[] = [
   'Minutes',
 ].map((cell) => ({ slide: 11, rule: 'lowContrast', wherePrefix: `text "${cell}"`, bug: 'SW-665' }));
 const KNOWN: Record<string, Known[]> = {
-  'talk cobalt': [...journeyNames, ...cobalt],
-  'talk ember': journeyNames,
-  'talk plum': journeyNames,
+  'talk cobalt': cobalt,
   // SW-665: still 1.0:1 after color(srgb) parsing: the table cells inherit the page ink, dark on midnight's dark card.
-  'talk midnight': [...journeyNames, ...midnightTable],
-  'workshop cobalt': [...journeyNames, ...cobalt],
+  'talk midnight': midnightTable,
+  'workshop cobalt': cobalt,
 };
 
 for (const { template, palette } of looks) {

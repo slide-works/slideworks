@@ -78,7 +78,12 @@ export function Journey({ parts, part }: { parts: PartWire[]; part: number | nul
             aria-current={state === 'on' ? 'step' : undefined}
             className={styles.part}
           >
-            <b data-journey-name="" className={styles.name} title={name}>
+            <b
+              data-journey-name=""
+              data-check-size="designed:18"
+              className={styles.name}
+              title={name}
+            >
               {name}
             </b>
             <span className={styles.number} data-check-size="designed">

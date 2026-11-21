@@ -5,8 +5,16 @@ const MIN_PX = 20;
 const WHERE_LENGTH = 40;
 const QUOTE_LENGTH = 30;
 
+// The floor of the nearest data-check-size="designed:N" mark, or null when there is none.
+function designedFloor(element: HTMLElement): number | null {
+  const mark = element.closest('[data-check-size^="designed:"]');
+  const floor = Number(mark?.getAttribute('data-check-size')?.slice('designed:'.length));
+  return mark && Number.isFinite(floor) ? floor : null;
+}
+
 // Text drawn under the minimum size. The slide frame is scaled by a transform, so the computed size is already in canvas pixels.
-// Elements marked data-check-size="designed" are small on purpose and skipped; chrome is skipped by textRunsOf.
+// Elements marked data-check-size="designed" are small on purpose and skipped. "designed:18" is designed at 18 px:
+// skipped at or above 18 canvas px, and still warned below it. Chrome is skipped by textRunsOf.
 export const textSize: MeasureRule = (frame, slide) => {
   const found: SlideFinding[] = [];
   const seen = new Set<HTMLElement>();
@@ -20,7 +28,8 @@ export const textSize: MeasureRule = (frame, slide) => {
       continue;
     seen.add(run.element);
     const size = parseFloat(getComputedStyle(run.element).fontSize);
-    if (!(size < MIN_PX)) continue;
+    const floor = designedFloor(run.element);
+    if (floor !== null ? !(size < floor) : !(size < MIN_PX)) continue;
     const quoted =
       run.text.length > QUOTE_LENGTH ? `${run.text.slice(0, QUOTE_LENGTH)}…` : run.text;
     found.push({

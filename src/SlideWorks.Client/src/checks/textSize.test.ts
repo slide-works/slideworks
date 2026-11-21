@@ -67,3 +67,20 @@ test('skips chrome', () => {
   const found = run(frameOf(el('div', 'Footer', '12px', { 'data-testid': 'slide-footer' })));
   expect(found).toEqual([]);
 });
+
+const designedAt = (mark: string, size: string) =>
+  run(frameOf(el('b', 'Part name', size, { 'data-check-size': mark })));
+
+test('skips designed:18 text at 18 px', () => {
+  expect(designedAt('designed:18', '18px')).toEqual([]);
+});
+
+test('warns on designed:18 text below 18 px', () => {
+  const found = designedAt('designed:18', '14px');
+  expect(found).toHaveLength(1);
+  expect(found[0]).toMatchObject({ rule: 'smallText', severity: 'warning' });
+});
+
+test('skips plain designed text at 14 px', () => {
+  expect(designedAt('designed', '14px')).toEqual([]);
+});
