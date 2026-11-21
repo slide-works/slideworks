@@ -456,3 +456,35 @@ export type LivePresentation = {
 };
 
 export type LivePresentationsView = { presentations: LivePresentation[] };
+
+// SW-3's visual check (K1, K2): one problem found on a slide.
+export type FindingRule =
+  | 'overflow'
+  | 'smallText'
+  | 'lowContrast'
+  | 'textOnImage'
+  | 'imageNotLoaded'
+  | 'imageLowResolution'
+  | 'renderFailed'
+  | 'fit'
+  | 'layoutOutsideTemplate'
+  | 'genericAlt';
+
+export type FindingSeverity = 'error' | 'warning' | 'note';
+
+export type SlideFinding = {
+  slide: number;
+  rule: FindingRule;
+  severity: FindingSeverity;
+  source: 'measured' | 'stored';
+  where: string;
+  message: string;
+};
+
+export type DeckChecksView = {
+  deck: string;
+  slides: number[];
+  findings: SlideFinding[];
+  measured: boolean;
+  error: string | null;
+};

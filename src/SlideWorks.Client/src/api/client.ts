@@ -4,6 +4,8 @@
 // handler, which by default sends the person to sign in and back. A 403 { error: 'pending_approval' } goes to its own
 // handler, which by default sends the person to /pending.
 
+import type { DeckChecksView } from './types';
+
 // One entry of a refusal body's `errors`: the field it is about, its code and its text.
 export type ApiFieldError = { path: string; code: string; message: string };
 
@@ -131,3 +133,7 @@ export const api = {
   put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),
   del: <T>(path: string) => request<T>('DELETE', path),
 };
+
+// The stored checks of a deck's slides (SW-3 K9). Measured checks come from the browser.
+export const getDeckChecks = (deckId: string) =>
+  api.get<DeckChecksView>(`/api/decks/${encodeURIComponent(deckId)}/checks`);
