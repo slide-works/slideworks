@@ -1,4 +1,5 @@
-import type { FindingRule, FindingSeverity } from '../api/types';
+import type { FindingRule, FindingSeverity, SlideFinding } from '../api/types';
+import type { Canvas } from './canvas';
 
 export type { DeckChecksView, FindingRule, FindingSeverity, SlideFinding } from '../api/types';
 
@@ -16,3 +17,6 @@ export function severityOf(rule: FindingRule): FindingSeverity {
       return 'warning';
   }
 }
+
+// One measured rule: reads a rendered slide frame, returns its findings.
+export type MeasureRule = (frame: HTMLElement, slide: number, canvas: Canvas) => SlideFinding[];
