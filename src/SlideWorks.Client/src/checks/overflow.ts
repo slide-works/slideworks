@@ -52,11 +52,27 @@ export const overflow: MeasureRule = (frame, slide, canvas) => {
       message,
     });
 
+  // One finding per element: the runs of an element's text nodes are grouped and the overflowing rects joined.
+  const byElement = new Map<Element, { text: string; union: CanvasRect }>();
   for (const run of textRunsOf(frame)) {
-    const rect = run.rects.find((r) => !isEmpty(r) && outside(r, floor));
-    if (!rect) continue;
-    const message = problem(rect, floor, 'Text');
-    if (message) add(`text "${run.text.slice(0, WHERE_LENGTH)}"`, message);
+    for (const rect of run.rects) {
+      if (isEmpty(rect) || !outside(rect, floor)) continue;
+      const seen = byElement.get(run.element);
+      if (!seen) {
+        byElement.set(run.element, { text: run.text, union: { ...rect } });
+        continue;
+      }
+      seen.union = {
+        left: Math.min(seen.union.left, rect.left),
+        top: Math.min(seen.union.top, rect.top),
+        right: Math.max(seen.union.right, rect.right),
+        bottom: Math.max(seen.union.bottom, rect.bottom),
+      };
+    }
+  }
+  for (const { text, union } of byElement.values()) {
+    const message = problem(union, floor, 'Text');
+    if (message) add(`text "${text.slice(0, WHERE_LENGTH)}"`, message);
   }
 
   for (const el of frame.querySelectorAll('img, svg')) {

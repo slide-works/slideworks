@@ -59,7 +59,7 @@ function slideOf({ entry, slots }: Case): RenderableSlide {
 
 // Fixtures that overflow today. Each is a real bug, left drawn so it is reported, not skipped.
 const KNOWN_OVERFLOW: Record<string, string> = {
-  levelsTextWide: 'overflows (y 1049-1105, footer at 1023); reported to the conductor',
+  levelsTextWide: 'overflows (y 1049-1105, footer at 1023); reported to the conductor: SW-664',
 };
 
 for (const c of cases) {

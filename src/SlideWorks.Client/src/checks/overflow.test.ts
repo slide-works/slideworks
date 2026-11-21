@@ -106,6 +106,22 @@ test('reports an element once however many lines overflow', () => {
   expect(found).toHaveLength(1);
 });
 
+test('reports an element once when inline markup splits its text into several nodes', () => {
+  const p = document.createElement('p');
+  const bold = document.createElement('b');
+  bold.textContent = 'b';
+  p.append('a ', bold, ' c');
+  boxes.set(p, [
+    [120, 1000, 600, 1060],
+    [120, 1060, 600, 1120],
+  ]);
+
+  const found = run(frameOf([p, footer()]));
+
+  expect(found).toHaveLength(1);
+  expect(found[0].message).toContain('y 1000–1120');
+});
+
 test("scales by the frame's width", () => {
   scale = 0.5;
   const frame = frameOf([text('Half size', [120, 1031, 600, 1098]), footer()]);

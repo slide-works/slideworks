@@ -6,6 +6,9 @@ const MAX_STRETCH = 1.5;
 
 const whole = (value: number) => Math.round(value);
 
+// The rule measures the element's box. That is right for the current layouts, whose images are object-fit cover or sit
+// in a box sized to the image's ratio. An object-fit: contain box would need its own scale (the drawn image is
+// smaller than its box).
 // Images that failed to load, or are drawn much larger than their pixels.
 export const images: MeasureRule = (frame, slide, canvas) => {
   const found: SlideFinding[] = [];
