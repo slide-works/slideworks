@@ -9,10 +9,13 @@ import { SlideChecksList } from './SlideChecksList';
 export function SelectedSlide({
   slide,
   findings,
+  unchecked,
 }: {
   slide: DeckPageSlide;
   // The slide's checks; left out where there is nothing to check (the list is then not drawn).
   findings?: SlideFinding[];
+  // Measuring this slide threw.
+  unchecked?: boolean;
 }) {
   return (
     <section data-testid="selected-slide" className="panel grid gap-3 p-4">
@@ -47,7 +50,9 @@ export function SelectedSlide({
           <NotesText text={slide.notes} />
         </div>
       )}
-      {findings && <SlideChecksList findings={findings} />}
+      {findings && (
+        <SlideChecksList slide={slide.number} findings={findings} unchecked={unchecked} />
+      )}
     </section>
   );
 }

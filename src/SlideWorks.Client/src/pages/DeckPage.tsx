@@ -143,7 +143,8 @@ export function DeckPage({ measure = measureSlide }: { measure?: Measure }) {
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <SlideGrid
             view={view}
-            findings={checks}
+            findings={checks.bySlide}
+            measured={checks.measured}
             selected={slide?.number ?? 0}
             onSelect={(number) => setSelection({ id, number })}
           />
@@ -154,7 +155,13 @@ export function DeckPage({ measure = measureSlide }: { measure?: Measure }) {
                 <QaSettingsCard deckId={view.id} slide={slide?.number ?? null} />
               </QaControlLive>
             )}
-            {slide && <SelectedSlide slide={slide} findings={checks.get(slide.number) ?? []} />}
+            {slide && (
+              <SelectedSlide
+                slide={slide}
+                findings={checks.bySlide.get(slide.number) ?? []}
+                unchecked={checks.unchecked.has(slide.number)}
+              />
+            )}
             <ActivityFeed rows={view.activity} isOwner={view.isOwner} />
             <LaterOnThisPage />
           </div>

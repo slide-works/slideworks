@@ -31,17 +31,26 @@ const nextFrame = () => new Promise<void>((done) => requestAnimationFrame(() => 
 const isShown = (frame: HTMLElement) =>
   getComputedStyle(frame.closest('[inert]') ?? frame).visibility !== 'hidden';
 
+export type SlideChecks = {
+  bySlide: Map<number, SlideFinding[]>;
+  // The slides whose measuring threw: their measured findings are missing.
+  unchecked: ReadonlySet<number>;
+  // True when the current deck, revision and look have been measured.
+  measured: boolean;
+};
+
 // The deck page's findings: the stored ones from its own read, plus the ones measured on each thumbnail's slide
 // frame once the fonts have settled. It measures again when the deck's revision or look changes.
 export function useSlideChecks(
   root: RefObject<HTMLElement | null>,
   view: DeckPageView | null,
   measure: Measure,
-): Map<number, SlideFinding[]> {
-  const [measured, setMeasured] = useState<{ key: string; findings: SlideFinding[] }>({
-    key: '',
-    findings: [],
-  });
+): SlideChecks {
+  const [measured, setMeasured] = useState<{
+    key: string;
+    findings: SlideFinding[];
+    unchecked: Set<number>;
+  }>({ key: '', findings: [], unchecked: new Set() });
   const slideNumbers = view?.slides.map((slide) => slide.number).join(',');
   const key = view
     ? `${view.id}|${view.revision}|${JSON.stringify(view.look)}|${slideNumbers}`
@@ -55,6 +64,7 @@ export function useSlideChecks(
       await nextFrame();
       await nextFrame();
       const findings: SlideFinding[] = [];
+      const unchecked = new Set<number>();
       for (const slide of view.slides) {
         const selector = `[data-testid="deck-thumb"][data-slide="${slide.number}"] [data-testid="slide-frame"]`;
         let frame = root.current?.querySelector<HTMLElement>(selector) ?? null;
@@ -64,9 +74,16 @@ export function useSlideChecks(
           frame = root.current?.querySelector<HTMLElement>(selector) ?? null;
         }
         if (!current) return;
-        if (frame && isShown(frame)) findings.push(...measure(frame, slide.number));
+        if (!frame || !isShown(frame)) continue;
+        try {
+          findings.push(...measure(frame, slide.number));
+        } catch (error) {
+          // One slide that cannot be measured must not hide the others' findings.
+          console.error(`Could not measure slide ${slide.number}`, error);
+          unchecked.add(slide.number);
+        }
       }
-      setMeasured({ key, findings });
+      setMeasured({ key, findings, unchecked });
     })();
     return () => {
       current = false;
@@ -75,8 +92,12 @@ export function useSlideChecks(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, root, measure]);
 
-  return useMemo(
-    () => mergeFindings(view?.findings ?? [], measured.key === key ? measured.findings : []),
-    [view?.findings, measured, key],
-  );
+  return useMemo(() => {
+    const current = measured.key === key;
+    return {
+      bySlide: mergeFindings(view?.findings ?? [], current ? measured.findings : []),
+      unchecked: current ? measured.unchecked : new Set<number>(),
+      measured: current,
+    };
+  }, [view?.findings, measured, key]);
 }
