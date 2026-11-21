@@ -390,10 +390,12 @@ export type LookChangeResult = { look: DeckPageLook; warnings: string[] };
 // GET /api/render/{id}/card. A generic card has a null title, subtitle and author.
 export type CardView = {
   generic: boolean;
+  kicker: string | null;
   title: string | null;
   subtitle: string | null;
   author: string | null;
   slideCount: number;
+  host: string;
   look: LookView;
 };
 

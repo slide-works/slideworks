@@ -174,7 +174,11 @@ function ShareCard({ deckId, card, logo, error, loading = false }: ShareCardProp
       {shown && generic && <h1 className={styles.title}>SlideWorks</h1>}
       {shown && !generic && card && (
         <>
-          <div className={styles.kicker}>SlideWorks</div>
+          {card.kicker && (
+            <div className={styles.kicker} data-testid="share-card-kicker">
+              {card.kicker}
+            </div>
+          )}
           <h1 className={styles.title} data-testid="share-card-title">
             {card.title}
           </h1>
@@ -203,7 +207,7 @@ function ShareCard({ deckId, card, logo, error, loading = false }: ShareCardProp
                 <i />
               </div>
             )}
-            <span>{card.look.palette.label}</span>
+            <span data-testid="share-card-host">{card.host}</span>
           </div>
         </>
       )}

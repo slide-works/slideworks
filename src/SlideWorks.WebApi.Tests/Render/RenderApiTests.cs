@@ -131,14 +131,48 @@ public class RenderApiTests : ApiTestFixture
         card.GetProperty("author").GetString().ShouldBe("Sam Rivera");
         card.GetProperty("slideCount").GetInt32().ShouldBe(1);
         card.GetProperty("look").GetProperty("palette").GetProperty("name").GetString().ShouldBe("ember");
+        card.GetProperty("kicker").ValueKind.ShouldBe(JsonValueKind.Null);
+        card.GetProperty("host").GetString().ShouldBe("localhost");
     }
 
-    private async Task<string> CreateDeckAsync(string title, string? template = null, string? palette = null)
+    [Test]
+    public async Task Card_WhenLinkDeckOpensWithAKicker_ShouldCarryTheKicker()
+    {
+        var deck = await CreateDeckAsync("Ship smaller", kicker: "Team offsite · 2026");
+        (await Client.PutAsJsonAsync($"/api/decks/{deck}/sharing", new { level = "link", viewers = Array.Empty<string>() })).EnsureSuccessStatusCode();
+        using var browser = Browser(Issue(deck, RenderPurpose.Card));
+
+        var card = await (await browser.GetAsync($"/api/render/{deck}/card")).Content.ReadFromJsonAsync<JsonElement>();
+
+        JsonShape.AssertMatches(card, "card.json", ScreenShapes.Card);
+        card.GetProperty("kicker").GetString().ShouldBe("Team offsite · 2026");
+        card.GetProperty("host").GetString().ShouldBe("localhost");
+    }
+
+    [Test]
+    public async Task Card_WhenPrivateDeckOpensWithAKicker_ShouldNameNeitherKickerNorDeck()
+    {
+        var deck = await CreateDeckAsync("Ship smaller", kicker: "Team offsite · 2026");
+        using var browser = Browser(Issue(deck, RenderPurpose.Card));
+
+        var body = await (await browser.GetAsync($"/api/render/{deck}/card")).Content.ReadAsStringAsync();
+
+        body.ShouldNotContain("Team offsite");
+        var card = JsonDocument.Parse(body).RootElement;
+        card.GetProperty("kicker").ValueKind.ShouldBe(JsonValueKind.Null);
+        card.GetProperty("host").GetString().ShouldBe("localhost");
+    }
+
+    private async Task<string> CreateDeckAsync(string title, string? template = null, string? palette = null, string? kicker = null)
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var (isError, created) = await agent.CallToolAsync("create_deck", new { title, subtitle = "Why small batches win", author = "Sam Rivera", template, palette });
         isError.ShouldBeFalse(created.ToString());
         var deck = created.GetProperty("deck").GetString()!;
+        if (kicker is not null)
+        {
+            await DeckSeed.AddSlideAsync(agent, deck, "title", JsonSerializer.Serialize(new { kicker, title }));
+        }
         await DeckSeed.AddSlideAsync(agent, deck, "bullets", """{ "headline": "One", "items": ["a"] }""", notes: "SECRET-SPEAKER-NOTE");
         return deck;
     }
