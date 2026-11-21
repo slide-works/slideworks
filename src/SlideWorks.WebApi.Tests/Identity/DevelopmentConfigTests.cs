@@ -41,7 +41,7 @@ public class DevelopmentConfigTests
     }
 
     [Test]
-    public void Storage_WhenDevelopment_ShouldUseTheDevDatabaseAndDataFolder()
+    public void Storage_WhenDevelopment_ShouldUseTheDevDataFolder()
     {
         var configuration = _factory.Services.GetRequiredService<IConfiguration>();
 
