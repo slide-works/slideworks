@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 
-namespace SlideWorks.WebApi.Tests.Presenting;
+namespace SlideWorks.WebApi.Tests.Support.Timing;
 
 // A hub filter a fixture adds with ConfigureTestServices: it completes once the server has finished running a hub method
 // for a connection, with the exception the method threw, or null when it returned. A test waits on it to read what a call
