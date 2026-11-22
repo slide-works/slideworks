@@ -103,6 +103,9 @@ internal sealed class BundleArchive
         return result.ToArray();
     }
 
+    // The planning pass has counted every file once; a second pass over the same files for storing starts again from zero.
+    public void RestartCount() => _total = 0;
+
     public static TemplateRefusedException Invalid(string reason, string? path = null)
         => TemplateRefusal.Of(TemplateErrorCodes.BUNDLE_INVALID, path, ("reason", reason));
 

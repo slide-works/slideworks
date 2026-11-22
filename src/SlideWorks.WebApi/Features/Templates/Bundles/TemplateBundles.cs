@@ -123,10 +123,21 @@ public sealed class TemplateBundles(
         {
             throw BundleArchive.Invalid("it holds a file that template.json does not name");
         }
+        // Content-addressed storage keeps one row, and so one kind, per distinct content (a normal upload of the same bytes
+        // as a second kind answers the first row too), so the same bytes used as two kinds are refused here, not after
+        // the draft exists.
+        var seen = new Dictionary<string, BundleFile>(StringComparer.Ordinal);
         foreach (var file in files)
         {
-            await CheckAsync(file, ct);
+            var hash = await CheckAsync(file, ct);
+            if (seen.TryGetValue(hash, out var first) && first.Kind != file.Kind)
+            {
+                throw BundleArchive.Invalid($"it holds the same content as {first.Path}, which is used as another kind of file", file.Path);
+            }
+            seen.TryAdd(hash, file);
         }
+        // Each file is read again to be stored; its bytes were already counted against the bundle's total.
+        bundle.RestartCount();
         return (manifest, files);
     }
 
@@ -197,8 +208,17 @@ public sealed class TemplateBundles(
     private static string Label(string name) => name.Length > TemplateAsset.FILE_NAME_MAX ? name[..TemplateAsset.FILE_NAME_MAX] : name;
 
     // The file through its kind's check: a refusal carries the check's code, findings and the manifest path's file.
-    private async Task CheckAsync(BundleFile file, CancellationToken ct)
+    // Answers the SHA-256 of the bytes that would be stored.
+    private async Task<string> CheckAsync(BundleFile file, CancellationToken ct)
     {
+        try
+        {
+            TemplateAssets.CheckFileName(file.FileName);
+        }
+        catch (BadRequestException)
+        {
+            throw BundleArchive.Invalid("the file's name is empty once its spaces are removed", file.Path);
+        }
         var bytes = await file.Load(ct);
         await using var content = new MemoryStream(bytes, writable: false);
         var result = await checks.For(file.Kind).CheckAsync(content, file.FileName, ct);
@@ -210,6 +230,7 @@ public sealed class TemplateBundles(
                 file.Path,
                 [.. result.ErrorValues]);
         }
+        return Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes));
     }
 
     // The writes, after every refusal. An unexpected failure from here (a disk error) is not a refusal and can leave a

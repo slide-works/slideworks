@@ -106,6 +106,49 @@ public class TemplateBundleTests : ApiTestFixture
     }
 
     [Test]
+    public async Task Import_WhenTheFilesExpandToMoreThanHalfTheLimit_ShouldStillStoreThemAll()
+    {
+        var before = await SnapshotAsync();
+        var size = TemplateLimits.MAX_IMAGE_BYTES - 1000;
+        var bundle = SampleBundle(replace: new() { ["logo-light.svg"] = BigSvg(size, 1), ["logo-dark.svg"] = BigSvg(size, 2), ["art.svg"] = BigSvg(size, 3) });
+
+        var response = await ImportAsync(bundle);
+        var body = await JsonAsync(response);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created, body.ToString());
+        using var zip = new ZipArchive(new MemoryStream(bundle), ZipArchiveMode.Read);
+        zip.Entries.Sum(e => e.Length).ShouldBeGreaterThan(TemplateLimits.MAX_BUNDLE_BYTES / 2);
+        var after = await SnapshotAsync();
+        after.Templates.ShouldBe(before.Templates + 1);
+        after.Assets.ShouldBe(before.Assets + 5);
+    }
+
+    [Test]
+    public async Task Import_WhenOneContentIsUsedAsTwoKinds_ShouldRefuseBeforeWriting()
+    {
+        var before = await SnapshotAsync();
+
+        var response = await ImportAsync(SampleBundle(replace: new() { ["art.svg"] = Svg(10) }));
+
+        var body = await ShouldRefuseAsync(response, "bundle_invalid");
+        body.GetProperty("path").GetString().ShouldBe("art.svg");
+        (await SnapshotAsync()).ShouldBe(before);
+    }
+
+    [Test]
+    public async Task Import_WhenAFileNameIsOnlySpaces_ShouldRefuseBeforeWriting()
+    {
+        var before = await SnapshotAsync();
+        var manifest = SampleManifest().Replace("\"art.svg\"", "\"art/   \"", StringComparison.Ordinal);
+
+        var response = await ImportAsync(SampleBundle(zip => AddBytes(zip, "art/   ", Svg(30)), manifest, without: ["art.svg"]));
+
+        var body = await ShouldRefuseAsync(response, "bundle_invalid");
+        body.GetProperty("path").GetString().ShouldBe("art/   ");
+        (await SnapshotAsync()).ShouldBe(before);
+    }
+
+    [Test]
     public async Task Import_WhenAFileUnpacksToFarMoreThanItPacks_ShouldRefuse()
     {
         var before = await SnapshotAsync();
@@ -636,4 +679,15 @@ public class TemplateBundleTests : ApiTestFixture
 
     private static byte[] Svg(int size)
         => Encoding.UTF8.GetBytes($"""<svg xmlns="{SVG_NAMESPACE}" viewBox="0 0 {size} {size}"><rect width="{size}" height="{size}"/></svg>""");
+
+    // A valid SVG of exactly this many bytes: a comment of random base64 (which packs well short of the bomb ratio).
+    private static byte[] BigSvg(int bytes, int seed)
+    {
+        var head = Encoding.UTF8.GetBytes($"""<svg xmlns="{SVG_NAMESPACE}" viewBox="0 0 10 10"><rect width="10" height="10"/><!--""");
+        var tail = Encoding.UTF8.GetBytes("--></svg>");
+        var random = new byte[(bytes - head.Length - tail.Length) / 4 * 3];
+        new Random(seed).NextBytes(random);
+        var filler = Encoding.ASCII.GetBytes(Convert.ToBase64String(random).Replace('-', '+'));
+        return [.. head, .. filler, .. tail];
+    }
 }
