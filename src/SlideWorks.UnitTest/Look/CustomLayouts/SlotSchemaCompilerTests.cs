@@ -261,6 +261,24 @@ public class SlotSchemaCompilerTests
     }
 
     [Test]
+    public void Compile_WhenTheStepsValueHasALoneSurrogate_ShouldRefuseAsMalformed()
+    {
+        var errors = Refused(Doc("\"t\": { \"type\": \"text\", \"max\": 5 }", "\"steps\": \"\\ud800\","));
+
+        errors.Select(e => e.Code).ShouldBe([CustomLayoutErrorCodes.SLOTS_MALFORMED]);
+    }
+
+    [TestCase("\"\\ud800\": { \"type\": \"text\", \"max\": 5 }")]
+    [TestCase("\"t\": { \"type\": \"\\ud800\" }")]
+    [TestCase("\"e\": { \"type\": \"enum\", \"values\": [\"a\", \"\\ud800\"] }")]
+    public void Compile_WhenTheJsonHasALoneSurrogate_ShouldRefuseAsMalformed(string slots)
+    {
+        var errors = Refused(Doc(slots));
+
+        errors.Select(e => e.Code).ShouldBe([CustomLayoutErrorCodes.SLOTS_MALFORMED]);
+    }
+
+    [Test]
     public void Compile_WhenThereAreFarTooManyFields_ShouldRefuseWithoutReadingThemAll()
     {
         var fields = string.Join(",", Enumerable.Range(0, 6_000).Select(i => $"\"f{i}\":{{\"type\":\"text\",\"max\":5}}"));

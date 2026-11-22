@@ -279,6 +279,16 @@ public class LayoutSamplesTests
     }
 
     [Test]
+    public void Sample_WhenADecimalRangeIsVeryNarrow_ShouldGiveDistinctValues()
+    {
+        var (definition, schema) = Compile(Doc("\"rows\": { \"type\": \"list\", \"min\": 3, \"max\": 3, \"of\": { \"type\": \"number\", \"min\": 0, \"max\": 0.0000001 } }"));
+
+        Problems(definition, Samples.Sample(schema)).ShouldBeEmpty();
+        var values = JsonDocument.Parse(Samples.Sample(schema)).RootElement.GetProperty("rows").EnumerateArray().Select(v => v.GetDouble()).ToList();
+        values.Distinct().Count().ShouldBe(3);
+    }
+
+    [Test]
     public void Samples_WhenARangeIsInsideOneInteger_ShouldUseTheRealBounds()
     {
         var (definition, schema) = Compile(Doc("\"n\": { \"type\": \"number\", \"min\": 0.1, \"max\": 0.9 }, \"m\": { \"type\": \"number\", \"min\": 0, \"max\": 2.5 }"));

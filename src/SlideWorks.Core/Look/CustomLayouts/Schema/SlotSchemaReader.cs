@@ -57,7 +57,19 @@ internal sealed class SlotSchemaReader
                 return false;
             }
 
-            ReadDocument(document.RootElement);
+            try
+            {
+                ReadDocument(document.RootElement);
+            }
+            catch (InvalidOperationException)
+            {
+                // An escaped lone surrogate parses but cannot be read as a string.
+                _errors.Clear();
+                Schema = null;
+                Fields = [];
+                Fail(DOCUMENT, CustomLayoutErrorCodes.SLOTS_MALFORMED);
+                return false;
+            }
         }
 
         return _errors.Count == 0;

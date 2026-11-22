@@ -84,8 +84,15 @@ internal static class SlotContent
 
         // The value at the item's place between the bounds: 1/(n+1), 2/(n+1) ... n/(n+1) of the way.
         var value = number.Minimum + ((number.Maximum - number.Minimum) * (position + 1) / (count + 1));
-        value = Math.Clamp(Math.Round(value, 6, MidpointRounding.AwayFromZero), number.Minimum, number.Maximum);
+        value = Math.Clamp(Tidy(value, number), number.Minimum, number.Maximum);
         return double.IsInteger(value) ? JsonValue.Create((long)value) : JsonValue.Create(value);
+    }
+
+    // Six places keep ordinary samples short (0.333333); a range too narrow for that keeps full precision.
+    private static double Tidy(double value, NumberSlot number)
+    {
+        var rounded = Math.Round(value, 6, MidpointRounding.AwayFromZero);
+        return (number.Maximum - number.Minimum) >= 1e-3 ? rounded : value;
     }
 
     private static string Longest(IReadOnlyList<string> values) => values.MaxBy(v => v.Length)!;
