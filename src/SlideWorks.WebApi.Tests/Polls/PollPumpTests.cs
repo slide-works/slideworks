@@ -32,8 +32,11 @@ public class PollPumpTests : PollTestFixture
     private TimerWatchingClock? _timers;
 
     // The fixture's fake clock, counting the window timers the pump arms per deck. The pump arms its timer on the thread
-    // pool after a publish returns, so a test that moved the clock first could move it before the timer existed: the timer
-    // would then be due a half second after the new time and never fire, and the test would wait out its bound.
+    // pool after a publish returns: it reads the clock to work out the wait (PollTallyPump, "var wait"), then creates the
+    // timer with that wait, as one step under its lock that a Clock.Advance does not take part in. A test that advanced the
+    // clock in between had the timer made due a half second after the new time, so it never fired and the test waited out
+    // its bound. Forced once with a TimeProvider that held CreateTimer open: advance, release, no second publish in 10 s.
+    // Not seen in CI (about 40 failed runs showed no failure of this test); waiting for the arm first closes the window.
     private TimerWatchingClock Timers => _timers ??= new TimerWatchingClock(Clock);
 
     private FakePollTallies Tallies => Factory.Services.GetRequiredService<FakePollTallies>();
