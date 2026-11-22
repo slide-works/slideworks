@@ -5,6 +5,7 @@ using SlideWorks.Core.Look.Manifest;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Templates.Data;
+using SlideWorks.WebApi.Features.Templates.Layouts;
 using SlideWorks.WebApi.Infrastructure.Identity;
 
 namespace SlideWorks.WebApi.Features.Templates;
@@ -13,7 +14,7 @@ namespace SlideWorks.WebApi.Features.Templates;
 // file read, because decks resolve inside write transactions. Finding never asks who is calling: a viewer of a deck gets
 // the deck's template. Only the list is by caller.
 [RegisterPerRequest(For = typeof(ITemplates))]
-public sealed class Templates(ITemplateCatalogue catalogue, AppDbContext db, ILogger<Templates> logger) : ITemplates
+public sealed class Templates(ITemplateCatalogue catalogue, AppDbContext db, ITemplateLayouts layouts, ILogger<Templates> logger) : ITemplates
 {
     public async Task<ResolvedTemplate?> FindAsync(string templateRef, int? version, CancellationToken ct)
     {
@@ -41,7 +42,10 @@ public sealed class Templates(ITemplateCatalogue catalogue, AppDbContext db, ILo
             return null;
         }
         var owner = await db.Users.AsNoTracking().Where(u => u.Id == record.OwnerId).Select(u => u.Name).SingleOrDefaultAsync(ct);
-        return ManifestTemplates.Resolve(record, row, manifest, published[0].Version, owner);
+        // Only the deck's own pinned version's layouts, read through the seam, and only the approved ones (ManifestTemplates
+        // drops the rest). The list below never loads them: it is the picker, which needs no layout.
+        var custom = await layouts.ForVersionAsync(templateRef, row.Version, ct);
+        return ManifestTemplates.Resolve(record, row, manifest, published[0].Version, owner, custom);
     }
 
     public async Task<ResolvedTemplate> ForDeckAsync(Deck deck, CancellationToken ct)

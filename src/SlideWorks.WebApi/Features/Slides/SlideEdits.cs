@@ -68,7 +68,7 @@ public class SlideEdits(
             slide.Layout = layout;
             slide.SlotsJson = SlideJson.ForStorage(slots);
             slide.Steps = SlideSteps.Count(definition, slots);
-            slide.Surface = surface;
+            slide.Surface = SlideChecks.SurfaceToStore(template, layout, surface);
             if (request.Notes is { } notes)
             {
                 slide.Notes = notes.Value;
@@ -83,7 +83,7 @@ public class SlideEdits(
             {
                 await pollRows.EnsureAsync(slide.Id, deck.Id);
             }
-            var warnings = LayoutWarnings.For(template.Template, request.Slide, layout);
+            var warnings = LayoutWarnings.For(template, request.Slide, layout);
             var updated = new UpdateSlideResult(request.Slide, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, request.Slide), warnings);
             return (updated, $"updated slide {request.Slide} ({layout}){deepDive}");
         });

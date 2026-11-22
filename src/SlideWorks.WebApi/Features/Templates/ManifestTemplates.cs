@@ -3,6 +3,7 @@ using SlideWorks.Core.Look;
 using SlideWorks.Core.Look.Manifest;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Features.Templates.Data;
+using SlideWorks.WebApi.Features.Templates.Layouts;
 
 namespace SlideWorks.WebApi.Features.Templates;
 
@@ -11,7 +12,13 @@ namespace SlideWorks.WebApi.Features.Templates;
 // "dots" and the title art and logo are left to the look, which carries them as assets.
 public static class ManifestTemplates
 {
-    public static ResolvedTemplate Resolve(TemplateRecord record, TemplateVersion version, TemplateManifest manifest, int latestVersion, string? ownerName)
+    public static ResolvedTemplate Resolve(TemplateRecord record, TemplateVersion version, TemplateManifest manifest, int latestVersion, string? ownerName, IReadOnlyList<TemplateLayout>? customLayouts = null)
+    {
+        var custom = (customLayouts ?? []).Where(c => c.Approved).ToList();
+        return ResolveWith(record, version, manifest, latestVersion, ownerName, custom);
+    }
+
+    private static ResolvedTemplate ResolveWith(TemplateRecord record, TemplateVersion version, TemplateManifest manifest, int latestVersion, string? ownerName, List<TemplateLayout> custom)
     {
         var template = new Template
         {
@@ -52,7 +59,10 @@ public static class ManifestTemplates
             OwnerName = ownerName,
             Archived = record.ArchivedAt is not null,
             FitWidths = WidthsOf(version.FitWidthsJson),
-            Layouts = name => template.Allows(name) ? LayoutCatalogue.Find(name) : null,
+            CustomLayouts = custom,
+            Layouts = name => template.Allows(name)
+                ? LayoutCatalogue.Find(name)
+                : custom.FirstOrDefault(c => string.Equals(c.Layout.Name, name, StringComparison.Ordinal))?.Layout.Definition,
         };
     }
 
