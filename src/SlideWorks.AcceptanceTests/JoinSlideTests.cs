@@ -42,6 +42,9 @@ public class JoinSlideTests : AcceptanceTest
         await Expect(player.JoinCode(1)).ToHaveTextAsync(new Regex(@"^\d{3} \d{3}$"));
         await Expect(player.JoinCount(1)).ToHaveTextAsync("0 joined");
         await Expect(player.JoinBar(1)).ToHaveCountAsync(0);
+        // The count is the player's own position and shows before the presentation join is answered; a key in that window is
+        // dropped (the player's moves are frozen until the join lands), so wait until the player is driving the live talk.
+        await Expect(player.Player).ToHaveAttributeAsync("data-driving", "true");
         await Page.Keyboard.PressAsync("ArrowRight");
         await Expect(player.Count).ToHaveTextAsync("2 / 2");
         await Expect(player.JoinBar(2)).ToBeVisibleAsync();
