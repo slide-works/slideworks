@@ -4,8 +4,8 @@ import type { LookView } from '../api/types';
 // Custom properties aren't in CSSProperties' keys.
 type CustomProperties = Record<`--sw-${string}`, string | number>;
 
-// The mono font is the same in every template: tokens.css declares this value at :root.
-const FONT_MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+// A family goes inside quotes in a font stack: a quote or backslash would end the string early.
+const quoted = (family: string) => `'${family.replace(/['"\\]/g, '')}'`;
 
 // The look as CSS custom properties for a slide's root element (SW-2 L10):
 // every palette token as --sw-<key> (accent-2 among them), the template's type and shape, and the
@@ -16,10 +16,18 @@ export function lookStyle(look: LookView): CSSProperties {
   const { type, shape } = look.template;
   const style: CustomProperties = {};
   for (const [key, value] of Object.entries(look.palette.tokens)) style[`--sw-${key}`] = value;
+  // A template's own mono font (the first mono file's family); with none, tokens.css's stack stands.
+  const mono = look.fonts.find((font) => font.role === 'mono');
+  if (mono !== undefined)
+    style['--sw-font-mono'] = `${quoted(mono.family)}, ui-monospace, monospace`;
+  // An extra colour is keyed by its own name (extra-1 to extra-4), with its ink beside it.
+  for (const extra of look.extras) {
+    style[`--sw-${extra.name}`] = extra.colour;
+    style[`--sw-${extra.name}-ink`] = extra.ink;
+  }
   Object.assign(style, {
     '--sw-font-head': `'${type.head}', '${type.body}', system-ui, sans-serif`,
     '--sw-font-body': `'${type.body}', system-ui, sans-serif`,
-    '--sw-font-mono': FONT_MONO,
     '--sw-head-weight': type.headWeight,
     '--sw-head-tracking': type.headTracking,
     '--sw-radius-sm': `${shape.radius.sm}px`,

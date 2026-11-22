@@ -17,6 +17,9 @@ const FAMILIES: { field: FamilyField; label: string }[] = [
   { field: 'body', label: 'Body family' },
 ];
 
+// What a new monospace file's family starts as when the template has no mono file yet.
+const DEFAULT_MONO_FAMILY = 'Template Mono';
+
 const NOT_ALLOWED_YET = 'Tick the box above first: the right to serve fonts comes before any file.';
 
 // The Fonts tab: the heading and body families, the font files the template uses, and uploading more.
@@ -124,7 +127,10 @@ export function FontsTab({ draft, change, reload }: EditorTabProps) {
     if (outcome.ok) focusNext.current = { file: font.file, index };
   }
 
-  const familyOf = (role: TemplateFontRole) => (role === 'mono' ? '' : manifest.type[role]);
+  const familyOf = (role: TemplateFontRole) =>
+    role === 'mono'
+      ? (manifest.fonts.find((font) => font.role === 'mono')?.family ?? DEFAULT_MONO_FAMILY)
+      : manifest.type[role];
 
   async function commitFamily(field: FamilyField) {
     const value = typed[field];
@@ -233,6 +239,12 @@ export function FontsTab({ draft, change, reload }: EditorTabProps) {
           </ul>
         </div>
       )}
+
+      <p className="text-meta text-ink-muted">
+        A file with the role mono gives the template its monospace font: custom layouts and code use
+        it. It is optional, and it takes no part in fitting text, so only heading and body files
+        change how much fits.
+      </p>
 
       <div className="grid gap-2">
         <div className="flex flex-wrap items-center gap-3">

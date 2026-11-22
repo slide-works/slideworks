@@ -250,6 +250,17 @@ test('shows a refused family beside its field and keeps what was typed', async (
   await expect(head).toHaveValue('');
 });
 
+test('offers the mono family and a hint for a monospace file', async ({ mount, page }) => {
+  const mono = storedAsset(id, 'm0n0feed', 'font', 'mono.woff2', true);
+  const withFile = view({ fonts: [] }, [...notFont, mono]);
+  const { tab } = await open(page, mount, [withFile]);
+
+  await expect(tab.getByText(/gives the template its monospace font/)).toBeVisible();
+  await expect(tab.getByLabel('Family of mono.woff2')).toHaveValue('Northwind Sans');
+  await tab.getByLabel('Role of mono.woff2').selectOption('mono');
+  await expect(tab.getByLabel('Family of mono.woff2')).toHaveValue('Template Mono');
+});
+
 test('screenshot: fonts tab with a refused file', async ({ mount, page }) => {
   const { tab } = await open(
     page,
