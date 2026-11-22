@@ -29,6 +29,8 @@ type Options = {
   layouts?: CustomLayoutView[];
   slots?: { [name: string]: unknown };
   step?: number;
+  // The slide's step count from the server.
+  steps?: number;
   surface?: 'light' | 'dark';
   layout?: string;
 };
@@ -43,6 +45,7 @@ function slideOf(options: Options) {
           layout: options.layout ?? layouts[0].name,
           part: 1,
           deepDive: false,
+          steps: options.steps,
           surface: options.surface,
           slots: options.slots ?? sample,
         } as unknown as RenderableSlide
@@ -191,6 +194,23 @@ test.describe('steps', () => {
     for (let i = 0; i < 3; i++) {
       await expect(bars(page).nth(i)).toHaveCSS('visibility', 'visible');
     }
+  });
+
+  test("a callout that reveals last waits for the slide's server-counted steps", async ({
+    mount,
+    page,
+  }) => {
+    const layout = layoutOf(
+      [...view.tree.root, node({ classes: [`${P}note`], slot: 'callout' })],
+      view.css,
+      { ...view.slots, callout: { type: 'callout' } },
+    );
+    const slots = { ...oneByOne, callout: { tone: 'accent', text: 'Hi', reveal: 'last' } };
+    // Three bars, then the callout: the server counts 4.
+    const component = await open(mount, page, { layouts: [layout], slots, step: 3, steps: 4 });
+    await expect(page.getByTestId('custom-slot-callout')).toHaveAttribute('data-revealed', 'false');
+    await component.update(slideOf({ layouts: [layout], slots, step: 4, steps: 4 }));
+    await expect(page.getByTestId('custom-slot-callout')).toHaveAttribute('data-revealed', 'true');
   });
 
   test('a layout rule cannot show a waiting step', async ({ mount, page }) => {

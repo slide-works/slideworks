@@ -52,15 +52,24 @@ public class TableLayoutTests
     }
 
     [Test]
-    public void Validate_WhenACellIs120_ShouldAccept()
+    public void Validate_WhenACellIs80_ShouldAccept()
     {
-        Validate(Cells(120)).Errors.ShouldBeEmpty();
+        Validate(Cells(80)).Errors.ShouldBeEmpty();
+    }
+
+    // SW-767: four rows of two 80-character cells in strike-and-answer is the long-cell shape that 100 and 120 did not fit.
+    [Test]
+    public void Validate_WhenFourRowsOfTwoCellsAre80_ShouldAcceptStrikeAndAnswer()
+    {
+        var cell = new string('a', 80);
+        var row = $$"""["{{cell}}", "{{cell}}"]""";
+        Validate($$"""{ "headline": "h", "columns": ["a", "b"], "rows": [{{row}}, {{row}}, {{row}}, {{row}}], "reveal": "strike-and-answer" }""").Errors.ShouldBeEmpty();
     }
 
     [Test]
-    public void Validate_WhenACellIs121_ShouldRefuse()
+    public void Validate_WhenACellIs81_ShouldRefuse()
     {
-        Validate(Cells(121)).Errors.ShouldContain(e => e.StartsWith("table.rows[0][0]", StringComparison.Ordinal) && e.Contains("120", StringComparison.Ordinal));
+        Validate(Cells(81)).Errors.ShouldContain(e => e.StartsWith("table.rows[0][0]", StringComparison.Ordinal) && e.Contains("80", StringComparison.Ordinal));
     }
 
     [Test]
