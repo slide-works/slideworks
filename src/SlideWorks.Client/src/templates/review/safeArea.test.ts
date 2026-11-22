@@ -72,6 +72,12 @@ describe('overflowOf', () => {
     expect(overflowOf(frame)).toHaveLength(1);
   });
 
+  it('fails closed when the frame has no size', () => {
+    const { frame, body } = frameOf(0);
+    child(body, 'chart', rect(0, 0, 0, 0));
+    expect(overflowOf(frame)).toEqual(['The layout was not measured: its frame has no size']);
+  });
+
   it('ignores the footer', () => {
     const { frame, body, footer } = frameOf();
     boxed(footer, rect(0, 1030, 1920, 1080));

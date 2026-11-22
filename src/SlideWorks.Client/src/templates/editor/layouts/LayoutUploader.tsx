@@ -127,7 +127,7 @@ export function LayoutUploader({
       if (outcome.kind === 'refused') {
         refuse({ subject: name, findings: findingsOf(outcome.errors, outcome.message) });
       } else {
-        setMessage(outcome.kind === 'unreachable' ? NETWORK : outcome.message);
+        setMessage(NETWORK);
       }
       return;
     }

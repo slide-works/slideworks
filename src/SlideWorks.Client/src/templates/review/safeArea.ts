@@ -29,6 +29,9 @@ export function overflowOf(frame: HTMLElement): string[] {
   const body = bodyOf(frame);
   if (body === null) return [undrawnOf(frame, 'maximum') ?? 'The layout was not drawn'];
   const origin = frame.getBoundingClientRect();
+  if (origin.width <= 0 || origin.height <= 0) {
+    return ['The layout was not measured: its frame has no size'];
+  }
   const scale = scaleOf(frame);
   const canvas = (rect: DOMRect): Box => ({
     left: (rect.left - origin.left) / scale,

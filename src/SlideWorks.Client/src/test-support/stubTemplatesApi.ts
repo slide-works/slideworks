@@ -10,7 +10,9 @@ import {
 
 type StubbedResponse = { status?: number; json?: unknown } | 'network-down';
 // One answer for every request of a call, or a list answered in order (the last one repeats).
-type StubbedResponses = StubbedResponse | readonly StubbedResponse[];
+// A function answers by the layout name in the request path (layoutReview and approveLayout).
+type StubbedResponses =
+  StubbedResponse | readonly StubbedResponse[] | ((layout: string) => StubbedResponse);
 
 // Every call of src/templates/api.ts, by the name it has on templatesApi.
 export type TemplateCall =
@@ -110,7 +112,13 @@ export async function stubTemplatesApi(
     const nth = asked.get(found.call) ?? 0;
     asked.set(found.call, nth + 1);
     const answers = responses[found.call] ?? DEFAULTS[found.call];
-    const response = isList(answers) ? answers[Math.min(nth, answers.length - 1)] : answers;
+    const layout = /\/layouts\/([^/]+)\//.exec(pathname)?.[1] ?? '';
+    const response =
+      typeof answers === 'function'
+        ? answers(decodeURIComponent(layout))
+        : isList(answers)
+          ? answers[Math.min(nth, answers.length - 1)]
+          : answers;
     if (response === 'network-down') return route.abort('connectionrefused');
     const status = response.status ?? 200;
     return response.json === undefined

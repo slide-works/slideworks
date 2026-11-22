@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { gradientTextsOf, lowContrastOf } from './contrast';
 
 type Style = Partial<
@@ -23,7 +23,31 @@ function frameOf(frameStyle: Style, textStyle: Style, text = 'A line of text', p
   return frame;
 }
 
-afterEach(() => document.body.replaceChildren());
+afterEach(() => {
+  vi.restoreAllMocks();
+  document.body.replaceChildren();
+});
+
+// Stubs the computed colours as Chromium serialises them (jsdom keeps only what it can parse).
+function computed(colours: { frame: string; text: string }) {
+  const real = window.getComputedStyle.bind(window);
+  vi.spyOn(window, 'getComputedStyle').mockImplementation((element: Element) => {
+    const style = real(element);
+    const own = element instanceof HTMLElement && element.parentElement?.tagName === 'DIV';
+    const colour =
+      element.tagName === 'P' ? colours.text : own ? 'rgba(0, 0, 0, 0)' : colours.frame;
+    return new Proxy(style, {
+      get: (target, key) =>
+        key === 'color'
+          ? colours.text
+          : key === 'backgroundColor'
+            ? colour === colours.text && element.tagName === 'P'
+              ? 'rgba(0, 0, 0, 0)'
+              : colour
+            : (Reflect.get(target, key) as unknown),
+    });
+  });
+}
 
 describe('lowContrastOf', () => {
   it('reports small text under 4.5', () => {
@@ -166,4 +190,38 @@ describe('lowContrastOf', () => {
     document.body.append(frame);
     expect(lowContrastOf(frame)).toHaveLength(1);
   });
+});
+
+describe('color(srgb …) computed colours', () => {
+  const plain = { fontSize: '24px' };
+
+  it('reads a color-mix background and text colour', () => {
+    const frame = frameOf({}, plain, 'On a chip');
+    computed({ frame: 'color(srgb 0.1 0.1 0.12)', text: 'color(srgb 0.95 0.95 0.95 / 1)' });
+    expect(lowContrastOf(frame)).toEqual([]);
+  });
+
+  it('measures low contrast on a color-mix background', () => {
+    const frame = frameOf({}, plain, 'Dim chip');
+    computed({ frame: 'color(srgb 0.1 0.1 0.12)', text: 'color(srgb 0.2 0.2 0.22)' });
+    expect(lowContrastOf(frame)).toHaveLength(1);
+    expect(lowContrastOf(frame)[0]).toMatch(/^Dim chip \d\.\d:1, needs 4\.5$/);
+  });
+
+  it('takes none as 0, percentages, and alpha', () => {
+    const frame = frameOf({}, plain, 'Pct');
+    computed({ frame: 'color(srgb none 0% 0%)', text: 'color(srgb 100% 100% 100% / 50%)' });
+    expect(lowContrastOf(frame)).toEqual([]);
+  });
+
+  it.each(['color(oklch 0.5 0.1 200)', 'color(display-p3 1 0 0)', 'oklch(50% 0.1 200)'])(
+    'fails closed on %s',
+    (other) => {
+      const frame = frameOf({}, plain, 'Other space');
+      computed({ frame: other, text: 'color(srgb 1 1 1)' });
+      expect(lowContrastOf(frame)).toEqual([
+        'Other space has a colour that could not be read, so its contrast was not checked',
+      ]);
+    },
+  );
 });

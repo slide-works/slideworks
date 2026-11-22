@@ -148,10 +148,10 @@ test('the tab lists each layout with its status', async ({ mount, page }) => {
       { name: 'bar-chart', file: layoutReview.asset },
       { name: 'funnel', file: 'f2' },
     ]),
-    layoutReview: [
-      { json: { ...layoutReview, approved: true } },
-      { json: { ...layoutReview, name: 'funnel', approved: false } },
-    ],
+    layoutReview: (layout) =>
+      layout === 'funnel'
+        ? { json: { ...layoutReview, name: 'funnel', approved: false } }
+        : { json: { ...layoutReview, approved: true } },
   });
 
   const rows = tab.getByTestId('custom-layout-row');

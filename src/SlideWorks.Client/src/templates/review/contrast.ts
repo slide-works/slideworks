@@ -14,9 +14,31 @@ const RGB = new RegExp(
   `^rgba?\\(\\s*${CHANNELS}[,\\s]+${CHANNELS}[,\\s]+${CHANNELS}(?:\\s*[,/]\\s*(\\d*\\.?\\d+)(%?))?\\s*\\)$`,
 );
 
-// A computed colour (rgb(r, g, b), rgba(…) or rgb(r g b / a)) as the opaque form editor/contrast.ts
-// reads, and its alpha; null for anything else.
+// A channel of color(srgb …): a number from 0 to 1, a percentage, or "none" (0).
+const UNIT = '(none|\\d*\\.?\\d+(?:e[+-]?\\d+)?%?)';
+const SRGB = new RegExp(
+  `^color\\(\\s*srgb\\s+${UNIT}\\s+${UNIT}\\s+${UNIT}(?:\\s*/\\s*${UNIT})?\\s*\\)$`,
+  'i',
+);
+
+function unitOf(token: string, scale: number): number {
+  if (token.toLowerCase() === 'none') return 0;
+  const value = token.endsWith('%') ? parseFloat(token) / 100 : parseFloat(token);
+  return Math.min(1, Math.max(0, value)) * scale;
+}
+
+// A computed colour (rgb(r, g, b), rgba(…), rgb(r g b / a) or the color(srgb r g b / a) Chromium
+// gives a color-mix) as the opaque form editor/contrast.ts reads, and its alpha; null for anything
+// else, including every other colour space.
 function colourOf(value: string): Colour | null {
+  const mixed = SRGB.exec(value.trim());
+  if (mixed !== null) {
+    const [r, g, b] = [mixed[1], mixed[2], mixed[3]].map((token) => Math.round(unitOf(token, 255)));
+    return {
+      rgb: `rgb(${r} ${g} ${b})`,
+      alpha: mixed[4] === undefined ? 1 : unitOf(mixed[4], 1),
+    };
+  }
   const match = RGB.exec(value.trim());
   if (match === null) return null;
   const [r, g, b] = [match[1], match[2], match[3]].map((channel) => Math.round(Number(channel)));

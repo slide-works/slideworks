@@ -96,13 +96,15 @@ test('approve sends the asset and the measured lists', async ({ mount, page }) =
 
   await approve(page).click();
   await expect(status(page)).toHaveText('Needs review');
-  expect(requests.filter(({ call }) => call === 'approveLayout')).toEqual([
-    {
-      call: 'approveLayout',
-      id: templateEditor.id,
-      body: { asset: layoutReview.asset, overflow: [], contrast: [] },
-    },
-  ]);
+  await expect
+    .poll(() => requests.filter(({ call }) => call === 'approveLayout'))
+    .toEqual([
+      {
+        call: 'approveLayout',
+        id: templateEditor.id,
+        body: { asset: layoutReview.asset, overflow: [], contrast: [] },
+      },
+    ]);
 });
 
 // The approval body is the two measured lists, and the gate keeps any finding out of it: with a
@@ -196,6 +198,25 @@ test('a dark render shows only when the surface allows dark', async ({ mount, pa
     page.getByTestId(reviewRenderTestId('dark')).getByTestId('custom-layout'),
   ).toBeVisible();
   await expect(page.getByText('Contrast on dark')).toBeVisible();
+});
+
+// Chromium serialises a computed color-mix (--sw-chip on the dark surface) as color(srgb …): text
+// on a chip must be measured, not reported as an unreadable colour.
+test('the dark render of text on a chip measures and can be approved', async ({ mount, page }) => {
+  const onChip: LayoutReviewView = {
+    ...fitting,
+    surface: 'either',
+    layout: {
+      ...fitting.layout,
+      css: `${fitting.layout.css}\n.cl-0a1b2c3d-bar-chart__headline { background: var(--sw-chip); }`,
+    },
+  };
+  await stub(page, { layoutReview: { json: onChip } });
+  await mount(<AppRoutes />, route);
+
+  await expect(page.getByTestId(REVIEW_TEST_IDS.checks)).toContainText('Contrast on darkPassed');
+  await expect(page.getByText(/could not be read/)).toHaveCount(0);
+  await expect(approve(page)).toBeEnabled();
 });
 
 test('no dark render for a light layout', async ({ mount, page }) => {

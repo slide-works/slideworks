@@ -191,9 +191,10 @@ function Review({
     }
     // Approving answers 204, so the review is read again to show the new state.
     const fresh = await reread();
-    if (fresh === null) setState({ kind: 'loaded', review: { ...current, approved: true } });
     setApproving(false);
-    setFocusStatus((count) => count + 1);
+    // The approval stands but the new state could not be read back: offer Retry, as for a replacement.
+    if (fresh === null) setState({ kind: 'failed', message: NOT_LOADED });
+    else setFocusStatus((count) => count + 1);
   }
 
   if (state.kind === 'loading' || (state.kind === 'loaded' && draft.load.kind === 'loading')) {
