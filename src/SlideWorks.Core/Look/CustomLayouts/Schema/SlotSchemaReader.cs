@@ -144,6 +144,13 @@ internal sealed class SlotSchemaReader
                 break;
             }
 
+            if (!SlotNames.IsSlotName(property.Name) && ++_slotCount > CustomLayoutLimits.MAX_SLOTS)
+            {
+                _tooMany = true;
+                Fail(DOCUMENT, CustomLayoutErrorCodes.SLOTS_TOO_MANY);
+                break;
+            }
+
             if (!SlotNames.IsSlotName(property.Name))
             {
                 if (SlotNames.IsReserved(property.Name))
@@ -421,6 +428,12 @@ internal sealed class SlotSchemaReader
     {
         if (_errors.Count >= SlotSchemaLimits.MAX_ERRORS)
         {
+            // The slot-count refusal always shows: it takes the last place.
+            if (code == CustomLayoutErrorCodes.SLOTS_TOO_MANY)
+            {
+                _errors[^1] = CustomLayoutError.Of(path, code);
+            }
+
             return;
         }
 

@@ -72,11 +72,11 @@ internal static class SlotContent
         return result;
     }
 
-    // Whole-number bounds give whole samples (as before); a decimal bound gives the real maximum and a value
-    // inside the range.
+    // The Maximum is the real maximum; the Sample spreads values between the bounds, keeping fractions
+    // (rounded to six places) so narrow ranges still give different values.
     private static JsonNode Number(NumberSlot number, bool maximum, int position, int count)
     {
-        var whole = double.IsInteger(number.Minimum) && double.IsInteger(number.Maximum);
+        var whole = double.IsInteger(number.Maximum);
         if (maximum)
         {
             return whole ? JsonValue.Create((long)number.Maximum) : JsonValue.Create(number.Maximum);
@@ -84,9 +84,8 @@ internal static class SlotContent
 
         // The value at the item's place between the bounds: 1/(n+1), 2/(n+1) ... n/(n+1) of the way.
         var value = number.Minimum + ((number.Maximum - number.Minimum) * (position + 1) / (count + 1));
-        value = whole ? Math.Round(value, MidpointRounding.AwayFromZero) : Math.Round(value, 6, MidpointRounding.AwayFromZero);
-        value = Math.Clamp(value, number.Minimum, number.Maximum);
-        return whole ? JsonValue.Create((long)value) : JsonValue.Create(value);
+        value = Math.Clamp(Math.Round(value, 6, MidpointRounding.AwayFromZero), number.Minimum, number.Maximum);
+        return double.IsInteger(value) ? JsonValue.Create((long)value) : JsonValue.Create(value);
     }
 
     private static string Longest(IReadOnlyList<string> values) => values.MaxBy(v => v.Length)!;

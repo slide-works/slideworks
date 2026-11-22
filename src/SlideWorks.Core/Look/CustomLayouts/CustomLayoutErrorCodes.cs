@@ -121,7 +121,7 @@ public static class CustomLayoutErrorCodes
         [CSS_TOO_MANY_RULES] = "The CSS has too many rules.",
         [SLOTS_TOO_LARGE] = "The slots file is too large.",
         [SLOTS_MALFORMED] = "The slots file can't be read. It must be one JSON object.",
-        [SLOTS_NAME] = "This name is not allowed. Use lower-case letters, digits and hyphens, starting with a letter.",
+        [SLOTS_NAME] = "This name is not allowed. Layout names use lower-case letters, digits and single hyphens; slot names use lower-case letters, digits and underscores.",
         [SLOTS_DESCRIPTION] = "The layout needs a one-line description.",
         [SLOTS_SURFACE] = "The surface must be light, dark or either.",
         [SLOTS_KEY] = "This key is not known here.",

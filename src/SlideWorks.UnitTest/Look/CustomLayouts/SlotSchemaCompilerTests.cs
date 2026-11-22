@@ -250,6 +250,17 @@ public class SlotSchemaCompilerTests
     }
 
     [Test]
+    public void Compile_WhenThereAreManyInvalidlyNamedFields_ShouldReportTooManySlots()
+    {
+        var fields = string.Join(",", Enumerable.Range(0, 5_000).Select(i => $"\"Bad-{i}\":{{\"type\":\"text\",\"max\":5}}"));
+
+        var errors = Refused(Doc(fields));
+
+        errors.Select(e => e.Code).ShouldContain(CustomLayoutErrorCodes.SLOTS_TOO_MANY);
+        errors.Count.ShouldBeLessThanOrEqualTo(21);
+    }
+
+    [Test]
     public void Compile_WhenThereAreFarTooManyFields_ShouldRefuseWithoutReadingThemAll()
     {
         var fields = string.Join(",", Enumerable.Range(0, 6_000).Select(i => $"\"f{i}\":{{\"type\":\"text\",\"max\":5}}"));

@@ -24,7 +24,7 @@
   "css_too_many_rules": "The CSS has too many rules.",
   "slots_too_large": "The slots file is too large.",
   "slots_malformed": "The slots file can't be read. It must be one JSON object.",
-  "slots_name": "This name is not allowed. Use lower-case letters, digits and hyphens, starting with a letter.",
+  "slots_name": "This name is not allowed. Layout names use lower-case letters, digits and single hyphens; slot names use lower-case letters, digits and underscores.",
   "slots_description": "The layout needs a one-line description.",
   "slots_surface": "The surface must be light, dark or either.",
   "slots_key": "This key is not known here.",
