@@ -199,13 +199,15 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
     [Test]
     public async Task Guest_WhenTheLiveDeckHasNoSlides_ShouldFollowWithTheWaitingPlaceholderInPlaceOfASlide()
     {
+        // A fresh person owns the deck, so nothing else in the shared app is live as them.
+        var owner = TestUser.NewApproved();
         string deckId;
-        await using (var agent = await AgentSeed.ConnectAsync(TestUser.Sam))
+        await using (var agent = await AgentSeed.ConnectAsync(owner))
         {
             var created = await AgentSeed.CallAsync(agent, "create_deck", new() { ["title"] = $"Empty live {Guid.NewGuid():N}" });
             deckId = created.GetProperty("deck").GetString().ShouldNotBeNull();
         }
-        await SignIn.AsAsync(Page, TestUser.Sam);
+        await SignIn.AsAsync(Page, owner);
         var joinUrl = await GoLiveAsync(deckId);
 
         await using var phone = await PollJourney.OpenPhoneContextAsync(Browser);
