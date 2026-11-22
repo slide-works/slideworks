@@ -300,9 +300,10 @@ async function measure(page: Page) {
       range.selectNodeContents(node);
       for (const rect of range.getClientRects()) add(rect);
     }
-    const overflowing = [...root.querySelectorAll('h2, li > span')]
-      .filter((el) => el.scrollWidth > el.clientWidth + 1)
-      .map((el) => el.textContent);
+    // Every descendant, not only the text elements: a bar, a pill or a wrapper that scrolls sideways counts as well.
+    const overflowing = [...root.querySelectorAll('*')]
+      .filter((el) => !pill?.contains(el) && el.scrollWidth > el.clientWidth + 1)
+      .map((el) => el.textContent || el.tagName);
     return { drawn: { ...drawn, top: boxTop }, overflowing };
   });
 }
