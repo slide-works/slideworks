@@ -284,6 +284,20 @@ test('reports a failed update', async ({ mount, page }) => {
   await expect(panel.getByTestId('look-version-update')).toBeEnabled();
 });
 
+test('a refused update on a template no longer shared says the deck stays put', async ({
+  mount,
+  page,
+}) => {
+  await stubUpdate(page, { status: 400, json: { error: "Unknown template 'tpl_abc123'" } });
+  const panel = await mount(<LookPanel deck={deckBehind()} onSaved={() => {}} />);
+
+  await panel.getByTestId('look-version-update').click();
+
+  await expect(panel.getByTestId('look-version-error')).toHaveText(
+    "This template isn't shared with you any more, so your deck stays on version 2.",
+  );
+});
+
 test('a failed update with no sentence says to try again', async ({ mount, page }) => {
   await stubUpdate(page, { status: 500, json: {} });
   const panel = await mount(<LookPanel deck={deckBehind()} onSaved={() => {}} />);

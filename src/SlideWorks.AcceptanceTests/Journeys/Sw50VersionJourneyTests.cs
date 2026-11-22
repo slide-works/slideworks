@@ -165,9 +165,8 @@ public class Sw50VersionJourneyTests : AcceptanceTest
         await deck.Look.VersionUpdate.ClickAsync();
 
         await Expect(deck.Look.VersionError).ToBeVisibleAsync();
-        var message = await deck.Look.VersionError.TextContentAsync() ?? string.Empty;
-        message.ShouldMatch(@"^\S+(\s+\S+)+$");
-        message.ShouldContain("template", Case.Insensitive);
+        await Expect(deck.Look.VersionError).ToHaveTextAsync("This template isn't shared with you any more, so your deck stays on version 1.");
+        (await deck.Look.VersionError.TextContentAsync())!.ShouldNotContain("tpl_");
         await Expect(deck.Look.VersionOffer).ToBeVisibleAsync();
         await Expect(deck.Look.VersionMessage).ToHaveCountAsync(0);
         await Expect(deck.ActivityRows.Filter(new() { HasText = "version 1 to 2" })).ToHaveCountAsync(0);
