@@ -64,7 +64,7 @@ public static class LookViews
             version,
             template.LatestVersion,
             look.Extras.Select(LookExtraView.From).ToList(),
-            [],
+            template.CustomLayouts.Select(LookCustomLayoutView.From).ToList(),
             draft,
             footerDateLabel,
             overrides.JoinBar,

@@ -82,7 +82,7 @@ public class SlideCommands(
                 Steps = SlideSteps.Count(definition, slots),
                 Revision = deck.Revision,
                 DeepDive = request.DeepDive ?? false,
-                Surface = request.Surface,
+                Surface = SlideChecks.SurfaceToStore(template, request.Layout, request.Surface),
             };
             db.Slides.Add(slide);
             await db.SaveChangesAsync();
@@ -97,7 +97,7 @@ public class SlideCommands(
 
         await events.PublishAsync(new DeckChanged(deck.Id));
         var number = slide.Position + 1;
-        var warnings = LayoutWarnings.For(template.Template, number, slide.Layout);
+        var warnings = LayoutWarnings.For(template, number, slide.Layout);
         return new AddSlideResult(number, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, number), warnings, storedPoll);
     }
 
@@ -176,7 +176,7 @@ public class SlideCommands(
                 Steps = item.Steps,
                 Revision = deck.Revision,
                 DeepDive = item.Draft.DeepDive ?? false,
-                Surface = item.Draft.Surface,
+                Surface = SlideChecks.SurfaceToStore(template, item.Draft.Layout, item.Draft.Surface),
             };
             db.Slides.Add(slide);
             if (slide.Layout == PollRows.LAYOUT)
@@ -185,7 +185,7 @@ public class SlideCommands(
                 await pollRows.EnsureAsync(slide.Id, deck.Id, item.Poll);
             }
 
-            item.Stored(number, deck.Revision, urls.Deck(deck.Id, deck.Slug, number), LayoutWarnings.For(template.Template, number, slide.Layout));
+            item.Stored(number, deck.Revision, urls.Deck(deck.Id, deck.Slug, number), LayoutWarnings.For(template, number, slide.Layout));
             number++;
         }
 
