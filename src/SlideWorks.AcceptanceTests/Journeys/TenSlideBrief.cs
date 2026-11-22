@@ -10,7 +10,7 @@ public static class TenSlideBrief
 
     // In the order the finished deck shows them.
     public static readonly string[] LAYOUTS =
-        ["title", "divider", "bullets", "big-number", "image", "compare", "numbered-cards", "table", "chart", "close"];
+        ["title", "divider", "bullets", "big-number", "image", "compare", "numbered-cards", "table", "chart", "stack", "bars", "flow", "levels", "close"];
 
     // The bullets slide reveals one point per step.
     public const int BULLETS_SLIDE = 3;
@@ -119,6 +119,74 @@ public static class TenSlideBrief
         yUnit = "wk",
         caption = "Weeks from first commit to the first customer. The median fell from eleven to two.",
         marker = new { x = 3.5, label = "Flags On" },
+    };
+
+    // The four diagram layouts, in typical content. Dictionaries, so a journey can add reveal to a copy.
+    public static IReadOnlyDictionary<string, object> Stack => new Dictionary<string, object>
+    {
+        ["kicker"] = "What a Release Is Made Of",
+        ["headline"] = "Most of a release is waiting, not working",
+        ["segments"] = new object[]
+        {
+            new { label = "Waiting for review", value = 40, note = "Median two days in the queue" },
+            new { label = "Waiting for a slot", value = 30 },
+            new { label = "Building", value = 20 },
+            new { label = "Testing", value = 10 },
+        },
+        ["total"] = "One release, 2026",
+        ["points"] = new object[]
+        {
+            new { lead = "70%", text = "of the time is spent waiting" },
+            new { lead = "30%", text = "is work a person does" },
+        },
+    };
+
+    public static IReadOnlyDictionary<string, object> Bars => new Dictionary<string, object>
+    {
+        ["kicker"] = "Where the Days Go",
+        ["headline"] = "Review is the longest wait on the way out",
+        ["bars"] = new object[]
+        {
+            new { label = "Review", value = 9, sub = "Days, median" },
+            new { label = "Build", value = 5 },
+            new { label = "Test", value = 3 },
+            new { label = "Deploy", value = 1 },
+        },
+        ["caption"] = "Days from first commit to a customer, by step.",
+    };
+
+    public static IReadOnlyDictionary<string, object> Flow => new Dictionary<string, object>
+    {
+        ["headline"] = "One small change travels in three steps",
+        ["nodes"] = new object[]
+        {
+            new { title = "Slice", text = "Cut the thinnest change a customer would notice." },
+            new { title = "Ship", text = "Put it behind a flag and release it today." },
+            new { title = "Learn", text = "Read what customers did and cut the next slice." },
+        },
+        ["caption"] = "Repeat daily.",
+    };
+
+    public static IReadOnlyDictionary<string, object> Levels => new Dictionary<string, object>
+    {
+        ["kicker"] = "Where We Are",
+        ["headline"] = "Every level rests on the one under it",
+        ["levels"] = new
+        {
+            title = "Maturity",
+            items = new object[]
+            {
+                new { text = "Continuous flow", mark = "3" },
+                new { text = "Small batches", mark = "2", state = "current" },
+                new { text = "Big launches", mark = "1" },
+            },
+        },
+        ["main"] = new { title = "What we do now", items = new[] { "We ship weekly", "We review in pairs" } },
+        ["facts"] = new object[]
+        {
+            new { label = "Cycle time", value = "9 days" },
+            new { label = "Slips", value = "2 a year" },
+        },
     };
 
     public static object Close => new

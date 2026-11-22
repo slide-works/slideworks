@@ -16,7 +16,7 @@ namespace SlideWorks.AcceptanceTests.Journeys;
 // Sam presents it in the browser, and an anonymous guest opens the shared link on a phone.
 public class MeasureJourney : AcceptanceTest
 {
-    private const int SLIDES = 10;
+    private const int SLIDES = 14;
 
     [Test]
     public async Task AgentBuildsTenSlideDeckOverMcpAndItPresents_WhenAgentHasOnlyTheMcpUrl_ShouldPresentAt1920AndOnAPhone()
@@ -57,9 +57,15 @@ public class MeasureJourney : AcceptanceTest
         await AddAsync(agent, deck, "table", Table, part: 3);
         await AddAsync(agent, deck, "close", Close);
         await AddAsync(agent, deck, "chart", Chart, part: 3);
+        await AddAsync(agent, deck, "stack", Stack, part: 3);
+        await AddAsync(agent, deck, "bars", Bars, part: 3);
+        await AddAsync(agent, deck, "flow", Flow, part: 3);
+        await AddAsync(agent, deck, "levels", Levels, part: 3);
 
-        // The chart went in after the close: move it in front. Then an aside goes in at 4 and comes out again.
+        // The chart and the four diagrams went in after the close: move the chart in front of it, then the close to the end.
+        // Then an aside goes in at 4 and comes out again.
         (await agent.CallAsync("move_slide", new { deck, slide = 10, to = 9 })).GetProperty("slide").GetInt32().ShouldBe(9);
+        (await agent.CallAsync("move_slide", new { deck, slide = 10, to = SLIDES })).GetProperty("slide").GetInt32().ShouldBe(SLIDES);
         await AddAsync(agent, deck, "quote", Aside, position: 4);
         (await agent.CallAsync("delete_slide", new { deck, slide = 4 })).GetProperty("slides").GetInt32().ShouldBe(SLIDES);
 
