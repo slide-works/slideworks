@@ -120,6 +120,28 @@ public class MarkupSanitiserTests
     }
 
     [Test]
+    public void Sanitise_WhenANewlineIsBetweenAttributes_ShouldAccept()
+    {
+        var (tree, errors) = Sanitiser.Sanitise("<div\n  class=\"a\"\r\n  data-slot=\"title\">\n</div>\n");
+
+        errors.ShouldBeEmpty();
+        tree!.Root.Single().Slot.ShouldBe("title");
+    }
+
+    [Test]
+    public void Sanitise_WhenManyReferencesHaveNoSemicolon_ShouldFinishQuicklyAndRefuseTheText()
+    {
+        var markup = "<div>" + string.Concat(Enumerable.Repeat("&#1", 340_000)) + "</div>";
+        var clock = Stopwatch.StartNew();
+
+        var (tree, errors) = Sanitiser.Sanitise(markup);
+
+        clock.ElapsedMilliseconds.ShouldBeLessThan(2000);
+        tree.ShouldBeNull();
+        errors.ShouldNotBeEmpty();
+    }
+
+    [Test]
     public void Sanitise_WhenMultiByteMarkupIsOverTheByteLimit_ShouldRefuse()
     {
         var markup = "<div class=\"a\"></div>" + new string('é', 140_000);

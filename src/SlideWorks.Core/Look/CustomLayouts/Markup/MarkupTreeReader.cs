@@ -40,32 +40,107 @@ internal sealed class MarkupTreeReader(CustomLayoutAllow allow)
         return errors.Count == 0 ? (new LayoutTree(LayoutTree.VERSION, null, root), errors) : (null, errors);
     }
 
-    // Refuses a numeric reference to a control character (tab, line feed and carriage return too) from the
-    // raw text, whatever the reader would decode it to. A reference the reader cannot read is its to refuse.
+    // One linear pass over the raw text, before the reader normalises anything. It refuses a numeric
+    // reference to a control character (tab, line feed and carriage return too), however long its
+    // zero padding, and any raw control character inside a quoted attribute value (the reader would turn
+    // a raw tab, CR or LF into a space). Newlines between attributes or in text stay allowed. A reference
+    // the reader cannot read is its to refuse; the numeric value is capped, so no input is ever parsed twice.
     private static void ControlReferences(string markup, List<CustomLayoutError> errors)
     {
+        const int CAP = 0x110000;
         var line = 1;
-        var counted = 0;
-        for (var at = markup.IndexOf("&#", StringComparison.Ordinal); at >= 0; at = markup.IndexOf("&#", at + 2, StringComparison.Ordinal))
+        var inTag = false;
+        var quote = '\0';
+        var valueRefused = false;
+        var i = -1;
+        while (++i < markup.Length)
         {
-            var end = markup.IndexOf(';', at);
-            if (end < 0 || end - at > 12)
+            var c = markup[i];
+            if (c == '\n')
+            {
+                line++;
+            }
+
+            if (quote != '\0')
+            {
+                if (c == quote)
+                {
+                    quote = '\0';
+                    continue;
+                }
+
+                if (c < 0x20 && !valueRefused)
+                {
+                    valueRefused = true;
+                    Add(errors, line, CustomLayoutErrorCodes.MARKUP_MALFORMED);
+                    continue;
+                }
+            }
+            else if (inTag)
+            {
+                if (c == '>')
+                {
+                    inTag = false;
+                }
+                else if (c is '"' or '\'')
+                {
+                    quote = c;
+                    valueRefused = false;
+                }
+            }
+            else if (c == '<' && i + 1 < markup.Length && markup[i + 1] is not ('!' or '?'))
+            {
+                inTag = true;
+            }
+
+            if (c != '&' || i + 1 >= markup.Length || markup[i + 1] != '#')
             {
                 continue;
             }
 
-            var hex = markup[at + 2] is 'x';
-            var digits = markup.AsSpan(at + (hex ? 3 : 2), end - at - (hex ? 3 : 2));
-            if (!int.TryParse(digits, hex ? System.Globalization.NumberStyles.AllowHexSpecifier : System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var code)
-                || !(code is < 0x20 or (>= 0x7F and <= 0x9F)))
+            var at = i + 2;
+            var hex = at < markup.Length && markup[at] is 'x' or 'X';
+            if (hex)
             {
-                continue;
+                at++;
             }
 
-            line += markup.AsSpan(counted, at - counted).Count('\n');
-            counted = at;
-            Add(errors, line, CustomLayoutErrorCodes.MARKUP_MALFORMED);
+            var code = 0;
+            var digits = 0;
+            for (; at < markup.Length; at++)
+            {
+                var value = DigitValue(markup[at], hex);
+                if (value < 0)
+                {
+                    break;
+                }
+
+                digits++;
+                code = Math.Min((code * (hex ? 16 : 10)) + value, CAP);
+            }
+
+            if (digits > 0 && at < markup.Length && markup[at] == ';' && (code < 0x20 || code is >= 0x7F and <= 0x9F))
+            {
+                Add(errors, line, CustomLayoutErrorCodes.MARKUP_MALFORMED);
+            }
+
+            i = at - 1;
         }
+    }
+
+    private static int DigitValue(char d, bool hex)
+    {
+        if (d is >= '0' and <= '9')
+        {
+            return d - '0';
+        }
+
+        if (!hex)
+        {
+            return -1;
+        }
+
+        return char.ToLowerInvariant(d) is >= 'a' and <= 'f' ? char.ToLowerInvariant(d) - 'a' + 10 : -1;
     }
 
     private void Walk(string markup, List<TreeNode> root, List<CustomLayoutError> errors)

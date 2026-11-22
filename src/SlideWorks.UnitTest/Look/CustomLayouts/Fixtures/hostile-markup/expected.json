@@ -74,5 +74,16 @@
   "control-ref-soh-dec-in-slot.html": "markup_malformed",
   "control-ref-c1-hex-in-text.html": "markup_malformed",
   "control-ref-c1-hex-in-class.html": "markup_malformed",
-  "control-ref-c1-hex-in-slot.html": "markup_malformed"
+  "control-ref-c1-hex-in-slot.html": "markup_malformed",
+  "control-ref-long-pad-dec-in-text.html": "markup_malformed",
+  "control-ref-long-pad-dec-in-class.html": "markup_malformed",
+  "control-ref-long-pad-hex-in-text.html": "markup_malformed",
+  "control-ref-long-pad-hex-in-class.html": "markup_malformed",
+  "control-ref-long-pad-dec-in-slot.html": "markup_malformed",
+  "raw-tab-in-class.html": "markup_malformed",
+  "raw-tab-in-slot.html": "markup_malformed",
+  "raw-lf-in-class.html": "markup_malformed",
+  "raw-lf-in-slot.html": "markup_malformed",
+  "raw-cr-in-class.html": "markup_malformed",
+  "raw-cr-in-slot.html": "markup_malformed"
 }
