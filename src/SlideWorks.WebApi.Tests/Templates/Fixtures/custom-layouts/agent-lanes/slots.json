@@ -1,0 +1,22 @@
+{
+  "name": "agent-lanes",
+  "description": "Agents at work in lanes, beside a ladder of levels.",
+  "surface": "either",
+  "steps": "lanes",
+  "slots": {
+    "kicker": { "type": "text", "max": 40, "optional": true },
+    "headline": { "type": "text", "max": 80 },
+    "lanes": {
+      "type": "list", "min": 2, "max": 4,
+      "of": {
+        "who": { "type": "text", "max": 8 },
+        "task": { "type": "text", "max": 44 },
+        "progress": { "type": "number", "min": 0, "max": 100 },
+        "state": { "type": "enum", "values": ["running", "waiting"] },
+        "status": { "type": "text", "max": 10 }
+      }
+    },
+    "lead": { "type": "text", "max": 160, "optional": true },
+    "levels": { "type": "levels" }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "horizon",
+  "description": "Up to three rows of timeline segments over a row of ticks; each row can reveal on a click.",
+  "surface": "light",
+  "steps": "rows",
+  "slots": {
+    "kicker": { "type": "text", "max": 40, "optional": true },
+    "headline": { "type": "text", "max": 80 },
+    "rows": {
+      "type": "list", "min": 1, "max": 3,
+      "of": {
+        "label": { "type": "text", "max": 20 },
+        "sub": { "type": "text", "max": 24, "optional": true },
+        "segments": {
+          "type": "list", "min": 1, "max": 4,
+          "of": {
+            "text": { "type": "text", "max": 90 },
+            "span": { "type": "number", "min": 1, "max": 100 },
+            "fill": { "type": "enum", "values": ["solid", "hatched", "faint", "none"] }
+          }
+        }
+      }
+    },
+    "ticks": { "type": "list", "min": 2, "max": 6, "of": { "type": "text", "max": 12 } }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "code-mock",
+  "description": "A code editor mock-up with a ghost suggestion, fact tiles and a ladder of levels.",
+  "surface": "either",
+  "slots": {
+    "kicker": { "type": "text", "max": 40, "optional": true },
+    "headline": { "type": "text", "max": 80 },
+    "file": { "type": "text", "max": 30, "optional": true },
+    "lines": {
+      "type": "list", "min": 1, "max": 6,
+      "of": {
+        "code": { "type": "text", "max": 56 },
+        "ghost": { "type": "text", "max": 30, "optional": true }
+      }
+    },
+    "hint": { "type": "text", "max": 80, "optional": true },
+    "facts": { "type": "facts", "optional": true },
+    "levels": { "type": "levels" }
+  }
+}

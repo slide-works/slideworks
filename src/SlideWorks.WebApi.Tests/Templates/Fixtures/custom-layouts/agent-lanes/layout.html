@@ -1,0 +1,22 @@
+<div class="page">
+  <div class="head">
+    <p class="kicker" data-slot="kicker"></p>
+    <h2 class="headline" data-slot="headline"></h2>
+  </div>
+  <div class="cols">
+    <div class="main">
+      <div class="lanes">
+        <div class="lane" data-each="lanes" data-variant="state" data-step="each">
+          <span class="who" data-slot="who"></span>
+          <div class="task">
+            <span class="task-name" data-slot="task"></span>
+            <div class="meter"><span class="meter-fill" data-var="--p: progress"></span></div>
+          </div>
+          <span class="status" data-slot="status"></span>
+        </div>
+      </div>
+      <p class="lead" data-slot="lead"></p>
+    </div>
+    <div class="ladder" data-slot="levels"></div>
+  </div>
+</div>

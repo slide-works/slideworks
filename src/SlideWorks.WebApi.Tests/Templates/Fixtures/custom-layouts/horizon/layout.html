@@ -1,0 +1,24 @@
+<div class="page">
+  <div class="head">
+    <p class="kicker" data-slot="kicker"></p>
+    <h2 class="headline" data-slot="headline"></h2>
+  </div>
+  <div class="board">
+    <div class="rows">
+      <div class="row" data-each="rows" data-step="each">
+        <div class="who">
+          <span class="label" data-slot="label"></span>
+          <span class="sub" data-slot="sub"></span>
+        </div>
+        <div class="track">
+          <div class="seg" data-each="segments" data-var="--w: span" data-variant="fill">
+            <span class="seg-text" data-slot="text"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ticks">
+      <span class="tick" data-each="ticks" data-slot="item"></span>
+    </div>
+  </div>
+</div>
