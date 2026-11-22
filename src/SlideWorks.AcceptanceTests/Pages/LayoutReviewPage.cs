@@ -10,11 +10,14 @@ public sealed class LayoutReviewPage(IPage page)
         list => JSON.stringify(Object.fromEntries([...list.children].map(item => [item.children[0].textContent, item.children[1].textContent])))
         """;
 
+    // The dashed box's edges in the slide's own pixels: where it is drawn inside the render, divided by the render's scale.
     private const string SAFE_AREA = """
-        el => {
-          const style = getComputedStyle(el);
-          const left = parseFloat(style.left), top = parseFloat(style.top);
-          return JSON.stringify({ left, top, right: left + parseFloat(style.width), bottom: top + parseFloat(style.height) });
+        (box, render) => {
+          const b = box.getBoundingClientRect(), r = render.getBoundingClientRect();
+          const scale = (r.width - 2 * render.clientLeft) / 1920;
+          return JSON.stringify({
+            left: (b.left - r.left - render.clientLeft) / scale, top: (b.top - r.top - render.clientTop) / scale,
+            right: (b.right - r.left - render.clientLeft) / scale, bottom: (b.bottom - r.top - render.clientTop) / scale });
         }
         """;
 
@@ -41,8 +44,14 @@ public sealed class LayoutReviewPage(IPage page)
     public async Task<Dictionary<string, string>> ChecksAsync() =>
         JsonSerializer.Deserialize<Dictionary<string, string>>(await Checks.EvaluateAsync<string>(CHECKS))!;
 
-    // The dashed box's edges in the slide's own pixels.
-    public async Task<Box> SafeAreaBoxAsync() => JsonSerializer.Deserialize<Box>(await SafeArea.First.EvaluateAsync<string>(SAFE_AREA), new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+    // The dashed box of the maximum render, as drawn.
+    public async Task<Box> SafeAreaBoxAsync()
+    {
+        var box = Render("maximum").GetByTestId("layout-review-safe-area");
+        var render = await Render("maximum").ElementHandleAsync();
+        var read = await box.EvaluateAsync<string>(SAFE_AREA, render);
+        return JsonSerializer.Deserialize<Box>(read, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+    }
 
     public sealed class Box
     {

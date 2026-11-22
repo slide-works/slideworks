@@ -35,22 +35,28 @@ public partial class Sw50CustomLayoutOwnerJourneyTests : AcceptanceTest
             await Expect(tab.Rows).ToHaveCountAsync(uploaded + 1);
             await Expect(tab.Row(NAMES[uploaded])).ToHaveCountAsync(1);
         }
+        await Expect(tab.Rows.First).ToBeVisibleAsync();
         (await tab.NamesAsync()).Order(StringComparer.Ordinal).ShouldBe(NAMES.Order(StringComparer.Ordinal));
         foreach (var layout in NAMES)
             await Expect(tab.StatusOf(layout)).ToHaveTextAsync("Needs review");
 
         // A sixth layout whose markup holds a script is refused with the line of the script and no echo of it; the tab
         // still lists the five (the same list that showed the accepted ones, once the page has settled).
-        await tab.Files.SetInputFilesAsync(Fixture.WithScript("dial", "sixth"));
+        var sixth = Fixture.WithScript("dial", "sixth");
+        System.Text.Encoding.UTF8.GetString(sixth.Single(f => f.Name == "slots.json").Buffer).ShouldContain("\"name\": \"sixth\"");
+        await tab.Files.SetInputFilesAsync(sixth);
         await Expect(tab.Refusals).ToBeVisibleAsync();
         var findings = await tab.FindingsAsync();
         findings.ShouldNotBeEmpty();
         findings.ShouldContain(f => f.Path == Fixture.SCRIPT_PATH);
         findings.ShouldAllBe(f => !f.Message.Contains("<script", StringComparison.OrdinalIgnoreCase) && !f.Message.Contains("alert(", StringComparison.Ordinal));
         await Page.EvaluateAsync(FRAMES);
+        await Expect(tab.Rows.First).ToBeVisibleAsync();
         await Expect(tab.Rows).ToHaveCountAsync(5);
-        (await tab.NamesAsync()).ShouldNotContain("sixth");
-        (await tab.NamesAsync()).ShouldContain("dial");
+        var shown = await Eventually.ReadAsync(tab.NamesAsync, n => n.Count == 5);
+        shown.ShouldNotContain("sixth");
+        shown.ShouldContain("dial");
+        shown.Count.ShouldBe(5);
 
         // Publishing is closed while a layout is unapproved: the button is off, the checklist row fails, the route
         // refuses with its code, and the Templates page still shows a draft.
@@ -97,7 +103,7 @@ public partial class Sw50CustomLayoutOwnerJourneyTests : AcceptanceTest
     // Opens one layout's review page, reads what the page's own measurement found, approves and checks the outcome.
     private async Task ReviewAndApproveAsync(LayoutReviewPage review, string id, string layout)
     {
-        var darkToo = layout != "horizon";
+        var darkToo = Fixture.SurfaceOf(layout) != "light";
         await Page.GotoAsync(LayoutReviewPage.PathFor(id, layout));
         await Expect(review.Status).ToHaveTextAsync("Needs review");
         await Expect(review.Render("sample")).ToBeVisibleAsync();
@@ -117,8 +123,9 @@ public partial class Sw50CustomLayoutOwnerJourneyTests : AcceptanceTest
             checks.GetValueOrDefault("Contrast on dark").ShouldBe("Passed", $"{layout}: {shown}");
         else
             checks.ContainsKey("Contrast on dark").ShouldBeFalse($"{layout} is light-only: {shown}");
-        var box = await review.SafeAreaBoxAsync();
-        (box.Left, box.Top, box.Right, box.Bottom).ShouldBe((120d, 150d, 1800d, 996d));
+        await Expect(review.Render("maximum").GetByTestId("layout-review-safe-area")).ToBeVisibleAsync();
+        var box = await Eventually.ReadAsync(review.SafeAreaBoxAsync, b => Math.Abs(b.Right - 1800) < 1);
+        new[] { box.Left, box.Top, box.Right, box.Bottom }.Zip(new[] { 120d, 150d, 1800d, 996d }).ShouldAllBe(e => Math.Abs(e.First - e.Second) < 1, $"{layout}: the dashed box is at {box.Left},{box.Top},{box.Right},{box.Bottom}");
 
         await review.Approve.ClickAsync();
         await Expect(review.Status).ToHaveTextAsync("Approved");
@@ -151,6 +158,9 @@ public partial class Sw50CustomLayoutOwnerJourneyTests : AcceptanceTest
                 Payload("slots.json", "application/json", slots),
             ];
         }
+
+        public static string SurfaceOf(string name) =>
+            JsonDocument.Parse(Read(name, "slots.json")).RootElement.GetProperty("surface").GetString()!;
 
         public static string DescriptionOf(string name) =>
             JsonDocument.Parse(Read(name, "slots.json")).RootElement.GetProperty("description").GetString()!;
