@@ -62,6 +62,20 @@ public sealed class SlideProbe(IPage page, int number)
             : new Box(found.GetProperty("left").GetDouble(), found.GetProperty("top").GetDouble(), found.GetProperty("right").GetDouble(), found.GetProperty("bottom").GetDouble());
     }
 
+    // The box once two reads in a row agree within half a pixel (layout may still be settling); null when there is none.
+    public async Task<Box?> SettledBoxAsync(string testId, int nth = 0)
+    {
+        Box? previous = null;
+        return await Journeys.Eventually.ReadAsync(
+            () => BoxAsync(testId, nth),
+            box =>
+            {
+                var same = box is not null && previous is not null && box.IsNear(previous);
+                previous = box;
+                return same;
+            });
+    }
+
     // Every element with this test id under the slide, in document order.
     public async Task<IReadOnlyList<Box>> BoxesAsync(string testId)
     {
@@ -97,5 +111,10 @@ public sealed class SlideProbe(IPage page, int number)
         public double Width => Right - Left;
 
         public double Height => Bottom - Top;
+
+        // Same x, y, width and height within the tolerance (half a pixel by default).
+        public bool IsNear(Box other, double tolerance = 0.5) =>
+            Math.Abs(Left - other.Left) <= tolerance && Math.Abs(Top - other.Top) <= tolerance
+            && Math.Abs(Width - other.Width) <= tolerance && Math.Abs(Height - other.Height) <= tolerance;
     }
 }

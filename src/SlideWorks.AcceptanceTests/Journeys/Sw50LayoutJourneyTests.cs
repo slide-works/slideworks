@@ -90,22 +90,28 @@ public class Sw50LayoutJourneyTests : AcceptanceTest
         // Two clicks: the stat, then the follow-up. Each hidden one keeps its box.
         await Expect(player.Slide(1).GetByTestId("quote-stat")).ToBeHiddenAsync();
         await Expect(player.Slide(1).GetByTestId("quote-follow-up")).ToBeHiddenAsync();
-        (await darkQuote.BoxAsync("quote-stat")).ShouldNotBeNull().Height.ShouldBeGreaterThan(0);
-        (await darkQuote.BoxAsync("quote-follow-up")).ShouldNotBeNull().Height.ShouldBeGreaterThan(0);
+        var hiddenStat = (await darkQuote.SettledBoxAsync("quote-stat")).ShouldNotBeNull();
+        var hiddenFollowUp = (await darkQuote.SettledBoxAsync("quote-follow-up")).ShouldNotBeNull();
+        hiddenStat.Height.ShouldBeGreaterThan(0);
+        hiddenFollowUp.Height.ShouldBeGreaterThan(0);
         await Page.Keyboard.PressAsync("ArrowRight");
         await Expect(player.Slide(1).GetByTestId("quote-stat-value")).ToHaveTextAsync("4 months");
         await Expect(player.Slide(1).GetByTestId("quote-stat")).ToBeVisibleAsync();
         await Expect(player.Slide(1).GetByTestId("quote-follow-up")).ToBeHiddenAsync();
+        await AssertSameBoxAsync(darkQuote, "quote-stat", hiddenStat);
         await Page.Keyboard.PressAsync("ArrowRight");
         await Expect(player.Slide(1).GetByTestId("quote-follow-up")).ToHaveTextAsync(FOLLOW_UP);
         await Expect(player.Slide(1).GetByTestId("quote-follow-up")).ToBeVisibleAsync();
+        await AssertSameBoxAsync(darkQuote, "quote-follow-up", hiddenFollowUp);
+        await AssertSameBoxAsync(darkQuote, "quote-stat", hiddenStat);
 
         // The statement: its sub is hidden until one click, and it draws no tracker anywhere on the slide.
         await Page.Keyboard.PressAsync("ArrowRight");
         await Expect(player.Count).ToHaveTextAsync("2 / 3");
         await Expect(player.Layer(2)).ToHaveAttributeAsync("data-active", "true");
         await Expect(player.Slide(2).GetByTestId("statement-sub")).ToBeHiddenAsync();
-        (await darkStatement.BoxAsync("statement-sub")).ShouldNotBeNull().Height.ShouldBeGreaterThan(0);
+        var hiddenSub = (await darkStatement.SettledBoxAsync("statement-sub")).ShouldNotBeNull();
+        hiddenSub.Height.ShouldBeGreaterThan(0);
         await Expect(player.Slide(2).GetByTestId("slide-footer")).ToBeVisibleAsync();
         await NextFramesAsync();
         var statementChrome = await darkStatement.ChromeAsync();
@@ -113,6 +119,7 @@ public class Sw50LayoutJourneyTests : AcceptanceTest
         statementChrome.Tracker.ShouldBeFalse();
         await Page.Keyboard.PressAsync("ArrowRight");
         await Expect(player.Slide(2).GetByTestId("statement-sub")).ToBeVisibleAsync();
+        await AssertSameBoxAsync(darkStatement, "statement-sub", hiddenSub);
 
         // The deck page's thumbnail of the quote carries the dark surface.
         var deckPage = new DeckPage(Page);
@@ -183,13 +190,14 @@ public class Sw50LayoutJourneyTests : AcceptanceTest
         var second = new SlideProbe(Page, 2);
         await Expect(player.Slide(2).GetByTestId("cards-card")).ToHaveCountAsync(4);
         await AssertTwoByTwoAsync(second);
-        var cardBoxes = await second.BoxesAsync("cards-card");
         await Expect(player.Slide(2).GetByTestId("block-callout")).ToBeHiddenAsync();
-        var hiddenBox = (await second.BoxAsync("block-callout")).ShouldNotBeNull();
+        var hiddenBox = (await second.SettledBoxAsync("block-callout")).ShouldNotBeNull();
         await Page.Keyboard.PressAsync("ArrowRight");
         await Expect(player.Slide(2).GetByTestId("block-callout")).ToBeVisibleAsync();
-        var shownBox = (await second.BoxAsync("block-callout")).ShouldNotBeNull();
-        shownBox.ShouldBe(hiddenBox);
+        var (cardBoxes, shownBox) = await Eventually.ReadAsync(
+            async () => (await second.BoxesAsync("cards-card"), await second.BoxAsync("block-callout")),
+            r => r.Item2 is { } shown && shown.IsNear(hiddenBox) && r.Item1.Count == 4 && shown.Top >= r.Item1.Max(b => b.Bottom) - 0.5);
+        shownBox.ShouldNotBeNull().IsNear(hiddenBox).ShouldBeTrue($"The callout moved on reveal: {hiddenBox} became {shownBox}.");
         shownBox.Top.ShouldBeGreaterThanOrEqualTo(cardBoxes.Max(b => b.Bottom) - 0.5);
 
         // Compare: the failure panel alone, then the success panel, then both stamps on one step.
@@ -212,9 +220,18 @@ public class Sw50LayoutJourneyTests : AcceptanceTest
         await Expect(compareSlide.GetByTestId("block-stamp").Last).ToHaveTextAsync("Shipped");
     }
 
+    // The element's box now equals its box while hidden (x, y, width, height within half a pixel): revealing shifted nothing.
+    private static async Task AssertSameBoxAsync(SlideProbe slide, string testId, SlideProbe.Box hidden)
+    {
+        var shown = await Eventually.ReadAsync(() => slide.BoxAsync(testId), b => b is not null && b.IsNear(hidden));
+        shown.ShouldNotBeNull().IsNear(hidden).ShouldBeTrue($"{testId} moved on reveal: {hidden} became {shown}.");
+    }
+
     private static async Task AssertTwoByTwoAsync(SlideProbe slide)
     {
-        var boxes = await slide.BoxesAsync("cards-card");
+        var boxes = await Eventually.ReadAsync(
+            () => slide.BoxesAsync("cards-card"),
+            b => b.Count == 4 && b.Select(x => Math.Round(x.Top)).Distinct().Count() == 2 && b.Select(x => Math.Round(x.Left)).Distinct().Count() == 2);
         boxes.Select(b => Math.Round(b.Top)).Distinct().Count().ShouldBe(2);
         boxes.Select(b => Math.Round(b.Left)).Distinct().Count().ShouldBe(2);
     }
@@ -325,8 +342,11 @@ public class Sw50LayoutJourneyTests : AcceptanceTest
         (await new SlideProbe(Page, 2).ComputedAsync("image-picture", "box-shadow")).ShouldNotBe("none");
         var slide = new SlideProbe(Page, 1);
         (await slide.ComputedAsync("image-picture", "box-shadow")).ShouldBe("none");
-        var headline = (await slide.BoxAsync("image-headline")).ShouldNotBeNull();
-        var picture = (await slide.BoxAsync("image-picture")).ShouldNotBeNull();
+        var (headline, picture) = await Eventually.ReadAsync(
+            async () => (await slide.BoxAsync("image-headline"), await slide.BoxAsync("image-picture")),
+            r => r.Item1 is { } h && r.Item2 is { } p && p.Width > 0 && p.Left > h.Right);
+        headline.ShouldNotBeNull();
+        picture.ShouldNotBeNull();
         picture.Width.ShouldBeGreaterThan(0);
         picture.Left.ShouldBeGreaterThan(headline.Right);
     }
