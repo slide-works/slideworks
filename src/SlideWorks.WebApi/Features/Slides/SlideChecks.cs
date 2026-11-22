@@ -45,7 +45,12 @@ public static class SlideChecks
         {
             // A name the template does not have. Core words the refusal for a name it does not know either, with the
             // names it knows; a built-in name gets no layout failure from Core, so it is worded here.
-            var builtIn = SlideValidator.Validate(layout, slots).Errors;
+            // A built-in template keeps Core's list; an uploaded one names what its pinned version allows: the built-ins it
+            // lists and its approved custom layouts. A lone surrogate in the slots is still Core's 'slots: ' refusal.
+            var known = template.BuiltIn
+                ? LayoutCatalogue.LayoutNames
+                : template.AllowedLayoutNames;
+            var builtIn = SlideValidator.Validate(layout, slots, known).Errors;
             throw new BadRequestException(builtIn.FirstOrDefault(error => error.StartsWith("layout: ", StringComparison.Ordinal))
                 ?? builtIn.FirstOrDefault(error => error.StartsWith("slots: ", StringComparison.Ordinal))
                 ?? $"layout: \"{layout}\" is not a layout of this deck's template; call list_layouts for the ones it has");

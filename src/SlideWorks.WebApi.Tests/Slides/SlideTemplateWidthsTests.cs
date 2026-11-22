@@ -22,6 +22,9 @@ public class SlideTemplateWidthsTests : ApiTestFixture
 
     protected override Action<IServiceCollection>? ConfigureTestServices => FakeTemplates.Register;
 
+    [SetUp]
+    public void ResetTemplates() => Factory.Services.GetRequiredService<FakeTemplates>().Reset();
+
     // One test holds every step: the fake is shared by the fixture, and "talk" is wide from the Add on.
     [Test]
     public async Task AddSlide_WhenTheTemplateIsWider_ShouldRefuseTextTheBuiltInAccepts()
@@ -66,6 +69,28 @@ public class SlideTemplateWidthsTests : ApiTestFixture
         added.GetProperty("steps").GetInt32().ShouldBe(0);
         added.GetProperty("warnings").EnumerateArray().Select(w => w.GetString()).ShouldBe([$"Slide 1: layout 'only-here' is not in the '{workshop.Name}' template"]);
         refused.ShouldBe("only-here.headline: required");
+    }
+
+    // The refusal of a name no template has lists what the deck's template allows (SW-673): on an uploaded template, the
+    // built-ins its version lists; on a built-in one, every built-in as before.
+    [Test]
+    public async Task AddSlide_WhenTheUnknownLayoutIsRefused_ShouldListWhatTheTemplateAllows()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        await DeckSeed.AddQuoteAsync(agent, deck, "Already here.");
+        var slots = Slots("""{ "title": "Hi" }""");
+        var onBuiltIn = await ErrorAsync(agent, "add_slide", new { deck, layout = "poster", slots });
+        var talk = new TemplateCatalogue().Default;
+        Factory.Services.GetRequiredService<FakeTemplates>().Add(
+            BuiltInTemplates.Resolve(talk) with { BuiltIn = false, Template = talk with { Layouts = ["title", "bullets"] } });
+
+        var added = await ErrorAsync(agent, "add_slide", new { deck, layout = "poster", slots });
+        var updated = await UpdateErrorAsync(agent, deck, 1, 1, """{ "title": "Hi" }""", layout: "poster");
+
+        onBuiltIn.ShouldBe("layout: unknown layout 'poster' (known: " + string.Join(", ", LayoutCatalogue.LayoutNames) + ")");
+        added.ShouldBe("layout: unknown layout 'poster' (known: title, bullets, join, poll, qa, word-cloud, open-text)");
+        updated.ShouldBe(added);
     }
 
     // A built-in layout the deck's template leaves out is refused as not the template's, on add and on a change to it,
