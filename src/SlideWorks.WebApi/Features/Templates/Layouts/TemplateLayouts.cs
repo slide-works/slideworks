@@ -47,6 +47,12 @@ public sealed class TemplateLayouts(AppDbContext db, ICustomLayoutCompiler compi
         // One write transaction (SQLite's BEGIN IMMEDIATE): the draft's entry is read and the row written with no other
         // write between them, so an approval never lands on a layout that was replaced a moment ago.
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var archivedAt = await db.Templates.AsNoTracking().Where(t => t.Id == templateId).Select(t => t.ArchivedAt).SingleOrDefaultAsync(ct);
+        if (archivedAt is not null)
+        {
+            return ApproveOutcome.Archived;
+        }
+
         var manifestJson = await db.TemplateVersions.AsNoTracking()
             .Where(v => v.TemplateId == templateId && v.Version == TemplateVersion.DRAFT)
             .Select(v => v.ManifestJson)

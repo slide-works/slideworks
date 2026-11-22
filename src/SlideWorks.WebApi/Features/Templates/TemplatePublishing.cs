@@ -92,6 +92,8 @@ public sealed class TemplatePublishing(AppDbContext db, TimeProvider clock, ITem
                 return;
             case ApproveOutcome.NotFound:
                 throw new NotFoundException($"No layout '{name}'.");
+            case ApproveOutcome.Archived:
+                throw TemplateRefusal.Of(TemplateErrorCodes.TEMPLATE_ARCHIVED);
             case ApproveOutcome.Changed:
                 throw new ConflictException(TemplateErrorCodes.LAYOUT_CHANGED);
             case ApproveOutcome.Overflows:

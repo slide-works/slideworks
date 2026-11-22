@@ -18,6 +18,7 @@ public sealed class LayoutsCheck : IPublishCheck
         var seen = new HashSet<string>(StringComparer.Ordinal);
         string? firstPath = null;
         var failed = new List<string>();
+        var unapproved = new List<string>();
         for (var i = 0; i < entries.Count; i++)
         {
             var entry = entries[i];
@@ -31,7 +32,14 @@ public sealed class LayoutsCheck : IPublishCheck
                 path = $"customLayouts[{i}].name";
             }
 
-            if (path is not null)
+            if (path is null)
+            {
+                if (!facts.Asset(entry.File)!.Layout!.Approved)
+                {
+                    unapproved.Add(entry.Name);
+                }
+            }
+            else
             {
                 firstPath ??= path;
                 failed.Add(entry.Name);
@@ -40,10 +48,9 @@ public sealed class LayoutsCheck : IPublishCheck
 
         if (firstPath is not null)
         {
-            return NotFound(firstPath, failed);
+            return NotFound(firstPath, [.. failed, .. unapproved]);
         }
 
-        var unapproved = entries.Where(entry => !facts.Asset(entry.File)!.Layout!.Approved).Select(entry => entry.Name).ToList();
         if (unapproved.Count > 0)
         {
             var code = TemplateErrorCodes.LAYOUT_NOT_APPROVED;
@@ -55,7 +62,7 @@ public sealed class LayoutsCheck : IPublishCheck
         return CheckOutcome.Pass(KEY, LABEL, entries.Count == 0 ? "" : $"{entries.Count} approved", TAB);
     }
 
-    // The refusal is the first problem's path; the row's detail names every affected layout.
+    // The refusal is the first problem's path; the row's detail names every layout that blocks, invalid or unapproved.
     private static CheckOutcome NotFound(string path, IReadOnlyList<string> names)
     {
         var message = TemplateErrorTexts.Format(TemplateErrorCodes.LAYOUT_NOT_FOUND);

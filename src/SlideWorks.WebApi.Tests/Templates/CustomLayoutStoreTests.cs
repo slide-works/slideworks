@@ -532,8 +532,24 @@ public class CustomLayoutStoreTests : ApiTestFixture
         var detail = row.GetProperty("detail").GetString()!;
         detail.ShouldContain("gamma");
         detail.ShouldContain("ghost");
-        detail.ShouldNotContain("alpha");
+        detail.ShouldContain("alpha"); // valid but unapproved: it blocks publishing too
         checklist.GetProperty("canPublish").GetBoolean().ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task Approve_WhenTheTemplateIsArchived_ShouldRefuseAndChangeNothing()
+    {
+        var id = await CreateAsync();
+        var alpha = await UploadAsync(id, "alpha");
+        await SetManifestAsync(id, ("alpha", alpha));
+        (await Client.PostAsync($"/api/templates/{id}/archive", null)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var response = await ApproveAsync(id, "alpha", alpha);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest, body.ToString());
+        body.GetProperty("error").GetString().ShouldBe("template_archived");
+        (await StoredAsync(id, alpha)).Approved.ShouldBeFalse();
     }
 
     private static byte[] Body(string name, string variant = "")
