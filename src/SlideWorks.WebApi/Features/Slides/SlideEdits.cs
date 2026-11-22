@@ -59,8 +59,13 @@ public class SlideEdits(
             var slots = request.Slots;
             // The surface the slide will have: the one given (null clears it), else the one it has. A layout that
             // cannot take it refuses the write; nothing clears a stored surface but the caller.
-            var surface = request.Surface is { } given ? given.Value : slide.Surface;
             var template = await templates.ForDeckAsync(deck, CancellationToken.None);
+            // A move to another layout with no surface given drops a surface that was filled in for the old layout (a dark
+            // custom layout's), so the new layout stores what add_slide would store for it. A surface the caller set stays.
+            var autoFilled = request.Surface is null && layout != slide.Layout && slide.Surface is not null
+                && slide.Surface == SlideChecks.SurfaceToStore(template, slide.Layout, null);
+            var kept = autoFilled ? null : slide.Surface;
+            var surface = request.Surface is { } given ? given.Value : kept;
             var definition = await SlideChecks.ValidateAsync(images, deck.Id, template, layout, slots, surface);
             SlideChecks.CheckPart(request.Part, DeckParts.Read(deck).Count);
             announce = await pollEdits.CheckSlideEditAsync(deck.Id, slide, layout, slots);

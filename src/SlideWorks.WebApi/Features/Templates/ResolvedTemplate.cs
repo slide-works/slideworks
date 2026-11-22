@@ -34,9 +34,9 @@ public sealed record ResolvedTemplate(Template Template, string Ref, int? Versio
     // this version. A custom layout of the deck's own template never warns (K18).
     public bool AllowsLayout(string name) => Template.Allows(name) || CustomLayouts.Any(c => string.Equals(c.Layout.Name, name, StringComparison.Ordinal));
 
-    // True when the name is a custom layout of this version and not a built-in (a built-in name always wins, T4).
+    // True when the name is a custom layout of this version and not a built-in (a built-in name always wins, T4, when the catalogue has one).
     public bool IsCustomLayout(string name)
-        => !Template.Allows(name) && CustomLayouts.Any(c => string.Equals(c.Layout.Name, name, StringComparison.Ordinal));
+        => LayoutCatalogue.Find(name) is null && CustomLayouts.Any(c => string.Equals(c.Layout.Name, name, StringComparison.Ordinal));
 
     public FitWidths FitWidths { get; init; } = FitWidths.Default;
 }

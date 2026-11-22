@@ -47,7 +47,7 @@ public class CustomLayoutUseTests : ApiTestFixture
     private FakeCustomLayoutCompiler Compiler => Factory.Services.GetRequiredService<FakeCustomLayoutCompiler>();
 
     // What a test asks of a layout: the compiled one is built from it for each upload.
-    private sealed record LayoutSpec(string Name, LayoutSurface Surface, bool Approved, int ItemMax);
+    private sealed record LayoutSpec(string Name, LayoutSurface Surface, bool Approved, int ItemMax, bool AlsoListed = false);
 
     [Test]
     public async Task AddSlide_WhenTheLayoutIsCustom_ShouldValidateItsSlots()
@@ -126,6 +126,34 @@ public class CustomLayoutUseTests : ApiTestFixture
 
         error.ShouldContain(DIAL);
         (await SlideCalls.SlidesAsync(agent, deck)).Count.ShouldBe(0);
+    }
+
+    [Test]
+    public async Task AddSlide_WhenTheCustomNameIsAlsoInTheManifestsLayoutsList_ShouldUseTheCustomLayout()
+    {
+        var (agent, deck, _) = await DeckWithLayoutAsync(Layout(DIAL, LayoutSurface.Light, alsoListed: true));
+        await using var _a = agent;
+
+        var added = await SlideCalls.OkAsync(agent, "add_slide", new { deck, layout = DIAL, slots = new { headline = "Dials", items = new[] { "a", "b" } } });
+        var error = await SlideCalls.ErrorAsync(agent, "add_slide", new { deck, layout = DIAL, slots = new { headline = new string('x', 21), items = new[] { "a" } } });
+
+        added.GetProperty("warnings").GetArrayLength().ShouldBe(0);
+        error.ShouldContain($"{DIAL}.headline");
+        var listed = await SlideCalls.OkAsync(agent, "list_layouts", new { deck });
+        listed.GetProperty("layouts").EnumerateArray().Count(r => r.GetProperty("name").GetString() == DIAL && r.GetProperty("custom").GetBoolean()).ShouldBe(1);
+    }
+
+    [Test]
+    public async Task UpdateSlide_WhenMovingFromADarkCustomLayoutToALightOnlyOneWithNoSurface_ShouldStoreTheNewLayoutsSurface()
+    {
+        var (agent, deck, _) = await DeckWithLayoutAsync(Layout(DIAL, LayoutSurface.Dark));
+        await using var _a = agent;
+        var added = await SlideCalls.OkAsync(agent, "add_slide", new { deck, layout = DIAL, slots = new { headline = "x", items = new[] { "a" } } });
+        (await StoredSurfaceAsync(deck)).ShouldBe("dark");
+
+        await SlideCalls.UpdateAsync(agent, deck, 1, added.GetProperty("revision").GetInt64(), """{ "headline": "Ship smaller", "columns": ["Was", "Now"], "rows": [["Big", "Small"]] }""", layout: "table");
+
+        (await StoredSurfaceAsync(deck)).ShouldBeNull();
     }
 
     [Test]
@@ -420,6 +448,11 @@ public class CustomLayoutUseTests : ApiTestFixture
         var editor = await Client.GetFromJsonAsync<JsonElement>($"/api/templates/{id}");
         var manifest = JsonNode.Parse(editor.GetProperty("manifest").GetRawText())!;
         manifest["customLayouts"] = entries;
+        // A custom name that the manifest's built-in layouts list also names.
+        foreach (var listed in layouts.Where(l => l.AlsoListed))
+        {
+            manifest["layouts"]!.AsArray().Add(listed.Name);
+        }
         using var put = await Client.PutAsJsonAsync($"/api/templates/{id}", new { manifest, revision = editor.GetProperty("revision").GetInt32() });
         put.StatusCode.ShouldBe(HttpStatusCode.OK, await put.Content.ReadAsStringAsync());
         foreach (var (spec, asset) in assets)
@@ -480,7 +513,7 @@ public class CustomLayoutUseTests : ApiTestFixture
         return (await db.Slides.AsNoTracking().SingleAsync(s => s.DeckId == deck && s.DeletedAt == null)).Surface;
     }
 
-    private static LayoutSpec Layout(string name, LayoutSurface surface, bool approved = true, int itemMax = 6) => new(name, surface, approved, itemMax);
+    private static LayoutSpec Layout(string name, LayoutSurface surface, bool approved = true, int itemMax = 6, bool alsoListed = false) => new(name, surface, approved, itemMax, alsoListed);
 
     // The definition the stand-in compiler gives a stored layout, built from the schema as stored: a headline, a list of
     // items that reveal one by one, and the reveal switch.

@@ -60,9 +60,10 @@ public static class ManifestTemplates
             Archived = record.ArchivedAt is not null,
             FitWidths = WidthsOf(version.FitWidthsJson),
             CustomLayouts = custom,
-            Layouts = name => template.Allows(name)
-                ? LayoutCatalogue.Find(name)
-                : custom.FirstOrDefault(c => string.Equals(c.Layout.Name, name, StringComparison.Ordinal))?.Layout.Definition,
+            // A built-in wins, but only when the catalogue has one: a custom name that the manifest's layouts list also names
+            // is still the approved custom layout.
+            Layouts = name => (template.Allows(name) ? LayoutCatalogue.Find(name) : null)
+                ?? custom.FirstOrDefault(c => string.Equals(c.Layout.Name, name, StringComparison.Ordinal))?.Layout.Definition,
         };
     }
 
