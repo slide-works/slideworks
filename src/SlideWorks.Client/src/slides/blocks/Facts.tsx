@@ -25,7 +25,7 @@ export function Facts({ facts }: FactsProps) {
             className={styles.tile}
             style={rule}
           >
-            <div data-testid="facts-label" className={styles.label}>
+            <div data-testid="facts-label" data-check-size="designed:15" className={styles.label}>
               {fact.label}
             </div>
             <div data-testid="facts-value" className={styles.value}>
