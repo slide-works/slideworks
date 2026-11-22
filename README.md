@@ -56,7 +56,7 @@ Static analysis (SonarAnalyzer.CSharp and Agoda.Analyzers) applies to every proj
 
 ## Presenting
 
-The owner of a deck presents it from the Present menu: a presenter window (notes, timer and overview) opens beside an audience window that follows the talk, and a phone signed in as the owner works as a remote. Everything goes through `DeckHub`, one shared state per talk. See [`docs/presenting.md`](docs/presenting.md) for the keys, deep dives and what happens when the Wi-Fi drops. A deck can also have a talk length, set through the API or the `set_talk_length` MCP tool (there is no web UI for it); the timer shows the time left.
+The owner of a deck presents it from the Present menu: a presenter window (notes, timer and overview) opens beside an audience window that follows the talk, and a phone signed in as the owner works as a remote. Everything goes through `DeckHub`, one shared state per talk. See [`docs/presenting.md`](docs/presenting.md) for the keys, deep dives and what happens when the Wi-Fi drops. A deck can also have a talk length, set through the API or the `set_talk_length` MCP tool (there is no web UI for it); the timer shows the time left. A deck's parts (names, short names, captions, marks) can be replaced after creation with the `set_parts` MCP tool; there is no web UI for it.
 
 ## Realtime
 

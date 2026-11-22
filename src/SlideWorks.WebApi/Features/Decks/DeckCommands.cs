@@ -206,7 +206,7 @@ public class DeckCommands(
         throw new BadRequestException($"{field}: at most {maxLength} characters{got}");
     }
 
-    private static IReadOnlyList<DeckPart> Parts(IReadOnlyList<JsonElement>? items)
+    public static IReadOnlyList<DeckPart> Parts(IReadOnlyList<JsonElement>? items)
     {
         if (items == null)
         {

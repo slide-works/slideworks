@@ -142,6 +142,20 @@ public class SlideCommands(
         await db.Decks.Where(d => d.Id == deck.Id)
             .ExecuteUpdateAsync(set => set.SetProperty(d => d.Revision, d => d.Revision + 1).SetProperty(d => d.UpdatedAt, clock.GetUtcNow()));
         deck = await db.Decks.AsNoTracking().SingleAsync(d => d.Id == deck.Id);
+        // The parts were checked before this transaction; set_parts may have shortened the list since, so check again here,
+        // against the deck as it is now. A refusal rolls the revision back and writes nothing.
+        var currentParts = DeckParts.Read(deck).Count;
+        foreach (var item in accepted)
+        {
+            try
+            {
+                SlideChecks.CheckPart(item.Draft.Part, currentParts);
+            }
+            catch (BadRequestException e)
+            {
+                throw new BadRequestException($"slides[{item.Index}].{e.Message}");
+            }
+        }
         count = await db.Slides.CountAsync(s => s.DeckId == deck.Id && s.DeletedAt == null);
         start = Position(position, count);
         await db.Slides.Where(s => s.DeckId == deck.Id && s.DeletedAt == null && s.Position >= start)
@@ -259,6 +273,8 @@ public class SlideCommands(
             this.error = error;
             Poll = poll;
         }
+
+        public int Index => index;
 
         public SlideDraft Draft { get; }
 
