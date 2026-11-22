@@ -42,7 +42,7 @@ public static class BindingWalk
 
                 if (list is null)
                 {
-                    errors.Add(Error(path, CustomLayoutErrorCodes.BINDING_UNKNOWN_SLOT, null));
+                    errors.Add(Error(CustomLayoutError.LAYOUT_PATH, CustomLayoutErrorCodes.BINDING_UNKNOWN_SLOT, null));
                     here = [];
                 }
                 else if (list.Type != CustomSlot.LIST)
@@ -52,7 +52,10 @@ public static class BindingWalk
                 }
                 else
                 {
-                    here = list.Item is null ? list.Fields : [list.Item with { Name = CustomSlot.ITEM }];
+                    // item names the value of a list of scalars and nothing else: a field of that name is not a binding.
+                    here = list.Item is null
+                        ? [.. list.Fields.Where(field => !string.Equals(field.Name, CustomSlot.ITEM, StringComparison.Ordinal))]
+                        : [list.Item with { Name = CustomSlot.ITEM }];
                     herePath = $"{path}.{list.Name}";
                     repeats = Math.Min(repeats * (list.Max ?? CustomLayoutLimits.MAX_DRAWN_NODES + 1L), CustomLayoutLimits.MAX_DRAWN_NODES + 1L);
                 }

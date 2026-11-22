@@ -86,6 +86,28 @@ public class LayoutCrossCheckTests
     }
 
     [Test]
+    public void Check_WhenAnObjectListHasAFieldNamedItem_ShouldStillRefuseItem()
+    {
+        var rows = List("rows", 1, 3, Text("item"), Text("x"));
+
+        Refuses(Tree(N(each: "rows", children: [N(slot: "item"), N(slot: "x")])), Schema(null, rows), CustomLayoutErrorCodes.BINDING_UNKNOWN_SLOT, "layout").ShouldNotBeEmpty();
+    }
+
+    [Test]
+    public void Check_WhenAnEachNamesNoListAtTopLevel_ShouldRefuseAtLayout()
+    {
+        Refuses(Tree(N(each: "ghost")), Schema(null, Text("title"), List("rows", 1, 3, Text("x"))), CustomLayoutErrorCodes.BINDING_UNKNOWN_SLOT, "layout").ShouldNotBeEmpty();
+    }
+
+    [Test]
+    public void Check_WhenAnEachNamesNoListWhenNested_ShouldRefuseAtLayout()
+    {
+        var tree = Tree(N(each: "rows", children: [N(each: "ghost")]));
+
+        Refuses(tree, Schema(null, List("rows", 1, 3, Text("x"))), CustomLayoutErrorCodes.BINDING_UNKNOWN_SLOT, "layout").ShouldNotBeEmpty();
+    }
+
+    [Test]
     public void Check_WhenItemIsUsedInAListOfScalars_ShouldPass()
     {
         var tags = new CustomSlot("tags", "list", false, 1, 4, [], [], Text("item"));
