@@ -313,7 +313,7 @@ function Review({
         <button
           type="button"
           data-testid={REVIEW_TEST_IDS.approve}
-          className="btn"
+          className="btn-primary"
           aria-label={`Approve layout ${name}`}
           aria-describedby={REVIEW_TEST_IDS.approveReason}
           aria-busy={approving}
