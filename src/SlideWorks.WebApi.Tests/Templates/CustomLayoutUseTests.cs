@@ -8,6 +8,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.SignalR.Client;
+using SlideWorks.Core.Look;
 using SlideWorks.Core.Look.CustomLayouts;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Data;
@@ -100,6 +101,20 @@ public class CustomLayoutUseTests : ApiTestFixture
 
         error.ShouldBe(unknown.Replace("never-heard-of", "elsewhere", StringComparison.Ordinal));
         (await SlideCalls.SlidesAsync(agent, deck)).Count.ShouldBe(0);
+    }
+
+    [Test]
+    public async Task AddSlide_WhenTheLayoutIsUnknown_ShouldListTheApprovedCustomLayoutsOnly()
+    {
+        var (agent, deck, _) = await DeckWithLayoutAsync(Layout(DIAL, LayoutSurface.Light), Layout("unapproved-one", LayoutSurface.Light, approved: false));
+        await using var _a = agent;
+        var slots = new { headline = "x", items = new[] { "a" } };
+
+        var added = await SlideCalls.ErrorAsync(agent, "add_slide", new { deck, layout = "never-heard-of", slots });
+
+        var allowed = LayoutCatalogue.LayoutNames.Where(new TemplateCatalogue().Default.Allows).Append(DIAL);
+        added.ShouldBe($"layout: unknown layout 'never-heard-of' (known: {string.Join(", ", allowed)})");
+        added.ShouldNotContain("unapproved-one");
     }
 
     [Test]

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
-import { editorTabTestId } from '../../testIds';
+import { TEMPLATES_TEST_IDS, editorTabTestId } from '../../testIds';
 import type { TemplateFontRole, TemplateManifestFont } from '../../types';
 import type { ChangeOutcome } from '../../useTemplateDraft';
 import { templateErrorMessage } from '../../api';
@@ -189,6 +189,7 @@ export function FontsTab({ draft, change, reload }: EditorTabProps) {
             </label>
             <input
               id={`${id}-${field}`}
+              data-testid={`${TEMPLATES_TEST_IDS.fontType}-${field}`}
               type="text"
               className="field min-w-0"
               value={typed[field] ?? manifest.type[field]}
@@ -262,6 +263,7 @@ export function FontsTab({ draft, change, reload }: EditorTabProps) {
         <div className="flex flex-wrap items-center gap-3">
           <button
             ref={addButton}
+            data-testid={TEMPLATES_TEST_IDS.fontAddFiles}
             type="button"
             className="btn-ghost"
             disabled={!rightsOn || busy}
@@ -272,6 +274,7 @@ export function FontsTab({ draft, change, reload }: EditorTabProps) {
           </button>
           <input
             ref={picker}
+            data-testid={TEMPLATES_TEST_IDS.fontFileInput}
             type="file"
             multiple
             accept=".woff2,font/woff2"

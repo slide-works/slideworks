@@ -18,7 +18,7 @@ export const PREVIEW_SLIDES = PREVIEW_NUMBERS.map((number) => {
 });
 
 // The palette a template that brings none draws in: the catalogue's default.
-const BASE_PALETTE: LookPalette = (() => {
+export const BASE_PALETTE: LookPalette = (() => {
   const palette = palettesJson.palettes.find((candidate) => candidate.isDefault);
   if (!palette) throw new Error('No default palette in palettes.json');
   return {

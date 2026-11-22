@@ -21,9 +21,6 @@ import { LayoutsTab } from './tabs/LayoutsTab';
 import { LogoArtTab } from './tabs/LogoArtTab';
 import { PaletteTab } from './tabs/PaletteTab';
 
-// TODO: the Custom layouts tab stays hidden until custom layouts ship; then delete this flag.
-const CUSTOM_LAYOUTS = false;
-
 const TAB_CONTENT: { [T in EditorTab]: ComponentType<EditorTabProps> } = {
   basics: BasicsTab,
   fonts: FontsTab,
@@ -32,7 +29,7 @@ const TAB_CONTENT: { [T in EditorTab]: ComponentType<EditorTabProps> } = {
   layouts: LayoutsTab,
 };
 
-const TABS = EDITOR_TABS.filter(({ tab }) => CUSTOM_LAYOUTS || tab !== 'layouts');
+const TABS = EDITOR_TABS;
 const OFFERED = TABS.map(({ tab }) => tab);
 
 // The tab an arrow, Home or End key moves to from `from`: the arrows wrap round the ends.

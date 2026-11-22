@@ -17,6 +17,24 @@ export const TEMPLATES_TEST_IDS = {
   editorPanel: 'template-editor-panel',
   preview: 'template-editor-preview',
   checklist: 'template-publish-checklist',
+  newTemplate: 'new-template',
+  newName: 'new-template-name',
+  newFrom: 'new-template-from',
+  newCreate: 'new-template-create',
+  // The prefix of one table group's id: template-group-mine, -shared, -builtIn.
+  group: 'template-group',
+  rowShortName: 'template-short-name',
+  rowStatus: 'template-status',
+  fontRights: 'font-rights-tick',
+  fontAddFiles: 'font-add-files',
+  fontFileInput: 'font-file-input',
+  fontToAdd: 'font-to-add',
+  fontRole: 'font-to-add-role',
+  fontType: 'font-type',
+  fontFamily: 'font-to-add-family',
+  fontWeight: 'font-to-add-weight',
+  fontAdd: 'font-to-add-add',
+  publish: 'template-publish',
 } as const;
 
 // One tab button of the editor's tab bar, and the tab's own content.

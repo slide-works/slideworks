@@ -101,6 +101,7 @@ export function TemplatesPage() {
             </button>
             <button
               type="button"
+              data-testid={TEMPLATES_TEST_IDS.newTemplate}
               className="btn-primary py-1.5"
               aria-haspopup="dialog"
               onClick={() => setNewFrom({ builtIn: null })}
