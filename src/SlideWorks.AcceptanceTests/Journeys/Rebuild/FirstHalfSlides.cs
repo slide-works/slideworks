@@ -3,16 +3,16 @@ namespace SlideWorks.AcceptanceTests.Journeys.Rebuild;
 // Slides 1–22 of the 44-slide test deck, rebuilt as data: made-up Northwind text at every slot's documented maximum, every list at
 // the count seen on the compare sheet. Slides 9, 11 and 13 are custom layouts (see SW-489) and are not here. Number is the
 // slide's number in the original deck; Part is the 1-based part to add it to (null for none); Callouts and Steps are what the
-// original had and what the layout reports; Photo is true when the original is a photo or a screenshot, so an img is expected.
+// original had and what the layout reports; Surface is the add_slide surface (dark for the dark quote); Photo is true when the original is a photo or a screenshot, so an img is expected.
 public static class FirstHalfSlides
 {
-    public static readonly IReadOnlyList<(int Number, string Layout, int? Part, string Kind, bool Photo, int Callouts, int Steps, Func<string, object> Slots)> ALL =
+    public static readonly IReadOnlyList<(int Number, string Layout, int? Part, string Kind, bool Photo, int Callouts, int Steps, string? Surface, Func<string, object> Slots)> ALL =
     [
-        (1, "title", null, "opening title", false, 0, 0, _ => new
+        (1, "title", null, "opening title", false, 0, 0, null, _ => new
         {
             kicker = M(60, 1), title = M(34, 2), subtitle = M(100, 3), tagline = M(90, 4), author = M(60, 5), affiliation = M(60, 6),
         }),
-        (2, "cards", null, "three cards", false, 0, 3, _ => new
+        (2, "cards", null, "three cards", false, 0, 3, null, _ => new
         {
             kicker = M(60, 7), headline = M(100, 8), reveal = "one-by-one",
             cards = new object[]
@@ -22,8 +22,8 @@ public static class FirstHalfSlides
                 new { icon = "warning", badge = M(36, 15), title = M(70, 16), text = M(140, 17), tone = "negative", fill = "plain" },
             },
         }),
-        (3, "divider", 1, "part divider", false, 0, 0, _ => new { title = M(44, 18), sub = M(110, 19) }),
-        (4, "cards", 1, "2x2 cards, one lit", false, 0, 0, _ => new
+        (3, "divider", 1, "part divider", false, 0, 0, null, _ => new { title = M(44, 18), sub = M(110, 19) }),
+        (4, "cards", 1, "2x2 cards, one lit", false, 0, 0, null, _ => new
         {
             kicker = M(60, 20), headline = M(100, 21),
             cards = new object[]
@@ -34,7 +34,7 @@ public static class FirstHalfSlides
                 new { title = M(70, 29), text = M(140, 30), fill = "plain" },
             },
         }),
-        (5, "two-column", 1, "list, big word, callout", false, 1, 0, _ => new
+        (5, "two-column", 1, "list, big word, callout", false, 1, 0, null, _ => new
         {
             kicker = M(60, 31), headline = M(100, 32),
             left = new
@@ -49,7 +49,7 @@ public static class FirstHalfSlides
             right = new { title = M(60, 39), icon = "search", text = M(400, 40) },
             callout = new { tone = "accent", text = M(200, 41) },
         }),
-        (6, "compare", 1, "two kinds, side by side", false, 0, 0, _ => new
+        (6, "compare", 1, "two kinds, side by side", false, 0, 0, null, _ => new
         {
             kicker = M(60, 42), headline = M(100, 43),
             failure = new
@@ -63,7 +63,7 @@ public static class FirstHalfSlides
                 rows = new object[] { new { label = M(16, 54), value = M(40, 55) }, new { label = M(16, 56), value = M(40, 57) }, new { label = M(16, 58), value = M(40, 59) } },
             },
         }),
-        (7, "stack", 1, "stacked cost column", false, 1, 6, _ => new
+        (7, "stack", 1, "stacked cost column", false, 1, 6, null, _ => new
         {
             kicker = M(60, 60), headline = M(100, 61), reveal = "one-by-one",
             segments = new object[]
@@ -78,10 +78,10 @@ public static class FirstHalfSlides
             total = M(30, 74), caption = M(60, 75),
             callout = new { tone = "accent", text = M(220, 76) },
         }),
-        (8, "divider", 2, "part divider", false, 0, 0, _ => new { title = M(44, 77), sub = M(110, 78) }),
-        (10, "divider", 3, "part divider", false, 0, 0, _ => new { title = M(44, 79), sub = M(110, 80) }),
-        (12, "divider", 4, "part divider", false, 0, 0, _ => new { title = M(44, 81), sub = M(110, 82) }),
-        (14, "stack", 4, "stacked cost column, one new", false, 1, 0, _ => new
+        (8, "divider", 2, "part divider", false, 0, 0, null, _ => new { title = M(44, 77), sub = M(110, 78) }),
+        (10, "divider", 3, "part divider", false, 0, 0, null, _ => new { title = M(44, 79), sub = M(110, 80) }),
+        (12, "divider", 4, "part divider", false, 0, 0, null, _ => new { title = M(44, 81), sub = M(110, 82) }),
+        (14, "stack", 4, "stacked cost column, one new", false, 1, 0, null, _ => new
         {
             kicker = M(60, 83), headline = M(100, 84),
             segments = new object[]
@@ -98,7 +98,7 @@ public static class FirstHalfSlides
             points = new object[] { new { lead = M(8, 97), text = M(90, 98) }, new { lead = M(8, 99), text = M(90, 100) } },
             callout = new { tone = "accent", text = M(220, 101) },
         }),
-        (15, "numbered-cards", 4, "three numbered cards", false, 0, 3, _ => new
+        (15, "numbered-cards", 4, "three numbered cards", false, 0, 3, null, _ => new
         {
             kicker = M(60, 102), headline = M(100, 103), reveal = "one-by-one",
             cards = new object[]
@@ -108,7 +108,7 @@ public static class FirstHalfSlides
                 new { title = M(40, 108), text = M(140, 109), tone = "inverse", fill = "solid" },
             },
         }),
-        (16, "bars", 4, "two bars and a marker", false, 0, 0, _ => new
+        (16, "bars", 4, "two bars and a marker", false, 0, 0, null, _ => new
         {
             kicker = M(60, 110), headline = M(100, 111),
             bars = new object[]
@@ -118,8 +118,8 @@ public static class FirstHalfSlides
             },
             wasLabel = M(24, 119), caption = M(160, 120),
         }),
-        (17, "divider", 5, "part divider", false, 0, 0, _ => new { title = M(44, 121), sub = M(110, 122) }),
-        (18, "flow", 5, "node, box of four, node", false, 0, 0, _ => new
+        (17, "divider", 5, "part divider", false, 0, 0, null, _ => new { title = M(44, 121), sub = M(110, 122) }),
+        (18, "flow", 5, "node, box of four, node", false, 0, 0, null, _ => new
         {
             kicker = M(60, 123), headline = M(100, 124),
             nodes = new object[]
@@ -130,7 +130,7 @@ public static class FirstHalfSlides
             },
             caption = M(140, 136), chips = new[] { M(24, 137) },
         }),
-        (19, "compare", 5, "two panels, one dark", false, 0, 0, _ => new
+        (19, "compare", 5, "two panels, one dark", false, 0, 0, null, _ => new
         {
             kicker = M(60, 138), headline = M(100, 139),
             failure = new
@@ -144,12 +144,12 @@ public static class FirstHalfSlides
                 points = new[] { M(90, 148) }, footer = M(90, 149),
             },
         }),
-        (20, "quote", 5, "dark quote with a figure", false, 0, 0, _ => new
+        (20, "quote", 5, "dark quote with a figure", false, 0, 0, "dark", _ => new
         {
             kicker = M(60, 150), headline = M(80, 151), quote = M(280, 152), attribution = M(80, 153), role = M(160, 154),
             stat = new { value = M(12, 155), caption = M(90, 156) }, source = M(200, 158),
         }),
-        (21, "image", 5, "screenshot and four tips", true, 0, 0, image => new
+        (21, "image", 5, "screenshot and four tips", true, 0, 0, null, image => new
         {
             kicker = M(60, 159), headline = M(100, 160), image = new { image, alt = M(500, 161) },
             points = new object[]
@@ -161,7 +161,7 @@ public static class FirstHalfSlides
             },
             caption = M(140, 170),
         }),
-        (22, "stack", 5, "three tiers and a caption", false, 0, 0, _ => new
+        (22, "stack", 5, "three tiers and a caption", false, 0, 0, null, _ => new
         {
             kicker = M(60, 171), headline = M(100, 172),
             segments = new object[]

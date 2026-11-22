@@ -33,6 +33,10 @@ public class Sw50RebuildFirstHalfJourneyTests : AcceptanceTest
                 ["layout"] = slide.Layout,
                 ["slots"] = JsonSerializer.SerializeToElement(slide.Slots(imageId)),
             };
+            if (slide.Surface is { } surface)
+            {
+                args["surface"] = surface;
+            }
             if (slide.Part is { } part)
             {
                 args["part"] = part;
@@ -68,7 +72,7 @@ public class Sw50RebuildFirstHalfJourneyTests : AcceptanceTest
 
         for (var i = 0; i < slides.Count; i++)
         {
-            var (original, layout, _, _, isPhoto, callouts, steps, _) = slides[i];
+            var (original, layout, _, _, isPhoto, callouts, steps, _, _) = slides[i];
             var number = i + 1;
             var label = $"slide {original} ({layout}, deck position {number})";
             await Expect(player.Count).ToHaveTextAsync($"{number} / {slides.Count}");
