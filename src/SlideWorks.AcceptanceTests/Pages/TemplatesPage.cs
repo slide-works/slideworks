@@ -23,8 +23,6 @@ public sealed class TemplatesPage(IPage page)
     public ILocator Group(string kind) => page.GetByTestId($"template-group-{kind}");
 
     // The public page at /t/{id}: its heading is the template's name, or the message when it is private or unknown.
-    public ILocator PublicPage => page.GetByTestId("template-public-page");
-
     public ILocator PublicName => page.GetByTestId("template-public-name");
 
     public ILocator PublicMessage => page.GetByTestId("template-public-message");

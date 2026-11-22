@@ -35,15 +35,6 @@ export const TEMPLATES_TEST_IDS = {
   fontWeight: 'font-to-add-weight',
   fontAdd: 'font-to-add-add',
   publish: 'template-publish',
-  // Raw ids the components already carry, registered for the acceptance page objects.
-  checklistRow: 'checklist-row',
-  editorShare: 'template-editor-share',
-  shareDone: 'template-share-done',
-  publicUse: 'template-public-use',
-  publicMessage: 'template-public-message',
-  publicName: 'template-public-name',
-  sharingEmailInput: 'sharing-email-input',
-  sharingChipEmail: 'sharing-chip-email',
 } as const;
 
 // One tab button of the editor's tab bar, and the tab's own content.

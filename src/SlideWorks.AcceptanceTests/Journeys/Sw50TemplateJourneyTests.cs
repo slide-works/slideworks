@@ -52,6 +52,7 @@ public partial class Sw50TemplateJourneyTests : AcceptanceTest
         await share.ChooseAsync("named");
         await share.AddEmailAsync(TestUser.Alex.Email);
         await Expect(share.Chips).ToHaveCountAsync(1);
+        (await share.Chips.First.InnerTextAsync()).ShouldBe(TestUser.Alex.Email);
         var saved = await Eventually.ReadAsync(() => SharingAsync(Page, id), s => s.Viewers.Contains(TestUser.Alex.Email));
         saved.Level.ShouldBe("named");
         saved.Viewers.ShouldBe([TestUser.Alex.Email]);

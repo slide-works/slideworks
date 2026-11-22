@@ -31,13 +31,9 @@ public sealed class TemplateEditorPage(IPage page)
 
     public ILocator ToAddWeight => page.GetByTestId("font-to-add-weight");
 
-    public ILocator ToAddRole => page.GetByTestId("font-to-add-role");
-
     public ILocator AddToTemplate => page.GetByTestId("font-to-add-add");
 
     public ILocator Publish => page.GetByTestId("template-publish");
-
-    public ILocator ChecklistCount => page.GetByTestId("checklist-count");
 
     public static string PathFor(string templateId) => $"/templates/{templateId}/edit";
 
