@@ -15,6 +15,11 @@ public class Sw50RebuildSecondHalfJourneyTests : AcceptanceTest
 {
     private const string PROBE_IMAGES = "slide => slide.querySelectorAll('img').length";
 
+    private const string FACE_LOADED = """
+        family => [...document.fonts].some(f => f.family.replace(/["']/g, '') === family && f.status === 'loaded')
+            && document.fonts.check(`16px "${family}"`)
+        """;
+
     [Test]
     public async Task Agent_WhenRebuildingSlidesTwentyThreeToFortyFour_ShouldKeepEverySlideAsText()
     {
@@ -68,7 +73,7 @@ public class Sw50RebuildSecondHalfJourneyTests : AcceptanceTest
 
         for (var i = 0; i < slides.Count; i++)
         {
-            var (original, layout, _, _, isPhoto, callouts, steps, _, _) = slides[i];
+            var (original, layout, _, _, isPhoto, callouts, steps, surface, _) = slides[i];
             var number = i + 1;
             var label = $"slide {original} ({layout}, deck position {number})";
             await Expect(player.Count).ToHaveTextAsync($"{number} / {slides.Count}");
@@ -83,7 +88,8 @@ public class Sw50RebuildSecondHalfJourneyTests : AcceptanceTest
             }
 
             // The probe has something to measure: the slide drew its text.
-            (await player.Slide(number).EvaluateAsync<string>("slide => slide.textContent")).Trim().Length.ShouldBeGreaterThan(40, label);
+            await Expect(player.Slide(number)).ToBeVisibleAsync();
+            (await player.Slide(number).EvaluateAsync<string>("slide => slide.innerText")).Trim().Length.ShouldBeGreaterThan(40, label);
             var overflow = await Eventually.ReadAsync(() => player.OverflowAsync(number), found => found.Length == 0);
             overflow.ShouldBeEmpty(label);
 
@@ -95,6 +101,11 @@ public class Sw50RebuildSecondHalfJourneyTests : AcceptanceTest
             else
             {
                 images.ShouldBe(0, $"{label}: a slide that is not a photo draws no img");
+            }
+
+            if (surface is not null)
+            {
+                (await new SlideProbe(Page, number).SurfaceAsync()).ShouldBe(surface, $"{label}: asked for the {surface} surface");
             }
 
             var drawnCallouts = player.Slide(number).GetByTestId("block-callout");
@@ -109,5 +120,14 @@ public class Sw50RebuildSecondHalfJourneyTests : AcceptanceTest
                 await Page.Keyboard.PressAsync("ArrowRight");
             }
         }
+
+        // The slides draw in the uploaded family, and that face is loaded.
+        await player.GotoAsync(deck);
+        await Expect(player.Player).ToBeVisibleAsync();
+        await player.FontsReadyAsync();
+        var drawn = await player.Slide(1).GetByTestId("slide-frame").EvaluateAsync<string>("el => getComputedStyle(el).fontFamily");
+        drawn.Trim().Replace("\"", "'").ShouldContain(RebuildDeck.FAMILY);
+        var loaded = await Eventually.ReadAsync(() => Page.EvaluateAsync<bool>(FACE_LOADED, RebuildDeck.FAMILY), ok => ok);
+        loaded.ShouldBeTrue();
     }
 }
