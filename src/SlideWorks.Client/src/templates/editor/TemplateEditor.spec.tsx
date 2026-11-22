@@ -13,7 +13,7 @@ import { FontsTab } from './tabs/FontsTab';
 const path = `/templates/${templateEditor.id}/edit`;
 const at = (search = '') => ({ hooksConfig: { route: path + search } });
 
-const TABS: EditorTab[] = ['basics', 'fonts', 'logo-art', 'palette'];
+const TABS: EditorTab[] = ['basics', 'fonts', 'logo-art', 'palette', 'layouts'];
 
 // The one tab that is open: its button is selected and only its content is on the page.
 async function expectOpen(page: Page, open: EditorTab) {
@@ -65,15 +65,18 @@ test('a tab parameter that names no tab opens basics', async ({ mount, page }) =
   await expectOpen(page, 'basics');
 });
 
-test('the custom layouts tab is not offered yet', async ({ mount, page }) => {
+test('the tab bar lists the five tabs', async ({ mount, page }) => {
   await stubApi(page, { '/api/me': { json: me } });
   await stubTemplatesApi(page);
-  await mount(<AppRoutes />, at('?tab=layouts'));
+  await mount(<AppRoutes />, at());
 
-  await expectOpen(page, 'basics');
-  await expect(page.getByRole('tab')).toHaveText(['Basics', 'Fonts', 'Logo and art', 'Palette']);
-  await expect(page.getByTestId(editorTabButtonTestId('layouts'))).toHaveCount(0);
-  await expect(page.getByTestId(editorTabTestId('layouts'))).toHaveCount(0);
+  await expect(page.getByRole('tab')).toHaveText([
+    'Basics',
+    'Fonts',
+    'Logo and art',
+    'Palette',
+    'Custom layouts',
+  ]);
 });
 
 test('choosing a tab puts it in the tab parameter and keeps focus on the tab', async ({
@@ -114,18 +117,19 @@ test('arrow, Home and End keys move along the tab bar and open the tab', async (
 
   // Only the open tab is in the Tab order.
   await expect(tab('Fonts')).toHaveAttribute('tabindex', '0');
-  for (const other of ['Basics', 'Logo and art', 'Palette'])
+  for (const other of ['Basics', 'Logo and art', 'Palette', 'Custom layouts'])
     await expect(tab(other)).toHaveAttribute('tabindex', '-1');
 
   await tab('Fonts').focus();
   const steps: [key: string, open: EditorTab, name: string][] = [
     ['ArrowRight', 'logo-art', 'Logo and art'],
     ['ArrowRight', 'palette', 'Palette'],
+    ['ArrowRight', 'layouts', 'Custom layouts'],
     ['ArrowRight', 'basics', 'Basics'],
+    ['ArrowLeft', 'layouts', 'Custom layouts'],
     ['ArrowLeft', 'palette', 'Palette'],
-    ['ArrowLeft', 'logo-art', 'Logo and art'],
     ['Home', 'basics', 'Basics'],
-    ['End', 'palette', 'Palette'],
+    ['End', 'layouts', 'Custom layouts'],
   ];
   for (const [key, open, name] of steps) {
     await page.keyboard.press(key);
@@ -136,7 +140,7 @@ test('arrow, Home and End keys move along the tab bar and open the tab', async (
   }
   await expect(page.getByRole('tabpanel')).toHaveAttribute(
     'aria-labelledby',
-    'template-editor-tab-palette',
+    'template-editor-tab-layouts',
   );
 });
 

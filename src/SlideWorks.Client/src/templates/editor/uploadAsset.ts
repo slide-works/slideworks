@@ -1,4 +1,4 @@
-import { ApiError, api } from '../../api/client';
+import { ApiError, api, type ApiFieldError } from '../../api/client';
 import { templateErrorCode, templateErrorMessage } from '../api';
 import type { TemplateAssetKind, TemplateAssetMeta } from '../types';
 
@@ -13,13 +13,14 @@ export type UploadedAsset = {
 };
 
 // How an upload went. `refused`: the server checked the file (or the start) and said no, with its own
-// sentence in `message`; the file is not stored. `failed`: the server answered with something else
+// sentence in `message` and, for a custom layout, one entry per finding in `errors` (its path, code
+// and sentence; empty for every other kind); the file is not stored. `failed`: the server answered with something else
 // (a 404, a 500), `message` is a sentence for a person. `unreachable`: no answer at all, so the
 // caller words it with the file's name. Every failure stores nothing and uses up the upload address:
 // the next try starts from the first call.
 export type UploadOutcome =
   | { ok: true; asset: UploadedAsset }
-  | { ok: false; kind: 'refused'; message: string; code: string }
+  | { ok: false; kind: 'refused'; message: string; code: string; errors: ApiFieldError[] }
   | { ok: false; kind: 'failed' | 'unreachable'; message: string };
 
 type Started = { uploadUrl: string; expiresLabel: string };
@@ -33,10 +34,10 @@ const root = (templateId: string) => `/api/templates/${encodeURIComponent(templa
 // rightsConfirmed } for a one-time address, then PUT the file's raw bytes to it. No retry here, and
 // no second upload for the template may start before this one has answered (the caller sends files
 // one after another). The caller says whether the person confirmed the right to serve a font; the
-// server keeps it for fonts only.
+// server keeps it for fonts only. A custom layout's file is one JSON document, { markup, css, slots }.
 export async function uploadAsset(
   templateId: string,
-  kind: Exclude<TemplateAssetKind, 'layout'>,
+  kind: TemplateAssetKind,
   file: File,
   rightsConfirmed: boolean,
 ): Promise<UploadOutcome> {
@@ -69,7 +70,7 @@ function failureOf(error: unknown): UploadOutcome {
   const message = templateErrorMessage(error);
   return code === null
     ? { ok: false, kind: 'failed', message }
-    : { ok: false, kind: 'refused', message, code };
+    : { ok: false, kind: 'refused', message, code, errors: error.errors ?? [] };
 }
 
 // The upload address is absolute on the server's public base URL, which needn't be the page's origin
@@ -99,7 +100,14 @@ async function putBytes(path: string, file: File): Promise<UploadedAsset> {
   return (await response.json()) as UploadedAsset;
 }
 
-// A failed PUT as an ApiError: { error, message, path? } for a refused file, { error } for the rest.
+const isFinding = (value: unknown): value is ApiFieldError =>
+  typeof value === 'object' &&
+  value !== null &&
+  ['path', 'code', 'message'].every(
+    (key) => typeof (value as Record<string, unknown>)[key] === 'string',
+  );
+
+// A failed PUT as an ApiError: { error, message, errors? } for a refused file, { error } for the rest.
 async function refusalOf(response: Response): Promise<ApiError> {
   const generic = `Request failed (${response.status})`;
   let parsed: unknown;
@@ -109,11 +117,13 @@ async function refusalOf(response: Response): Promise<ApiError> {
     return new ApiError(generic, response.status);
   }
   if (typeof parsed !== 'object' || parsed === null) return new ApiError(generic, response.status);
-  const { error, message } = parsed as Record<string, unknown>;
+  const { error, message, errors } = parsed as Record<string, unknown>;
   const code = typeof error === 'string' ? error : undefined;
   const detail = typeof message === 'string' ? message : undefined;
+  const findings = Array.isArray(errors) ? errors.filter(isFinding) : [];
   return new ApiError(code ?? generic, response.status, {
     ...(code === undefined ? {} : { code }),
     ...(detail === undefined ? {} : { detail }),
+    ...(findings.length === 0 ? {} : { errors: findings }),
   });
 }
