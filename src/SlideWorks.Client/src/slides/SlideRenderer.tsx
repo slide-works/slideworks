@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import { lookStyle } from '../look/lookStyle';
+import { CustomLayout, UnknownLayout } from './custom/CustomLayout';
 import { LAYOUTS } from './layouts';
 import { SlideFrame } from './SlideFrame';
 import { SlideNumberContext } from './slideNumber';
@@ -38,10 +39,18 @@ type SlideRendererProps = {
 // The deck's look goes on the slide's root as --sw-* custom properties, so
 // changing the look re-skins every slide, dark ones included (SW-2 L10).
 export function SlideRenderer({ slide, deck, total, step }: SlideRendererProps) {
+  // A layout that is not a built-in is a custom one, if the deck's look has it. Own keys only: a
+  // name such as constructor is not a built-in.
+  const builtIn = Object.hasOwn(LAYOUTS, slide.layout);
+  const custom = builtIn
+    ? undefined
+    : deck.look.customLayouts.find((layout) => layout.name === String(slide.layout));
   // The registry is keyed by layout, so this pairs the slide's layout with its
   // own slots; TypeScript can't correlate the two through the union by itself.
-  const Layout = LAYOUTS[slide.layout] as ComponentType<LayoutProps<LayoutName>>;
-  const own = LAYOUT_SURFACE[slide.layout];
+  const Layout = builtIn
+    ? (LAYOUTS[slide.layout] as ComponentType<LayoutProps<LayoutName>>)
+    : undefined;
+  const own = custom?.surface ?? (builtIn ? LAYOUT_SURFACE[slide.layout] : 'light');
   const surface = slide.surface ?? (own === 'either' ? 'light' : own);
   return (
     <div
@@ -69,7 +78,17 @@ export function SlideRenderer({ slide, deck, total, step }: SlideRendererProps) 
       >
         <SlidePartContext value={slide.part}>
           <SlideNumberContext value={slide.number}>
-            <Layout slots={slide.slots} step={step} deck={deck} />
+            {Layout !== undefined ? (
+              <Layout slots={slide.slots} step={step} deck={deck} />
+            ) : custom !== undefined ? (
+              <CustomLayout
+                layout={custom}
+                slots={slide.slots as unknown as { [name: string]: unknown }}
+                step={step}
+              />
+            ) : (
+              <UnknownLayout />
+            )}
           </SlideNumberContext>
         </SlidePartContext>
       </SlideFrame>
