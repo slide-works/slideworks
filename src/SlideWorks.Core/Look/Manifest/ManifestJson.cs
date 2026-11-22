@@ -224,7 +224,7 @@ public static partial class ManifestJson
         Ornament = ReadOrnament(reader, root),
         Palette = ReadPalette(reader, root),
         LockPalette = reader.Flag(root, "", "lockPalette"),
-        CustomLayouts = reader.Items(root, "", "customLayouts").Select(entry => ReadLayout(reader, entry.Item, entry.Path)).ToList(),
+        CustomLayouts = ReadLayouts(reader, root),
     };
 
     // The field as an object whose fields are all known; otherwise an empty object whose reads record nothing.
@@ -460,6 +460,22 @@ public static partial class ManifestJson
 
     // # and 6 hex digits: the only colour a manifest may hold.
     public static bool IsHexColour(string colour) => colour.Length == 7 && Hex().IsMatch(colour);
+
+    // A layout's name is its path in a bundle, so two layouts may not share one.
+    private static List<ManifestCustomLayout> ReadLayouts(ManifestReader reader, JsonElement root)
+    {
+        var layouts = reader.Items(root, "", "customLayouts").Select(entry => (Layout: ReadLayout(reader, entry.Item, entry.Path), entry.Path)).ToList();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (layout, path) in layouts)
+        {
+            if (layout.Name.Length > 0 && !seen.Add(layout.Name))
+            {
+                reader.Add(ManifestReader.Join(path, "name"), "is used by another custom layout");
+            }
+        }
+
+        return [.. layouts.Select(l => l.Layout)];
+    }
 
     private static ManifestCustomLayout ReadLayout(ManifestReader outer, JsonElement layout, string path)
     {

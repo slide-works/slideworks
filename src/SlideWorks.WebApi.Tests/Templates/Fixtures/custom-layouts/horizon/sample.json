@@ -1,0 +1,18 @@
+{
+  "reveal": "one-by-one",
+  "kicker": "What comes next",
+  "headline": "The next three years, one horizon at a time",
+  "rows": [
+    { "label": "Tools", "sub": "what we use", "segments": [
+      { "text": "Autocomplete everywhere", "span": 30, "fill": "solid" },
+      { "text": "Agents on routine work", "span": 40, "fill": "hatched" },
+      { "text": "Agents on whole features", "span": 30, "fill": "faint" } ] },
+    { "label": "People", "sub": "how we work", "segments": [
+      { "text": "Reviewing more", "span": 50, "fill": "solid" },
+      { "text": "Writing specs", "span": 50, "fill": "hatched" } ] },
+    { "label": "Risks", "segments": [
+      { "text": "Trust, but check", "span": 60, "fill": "faint" },
+      { "text": "Unknown", "span": 40, "fill": "none" } ] }
+  ],
+  "ticks": ["Now", "Next year", "In two years", "Year three"]
+}

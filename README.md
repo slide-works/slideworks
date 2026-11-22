@@ -56,7 +56,7 @@ Static analysis (SonarAnalyzer.CSharp and Agoda.Analyzers) applies to every proj
 
 ## Presenting
 
-The owner of a deck presents it from the Present menu: a presenter window (notes, timer and overview) opens beside an audience window that follows the talk, and a phone signed in as the owner works as a remote. Everything goes through `DeckHub`, one shared state per talk. See [`docs/presenting.md`](docs/presenting.md) for the keys, deep dives and what happens when the Wi-Fi drops. A deck can also have a talk length, set through the API or the `set_talk_length` MCP tool (there is no web UI for it); the timer shows the time left.
+The owner of a deck presents it from the Present menu: a presenter window (notes, timer and overview) opens beside an audience window that follows the talk, and a phone signed in as the owner works as a remote. Everything goes through `DeckHub`, one shared state per talk. See [`docs/presenting.md`](docs/presenting.md) for the keys, deep dives and what happens when the Wi-Fi drops. A deck can also have a talk length, set through the API or the `set_talk_length` MCP tool (there is no web UI for it); the timer shows the time left. A deck's parts (names, short names, captions, marks) can be replaced after creation with the `set_parts` MCP tool; there is no web UI for it.
 
 ## Realtime
 
@@ -113,15 +113,18 @@ colour or a font.
 - **Palettes** hold every colour: surfaces, ink, the accent family, the roles (positive, negative, caution, deep dive),
   dark slides and the tone-panel pairs. Built in: Cobalt (the default), Ember, Plum and Midnight. Each one passes a
   contrast check over its colour pairs, and the build fails if a pair drops below its bar.
-- The catalogue is data in `src/contracts/templates.json` and `src/contracts/palettes.json`. The app serves it as
-  `GET /api/looks`, and agents read it with `list_templates` and `list_palettes`.
+- The built-in catalogue is data in `src/contracts/templates.json` and `src/contracts/palettes.json`. A person can also
+  make templates of their own: fonts, logos, title art, colours and layouts, published as versions and shared like a
+  deck. `GET /api/looks` is per person: it lists the built-ins and the templates that person owns or was given.
+  Agents read the same list with `list_templates` and `list_palettes`. How to make and use a template is in
+  [`docs/templates.md`](docs/templates.md), and the layouts added with them are in [`docs/layouts.md`](docs/layouts.md).
 - A deck picks its look when it's made (the New deck dialog, or `create_deck`) and can change it at any time (the deck
   page's Look panel, `PUT /api/decks/{id}/look`, or `set_look`). A deck can also switch the template's chrome on or
   off and add a logo. Colours change only by picking another palette: there is no free colour picker.
 - A slide flagged `deep_dive` gets the deep-dive bar and pill, is listed on its part's divider (unless the template
   turns that off), and its speaker notes start with "Deep dive. Skip if short of time." The prefix is added when the
   notes are read, so clearing the flag removes it.
-- How many new decks keep a built-in look unchanged is SW-2's Measure, a query in [`docs/measures.md`](docs/measures.md).
+- How many new decks keep a built-in look unchanged is SW-2's Measure, a query in [`docs/measures.md`](docs/measures.md). The uploaded-templates Measure is in [`docs/measures.md#uploaded-templates-sw-50`](docs/measures.md#uploaded-templates-sw-50).
 
 ## Slide previews and share cards
 
@@ -152,7 +155,7 @@ Every setting is an environment variable. [`docs/self-hosting.md`](docs/self-hos
 | `SLIDEWORKS_GOOGLE_CLIENT_ID`, `SLIDEWORKS_GOOGLE_CLIENT_SECRET` | Sign in with Google, on only when both are set. Redirect URI `<public URL>/signin-google` |
 | `SLIDEWORKS_ADMIN_EMAIL` | The first admin's Google email, honoured only while no admin exists. New people wait on `/pending` until an admin approves them on `/admin/users` |
 | `SLIDEWORKS_DB_PATH` | SQLite file, default `/data/slide-works.db`. The cookie keys live in `slide-works-keys/` next to it |
-| `SLIDEWORKS_DATA_PATH` | Data folder for uploaded images (under `images/<deck id>/`), default `/data` |
+| `SLIDEWORKS_DATA_PATH` | Data folder for uploaded images (under `images/<deck id>/`) and for template files (under `templates/<template id>/`), default `/data` |
 | `RenderTokens__Key` | Signs the render tokens (preview and share card). Required outside Development: the app refuses to start without it. Use a random secret of at least 32 characters, such as `openssl rand -base64 32`. `src/docker-compose.yml` reads it from `SLIDEWORKS_RENDER_TOKEN_KEY`. In Development with no key, each process makes a random one |
 | `SLIDEWORKS_RENDER_URL` | The origin the share-card browser opens. Unset means the app's own loopback address (a wildcard listen address such as `http://+:8080` becomes `127.0.0.1`). Set it only when the app can't reach itself that way |
 | `SLIDEWORKS_RENDER_TIMEOUT` | How long one share-card render may take, from launching the browser to the PNG, as a TimeSpan such as `00:00:20` (the default) |

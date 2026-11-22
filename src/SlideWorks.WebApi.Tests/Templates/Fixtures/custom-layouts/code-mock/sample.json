@@ -1,0 +1,28 @@
+{
+  "kicker": "Level one - autocomplete",
+  "headline": "It finishes your line, and you decide whether to keep it",
+  "file": "invoice_totals.py",
+  "lines": [
+    { "code": "def total(order):" },
+    { "code": "    subtotal = sum(i.price for i in order.items)" },
+    { "code": "    discount = order.coupon.rate * subtotal", "ghost": " if order.coupon else 0" },
+    { "code": "    return subtotal - discount" }
+  ],
+  "hint": "Grey text is the suggestion. Tab keeps it.",
+  "facts": [
+    { "label": "Accepted", "value": "3 in 10" },
+    { "label": "Time saved", "value": "minutes a day" },
+    { "label": "Review", "value": "still yours" }
+  ],
+  "levels": {
+    "title": "Six rungs of automation",
+    "items": [
+      { "text": "The self-running depot", "mark": "5" },
+      { "text": "Brief it, then step back", "mark": "4" },
+      { "text": "You check each result daily", "mark": "3" },
+      { "text": "Shadowing a new hire", "mark": "2" },
+      { "text": "A helper for small jobs", "mark": "1" },
+      { "text": "Type-ahead", "mark": "0", "state": "current" }
+    ]
+  }
+}

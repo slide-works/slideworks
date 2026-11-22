@@ -60,6 +60,27 @@ public class SlideValidatorTests
         result.Error.ShouldBe("slots: text is not valid UTF-16");
     }
 
+    // The refusal for a deck's template (SW-673): the UTF-16 check runs before the layout lookup, whatever names are allowed.
+    [Test]
+    public void Validate_WhenLayoutUnknownAndSlotsHaveLoneSurrogate_ShouldSayItIsNotValidUtf16()
+    {
+        using var document = JsonDocument.Parse("""{ "headline": "Ship \ud83d" }""");
+
+        var result = SlideValidator.Validate("never-heard-of", document.RootElement, ["title", "dial-board"]);
+
+        result.Error.ShouldBe("slots: text is not valid UTF-16");
+    }
+
+    [Test]
+    public void Validate_WhenLayoutUnknownAndNamesGiven_ShouldListThose()
+    {
+        using var document = JsonDocument.Parse("{}");
+
+        var result = SlideValidator.Validate("foo", document.RootElement, ["title", "dial-board"]);
+
+        result.Error.ShouldBe("layout: unknown layout 'foo' (known: title, dial-board)");
+    }
+
     [Test]
     public void Validate_WhenRequiredTopLevelSlotMissing_ShouldNameIt()
     {

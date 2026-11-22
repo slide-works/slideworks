@@ -47,7 +47,7 @@ public sealed class StoredSlideChecks(AppDbContext db, ITemplates templates, IDe
         using var document = JsonDocument.Parse(slide.SlotsJson);
         var slots = document.RootElement;
 
-        foreach (var warning in LayoutWarnings.For(resolved.Template, number, slide.Layout))
+        foreach (var warning in LayoutWarnings.For(resolved, number, slide.Layout))
         {
             findings.Add(Make(number, FindingRule.LayoutOutsideTemplate, slide.Layout, OutsideMessage(warning, number)));
         }

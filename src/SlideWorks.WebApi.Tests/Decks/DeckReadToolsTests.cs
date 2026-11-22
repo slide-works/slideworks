@@ -77,7 +77,7 @@ public class DeckReadToolsTests : ApiTestFixture
         layouts.Select(l => l.GetProperty("name").GetString()).ShouldBe(LayoutCatalogue.LayoutNames);
         foreach (var layout in layouts)
         {
-            layout.EnumerateObject().Select(p => p.Name).ShouldBe(["name", "description", "dark", "stepsFrom", "schema", "surface", "steps", "tracker", "capacity"]);
+            layout.EnumerateObject().Select(p => p.Name).ShouldBe(["name", "description", "dark", "stepsFrom", "schema", "surface", "steps", "tracker", "capacity", "custom"]);
             layout.GetProperty("description").GetString().ShouldNotBeNullOrWhiteSpace();
             var schema = layout.GetProperty("schema");
             schema.GetProperty("$schema").GetString().ShouldBe("https://json-schema.org/draft/2020-12/schema");

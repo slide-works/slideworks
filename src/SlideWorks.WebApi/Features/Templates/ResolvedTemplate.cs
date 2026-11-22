@@ -1,5 +1,6 @@
 using SlideWorks.Core.Look;
 using SlideWorks.Core.Slides;
+using SlideWorks.WebApi.Features.Templates.Layouts;
 
 namespace SlideWorks.WebApi.Features.Templates;
 
@@ -24,6 +25,30 @@ public sealed record ResolvedTemplate(Template Template, string Ref, int? Versio
     public Func<string, LayoutDefinition?> Layouts { get; init; } = LayoutCatalogue.Find;
 
     public LayoutDefinition? FindLayout(string name) => Layouts(name);
+
+    // The approved custom layouts of this template version, in the manifest's order; empty on a built-in. Unapproved ones
+    // are never here: this is the second lock behind the publish gate.
+    public IReadOnlyList<TemplateLayout> CustomLayouts { get; init; } = [];
+
+    // True when the layout is one the deck's template allows: a built-in it names, a live-room layout, or a custom layout of
+    // this version. A custom layout of the deck's own template never warns (K18).
+    public bool AllowsLayout(string name) => Template.Allows(name) || CustomLayouts.Any(c => string.Equals(c.Layout.Name, name, StringComparison.Ordinal));
+
+    // True when the name is a custom layout of this version and not a built-in (a built-in name always wins, T4, when the catalogue has one).
+    public bool IsCustomLayout(string name)
+        => LayoutCatalogue.Find(name) is null && CustomLayouts.Any(c => string.Equals(c.Layout.Name, name, StringComparison.Ordinal));
+
+    // The names of the layouts of this template version that its definitions answer for, not counting the custom ones: the
+    // built-ins it allows, then a name its manifest lists that is no built-in and no approved custom layout.
+    public IEnumerable<string> ListedLayoutNames()
+    {
+        var own = Template.Layouts.Where(layout => LayoutCatalogue.Find(layout) is null && !IsCustomLayout(layout));
+        return LayoutCatalogue.LayoutNames.Where(Template.Allows).Concat(own).Where(name => FindLayout(name) is not null);
+    }
+
+    // Exactly the layouts this version allows: ListedLayoutNames, then its approved custom layouts. The one source for the
+    // unknown-layout refusal and list_layouts.
+    public IReadOnlyList<string> AllowedLayoutNames => [.. ListedLayoutNames(), .. CustomLayouts.Select(c => c.Layout.Name)];
 
     public FitWidths FitWidths { get; init; } = FitWidths.Default;
 }

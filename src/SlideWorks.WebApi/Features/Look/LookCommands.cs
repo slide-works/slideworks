@@ -101,7 +101,7 @@ public class LookCommands(
             // Naming the version the deck is already on, and nothing else, changes nothing: no revision, no entry.
             if (change is { Template: null, Palette: null, Logo: null, Draft: null, Chrome: null, Colors: null } && !versionMoves)
             {
-                warnings = await WarningsAsync(deck.Id, template.Template);
+                warnings = await WarningsAsync(deck.Id, template);
                 await transaction.CommitAsync();
                 return (deck, template, warnings);
             }
@@ -143,7 +143,7 @@ public class LookCommands(
             Apply(deck, change);
             await db.SaveChangesAsync();
             await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, summary));
-            warnings = await WarningsAsync(deck.Id, template.Template);
+            warnings = await WarningsAsync(deck.Id, template);
             await transaction.CommitAsync();
         }
 
@@ -230,7 +230,7 @@ public class LookCommands(
         deck.UpdatedAt = clock.GetUtcNow();
     }
 
-    private async Task<IReadOnlyList<string>> WarningsAsync(string deckId, Template template)
+    private async Task<IReadOnlyList<string>> WarningsAsync(string deckId, ResolvedTemplate template)
     {
         var layouts = await db.Slides.AsNoTracking()
             .Where(s => s.DeckId == deckId && s.DeletedAt == null)

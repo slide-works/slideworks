@@ -6,12 +6,12 @@ namespace SlideWorks.WebApi.Features.Decks.Mcp;
 // here, and no layout repeats them: the catalogue's inline blocks, emphasis, and any block a layout carries of its own.
 public sealed record CompactListLayoutsResult(IReadOnlyList<CompactLayoutInfo> Layouts, IReadOnlyList<string> Icons, IReadOnlyDictionary<string, CompactBlockInfo> Blocks)
 {
-    public static CompactListLayoutsResult From(IEnumerable<LayoutDefinition> layouts)
+    public static CompactListLayoutsResult From(IEnumerable<ListedLayout> layouts)
     {
         var all = layouts.ToList();
         var blocks = InlineBlocks.All.ToDictionary(block => block.Name, CompactBlockInfo.From, StringComparer.Ordinal);
         blocks[CompactBlockInfo.EMPHASIS] = CompactBlockInfo.Emphasis();
-        foreach (var own in all.SelectMany(layout => layout.Slots.Fields).SelectMany(field => OwnBlocks(field.Type)))
+        foreach (var own in all.SelectMany(layout => layout.Definition.Slots.Fields).SelectMany(field => OwnBlocks(field.Type)))
         {
             blocks.TryAdd(own.Name, CompactBlockInfo.From(own));
         }

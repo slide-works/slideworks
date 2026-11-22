@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSlideLook } from '../lookContext';
+import { hasTemplateLogoPair } from '../templateLogos';
 import './logo.css';
 
 type TemplateLogoProps = {
@@ -28,8 +29,8 @@ function LogoImage({ url, className, testId }: { url: string; className: string;
 // draws from useSlideLook() alone and learns where it is only from the DOM,
 // .sw-frame[data-layout] and .sw-frame[data-surface]; logo.css decides on
 // which slides each image shows. In the footer the light logo shows on a light
-// slide and the dark one on a dark slide, only when the deck has no logo of its
-// own. In the frame the dark logo sits in the corner of title, divider and
+// slide and the dark one on a dark slide, unless the deck has a logo of its own and
+// the template has no pair (SW-554: the pair wins over the deck's logo). In the frame the dark logo sits in the corner of title, divider and
 // close slides.
 export function TemplateLogo({ placement }: TemplateLogoProps) {
   const { logo, logos } = useSlideLook();
@@ -44,7 +45,8 @@ export function TemplateLogo({ placement }: TemplateLogoProps) {
       />
     );
   }
-  if (logo !== null) return null;
+  // A deck's own logo keeps the footer unless the template has a logo pair.
+  if (logo !== null && !hasTemplateLogoPair(logos)) return null;
   return (
     <>
       {logos.light === null ? null : (

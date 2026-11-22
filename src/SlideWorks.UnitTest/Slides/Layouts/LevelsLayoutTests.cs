@@ -20,6 +20,25 @@ public class LevelsLayoutTests
     }
 
     [Test]
+    public void Validate_WhenTheLadderIsAtItsLimitsOfSevenFiftyCharacterRungsAndATitle_ShouldRefuseAsTooTall()
+    {
+        // 7 two-line rungs (81.6 px), 6 gaps, a 30-character title and the padding come to about 703 px: the layout refuses what its card cannot draw at the normal spacing.
+        var rung = $$"""{ "text": "{{new string('a', 24)}} {{new string('b', 25)}}" }""";
+        var rungs = "[" + string.Join(", ", Enumerable.Repeat(rung, 7)) + "]";
+
+        Validate(Slots(rungs, MAIN, ladderTitle: new string('t', 30))).Errors.ShouldHaveSingleItem().ShouldStartWith("levels.levels.items: too much text to fit");
+    }
+
+    [Test]
+    public void Validate_WhenSevenSingleLineRungsHaveATitle_ShouldAcceptAndFitTheCard()
+    {
+        // 7 rungs of 64 px, 6 gaps of 8 px, a 35 px title and 48 px of padding are about 579 px: inside the 620 px card.
+        var rungs = "[" + string.Join(", ", Enumerable.Repeat("""{ "text": "Senior Engineer" }""", 7)) + "]";
+
+        Validate(Slots(rungs, MAIN, ladderTitle: new string('t', 30))).Errors.ShouldBeEmpty();
+    }
+
+    [Test]
     public void Validate_WhenAShortLadderHasATitle_ShouldAccept()
     {
         Validate(Slots("""[{ "text": "a" }, { "text": "b", "state": "current" }]""", MAIN, ladderTitle: "Career")).Errors.ShouldBeEmpty();

@@ -1,0 +1,21 @@
+<div class="page">
+  <div class="head">
+    <p class="kicker" data-slot="kicker"></p>
+    <h2 class="headline" data-slot="headline"></h2>
+  </div>
+  <div class="cols">
+    <div class="main">
+      <div class="chat">
+        <div class="msg" data-each="messages" data-variant="from" data-step="each">
+          <div class="bubble">
+            <p class="text" data-slot="text"></p>
+            <p class="snippet" data-if="code" data-slot="code"></p>
+          </div>
+        </div>
+      </div>
+      <p class="hint" data-slot="hint"></p>
+      <div class="tiles" data-slot="facts"></div>
+    </div>
+    <div class="ladder" data-slot="levels"></div>
+  </div>
+</div>

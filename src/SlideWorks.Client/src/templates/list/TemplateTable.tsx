@@ -1,4 +1,5 @@
 import { LedgerHead } from '../../pages/decks/LedgerHead';
+import { TEMPLATES_TEST_IDS } from '../testIds';
 import type { TemplateRow } from '../types';
 import { TemplateRowView, type RowKind } from './TemplateRowView';
 
@@ -31,7 +32,11 @@ export function TemplateTable({
         {groups
           .filter((group) => group.rows.length > 0)
           .map((group) => (
-            <tbody key={group.kind} aria-label={group.label}>
+            <tbody
+              key={group.kind}
+              aria-label={group.label}
+              data-testid={`${TEMPLATES_TEST_IDS.group}-${group.kind}`}
+            >
               <tr>
                 <th
                   scope="rowgroup"

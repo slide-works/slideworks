@@ -131,6 +131,19 @@ public class ManifestJsonRulesTests
         errors[0].Message.ShouldBe("must be 2 to 31 characters: a lower-case letter, then lower-case letters, digits and hyphens");
     }
 
+    [Test]
+    public void Check_WhenTwoLayoutsShareAName_ShouldRefuseTheSecond()
+    {
+        var manifest = SampleNode();
+        var layouts = manifest["customLayouts"]!.AsArray();
+        layouts.Add(new JsonObject { ["name"] = layouts[0]!["name"]!.GetValue<string>(), ["file"] = "layouts/other" });
+
+        var errors = ErrorsOf(manifest);
+
+        errors.Select(error => error.Path).ShouldBe(["customLayouts[1].name"]);
+        errors[0].Message.ShouldBe("is used by another custom layout");
+    }
+
     [TestCase("ab")]
     [TestCase("stage-ladder")]
     [TestCase("abcdefghijklmnopqrstuvwxyz-0123")]

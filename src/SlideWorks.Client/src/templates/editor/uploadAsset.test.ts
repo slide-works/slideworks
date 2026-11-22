@@ -52,6 +52,29 @@ describe('uploadAsset', () => {
     expect(calls[1].init.body).toBe(file);
   });
 
+  it('keeps the findings of a refused custom layout, each with its path', async () => {
+    const findings = [
+      { path: 'layout.html:12', code: 'markup_tag', message: 'script is not allowed.' },
+      { path: 'slots.lanes.of.progress', code: 'slots_type', message: 'Unknown type.' },
+    ];
+    stub([
+      json(201, { uploadUrl: '/api/template-uploads/one', expiresLabel: 'x' }),
+      json(400, {
+        error: 'layout_refused',
+        message: 'The layout was not accepted.',
+        errors: findings,
+      }),
+    ]);
+    const outcome = await uploadAsset('tpl_1', 'layout', file, false);
+    expect(outcome).toEqual({
+      ok: false,
+      kind: 'refused',
+      code: 'layout_refused',
+      message: 'The layout was not accepted.',
+      errors: findings,
+    });
+  });
+
   it('starts again from the first call after a refusal', async () => {
     const calls = stub([
       json(201, { uploadUrl: '/api/template-uploads/one', expiresLabel: 'x' }),
@@ -68,6 +91,7 @@ describe('uploadAsset', () => {
       kind: 'refused',
       code: 'font_not_woff2',
       message: 'Fonts must be woff2 files. This one is TrueType.',
+      errors: [],
     });
     expect(calls).toHaveLength(2);
     const second = await uploadAsset('tpl_1', 'font', file, true);

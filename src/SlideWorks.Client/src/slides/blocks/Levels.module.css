@@ -75,3 +75,18 @@
   font-size: 22px;
   line-height: 1.4;
 }
+
+/* At 7 rungs the maximum content (two-line rungs under a title) is 703 px at the
+   normal spacing. Tighter spacing brings it to about 590 px, inside the card. */
+.levels[data-dense='true'] .title {
+  margin-bottom: 12px;
+}
+
+.levels[data-dense='true'] .rungs {
+  gap: 4px;
+}
+
+.levels[data-dense='true'] .rung {
+  min-height: 52px;
+  padding: 4px 12px;
+}

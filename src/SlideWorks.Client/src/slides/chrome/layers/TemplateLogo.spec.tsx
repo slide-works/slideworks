@@ -114,13 +114,35 @@ test('shows the dark logo in the footer of a dark bullets slide', async ({ mount
   await expect(page.getByTestId('corner-logo')).not.toBeVisible();
 });
 
-test('shows no template logo when the deck has its own', async ({ mount, page }) => {
+test('the template pair replaces the deck logo on a light slide', async ({ mount, page }) => {
   await serveLogos(page);
-  await mount(slide(look({}, LIGHT)));
+  await mount(slide(look({}, '/api/images/deck-logo')));
+
+  await expect(page.getByTestId('slide-logo')).toHaveCount(0);
+  await expect(page.getByTestId('template-logo-light')).toBeVisible();
+  await expect(page.getByTestId('template-logo-light')).toHaveAttribute('src', LIGHT);
+});
+
+test('the template pair replaces the deck logo on a dark bullets slide', async ({
+  mount,
+  page,
+}) => {
+  await serveLogos(page);
+  await mount(slide(look({}, '/api/images/deck-logo'), { surface: 'dark' }));
+
+  await expect(page.getByTestId('slide-logo')).toHaveCount(0);
+  await expect(page.getByTestId('template-logo-dark')).toBeVisible();
+  await expect(page.getByTestId('template-logo-dark')).toHaveAttribute('src', DARK);
+  await expect(page.getByTestId('template-logo-light')).not.toBeVisible();
+});
+
+test('keeps the deck logo when the template has no logo pair', async ({ mount, page }) => {
+  await serveLogos(page);
+  await mount(slide(look({ light: null, dark: null }, '/api/images/deck-logo')));
 
   await expect(page.getByTestId('slide-logo')).toBeVisible();
-  await expect(page.getByTestId('template-logo-light')).toHaveCount(0);
-  await expect(page.getByTestId('template-logo-dark')).toHaveCount(0);
+  await expect(page.getByTestId('slide-logo')).toHaveAttribute('src', '/api/images/deck-logo');
+  await expect(page.locator('.sw-tlogo')).toHaveCount(0);
 });
 
 test('shows no footer logo on dark when the template has no dark logo', async ({ mount, page }) => {

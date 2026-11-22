@@ -13,8 +13,10 @@ public static class LayoutCapacity
 
     private static readonly ConcurrentDictionary<string, IReadOnlyList<SlotCapacity>> Cache = new(StringComparer.Ordinal);
 
-    public static IReadOnlyList<SlotCapacity> Of(LayoutDefinition layout) =>
-        Cache.GetOrAdd(layout.Name, _ => Measure(layout));
+    // A built-in layout is cached by its name. A custom layout passes a key of its own (template version plus asset id), so
+    // two templates' same-named layouts, or a replaced upload, never share a measurement.
+    public static IReadOnlyList<SlotCapacity> Of(LayoutDefinition layout, string? customKey = null) =>
+        Cache.GetOrAdd(customKey is null ? layout.Name : $"custom:{customKey}:{layout.Name}", _ => Measure(layout));
 
     private static IReadOnlyList<SlotCapacity> Measure(LayoutDefinition layout)
     {

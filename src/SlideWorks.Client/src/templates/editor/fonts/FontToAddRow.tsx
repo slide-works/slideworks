@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { TEMPLATES_TEST_IDS } from '../../testIds';
 import type { ChangeOutcome } from '../../useTemplateDraft';
 import type { TemplateAsset, TemplateFontRole, TemplateManifestFont } from '../../types';
 
@@ -57,7 +58,10 @@ export function FontToAddRow({ asset, familyOf, onAdd }: Props) {
   const label = 'text-meta font-semibold text-ink-muted';
 
   return (
-    <li className="grid gap-2 rounded-panel border border-edge p-2 text-meta">
+    <li
+      data-testid={TEMPLATES_TEST_IDS.fontToAdd}
+      className="grid gap-2 rounded-panel border border-edge p-2 text-meta"
+    >
       <p className="text-ink">
         <span className="font-medium">{asset.fileName}</span>
         {width === undefined ? null : (
@@ -71,6 +75,7 @@ export function FontToAddRow({ asset, familyOf, onAdd }: Props) {
           </label>
           <select
             id={`${id}-role`}
+            data-testid={TEMPLATES_TEST_IDS.fontRole}
             className="field"
             value={role}
             aria-invalid={invalid('role')}
@@ -90,6 +95,7 @@ export function FontToAddRow({ asset, familyOf, onAdd }: Props) {
           </label>
           <input
             id={`${id}-family`}
+            data-testid={TEMPLATES_TEST_IDS.fontFamily}
             type="text"
             className="field"
             value={family}
@@ -104,6 +110,7 @@ export function FontToAddRow({ asset, familyOf, onAdd }: Props) {
           </label>
           <input
             id={`${id}-weight`}
+            data-testid={TEMPLATES_TEST_IDS.fontWeight}
             type="text"
             inputMode="numeric"
             className="field w-24"
@@ -134,6 +141,7 @@ export function FontToAddRow({ asset, familyOf, onAdd }: Props) {
         </div>
         <button
           id={`${id}-add`}
+          data-testid={TEMPLATES_TEST_IDS.fontAdd}
           type="button"
           className="btn-primary"
           aria-label={`Add ${asset.fileName} to the template`}

@@ -82,7 +82,7 @@ public class SlideCommands(
                 Steps = SlideSteps.Count(definition, slots),
                 Revision = deck.Revision,
                 DeepDive = request.DeepDive ?? false,
-                Surface = request.Surface,
+                Surface = SlideChecks.SurfaceToStore(template, request.Layout, request.Surface),
             };
             db.Slides.Add(slide);
             await db.SaveChangesAsync();
@@ -97,7 +97,7 @@ public class SlideCommands(
 
         await events.PublishAsync(new DeckChanged(deck.Id));
         var number = slide.Position + 1;
-        var warnings = LayoutWarnings.For(template.Template, number, slide.Layout);
+        var warnings = LayoutWarnings.For(template, number, slide.Layout);
         return new AddSlideResult(number, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, number), warnings, storedPoll);
     }
 
@@ -142,6 +142,20 @@ public class SlideCommands(
         await db.Decks.Where(d => d.Id == deck.Id)
             .ExecuteUpdateAsync(set => set.SetProperty(d => d.Revision, d => d.Revision + 1).SetProperty(d => d.UpdatedAt, clock.GetUtcNow()));
         deck = await db.Decks.AsNoTracking().SingleAsync(d => d.Id == deck.Id);
+        // The parts were checked before this transaction; set_parts may have shortened the list since, so check again here,
+        // against the deck as it is now. A refusal rolls the revision back and writes nothing.
+        var currentParts = DeckParts.Read(deck).Count;
+        foreach (var item in accepted)
+        {
+            try
+            {
+                SlideChecks.CheckPart(item.Draft.Part, currentParts);
+            }
+            catch (BadRequestException e)
+            {
+                throw new BadRequestException($"slides[{item.Index}].{e.Message}");
+            }
+        }
         count = await db.Slides.CountAsync(s => s.DeckId == deck.Id && s.DeletedAt == null);
         start = Position(position, count);
         await db.Slides.Where(s => s.DeckId == deck.Id && s.DeletedAt == null && s.Position >= start)
@@ -162,7 +176,7 @@ public class SlideCommands(
                 Steps = item.Steps,
                 Revision = deck.Revision,
                 DeepDive = item.Draft.DeepDive ?? false,
-                Surface = item.Draft.Surface,
+                Surface = SlideChecks.SurfaceToStore(template, item.Draft.Layout, item.Draft.Surface),
             };
             db.Slides.Add(slide);
             if (slide.Layout == PollRows.LAYOUT)
@@ -171,7 +185,7 @@ public class SlideCommands(
                 await pollRows.EnsureAsync(slide.Id, deck.Id, item.Poll);
             }
 
-            item.Stored(number, deck.Revision, urls.Deck(deck.Id, deck.Slug, number), LayoutWarnings.For(template.Template, number, slide.Layout));
+            item.Stored(number, deck.Revision, urls.Deck(deck.Id, deck.Slug, number), LayoutWarnings.For(template, number, slide.Layout));
             number++;
         }
 
@@ -259,6 +273,8 @@ public class SlideCommands(
             this.error = error;
             Poll = poll;
         }
+
+        public int Index => index;
 
         public SlideDraft Draft { get; }
 

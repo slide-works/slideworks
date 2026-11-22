@@ -22,12 +22,34 @@ test('2 rungs and the maximum', async ({ mount, page }) => {
   await expect(page.getByTestId('levels-rung')).toHaveCount(7);
   await expect(page.getByTestId('levels-title')).toHaveText('Maturity');
   await expect(page.getByTestId('levels-title')).toHaveCSS('text-transform', 'uppercase');
-  // Every rung is at least 64 px tall and 8 px from the next.
+  // A ladder of 7 is spaced tighter: every rung is at least 52 px tall and 4 px from the next.
   const boxes = await page
     .getByTestId('levels-rung')
     .evaluateAll((els) => els.map((el) => el.getBoundingClientRect()));
-  for (const box of boxes) expect(box.height).toBeGreaterThanOrEqual(64);
-  expect(boxes[1].top - boxes[0].bottom).toBeCloseTo(8, 0);
+  for (const box of boxes) expect(box.height).toBeGreaterThanOrEqual(52);
+  expect(boxes[1].top - boxes[0].bottom).toBeCloseTo(4, 0);
+});
+
+test('the maximum ladder, 7 rungs of 50 characters under a 30-character title, fits its card', async ({
+  mount,
+  page,
+}) => {
+  const text = `${'a'.repeat(24)} ${'b'.repeat(25)}`;
+  await mount(
+    host({
+      title: 'Engineering Career Ladder Lvl',
+      items: [1, 2, 3, 4, 5, 6, 7].map((n) => ({ text, mark: String(n) })),
+    }),
+  );
+  const card = (await page.getByTestId('block-levels').boundingBox())!;
+  const last = (await page.getByTestId('levels-rung').last().boundingBox())!;
+  expect(card.height).toBeLessThanOrEqual(620);
+  // The last rung's box is inside the card's box, and nothing is clipped.
+  expect(last.y + last.height).toBeLessThanOrEqual(card.y + card.height);
+  const clipped = await page
+    .getByTestId('block-levels')
+    .evaluate((el) => el.scrollHeight - el.clientHeight);
+  expect(clipped).toBeLessThanOrEqual(0);
 });
 
 test('a current rung carries aria-current', async ({ mount, page }) => {

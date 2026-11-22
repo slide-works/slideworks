@@ -1,0 +1,14 @@
+{
+  "name": "dial",
+  "description": "A half-circle dial between two named ends; one number turns the needle.",
+  "surface": "either",
+  "slots": {
+    "kicker": { "type": "text", "max": 40, "optional": true },
+    "headline": { "type": "text", "max": 80 },
+    "label": { "type": "text", "max": 24, "optional": true },
+    "value": { "type": "number", "min": 0, "max": 100 },
+    "from": { "type": "text", "max": 20 },
+    "to": { "type": "text", "max": 20 },
+    "text": { "type": "text", "max": 220, "optional": true }
+  }
+}

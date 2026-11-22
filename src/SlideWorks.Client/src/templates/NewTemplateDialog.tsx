@@ -69,6 +69,7 @@ export function NewTemplateDialog({ builtIn, initialBuiltIn, onClose }: NewTempl
             <span className={LABEL}>Name</span>
             <input
               ref={nameRef}
+              data-testid={TEMPLATES_TEST_IDS.newName}
               autoFocus
               required
               maxLength={60}
@@ -90,6 +91,7 @@ export function NewTemplateDialog({ builtIn, initialBuiltIn, onClose }: NewTempl
               >
                 <input
                   type="radio"
+                  data-testid={`${TEMPLATES_TEST_IDS.newFrom}-${row.id}`}
                   name="built-in"
                   value={row.id}
                   checked={row.id === picked}
@@ -115,7 +117,12 @@ export function NewTemplateDialog({ builtIn, initialBuiltIn, onClose }: NewTempl
           <button type="button" className="btn-ghost" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="btn-primary" disabled={saving || picked === ''}>
+          <button
+            type="submit"
+            data-testid={TEMPLATES_TEST_IDS.newCreate}
+            className="btn-primary"
+            disabled={saving || picked === ''}
+          >
             Create draft
           </button>
         </footer>

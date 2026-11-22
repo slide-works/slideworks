@@ -108,7 +108,9 @@ public class DeckCommands(
             }
 
             var like = source is null ? "" : $"like \"{source.Title}\" ";
-            await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, $"created the deck {like}from the {template.Name} template with the {palette.Label} palette"));
+            // An uploaded template's Name is its tpl_ id, which tells a reader nothing: say its label. A built-in's name is its label's short form.
+            var templateName = target.BuiltIn ? template.Name : template.Label;
+            await activity.RecordAsync(deck.Id, ActivityEntry.By(actor, tool, $"created the deck {like}from the {templateName} template with the {palette.Label} palette"));
             await transaction.CommitAsync();
             copiedLogo = null;
         }
@@ -206,7 +208,7 @@ public class DeckCommands(
         throw new BadRequestException($"{field}: at most {maxLength} characters{got}");
     }
 
-    private static IReadOnlyList<DeckPart> Parts(IReadOnlyList<JsonElement>? items)
+    public static IReadOnlyList<DeckPart> Parts(IReadOnlyList<JsonElement>? items)
     {
         if (items == null)
         {
