@@ -18,6 +18,7 @@ public sealed class FakeCustomLayoutCompiler : ICustomLayoutCompiler, ISlotSchem
     private readonly Lock _gate = new();
     private readonly Dictionary<string, LayoutDefinition> _definitions = new(StringComparer.Ordinal);
     private CompileResult _next = Unavailable();
+    private Func<CustomLayoutSchema, LayoutDefinition>? _definitionFrom;
 
     // The scope Compile was last given, or null before the first call.
     public string? LastScope { get; private set; }
@@ -54,6 +55,18 @@ public sealed class FakeCustomLayoutCompiler : ICustomLayoutCompiler, ISlotSchem
         return this;
     }
 
+    // The definition Read gives a stored layout whose name has none from WithDefinition: built from its schema as stored, so
+    // two layouts that share a name can differ.
+    public FakeCustomLayoutCompiler DefinitionFrom(Func<CustomLayoutSchema, LayoutDefinition> build)
+    {
+        lock (_gate)
+        {
+            _definitionFrom = build;
+        }
+
+        return this;
+    }
+
     public CompileResult Compile(string markup, string css, string slotsJson, string scope)
     {
         // Throws for a bad scope exactly as the pipeline does.
@@ -74,14 +87,11 @@ public sealed class FakeCustomLayoutCompiler : ICustomLayoutCompiler, ISlotSchem
         var root = document.RootElement;
         var name = root.GetProperty("name").GetString()!;
         LayoutDefinition? definition;
+        Func<CustomLayoutSchema, LayoutDefinition>? build;
         lock (_gate)
         {
             _definitions.TryGetValue(name, out definition);
-        }
-
-        if (definition is null)
-        {
-            return (null, null, Unavailable().Errors);
+            build = _definitionFrom;
         }
 
         var schema = new CustomLayoutSchema(
@@ -90,6 +100,12 @@ public sealed class FakeCustomLayoutCompiler : ICustomLayoutCompiler, ISlotSchem
             root.GetProperty("surface").GetString()!,
             root.TryGetProperty("steps", out var steps) ? steps.GetString() : null,
             Slots(root.GetProperty("slots")));
+        definition ??= build?.Invoke(schema);
+        if (definition is null)
+        {
+            return (null, null, Unavailable().Errors);
+        }
+
         return (definition, schema, []);
     }
 
