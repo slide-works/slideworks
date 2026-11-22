@@ -28,7 +28,9 @@ public sealed class HubAborts : IHubFilter
         await next(context, exception);
     }
 
-    // Aborts every open hub connection, as a dropped network or a server restart would, and says how many it aborted.
+    // Drops every open hub connection as a dropped network would, and says how many it dropped. It aborts the HTTP
+    // connection under each hub connection, not the hub connection itself: HubCallerContext.Abort sends SignalR's close
+    // message without allowReconnect, and a client that gets that stops for good instead of reconnecting.
     public int AbortAll()
     {
         var aborted = 0;
@@ -36,7 +38,7 @@ public sealed class HubAborts : IHubFilter
         {
             if (_open.TryRemove(id, out _))
             {
-                connection.Abort();
+                connection.GetHttpContext().ShouldNotBeNull($"hub connection {id} should run over HTTP").Abort();
                 aborted++;
             }
         }
