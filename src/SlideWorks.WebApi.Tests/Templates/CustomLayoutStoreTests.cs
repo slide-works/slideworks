@@ -31,7 +31,13 @@ public class CustomLayoutStoreTests : ApiTestFixture
     private const string SAMPLE_NAME = "bar-chart";
     private const string SAMPLE_SCOPE = "0a1b2c3d";
 
-    protected override Action<IServiceCollection>? ConfigureTestServices => FakeCustomLayoutCompiler.AddTo;
+    private CapturingLoggerProvider _logs = null!;
+
+    protected override Action<IServiceCollection>? ConfigureTestServices => services =>
+    {
+        FakeCustomLayoutCompiler.AddTo(services);
+        _logs = CapturingLoggerProvider.Replace<TemplatePublishing>(services);
+    };
 
     private FakeCustomLayoutCompiler Compiler => Factory.Services.GetRequiredService<FakeCustomLayoutCompiler>();
 
@@ -120,6 +126,19 @@ public class CustomLayoutStoreTests : ApiTestFixture
         var asset = await UploadAsync(id, "alpha");
 
         Compiler.LastScope.ShouldBe(asset[..8]);
+    }
+
+    [Test]
+    public async Task Approve_WhenTheLayoutIsApproved_ShouldLogTheTemplateLayoutAndAccount()
+    {
+        var id = await CreateAsync();
+        var asset = await UploadAsync(id, "alpha");
+        await SetManifestAsync(id, ("alpha", asset));
+
+        (await ApproveAsync(id, "alpha", asset)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var line = _logs.Lines.Single(l => l.Contains("approved by account", StringComparison.Ordinal));
+        line.ShouldContain($"Custom layout alpha (asset {asset}) of template {id} approved by account ");
     }
 
     [Test]

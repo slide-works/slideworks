@@ -18,7 +18,7 @@ namespace SlideWorks.WebApi.Features.Templates;
 // leaves nothing behind. A published version is never written again. Archiving only sets ArchivedAt: nothing is deleted
 // and the decks on the template keep rendering. A template that is not the actor's own is NotFoundException.
 [RegisterPerRequest(For = typeof(ITemplatePublishing))]
-public sealed class TemplatePublishing(AppDbContext db, TimeProvider clock, ITemplateLayouts layouts, ICustomLayoutCompiler compiler, ILogger<TemplatePublishing> logger)
+public sealed partial class TemplatePublishing(AppDbContext db, TimeProvider clock, ITemplateLayouts layouts, ICustomLayoutCompiler compiler, ILogger<TemplatePublishing> logger)
     : ITemplatePublishing
 {
     public async Task<TemplateChecklistView> ChecklistAsync(ICurrentActor actor, string id)
@@ -89,6 +89,7 @@ public sealed class TemplatePublishing(AppDbContext db, TimeProvider clock, ITem
         switch (outcome)
         {
             case ApproveOutcome.Approved:
+                LogLayoutApproved(id, name, asset, Me(actor));
                 return;
             case ApproveOutcome.NotFound:
                 throw new NotFoundException($"No layout '{name}'.");
@@ -159,6 +160,10 @@ public sealed class TemplatePublishing(AppDbContext db, TimeProvider clock, ITem
             return null;
         }
     }
+
+    // Approval is of the draft, so there is no version yet; the asset is the layout's stored file.
+    [LoggerMessage(Level = LogLevel.Information, Message = "Custom layout {LayoutName} (asset {AssetId}) of template {TemplateId} approved by account {AccountId}")]
+    private partial void LogLayoutApproved(string templateId, string layoutName, string assetId, Guid accountId);
 
     private static Guid Me(ICurrentActor actor)
         => actor.PresenterId ?? throw new InvalidOperationException("Templates need a signed-in caller.");
