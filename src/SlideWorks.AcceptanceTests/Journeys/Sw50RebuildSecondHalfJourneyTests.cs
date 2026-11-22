@@ -103,10 +103,9 @@ public class Sw50RebuildSecondHalfJourneyTests : AcceptanceTest
                 images.ShouldBe(0, $"{label}: a slide that is not a photo draws no img");
             }
 
-            if (surface is not null)
-            {
-                (await new SlideProbe(Page, number).SurfaceAsync()).ShouldBe(surface, $"{label}: asked for the {surface} surface");
-            }
+            // A slide with no Surface is light, except the layouts that draw dark by their own design (dividers and the closing slide).
+            var expected = surface ?? (layout is "divider" or "close" ? "dark" : "light");
+            (await new SlideProbe(Page, number).SurfaceAsync()).ShouldBe(expected, $"{label}: should draw the {expected} surface");
 
             var drawnCallouts = player.Slide(number).GetByTestId("block-callout");
             await Expect(drawnCallouts).ToHaveCountAsync(callouts);
@@ -125,7 +124,7 @@ public class Sw50RebuildSecondHalfJourneyTests : AcceptanceTest
         await player.GotoAsync(deck);
         await Expect(player.Player).ToBeVisibleAsync();
         await player.FontsReadyAsync();
-        var drawn = await player.Slide(1).GetByTestId("slide-frame").EvaluateAsync<string>("el => getComputedStyle(el).fontFamily");
+        var drawn = await player.Slide(1).GetByTestId("cards-title").First.EvaluateAsync<string>("el => getComputedStyle(el).fontFamily");
         drawn.Trim().Replace("\"", "'").ShouldContain(RebuildDeck.FAMILY);
         var loaded = await Eventually.ReadAsync(() => Page.EvaluateAsync<bool>(FACE_LOADED, RebuildDeck.FAMILY), ok => ok);
         loaded.ShouldBeTrue();

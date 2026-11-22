@@ -77,13 +77,13 @@ public static class SecondHalfSlides
         {
             kicker = M(60, 3501), quote = M(280, 3502), attribution = M(80, 3503), role = M(160, 3504), source = M(200, 3505),
         }),
-        (36, "big-number", 7, "one big word, three ticks", false, 0, 0, null, _ => new
+        (36, "big-number", 7, "one large figure, three ticks", false, 0, 0, null, _ => new
         {
-            kicker = M(60, 3601), headline = M(100, 3602), value = "No.", caption = M(120, 3603), detail = M(200, 3604), source = M(100, 3605),
+            kicker = M(60, 3601), headline = M(100, 3602), value = "360606 wks", caption = M(120, 3603), detail = M(200, 3604), source = M(100, 3605),
         }),
         (37, "table", 7, "two columns, struck rows", false, 0, 4, null, _ => new
         {
-            kicker = M(60, 3701), headline = M(80, 3702), columns = new[] { M(30, 3703), M(30, 3704) }, reveal = "strike-and-answer",
+            kicker = M(60, 3701), headline = M(100, 3702), columns = new[] { M(30, 3703), M(30, 3704) }, reveal = "strike-and-answer",
             rows = new object[]
             {
                 new[] { M(80, 3705), M(80, 3706) },
@@ -104,17 +104,17 @@ public static class SecondHalfSlides
         }),
         (39, "close", 7, "closing slide", false, 0, 0, null, _ => new
         {
-            headline = M(36, 3901) + "\n" + M(36, 3902), sub = M(110, 3903), author = M(60, 3904),
+            headline = M(39, 3901) + "\n" + M(40, 3902), sub = M(110, 3903), author = M(60, 3904),
         }),
         (40, "links", 7, "four links and a code", false, 0, 0, null, _ => new
         {
             kicker = M(60, 4001), headline = M(100, 4002),
             links = new object[]
             {
-                new { kind = M(16, 4003), title = M(90, 4004), source = M(60, 4005), url = "https://northwind.example/talk" },
-                new { kind = M(16, 4006), title = M(90, 4007), source = M(60, 4008), url = "https://northwind.example/podcast" },
-                new { kind = M(16, 4009), title = M(90, 4010), source = M(60, 4011), url = "https://northwind.example/article" },
-                new { kind = M(16, 4012), title = M(90, 4013), source = M(60, 4014), url = "https://northwind.example/testimony" },
+                new { kind = M(16, 4003), title = M(90, 4004), source = M(60, 4005), url = "https://northwind.example/a" },
+                new { kind = M(16, 4006), title = M(90, 4007), source = M(60, 4008), url = "https://northwind.example/b" },
+                new { kind = M(16, 4009), title = M(90, 4010), source = M(60, 4011), url = "https://northwind.example/c" },
+                new { kind = M(16, 4012), title = M(90, 4013), source = M(60, 4014), url = "https://northwind.example/d" },
             },
             qr = new { url = "https://northwind.example/more", caption = M(60, 4015) },
         }),
@@ -136,11 +136,12 @@ public static class SecondHalfSlides
             failure = new { label = M(24, 4303), title = M(50, 4304), tone = "positive", fill = "soft", points = new[] { M(90, 4305) }, footer = M(90, 4306) },
             success = new { label = M(24, 4307), title = M(50, 4308), tone = "negative", fill = "soft", points = new[] { M(90, 4309) }, footer = M(90, 4310) },
         }),
-        (44, "two-column", 8, "boxed text and evidence", false, 0, 0, null, _ => new
+        (44, "two-column", 8, "boxed text and evidence", false, 1, 0, null, _ => new
         {
             kicker = M(60, 4401), headline = M(100, 4402),
-            left = new { title = M(60, 4403), text = M(400, 4404) },
-            right = new { title = M(60, 4405), text = M(400, 4406) },
+            left = new { text = M(400, 4404) },
+            right = new { title = M(60, 4405), text = M(300, 4406) },
+            callout = new { tone = "accent", text = M(220, 4407) },
         }),
     ];
 
