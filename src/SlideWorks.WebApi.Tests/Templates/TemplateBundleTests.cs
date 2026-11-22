@@ -326,6 +326,29 @@ public class TemplateBundleTests : ApiTestFixture
     }
 
     [Test]
+    public async Task Import_WhenACheckAnswersFindings_ShouldPassTheirPathCodeAndMessageToTheBody()
+    {
+        var before = await SnapshotAsync();
+        _layout.Refuse(TemplateErrorCodes.CUSTOM_LAYOUTS_UNAVAILABLE, [new TemplateRefusalDetail("markup", "layout_bad_markup", "Line 2: a script.")]);
+
+        try
+        {
+            var response = await ImportAsync(SampleBundle());
+
+            var body = await ShouldRefuseAsync(response, "custom_layouts_unavailable");
+            var finding = body.GetProperty("errors").EnumerateArray().ShouldHaveSingleItem();
+            finding.GetProperty("path").GetString().ShouldBe("markup");
+            finding.GetProperty("code").GetString().ShouldBe("layout_bad_markup");
+            finding.GetProperty("message").GetString().ShouldBe("Line 2: a script.");
+            (await SnapshotAsync()).ShouldBe(before);
+        }
+        finally
+        {
+            _layout.Accept();
+        }
+    }
+
+    [Test]
     public async Task Import_WhenIHaveFiftyTemplates_ShouldChangeNothing()
     {
         for (var i = 0; i < TemplateLimits.MAX_TEMPLATES_PER_PERSON; i++)
@@ -513,6 +536,27 @@ public class TemplateBundleTests : ApiTestFixture
         second.Keys.Order().ShouldBe(first.Keys.Order());
         Encoding.UTF8.GetString(second["template.json"]).ShouldBe(Encoding.UTF8.GetString(first["template.json"]));
         second.ShouldAllBe(entry => entry.Value.SequenceEqual(first[entry.Key]));
+    }
+
+    [Test]
+    public async Task Export_WhenAFilePacksPastTheImportRatio_ShouldStillImportAgain()
+    {
+        var id = await ImportedIdAsync();
+        var art = (await AssetsAsync(id)).Single(a => a.Kind == TemplateAssetKind.Art);
+        // A valid SVG that is nearly all whitespace, put where an upload would have left it (an import refuses such a file).
+        var padded = Encoding.UTF8.GetBytes($"""<svg xmlns="{SVG_NAMESPACE}" viewBox="0 0 10 10"><rect width="10" height="10"/>{new string(' ', 300_000)}</svg>""");
+        await File.WriteAllBytesAsync(Path.Combine(DataPath(), "templates", id, art.Id), padded);
+
+        var exported = await (await Client.GetAsync($"/api/templates/{id}/bundle")).Content.ReadAsByteArrayAsync();
+        using (var zip = new ZipArchive(new MemoryStream(exported), ZipArchiveMode.Read))
+        {
+            var entry = zip.GetEntry("art.svg")!;
+            entry.Length.ShouldBe(padded.Length);
+            (entry.Length / entry.CompressedLength).ShouldBeLessThanOrEqualTo(100);
+        }
+        var again = await ImportAsync(exported);
+
+        again.StatusCode.ShouldBe(HttpStatusCode.Created, await again.Content.ReadAsStringAsync());
     }
 
     [Test]

@@ -269,33 +269,60 @@ public sealed class TemplateBundles(
             paths[reference.Value] = path;
             if (stem is null)
             {
-                await using var source = new FileStream(store.PathFor(templateId, row.Id), FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
-                await using var entry = await Entry(zip, path).OpenAsync(ct);
-                await source.CopyToAsync(entry, ct);
+                await WriteBytesAsync(zip, path, await File.ReadAllBytesAsync(store.PathFor(templateId, row.Id), ct), ct);
             }
             else
             {
                 var document = LayoutDocument.Read(await File.ReadAllBytesAsync(store.PathFor(templateId, row.Id), ct));
-                await WriteTextAsync(Entry(zip, stem + LayoutDocument.HTML), System.Text.Encoding.UTF8.GetBytes(document.Markup), ct);
-                await WriteTextAsync(Entry(zip, stem + LayoutDocument.CSS), System.Text.Encoding.UTF8.GetBytes(document.Css), ct);
-                await WriteTextAsync(Entry(zip, stem + LayoutDocument.JSON), System.Text.Encoding.UTF8.GetBytes(document.Slots.GetRawText()), ct);
+                await WriteBytesAsync(zip, stem + LayoutDocument.HTML, System.Text.Encoding.UTF8.GetBytes(document.Markup), ct);
+                await WriteBytesAsync(zip, stem + LayoutDocument.CSS, System.Text.Encoding.UTF8.GetBytes(document.Css), ct);
+                await WriteBytesAsync(zip, stem + LayoutDocument.JSON, System.Text.Encoding.UTF8.GetBytes(document.Slots.GetRawText()), ct);
             }
         }
-        await WriteTextAsync(Entry(zip, BundleNames.MANIFEST), System.Text.Encoding.UTF8.GetBytes(ManifestJson.Write(ManifestFiles.With(manifest, paths))), ct);
+        await WriteBytesAsync(zip, BundleNames.MANIFEST, System.Text.Encoding.UTF8.GetBytes(ManifestJson.Write(ManifestFiles.With(manifest, paths))), ct);
         await output.FlushAsync(ct);
     }
 
-    private ZipArchiveEntry Entry(ZipArchive zip, string path)
+    // An entry that would pack past the ratio the import refuses (a file that is nearly all whitespace) is stored
+    // uncompressed, so every export passes the import's guard.
+    private async Task WriteBytesAsync(ZipArchive zip, string path, byte[] bytes, CancellationToken ct)
     {
-        var entry = zip.CreateEntry(path, CompressionLevel.Optimal);
+        var level = BundleArchive.IsBomb(bytes.Length, await PackedSizeAsync(bytes, ct)) ? CompressionLevel.NoCompression : CompressionLevel.Optimal;
+        var entry = zip.CreateEntry(path, level);
         entry.LastWriteTime = clock.GetUtcNow();
-        return entry;
-    }
-
-    private static async Task WriteTextAsync(ZipArchiveEntry entry, byte[] bytes, CancellationToken ct)
-    {
         await using var stream = await entry.OpenAsync(ct);
         await stream.WriteAsync(bytes, ct);
+    }
+
+    private static async Task<long> PackedSizeAsync(byte[] bytes, CancellationToken ct)
+    {
+        await using var sink = new CountingStream();
+        await using (var deflate = new DeflateStream(sink, CompressionLevel.Optimal, leaveOpen: true))
+        {
+            await deflate.WriteAsync(bytes, ct);
+        }
+        return sink.Count;
+    }
+
+    private sealed class CountingStream : Stream
+    {
+        public long Count { get; private set; }
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => Count;
+        public override long Position { get => Count; set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => Count += count;
+        public override void Write(ReadOnlySpan<byte> buffer) => Count += buffer.Length;
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            Count += buffer.Length;
+            return ValueTask.CompletedTask;
+        }
     }
 
     // The layout's stem name comes from the manifest entry whose file is this one.

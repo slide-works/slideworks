@@ -126,7 +126,7 @@ internal sealed class BundleArchive
     public static TemplateRefusedException Invalid(string reason, string? path = null)
         => TemplateRefusal.Of(TemplateErrorCodes.BUNDLE_INVALID, path, ("reason", reason));
 
-    private static bool IsBomb(long length, long packed) => length > RATIO_FROM_BYTES && length / Math.Max(packed, 1) > MAX_RATIO;
+    public static bool IsBomb(long length, long packed) => length > RATIO_FROM_BYTES && length / Math.Max(packed, 1) > MAX_RATIO;
 
     private static bool IsLink(ZipArchiveEntry entry)
         => ((entry.ExternalAttributes >>> 16) & UNIX_TYPE_MASK) == UNIX_SYMLINK || (entry.ExternalAttributes & WINDOWS_REPARSE_POINT) != 0;
