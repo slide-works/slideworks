@@ -36,35 +36,47 @@ indent() {
   while IFS= read -r line; do printf '%s%s\n' "$prefix" "$line"; done
 }
 
+# With AGENT_TASK set, only the commits whose subject starts with "$AGENT_TASK " count, for the subject checks and the
+# file checks alike: a shared branch holds other tasks' commits in the same range.
+task="${AGENT_TASK:-}"
+shas=()
+while IFS=$'\t' read -r sha subject; do
+  [[ -n "$sha" ]] || continue
+  if [[ -z "$task" || "$subject" == "$task "* ]]; then shas+=("$sha"); fi
+done < <(git log --format='%H%x09%s' "$base..HEAD")
+scope="$base..HEAD"
+[[ -z "$task" ]] || scope="$scope, only $task commits (${#shas[@]})"
+
+# Files per commit, so a stray file committed and deleted again later is still listed.
+files_of() { # files_of <diff-filter> : the paths each selected commit touched
+  local sha
+  for sha in "${shas[@]}"; do git diff-tree --no-commit-id --name-only -r --diff-filter="$1" "$sha"; done
+}
+
 problems=0
-config="$(git diff --name-only "$base" HEAD | grep -E "$config_re" || true)"
+config="$(files_of ACDMRT | grep -E "$config_re" | sort -u || true)"
 if [[ -n "$config" ]]; then
-  echo "config files changed since $base (list each in the report):"
+  echo "config files changed in $scope (list each in the report):"
   indent '  ' <<<"$config"
   problems=$((problems + 1))
 fi
 
-# Per commit, so a stray file committed and deleted again later is still listed.
-stray="$(git log --diff-filter=d --name-only --format= "$base..HEAD" | grep -E "$stray_re" | sort -u || true)"
-pngs="$(git log --diff-filter=A --name-only --format= "$base..HEAD" | grep -E -- '-snapshots/.*\.png$' | sort -u || true)"
+stray="$(files_of ACMRT | grep -E "$stray_re" | sort -u || true)"
+pngs="$(files_of A | grep -E -- '-snapshots/.*\.png$' | sort -u || true)"
 if [[ -n "$stray$pngs" ]]; then
-  echo "stray files committed since $base (remove them, or confirm a PNG is a CI baseline):"
+  echo "stray files committed in $scope (remove them, or confirm a PNG is a CI baseline):"
   [[ -z "$stray" ]] || indent '  ' <<<"$stray"
   [[ -z "$pngs" ]] || indent '  new snapshot PNG: ' <<<"$pngs"
   problems=$((problems + 1))
 fi
 
-task="${AGENT_TASK:-}"
 badsubjects=""
-while IFS=$'\t' read -r sha subject; do
-  [[ -n "$sha" ]] || continue
-  if [[ -n "$task" && "$subject" != "$task"* ]]; then
-    badsubjects+="  $sha does not start with $task: $subject"$'\n'
-  fi
+for sha in "${shas[@]}"; do
+  subject="$(git log -1 --format=%s "$sha")"
   if [[ ${#subject} -gt 120 ]]; then
-    badsubjects+="  $sha subject is ${#subject} characters (max 120)"$'\n'
+    badsubjects+="  ${sha:0:7} subject is ${#subject} characters (max 120)"$'\n'
   fi
-done < <(git log --format='%h%x09%s' "$base..HEAD")
+done
 if [[ -n "$badsubjects" ]]; then
   echo "commit subjects to fix:"
   printf '%s' "$badsubjects"

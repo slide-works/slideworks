@@ -197,10 +197,12 @@ caller_dir="$PWD"
 # Paths are relative to the caller; resolve them before moving to the repo root.
 [[ -z "$file" ]] || file="$(realpath -m "$file")"
 [[ -z "$patch" ]] || patch="$(realpath -m "$patch")"
+# The runner path is relative to the caller too; resolve it before moving, then run it by its absolute path.
+runner_path="$(realpath -m "${runner[0]}")"
+runner[0]="$runner_path"
 cd "$ROOT"
 
 # The runner: an executable tools/agent/test-* script.
-runner_path="$(realpath -m "${runner[0]}")"
 case "$runner_path" in
   "$ROOT"/tools/agent/test-*) ;;
   *) agent_die 2 "the runner must be tools/agent/test-*, got: ${runner[0]}" reason=bad-runner ;;
