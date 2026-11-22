@@ -43,6 +43,8 @@ public class PresentingJourneyTests : AcceptanceTest
         await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
         await Expect(audience.Layer(1)).ToHaveAttributeAsync("data-active", "true");
         await Expect(presenter.NotesBody).ToContainTextAsync(NotesOf(1));
+        // D25: the `**Say:**` in slide 1's note is drawn as a <b> in the presenter window.
+        (await Eventually.ReadAsync(() => BoldCuesAsync(presenter), cues => cues.Length > 0)).ShouldBe(["Say:"]);
 
         // The audience window is P3's audienceUrl. The player writes #slide.step into the hash as it follows, so the
         // hash is left out of the comparison.
@@ -51,6 +53,9 @@ public class PresentingJourneyTests : AcceptanceTest
         // 2. Keys in the presenter window move the audience window.
         await presenter.PressAsync("ArrowRight");
         await Expect(presenter.Count).ToHaveTextAsync($"2 / {SLIDES}");
+        // The same probe finds no bold cue on slide 2, whose note has none, once its note shows.
+        await Expect(presenter.NotesBody).ToContainTextAsync(NotesOf(2));
+        (await BoldCuesAsync(presenter)).ShouldBeEmpty();
         await Expect(audience.Layer(2)).ToHaveAttributeAsync("data-active", "true");
         await presenter.PressAsync(" ");
         await Expect(presenter.Count).ToHaveTextAsync($"3 / {SLIDES}");
@@ -161,6 +166,11 @@ public class PresentingJourneyTests : AcceptanceTest
         }
     }
 
+    // The text of every <b> in the presenter's notes body.
+    private static Task<string[]> BoldCuesAsync(PresenterPage presenter) =>
+        presenter.NotesBody.EvaluateAsync<string[]>("body => [...body.querySelectorAll('b')].map(b => b.textContent)");
+
+    // What the note of slide {number} reads as in the presenter window: the plain text, with no marks.
     private static string NotesOf(int number) => $"Speaker cue {number}: pause for a question here.";
 
     // Sam's talk, made the way an agent makes it: create_deck with two parts, then thirteen bullets slides (no
@@ -195,7 +205,7 @@ public class PresentingJourneyTests : AcceptanceTest
             ["layout"] = "bullets",
             ["part"] = number <= 6 ? 1 : 2,
             ["slots"] = slots,
-            ["notes"] = NotesOf(number),
+            ["notes"] = number == 1 ? $"**Say:** {NotesOf(number)}" : NotesOf(number),
             ["deep_dive"] = number == DEEP_DIVE,
         });
     }
