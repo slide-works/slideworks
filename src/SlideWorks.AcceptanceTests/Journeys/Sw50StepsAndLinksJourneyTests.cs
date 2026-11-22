@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -9,12 +10,15 @@ namespace SlideWorks.AcceptanceTests.Journeys;
 
 // SW-50's links slide and strike-and-answer table on the real app. An agent builds each deck over MCP and the presenter
 // sees it in the player. A hidden part keeps its box (visibility: hidden, never display: none), so each hidden answer and
-// the hidden callout are read as drawn (computed visibility and opacity, a box with size) before they are shown, and the
-// same locator is then shown to be visible. The answers are toned cells, so each sits in a block-badge inside the Reveal.
+// the hidden callout are read as drawn (computed visibility, a box with size) before they are shown, and the
+// same locator is then shown to be visible. Only visibility is read for the badges and the callout (the Reveal's opacity is on
+// its wrapper). A click on a link must not move the player, so the links slide sits where a click in the stage's left third
+// would move it, and the same kind of click on a non-link part of the slide is shown to move it. The answers are toned cells, so each sits in a block-badge inside the Reveal.
 public class Sw50StepsAndLinksJourneyTests : AcceptanceTest
 {
     private static readonly string[] CLAIMS = ["Velocity measures output", "More people go faster", "Estimates are promises"];
     private static readonly string[] ANSWERS = ["It measures effort", "Until they queue", "They are forecasts"];
+    private const int LINKS = 2;
     private const string CALLOUT = "Measure outcomes, not output.";
 
     [Test]
@@ -25,6 +29,9 @@ public class Sw50StepsAndLinksJourneyTests : AcceptanceTest
         var deck = created.GetProperty("deck").GetString()!;
         var slug = new Uri(created.GetProperty("url").GetString()!).Segments[^1];
         var signIn = AcceptanceApp.BaseUrl + "/signin";
+        // The links slide is slide 2, between two quotes, so a click that the player takes as "go back" or "go forward"
+        // would move it. The anchors sit in the stage's left third, where a click goes back.
+        await AddAsync(agent, deck, "quote", new { quote = "The slide before the links.", attribution = "Sam Carter" });
         var added = await AddAsync(agent, deck, "links", new
         {
             kicker = "Read next",
@@ -51,45 +58,49 @@ public class Sw50StepsAndLinksJourneyTests : AcceptanceTest
             }),
         });
         refusal.ShouldContain("links.links[0].url");
-        (await SlidesAsync(agent, deck)).Count.ShouldBe(2);
+        (await SlidesAsync(agent, deck)).Count.ShouldBe(3);
 
         // 1. The signed-in player: the click opens a new page at the address and the player stays on the links slide.
         await SignIn.AsAsync(Page, TestUser.Sam);
         var player = new PlayerPage(Page);
-        await OpenAsync(player, deck);
-        await AssertLinksAsync(player, signIn, interactive: true);
-        var playerPointer = await player.Slide(1).GetByTestId("links-title").First.EvaluateAsync<string>("a => getComputedStyle(a).pointerEvents");
+        await OpenAsync(player, deck, "#2");
+        await AssertLinksAsync(player, signIn);
+        var playerPointer = await player.Slide(LINKS).GetByTestId("links-title").First.EvaluateAsync<string>("a => getComputedStyle(a).pointerEvents");
         var requested = Track(Page.Context);
-        var popup = await Page.RunAndWaitForPopupAsync(() => player.Slide(1).GetByTestId("links-title").First.ClickAsync());
-        await Expect(popup).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("^" + System.Text.RegularExpressions.Regex.Escape(AcceptanceApp.BaseUrl) + "/"));
-        requested.ShouldContain(signIn);
-        await Expect(player.Count).ToHaveTextAsync("1 / 2");
-        await Expect(player.Layer(1)).ToHaveAttributeAsync("data-active", "true");
-        await Expect(player.Layer(2)).ToHaveAttributeAsync("data-active", "false");
+        var popup = await Page.RunAndWaitForPopupAsync(() => player.Slide(LINKS).GetByTestId("links-title").First.ClickAsync());
+        // The signed-in visitor may be sent on from /signin, so the popup is matched on its host only; the request log
+        // below holds the address itself.
+        await Expect(popup).ToHaveURLAsync(AppHost());
+        SnapshotOf(requested).ShouldContain(signIn);
+        await Expect(player.Count).ToHaveTextAsync("2 / 3");
+        await Expect(player.Layer(LINKS)).ToHaveAttributeAsync("data-active", "true");
         await popup.CloseAsync();
+        await ShowNonLinkClickMovesAsync(player, Page);
 
         // 2. The same through the deck's share link, anonymous in a browser of its own.
         await using var viewerContext = await Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = AcceptanceApp.BaseUrl });
         var viewerTab = await viewerContext.NewPageAsync();
         var viewer = new PlayerPage(viewerTab);
-        await viewer.GotoAsync(deck, slug);
-        await Expect(viewer.Count).ToHaveTextAsync("1 / 2");
-        await Expect(viewer.Layer(1)).ToHaveAttributeAsync("data-active", "true");
-        await AssertLinksAsync(viewer, signIn, interactive: true);
+        await viewer.GotoAsync(deck, slug, "#2");
+        await Expect(viewer.Count).ToHaveTextAsync("2 / 3");
+        await Expect(viewer.Layer(LINKS)).ToHaveAttributeAsync("data-active", "true");
+        await AssertLinksAsync(viewer, signIn);
         var viewerRequested = Track(viewerContext);
-        var viewerPopup = await viewerTab.RunAndWaitForPopupAsync(() => viewer.Slide(1).GetByTestId("links-title").Last.ClickAsync());
-        await Expect(viewerPopup).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("^" + System.Text.RegularExpressions.Regex.Escape(AcceptanceApp.BaseUrl) + "/signin"));
-        viewerRequested.ShouldContain(signIn);
-        await Expect(viewer.Count).ToHaveTextAsync("1 / 2");
-        await Expect(viewer.Layer(1)).ToHaveAttributeAsync("data-active", "true");
-        await Expect(viewer.Layer(2)).ToHaveAttributeAsync("data-active", "false");
+        var viewerPopup = await viewerTab.RunAndWaitForPopupAsync(() => viewer.Slide(LINKS).GetByTestId("links-title").Last.ClickAsync());
+        await Expect(viewerPopup).ToHaveURLAsync(AppHost());
+        SnapshotOf(viewerRequested).ShouldContain(signIn);
+        await Expect(viewer.Count).ToHaveTextAsync("2 / 3");
+        await Expect(viewer.Layer(LINKS)).ToHaveAttributeAsync("data-active", "true");
+        await ShowNonLinkClickMovesAsync(viewer, viewerTab);
 
         // 3. The deck page's thumbnail draws the same anchors, out of the tab order and out of reach of a click.
         var deckPage = new DeckPage(Page);
         await deckPage.GotoAsync(deck);
-        await Expect(deckPage.Thumbnails).ToHaveCountAsync(2);
-        var anchors = deckPage.Thumbnail(1).GetByTestId("links-title");
+        await Expect(deckPage.Thumbnails).ToHaveCountAsync(3);
+        var anchors = deckPage.Thumbnail(LINKS).GetByTestId("links-title");
         await Expect(anchors).ToHaveCountAsync(2);
+        await Expect(anchors.First).ToBeVisibleAsync();
+        await Expect(anchors.Last).ToBeVisibleAsync();
         await Expect(anchors.First).ToHaveAttributeAsync("tabindex", "-1");
         await Expect(anchors.Last).ToHaveAttributeAsync("tabindex", "-1");
         await Expect(anchors.First).ToHaveAttributeAsync("href", signIn);
@@ -211,20 +222,49 @@ public class Sw50StepsAndLinksJourneyTests : AcceptanceTest
         (await SlidesAsync(agent, deck)).Select(s => s.GetProperty("steps").GetInt32()).ShouldBe([4, 0]);
     }
 
-    // Both anchors are drawn as links to the address, open in a new tab and are in the tab order and clickable.
-    private async Task AssertLinksAsync(PlayerPage player, string address, bool interactive)
+    // Both anchors are drawn as links to the address, open in a new tab and are in the tab order.
+    private async Task AssertLinksAsync(PlayerPage player, string address)
     {
-        var anchors = player.Slide(1).GetByTestId("links-title");
+        var anchors = player.Slide(LINKS).GetByTestId("links-title");
         await Expect(anchors).ToHaveCountAsync(2);
         await Expect(anchors.First).ToHaveTextAsync("The first link");
         await Expect(anchors.Last).ToHaveTextAsync("The second link");
         await Expect(anchors.First).ToBeVisibleAsync();
+        await Expect(anchors.Last).ToBeVisibleAsync();
         foreach (var index in new[] { 0, 1 })
         {
             await Expect(anchors.Nth(index)).ToHaveAttributeAsync("href", address);
             await Expect(anchors.Nth(index)).ToHaveAttributeAsync("target", "_blank");
             await Expect(anchors.Nth(index)).ToHaveAttributeAsync("rel", "noopener noreferrer");
-            (await anchors.Nth(index).GetAttributeAsync("tabindex") is null).ShouldBe(interactive);
+            (await anchors.Nth(index).GetAttributeAsync("tabindex")).ShouldBeNull();
+        }
+    }
+
+    // The control for the link clicks: a click on the slide's "Talk" label, in the same left third of the stage as the
+    // anchors, is a click on the stage and goes back (2 to 1). Without this a link that did not stop the click
+    // would pass, because slide 2 is where a left-third click would have moved the player. Then forward again.
+    private async Task ShowNonLinkClickMovesAsync(PlayerPage player, IPage tab)
+    {
+        var stage = (await player.Stage.BoundingBoxAsync()).ShouldNotBeNull();
+        foreach (var anchor in new[] { player.Slide(LINKS).GetByTestId("links-title").First, player.Slide(LINKS).GetByTestId("links-kind").First })
+        {
+            var box = (await anchor.BoundingBoxAsync()).ShouldNotBeNull();
+            (box.X + box.Width / 2).ShouldBeLessThan(stage.X + stage.Width / 3, "the click must land in the stage's left third");
+        }
+        await player.Slide(LINKS).GetByTestId("links-kind").First.ClickAsync();
+        await Expect(player.Count).ToHaveTextAsync("1 / 3");
+        await Expect(player.Layer(1)).ToHaveAttributeAsync("data-active", "true");
+        await tab.Keyboard.PressAsync("ArrowRight");
+        await Expect(player.Count).ToHaveTextAsync("2 / 3");
+    }
+
+    private static Regex AppHost() => new("^" + Regex.Escape(AcceptanceApp.BaseUrl) + "/");
+
+    private static List<string> SnapshotOf(List<string> seen)
+    {
+        lock (seen)
+        {
+            return [.. seen];
         }
     }
 
@@ -248,12 +288,12 @@ public class Sw50StepsAndLinksJourneyTests : AcceptanceTest
         after.ShouldNotBeNull().IsNear(before).ShouldBeTrue($"{testId} {nth} moved: {before} became {after}.");
     }
 
-    private async Task OpenAsync(PlayerPage player, string deck)
+    private async Task OpenAsync(PlayerPage player, string deck, string hash = "")
     {
-        await player.GotoAsync(deck);
+        await player.GotoAsync(deck, hash: hash);
         await Expect(player.Player).ToBeVisibleAsync();
-        await Expect(player.Count).ToHaveTextAsync("1 / 2");
-        await Expect(player.Layer(1)).ToHaveAttributeAsync("data-active", "true");
+        await Expect(player.Count).ToHaveTextAsync(hash == "#2" ? "2 / 3" : "1 / 2");
+        await Expect(player.Layer(hash == "#2" ? 2 : 1)).ToHaveAttributeAsync("data-active", "true");
         await player.FontsReadyAsync();
     }
 
