@@ -24,6 +24,7 @@ public partial class LookAdoptionQueryTests : ApiTestFixture
 {
     private const string MEASURES = "docs/measures.md";
     private const string HEADING = "## Look adoption (SW-2)";
+    private const string UPLOADED_HEADING = "## Uploaded templates (SW-50)";
 
     protected override Action<IServiceCollection>? ConfigureTestServices
         => services => services.AddSingleton<ITemplateCatalogue>(new LockingTemplateCatalogue());
@@ -90,13 +91,80 @@ public partial class LookAdoptionQueryTests : ApiTestFixture
         NamesIn(sql, "d.Palette").ShouldBe(new PaletteCatalogue().All.Select(p => p.Name), ignoreOrder: true);
     }
 
-    private async Task<Dictionary<string, object?>> RunAsync(DateTimeOffset from, DateTimeOffset to)
+    // SW-50's Measure (D10): the same activity log, a deck counts when its current template is a tpl_ ref.
+    [Test]
+    public async Task Adoption_WhenADeckUsesAnUploadedTemplate_ShouldCountIt()
+    {
+        var template = await UploadedTemplateAsync();
+        var from = Clock.GetUtcNow();
+
+        await CreateDeckAsync("on uploaded", template: template);
+        await CreateDeckAsync("on built-in");
+        Clock.Advance(TimeSpan.FromHours(1));
+
+        var row = await RunUploadedAsync(from, Clock.GetUtcNow());
+
+        row.ShouldBe(new Dictionary<string, object?> { ["new_decks"] = 2L, ["on_uploaded"] = 1L, ["on_uploaded_pct"] = 50.0 });
+    }
+
+    [Test]
+    public async Task Adoption_WhenADeckIsOnABuiltIn_ShouldNotCountIt()
+    {
+        var from = Clock.GetUtcNow();
+
+        await CreateDeckAsync("plain");
+        await CreateDeckAsync("workshop", template: "workshop");
+        await CreateDeckAsync("locked", template: LockingTemplateCatalogue.LOCKING);
+        Clock.Advance(TimeSpan.FromHours(1));
+
+        var row = await RunUploadedAsync(from, Clock.GetUtcNow());
+
+        row.ShouldBe(new Dictionary<string, object?> { ["new_decks"] = 3L, ["on_uploaded"] = 0L, ["on_uploaded_pct"] = 0.0 });
+    }
+
+    [Test]
+    public async Task Adoption_WhenNoDeckIsInTheWindow_ShouldGiveZeroAndANullShare()
+    {
+        var template = await UploadedTemplateAsync();
+        await CreateDeckAsync("before the window", template: template);
+        Clock.Advance(TimeSpan.FromDays(1));
+
+        var row = await RunUploadedAsync(Clock.GetUtcNow(), Clock.GetUtcNow().AddDays(1));
+
+        row.ShouldBe(new Dictionary<string, object?> { ["new_decks"] = 0L, ["on_uploaded"] = 0L, ["on_uploaded_pct"] = null });
+    }
+
+    // The creation entry names the template by label, not id, so the share is read from the deck's current template.
+    [Test]
+    public async Task Adoption_WhenADeckMovedToAnUploadedTemplateLater_ShouldCountByItsCurrentTemplate()
+    {
+        var template = await UploadedTemplateAsync();
+        var from = Clock.GetUtcNow();
+
+        var moved = await CreateDeckAsync("moved in");
+        await PutLookAsync(moved, new { template });
+        var back = await CreateDeckAsync("moved back", template: template);
+        await PutLookAsync(back, new { template = "workshop" });
+        Clock.Advance(TimeSpan.FromHours(1));
+
+        var row = await RunUploadedAsync(from, Clock.GetUtcNow());
+
+        row.ShouldBe(new Dictionary<string, object?> { ["new_decks"] = 2L, ["on_uploaded"] = 1L, ["on_uploaded_pct"] = 50.0 });
+    }
+
+    // A published template whose manifest is the documented sample, so it resolves like a real upload.
+    private async Task<string> UploadedTemplateAsync()
+        => await TemplateRowSeed.PublishedAsync(Factory, TestUser.Sam, await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "..", "template-manifest.sample.json")));
+
+    private Task<Dictionary<string, object?>> RunUploadedAsync(DateTimeOffset from, DateTimeOffset to) => RunAsync(from, to, UPLOADED_HEADING);
+
+    private async Task<Dictionary<string, object?>> RunAsync(DateTimeOffset from, DateTimeOffset to, string heading = HEADING)
     {
         using var scope = Factory.Services.CreateScope();
         var connection = scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.GetDbConnection();
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
-        command.CommandText = MeasureSql();
+        command.CommandText = MeasureSql(heading);
         AddParameter(command, "@from", from);
         AddParameter(command, "@to", to);
         await using var reader = await command.ExecuteReaderAsync();
@@ -137,13 +205,13 @@ public partial class LookAdoptionQueryTests : ApiTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
     }
 
-    private static string MeasureSql()
+    private static string MeasureSql(string heading = HEADING)
     {
         var text = File.ReadAllText(Path.Combine(RepoRoot(), MEASURES));
-        var section = text.IndexOf(HEADING, StringComparison.Ordinal);
-        section.ShouldBeGreaterThanOrEqualTo(0, $"{MEASURES} has no '{HEADING}' section");
+        var section = text.IndexOf(heading, StringComparison.Ordinal);
+        section.ShouldBeGreaterThanOrEqualTo(0, $"{MEASURES} has no '{heading}' section");
         var match = SqlBlock().Match(text, section);
-        match.Success.ShouldBeTrue($"'{HEADING}' in {MEASURES} has no ```sql block");
+        match.Success.ShouldBeTrue($"'{heading}' in {MEASURES} has no ```sql block");
         return match.Groups["sql"].Value;
     }
 

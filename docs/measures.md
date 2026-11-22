@@ -78,6 +78,52 @@ FROM scored;
 Measure, as a percentage; null when no deck was created), and `relooked` (new decks whose template or palette was
 changed after creation).
 
+## Uploaded templates (SW-50)
+
+**What it counts:** the share of new decks that use an uploaded template. A high share means people make decks on
+templates they or a colleague uploaded, not only on the built-in ones. It is a separate Measure from Look adoption: the
+SW-2 query is unchanged, and an uploaded template still never counts as adopted there.
+
+**Where it reads from:**
+
+- *New decks in the window* come from the activity log, as in Look adoption: each deck has exactly one creation entry,
+  `created the deck from the <template> template with the <palette> palette`, and `At` on that entry is the creation
+  time. A deck made like another deck (`like "<title>" `) has the same entry.
+- *The template* is the deck's current row in `Decks`. `Template` holds `tpl_<id>` for an uploaded template and a
+  built-in's name, such as `workshop`, for a built-in. A deck counts as using an uploaded template when `Template`
+  starts with `tpl_`. The activity text names the template by its label, never its id, so it cannot be used for this.
+- Because the template is read from the row, not the creation entry, a deck made on a built-in and moved to an uploaded
+  template later (`PUT /api/decks/{id}/look` or `set_look`) counts as using one, and a deck moved back to a built-in
+  does not. This is how Look adoption reads the look too.
+
+**Parameters:** `@from` (inclusive) and `@to` (exclusive), as UTC date-times such as `2026-11-16 00:00:00`. Times are
+stored in the encoding described under Look adoption, and the query converts the parameters itself.
+
+```sql
+WITH bounds AS (
+  SELECT ((CAST(strftime('%s', @from) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS lo,
+         ((CAST(strftime('%s', @to) AS INTEGER) * 10000000 + 621355968000000000) / 1000) << 11 AS hi
+),
+created AS (
+  SELECT DISTINCT a.DeckId
+  FROM ActivityEntries a, bounds b
+  WHERE a.Summary LIKE 'created the deck from the % template with the % palette'
+    AND a.At >= b.lo AND a.At < b.hi
+),
+scored AS (
+  SELECT CASE WHEN substr(d.Template, 1, 4) = 'tpl_' THEN 1 ELSE 0 END AS on_uploaded
+  FROM created c
+  JOIN Decks d ON d.Id = c.DeckId
+)
+SELECT COUNT(*) AS new_decks,
+       COALESCE(SUM(on_uploaded), 0) AS on_uploaded,
+       ROUND(100.0 * SUM(on_uploaded) / NULLIF(COUNT(*), 0), 1) AS on_uploaded_pct
+FROM scored;
+```
+
+**Columns:** `new_decks` (created in the window), `on_uploaded` (of those, on an uploaded template now), and
+`on_uploaded_pct` (the Measure, as a percentage with one decimal; null when no deck was created).
+
 ## Audience join (SW-5)
 
 Two queries, one for each Measure of the audience join: how many people a talk reached, and how quickly they joined once
