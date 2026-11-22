@@ -1,3 +1,4 @@
+using System.Text;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -131,14 +132,34 @@ public class MarkupSanitiserTests
     [Test]
     public void Sanitise_WhenManyReferencesHaveNoSemicolon_ShouldFinishQuicklyAndRefuseTheText()
     {
-        var markup = "<div>" + string.Concat(Enumerable.Repeat("&#1", 340_000)) + "</div>";
+        // Just under the size limit, so it reaches the scanner: a scan that searched on for ';' at every
+        // "&#" would read about 87,000 x 262,000 characters here.
+        var markup = "<div>" + string.Concat(Enumerable.Repeat("&#1", 87_333)) + "</div>";
+        Encoding.UTF8.GetByteCount(markup).ShouldBeLessThan(CustomLayoutLimits.MAX_PART_BYTES);
         var clock = Stopwatch.StartNew();
 
         var (tree, errors) = Sanitiser.Sanitise(markup);
 
         clock.ElapsedMilliseconds.ShouldBeLessThan(2000);
         tree.ShouldBeNull();
-        errors.ShouldNotBeEmpty();
+        errors.Select(e => (e.Path, e.Code)).ShouldBe([("layout.html:1", CustomLayoutErrorCodes.MARKUP_MALFORMED)]);
+    }
+
+    [TestCase("<div/>\r<div class=\"&#9;\"/>", 2)]
+    [TestCase("<div/>\n<div class=\"&#9;\"/>", 2)]
+    [TestCase("<div/>\r\n<div class=\"&#9;\"/>", 2)]
+    [TestCase("<div/>\r\r\n\n<div class=\"&#9;\"/>", 4)]
+    [TestCase("<div/>\r<div class=\"a\tb\"/>", 2)]
+    [TestCase("<div/>\r\n<div class=\"a\tb\"/>", 2)]
+    [TestCase("<div/>\n<div class=\"a\nb\"/>", 2)]
+    [TestCase("<div/>\n<div class=\"a\r\nb\"/>", 2)]
+    public void Sanitise_WhenAControlCharacterIsRefused_ShouldNameItsLine(string markup, int line)
+    {
+        var (tree, errors) = Sanitiser.Sanitise(markup);
+
+        tree.ShouldBeNull();
+        errors[0].Code.ShouldBe(CustomLayoutErrorCodes.MARKUP_MALFORMED);
+        errors[0].Path.ShouldBe($"layout.html:{line}");
     }
 
     [Test]

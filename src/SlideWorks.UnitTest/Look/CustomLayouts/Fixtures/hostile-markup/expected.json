@@ -85,5 +85,9 @@
   "raw-lf-in-class.html": "markup_malformed",
   "raw-lf-in-slot.html": "markup_malformed",
   "raw-cr-in-class.html": "markup_malformed",
-  "raw-cr-in-slot.html": "markup_malformed"
+  "raw-cr-in-slot.html": "markup_malformed",
+  "comment-with-control-ref.html": "markup_comment",
+  "comment-with-raw-quote-and-tab.html": "markup_comment",
+  "cdata-with-control-ref.html": "markup_comment",
+  "pi-with-control-ref.html": "markup_comment"
 }

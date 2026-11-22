@@ -52,13 +52,31 @@ internal sealed class MarkupTreeReader(CustomLayoutAllow allow)
         var inTag = false;
         var quote = '\0';
         var valueRefused = false;
+        var lineBreak = false;
+        string? skipUntil = null;
         var i = -1;
         while (++i < markup.Length)
         {
-            var c = markup[i];
-            if (c == '\n')
+            // Line ends as the XML reader counts them: CRLF is one, a lone CR is one, LF is one. The count
+            // moves on at the character after the break, so a character is reported on its own line.
+            if (lineBreak)
             {
                 line++;
+            }
+
+            var c = markup[i];
+            lineBreak = c == '\n' || (c == '\r' && (i + 1 >= markup.Length || markup[i + 1] != '\n'));
+
+            if (skipUntil is not null)
+            {
+                // Inside a comment, CDATA section or processing instruction: refused later as markup_comment.
+                if (string.CompareOrdinal(markup, i, skipUntil, 0, skipUntil.Length) == 0)
+                {
+                    i += skipUntil.Length - 1;
+                    skipUntil = null;
+                }
+
+                continue;
             }
 
             if (quote != '\0')
@@ -88,9 +106,14 @@ internal sealed class MarkupTreeReader(CustomLayoutAllow allow)
                     valueRefused = false;
                 }
             }
-            else if (c == '<' && i + 1 < markup.Length && markup[i + 1] is not ('!' or '?'))
+            else if (c == '<')
             {
-                inTag = true;
+                skipUntil = SkipTerminator(markup, i);
+                inTag = skipUntil is null && i + 1 < markup.Length && markup[i + 1] is not ('!' or '?');
+                if (skipUntil is not null)
+                {
+                    continue;
+                }
             }
 
             if (c != '&' || i + 1 >= markup.Length || markup[i + 1] != '#')
@@ -126,6 +149,21 @@ internal sealed class MarkupTreeReader(CustomLayoutAllow allow)
 
             i = at - 1;
         }
+    }
+
+    private static string? SkipTerminator(string markup, int at)
+    {
+        if (string.CompareOrdinal(markup, at, "<!--", 0, 4) == 0)
+        {
+            return "-->";
+        }
+
+        if (string.CompareOrdinal(markup, at, "<![CDATA[", 0, 9) == 0)
+        {
+            return "]]>";
+        }
+
+        return string.CompareOrdinal(markup, at, "<?", 0, 2) == 0 ? "?>" : null;
     }
 
     private static int DigitValue(char d, bool hex)
