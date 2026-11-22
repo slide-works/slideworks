@@ -15,14 +15,14 @@
     { "label": "Review", "value": "still yours" }
   ],
   "levels": {
-    "title": "Five levels of autonomy",
+    "title": "Six rungs of automation",
     "items": [
-      { "text": "The lights-out factory", "mark": "5" },
-      { "text": "Write the spec, walk away", "mark": "4" },
-      { "text": "You review its work all day", "mark": "3" },
-      { "text": "Pairing with a junior", "mark": "2" },
-      { "text": "An intern for small tasks", "mark": "1" },
-      { "text": "Autocomplete", "mark": "0", "state": "current" }
+      { "text": "The self-running depot", "mark": "5" },
+      { "text": "Brief it, then step back", "mark": "4" },
+      { "text": "You check each result daily", "mark": "3" },
+      { "text": "Shadowing a new hire", "mark": "2" },
+      { "text": "A helper for small jobs", "mark": "1" },
+      { "text": "Type-ahead", "mark": "0", "state": "current" }
     ]
   }
 }

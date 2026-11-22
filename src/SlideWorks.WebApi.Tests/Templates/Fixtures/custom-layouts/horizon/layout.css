@@ -9,7 +9,7 @@
 .label { font-size: 28px; line-height: 1.2; font-weight: bold; overflow-wrap: break-word; }
 .sub { font-size: 20px; line-height: 1.2; color: var(--sw-muted); overflow-wrap: break-word; }
 .track { display: flex; flex-direction: row; gap: 8px; min-width: 0; }
-.seg { flex-grow: var(--w); flex-basis: 0; min-width: 0; box-sizing: border-box; padding: 12px 16px; border-radius: var(--sw-radius-md); background: var(--sw-accent); color: var(--sw-on-accent); }
+.seg { flex-grow: var(--w); flex-basis: 0; min-width: 96px; overflow: hidden; box-sizing: border-box; padding: 12px 16px; border-radius: var(--sw-radius-md); background: var(--sw-accent); color: var(--sw-on-accent); }
 .seg-text { font-size: 22px; line-height: 1.25; overflow-wrap: break-word; }
 .seg.is-solid { background: var(--sw-accent); color: var(--sw-on-accent); }
 .seg.is-hatched { background: repeating-linear-gradient(135deg, var(--sw-accent-light), var(--sw-accent-light) 10px, var(--sw-chip) 10px, var(--sw-chip) 20px); color: var(--sw-ink); }

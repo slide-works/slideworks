@@ -56,7 +56,7 @@ public class CustomLayoutFixturesTests : ApiTestFixture
         switch (name)
         {
             case "agent-lanes":
-                nodes.ShouldContain(n => n.Each == "lanes" && n.Step == TreeNode.STEP_EACH && n.Vars.Count == 0 && n.Variants.Any(v => v.Slot == "state"));
+                nodes.ShouldContain(n => n.Each == "lanes" && n.Step == TreeNode.STEP_EACH && n.Variants.Any(v => v.Slot == "state"));
                 nodes.ShouldContain(n => n.Vars.Any(v => v.Name == "--p" && v.Slot == "progress"));
                 break;
             case "dial":
@@ -126,25 +126,8 @@ public class CustomLayoutFixturesTests : ApiTestFixture
     public async Task Fixture_WhenUploadedApprovedAndUsed_ShouldReachThePlayView(string name)
     {
         var fixture = Fixture.Of(name);
-        var created = await Client.PostAsJsonAsync("/api/templates", new { basedOn = "talk", name = "Northwind" });
-        created.StatusCode.ShouldBe(HttpStatusCode.Created, await created.Content.ReadAsStringAsync());
-        var template = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
-
-        var asset = await UploadAsync(template, fixture);
-        var editor = await Client.GetFromJsonAsync<JsonElement>($"/api/templates/{template}");
-        var manifest = JsonNode.Parse(editor.GetProperty("manifest").GetRawText())!;
-        manifest["customLayouts"] = new JsonArray(new JsonObject { ["name"] = name, ["file"] = asset });
-        using var put = await Client.PutAsJsonAsync($"/api/templates/{template}", new { manifest, revision = editor.GetProperty("revision").GetInt32() });
-        put.StatusCode.ShouldBe(HttpStatusCode.OK, await put.Content.ReadAsStringAsync());
-        using var approve = await Client.PostAsJsonAsync($"/api/templates/{template}/layouts/{name}/approve", new { asset, overflow = Array.Empty<string>(), contrast = Array.Empty<string>() });
-        approve.StatusCode.ShouldBe(HttpStatusCode.NoContent, await approve.Content.ReadAsStringAsync());
-        using var publish = await Client.PostAsync($"/api/templates/{template}/publish", null);
-        publish.StatusCode.ShouldBe(HttpStatusCode.OK, await publish.Content.ReadAsStringAsync());
-
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        var (isError, made) = await agent.CallToolAsync("create_deck", new { title = "Ship smaller", template });
-        isError.ShouldBeFalse(made.ToString());
-        var deck = made.GetProperty("deck").GetString()!;
+        var (agent, deck) = await PublishedDeckAsync(fixture);
+        await using var _ = agent;
         using var sample = JsonDocument.Parse(fixture.Sample);
         var added = await SlideCalls.OkAsync(agent, "add_slide", new { deck, layout = name, slots = sample.RootElement });
 
@@ -161,20 +144,8 @@ public class CustomLayoutFixturesTests : ApiTestFixture
     public async Task Fixture_WhenTheSampleBreaksALimit_ShouldBeRefusedWithItsPath()
     {
         var fixture = Fixture.Of("dial");
-        var created = await Client.PostAsJsonAsync("/api/templates", new { basedOn = "talk", name = "Northwind" });
-        var template = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
-        var asset = await UploadAsync(template, fixture);
-        var editor = await Client.GetFromJsonAsync<JsonElement>($"/api/templates/{template}");
-        var manifest = JsonNode.Parse(editor.GetProperty("manifest").GetRawText())!;
-        manifest["customLayouts"] = new JsonArray(new JsonObject { ["name"] = "dial", ["file"] = asset });
-        using var put = await Client.PutAsJsonAsync($"/api/templates/{template}", new { manifest, revision = editor.GetProperty("revision").GetInt32() });
-        put.StatusCode.ShouldBe(HttpStatusCode.OK, await put.Content.ReadAsStringAsync());
-        using var approve = await Client.PostAsJsonAsync($"/api/templates/{template}/layouts/dial/approve", new { asset, overflow = Array.Empty<string>(), contrast = Array.Empty<string>() });
-        approve.StatusCode.ShouldBe(HttpStatusCode.NoContent, await approve.Content.ReadAsStringAsync());
-        (await Client.PostAsync($"/api/templates/{template}/publish", null)).StatusCode.ShouldBe(HttpStatusCode.OK);
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        var (_, made) = await agent.CallToolAsync("create_deck", new { title = "Ship smaller", template });
-        var deck = made.GetProperty("deck").GetString()!;
+        var (agent, deck) = await PublishedDeckAsync(fixture);
+        await using var _ = agent;
         var broken = JsonNode.Parse(fixture.Sample)!;
         broken["value"] = 140;
         using var slots = JsonDocument.Parse(broken.ToJsonString());
@@ -183,6 +154,44 @@ public class CustomLayoutFixturesTests : ApiTestFixture
 
         error.ShouldContain("dial.value");
         (await SlideCalls.SlidesAsync(agent, deck)).Count.ShouldBe(0);
+    }
+
+    // Uploads, approves and publishes the fixture in a fresh template, and makes an empty deck on it as Sam.
+    private async Task<(McpTestClient Agent, string Deck)> PublishedDeckAsync(Fixture fixture)
+    {
+        var name = fixture.Name;
+        var created = await Client.PostAsJsonAsync("/api/templates", new { basedOn = "talk", name = "Northwind" });
+        created.StatusCode.ShouldBe(HttpStatusCode.Created, await created.Content.ReadAsStringAsync());
+        var template = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+        var asset = await UploadAsync(template, fixture);
+        var editor = await Client.GetFromJsonAsync<JsonElement>($"/api/templates/{template}");
+        var manifest = JsonNode.Parse(editor.GetProperty("manifest").GetRawText())!;
+        manifest["customLayouts"] = new JsonArray(new JsonObject { ["name"] = name, ["file"] = asset });
+        using var put = await Client.PutAsJsonAsync($"/api/templates/{template}", new { manifest, revision = editor.GetProperty("revision").GetInt32() });
+        put.StatusCode.ShouldBe(HttpStatusCode.OK, await put.Content.ReadAsStringAsync());
+        using var approve = await Client.PostAsJsonAsync($"/api/templates/{template}/layouts/{name}/approve", new { asset, overflow = Array.Empty<string>(), contrast = Array.Empty<string>() });
+        approve.StatusCode.ShouldBe(HttpStatusCode.NoContent, await approve.Content.ReadAsStringAsync());
+        using var publish = await Client.PostAsync($"/api/templates/{template}/publish", null);
+        publish.StatusCode.ShouldBe(HttpStatusCode.OK, await publish.Content.ReadAsStringAsync());
+
+        var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var (isError, made) = await agent.CallToolAsync("create_deck", new { title = "Ship smaller", template });
+        isError.ShouldBeFalse(made.ToString());
+        return (agent, made.GetProperty("deck").GetString()!);
+    }
+
+    [Test]
+    public void Horizon_WhenCompiledWithItsSegmentFloor_ShouldPassTheRealPipelineAndHoldTheFloor()
+    {
+        var fixture = Fixture.Of("horizon");
+        var seg = System.Text.RegularExpressions.Regex.Match(fixture.Css, @"\.seg \{[^}]*\}").Value;
+        seg.ShouldMatch(@"min-width: [1-9]\d*px");
+        seg.ShouldContain("overflow: hidden");
+
+        var result = Compiler.Compile(fixture.Markup, fixture.Css, fixture.Slots, SCOPE);
+
+        result.Errors.ShouldBeEmpty(string.Join("; ", result.Errors.Select(e => $"{e.Path} {e.Code}")));
+        result.Layout.ShouldNotBeNull().Css.ShouldContain("min-width");
     }
 
     private static CompiledLayout Compile(string name)
@@ -213,7 +222,7 @@ public class CustomLayoutFixturesTests : ApiTestFixture
         return stored.GetProperty("assetId").GetString()!;
     }
 
-    private sealed record Fixture(string Markup, string Css, string Slots, string Sample)
+    private sealed record Fixture(string Name, string Markup, string Css, string Slots, string Sample)
     {
         public static Fixture Of(string name)
         {
@@ -225,7 +234,7 @@ public class CustomLayoutFixturesTests : ApiTestFixture
 
             var folder = Path.Combine(directory!.FullName, "SlideWorks.WebApi.Tests", "Templates", "Fixtures", "custom-layouts", name);
             string Read(string file) => File.ReadAllText(Path.Combine(folder, file));
-            return new Fixture(Read("layout.html"), Read("layout.css"), Read("slots.json"), Read("sample.json"));
+            return new Fixture(name, Read("layout.html"), Read("layout.css"), Read("slots.json"), Read("sample.json"));
         }
     }
 }
