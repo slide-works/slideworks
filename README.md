@@ -124,7 +124,7 @@ colour or a font.
 - A slide flagged `deep_dive` gets the deep-dive bar and pill, is listed on its part's divider (unless the template
   turns that off), and its speaker notes start with "Deep dive. Skip if short of time." The prefix is added when the
   notes are read, so clearing the flag removes it.
-- How many new decks keep a built-in look unchanged is SW-2's Measure, a query in [`docs/measures.md`](docs/measures.md). The uploaded-templates Measure (SW-50) is in [`docs/measures.md#uploaded-templates-sw-50`](docs/measures.md#uploaded-templates-sw-50).
+- How many new decks keep a built-in look unchanged is SW-2's Measure, a query in [`docs/measures.md`](docs/measures.md). The uploaded-templates Measure is in [`docs/measures.md#uploaded-templates-sw-50`](docs/measures.md#uploaded-templates-sw-50).
 
 ## Slide previews and share cards
 

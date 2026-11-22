@@ -63,7 +63,7 @@ public static class FirstHalfSlides
                 rows = new object[] { new { label = M(16, 54), value = M(40, 55) }, new { label = M(16, 56), value = M(40, 57) }, new { label = M(16, 58), value = M(40, 59) } },
             },
         }),
-        (7, "stack", 1, "stacked cost column", false, 1, 6, null, _ => new
+        (7, "stack", 1, "stacked column", false, 1, 6, null, _ => new
         {
             kicker = M(60, 60), headline = M(100, 61), reveal = "one-by-one",
             segments = new object[]
@@ -81,7 +81,7 @@ public static class FirstHalfSlides
         (8, "divider", 2, "part divider", false, 0, 0, null, _ => new { title = M(44, 77), sub = M(110, 78) }),
         (10, "divider", 3, "part divider", false, 0, 0, null, _ => new { title = M(44, 79), sub = M(110, 80) }),
         (12, "divider", 4, "part divider", false, 0, 0, null, _ => new { title = M(44, 81), sub = M(110, 82) }),
-        (14, "stack", 4, "stacked cost column, one new", false, 1, 0, null, _ => new
+        (14, "stack", 4, "stacked column, one new", false, 1, 0, null, _ => new
         {
             kicker = M(60, 83), headline = M(100, 84),
             segments = new object[]

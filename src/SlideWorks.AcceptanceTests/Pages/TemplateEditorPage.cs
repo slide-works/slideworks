@@ -35,6 +35,15 @@ public sealed class TemplateEditorPage(IPage page)
 
     public ILocator Publish => page.GetByTestId("template-publish");
 
+    // Opens the Custom layouts tab and returns it once it shows.
+    public async Task<LayoutsTab> OpenLayoutsAsync()
+    {
+        await Tab("layouts").ClickAsync();
+        var tab = new LayoutsTab(page);
+        await Assertions.Expect(tab.Root).ToBeVisibleAsync();
+        return tab;
+    }
+
     public static string PathFor(string templateId) => $"/templates/{templateId}/edit";
 
     // Every checklist row's state by its key ("pass", "fail" or "todo"), read from the whole checklist.

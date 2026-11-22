@@ -13,14 +13,17 @@ namespace SlideWorks.AcceptanceTests.Journeys.Rebuild;
 // the agent publishes it and makes a deck of seven parts and a marked appendix on it.
 public static class RebuildDeck
 {
-    private const string FAMILY = "Northwind Sans";
+    public const string FAMILY = "Northwind Sans";
 
-    public static readonly string[] PART_NAMES =
-        ["Before the Fleet", "Autofill", "Chat", "Agents", "The Foundry", "Constants", "What Is Next"];
+    // Seven made-up parts and the appendix, each at the documented maximum (name 40, short 16, caption 24), plain generated
+    // words with no storyline. The appendix is the last part and carries the mark.
+    public static readonly string[] PART_NAMES = [.. Enumerable.Range(0, 7).Select(i => MadeUpWords.Of(40, 200 + i * 3))];
 
-    // Seven named parts with a short name and a caption, and the appendix, marked.
-    public static IReadOnlyList<object> Parts => [.. PART_NAMES.Select((name, i) => new { name, @short = name.Length <= 16 ? name : name[..16], caption = $"Part {i + 1}", mark = (string?)null }),
-        new { name = "Appendix", @short = "Appendix", caption = "Extra slides", mark = (string?)"A" }];
+    public static IReadOnlyList<object> Parts =>
+    [
+        .. PART_NAMES.Select((name, i) => new { name, @short = MadeUpWords.Of(16, 201 + i * 3), caption = MadeUpWords.Of(24, 202 + i * 3), mark = (string?)null }),
+        new { name = MadeUpWords.Of(40, 230), @short = MadeUpWords.Of(16, 231), caption = MadeUpWords.Of(24, 232), mark = (string?)"A" },
+    ];
 
     // Calls a tool and returns its text and whether it was refused, for a caller that records a refusal's exact message.
     public static async Task<(bool Refused, string Text)> TryAsync(McpClient agent, string tool, Dictionary<string, object?> args)
