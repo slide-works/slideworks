@@ -127,7 +127,7 @@ A step is one reveal. With `"reveal": "one-by-one"` a layout shows its items one
 
 A callout is one highlighted sentence under the slide's content. It has a `text` (up to 220 characters) and a `tone`: `accent`, `positive`, `negative` or `inverse`. `fill` is `soft` (tinted, the default) or `solid`. `reveal` is `with-slide` (the default) or `last`. With `last` the callout is one more step after the others.
 
-The layouts that take a callout are `bullets`, `big-number`, `compare`, `cards`, `image`, `stack`, `bars`, `flow` and `levels`.
+The layouts that take a callout are `bullets`, `big-number`, `compare`, `cards`, `image`, `stack`, `bars`, `flow`, `levels`, `chart`, `gantt`, `two-column`, `practice`, `numbered-cards`, `table` and `rules`.
 
 ```json
 {
@@ -282,7 +282,7 @@ See the example under Steps. A bar has a `label` and a `value`, and optionally a
 
 ### Levels
 
-A ladder of 2 to 7 levels, top rung first, with any number marked `current`, beside one main column: `items`, `text` or `image` (exactly one). Optional `facts` (2 to 4 tiles) stand under the main column. `side` puts the ladder on the `right` (the default) or the `left`.
+A ladder of 2 to 7 levels, top rung first (a ladder with 7 rungs is drawn with tighter spacing), with any number marked `current`, beside one main column: `items`, `text` or `image` (exactly one). Optional `facts` (2 to 4 tiles) stand under the main column. `side` puts the ladder on the `right` (the default) or the `left`.
 
 ```json
 {

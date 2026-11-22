@@ -15,7 +15,7 @@ The editor has five tabs. Your changes save as you make them, and the header say
 
 | Tab | What it holds |
 |---|---|
-| **Basics** | The name, the short name, what the template is for, the layouts allowed, the chrome defaults, the outline and house style that agents write to, and the corner shape |
+| **Basics** | The name, the short name, what the template is for, the layouts allowed, the chrome defaults (the footer, part tracker and progress bar), the outline and house style that agents write to, and the corner shape |
 | **Fonts** | The font files and the confirmation that you may serve them |
 | **Logo and art** | The logo for light slides and for dark slides, the title art and the ornament dots |
 | **Palette** | The template's own colours |
@@ -26,7 +26,7 @@ A preview of three sample slides sits beside the tabs.
 ### Basics
 
 - **Name** is what people see. **Short name** is shown to agents in `list_templates`. It uses lower-case letters, digits and hyphens, up to 40 characters. It is never an address: a template is always named by its `tpl_…` id.
-- **Chrome defaults** are the footer (author, date or none), the part tracker, the progress bar, whether dividers list deep dives, the draft stamp on new decks, and **Accent bar across the top**, an 8 px bar of the accent colour across every slide.
+- **Chrome defaults** are the footer, the part tracker and the progress bar: the parts of a slide around its content, not the content itself. The footer is **author**, **date** or **No footer** (stored in the manifest as `off`). The other defaults are the part tracker, the progress bar, whether dividers list deep dives, the draft stamp on new decks, and **Accent bar across the top**, an 8 px bar of the accent colour across every slide.
 - **Shape** sets the corner radius of cards and panels: **Square**, **8 px** or **16 px**.
 
 ### Fonts
@@ -59,14 +59,14 @@ The **Publish checklist** is on the editor. A row passes, fails or is still to d
 
 | Row | It passes when |
 |---|---|
-| Fonts fit slide text | Every font the manifest names is an uploaded font file, and each role that has a regular weight (400) also has a bold one (700) |
-| Font rights confirmed | A person ticked the confirmation |
+| Fonts fit slide text | Every font the manifest names is an uploaded font file, and each role that has a regular weight (400) also has a bold one (700). A missing bold weight is only a to-do and doesn't stop publishing |
+| Font rights confirmed | A person ticked the confirmation. Until then publishing is stopped |
 | Logo and art are safe to serve | Every logo and art file is an uploaded SVG, PNG or WebP |
 | Palette passes contrast | Every pair passes |
 | Custom layouts are approved | Every layout named in the template was approved by its owner |
 | Within the limits | The template is inside every limit below |
 
-The button says **Publish version N**. It stays off until every row passes.
+The button says **Publish version N**. It stays off while any row fails or the font rights are unconfirmed. A missing bold weight is a to-do that doesn't stop publishing.
 
 ## Versions
 
@@ -74,11 +74,11 @@ Publishing adds a version, a whole number that starts at 1. A published version 
 
 A deck stays on the version it was made with. When a newer version exists, the deck's owner sees an offer in the deck page's Look panel: **Update this deck**. The deck then says **Now on version N**. Stored slides are not rewritten.
 
-After you publish, the page says how many of your decks are on an older version and offers **Update my N decks**, which moves every deck you own on this template to the latest version in one go. **Not now** leaves them. Other people's decks are left for their owners. Moving a deck back to an older version is allowed from the Look panel or `set_look`.
+After you publish, the page says how many of your decks are on an older version and offers the button **Update my N decks** (for example **Update my 3 decks**), which moves every deck you own on this template to the latest version in one go. **Not now** leaves them. Other people's decks are left for their owners. Moving a deck back to an older version is allowed from the Look panel or `set_look`.
 
 ## Archiving
 
-**Archive** on the template's row hides it. Nothing is deleted. Decks on an archived template keep rendering, and **Update my decks** still works. An archived template's draft can't be changed, and it no longer counts toward the limit of 50.
+**Archive** on the template's row hides it. Nothing is deleted. Decks on an archived template keep rendering, and **Update my N decks** still works. An archived template's draft can't be changed, and it no longer counts toward the limit of 50.
 
 ## Sharing
 
@@ -136,7 +136,7 @@ An agent can share a template with `set_sharing`, giving `template` instead of `
 1. `list_templates` returns the built-in templates and your own. Each entry has a `ref`: the built-in's name, or an uploaded template's `tpl_…` id. Use the `ref` wherever a tool takes a template.
 2. `create_template` makes a draft: a `name` (up to 60 characters; the short name is made from it, so "Northwind kickoff" becomes `northwind-kickoff`), `from` (a built-in's name) and an optional `manifest` of fields that change. It returns the `template` id, the editor's `url` and the checklist.
 3. `upload_asset` starts an upload for a `font`, `logo`, `art` or `layout`. It returns an `upload_url` that works once and a `curl` line. Run the line. The answer to the upload has the `assetId`.
-4. `update_template` changes the draft. Give only the fields that change: each top-level key replaces the stored value, and a key set to `null` is refused. Name files by the `assetId`. Pass the `revision` you last read, and a stale one is refused. It returns the new revision and the checklist.
+4. `update_template` changes the draft. Give only the fields that change: each top-level key replaces the stored value, and a key set to `null` is refused. Name files by the `assetId`. You can pass the `revision` you last read, and a stale one is refused. Leave it out to use the current one. It returns the new revision and the checklist.
 5. `get_template` reads the draft: its manifest, files, checklist, sharing and the number of decks on it.
 6. `publish_template` publishes the next version once every check passes. A failed check is refused with what to fix, such as `Can't publish yet: extra-1 needs 4.5:1; these colours give 1.1:1.`
 7. Then, for a deck: `create_deck` with `template`, `set_look` with `template_version` (a whole number, or `"latest"`), and `list_layouts` with a `template` or a `deck` to see the layouts, custom ones included.
@@ -246,7 +246,7 @@ The server reads a layout strictly. It compiles the markup and the CSS to a safe
 ### The CSS
 
 - Class selectors only.
-- Properties, functions, units and keywords only from [`src/contracts/custom-layout-allow.json`](../src/contracts/custom-layout-allow.json). It has no `transition` and no `animation`, so a layout has no motion beyond step reveals. Motion comes later.
+- Properties, functions, units and keywords only from [`src/contracts/custom-layout-allow.json`](../src/contracts/custom-layout-allow.json). It has no `transition` and no `animation`, so a layout has no motion beyond step reveals.
 - Colours and fonts only from the template's tokens, the `--sw-…` names in the same file: `var(--sw-accent)`, `var(--sw-font-mono)`. A colour written as a value is refused.
 - No comments, no at-rules and no `!important`.
 - At most 300 rules, and 40 declarations in a rule.
@@ -257,10 +257,10 @@ The server reads a layout strictly. It compiles the markup and the CSS to a safe
 
 - `text`, with a `max` of 1 to 500 characters,
 - `number`, with a `min` and a `max`,
-- `enum`, with up to 8 `values`,
-- `list`, of 1 to 12 items, with a `min`, a `max` and `of`, the fields of one item,
-- `image`, which must be `"optional": true`,
-- a block: `callout`, `chip`, `badge`, `levels` or `facts`, as in [`list_blocks`](../src/contracts/layouts/_blocks.md).
+- `enum`, with up to 8 `values`. A value uses lower-case letters, digits and hyphens, starts with a letter, and is up to 40 characters,
+- `list`, with a `max` of 1 to 12, a `min` of 0 up to the `max`, and `of`, the fields of one item. A field of an item can't take `optional`,
+- `image`, which must be `"optional": true`. Image and block slots are allowed at the top level only, not inside a list,
+- a block: `callout`, `chip`, `badge`, `levels` or `facts`, as in [`list_blocks`](../src/contracts/layouts/_blocks.md). A `callout` slot must be named `callout`.
 
 A slot is required unless it says `"optional": true`. Slot names use lower-case letters, digits and underscores. There are at most 24 slots, counting the fields of a list. Lists nest twice at most.
 
@@ -409,8 +409,8 @@ The page draws the layout in the template's own fonts and colours:
 
 It then checks the layout:
 
-- **Safe area.** Everything the layout draws must sit inside x 120 to 1800 and y 150 to 996, in whole pixels on the 1920 by 1080 slide. It lists each box that doesn't.
-- **Contrast.** Text must have 4.5 to 1 against what is behind it, or 3.0 to 1 from 28 px. It checks light slides and, where the layout takes it, dark ones.
+- **Safe area.** Everything the layout draws must sit inside x 120 to 1800 and y 150 to 996, in whole pixels on the 1920 by 1080 slide. It lists each box that doesn't. A built-in block (callout, chip, badge, levels or facts) or an image counts as one box, its outer edge, and the boxes inside it aren't checked against the safe area. Contrast still reads text inside blocks.
+- **Contrast.** Text must have 4.5 to 1 against what is behind it, or 3.0 to 1 from 28 px. It checks light slides and, where the layout takes it, dark ones. Text on a gradient, an image or a see-through background, text under opacity, and text whose colour can't be read are each reported, because their contrast can't be measured, and each keeps **Approve layout** off.
 
 **Approve layout** is on only when every check is clear. An approved layout is tied to its files: change one and the layout needs review again. An agent can't approve, and `publish_template` refuses a template with a layout that isn't approved.
 
