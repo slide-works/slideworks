@@ -18,7 +18,10 @@ public class Sw50AgentTemplateJourneyTests : AcceptanceTest
     private const string FAMILY = "Agent Wide Sans";
     private const int MAX_TRIES = 60;
     private const double MIN_WIDTH_EM = 0.57;
-    private const string HEAD_FONT = "el => getComputedStyle(el).fontFamily";
+    private const string MARKER = "Refusedmarker";
+    private const string FRAMES = "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))";
+    // The template's family, which is both its head and its body face.
+    private const string DRAWN_FONT = "el => getComputedStyle(el).fontFamily";
     private const string STAGE_TEXT = "el => el.textContent";
     private const string FACE_LOADED = """
         family => [...document.fonts].some(f => f.family.replace(/["']/g, '') === family && f.status === 'loaded')
@@ -111,8 +114,7 @@ public class Sw50AgentTemplateJourneyTests : AcceptanceTest
         createdDeck.GetProperty("look").GetProperty("template").GetString().ShouldBe(id);
         createdDeck.GetProperty("look").GetProperty("templateVersion").GetInt32().ShouldBe(1);
 
-        var (words, onTemplateAnswer) = await FindPartingLineAsync(raw, onTalk, deck);
-        onTemplateAnswer.ShouldContain("items");
+        var (step, onTemplateAnswer) = await FindPartingLineAsync(raw, onTalk, deck);
         onTemplateAnswer.ShouldStartWith("bullets.items: too much text to fit on the slide");
         (await agent.CallAsync("get_deck", new { deck })).GetProperty("slides").GetArrayLength().ShouldBe(0);
 
@@ -126,14 +128,17 @@ public class Sw50AgentTemplateJourneyTests : AcceptanceTest
         var player = new PlayerPage(Page);
         await player.GotoAsync(deck);
         await Expect(player.Slide(1)).ToBeVisibleAsync();
-        await Expect(player.Count).ToContainTextAsync("/ 1");
+        await Expect(player.Count).ToHaveTextAsync(new Regex(@"/ 1$"));
         await player.FontsReadyAsync();
-        var head = await Page.GetByTestId("quote-text").First.EvaluateAsync<string>(HEAD_FONT);
+        var quote = player.Slide(1).GetByTestId("quote-text");
+        await Expect(quote).ToBeVisibleAsync();
+        var head = await quote.EvaluateAsync<string>(DRAWN_FONT);
         head.Trim().Replace("\"", "'").ShouldStartWith($"'{FAMILY}'");
         (await Eventually.ReadAsync(() => Page.EvaluateAsync<bool>(FACE_LOADED, FAMILY), ok => ok)).ShouldBeTrue();
+        await Page.EvaluateAsync(FRAMES);
         var stageText = await player.Stage.EvaluateAsync<string>(STAGE_TEXT);
         stageText.ShouldContain("Wide letters, short lines.");
-        stageText.ShouldNotContain(Marker);
+        stageText.ShouldNotContain(MARKER);
 
         // The deck's activity names the template by its label, read back from get_template.
         var label = read.GetProperty("name").GetString().ShouldNotBeNull();
@@ -141,10 +146,10 @@ public class Sw50AgentTemplateJourneyTests : AcceptanceTest
         var deckPage = new DeckPage(Page);
         await Expect(deckPage.ActivityRows.Filter(new LocatorFilterOptions { HasText = "created the deck" }))
             .ToContainTextAsync($"from the {label} template with the");
-        words.ShouldBeGreaterThan(0);
+        // The template took the line one word shorter, so it parted at a margin and not at once: the font's width did it.
+        step.ShouldBeGreaterThan(1, $"talk and the template parted at the first try ({string.Join('/', WordCounts(1))} words per item): start with fewer words");
+        await TestContext.Progress.WriteLineAsync($"SW-467 parted at step {step}: bullets.items words per item {string.Join('/', WordCounts(step))} refused on the template, {string.Join('/', WordCounts(step - 1))} accepted on both; font {width} em");
     }
-
-    private const string Marker = "Refusedmarker";
 
     // Sends a bullets line one word longer at a time to both decks until talk accepts it and the template refuses it.
     private static async Task<(int Step, string TemplateAnswer)> FindPartingLineAsync(McpClient raw, string onTalk, string onTemplate)
@@ -152,7 +157,7 @@ public class Sw50AgentTemplateJourneyTests : AcceptanceTest
         (bool Error, string Text) lastTalk = default, lastTemplate = default;
         for (var step = 1; step <= MAX_TRIES; step++)
         {
-            var slots = new Dictionary<string, object?> { ["headline"] = Marker, ["items"] = Items(step) };
+            var slots = new Dictionary<string, object?> { ["headline"] = MARKER, ["items"] = Items(step) };
             lastTalk = await AddAsync(raw, onTalk, slots);
             if (lastTalk.Error)
             {
@@ -172,8 +177,9 @@ public class Sw50AgentTemplateJourneyTests : AcceptanceTest
     }
 
     // Four points of plain five-letter words. Each step adds one word to one point in turn, so the line grows one word at a time.
-    private static string[] Items(int step) =>
-        [.. Enumerable.Range(0, 4).Select(k => string.Join(' ', Enumerable.Repeat("alpha", 20 + (step / 4) + (k < step % 4 ? 1 : 0))))];
+    private static string[] Items(int step) => [.. WordCounts(step).Select(n => string.Join(' ', Enumerable.Repeat("alpha", n)))];
+
+    private static int[] WordCounts(int step) => [.. Enumerable.Range(0, 4).Select(k => 20 + (step / 4) + (k < step % 4 ? 1 : 0))];
 
     private static async Task<(bool Error, string Text)> AddAsync(McpClient raw, string deck, Dictionary<string, object?> slots)
     {
