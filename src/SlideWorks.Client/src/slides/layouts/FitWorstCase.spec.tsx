@@ -155,7 +155,6 @@ const KNOWN_OVERFLOWS: Record<string, string> = {
   'imageRightMaxWide points capitals': 'SW-712',
   'imageTitle points allW': 'SW-712',
   'joinKicker kicker allW': 'SW-713',
-  'levelsSeven levels allW': 'SW-664',
   'levelsText headline allW': 'SW-664',
   'levelsText headline capitals': 'SW-664',
   'levelsText levels allW': 'SW-664',
