@@ -4,7 +4,6 @@ import {
   checkLayout,
   classNameOf,
   isPresent,
-  lastStepOf,
   prefixOf,
   scopeOf,
   varsOf,
@@ -227,12 +226,5 @@ describe('checkLayout', () => {
     expect(checkLayout(withRoot([node({ step: 21 })]))).toBe(false);
     expect(checkLayout(withRoot([node({ step: 0 })]))).toBe(false);
     expect(checkLayout(withRoot([node({ slot: 'headline', children: [node({})] })]))).toBe(false);
-  });
-});
-
-describe('lastStepOf', () => {
-  it('counts the steps the elements wait for', () => {
-    expect(lastStepOf(view.tree.root, sample)).toBe(3);
-    expect(lastStepOf([node({ step: 5 })], {})).toBe(5);
   });
 });
