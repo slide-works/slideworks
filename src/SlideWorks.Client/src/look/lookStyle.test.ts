@@ -34,13 +34,12 @@ describe('lookStyle', () => {
   );
 
   it.each(PALETTES.map((palette) => [palette.name, palette] as const))(
-    'sets accent-2 and the mono font for %s',
+    'sets accent-2 and leaves the mono token alone for %s',
     (name, palette) => {
       const style = styleOf('talk', name);
       expect(style['--sw-accent-2']).toBe(palette.tokens.accent);
-      expect(style['--sw-font-mono']).toBe(
-        'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-      );
+      // A built-in has no mono font of its own: tokens.css's stack stands.
+      expect(style).not.toHaveProperty('--sw-font-mono');
       // The extras belong to a custom look: a built-in leaves them unset.
       expect(Object.keys(style).filter((key) => key.startsWith('--sw-extra-'))).toEqual([]);
     },
@@ -57,5 +56,68 @@ describe('lookStyle', () => {
     expect(surface.endsWith('var(--sw-night)')).toBe(true);
     // No colour of its own: everything comes from the palette's tokens.
     expect(surface).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i);
+  });
+
+  const monoFont = (family: string) => ({
+    family,
+    role: 'mono' as const,
+    url: '/api/templates/tpl_x/assets/a1',
+    weight: 400,
+    style: 'normal' as const,
+  });
+  const withFonts = (...fonts: ReturnType<typeof monoFont>[]) =>
+    lookStyle(lookViewOf('talk', 'cobalt', { fonts })) as Record<string, string>;
+
+  it("sets the template's mono font", () => {
+    expect(withFonts(monoFont('Northwind Mono'))['--sw-font-mono']).toBe(
+      "'Northwind Mono', ui-monospace, monospace",
+    );
+  });
+
+  it('uses the first mono family when there are two', () => {
+    const style = withFonts(monoFont('First Mono'), monoFont('Second Mono'));
+    expect(style['--sw-font-mono']).toBe("'First Mono', ui-monospace, monospace");
+  });
+
+  it('drops a quote in a family name', () => {
+    const style = withFonts(monoFont('Evil\' "Mono\\'));
+    expect(style['--sw-font-mono']).toBe("'Evil Mono', ui-monospace, monospace");
+  });
+
+  it('sets a colour and an ink token per extra colour, keyed by name', () => {
+    const extras = [
+      { name: 'extra-3', colour: '#333333', ink: '#fafafa' },
+      { name: 'extra-1', colour: '#111111', ink: '#ffffff' },
+    ];
+    const style = lookStyle(lookViewOf('talk', 'cobalt', { extras })) as Record<string, string>;
+    expect(style['--sw-extra-3']).toBe('#333333');
+    expect(style['--sw-extra-3-ink']).toBe('#fafafa');
+    expect(style['--sw-extra-1']).toBe('#111111');
+    expect(style['--sw-extra-1-ink']).toBe('#ffffff');
+    expect(style).not.toHaveProperty('--sw-extra-2');
+    expect(style).not.toHaveProperty('--sw-extra-4');
+  });
+
+  it("keeps the deck's resolved value over the template's extra", () => {
+    const base = lookViewOf('talk', 'cobalt');
+    const look = lookViewOf('talk', 'cobalt', {
+      palette: {
+        ...base.palette,
+        tokens: {
+          ...base.palette.tokens,
+          'extra-1': '#abcdef',
+          'extra-1-ink': '#010101',
+        } as typeof base.palette.tokens,
+      },
+      extras: [{ name: 'extra-1', colour: '#111111', ink: '#ffffff' }],
+    });
+    const style = lookStyle(look) as Record<string, string>;
+    expect(style['--sw-extra-1']).toBe('#abcdef');
+    expect(style['--sw-extra-1-ink']).toBe('#010101');
+  });
+
+  it('sets no extra token on a built-in', () => {
+    const style = styleOf('talk', 'cobalt');
+    expect(Object.keys(style).filter((key) => key.includes('extra'))).toEqual([]);
   });
 });

@@ -17,6 +17,20 @@ const FAMILIES: { field: FamilyField; label: string }[] = [
   { field: 'body', label: 'Body family' },
 ];
 
+// What a new monospace file's family starts as when the template has no mono file yet. Font faces
+// are registered globally, so it is specific to the template: its name and a fragment of its id,
+// in the characters a family name allows (letters, digits, spaces, hyphens; 60 at most).
+export function defaultMonoFamily(name: string, templateId: string): string {
+  const words = name
+    .replace(/[^A-Za-z0-9 -]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 36)
+    .replace(/^[\s-]+|[\s-]+$/g, '');
+  const fragment = templateId.replace(/[^A-Za-z0-9]/g, '').slice(-6);
+  return [words.replace(/^-+|-+$/g, ''), fragment, 'Mono'].filter((part) => part !== '').join(' ');
+}
+
 const NOT_ALLOWED_YET = 'Tick the box above first: the right to serve fonts comes before any file.';
 
 // The Fonts tab: the heading and body families, the font files the template uses, and uploading more.
@@ -124,7 +138,11 @@ export function FontsTab({ draft, change, reload }: EditorTabProps) {
     if (outcome.ok) focusNext.current = { file: font.file, index };
   }
 
-  const familyOf = (role: TemplateFontRole) => (role === 'mono' ? '' : manifest.type[role]);
+  const familyOf = (role: TemplateFontRole) =>
+    role === 'mono'
+      ? (manifest.fonts.find((font) => font.role === 'mono')?.family ??
+        defaultMonoFamily(draft.name, draft.id))
+      : manifest.type[role];
 
   async function commitFamily(field: FamilyField) {
     const value = typed[field];
@@ -233,6 +251,12 @@ export function FontsTab({ draft, change, reload }: EditorTabProps) {
           </ul>
         </div>
       )}
+
+      <p className="text-meta text-ink-muted">
+        A file with the role mono gives the template its monospace font: custom layouts and code use
+        it. It is optional, and it takes no part in fitting text, so only heading and body files
+        change how much fits.
+      </p>
 
       <div className="grid gap-2">
         <div className="flex flex-wrap items-center gap-3">
