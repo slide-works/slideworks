@@ -17,12 +17,13 @@ internal sealed class MarkupTreeReader(CustomLayoutAllow allow)
         var errors = new List<CustomLayoutError>();
         if (markup.Length > CustomLayoutLimits.MAX_PART_BYTES || Encoding.UTF8.GetByteCount(markup) > CustomLayoutLimits.MAX_PART_BYTES)
         {
-            return (null, [CustomLayoutError.Of(CustomLayoutError.LAYOUT_PATH, CustomLayoutErrorCodes.MARKUP_TOO_LARGE)]);
+            return (null, [CustomLayoutError.Of("layout.html:1", CustomLayoutErrorCodes.MARKUP_TOO_LARGE)]);
         }
 
         var root = new List<TreeNode>();
         try
         {
+            ControlReferences(markup, errors);
             Walk(markup, root, errors);
         }
         catch (Exception)
@@ -37,6 +38,34 @@ internal sealed class MarkupTreeReader(CustomLayoutAllow allow)
         }
 
         return errors.Count == 0 ? (new LayoutTree(LayoutTree.VERSION, null, root), errors) : (null, errors);
+    }
+
+    // Refuses a numeric reference to a control character (tab, line feed and carriage return too) from the
+    // raw text, whatever the reader would decode it to. A reference the reader cannot read is its to refuse.
+    private static void ControlReferences(string markup, List<CustomLayoutError> errors)
+    {
+        var line = 1;
+        var counted = 0;
+        for (var at = markup.IndexOf("&#", StringComparison.Ordinal); at >= 0; at = markup.IndexOf("&#", at + 2, StringComparison.Ordinal))
+        {
+            var end = markup.IndexOf(';', at);
+            if (end < 0 || end - at > 12)
+            {
+                continue;
+            }
+
+            var hex = markup[at + 2] is 'x';
+            var digits = markup.AsSpan(at + (hex ? 3 : 2), end - at - (hex ? 3 : 2));
+            if (!int.TryParse(digits, hex ? System.Globalization.NumberStyles.AllowHexSpecifier : System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var code)
+                || !(code is < 0x20 or (>= 0x7F and <= 0x9F)))
+            {
+                continue;
+            }
+
+            line += markup.AsSpan(counted, at - counted).Count('\n');
+            counted = at;
+            Add(errors, line, CustomLayoutErrorCodes.MARKUP_MALFORMED);
+        }
     }
 
     private void Walk(string markup, List<TreeNode> root, List<CustomLayoutError> errors)

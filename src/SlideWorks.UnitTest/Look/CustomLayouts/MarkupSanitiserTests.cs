@@ -116,6 +116,7 @@ public class MarkupSanitiserTests
         clock.ElapsedMilliseconds.ShouldBeLessThan(1000);
         tree.ShouldBeNull();
         errors.Select(e => e.Code).ShouldBe([CustomLayoutErrorCodes.MARKUP_TOO_LARGE]);
+        errors.Single().Path.ShouldBe("layout.html:1");
     }
 
     [Test]
