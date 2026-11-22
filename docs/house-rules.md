@@ -47,7 +47,7 @@ Also banned at build time: `DateTime.Now`, `UtcNow` and friends (`src/BannedSymb
 - **NUnit, not xUnit.** Skip with `[Ignore("reason")]`, never `[Fact(Skip = ...)]`.
 - **Shouldly.** String `ShouldBe` is already ordinal and has no `Case` overload. `Case.Sensitive` exists only on `ShouldContain`, `ShouldStartWith` and `ShouldEndWith`, as in `SlideWorks.WebApi.Tests/Slides/DeleteSlideTests.cs`: `slides[1].GetProperty("link").GetString()!.ShouldEndWith("#2", Case.Sensitive);`.
 - **Narrow a JSON string with `ShouldNotBeNull`, not `!`**, as `Templates/TemplateAssetRoutesTests.cs` does: `body.GetProperty("uploadUrl").GetString().ShouldNotBeNull().ShouldMatch(...)`. Shared test helpers are in `SlideWorks.WebApi.Tests.Support`; name it in a brief.
-- **Cases with non-printable characters are written by code point**, never as a literal character or in the test name: `[TestCase("https://good​.example/cb")]` (`OAuth/Registration/RegistrationTests.cs`). Write a file that contains `\u` escapes with the editor's Write or Edit tool, never through a shell heredoc, which turns the escape into the character.
+- **Cases with non-printable characters are written by code point**, never as a literal character or in the test name: `[TestCase("https://good\u200B.example/cb")]` (`src/SlideWorks.WebApi.Tests/OAuth/Registration/RegistrationTests.cs`, line 54). Write a file that contains `\u` escapes with the editor's Write or Edit tool, never through a shell heredoc, which turns the escape into the character.
 - **Bounded waits** use `Task.WhenAny` with `Task.Delay`, then throw. This passes AG0032 and AG0052, copied from `Polls/PollPumpTests.cs`:
 
   ```csharp
