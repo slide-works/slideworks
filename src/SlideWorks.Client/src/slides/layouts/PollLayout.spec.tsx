@@ -300,9 +300,11 @@ async function measure(page: Page) {
       range.selectNodeContents(node);
       for (const rect of range.getClientRects()) add(rect);
     }
-    // Every descendant, not only the text elements: a bar, a pill or a wrapper that scrolls sideways counts as well.
+    // Every descendant, not only the text elements: a bar, a pill or a wrapper that scrolls sideways counts as well. The
+    // pill's own box is the one exclusion: .join sets overflow hidden with an ellipsis, so a long host name clips by design
+    // and its scrollWidth is allowed to exceed its clientWidth. Its children are checked like any other element.
     const overflowing = [...root.querySelectorAll('*')]
-      .filter((el) => !pill?.contains(el) && el.scrollWidth > el.clientWidth + 1)
+      .filter((el) => el !== pill && el.scrollWidth > el.clientWidth + 1)
       .map((el) => el.textContent || el.tagName);
     return { drawn: { ...drawn, top: boxTop }, overflowing };
   });
