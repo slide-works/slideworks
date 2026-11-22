@@ -105,4 +105,42 @@ describe('overflowOf', () => {
     for (let at = 0; at < 30; at += 1) child(body, `box${at}`, rect(0, 200, 50, 300));
     expect(overflowOf(frame)).toHaveLength(20);
   });
+
+  describe('built-in blocks', () => {
+    const block = (parent: HTMLElement, box: DOMRect) => {
+      const element = child(parent, 'levels', box);
+      element.setAttribute('data-sw-block', '');
+      return element;
+    };
+
+    it('passes a block whose clipped insides overflow but whose outer box fits', () => {
+      const { frame, body } = frameOf();
+      const levels = block(body, rect(200, 300, 1000, 920));
+      child(levels, 'rung', rect(200, 900, 1000, 1000));
+      expect(overflowOf(frame)).toEqual([]);
+    });
+
+    it('skips the text inside a block', () => {
+      const { frame, body } = frameOf();
+      const levels = block(body, rect(200, 300, 1000, 920));
+      const rung = child(levels, 'rung', rect(200, 900, 1000, 920));
+      rung.textContent = 'a long rung';
+      Range.prototype.getClientRects = () => [rect(200, 950, 1000, 1010)] as unknown as DOMRectList;
+      expect(overflowOf(frame)).toEqual([]);
+    });
+
+    it('fails a block whose outer box leaves the safe area', () => {
+      const { frame, body } = frameOf();
+      const levels = block(body, rect(200, 300, 1000, 1010));
+      child(levels, 'rung', rect(200, 300, 1000, 400));
+      expect(overflowOf(frame)).toEqual(['levels at x 200–1000, y 300–1010']);
+    });
+
+    it('still fails the layout own element outside the area', () => {
+      const { frame, body } = frameOf();
+      block(body, rect(200, 300, 1000, 900));
+      child(body, 'bar', rect(200, 900, 1000, 1100));
+      expect(overflowOf(frame)).toEqual(['bar at x 200–1000, y 900–1100']);
+    });
+  });
 });

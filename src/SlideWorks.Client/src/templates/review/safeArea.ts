@@ -1,5 +1,5 @@
 import { undrawnOf } from './undrawn';
-import { bodyOf, scaleOf, textNodesOf, textStart } from './textRuns';
+import { BLOCK_ATTRIBUTE, bodyOf, insideBlock, scaleOf, textNodesOf, textStart } from './textRuns';
 
 // The safe area on the 1920 × 1080 canvas, in whole pixels (D9): nothing of the layout's own may
 // stand outside it.
@@ -23,7 +23,7 @@ const finding = (what: string, { left, top, right, bottom }: Box): string =>
 // Where the layout's own elements and text stand outside the safe area, as "<class or text> at x
 // a–b, y c–d" in canvas pixels, at most 20. `frame` is the slide frame, drawn at any scale: boxes are
 // divided by its width over 1920. Only what is under the layout's own wrapper counts, so the
-// frame's footer, tracker and progress bar are never listed. A box the layout's root clips still
+// frame's footer, tracker and progress bar are never listed. A built-in block counts as one box (its outer rect). A box the layout's root clips still
 // counts: the browser reports the box, not what is left visible.
 export function overflowOf(frame: HTMLElement): string[] {
   const body = bodyOf(frame);
@@ -46,11 +46,19 @@ export function overflowOf(frame: HTMLElement): string[] {
     if (leaves(box)) found.push(finding(what, box));
   };
 
+  // A built-in block (or image) clips itself by design: its outer box is the one box that counts, and
+  // neither its descendants nor their text are walked. Contrast still reads inside blocks.
   for (const element of body.querySelectorAll('*')) {
+    if (insideBlock(element)) continue;
     const name = element.classList.item(0) ?? element.tagName.toLowerCase();
     add(name, element.getBoundingClientRect());
   }
   for (const node of textNodesOf(body)) {
+    if (
+      node.parentElement !== null &&
+      (insideBlock(node.parentElement) || node.parentElement.hasAttribute(BLOCK_ATTRIBUTE))
+    )
+      continue;
     const range = node.ownerDocument.createRange();
     range.selectNodeContents(node);
     for (const rect of range.getClientRects()) add(textStart(node.textContent ?? ''), rect);

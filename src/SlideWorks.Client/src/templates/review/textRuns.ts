@@ -5,6 +5,13 @@ export const CANVAS_WIDTH = 1920;
 
 export const BODY_SELECTOR = '[data-custom-layout-body]';
 
+// The attribute the custom renderer puts on every built-in block and image it draws.
+export const BLOCK_ATTRIBUTE = 'data-sw-block';
+
+// True when `element` is a strict descendant of a built-in block.
+export const insideBlock = (element: Element): boolean =>
+  element.parentElement?.closest(`[${BLOCK_ATTRIBUTE}]`) != null;
+
 // The wrapper under a slide frame, or null when the frame holds no custom layout.
 export const bodyOf = (frame: HTMLElement): HTMLElement | null =>
   frame.querySelector<HTMLElement>(BODY_SELECTOR);
