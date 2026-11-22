@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-108 mockups: profile page and sharing decks with people</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+<style type="text/tailwindcss">
+  /* SlideWorks app chrome tokens, copied from src/SlideWorks.Client/src/index.css (origin/main 6e353cd). */
+  @theme {
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-head: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --color-ground: #f4f5f7;
+    --color-panel: #ffffff;
+    --color-panel-2: #f0f2f5;
+    --color-edge: #e2e5ea;
+    --color-edge-strong: #d3d8e0;
+    --color-ink: #1b2230;
+    --color-ink-muted: #5b6474;
+    --color-ink-faint: #8a93a3;
+    --color-accent: #2f5bea;
+    --color-accent-soft: #e6ecfd;
+    --color-accent-dark: #1e3a8a;
+    --color-ok: #18794e;
+    --color-ok-soft: #e3f4ea;
+    --color-warn: #b4580b;
+    --color-warn-soft: #fdf0e1;
+    --color-bad: #c0362c;
+    --color-bad-soft: #fbe7e5;
+    --text-meta: 0.8125rem;
+    --text-meta--line-height: 1.45;
+    --radius-panel: 8px;
+  }
+  @utility panel { @apply bg-panel border border-edge rounded-panel; }
+  @layer components {
+    .field { @apply bg-panel border border-edge-strong rounded-panel px-3 py-2 text-meta text-ink placeholder:text-ink-faint focus:outline-none focus:ring-1 focus:ring-accent; }
+    .btn-primary { @apply inline-flex items-center justify-center gap-1.5 bg-accent text-white rounded-panel px-4 py-2 text-meta font-medium transition-colors hover:bg-accent/85; }
+    .btn-ghost { @apply inline-flex items-center justify-center rounded-panel border border-edge-strong bg-panel px-3 py-1.5 text-meta font-medium text-ink-muted transition-colors hover:border-ink-faint hover:text-ink; }
+    .btn-danger { @apply inline-flex items-center justify-center rounded-panel border border-bad/40 bg-panel px-3 py-1.5 text-meta font-medium text-bad hover:bg-bad-soft; }
+    .pill { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold; }
+  }
+</style>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :where(.grid, .flex) > * { min-width: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+  body { margin: 0; background: #e9ebef; color: #1b2230; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+  /* Review chrome around the mockups (not SlideWorks UI) */
+  .doc-h { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; }
+  .frame { border-radius: 12px; overflow: hidden; background: #f4f5f7; box-shadow: 0 1px 2px rgb(15 23 42 / .08), 0 18px 40px rgb(15 23 42 / .12); border: 1px solid #d3d8e0; }
+  .frame-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e2e5ea; }
+  .frame-bar i { width: 10px; height: 10px; border-radius: 99px; background: #d3d8e0; display: inline-block; }
+  .frame-url { flex: 1; min-width: 0; margin-left: 8px; font: 12px ui-monospace, Menlo, monospace; color: #5b6474; background: #f0f2f5; border-radius: 6px; padding: 4px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .note { position: relative; padding-left: 28px; }
+  .note b.n { position: absolute; left: 0; top: 1px; width: 20px; height: 20px; border-radius: 99px; background: #7c3aed; color: #fff; font-size: 11px; display: grid; place-items: center; }
+  .pin { width: 20px; height: 20px; border-radius: 99px; background: #7c3aed; color: #fff; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; box-shadow: 0 0 0 3px rgb(124 58 237 / .2); flex: none; }
+  .ref { font: 11.5px ui-monospace, Menlo, monospace; color: #6d28d9; background: #f3e8ff; padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+
+  /* Avatars: C2 colour keys */
+  .av { display: inline-grid; place-items: center; border-radius: 999px; font-weight: 600; flex: none; overflow: hidden; }
+  .av-slate { background: #e2e8f0; color: #334155; }
+  .av-red { background: #fde2e1; color: #9b1c1c; }
+  .av-amber { background: #fdefc8; color: #8a4b08; }
+  .av-green { background: #dcf3e4; color: #166534; }
+  .av-teal { background: #d3f1ee; color: #115e59; }
+  .av-blue { background: #e6ecfd; color: #1e3a8a; }
+  .av-violet { background: #ede5fe; color: #5b21b6; }
+  .av-pink { background: #fce4f0; color: #9d174d; }
+  .av-none { background: #fff; color: #8a93a3; border: 1.5px dashed #d3d8e0; }
+  .photo-ada { background: radial-gradient(circle at 50% 38%, #e0b48f 0 22%, transparent 23%), radial-gradient(ellipse at 50% 105%, #31507d 0 46%, transparent 47%), linear-gradient(160deg, #f6d9b8, #e7a77a); }
+  .photo-sam { background: radial-gradient(circle at 50% 38%, #9a6a4b 0 22%, transparent 23%), radial-gradient(ellipse at 50% 105%, #2f6f5e 0 46%, transparent 47%), linear-gradient(160deg, #cde7f0, #8cc3d6); }
+  .photo-mira { background: radial-gradient(circle at 50% 38%, #6b4a3a 0 22%, transparent 23%), radial-gradient(ellipse at 50% 105%, #7a2e55 0 46%, transparent 47%), linear-gradient(160deg, #f4dde8, #d7a0bd); }
+  .swatch { width: 28px; height: 28px; border-radius: 999px; border: 2px solid #fff; box-shadow: 0 0 0 1px #d3d8e0; display: inline-grid; place-items: center; font-size: 10px; font-weight: 700; }
+  .swatch[aria-checked="true"] { box-shadow: 0 0 0 2px #2f5bea; }
+
+  .toc a { color: #5b6474; text-decoration: none; }
+  .toc a:hover { color: #1b2230; }
+  .dd { box-shadow: 0 10px 30px rgb(15 23 42 / .16); }
+  select.access { appearance: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='D25 1l4 4 4-4' stroke='%235b6474' stroke-width='1.5' fill='none'/%3E%3C/svg%3E") no-repeat right 8px center; padding: 4px 24px 4px 8px; border: 1px solid #d3d8e0; border-radius: 6px; font-size: 12.5px; color: #1b2230; font-weight: 500; }
+  .toast { animation: rise .25s ease-out; }
+  @keyframes rise { from { transform: translateY(6px); opacity: 0 } to { transform: none; opacity: 1 } }
+  @media (prefers-reduced-motion: reduce) { .toast { animation: none; } html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<!-- Review header -->
+<header class="sticky top-0 z-30 border-b border-edge bg-white/95 backdrop-blur">
+  <div class="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 sm:px-6">
+    <div class="flex items-center gap-2">
+      <span class="h-4 w-4 rounded bg-accent"></span>
+      <span class="doc-h text-[15px] font-bold">SW-108 mockups</span>
+      <span class="pill bg-ok-soft text-ok">Reviewed 22 Nov</span>
+    </div>
+    <nav class="toc flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-medium">
+      <a href="#menu">1 Menu</a><a href="#profile">2 Profile</a><a href="#profile-states">3 Profile states</a>
+      <a href="#share">4 Share dialog</a><a href="#share-states">5 Share states</a><a href="#collab">6 As a collaborator</a>
+      <a href="#email">7 Email + unsubscribe</a><a href="#questions">8 Questions</a>
+    </nav>
+  </div>
+</header>
+
+<main class="mx-auto grid max-w-[1240px] gap-16 px-4 py-10 sm:px-6">
+
+  <!-- Intro -->
+  <section id="scope" class="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+    <div>
+      <p class="text-[13px] font-semibold uppercase tracking-wider text-accent">ShipLean · SW-108</p>
+      <h1 class="doc-h mt-1 text-[34px] font-extrabold leading-tight tracking-tight">Profile page and sharing decks with people</h1>
+      <p class="mt-3 max-w-[60ch] text-[15px] leading-relaxed text-ink-muted">
+        Every screen SW-108 adds or changes, drawn in SlideWorks' own chrome. The share dialog in section 4 works: type in it.
+        Purple pins mark what's new; the notes beside each screen name the contract or decision it follows.
+        Section 8 lists the design questions and the answers given.
+      </p>
+    </div>
+    <div class="panel grid content-start gap-3 p-4 text-[13px]">
+      <p class="font-semibold">What changes for people</p>
+      <ul class="grid gap-2 text-ink-muted">
+        <li class="flex gap-2"><span class="pin">P</span><span><b class="text-ink">Profile:</b> set your name, colour and photo, pick a time zone, cut off agents.</span></li>
+        <li class="flex gap-2"><span class="pin">S</span><span><b class="text-ink">Sharing:</b> each deck is shared on its own, by full email every time. Each person gets <i>Can view</i> or <i>Can edit</i> on that deck and nothing else.</span></li>
+        <li class="flex gap-2"><span class="pin">E</span><span><b class="text-ink">Email:</b> a fixed "shared a deck with you" email, rate limited, with an unsubscribe page.</span></li>
+      </ul>
+      <p class="border-t border-edge pt-3 text-ink-faint">Built from <span class="ref">C1–C9</span>, D1–D24, Q1–Q3 on SW-108, and the current <code>SharingDialog</code>, <code>UserMenu</code> and admin list on main.</p>
+    </div>
+  </section>
+
+  <!-- 1 MENU -->
+  <section id="menu" class="grid gap-5">
+    <div>
+      <p class="text-[13px] font-semibold text-accent">1</p>
+      <h2 class="doc-h text-2xl font-bold">User menu gets a Profile link</h2>
+    </div>
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div class="frame">
+        <div class="frame-bar"><i></i><i></i><i></i><span class="frame-url">slideworks.app/decks</span></div>
+        <div class="relative h-[300px] bg-ground">
+          <div class="flex items-center justify-between border-b border-edge bg-white px-6 py-3">
+            <div class="flex items-center gap-8">
+              <span class="flex items-center gap-2 text-[15px] font-bold"><span class="h-4 w-4 rounded bg-accent"></span>SlideWorks</span>
+              <span class="text-[14px] text-ink">Decks</span><span class="text-[14px] text-ink-muted">Templates</span>
+            </div>
+            <span class="av photo-ada h-7 w-7 ring-2 ring-accent ring-offset-2" title="Ada Brooks"></span>
+          </div>
+          <div class="absolute right-6 top-[58px] grid w-60 gap-1 rounded-panel border border-edge bg-panel p-2 shadow-lg">
+            <div class="flex items-center gap-2.5 px-2 py-1.5">
+              <span class="av photo-ada h-9 w-9"></span>
+              <div class="grid"><span class="text-meta font-semibold">Ada Brooks</span><span class="truncate text-meta text-ink-muted">ada@team.example</span></div>
+            </div>
+            <div class="my-1 border-t border-edge"></div>
+            <a class="flex items-center justify-between rounded-md bg-accent-soft px-2 py-1.5 text-meta font-medium text-accent-dark">Profile <span class="pin">1</span></a>
+            <a class="rounded-md px-2 py-1.5 text-meta text-ink-muted">People (admin)</a>
+            <a class="rounded-md px-2 py-1.5 text-meta text-ink-muted">Sign out</a>
+          </div>
+        </div>
+      </div>
+      <div class="grid content-start gap-4 text-[13.5px] text-ink-muted">
+        <p class="note"><b class="n">1</b><b class="text-ink">Profile</b> is the first item, so it takes focus when the menu opens. Sign out stays here <span class="ref">SW-33</span>.</p>
+        <p class="note"><b class="n">·</b>The button shows the C2 avatar: uploaded photo, else Google picture, else initials on the person's colour. Today it's always initials on cobalt.</p>
+        <p class="note"><b class="n">·</b>The menu becomes a list of links instead of one Sign out button. The admin link moves in here for admins (it is a separate badge today) <span class="ref">D31</span>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 PROFILE -->
+  <section id="profile" class="grid gap-5">
+    <div>
+      <p class="text-[13px] font-semibold text-accent">2</p>
+      <h2 class="doc-h text-2xl font-bold">/profile: three panels, one column</h2>
+      <p class="mt-1 max-w-[70ch] text-[14px] text-ink-muted">Same order as ShipLean's page minus Devices: Identity, Account, Connected agents. Approved people only; pending people still land on /pending <span class="ref">C3</span>.</p>
+    </div>
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div class="frame">
+        <div class="frame-bar"><i></i><i></i><i></i><span class="frame-url">slideworks.app/profile</span></div>
+        <div class="bg-ground">
+          <div class="flex items-center justify-between border-b border-edge bg-white px-6 py-3">
+            <div class="flex items-center gap-8">
+              <span class="flex items-center gap-2 text-[15px] font-bold"><span class="h-4 w-4 rounded bg-accent"></span>SlideWorks</span>
+              <span class="text-[14px] text-ink-muted">Decks</span><span class="text-[14px] text-ink-muted">Templates</span>
+            </div>
+            <span class="av photo-ada h-7 w-7"></span>
+          </div>
+
+          <div class="mx-auto grid max-w-[760px] gap-4 px-4 py-7 sm:px-6">
+            <div class="flex flex-wrap items-baseline gap-x-3">
+              <h1 class="text-2xl font-bold tracking-tight">Your profile</h1>
+              <p class="text-meta text-ink-muted">Your name and picture show wherever your work does: the menu, deck activity and share dialogs.</p>
+            </div>
+
+            <!-- Identity -->
+            <section class="panel">
+              <header class="flex items-center justify-between border-b border-edge px-5 py-3">
+                <h2 class="text-[15px] font-semibold">Identity</h2><span class="pin">2</span>
+              </header>
+              <div class="grid gap-5 p-5 sm:grid-cols-[120px_minmax(0,1fr)]">
+                <div class="grid content-start justify-items-center gap-2">
+                  <span class="av photo-ada h-[88px] w-[88px]"></span>
+                  <button class="btn-ghost w-full">Upload photo</button>
+                  <button class="text-meta font-medium text-ink-muted underline underline-offset-2 hover:text-bad">Remove photo</button>
+                </div>
+                <div class="grid content-start gap-4">
+                  <label class="grid gap-1.5">
+                    <span class="text-meta font-semibold">Display name</span>
+                    <input class="field" value="Ada Brooks">
+                    <span class="text-[12px] text-ink-faint">Up to 60 characters. Signing in with Google won't change it now you've set it.</span>
+                  </label>
+                  <div class="grid gap-1.5">
+                    <span class="text-meta font-semibold">Email</span>
+                    <div class="flex items-center gap-2 rounded-panel border border-edge bg-panel-2 px-3 py-2 text-meta text-ink-muted">ada@team.example <span class="ml-auto text-[12px] text-ink-faint">Your Google account</span></div>
+                  </div>
+                  <div class="grid gap-1.5">
+                    <span class="text-meta font-semibold">Avatar colour</span>
+                    <div role="radiogroup" class="flex flex-wrap gap-2">
+                      <span class="swatch av-slate" aria-checked="false">AB</span><span class="swatch av-red" aria-checked="false">AB</span><span class="swatch av-amber" aria-checked="false">AB</span><span class="swatch av-green" aria-checked="false">AB</span><span class="swatch av-teal" aria-checked="true">AB</span><span class="swatch av-blue" aria-checked="false">AB</span><span class="swatch av-violet" aria-checked="false">AB</span><span class="swatch av-pink" aria-checked="false">AB</span>
+                    </div>
+                    <span class="text-[12px] text-ink-faint">Used for your initials when there's no picture.</span>
+                  </div>
+                </div>
+              </div>
+              <footer class="flex items-center justify-between gap-3 border-t border-edge bg-panel-2/60 px-5 py-2.5">
+                <span class="text-[12px] text-ink-muted">Showing your uploaded photo. Remove it to go back to your Google picture.</span>
+                <button class="btn-primary py-1.5 opacity-50" disabled>Save</button>
+              </footer>
+            </section>
+
+            <!-- Account -->
+            <section class="panel">
+              <header class="flex items-center justify-between border-b border-edge px-5 py-3"><h2 class="text-[15px] font-semibold">Account</h2><span class="pin">3</span></header>
+              <div class="grid gap-4 p-5 sm:grid-cols-2">
+                <label class="grid content-start gap-1.5">
+                  <span class="text-meta font-semibold">Time zone</span>
+                  <select class="field"><option>Asia/Bangkok (UTC+07:00)</option></select>
+                  <span class="text-[12px] text-ink-faint">Dates like "22 Nov, 15:42" use it. Slide footers stay in UTC, so a deck looks the same to everyone.</span>
+                </label>
+                <div class="grid content-start gap-1.5">
+                  <span class="text-meta font-semibold">Access</span>
+                  <div class="flex flex-wrap items-center gap-1.5"><span class="pill bg-ok-soft text-ok">Approved</span><span class="pill bg-accent-soft text-accent-dark">Admin</span></div>
+                  <a class="text-meta font-medium text-accent">Manage people →</a>
+                </div>
+              </div>
+            </section>
+
+            <!-- Agents -->
+            <section class="panel">
+              <header class="flex items-center justify-between border-b border-edge px-5 py-3">
+                <div><h2 class="text-[15px] font-semibold">Connected agents</h2><p class="text-[12px] text-ink-muted">Agents acting for you over MCP. Disconnect one and it has to sign in again.</p></div><span class="pin">4</span>
+              </header>
+              <div class="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 border-b border-edge bg-panel-2 px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted sm:grid"><span>Agent</span><span>Connected</span><span>Last used</span><span class="w-[92px]"></span></div>
+              <ul class="divide-y divide-edge">
+                <li class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                  <span class="flex items-center gap-2.5 text-meta font-semibold"><span class="grid h-7 w-7 place-items-center rounded-md bg-[#f6e7dc] text-[13px] text-[#b4580b]">✳</span>Claude</span>
+                  <span class="hidden font-mono text-[12px] text-ink-muted sm:block">3 Nov, 09:12</span>
+                  <span class="hidden font-mono text-[12px] text-ink-muted sm:block">12 min ago</span>
+                  <button class="btn-ghost w-[92px]">Disconnect</button>
+                </li>
+                <li class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                  <span class="flex items-center gap-2.5 text-meta font-semibold"><span class="grid h-7 w-7 place-items-center rounded-md bg-panel-2 font-mono text-[11px] text-ink">&gt;_</span>Claude Code</span>
+                  <span class="hidden font-mono text-[12px] text-ink-muted sm:block">18 Nov, 21:40</span>
+                  <span class="hidden font-mono text-[12px] text-ink-muted sm:block">Yesterday</span>
+                  <button class="btn-ghost w-[92px]">Disconnect</button>
+                </li>
+                <li class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                  <span class="flex items-center gap-2.5 text-meta font-semibold"><span class="grid h-7 w-7 place-items-center rounded-md bg-ok-soft text-[12px] text-ok">◎</span>ChatGPT</span>
+                  <span class="hidden font-mono text-[12px] text-ink-faint sm:block">Unknown</span>
+                  <span class="hidden font-mono text-[12px] text-ink-faint sm:block">Not since 22 Nov</span>
+                  <button class="btn-ghost w-[92px]">Disconnect</button>
+                </li>
+              </ul>
+            </section>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="grid content-start gap-4 text-[13.5px] text-ink-muted xl:sticky xl:top-20">
+        <p class="note"><b class="n">2</b><b class="text-ink">Identity.</b> Photo upload and remove happen straight away (they're their own calls, <code>POST/DELETE /api/me/photo</code>). Name and colour wait for <b>Save</b>, which lights up once either changes <span class="ref">C3</span>.</p>
+        <p class="note"><b class="n">·</b>The footer line says which picture is showing, so the D4 precedence isn't a mystery: uploaded photo → Google picture → initials on colour.</p>
+        <p class="note"><b class="n">·</b>Colour swatches preview your own initials. With a picture showing, the colour only matters if the picture goes.</p>
+        <p class="note"><b class="n">3</b><b class="text-ink">Account.</b> Time zone list from <code>ITimeZones.List()</code>. Empty at first; the browser fills it once, and after that only this box changes it <span class="ref">D17</span>. Access is read-only, with the admin link for admins.</p>
+        <p class="note"><b class="n">4</b><b class="text-ink">Agents.</b> One row per token family. Tokens from before the migration say <i>Unknown</i>; an agent that hasn't called since shows when the column started <span class="ref">D18</span>. Disconnect asks first (section 3).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 PROFILE STATES -->
+  <section id="profile-states" class="grid gap-5">
+    <div>
+      <p class="text-[13px] font-semibold text-accent">3</p>
+      <h2 class="doc-h text-2xl font-bold">Profile states</h2>
+      <p class="mt-1 text-[14px] text-ink-muted">Errors sit under the field they're about, in the server's words.</p>
+    </div>
+    <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+
+      <figure class="panel grid content-start gap-3 p-4">
+        <figcaption class="text-[12px] font-semibold uppercase tracking-wider text-ink-faint">Avatar precedence <span class="ref">D4</span></figcaption>
+        <div class="grid grid-cols-3 gap-2 text-center text-[12px] text-ink-muted">
+          <div class="grid justify-items-center gap-1.5"><span class="av photo-ada h-14 w-14"></span>Uploaded photo</div>
+          <div class="grid justify-items-center gap-1.5"><span class="av h-14 w-14 bg-[linear-gradient(160deg,#dbeafe,#93c5fd)]"><span class="av photo-ada h-14 w-14 opacity-70 grayscale"></span></span>Google picture</div>
+          <div class="grid justify-items-center gap-1.5"><span class="av av-teal h-14 w-14 text-[18px]">AB</span>Initials on colour</div>
+        </div>
+      </figure>
+
+      <figure class="panel grid content-start gap-3 p-4">
+        <figcaption class="text-[12px] font-semibold uppercase tracking-wider text-ink-faint">Name refused</figcaption>
+        <label class="grid gap-1.5">
+          <span class="text-meta font-semibold">Display name</span>
+          <input class="field border-bad ring-1 ring-bad" value="">
+          <span role="alert" class="text-meta text-bad">Enter a name, up to 60 characters.</span>
+        </label>
+        <div class="flex justify-end gap-2"><button class="btn-ghost">Cancel</button><button class="btn-primary py-1.5">Save</button></div>
+      </figure>
+
+      <figure class="panel grid content-start gap-3 p-4">
+        <figcaption class="text-[12px] font-semibold uppercase tracking-wider text-ink-faint">Photo refused (one of)</figcaption>
+        <div class="flex items-start gap-3">
+          <span class="av av-teal h-14 w-14 text-[18px]">AB</span>
+          <ul class="grid gap-1.5 text-meta">
+            <li class="rounded-md bg-bad-soft px-2 py-1 text-bad">Use a PNG, JPEG or WebP image.</li>
+            <li class="rounded-md bg-bad-soft px-2 py-1 text-bad">That photo is over 5 MB.</li>
+            <li class="rounded-md bg-bad-soft px-2 py-1 text-bad">That photo is over 2048 pixels a side.</li>
+            <li class="rounded-md bg-bad-soft px-2 py-1 text-bad">That image looks damaged. Try another file.</li>
+          </ul>
+        </div>
+        <p class="text-[12px] text-ink-faint">400 wrong type or mismatched bytes · 413 too big · 400 damaged header <span class="ref">C3</span></p>
+      </figure>
+
+      <figure class="panel grid content-start gap-0 overflow-hidden p-0">
+        <figcaption class="border-b border-edge px-4 py-2.5 text-[12px] font-semibold uppercase tracking-wider text-ink-faint">Disconnect asks first <span class="ref">D27</span></figcaption>
+        <div class="grid gap-2 bg-bad-soft/50 px-4 py-3">
+          <p class="text-meta"><b>Disconnect Claude?</b> It stops acting for you straight away. Its next call is refused until you connect it again.</p>
+          <div class="flex justify-end gap-2"><button class="btn-ghost">Keep</button><button class="btn-danger">Disconnect</button></div>
+        </div>
+        <p role="status" class="border-t border-edge px-4 py-2.5 text-meta text-ok">✓ Claude disconnected.</p>
+      </figure>
+
+      <figure class="panel grid content-start gap-3 p-4">
+        <figcaption class="text-[12px] font-semibold uppercase tracking-wider text-ink-faint">No agents yet</figcaption>
+        <p class="rounded-panel border border-dashed border-edge-strong px-4 py-5 text-center text-meta text-ink-muted">No agents are connected.<br>Add SlideWorks to your agent with <code class="rounded bg-panel-2 px-1.5 py-0.5 text-[12px] text-ink">https://slideworks.app/mcp</code>.</p>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- 4 SHARE DIALOG -->
+  <section id="share" class="grid gap-5">
+    <div>
+      <p class="text-[13px] font-semibold text-accent">4</p>
+      <h2 class="doc-h text-2xl font-bold">Share dialog: a people list with view or edit</h2>
+      <p class="mt-1 max-w-[72ch] text-[14px] text-ink-muted">Try it: type a part like <b>pri</b> or <b>jo@cl</b> and nothing is suggested; type a full email like <b>priya@team.example</b> to add them. Change a person's access, remove them, then Save. This list is for this deck only; your next deck starts with nobody.</p>
+    </div>
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <!-- Before -->
+      <div class="grid content-start gap-2">
+        <p class="text-[12px] font-semibold uppercase tracking-wider text-ink-faint">Today (SW-31, main)</p>
+        <img src="sharing-dialog-sw31.png" alt="Today's share dialog: three levels, named people as email chips, view only" class="w-full max-w-[520px] rounded-xl border border-edge-strong shadow-sm">
+        <ul class="mt-2 grid gap-1.5 text-[13px] text-ink-muted">
+          <li>· Named people are view-only email chips inside the third option.</li>
+          <li>· "Only you can change slides."</li>
+        </ul>
+      </div>
+      <!-- After (interactive) -->
+      <div class="grid content-start gap-2">
+        <p class="text-[12px] font-semibold uppercase tracking-wider text-accent">SW-108 (interactive)</p>
+        <div class="relative rounded-xl bg-[#1b2230]/45 p-4 sm:p-6">
+          <div id="dlg" class="mx-auto w-full max-w-[520px] overflow-visible rounded-xl bg-panel shadow-2xl">
+            <header class="px-[18px] pt-4 pb-1.5">
+              <h3 class="text-base font-semibold">Share this deck</h3>
+              <p class="mt-1 text-meta text-ink-muted">Who can open it, and who can edit it with you.</p>
+            </header>
+
+            <fieldset class="grid gap-2 px-[18px] pt-2.5 pb-3">
+              <legend class="sr-only">Who can open it</legend>
+              <label class="flex gap-3 rounded-panel border border-edge px-3 py-2.5">
+                <input type="radio" name="lvl" value="private" class="mt-1 shrink-0 accent-[#2f5bea]">
+                <span><span class="block text-[14px] font-semibold">Private</span><span class="block text-meta text-ink-muted">Only you, and agents signed in as you. People below can't open it until you switch back.</span></span>
+              </label>
+              <label class="flex gap-3 rounded-panel border border-edge px-3 py-2.5">
+                <input type="radio" name="lvl" value="link" class="mt-1 shrink-0 accent-[#2f5bea]">
+                <span><span class="block text-[14px] font-semibold">Anyone with the link</span><span class="block text-meta text-ink-muted">Anyone can view and present. People below with <i>Can edit</i> can still edit.</span></span>
+              </label>
+              <label class="flex gap-3 rounded-panel border border-accent bg-accent-soft/50 px-3 py-2.5">
+                <input type="radio" name="lvl" value="named" checked class="mt-1 shrink-0 accent-[#2f5bea]">
+                <span><span class="block text-[14px] font-semibold">Only people below</span><span class="block text-meta text-ink-muted">They sign in with these emails.</span></span>
+              </label>
+            </fieldset>
+
+            <div class="px-[18px] pb-3">
+              <div class="flex items-center justify-between pb-1.5">
+                <span class="text-meta font-semibold">People <span class="pin ml-1">6</span></span>
+                <span class="text-[12px] text-ink-faint" id="count"></span>
+              </div>
+              <div class="relative">
+                <input id="who" class="field w-full" autocomplete="off" placeholder="Add someone by their full email" aria-label="Add a person by full email" role="combobox" aria-expanded="false" aria-controls="sugg">
+                <div id="sugg" role="listbox" class="dd absolute inset-x-0 top-[calc(100%+4px)] z-20 hidden overflow-hidden rounded-panel border border-edge bg-panel"></div>
+              </div>
+              <p id="whoerr" role="alert" class="mt-1.5 hidden text-meta text-bad"></p>
+              <ul id="people" class="mt-2 divide-y divide-edge rounded-panel border border-edge"></ul>
+            </div>
+
+            <p class="mx-[18px] mb-3 rounded-md bg-violet-50 px-3 py-2 text-[12.5px] text-violet-800">
+              Agents signed in as you can change this too, with <code>set_sharing</code>. People with <i>Can edit</i> can use their own agents on this deck. Every change appears in the deck's activity. <b>Last change:</b> Claude, just now.
+            </p>
+
+            <div class="flex items-center justify-between gap-3 border-t border-edge bg-panel-2/60 px-[18px] py-3">
+              <code class="truncate font-mono text-[12px]">https://slideworks.app/d/7Kq2xYp9LmQa/ship-smaller</code>
+              <button class="btn-ghost shrink-0">Copy link</button>
+            </div>
+
+            <footer class="flex flex-wrap items-center justify-end gap-2 border-t border-edge px-[18px] py-3">
+              <span id="mailnote" class="mr-auto text-[12px] text-ink-muted"></span>
+              <button class="btn-ghost" id="cancel">Cancel</button>
+              <button class="btn-primary py-1.5" id="save">Save</button>
+            </footer>
+          </div>
+          <div id="toast" class="toast pointer-events-none absolute bottom-3 left-1/2 hidden -translate-x-1/2 rounded-panel bg-ink px-3 py-2 text-meta text-white shadow-lg"></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid gap-4 text-[13.5px] text-ink-muted md:grid-cols-3">
+      <p class="note"><b class="n">6</b><b class="text-ink">People move out of the third option</b> into their own list, because <i>Can edit</i> still works at "Anyone with the link" <span class="ref">D8</span> <span class="ref">D26</span>. The third option is renamed "Only people below".</p>
+      <p class="note"><b class="n">·</b><b class="text-ink">Full email every time</b>, even for someone already on your other decks. No autocomplete or search: a partial email or name never matches anyone <span class="ref">D32</span>.</p>
+      <p class="note"><b class="n">·</b><b class="text-ink">New people get a "New" tag</b> until Save, and the footer says who'll get an email. Owner row is fixed; only you change sharing, rename or delete <span class="ref">D7</span>.</p>
+    </div>
+  </section>
+
+  <!-- 5 SHARE STATES -->
+  <section id="share-states" class="grid gap-5">
+    <div>
+      <p class="text-[13px] font-semibold text-accent">5</p>
+      <h2 class="doc-h text-2xl font-bold">Share states</h2>
+    </div>
+    <div class="grid gap-5 md:grid-cols-2">
+      <figure class="panel grid content-start gap-3 p-4">
+        <figcaption class="text-[12px] font-semibold uppercase tracking-wider text-ink-faint">Over the new-people limit <span class="ref">D10</span> <span class="ref">C4</span></figcaption>
+        <div role="alert" class="flex gap-2.5 rounded-panel border border-bad/30 bg-bad-soft px-3 py-2.5 text-meta text-bad">
+          <span class="mt-0.5 font-bold">!</span>
+          <span><b>Not shared.</b> You can share with 10 new people an hour. Try again at 15:42.<br><span class="text-bad/80">Someone added to several of your decks counts once. Nothing was saved and no emails went out.</span></span>
+        </div>
+        <p class="text-[12px] text-ink-faint">429 with <code>Retry-After</code>. The dialog stays open with everything as you left it, so Save works again after the reset. MCP gets the same sentence as a tool error.</p>
+      </figure>
+
+      <figure class="panel grid content-start gap-3 p-4">
+        <figcaption class="text-[12px] font-semibold uppercase tracking-wider text-ink-faint">Partial email or name <span class="ref">D32</span></figcaption>
+        <div class="relative">
+          <input class="field w-full" value="jo@cl">
+          <div class="dd mt-1 rounded-panel border border-edge bg-panel px-3 py-2.5 text-meta text-ink-muted">Type their full email to share this deck with them.</div>
+        </div>
+        <p class="text-[12px] text-ink-faint">Same text for every partial, whether or not anyone matches, so nothing leaks <span class="ref">C4</span>.</p>
+      </figure>
+
+      <figure class="panel grid content-start gap-3 p-4">
+        <figcaption class="text-[12px] font-semibold uppercase tracking-wider text-ink-faint">Private with people on the list <span class="ref">D12</span> <span class="ref">Q2</span></figcaption>
+        <label class="flex gap-3 rounded-panel border border-accent bg-accent-soft/50 px-3 py-2.5">
+          <input type="radio" checked class="mt-1 shrink-0 accent-[#2f5bea]">
+          <span><span class="block text-[14px] font-semibold">Private</span><span class="block text-meta text-ink-muted">Only you, and agents signed in as you. People below can't open it until you switch back.</span></span>
+        </label>
+        <ul class="divide-y divide-edge rounded-panel border border-edge opacity-60">
+          <li class="flex items-center gap-2.5 px-3 py-2"><span class="av photo-sam h-7 w-7"></span><span class="flex-1 text-meta font-medium">Sam Rivera</span><span class="pill bg-panel-2 text-ink-muted">Can edit · paused</span></li>
+          <li class="flex items-center gap-2.5 px-3 py-2"><span class="av av-violet h-7 w-7 text-[11px]">MO</span><span class="flex-1 text-meta font-medium">Mira Okafor</span><span class="pill bg-panel-2 text-ink-muted">Can view · paused</span></li>
+        </ul>
+        <p class="text-[12px] text-ink-faint">Confirmed by Joel (Q2): Private shuts out everyone but the owner, Can edit included. The list is kept for when the level changes back.</p>
+      </figure>
+
+      <figure class="panel grid content-start gap-3 p-4">
+        <figcaption class="text-[12px] font-semibold uppercase tracking-wider text-ink-faint">Pending person tries to share</figcaption>
+        <p class="text-meta text-ink-muted">Pending people never see the deck page, so they never see this dialog: they're on /pending <span class="ref">C6</span>. Their agents get 401. Nothing to draw.</p>
+        <div class="rounded-panel border border-dashed border-edge-strong px-4 py-4 text-center text-meta text-ink-muted">Waiting for approval<br><span class="text-[12px] text-ink-faint">(the existing /pending page, unchanged)</span></div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 6 COLLABORATOR -->
+  <section id="collab" class="grid gap-5">
+    <div>
+      <p class="text-[13px] font-semibold text-accent">6</p>
+      <h2 class="doc-h text-2xl font-bold">The same deck as Sam (can edit) and Mira (can view)</h2>
+      <p class="mt-1 max-w-[72ch] text-[14px] text-ink-muted">Driven by <code>deck-page.json</code>'s new <code>access</code> and <code>canEdit</code> <span class="ref">C4</span>. Only the owner sees Share.</p>
+    </div>
+    <div class="grid gap-6 xl:grid-cols-2">
+      <div class="frame">
+        <div class="frame-bar"><i></i><i></i><i></i><span class="frame-url">slideworks.app/decks/ship-smaller · Sam</span></div>
+        <div class="bg-ground px-5 pb-5">
+          <div class="flex flex-wrap items-center gap-2 py-4">
+            <h3 class="text-[20px] font-bold tracking-tight">Ship smaller</h3>
+            <span class="rounded-full bg-panel-2 px-2 py-0.5 text-[12px] text-ink-muted">3 slides</span>
+            <span class="pill bg-ok-soft text-ok">Can edit <span class="pin">7</span></span>
+            <span class="ml-auto flex items-center gap-1.5 text-[12px] text-ink-muted"><span class="av photo-ada h-5 w-5"></span>Ada Brooks's deck</span>
+          </div>
+          <div class="flex flex-wrap justify-end gap-2 pb-4">
+            <button class="rounded-panel border border-dashed border-edge-strong px-3 py-1.5 text-meta text-ink-faint">Check slides</button>
+            <button class="btn-primary">▶ Present</button>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="aspect-video rounded-md bg-[#0b1020] ring-2 ring-accent"></div>
+            <div class="aspect-video rounded-md border border-edge bg-white"></div>
+            <div class="aspect-video rounded-md bg-[#0b1020]"></div>
+          </div>
+          <div class="mt-4 grid gap-1 rounded-panel border border-edge bg-panel p-3 text-meta">
+            <span class="font-semibold">Look</span>
+            <span class="text-ink-muted">Template, palette, chrome: all editable.</span>
+          </div>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="frame-bar"><i></i><i></i><i></i><span class="frame-url">slideworks.app/decks/ship-smaller · Mira</span></div>
+        <div class="bg-ground px-5 pb-5">
+          <div class="flex flex-wrap items-center gap-2 py-4">
+            <h3 class="text-[20px] font-bold tracking-tight">Ship smaller</h3>
+            <span class="rounded-full bg-panel-2 px-2 py-0.5 text-[12px] text-ink-muted">3 slides</span>
+            <span class="pill bg-panel-2 text-ink-muted">Can view</span>
+            <span class="ml-auto flex items-center gap-1.5 text-[12px] text-ink-muted"><span class="av photo-ada h-5 w-5"></span>Ada Brooks's deck</span>
+          </div>
+          <div class="flex flex-wrap justify-end gap-2 pb-4">
+            <button class="btn-primary">▶ Play</button>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="aspect-video rounded-md bg-[#0b1020]"></div>
+            <div class="aspect-video rounded-md border border-edge bg-white"></div>
+            <div class="aspect-video rounded-md bg-[#0b1020]"></div>
+          </div>
+          <div class="mt-4 rounded-panel border border-edge bg-panel p-3 text-meta text-ink-muted">No Look panel: view only, as SW-31 viewers see it today.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      <figure class="panel overflow-hidden">
+        <figcaption class="flex items-center justify-between border-b border-edge px-4 py-2.5"><span class="text-[14px] font-semibold">Decks · Shared with you</span><span class="pin">8</span></figcaption>
+        <div class="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] gap-3 border-b border-edge bg-panel-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted"><span>Deck</span><span>Owner</span><span>Access</span></div>
+        <ul class="divide-y divide-edge text-meta">
+          <li class="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5"><span class="font-semibold">Ship smaller</span><span class="flex items-center gap-1.5 text-ink-muted"><span class="av photo-ada h-5 w-5"></span>Ada Brooks</span><span class="pill bg-ok-soft text-ok">Can edit</span></li>
+          <li class="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5"><span class="font-semibold">Q4 planning</span><span class="flex items-center gap-1.5 text-ink-muted"><span class="av av-violet h-5 w-5 text-[9px]">MO</span>Mira Okafor</span><span class="pill bg-panel-2 text-ink-muted">Can view</span></li>
+          <li class="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5"><span class="font-semibold">Onboarding</span><span class="flex items-center gap-1.5 text-ink-muted"><span class="av av-amber h-5 w-5 text-[9px]">PN</span>Priya Nair</span><span class="pill bg-panel-2 text-ink-muted">Can view</span></li>
+        </ul>
+      </figure>
+      <figure class="panel overflow-hidden">
+        <figcaption class="flex items-center justify-between border-b border-edge px-4 py-2.5"><span class="text-[14px] font-semibold">Deck activity</span><span class="pin">9</span></figcaption>
+        <ul class="divide-y divide-edge text-meta">
+          <li class="flex gap-2.5 px-4 py-2.5"><span class="av photo-sam h-6 w-6"></span><span class="flex-1"><b>Sam Rivera</b> edited slide 2 <span class="text-ink-faint">via web</span></span><span class="font-mono text-[11.5px] text-ink-faint">15:51</span></li>
+          <li class="flex gap-2.5 px-4 py-2.5"><span class="av photo-ada h-6 w-6"></span><span class="flex-1"><b>Ada Brooks</b> let Sam Rivera edit <span class="text-ink-faint">via web</span></span><span class="font-mono text-[11.5px] text-ink-faint">15:42</span></li>
+          <li class="flex gap-2.5 px-4 py-2.5"><span class="av photo-ada h-6 w-6"></span><span class="flex-1"><b>Ada Brooks</b> shared with mira@team.example to view <span class="text-ink-faint">via Claude</span></span><span class="font-mono text-[11.5px] text-ink-faint">Yesterday</span></li>
+        </ul>
+      </figure>
+    </div>
+    <div class="grid gap-4 text-[13.5px] text-ink-muted md:grid-cols-3">
+      <p class="note"><b class="n">7</b><b class="text-ink">Can edit</b> gets slides, notes, Look and Present. No Share button, no rename or delete <span class="ref">D7</span>. The owner chip says whose deck it is.</p>
+      <p class="note"><b class="n">8</b><b class="text-ink">Shared with you</b> gains an Access column from <code>sharedWithMe[].access</code> <span class="ref">C4</span>.</p>
+      <p class="note"><b class="n">9</b><b class="text-ink">Activity</b> uses the new avatar and display name, and times in the reader's time zone <span class="ref">D17</span>.</p>
+    </div>
+  </section>
+
+  <!-- 7 EMAIL -->
+  <section id="email" class="grid gap-5">
+    <div>
+      <p class="text-[13px] font-semibold text-accent">7</p>
+      <h2 class="doc-h text-2xl font-bold">Share email and unsubscribe</h2>
+      <p class="mt-1 max-w-[72ch] text-[14px] text-ink-muted">One fixed template. No free text, the only links are the deck and the unsubscribe page <span class="ref">C8</span> <span class="ref">C9</span>.</p>
+    </div>
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <div class="frame bg-white">
+        <div class="grid gap-1 border-b border-edge bg-panel-2 px-5 py-3 text-meta">
+          <div><span class="inline-block w-16 text-ink-faint">From</span>SlideWorks &lt;no-reply@slideworks.app&gt;</div>
+          <div><span class="inline-block w-16 text-ink-faint">To</span>lee@studio.example</div>
+          <div><span class="inline-block w-16 text-ink-faint">Subject</span><b>Ada Brooks shared a deck with you</b></div>
+        </div>
+        <div class="grid justify-items-center bg-ground px-5 py-8">
+          <div class="w-full max-w-[460px] rounded-panel border border-edge bg-white p-7">
+            <div class="flex items-center gap-2 text-[14px] font-bold"><span class="h-3.5 w-3.5 rounded bg-accent"></span>SlideWorks</div>
+            <p class="mt-6 text-[15px] leading-relaxed"><b>Ada Brooks</b> <span class="text-ink-muted">(ada@team.example)</span> shared a deck with you:</p>
+            <p class="doc-h mt-2 text-[22px] font-bold">Ship smaller</p>
+            <a class="btn-primary mt-5">Open the deck</a>
+            <p class="mt-6 text-[12px] leading-relaxed text-ink-faint">Sign in with Google as lee@studio.example to open it. You got this email because someone shared a deck with this address. <a class="text-ink-muted underline">Stop emails from SlideWorks</a>.</p>
+          </div>
+        </div>
+      </div>
+      <div class="grid content-start gap-5">
+        <div class="frame">
+          <div class="frame-bar"><i></i><i></i><i></i><span class="frame-url">slideworks.app/unsubscribe#t=CfDJ8…</span></div>
+          <div class="grid justify-items-center bg-ground px-5 py-10">
+            <div class="w-full max-w-[360px] rounded-panel border border-edge bg-white p-6 text-center">
+              <div class="flex items-center justify-center gap-2 text-[14px] font-bold"><span class="h-3.5 w-3.5 rounded bg-accent"></span>SlideWorks</div>
+              <h3 class="mt-4 text-[18px] font-semibold">Stop emails from SlideWorks?</h3>
+              <p class="mt-2 text-meta text-ink-muted">We won't email this address when someone shares a deck with it. Decks shared with you still show under Shared with you.</p>
+              <button class="btn-primary mt-4 w-full">Stop emails</button>
+            </div>
+          </div>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="panel p-4 text-center text-meta"><p class="font-semibold text-ok">✓ Done</p><p class="mt-1 text-ink-muted">SlideWorks won't email this address again.</p></div>
+          <div class="panel p-4 text-center text-meta"><p class="font-semibold text-bad">Link didn't work</p><p class="mt-1 text-ink-muted">It may be old or cut short. Use the link in your latest email.</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid gap-4 text-[13.5px] text-ink-muted md:grid-cols-3">
+      <p class="note"><b class="n">·</b>Name cut to 60 and title to 80, control and bidi characters stripped, the sharer's email shown beside the name so a fake "SlideWorks Support" name is obvious <span class="ref">C8</span>.</p>
+      <p class="note"><b class="n">·</b>The email doesn't say view or edit; C8's body has no level. Adding "You can edit it." is a one-line change <span class="ref">D30</span>.</p>
+      <p class="note"><b class="n">·</b>The unsubscribe page can't show the address: the token stays in the fragment and the page only posts it. One button, so link scanners can't unsubscribe anyone <span class="ref">D16</span>.</p>
+    </div>
+  </section>
+
+  <!-- 8 QUESTIONS -->
+  <section id="questions" class="grid gap-5">
+    <div>
+      <p class="text-[13px] font-semibold text-accent">8</p>
+      <h2 class="doc-h text-2xl font-bold">Design questions and the answers given</h2>
+      <p class="mt-1 max-w-[72ch] text-[14px] text-ink-muted">Joel reviewed these mockups on 22 Nov 2026. D1–D11 were settled earlier that day. The build decisions (D13–D23) are on SW-108.</p>
+    </div>
+    <div class="panel overflow-hidden">
+      <p class="border-b border-edge bg-ok-soft/60 px-5 py-2 text-[12px] font-semibold uppercase tracking-wider text-ok">Answered</p>
+      <ul class="divide-y divide-edge">
+        <li class="grid gap-1 px-5 py-3.5 md:grid-cols-[110px_minmax(0,1fr)] md:gap-5"><span><span class="pill bg-accent-soft text-accent-dark">Q2 · D12</span></span><div><p class="text-[14px] font-semibold">Does Private shut out people with Can edit too?</p><p class="mt-0.5 text-meta text-ink-muted">Yes. At Private only the owner gets in. The people list is kept and shown as paused until the level changes back.</p></div></li>
+        <li class="grid gap-1 px-5 py-3.5 md:grid-cols-[110px_minmax(0,1fr)] md:gap-5"><span><span class="pill bg-accent-soft text-accent-dark">Q3 · D24</span></span><div><p class="text-[14px] font-semibold">Does a deck's people list show a person's name and avatar once they have an account?</p><p class="mt-0.5 text-meta text-ink-muted">Yes. It tells the owner that the email has an account, capped by the limit of 10 new people an hour.</p></div></li>
+        <li class="grid gap-1 px-5 py-3.5 md:grid-cols-[110px_minmax(0,1fr)] md:gap-5"><span><span class="pill bg-accent-soft text-accent-dark">D25</span></span><div><p class="text-[14px] font-semibold">What do the two access levels say in the UI?</p><p class="mt-0.5 text-meta text-ink-muted">"Can view" and "Can edit". The wire stays read and write.</p></div></li>
+        <li class="grid gap-1 px-5 py-3.5 md:grid-cols-[110px_minmax(0,1fr)] md:gap-5"><span><span class="pill bg-accent-soft text-accent-dark">D26</span></span><div><p class="text-[14px] font-semibold">Where does the people list sit in the share dialog?</p><p class="mt-0.5 text-meta text-ink-muted">In its own People section under the three levels, because Can edit still works at "Anyone with the link". The third level is renamed "Only people below".</p></div></li>
+        <li class="grid gap-1 px-5 py-3.5 md:grid-cols-[110px_minmax(0,1fr)] md:gap-5"><span><span class="pill bg-accent-soft text-accent-dark">D27</span></span><div><p class="text-[14px] font-semibold">Does Disconnect on an agent ask first?</p><p class="mt-0.5 text-meta text-ink-muted">Yes, with an inline "Disconnect Claude?" and Keep / Disconnect, because it can't be undone.</p></div></li>
+        <li class="grid gap-1 px-5 py-3.5 md:grid-cols-[110px_minmax(0,1fr)] md:gap-5"><span><span class="pill bg-accent-soft text-accent-dark">D28</span></span><div><p class="text-[14px] font-semibold">When does a photo upload take effect?</p><p class="mt-0.5 text-meta text-ink-muted">Straight away: upload and remove are their own calls. Name and colour wait for Save.</p></div></li>
+        <li class="grid gap-1 px-5 py-3.5 md:grid-cols-[110px_minmax(0,1fr)] md:gap-5"><span><span class="pill bg-accent-soft text-accent-dark">D29</span></span><div><p class="text-[14px] font-semibold">Does the share dialog warn before the new-people limit?</p><p class="mt-0.5 text-meta text-ink-muted">No. Nothing is shown until a share is refused, then it says when the limit resets.</p></div></li>
+        <li class="grid gap-1 px-5 py-3.5 md:grid-cols-[110px_minmax(0,1fr)] md:gap-5"><span><span class="pill bg-accent-soft text-accent-dark">D30</span></span><div><p class="text-[14px] font-semibold">Does the share email say view or edit?</p><p class="mt-0.5 text-meta text-ink-muted">No. As C8 says: the sharer's name and email, the deck title, one link and the unsubscribe link.</p></div></li>
+        <li class="grid gap-1 px-5 py-3.5 md:grid-cols-[110px_minmax(0,1fr)] md:gap-5"><span><span class="pill bg-accent-soft text-accent-dark">D31</span></span><div><p class="text-[14px] font-semibold">Does the admin link move into the user menu?</p><p class="mt-0.5 text-meta text-ink-muted">Yes, as "People (admin)" under Profile. The top-bar badge for people waiting stays.</p></div></li>
+        <li class="grid gap-1 px-5 py-3.5 md:grid-cols-[110px_minmax(0,1fr)] md:gap-5"><span><span class="pill bg-accent-soft text-accent-dark">D32</span></span><div><p class="text-[14px] font-semibold">Is there a favourites list that autocompletes people?</p><p class="mt-0.5 text-meta text-ink-muted">No. Sharing is per deck and full email every time. No favourites, autocomplete or People you share with panel. This replaces D5 and D9.</p></div></li>
+      </ul>
+      <p class="border-y border-edge bg-warn-soft/60 px-5 py-2 text-[12px] font-semibold uppercase tracking-wider text-warn">Open, going ahead with the recommendation</p>
+      <ul class="divide-y divide-edge">
+        <li class="grid gap-1 px-5 py-3.5 md:grid-cols-[110px_minmax(0,1fr)] md:gap-5"><span><span class="pill bg-warn-soft text-warn">D33</span></span><div><p class="text-[14px] font-semibold">With no favourites, what counts against the per-sharer limit?</p><p class="mt-0.5 text-meta text-ink-muted">Recommended: each distinct email newly added to any of the sharer's decks in the window. Adding one person to five decks counts once.</p></div></li>
+        <li class="grid gap-1 px-5 py-3.5 md:grid-cols-[110px_minmax(0,1fr)] md:gap-5"><span><span class="pill bg-warn-soft text-warn">Q1</span></span><div><p class="text-[14px] font-semibold">Which SMTP provider and sender address does the hosted instance use?</p><p class="mt-0.5 text-meta text-ink-muted">No screen depends on it. Until it's set, the hosted instance sends no share emails.</p></div></li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="pb-8 text-center text-[12px] text-ink-faint">SW-108 · mockups for review · nothing built yet</footer>
+</main>
+
+<script>
+/* ---------- Interactive share dialog ---------- */
+// Known accounts, only to show a name and avatar once someone is on the list (Q3). Never searched.
+const FAV = [
+  { email: 'sam@team.example', name: 'Sam Rivera', av: 'photo-sam' },
+  { email: 'mira@team.example', name: 'Mira Okafor', av: 'av-violet', ini: 'MO' },
+  { email: 'priya@team.example', name: 'Priya Nair', av: 'av-amber', ini: 'PN' },
+  { email: 'jo@client.example', name: null },
+];
+let people = [
+  { email: 'sam@team.example', access: 'write' },
+  { email: 'mira@team.example', access: 'read' },
+];
+const fresh = new Set();
+const $ = (s) => document.querySelector(s);
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fav = (e) => FAV.find((f) => f.email === e);
+const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+
+function avatar(p, size) {
+  const f = fav(p.email);
+  if (f && f.name) return f.ini ? `<span class="av ${f.av} ${size} text-[11px]">${f.ini}</span>` : `<span class="av ${f.av} ${size}"></span>`;
+  return `<span class="av av-none ${size} text-[12px]">@</span>`;
+}
+function label(p) {
+  const f = fav(p.email);
+  return f && f.name
+    ? `<span class="block truncate text-meta font-semibold">${esc(f.name)}</span><span class="block truncate text-[12px] text-ink-muted">${esc(p.email)}</span>`
+    : `<span class="block truncate text-meta font-semibold">${esc(p.email)}</span><span class="block text-[12px] text-ink-faint">Gets access when they sign in</span>`;
+}
+function render() {
+  const rows = [`<li class="flex items-center gap-2.5 px-3 py-2"><span class="av photo-ada h-7 w-7"></span><span class="min-w-0 flex-1"><span class="block text-meta font-semibold">Ada Brooks (you)</span><span class="block text-[12px] text-ink-muted">ada@team.example</span></span><span class="text-[12.5px] font-medium text-ink-muted pr-1">Owner</span></li>`];
+  people.forEach((p, i) => {
+    rows.push(`<li class="flex items-center gap-2.5 px-3 py-2">${avatar(p, 'h-7 w-7')}<span class="min-w-0 flex-1">${label(p)}</span>${fresh.has(p.email) ? '<span class="pill bg-accent-soft text-accent-dark">New</span>' : ''}
+      <select class="access" data-i="${i}" aria-label="Access for ${esc(p.email)}"><option value="read"${p.access === 'read' ? ' selected' : ''}>Can view</option><option value="write"${p.access === 'write' ? ' selected' : ''}>Can edit</option><option value="remove">Remove</option></select></li>`);
+  });
+  $('#people').innerHTML = rows.join('');
+  $('#count').textContent = `${people.length + 1} people`;
+  const n = [...fresh].length;
+  $('#mailnote').textContent = n ? `Saving emails ${n} new ${n === 1 ? 'person' : 'people'}.` : '';
+  $('#people').querySelectorAll('select').forEach((s) => s.addEventListener('change', () => {
+    const i = +s.dataset.i;
+    if (s.value === 'remove') { fresh.delete(people[i].email); people.splice(i, 1); } else people[i].access = s.value;
+    render();
+  }));
+}
+function add(email) {
+  email = email.trim().toLowerCase();
+  if (!people.some((p) => p.email === email)) { people.push({ email, access: 'read' }); fresh.add(email); }
+  $('#who').value = ''; closeSugg(); render();
+}
+function closeSugg() { $('#sugg').classList.add('hidden'); $('#who').setAttribute('aria-expanded', 'false'); }
+function suggest() {
+  const q = $('#who').value.trim().toLowerCase();
+  $('#whoerr').classList.add('hidden');
+  if (!q) return closeSugg();
+  const onList = new Set(people.map((p) => p.email));
+  let html = '';
+  if (isEmail(q) && !onList.has(q)) {
+    html = `<button type="button" role="option" data-e="${esc(q)}" class="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-accent-soft/60"><span class="av av-none h-7 w-7 text-[12px]">+</span><span class="min-w-0 flex-1"><span class="block truncate text-meta font-semibold">Share with ${esc(q)}</span><span class="block text-[12px] text-ink-muted">They'll get an email when you save</span></span></button>`;
+  }
+  if (!html) html = `<div class="px-3 py-2.5 text-meta text-ink-muted">${onList.has(q) ? 'Already on the list.' : 'Type their full email to share this deck with them.'}</div>`;
+  $('#sugg').innerHTML = html;
+  $('#sugg').classList.remove('hidden');
+  $('#who').setAttribute('aria-expanded', 'true');
+  $('#sugg').querySelectorAll('[data-e]').forEach((b) => b.addEventListener('mousedown', (e) => { e.preventDefault(); add(b.dataset.e); }));
+}
+$('#who').addEventListener('input', suggest);
+$('#who').addEventListener('focus', suggest);
+$('#who').addEventListener('blur', () => setTimeout(closeSugg, 100));
+$('#who').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const first = $('#sugg').querySelector('[data-e]');
+  if (first) add(first.dataset.e);
+  else { $('#whoerr').textContent = 'Type their full email to share this deck with them.'; $('#whoerr').classList.remove('hidden'); }
+});
+document.querySelectorAll('input[name=lvl]').forEach((r) => r.addEventListener('change', () => {
+  document.querySelectorAll('input[name=lvl]').forEach((x) => {
+    const l = x.closest('label');
+    l.classList.toggle('border-accent', x.checked); l.classList.toggle('bg-accent-soft/50', x.checked); l.classList.toggle('border-edge', !x.checked);
+  });
+  $('#people').classList.toggle('opacity-60', r.value === 'private' && r.checked);
+}));
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.remove('hidden'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.add('hidden'), 2600); }
+$('#save').addEventListener('click', () => {
+  const n = fresh.size; fresh.clear(); render();
+  toast(n ? `Saved. ${n} email${n === 1 ? '' : 's'} on the way.` : 'Saved.');
+});
+$('#cancel').addEventListener('click', () => toast('Closed without saving (mockup).'));
+render();
+
+</script>
+</body>
+</html>

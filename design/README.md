@@ -11,6 +11,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-6-polls/`](sw-6-polls/) | SW-6 Live multiple-choice polls | Built (decisions D1–D8 settled; the mockups differ in a few places, listed under "As built" in the SW-6 section) |
 | [`sw-9-qa-reactions/`](sw-9-qa-reactions/) | SW-9 Audience Q&A and reactions | Built (decisions D1–D22 settled) |
 | [`sw-50-custom-templates/`](sw-50-custom-templates/) | SW-50 Custom templates, and the layout gaps a real deck found | Partly built: the template editor and the new layouts are on main; template bundles (upload and download) and custom layouts are not built yet. Decisions D4–D17 settled; D18–D48 recorded as recommended, not reviewed |
+| [`sw-108-profile-sharing/`](sw-108-profile-sharing/) | SW-108 Profile page and sharing decks with people | Mockups reviewed 22 Nov; decisions D12 and D24–D32 settled, D33 open; not built |
 
 ## SW-1 Foundation
 
@@ -302,3 +303,37 @@ The pages draw slides in system fonts, so letter widths differ a little from the
 | C | levels and facts | [05-levels-and-facts](sw-50-custom-templates/png/sw-50-gaps-c-05-levels-and-facts.png) |
 | C | custom layouts | [06-custom-layouts](sw-50-custom-templates/png/sw-50-gaps-c-06-custom-layouts.png) |
 | C | findings and hooks | [07-findings-and-hooks](sw-50-custom-templates/png/sw-50-gaps-c-07-findings-and-hooks.png) |
+
+## SW-108 Profile page and sharing decks with people
+
+Open [`sw-108-profile-sharing/sw-108-mockups.html`](sw-108-profile-sharing/sw-108-mockups.html) in a browser. It shows every screen SW-108 adds or changes, drawn with the app's own chrome tokens. The share dialog in section 4 works: type a full email to add someone, change their access, remove them and save. A partial email or name suggests nobody. The PNGs are screenshots of each section at 1300 px wide.
+
+| Screen | PNG |
+|---|---|
+| Scope: what changes for people | [01-scope](sw-108-profile-sharing/png/sw-108-01-scope.png) |
+| User menu with a Profile link | [02-user-menu](sw-108-profile-sharing/png/sw-108-02-user-menu.png) |
+| /profile: Identity, Account and Connected agents | [03-profile](sw-108-profile-sharing/png/sw-108-03-profile.png) |
+| Profile states: avatar precedence, refused name and photo, disconnecting an agent, no agents | [04-profile-states](sw-108-profile-sharing/png/sw-108-04-profile-states.png) |
+| Share dialog: today's (SW-31) beside SW-108's people list with Can view and Can edit | [05-share-dialog](sw-108-profile-sharing/png/sw-108-05-share-dialog.png) |
+| Share states: over the limit, a partial email, Private with people on the list, pending people | [06-share-states](sw-108-profile-sharing/png/sw-108-06-share-states.png) |
+| The deck as a Can edit and a Can view person, Shared with you, and activity | [07-collaborators](sw-108-profile-sharing/png/sw-108-07-collaborators.png) |
+| The share email and the unsubscribe page | [08-email-unsubscribe](sw-108-profile-sharing/png/sw-108-08-email-unsubscribe.png) |
+| Design questions and the answers given | [09-questions](sw-108-profile-sharing/png/sw-108-09-questions.png) |
+
+`sharing-dialog-sw31.png` is the SW-31 dialog's CI baseline on main (6e353cd), shown in section 4 for comparison.
+
+### Decisions (2026-11-22)
+
+D1–D11 and D13–D23 are on SW-108. These are the ones the mockups show:
+
+- **D12. Private:** at Private only the owner gets in, people with Can edit included. The people list is kept and shown as paused until the level changes back.
+- **D24. Names on the people list:** once a person has an account, a deck's people list shows their display name and avatar. That tells the owner the email has an account, which the limit of 10 new people an hour bounds.
+- **D25. Labels:** the two levels say "Can view" and "Can edit". The wire stays `read` and `write`.
+- **D26. People list:** its own People section under the three levels, because Can edit still works at "Anyone with the link" (D8). The third level is renamed "Only people below".
+- **D27. Disconnect:** asks first, inline, because revoking an agent can't be undone.
+- **D28. Photo:** upload and remove take effect straight away. Name and colour wait for Save.
+- **D29. Limit warning:** none before a share is refused. The refusal says when the limit resets.
+- **D30. Share email:** doesn't say view or edit. It has the sharer's name and email, the deck title, one link and the unsubscribe link (C8).
+- **D31. User menu:** Profile, People (admin) for admins, and Sign out. The top-bar badge for people waiting stays.
+- **D32. Per deck, full email every time:** a new deck is shared with nobody. Each deck is shared on its own, by typing each person's full email, every time. There is no favourites list, autocomplete, search or "People you share with" panel. This replaces D5 and D9.
+- **D33 (open, recommended). What the limit counts:** each distinct email the sharer newly added to any of their decks in the last hour or day. Adding one person to five decks counts once.
