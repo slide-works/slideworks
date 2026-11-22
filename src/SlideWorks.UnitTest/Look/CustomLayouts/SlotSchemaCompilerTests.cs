@@ -235,15 +235,28 @@ public class SlotSchemaCompilerTests
         errors.ShouldBeEmpty();
         ErrorsOf(definition!, """{ "n": 9.25 }""", out _).ShouldBe(0);
         ErrorsOf(definition!, """{ "n": 9.75 }""", out _).ShouldBe(1);
-        (schema!.Slots[0].Min, schema.Slots[0].Max).ShouldBe((1, 9));
+        (schema!.Slots[0].Min, schema.Slots[0].Max).ShouldBe((0.5, 9.5));
     }
 
     [Test]
-    public void Compile_WhenNoWholeNumberFitsTheRange_ShouldRefuse()
+    public void Compile_WhenANumberRangeIsFractionalWithinOneInteger_ShouldKeepTheDecimalBounds()
     {
-        var errors = Refused(Doc("\"n\": { \"type\": \"number\", \"min\": 0.2, \"max\": 0.8 }"));
+        var (definition, schema, errors) = Compile(Doc("\"n\": { \"type\": \"number\", \"min\": 0.1, \"max\": 0.9 }"));
 
-        errors.Select(e => (e.Path, e.Code)).ShouldBe([("slots.n", CustomLayoutErrorCodes.SLOTS_LIMIT)]);
+        errors.ShouldBeEmpty();
+        (schema!.Slots[0].Min, schema.Slots[0].Max).ShouldBe((0.1, 0.9));
+        ErrorsOf(definition!, """{ "n": 0.5 }""", out _).ShouldBe(0);
+        ErrorsOf(definition!, """{ "n": 0.95 }""", out _).ShouldBe(1);
+    }
+
+    [Test]
+    public void Compile_WhenThereAreFarTooManyFields_ShouldRefuseWithoutReadingThemAll()
+    {
+        var fields = string.Join(",", Enumerable.Range(0, 6_000).Select(i => $"\"f{i}\":{{\"type\":\"text\",\"max\":5}}"));
+
+        var errors = Refused(Doc(fields));
+
+        errors.Select(e => (e.Path, e.Code)).ShouldBe([("slots", CustomLayoutErrorCodes.SLOTS_TOO_MANY)]);
     }
 
     [TestCase("\"values\": [\"a\", \"B\"]")]

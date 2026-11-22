@@ -264,7 +264,22 @@ public class LayoutSamplesTests
 
         Problems(definition, Samples.Maximum(schema)).ShouldBeEmpty();
         Problems(definition, Samples.Sample(schema)).ShouldBeEmpty();
-        JsonDocument.Parse(Samples.Maximum(schema)).RootElement.GetProperty("n").GetDouble().ToString(CultureInfo.InvariantCulture).ShouldBe("1");
+        JsonDocument.Parse(Samples.Maximum(schema)).RootElement.GetProperty("n").GetDouble().ToString(CultureInfo.InvariantCulture).ShouldBe("1.5");
+    }
+
+    [Test]
+    public void Samples_WhenARangeIsInsideOneInteger_ShouldUseTheRealBounds()
+    {
+        var (definition, schema) = Compile(Doc("\"n\": { \"type\": \"number\", \"min\": 0.1, \"max\": 0.9 }, \"m\": { \"type\": \"number\", \"min\": 0, \"max\": 2.5 }"));
+
+        Problems(definition, Samples.Maximum(schema)).ShouldBeEmpty();
+        Problems(definition, Samples.Sample(schema)).ShouldBeEmpty();
+        var maximum = JsonDocument.Parse(Samples.Maximum(schema)).RootElement;
+        maximum.GetProperty("n").GetDouble().ShouldBe(0.9);
+        maximum.GetProperty("m").GetDouble().ShouldBe(2.5);
+        var sample = JsonDocument.Parse(Samples.Sample(schema)).RootElement;
+        sample.GetProperty("n").GetDouble().ShouldBeInRange(0.1, 0.9);
+        sample.GetProperty("m").GetDouble().ShouldBeInRange(0, 2.5);
     }
 
     [Test]

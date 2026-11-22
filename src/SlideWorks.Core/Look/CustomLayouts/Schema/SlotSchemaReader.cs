@@ -19,6 +19,7 @@ internal sealed class SlotSchemaReader
 
     private readonly List<CustomLayoutError> _errors = [];
     private int _slotCount;
+    private bool _tooMany;
 
     public IReadOnlyList<CustomLayoutError> Errors => _errors;
 
@@ -103,11 +104,6 @@ internal sealed class SlotSchemaReader
             slots = ReadFields(map, DOCUMENT, 0);
         }
 
-        if (_slotCount > CustomLayoutLimits.MAX_SLOTS)
-        {
-            Fail(DOCUMENT, CustomLayoutErrorCodes.SLOTS_TOO_MANY);
-        }
-
         string? steps = null;
         if (root.TryGetProperty("steps", out var stepsValue))
         {
@@ -143,6 +139,11 @@ internal sealed class SlotSchemaReader
         var result = new List<ParsedSlot>();
         foreach (var property in map.EnumerateObject())
         {
+            if (_tooMany)
+            {
+                break;
+            }
+
             if (!SlotNames.IsSlotName(property.Name))
             {
                 if (SlotNames.IsReserved(property.Name))
@@ -170,7 +171,18 @@ internal sealed class SlotSchemaReader
     // level: 0 top-level, 1 a field of a top-level list's items, 2 a field of an inner list's items.
     private ParsedSlot? ReadSlot(string name, JsonElement definition, string path, int level, bool scalarOnly)
     {
-        _slotCount++;
+        if (++_slotCount > CustomLayoutLimits.MAX_SLOTS)
+        {
+            // Stop at the first slot over the limit: the rest of the schema is not read.
+            if (!_tooMany)
+            {
+                _tooMany = true;
+                Fail(DOCUMENT, CustomLayoutErrorCodes.SLOTS_TOO_MANY);
+            }
+
+            return null;
+        }
+
         if (definition.ValueKind != JsonValueKind.Object
             || !definition.TryGetProperty("type", out var typeValue) || typeValue.ValueKind != JsonValueKind.String)
         {
@@ -240,15 +252,14 @@ internal sealed class SlotSchemaReader
             && minValue.ValueKind == JsonValueKind.Number && maxValue.ValueKind == JsonValueKind.Number
             && minValue.TryGetDouble(out min) && maxValue.TryGetDouble(out max)
             && double.IsFinite(min) && double.IsFinite(max) && min < max
-            && Math.Abs(min) <= SlotSchemaLimits.MAX_NUMBER_BOUND && Math.Abs(max) <= SlotSchemaLimits.MAX_NUMBER_BOUND
-            && Math.Ceiling(min) <= Math.Floor(max);
+            && Math.Abs(min) <= SlotSchemaLimits.MAX_NUMBER_BOUND && Math.Abs(max) <= SlotSchemaLimits.MAX_NUMBER_BOUND;
         if (!bounded)
         {
             Fail(path, CustomLayoutErrorCodes.SLOTS_LIMIT);
         }
 
         return ok && bounded
-            ? new ParsedSlot(new CustomSlot(name, "number", optional, (int)Math.Ceiling(min), (int)Math.Floor(max), [], [], null), new NumberSlot(min, max, false))
+            ? new ParsedSlot(new CustomSlot(name, "number", optional, min, max, [], [], null), new NumberSlot(min, max, false))
             : null;
     }
 
