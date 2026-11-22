@@ -84,20 +84,36 @@ describe('lookStyle', () => {
     expect(style['--sw-font-mono']).toBe("'Evil Mono', ui-monospace, monospace");
   });
 
-  it('sets a colour and an ink token per extra colour, in order', () => {
+  it('sets a colour and an ink token per extra colour, keyed by name', () => {
     const extras = [
+      { name: 'extra-3', colour: '#333333', ink: '#fafafa' },
       { name: 'extra-1', colour: '#111111', ink: '#ffffff' },
-      { name: 'extra-2', colour: '#222222', ink: '#eeeeee' },
     ];
     const style = lookStyle(lookViewOf('talk', 'cobalt', { extras })) as Record<string, string>;
-    expect(Object.keys(style).filter((key) => key.includes('extra'))).toEqual([
-      '--sw-extra-1',
-      '--sw-extra-1-ink',
-      '--sw-extra-2',
-      '--sw-extra-2-ink',
-    ]);
-    expect(style['--sw-extra-2']).toBe('#222222');
-    expect(style['--sw-extra-2-ink']).toBe('#eeeeee');
+    expect(style['--sw-extra-3']).toBe('#333333');
+    expect(style['--sw-extra-3-ink']).toBe('#fafafa');
+    expect(style['--sw-extra-1']).toBe('#111111');
+    expect(style['--sw-extra-1-ink']).toBe('#ffffff');
+    expect(style).not.toHaveProperty('--sw-extra-2');
+    expect(style).not.toHaveProperty('--sw-extra-4');
+  });
+
+  it("keeps the deck's resolved value over the template's extra", () => {
+    const base = lookViewOf('talk', 'cobalt');
+    const look = lookViewOf('talk', 'cobalt', {
+      palette: {
+        ...base.palette,
+        tokens: {
+          ...base.palette.tokens,
+          'extra-1': '#abcdef',
+          'extra-1-ink': '#010101',
+        } as typeof base.palette.tokens,
+      },
+      extras: [{ name: 'extra-1', colour: '#111111', ink: '#ffffff' }],
+    });
+    const style = lookStyle(look) as Record<string, string>;
+    expect(style['--sw-extra-1']).toBe('#abcdef');
+    expect(style['--sw-extra-1-ink']).toBe('#010101');
   });
 
   it('sets no extra token on a built-in', () => {

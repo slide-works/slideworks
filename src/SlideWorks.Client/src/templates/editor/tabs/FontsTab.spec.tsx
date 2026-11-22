@@ -258,7 +258,7 @@ test('offers the mono family and a hint for a monospace file', async ({ mount, p
   await expect(tab.getByText(/gives the template its monospace font/)).toBeVisible();
   await expect(tab.getByLabel('Family of mono.woff2')).toHaveValue('Northwind Sans');
   await tab.getByLabel('Role of mono.woff2').selectOption('mono');
-  await expect(tab.getByLabel('Family of mono.woff2')).toHaveValue('Template Mono');
+  await expect(tab.getByLabel('Family of mono.woff2')).toHaveValue('Northwind kickoff pQz2Lm Mono');
 });
 
 test('screenshot: fonts tab with a refused file', async ({ mount, page }) => {

@@ -17,8 +17,19 @@ const FAMILIES: { field: FamilyField; label: string }[] = [
   { field: 'body', label: 'Body family' },
 ];
 
-// What a new monospace file's family starts as when the template has no mono file yet.
-const DEFAULT_MONO_FAMILY = 'Template Mono';
+// What a new monospace file's family starts as when the template has no mono file yet. Font faces
+// are registered globally, so it is specific to the template: its name and a fragment of its id,
+// in the characters a family name allows (letters, digits, spaces, hyphens; 60 at most).
+export function defaultMonoFamily(name: string, templateId: string): string {
+  const words = name
+    .replace(/[^A-Za-z0-9 -]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 36)
+    .trim();
+  const fragment = templateId.replace(/[^A-Za-z0-9]/g, '').slice(-6);
+  return [words.replace(/^-+|-+$/g, ''), fragment, 'Mono'].filter((part) => part !== '').join(' ');
+}
 
 const NOT_ALLOWED_YET = 'Tick the box above first: the right to serve fonts comes before any file.';
 
@@ -129,7 +140,8 @@ export function FontsTab({ draft, change, reload }: EditorTabProps) {
 
   const familyOf = (role: TemplateFontRole) =>
     role === 'mono'
-      ? (manifest.fonts.find((font) => font.role === 'mono')?.family ?? DEFAULT_MONO_FAMILY)
+      ? (manifest.fonts.find((font) => font.role === 'mono')?.family ??
+        defaultMonoFamily(draft.name, draft.id))
       : manifest.type[role];
 
   async function commitFamily(field: FamilyField) {

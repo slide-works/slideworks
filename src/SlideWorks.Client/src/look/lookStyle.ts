@@ -20,10 +20,15 @@ export function lookStyle(look: LookView): CSSProperties {
   const mono = look.fonts.find((font) => font.role === 'mono');
   if (mono !== undefined)
     style['--sw-font-mono'] = `${quoted(mono.family)}, ui-monospace, monospace`;
-  // An extra colour is keyed by its own name (extra-1 to extra-4), with its ink beside it.
+  // An extra colour is keyed by its own name (extra-1 to extra-4), with its ink beside it. The
+  // resolved palette is the source of truth (a deck may override a token): an extra fills only a
+  // token the palette does not already have.
+  const fill = (token: `--sw-${string}`, value: string) => {
+    if (!(token in style)) style[token] = value;
+  };
   for (const extra of look.extras) {
-    style[`--sw-${extra.name}`] = extra.colour;
-    style[`--sw-${extra.name}-ink`] = extra.ink;
+    fill(`--sw-${extra.name}`, extra.colour);
+    fill(`--sw-${extra.name}-ink`, extra.ink);
   }
   Object.assign(style, {
     '--sw-font-head': `'${type.head}', '${type.body}', system-ui, sans-serif`,
