@@ -15,7 +15,7 @@ public partial class Sw50TemplateJourneyTests : AcceptanceTest
     private const string NEW_DECK_TEMPLATES = """
         el => [...el.querySelectorAll('[data-testid^="new-deck-template-"]')].map(o => o.dataset.testid.slice('new-deck-template-'.length))
         """;
-    private const string HEAD_FONT = "el => getComputedStyle(el).getPropertyValue('--sw-font-head')";
+    private const string QUOTE_FONT = "el => getComputedStyle(el).fontFamily";
     private const string FACE_LOADED = """
         family => [...document.fonts].some(f => f.family.replace(/["']/g, '') === family && f.status === 'loaded')
             && document.fonts.check(`16px "${family}"`)
@@ -33,8 +33,7 @@ public partial class Sw50TemplateJourneyTests : AcceptanceTest
         await templates.GotoAsync();
         var row = templates.Row("mine", name);
         await Expect(row).ToHaveCountAsync(1);
-        await Expect(row.GetByTestId("template-status")).ToHaveAttributeAsync("data-status", "published");
-        await Expect(row.GetByTestId("template-status")).ToHaveAttributeAsync("data-version", "1");
+        await Expect(row.GetByTestId("template-status")).ToHaveTextAsync("Published · v1");
 
         await using var alexContext = await Browser.NewContextAsync(ContextOptions());
         var alexPage = await alexContext.NewPageAsync();
@@ -161,11 +160,11 @@ public partial class Sw50TemplateJourneyTests : AcceptanceTest
         samGet.Status.ShouldBe(200, await samGet.TextAsync());
     }
 
-    // The player draws in the template's face: the frame's head font starts with its family, and that face is loaded.
+    // The player draws in the template's face: the quote text's computed font-family starts with it, and that face is loaded.
     private static async Task AssertDrawnInFontAsync(IPage page)
     {
-        var head = await page.GetByTestId("slide-frame").EvaluateAsync<string>(HEAD_FONT);
-        head.Trim().ShouldStartWith($"'{FAMILY}'");
+        var head = await page.GetByTestId("quote-text").First.EvaluateAsync<string>(QUOTE_FONT);
+        head.Trim().Replace("\"", "'").ShouldStartWith($"'{FAMILY}'");
         var loaded = await Eventually.ReadAsync(() => page.EvaluateAsync<bool>(FACE_LOADED, FAMILY), ok => ok);
         loaded.ShouldBeTrue();
     }

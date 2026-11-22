@@ -1,15 +1,9 @@
-using System.Text.Json;
-
 namespace SlideWorks.AcceptanceTests.Pages;
 
 // The template editor at /templates/{id}/edit: the status chip, the tab bar, the Fonts tab and the publish checklist
 // with its Publish button, and Share.
 public sealed class TemplateEditorPage(IPage page)
 {
-    private const string CHECKLIST_PROBE = """
-        () => JSON.stringify(Object.fromEntries([...document.querySelectorAll('[data-testid="checklist-row"]')].map(r => [r.dataset.key, r.dataset.state])))
-        """;
-
     public ILocator Root => page.GetByTestId("template-editor");
 
     // "Draft", or "Published · v1" once published.
@@ -48,6 +42,11 @@ public sealed class TemplateEditorPage(IPage page)
     public static string PathFor(string templateId) => $"/templates/{templateId}/edit";
 
     // Every checklist row's state by its key ("pass", "fail" or "todo"), read from the whole checklist.
-    public async Task<Dictionary<string, string>> ChecklistAsync() =>
-        JsonSerializer.Deserialize<Dictionary<string, string>>(await page.EvaluateAsync<string>(CHECKLIST_PROBE)) ?? [];
+    public async Task<Dictionary<string, string>> ChecklistAsync()
+    {
+        var states = new Dictionary<string, string>();
+        foreach (var row in await page.GetByTestId("checklist-row").AllAsync())
+            states[await row.GetAttributeAsync("data-key") ?? string.Empty] = await row.GetAttributeAsync("data-state") ?? string.Empty;
+        return states;
+    }
 }

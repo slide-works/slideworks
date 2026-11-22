@@ -71,8 +71,6 @@ export function TemplateRowView({
       <td className={CELL}>
         <span
           data-testid={TEMPLATES_TEST_IDS.rowStatus}
-          data-status={row.status}
-          data-version={row.version}
           className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${status.tone}`}
         >
           {status.label}
