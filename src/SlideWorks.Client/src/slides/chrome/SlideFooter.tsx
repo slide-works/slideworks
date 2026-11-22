@@ -1,3 +1,5 @@
+import { useSlideLook } from './lookContext';
+import { hasTemplateLogoPair } from './templateLogos';
 import { TemplateLogo } from './layers/TemplateLogo';
 
 type SlideFooterProps = {
@@ -19,8 +21,11 @@ type SlideFooterProps = {
 // overflow it, so the text line stays at y = 1023 whatever they hold. A
 // line too long for the space left of them is cut short with an ellipsis.
 // The end span is always the footer's last child, empty when there is no chip
-// and no logo; the template's logo layer sits in it, after the deck's logo.
+// and no logo; the template's logo layer sits in it, after the deck's logo (which a
+// template logo pair replaces).
 export function SlideFooter({ number, total, deckTitle, meta, logoUrl, draft }: SlideFooterProps) {
+  // A template's light/dark pair wins over the deck's own logo (SW-554).
+  const templateWins = hasTemplateLogoPair(useSlideLook().logos);
   return (
     <div className="sw-footer" data-testid="slide-footer">
       <span className="sw-footer-text" data-testid="slide-footer-text">
@@ -33,7 +38,7 @@ export function SlideFooter({ number, total, deckTitle, meta, logoUrl, draft }: 
             Draft
           </span>
         ) : null}
-        {logoUrl !== null ? (
+        {logoUrl !== null && !templateWins ? (
           <img className="sw-logo" data-testid="slide-logo" src={logoUrl} alt="" />
         ) : null}
         <TemplateLogo placement="footer" />
