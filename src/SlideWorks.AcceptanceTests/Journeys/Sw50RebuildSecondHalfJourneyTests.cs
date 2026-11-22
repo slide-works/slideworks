@@ -7,7 +7,7 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests.Journeys;
 
-// SW-50 rebuild check, slides 23–44 of the 44-slide test deck, in made-up Northwind words at every slot's maximum, on a template
+// SW-50 rebuild check, slides 23–44 of the 44-slide test deck, in made-up Northwind words at every slot's maximum (except the slots marked "shortened" in SecondHalfSlides.cs), on a template
 // an agent uploaded a font to (the acceptance-test app stands in for prod, whose deck and brand are private). The slides come
 // from Rebuild/SecondHalfSlides.cs; the test keeps every one of them as text, accepted without a warning, inside its frame,
 // with its callout and its steps.

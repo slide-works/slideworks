@@ -1,14 +1,14 @@
 namespace SlideWorks.AcceptanceTests.Journeys.Rebuild;
 
-// Slides 23–44 of the 44-slide test deck, rebuilt as data: made-up Northwind text at every slot's documented maximum, every list at
-// the count seen on the compare sheet. Slides 24 and 34 are custom layouts (see SW-489) and are not here. Number is the slide's
-// number in the original deck; Part is the 1-based part to add it to; Callouts and Steps are what the original had and what the
-// layout reports; Surface is the add_slide surface (dark where the original is dark); Photo is true when the original is a photo or
+// Slides 23–44 of the 44-slide test deck, rebuilt as data: made-up Northwind text, at every slot's documented maximum except the slots marked "shortened" below (each names its row in
+// the SW-50 attachment "SW-50 rebuild check, slides 23–44.md"), every list at the count seen on the compare sheet. Slides 24 and 34 are custom layouts (see SW-489) and are not here. Number is the slide's
+// number in the original deck; Part is the 1-based part to add it to; Callouts is the rebuild's count (what the layout draws) and Steps what the layout reports; Surface is the add_slide surface (dark where the original is dark); Photo is true when the original is a photo or
 // a screenshot, so an img is expected (none in this half). A text's salt is the slide's number times 100 plus its place on the slide.
 public static class SecondHalfSlides
 {
     public static readonly IReadOnlyList<(int Number, string Layout, int? Part, string Kind, bool Photo, int Callouts, int Steps, string? Surface, Func<string, object> Slots)> ALL =
     [
+        // shortened: no badges, card title 40 and text 90 (row 23)
         (23, "cards", 5, "three cards, callout", false, 1, 0, null, _ => new
         {
             kicker = M(60, 2301), headline = M(100, 2302),
@@ -21,9 +21,10 @@ public static class SecondHalfSlides
             callout = new { tone = "accent", text = M(220, 2312) },
         }),
         (25, "divider", 6, "part divider", false, 0, 0, null, _ => new { title = M(44, 2501), sub = M(110, 2502) }),
-        (26, "statement", 6, "big statement, boxed line", false, 0, 0, null, _ => new
+        (26, "statement", 6, "big statement, sub line", false, 0, 0, null, _ => new
         {
             kicker = M(60, 2601), statement = M(70, 2602), sub = M(100, 2603),
+            emphasis = new[] { new { text = Last(M(70, 2602)), tone = "accent", @in = "statement" } },
         }),
         (27, "bullets", 6, "dark list, red callout", false, 1, 0, "dark", _ => new
         {
@@ -31,10 +32,12 @@ public static class SecondHalfSlides
             items = new object[] { M(200, 2703) },
             callout = new { tone = "negative", text = M(220, 2704) },
         }),
-        (28, "statement", 6, "big dark statement, boxed line", false, 0, 0, "dark", _ => new
+        (28, "statement", 6, "big dark statement, sub line", false, 0, 0, "dark", _ => new
         {
             statement = M(70, 2801), sub = M(100, 2802),
+            emphasis = new[] { new { text = Tail(M(100, 2802), 60), tone = "accent", @in = "sub" } }, // the original emphasises the whole sub line; the slot takes 60 characters
         }),
+        // shortened: no stamps, footers 60 (row 29)
         (29, "compare", 6, "two panels, rows, stamps", false, 0, 0, null, _ => new
         {
             kicker = M(60, 2901), headline = M(100, 2902),
@@ -60,6 +63,7 @@ public static class SecondHalfSlides
         (31, "quote", 6, "dark pull quote", false, 0, 0, "dark", _ => new
         {
             kicker = M(60, 3101), quote = M(280, 3102), attribution = M(80, 3103), role = M(160, 3104),
+            emphasis = new[] { new { text = Tail(M(280, 3102), 60), tone = "accent", @in = "quote" } }, // the original emphasises the second half of the quote; the slot takes 60 characters
         }),
         (32, "divider", 7, "part divider", false, 0, 0, null, _ => new { title = M(44, 3201), sub = M(110, 3202) }),
         (33, "numbered-cards", 7, "three numbered cards, callout", false, 1, 0, null, _ => new
@@ -73,14 +77,18 @@ public static class SecondHalfSlides
             },
             callout = new { tone = "accent", text = M(220, 3309) },
         }),
-        (35, "quote", 7, "light quote with source", false, 0, 0, null, _ => new
+        (35, "quote", 7, "dark quote with source", false, 0, 0, "dark", _ => new
         {
             kicker = M(60, 3501), quote = M(280, 3502), attribution = M(80, 3503), role = M(160, 3504), source = M(200, 3505),
+            emphasis = new[] { new { text = Head(M(280, 3502), 60), tone = "negative", @in = "quote" } },
         }),
+        // value is a number with a unit where the original has a word (row 36)
         (36, "big-number", 7, "one large figure, three ticks", false, 0, 0, null, _ => new
         {
-            kicker = M(60, 3601), headline = M(100, 3602), value = "360606 wks", caption = M(120, 3603), detail = M(200, 3604), source = M(100, 3605),
+            kicker = M(60, 3601), headline = M(100, 3602), value = "360606 wks",
+            emphasis = new[] { new { text = Last(M(100, 3602)), tone = "accent", @in = "headline" } }, caption = M(120, 3603), detail = M(200, 3604), source = M(100, 3605),
         }),
+        // shortened: cells 80, not 120 (row 37)
         (37, "table", 7, "two columns, struck rows", false, 0, 4, null, _ => new
         {
             kicker = M(60, 3701), headline = M(100, 3702), columns = new[] { M(30, 3703), M(30, 3704) }, reveal = "strike-and-answer",
@@ -106,6 +114,7 @@ public static class SecondHalfSlides
         {
             headline = M(39, 3901) + "\n" + M(40, 3902), sub = M(110, 3903), author = M(60, 3904),
         }),
+        // shortened: link sources 60 (row 40)
         (40, "links", 7, "four links and a code", false, 0, 0, null, _ => new
         {
             kicker = M(60, 4001), headline = M(100, 4002),
@@ -136,7 +145,8 @@ public static class SecondHalfSlides
             failure = new { label = M(24, 4303), title = M(50, 4304), tone = "positive", fill = "soft", points = new[] { M(90, 4305) }, footer = M(90, 4306) },
             success = new { label = M(24, 4307), title = M(50, 4308), tone = "negative", fill = "soft", points = new[] { M(90, 4309) }, footer = M(90, 4310) },
         }),
-        (44, "two-column", 8, "boxed text and evidence", false, 1, 0, null, _ => new
+        // shortened: right text 300, no left title (row 44)
+        (44, "two-column", 8, "boxed text, headed text", false, 1, 0, null, _ => new
         {
             kicker = M(60, 4401), headline = M(100, 4402),
             left = new { text = M(400, 4404) },
@@ -146,4 +156,34 @@ public static class SecondHalfSlides
     ];
 
     private static string M(int length, int salt) => MadeUpWords.Of(length, salt);
+
+    // The last word of a text, and the last {max} characters or fewer starting at a word: phrases that occur once in their text.
+    private static string Last(string text) => text[(text.LastIndexOf(' ') + 1)..];
+
+    // The first words, up to {max} characters: the capital letter makes the phrase occur once.
+    private static string Head(string text, int max) => text[..text.LastIndexOf(' ', max)];
+
+    private static string Tail(string text, int max)
+    {
+        // The made-up words repeat, so the window shrinks until the phrase occurs once.
+        for (var size = max; size > 0; size -= 4)
+        {
+            var from = Math.Max(0, text.Length - size);
+            if (from > 0)
+            {
+                var space = text.IndexOf(' ', from);
+                if (space < 0)
+                {
+                    break;
+                }
+                from = space + 1;
+            }
+            var phrase = text[from..];
+            if (text.IndexOf(phrase, StringComparison.Ordinal) == text.LastIndexOf(phrase, StringComparison.Ordinal))
+            {
+                return phrase;
+            }
+        }
+        return Last(text);
+    }
 }
