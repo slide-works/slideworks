@@ -162,6 +162,7 @@ export function PublishChecklist({ draft, reload, saving }: EditorTabProps) {
       <div className="flex flex-wrap items-center gap-2">
         <button
           ref={publishButton}
+          data-testid={TEMPLATES_TEST_IDS.publish}
           type="button"
           className="btn-primary"
           disabled={blocked}

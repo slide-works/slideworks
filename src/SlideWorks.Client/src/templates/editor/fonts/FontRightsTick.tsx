@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { TEMPLATES_TEST_IDS } from '../../testIds';
 
 type Props = {
   checked: boolean;
@@ -16,6 +17,7 @@ export function FontRightsTick({ checked, confirming, error, onConfirm }: Props)
       <label className="flex items-start gap-2 text-ink">
         <input
           type="checkbox"
+          data-testid={TEMPLATES_TEST_IDS.fontRights}
           className="mt-0.5"
           checked={checked}
           disabled={checked || confirming}

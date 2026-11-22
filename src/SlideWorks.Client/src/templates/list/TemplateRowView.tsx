@@ -45,7 +45,12 @@ export function TemplateRowView({
         <span data-testid={TEMPLATES_TEST_IDS.rowName} className="block font-semibold text-ink">
           {row.name}
         </span>
-        <span className="block font-mono text-[12px] text-ink-muted">{row.shortName}</span>
+        <span
+          data-testid={TEMPLATES_TEST_IDS.rowShortName}
+          className="block font-mono text-[12px] text-ink-muted"
+        >
+          {row.shortName}
+        </span>
         {kind === 'shared' && row.owner !== null && (
           <span className="block text-[12px] text-ink-muted">by {row.owner}</span>
         )}
@@ -65,6 +70,9 @@ export function TemplateRowView({
       </td>
       <td className={CELL}>
         <span
+          data-testid={TEMPLATES_TEST_IDS.rowStatus}
+          data-status={row.status}
+          data-version={row.version}
           className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${status.tone}`}
         >
           {status.label}
