@@ -4,6 +4,7 @@ import { AppRoutes } from '../AppRoutes';
 import { me } from '../test-support/fixtures/screens';
 import { layoutReview, templateEditor } from '../test-support/fixtures/templates';
 import { stubApi } from '../test-support/stubApi';
+import { stubTemplateAssets } from '../test-support/stubTemplateAssets';
 import { stubTemplatesApi } from '../test-support/stubTemplatesApi';
 import { StandInReview } from './LayoutReviewPage.fixtures';
 import { REVIEW_TEST_IDS, reviewRenderTestId } from './review/testIds';
@@ -223,6 +224,31 @@ test('a layout that is not the caller’s is not found', async ({ mount, page })
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(0);
   await expect(page.getByTestId(TEMPLATES_TEST_IDS.layoutReviewPage)).toBeVisible();
+});
+
+test('a failed re-read after a replacement offers Retry that measures again', async ({
+  mount,
+  page,
+}) => {
+  await stub(page, {
+    layoutReview: [{ json: fitting }, { status: 500 }, { json: fitting }],
+  });
+  await stubTemplateAssets(page, templateEditor.id);
+  await mount(<AppRoutes />, route);
+  await expect(approve(page)).toBeEnabled();
+
+  await page.getByTestId('layout-files').setInputFiles([
+    { name: 'l.html', mimeType: 'text/html', buffer: Buffer.from('<div class="chart"></div>') },
+    { name: 'l.css', mimeType: 'text/css', buffer: Buffer.from('.chart { color: red; }') },
+    {
+      name: 'l.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({ name: 'bar-chart', surface: 'light', slots: {} })),
+    },
+  ]);
+  await expect(page.getByText('Could not load this layout.')).toBeVisible();
+  await page.getByRole('button', { name: 'Retry' }).click();
+  await expect(approve(page)).toBeEnabled();
 });
 
 test('screenshot: layout review, needs review', async ({ mount, page }) => {

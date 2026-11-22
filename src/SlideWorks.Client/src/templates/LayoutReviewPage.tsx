@@ -328,7 +328,11 @@ function Review({
             replacing={name}
             onAccepted={() => {
               setMeasured(null);
-              void reread().then(() => setFocusStatus((count) => count + 1));
+              void reread().then((fresh) => {
+                // The new files could not be read back: measuring them needs the review, so offer Retry.
+                if (fresh === null) setState({ kind: 'failed', message: NOT_LOADED });
+                else setFocusStatus((count) => count + 1);
+              });
             }}
           />
         )}

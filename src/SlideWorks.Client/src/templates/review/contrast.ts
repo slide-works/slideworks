@@ -35,9 +35,10 @@ function ratioOf(fore: string, back: string): number | null {
 type Backdrop =
   | { kind: 'colour'; rgb: [number, number, number]; alpha: number }
   | { kind: 'gradient' }
-  | { kind: 'unreadable' };
+  | { kind: 'unreadable' }
+  | { kind: 'faded' };
 
-type Ground = Backdrop & { opacity: number };
+type Ground = Backdrop;
 
 const channelsOf = (rgb: string): [number, number, number] => {
   const [r, g, b] = (rgb.match(/\d+/g) ?? ['0', '0', '0']).map(Number);
@@ -61,17 +62,18 @@ function groundOf(from: HTMLElement, frame: HTMLElement): Ground {
     if (element === frame) break;
   }
   let backdrop: Backdrop = { kind: 'colour', rgb: [0, 0, 0], alpha: 0 };
-  let opacity = 1;
+  let faded = false;
   for (const element of chain) {
     const style = getComputedStyle(element);
-    opacity *= opacityOf(style);
+    // CSS paints an element with opacity as a group after its children, which this does not model.
+    if (opacityOf(style) < 1) faded = true;
     const hasImage = style.backgroundImage !== '' && style.backgroundImage !== 'none';
     const layer = colourOf(style.backgroundColor);
     if (layer === null) {
       backdrop = { kind: 'unreadable' };
       continue;
     }
-    const alpha = layer.alpha * opacity;
+    const alpha = layer.alpha;
     if (hasImage) {
       backdrop = { kind: 'gradient' };
       continue;
@@ -83,12 +85,14 @@ function groundOf(from: HTMLElement, frame: HTMLElement): Ground {
       continue;
     }
     const fore = channelsOf(layer.rgb);
-    const { rgb: behind, alpha: behindAlpha } = backdrop;
-    const total = alpha + behindAlpha * (1 - alpha);
-    const mix = (i: number) => (fore[i] * alpha + behindAlpha * behind[i] * (1 - alpha)) / total;
+    const behind: [number, number, number] = backdrop.rgb;
+    const behindAlpha: number = backdrop.alpha;
+    const total: number = alpha + behindAlpha * (1 - alpha);
+    const mix = (i: number): number =>
+      (fore[i] * alpha + behindAlpha * behind[i] * (1 - alpha)) / total;
     backdrop = { kind: 'colour', rgb: [mix(0), mix(1), mix(2)], alpha: total };
   }
-  return { ...backdrop, opacity };
+  return faded ? { kind: 'faded' } : backdrop;
 }
 
 type Run = { node: Text; element: HTMLElement; ground: Ground };
@@ -122,6 +126,10 @@ export function lowContrastOf(frame: HTMLElement): string[] {
       found.push(`${start} has a colour that could not be read, so its contrast was not checked`);
       continue;
     }
+    if (ground.kind === 'faded') {
+      found.push(`${start} sits under opacity, so its contrast can't be measured`);
+      continue;
+    }
     if (ground.kind === 'gradient') {
       found.push(`${start} sits on a gradient or image, so its contrast was not checked`);
       continue;
@@ -130,7 +138,7 @@ export function lowContrastOf(frame: HTMLElement): string[] {
       found.push(`${start} sits on a see-through background, so its contrast was not checked`);
       continue;
     }
-    const alpha = fore.alpha * ground.opacity;
+    const alpha = fore.alpha;
     const text = channelsOf(fore.rgb);
     const blended = text.map((channel, i) =>
       Math.round(channel * alpha + ground.rgb[i] * (1 - alpha)),

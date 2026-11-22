@@ -99,6 +99,11 @@ test('an accepted upload saves the draft with the layout', async ({ mount, page 
     save: { json: saved },
     layoutReview: { json: layoutReview },
   });
+  const uploaded: string[] = [];
+  await page.route('**/api/template-uploads/*', (route) => {
+    if (route.request().method() === 'PUT') uploaded.push(route.request().postData() ?? '');
+    return route.fallback();
+  });
   await picker.setInputFiles(files());
 
   const link = tab.getByRole('link', { name: 'Review bar-chart' });
@@ -108,6 +113,13 @@ test('an accepted upload saves the draft with the layout', async ({ mount, page 
   expect(sentManifest(save?.body).customLayouts).toEqual([{ name: 'bar-chart', file: 'new-tok0' }]);
   // The upload is one JSON document built from the three files.
   expect(log.filter((line) => line.startsWith('put'))).toHaveLength(1);
+  expect(uploaded.map((body) => JSON.parse(body))).toEqual([
+    {
+      markup: '<div class="chart"></div>',
+      css: '.chart { color: red; }',
+      slots: JSON.parse(slotsJson),
+    },
+  ]);
 });
 
 test('replacing the files returns the layout to Needs review', async ({ mount, page }) => {
@@ -206,22 +218,31 @@ test('a failed remove says so and keeps the layout', async ({ mount, page }) => 
   await expect(tab.getByTestId('custom-layout-row')).toHaveCount(1);
 });
 
-// Saves that answer with the manifest they were sent, as the server does.
-async function echoSaves(page: Page) {
+// Saves that answer with the manifest they were sent, as the server does. A save whose layouts
+// include `hold` waits until `release()`; `arrived` resolves when that save has been sent.
+async function echoSaves(page: Page, hold?: string) {
   const sent: TemplateManifest['customLayouts'][] = [];
-  await page.route(new RegExp(`/api/templates/${id}$`), (route) => {
+  let release = () => {};
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  let arrive = () => {};
+  const arrived = new Promise<void>((resolve) => (arrive = resolve));
+  await page.route(new RegExp(`/api/templates/${id}$`), async (route) => {
     const request = route.request();
     if (request.method() !== 'PUT') return route.fallback();
     const { manifest, revision } = request.postDataJSON() as {
       manifest: TemplateManifest;
       revision: number;
     };
+    if (hold !== undefined && manifest.customLayouts.some(({ name }) => name === hold)) {
+      arrive();
+      await gate;
+    }
     sent.push(manifest.customLayouts);
     return route.fulfill({
       json: { ...templateEditor, revision: revision + 1, manifest },
     });
   });
-  return sent;
+  return { sent, release, arrived };
 }
 
 const names = (layouts: TemplateManifest['customLayouts']) => layouts.map(({ name }) => name);
@@ -232,7 +253,7 @@ const two = [
 
 test('removing two layouts at once removes both', async ({ mount, page }) => {
   const { tab } = await open(page, mount, { get: draftWith(two) });
-  const sent = await echoSaves(page);
+  const { sent } = await echoSaves(page);
 
   // Both clicks land in one tick, before the first save has answered.
   await tab
@@ -245,16 +266,19 @@ test('removing two layouts at once removes both', async ({ mount, page }) => {
 
 test('an upload that overlaps a removal keeps both changes', async ({ mount, page }) => {
   const { tab, picker } = await open(page, mount, { get: draftWith(two) });
-  const sent = await echoSaves(page);
+  const { sent, release, arrived } = await echoSaves(page, 'donut');
 
-  const uploading = picker.setInputFiles(
-    files(JSON.stringify({ name: 'donut', surface: 'light', slots: {} })),
-  );
+  await picker.setInputFiles(files(JSON.stringify({ name: 'donut', surface: 'light', slots: {} })));
+  // The upload's save is on the wire and held: remove a layout now, then let the save through.
+  await arrived;
   await tab.getByRole('button', { name: 'Remove layout funnel' }).click();
-  await uploading;
+  release();
 
-  await expect(tab.getByTestId('custom-layout-row')).toHaveCount(2);
+  await expect.poll(() => sent.length).toBe(2);
+  expect(sent.map(names)).toEqual([
+    ['bar-chart', 'funnel', 'donut'],
+    ['bar-chart', 'donut'],
+  ]);
   await expect(tab.locator('[data-layout-name="funnel"]')).toHaveCount(0);
-  // Whichever saved first, the last list holds the upload and not the removed layout.
-  expect(names(sent[sent.length - 1]).sort()).toEqual(['bar-chart', 'donut']);
+  await expect(tab.locator('[data-layout-name="donut"]')).toHaveCount(1);
 });

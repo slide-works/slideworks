@@ -130,14 +130,35 @@ describe('lowContrastOf', () => {
     ]);
   });
 
-  it('multiplies the opacity of an ancestor into the text', () => {
+  it('fails closed under an ancestor with opacity', () => {
     const frame = frameOf(
       { background: 'rgb(255, 255, 255)' },
       { color: 'rgb(0, 0, 0)', fontSize: '24px' },
       'Faded out',
       { opacity: '0.05' },
     );
-    expect(lowContrastOf(frame)).toEqual(['Faded out 1.1:1, needs 4.5']);
+    expect(lowContrastOf(frame)).toEqual([
+      "Faded out sits under opacity, so its contrast can't be measured",
+    ]);
+  });
+
+  it('fails closed on nested backgrounds under an opacity ancestor', () => {
+    // Opacity composites the group after its children: no per-layer ratio is trusted.
+    const frame = frameOf(
+      { background: 'rgb(255, 255, 255)' },
+      { color: 'rgb(60, 60, 60)', fontSize: '24px' },
+      'Nested',
+      { opacity: '0.5', background: 'rgb(0, 0, 0)' },
+    );
+    const inner = document.createElement('section');
+    inner.style.background = 'rgb(255, 255, 255)';
+    const holder = frame.querySelector('[data-custom-layout-body] > div') as HTMLElement;
+    const line = holder.querySelector('p') as HTMLElement;
+    inner.append(line);
+    holder.append(inner);
+    expect(lowContrastOf(frame)).toEqual([
+      "Nested sits under opacity, so its contrast can't be measured",
+    ]);
   });
 
   it('fails closed when the layout was not drawn', () => {
