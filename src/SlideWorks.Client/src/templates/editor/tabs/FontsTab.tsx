@@ -26,7 +26,7 @@ export function defaultMonoFamily(name: string, templateId: string): string {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 36)
-    .trim();
+    .replace(/^[\s-]+|[\s-]+$/g, '');
   const fragment = templateId.replace(/[^A-Za-z0-9]/g, '').slice(-6);
   return [words.replace(/^-+|-+$/g, ''), fragment, 'Mono'].filter((part) => part !== '').join(' ');
 }

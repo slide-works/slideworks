@@ -253,12 +253,32 @@ test('shows a refused family beside its field and keeps what was typed', async (
 test('offers the mono family and a hint for a monospace file', async ({ mount, page }) => {
   const mono = storedAsset(id, 'm0n0feed', 'font', 'mono.woff2', true);
   const withFile = view({ fonts: [] }, [...notFont, mono]);
-  const { tab } = await open(page, mount, [withFile]);
+  const monoFont: TemplateManifest['fonts'][number] = {
+    role: 'mono',
+    family: 'Northwind kickoff pQz2Lm Mono',
+    file: 'm0n0feed',
+    weight: 400,
+    style: 'normal',
+  };
+  const added = view({ fonts: [monoFont] }, [...notFont, mono]);
+  const { tab, requests } = await open(page, mount, [withFile], {
+    save: [{ json: added }, { json: withFile }],
+  });
 
   await expect(tab.getByText(/gives the template its monospace font/)).toBeVisible();
   await expect(tab.getByLabel('Family of mono.woff2')).toHaveValue('Northwind Sans');
   await tab.getByLabel('Role of mono.woff2').selectOption('mono');
   await expect(tab.getByLabel('Family of mono.woff2')).toHaveValue('Northwind kickoff pQz2Lm Mono');
+
+  await tab.getByRole('button', { name: 'Add mono.woff2 to the template' }).click();
+  await expect(
+    tab.getByText('Northwind kickoff pQz2Lm Mono, mono, weight 400, normal'),
+  ).toBeVisible();
+  await tab.getByRole('button', { name: 'Remove mono.woff2' }).click();
+  await expect(tab.getByRole('button', { name: 'Remove mono.woff2' })).toHaveCount(0);
+  const saves = requests.filter((request) => request.call === 'save');
+  expect(sentManifest(saves[0].body).fonts).toEqual([monoFont]);
+  expect(sentManifest(saves[1].body).fonts).toEqual([]);
 });
 
 test('screenshot: fonts tab with a refused file', async ({ mount, page }) => {

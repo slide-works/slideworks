@@ -17,4 +17,16 @@ describe('defaultMonoFamily', () => {
       'Xx77 Mono'.replace('Xx77', 'Yy88Xx77'.slice(-6)),
     );
   });
+
+  it.each([
+    ['- Northwind -', 'Northwind pQz2Lm Mono'],
+    ['  --  A   B  --  ', 'A B pQz2Lm Mono'],
+    ['!!! ---', 'pQz2Lm Mono'],
+    ['Café Zürich', 'Caf Zrich pQz2Lm Mono'],
+    ['日本語', 'pQz2Lm Mono'],
+  ])('keeps a valid family for the name %j', (name, expected) => {
+    const family = defaultMonoFamily(name, 'tpl_Nw4kT8pQz2Lm');
+    expect(family).toBe(expected);
+    expect(family).toMatch(/^[A-Za-z0-9]([A-Za-z0-9 -]*[A-Za-z0-9])?$/);
+  });
 });
