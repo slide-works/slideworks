@@ -282,8 +282,9 @@ public class CustomLayoutStoreTests : ApiTestFixture
 
         var response = await PublishAsync(id);
 
+        // ManifestJson.Parse refuses a repeated customLayouts[].name (SW-462) before the layouts row runs.
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        await ShouldBeRefusedAsync(response, "layout_not_found", id, "customLayouts[1].name");
+        await ShouldBeRefusedAsync(response, "manifest_invalid", id, "customLayouts[1].name");
     }
 
     [Test]
