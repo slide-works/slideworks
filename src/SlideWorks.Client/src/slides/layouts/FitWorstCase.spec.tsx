@@ -297,6 +297,16 @@ test('worst cases the server refuses are left out', () => {
   ).toEqual([]);
 });
 
+test('every KNOWN_OVERFLOWS key names a legal generated case', () => {
+  const legalLabels = new Set(
+    CASES.filter((c) => c.legal).map((c) => `${c.fixture} ${labelOf(c)}`),
+  );
+  expect(
+    Object.keys(KNOWN_OVERFLOWS).filter((key) => !legalLabels.has(key)),
+    'KNOWN_OVERFLOWS keys with no legal generated case (fixture removed or renamed)',
+  ).toEqual([]);
+});
+
 for (const [name, cases] of byFixture) {
   test(`worst legal text stays inside the content box: ${name}`, async ({ mount, page }) => {
     await stubApi(page, {});
