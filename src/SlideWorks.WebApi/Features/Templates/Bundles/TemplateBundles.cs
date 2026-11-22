@@ -255,6 +255,7 @@ public sealed class TemplateBundles(
         using var zip = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true);
         foreach (var reference in ManifestFiles.Refs(manifest))
         {
+            // Layout names are unique by the manifest rule, so no two layouts write the same entries.
             if (!rows.TryGetValue(reference.Value, out var row))
             {
                 throw new InvalidOperationException($"Template {templateId} names a file {reference.Value} that it does not hold.");

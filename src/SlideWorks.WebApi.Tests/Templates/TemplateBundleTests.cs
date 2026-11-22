@@ -98,9 +98,11 @@ public class TemplateBundleTests : ApiTestFixture
         var before = await SnapshotAsync();
         var zeros = new byte[TemplateLimits.MAX_BUNDLE_BYTES + 1024 * 1024];
 
-        var response = await ImportAsync(SampleBundle(zip => AddBytes(zip, "fonts/zeros.bin", zeros)));
+        var bundle = SampleBundle(zip => AddBytes(zip, "fonts/zeros.bin", zeros));
 
-        response.Content.Headers.ContentLength.GetValueOrDefault().ShouldBeLessThan(TemplateLimits.MAX_BUNDLE_BYTES);
+        var response = await ImportAsync(bundle);
+
+        bundle.Length.ShouldBeLessThan(TemplateLimits.MAX_BUNDLE_BYTES);
         await ShouldRefuseAsync(response, "bundle_too_large");
         (await SnapshotAsync()).ShouldBe(before);
     }
@@ -174,7 +176,7 @@ public class TemplateBundleTests : ApiTestFixture
         (await SnapshotAsync()).ShouldBe(before);
     }
 
-    [TestCase(1u)]
+    [TestCase(100_000u)]
     [TestCase(100_000_000u)]
     public async Task Import_WhenAnEntryLiesAboutItsSize_ShouldRefuse(uint declared)
     {
@@ -183,7 +185,54 @@ public class TemplateBundleTests : ApiTestFixture
 
         var response = await ImportAsync(bundle);
 
+        await ShouldRefuseAsync(response, declared > TemplateLimits.MAX_BUNDLE_BYTES ? "bundle_too_large" : "bundle_invalid");
+        (await SnapshotAsync()).ShouldBe(before);
+    }
+
+    // A size below the real one is not something to detect: the unpacker stops at the declared size, so what is checked
+    // is exactly what would be stored, and the cut-off font fails its own check.
+    [Test]
+    public async Task Import_WhenAnEntryDeclaresLessThanItHolds_ShouldRefuseTheTruncatedFile()
+    {
+        var before = await SnapshotAsync();
+
+        var response = await ImportAsync(DeclareSize(SampleBundle(), "fonts/northwind-text-400.woff2", 1));
+
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await SnapshotAsync()).ShouldBe(before);
+    }
+
+    [Test]
+    public async Task Import_WhenTheCentralDirectoryIsCorrupt_ShouldRefuseWithNothingWritten()
+    {
+        var before = await SnapshotAsync();
+        var bundle = SampleBundle();
+        for (var i = 0; i + 4 <= bundle.Length; i++)
+        {
+            if (bundle[i] == 0x50 && bundle[i + 1] == 0x4B && bundle[i + 2] == 1 && bundle[i + 3] == 2)
+            {
+                bundle[i + 2] = 9;
+                break;
+            }
+        }
+
+        var response = await ImportAsync(bundle);
+
+        await ShouldRefuseAsync(response, "bundle_invalid");
+        (await SnapshotAsync()).ShouldBe(before);
+    }
+
+    [Test]
+    public async Task Import_WhenTwoCustomLayoutsShareAName_ShouldRefuseBeforeWriting()
+    {
+        var before = await SnapshotAsync();
+        var manifest = SampleManifest().Replace(
+            "\"file\": \"layouts/stage-ladder\"\n    }", "\"file\": \"layouts/stage-ladder\"\n    },\n    {\"name\": \"stage-ladder\", \"file\": \"layouts/other\"}", StringComparison.Ordinal);
+        manifest.ShouldContain("layouts/other");
+
+        var response = await ImportAsync(SampleBundle(manifest: manifest));
+
+        await ShouldRefuseAsync(response, "bundle_invalid");
         (await SnapshotAsync()).ShouldBe(before);
     }
 

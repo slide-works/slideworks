@@ -30,6 +30,19 @@ internal sealed class BundleArchive
 
     public static BundleArchive Open(ZipArchive zip)
     {
+        try
+        {
+            return OpenChecked(zip);
+        }
+        catch (InvalidDataException)
+        {
+            // The central directory is read when the entries are first listed, so a corrupt one fails here.
+            throw Invalid("its directory can't be read");
+        }
+    }
+
+    private static BundleArchive OpenChecked(ZipArchive zip)
+    {
         if (zip.Entries.Count > TemplateLimits.MAX_BUNDLE_ENTRIES)
         {
             throw TemplateRefusal.Of(TemplateErrorCodes.BUNDLE_TOO_LARGE);
@@ -95,6 +108,10 @@ internal sealed class BundleArchive
         catch (Exception e) when (e is InvalidDataException or NotSupportedException)
         {
             throw Invalid("an entry can't be unpacked");
+        }
+        if (result.Length != entry.Length)
+        {
+            throw Invalid("an entry's size is not the size its header claims");
         }
         if (IsBomb(result.Length, entry.CompressedLength))
         {
