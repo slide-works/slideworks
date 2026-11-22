@@ -78,11 +78,10 @@ includes the test where the time runs out. Step the clock past the bound; never 
 When a change touches retry or re-read behaviour, test the rate, not only how many calls are in flight: make the
 server fail, drive events with fake timers, and count the calls in a fixed span. From
 `src/SlideWorks.Client/src/qa/guest/QuestionsLive.test.tsx` ("a failing GET under a stream of higher tallies and room
-pushes reads at most 4 times in 10 seconds"; the `describe` calls `vi.useFakeTimers()`):
+pushes reads at most 4 times in 10 seconds"; the `describe` calls `vi.useFakeTimers()`, and the test first makes every
+read fail with `api.getQuestions.mockRejectedValue(failure)`):
 
 ```tsx
-    api.getQuestions.mockRejectedValue(failure);
-
     for (let step = 1; step <= 20; step += 1) {
       await tick(500);
       await hub.push(higherTally(1 + Math.floor(step / 4)));
@@ -99,21 +98,22 @@ pushes reads at most 4 times in 10 seconds"; the `describe` calls `vi.useFakeTim
 `DeckEventsUntilMarker` subscribes to `IDeckEvents` for one deck. `BeforeMarkerAsync` publishes a marker
 `DeckChanged`, reads until it arrives and returns the events before it. Assert on that list in the test. Never use
 `TryRead` with a timeout: it passes when the event is merely slow. From
-`src/SlideWorks.WebApi.Tests/Presenting/SetTalkLengthToolTests.cs`:
+`src/SlideWorks.WebApi.Tests/Presenting/SetTalkLengthToolTests.cs`
+(`SetTalkLength_WhenNotTheOwner_ShouldSayDeckNotFoundAndChangeNothing`, which expects none):
 
 ```csharp
+        var deck = await DeckSeed.CreateDeckAsync(sam);
         using var events = DeckEventsUntilMarker.Subscribe(Factory.Services.GetRequiredService<IDeckEvents>(), deck);
-```
 
-then, for exactly one event and for none:
+        (await SlideCalls.ErrorAsync(alex, "set_talk_length", new { deck, minutes })).ShouldBe("Deck not found");
 
-```csharp
-        (await events.BeforeMarkerAsync()).ShouldHaveSingleItem().ShouldBeOfType<DeckChanged>().DeckId.ShouldBe(deck);
-```
-
-```csharp
+        (await GetDeckAsync(sam, deck)).GetProperty("talk_minutes").ValueKind.ShouldBe(JsonValueKind.Null);
+        (await DeckSeed.ActivityAsync(Client, deck)).Count.ShouldBe(1);
         (await events.BeforeMarkerAsync()).ShouldBeEmpty();
 ```
+
+For exactly one event, the same file's first test asserts
+`(await events.BeforeMarkerAsync()).ShouldHaveSingleItem().ShouldBeOfType<DeckChanged>()` on the list instead.
 
 ## Open a race window with a Gate
 
@@ -148,38 +148,72 @@ Measure durations with `TimeProvider.GetTimestamp` and `GetElapsedTime`, never w
 
 - **WebApi.Tests:** the fixture's `Clock` is a `FakeTimeProvider`; `Clock.Advance` moves both clocks. To step the
   wall clock alone (NTP, a VM resuming), wrap it in `WallStepClock`. From
-  `src/SlideWorks.WebApi.Tests/Presenting/PresentationWallClockTests.cs`:
+  `src/SlideWorks.WebApi.Tests/Presenting/PresentationWallClockTests.cs`, the swap:
 
   ```csharp
       protected override Action<IServiceCollection>? ConfigureTestServices => services => services
           .AddSingleton<TimeProvider>(new WallStepClock(Clock));
 
       private WallStepClock Wall => (WallStepClock)Factory.Services.GetRequiredService<TimeProvider>();
+
+      private IPresentations Registry => Factory.Services.GetRequiredService<IPresentations>();
   ```
 
+  and a test that steps both
+  (`UpdatePresentation_WhenTheWallClockStepsForwardAfterTheTimerStarted_ShouldCountOnlyTheTimeThatPassed`):
+
   ```csharp
+          var owner = await ConnectAsync(TestUser.Sam);
+          await owner.JoinAsync(deck, "k-1");
+          await owner.UpdateAsync(deck, 2, 0);
+
           Clock.Advance(TimeSpan.FromSeconds(30));
           Wall.StepWall(TimeSpan.FromMinutes(5));
           var state = await owner.UpdateAsync(deck, 3, 0);
+
+          var timer = state.GetProperty("timer");
+          (timer.GetProperty("state").GetString(), timer.GetProperty("elapsedMs").GetInt64()).ShouldBe(("running", 30000L));
   ```
 
 - **Acceptance journeys:** the app is shared and runs on real time, so it uses `StepClock` (the real clock plus
-  offsets) as `AcceptanceApp.Clock`. A journey that steps it resets it in `TearDown`. `AcceptanceApp.Hubs` aborts
-  every hub connection from the server, to drive a reconnect without a Playwright WebSocket route. From
-  `src/SlideWorks.AcceptanceTests/Journeys/TimingSeamJourneyTests.cs`:
+  offsets) as `AcceptanceApp.Clock`. A journey that steps it resets it in `TearDown`. From
+  `src/SlideWorks.AcceptanceTests/Journeys/TimingSeamJourneyTests.cs`, a rate limit refuses and the clock steps past
+  its window:
 
   ```csharp
-      [TearDown]
-      public void ResetSeams() => AcceptanceApp.ResetSeams();
-  ```
+          refused.ShouldBeTrue($"registration should be refused within {RegistrationLimiter.PER_MINUTE + 1} calls");
 
-  ```csharp
-          AcceptanceApp.Clock.Advance(TimeSpan.FromSeconds(61));
+          AcceptanceApp.Clock.Advance(PAST_THE_WINDOW);
 
           using var again = await RegisterAsync(http);
           again.StatusCode.ShouldBe(HttpStatusCode.Created, await again.Content.ReadAsStringAsync());
+      }
   ```
 
-  The OAuth registration limit is per caller address, and every journey calls from 127.0.0.1. After a journey steps
-  past a window and resets, the window it opened starts in the future, so the next ~2 minutes allow only 9 more
-  registrations over HTTP. `AgentSeed` registers through the container and is not limited.
+  Resetting the clock does not undo what the app kept while it was stepped. The OAuth registration limit keeps a
+  window per caller address, every journey calls from 127.0.0.1, and a window opened 61 s ahead would cap every journey
+  after it for about two real minutes. So that journey's `TearDown` steps past every window and lets the limiter's own
+  sweep drop them before it resets, and the next journey in the class registers a whole window to prove it:
+
+  ```csharp
+      [TearDown]
+      public void ResetSeams()
+      {
+          AcceptanceApp.Clock.Advance(PAST_EVERY_WINDOW);
+          AcceptanceApp.Services.GetRequiredService<RegistrationLimiter>().TryAcquire(NO_JOURNEY, out _);
+          AcceptanceApp.ResetSeams();
+      }
+  ```
+
+  `AcceptanceApp.Hubs` aborts every hub connection from the server, to drive a reconnect without a Playwright
+  WebSocket route. Wait for the reopen under the person's own key, so another connection can't satisfy it:
+
+  ```csharp
+          var samOpened = HubAborts.OpenedBy(TestUser.Sam.Email);
+          var opened = AcceptanceApp.Hubs.Opens.CallsFor(samOpened);
+
+          AcceptanceApp.Hubs.AbortAll().ShouldBeGreaterThan(0, "the presenter window should have a hub connection to abort");
+          await AcceptanceApp.Hubs.Opens.WhenCalledAsync(samOpened, opened + 1, TimeSpan.FromSeconds(30));
+  ```
+
+  `AgentSeed` registers OAuth clients through the container, so it is not rate-limited.
