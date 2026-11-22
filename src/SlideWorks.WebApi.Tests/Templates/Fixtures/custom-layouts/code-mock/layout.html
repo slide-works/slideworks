@@ -1,0 +1,22 @@
+<div class="page">
+  <div class="head">
+    <p class="kicker" data-slot="kicker"></p>
+    <h2 class="headline" data-slot="headline"></h2>
+  </div>
+  <div class="cols">
+    <div class="main">
+      <div class="editor">
+        <div class="bar"><span class="file" data-slot="file"></span></div>
+        <div class="code">
+          <div class="line" data-each="lines">
+            <span class="src" data-slot="code"></span>
+            <span class="ghost" data-if="ghost" data-slot="ghost"></span>
+          </div>
+        </div>
+      </div>
+      <p class="hint" data-slot="hint"></p>
+      <div class="tiles" data-slot="facts"></div>
+    </div>
+    <div class="ladder" data-slot="levels"></div>
+  </div>
+</div>

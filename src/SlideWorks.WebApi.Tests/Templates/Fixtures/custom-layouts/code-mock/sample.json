@@ -1,0 +1,28 @@
+{
+  "kicker": "Level one - autocomplete",
+  "headline": "It finishes your line, and you decide whether to keep it",
+  "file": "invoice_totals.py",
+  "lines": [
+    { "code": "def total(order):" },
+    { "code": "    subtotal = sum(i.price for i in order.items)" },
+    { "code": "    discount = order.coupon.rate * subtotal", "ghost": " if order.coupon else 0" },
+    { "code": "    return subtotal - discount" }
+  ],
+  "hint": "Grey text is the suggestion. Tab keeps it.",
+  "facts": [
+    { "label": "Accepted", "value": "3 in 10" },
+    { "label": "Time saved", "value": "minutes a day" },
+    { "label": "Review", "value": "still yours" }
+  ],
+  "levels": {
+    "title": "Five levels of autonomy",
+    "items": [
+      { "text": "The lights-out factory", "mark": "5" },
+      { "text": "Write the spec, walk away", "mark": "4" },
+      { "text": "You review its work all day", "mark": "3" },
+      { "text": "Pairing with a junior", "mark": "2" },
+      { "text": "An intern for small tasks", "mark": "1" },
+      { "text": "Autocomplete", "mark": "0", "state": "current" }
+    ]
+  }
+}

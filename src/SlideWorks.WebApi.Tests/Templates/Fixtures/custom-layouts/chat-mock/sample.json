@@ -1,0 +1,27 @@
+{
+  "reveal": "one-by-one",
+  "kicker": "Level two - a chat beside the editor",
+  "headline": "You ask in plain words, and it answers with code",
+  "messages": [
+    { "from": "me", "text": "Why does the Northwind export drop the last row?" },
+    { "from": "bot", "text": "The loop stops one early. It should run to the end of the list.", "code": "for i in range(len(rows)):" },
+    { "from": "me", "text": "Fix it and add a test." },
+    { "from": "bot", "text": "Done. The test fails without the change and passes with it." }
+  ],
+  "hint": "Answers in seconds, checked by you.",
+  "facts": [
+    { "label": "Questions", "value": "a few a day" },
+    { "label": "Right first time", "value": "most of them" }
+  ],
+  "levels": {
+    "title": "Five levels of autonomy",
+    "items": [
+      { "text": "The lights-out factory", "mark": "5" },
+      { "text": "Write the spec, walk away", "mark": "4" },
+      { "text": "You review its work all day", "mark": "3" },
+      { "text": "Pairing with a junior", "mark": "2", "state": "current" },
+      { "text": "An intern for small tasks", "mark": "1" },
+      { "text": "Autocomplete", "mark": "0" }
+    ]
+  }
+}

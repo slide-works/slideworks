@@ -1,0 +1,23 @@
+{
+  "reveal": "one-by-one",
+  "kicker": "Act two - levels 2 and 3",
+  "headline": "The agents took the routine work, and the team sped up",
+  "lanes": [
+    { "who": "Agent", "task": "migrating the pricing tests", "progress": 80, "state": "running", "status": "running" },
+    { "who": "Agent", "task": "upgrading the quote service", "progress": 45, "state": "running", "status": "running" },
+    { "who": "Agent", "task": "upgrading the invoice job", "progress": 30, "state": "running", "status": "running" },
+    { "who": "You", "task": "reviewing all of it", "progress": 15, "state": "waiting", "status": "behind" }
+  ],
+  "lead": "Agents now run migrations across many systems that used to take the Northwind teams a quarter.",
+  "levels": {
+    "title": "Five levels of autonomy",
+    "items": [
+      { "text": "The lights-out factory", "mark": "5" },
+      { "text": "Write the spec, walk away", "mark": "4" },
+      { "text": "You review its work all day", "mark": "3", "state": "current" },
+      { "text": "Pairing with a junior", "mark": "2", "state": "current" },
+      { "text": "An intern for small tasks", "mark": "1" },
+      { "text": "Autocomplete", "mark": "0" }
+    ]
+  }
+}

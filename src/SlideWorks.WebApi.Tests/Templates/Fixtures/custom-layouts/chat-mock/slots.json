@@ -1,0 +1,21 @@
+{
+  "name": "chat-mock",
+  "description": "A chat mock-up of up to four messages, with fact tiles and a ladder of levels.",
+  "surface": "either",
+  "steps": "messages",
+  "slots": {
+    "kicker": { "type": "text", "max": 40, "optional": true },
+    "headline": { "type": "text", "max": 80 },
+    "messages": {
+      "type": "list", "min": 1, "max": 4,
+      "of": {
+        "from": { "type": "enum", "values": ["me", "bot"] },
+        "text": { "type": "text", "max": 120 },
+        "code": { "type": "text", "max": 80, "optional": true }
+      }
+    },
+    "hint": { "type": "text", "max": 80, "optional": true },
+    "facts": { "type": "facts", "optional": true },
+    "levels": { "type": "levels" }
+  }
+}
