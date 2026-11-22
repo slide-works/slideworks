@@ -246,12 +246,14 @@ function slideOf(c: WorstCase): RenderableSlide {
   } as RenderableSlide;
 }
 
-// What the layout draws, in layout px: the frame's used width over its drawn width undoes any
-// transform a player or thumbnail puts on it.
+// What the layout draws, in layout px. The slide is drawn at scale 1 (no player
+// or thumbnail transform), checked here, so its canvas px are layout px.
 async function drawnInLayoutPx(page: Page, layout: string): Promise<Box> {
-  const scale = await page
-    .getByTestId('slide-frame')
-    .evaluate((frame: HTMLElement) => frame.offsetWidth / frame.getBoundingClientRect().width);
+  const frame = await page.getByTestId('slide-frame').evaluate((el: HTMLElement) => ({
+    used: [el.offsetWidth, el.offsetHeight],
+    drawn: [el.getBoundingClientRect().width, el.getBoundingClientRect().height],
+  }));
+  expect(frame.drawn, 'the slide is drawn at scale 1').toEqual(frame.used);
   // paintedExtent where the layout has a body (a rules numeral ends at its
   // baseline, not its font box); drawnBox for the bodiless ones (divider,
   // statement).
@@ -259,18 +261,12 @@ async function drawnInLayoutPx(page: Page, layout: string): Promise<Box> {
   const hasBody = (await page.getByTestId(testId).locator('.sw-body').count()) > 0;
   // The top is the element boxes' top: a line's glyphs rise a little above
   // its line box, as in ContentLayouts.spec.tsx.
-  const box = hasBody
-    ? await paintedExtent(page, testId, {
+  return hasBody
+    ? paintedExtent(page, testId, {
         images: true,
         baselineText: '[data-testid="rules-number"]',
       }).then(({ drawn, boxTop }) => ({ ...drawn, top: boxTop }))
-    : await drawnBox(page, testId);
-  return {
-    left: box.left * scale,
-    top: box.top * scale,
-    right: box.right * scale,
-    bottom: box.bottom * scale,
-  };
+    : drawnBox(page, testId);
 }
 
 const inside = (box: Box) =>
