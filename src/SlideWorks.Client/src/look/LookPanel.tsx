@@ -11,9 +11,16 @@ import { useLooks } from './useLooks';
 
 const UPDATE_FAILED = 'Could not update this deck. Try again.';
 
+// The server refuses a template the caller may not pick as "Unknown template '<id>'" (LookRules.UnknownTemplate) and
+// sends no code with it. The update only ever targets the deck's own template, so this is a share that was taken back.
+const UNKNOWN_TEMPLATE = /^Unknown template\b/;
+
 // A refusal's own sentence (its message, or an error that is itself a sentence), never a code.
-function updateFailure(error: unknown): string {
+function updateFailure(error: unknown, version: number): string {
   if (!(error instanceof ApiError)) return UPDATE_FAILED;
+  if (error.status === 400 && UNKNOWN_TEMPLATE.test(error.detail ?? error.code ?? '')) {
+    return `This template isn't shared with you any more, so your deck stays on version ${version}.`;
+  }
   if (error.detail) return error.detail;
   return error.code !== undefined && /\s/.test(error.code) ? error.code : UPDATE_FAILED;
 }
@@ -87,7 +94,7 @@ export function LookPanel({ deck, onSaved }: LookPanelProps) {
       },
       (error: unknown) => {
         setSave({ kind: 'idle' });
-        setUpdate({ kind: 'failed', message: updateFailure(error) });
+        setUpdate({ kind: 'failed', message: updateFailure(error, offered.version) });
       },
     );
   };
