@@ -22,6 +22,9 @@ public class SlideTemplateWidthsTests : ApiTestFixture
 
     protected override Action<IServiceCollection>? ConfigureTestServices => FakeTemplates.Register;
 
+    [SetUp]
+    public void ResetTemplates() => Factory.Services.GetRequiredService<FakeTemplates>().Reset();
+
     // One test holds every step: the fake is shared by the fixture, and "talk" is wide from the Add on.
     [Test]
     public async Task AddSlide_WhenTheTemplateIsWider_ShouldRefuseTextTheBuiltInAccepts()

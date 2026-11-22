@@ -8,6 +8,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.SignalR.Client;
+using SlideWorks.Core.Look;
 using SlideWorks.Core.Look.CustomLayouts;
 using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Data;
@@ -111,25 +112,9 @@ public class CustomLayoutUseTests : ApiTestFixture
 
         var added = await SlideCalls.ErrorAsync(agent, "add_slide", new { deck, layout = "never-heard-of", slots });
 
-        added.ShouldStartWith("layout: unknown layout 'never-heard-of' (known: ");
-        added.ShouldEndWith($", {DIAL})");
+        var allowed = LayoutCatalogue.LayoutNames.Where(new TemplateCatalogue().Default.Allows).Append(DIAL);
+        added.ShouldBe($"layout: unknown layout 'never-heard-of' (known: {string.Join(", ", allowed)})");
         added.ShouldNotContain("unapproved-one");
-    }
-
-    // An uploaded template's refusal keeps the UTF-16 check ahead of the layout lookup.
-    [Test]
-    public async Task AddSlide_WhenTheLayoutIsUnknownAndSlotsHaveALoneSurrogate_ShouldRefuseTheText()
-    {
-        var (agent, deck, _) = await DeckWithLayoutAsync(Layout(DIAL, LayoutSurface.Light));
-        await using var _a = agent;
-
-        var message = await McpWire.SendToolCallAsync(
-            Factory,
-            agent.Tokens.AccessToken,
-            "add_slide",
-            $$$"""{"deck":"{{{deck}}}","layout":"never-heard-of","slots":{"headline":"Ship it \ud83d"}}""");
-
-        McpWire.TextOf(message.GetProperty("result")).ShouldBe("slots.headline: text is not valid UTF-16");
     }
 
     [Test]

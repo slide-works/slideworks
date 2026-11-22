@@ -80,13 +80,8 @@ public sealed class ListLayoutsTool
 
     private static IEnumerable<ListedLayout> Of(ResolvedTemplate template)
     {
-        // A name the manifest lists that is no built-in; one that is also an approved custom layout is listed once, as custom.
-        var own = template.Template.Layouts.Where(layout => LayoutCatalogue.Layouts.All(known => !string.Equals(known.Name, layout, StringComparison.Ordinal))
-            && !template.IsCustomLayout(layout));
-        var builtIn = LayoutCatalogue.Layouts
-            .Where(layout => template.Template.Allows(layout.Name))
-            .Select(layout => layout.Name)
-            .Concat(own)
+        // One list of names with the refusal (ResolvedTemplate.AllowedLayoutNames); an approved custom layout is listed once, as custom.
+        var builtIn = template.ListedLayoutNames()
             .Select(template.FindLayout)
             .OfType<LayoutDefinition>()
             .Select(layout => new ListedLayout(layout));

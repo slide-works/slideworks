@@ -38,5 +38,17 @@ public sealed record ResolvedTemplate(Template Template, string Ref, int? Versio
     public bool IsCustomLayout(string name)
         => LayoutCatalogue.Find(name) is null && CustomLayouts.Any(c => string.Equals(c.Layout.Name, name, StringComparison.Ordinal));
 
+    // The names of the layouts of this template version that its definitions answer for, not counting the custom ones: the
+    // built-ins it allows, then a name its manifest lists that is no built-in and no approved custom layout.
+    public IEnumerable<string> ListedLayoutNames()
+    {
+        var own = Template.Layouts.Where(layout => LayoutCatalogue.Find(layout) is null && !IsCustomLayout(layout));
+        return LayoutCatalogue.LayoutNames.Where(Template.Allows).Concat(own).Where(name => FindLayout(name) is not null);
+    }
+
+    // Exactly the layouts this version allows: ListedLayoutNames, then its approved custom layouts. The one source for the
+    // unknown-layout refusal and list_layouts.
+    public IReadOnlyList<string> AllowedLayoutNames => [.. ListedLayoutNames(), .. CustomLayouts.Select(c => c.Layout.Name)];
+
     public FitWidths FitWidths { get; init; } = FitWidths.Default;
 }

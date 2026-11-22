@@ -49,7 +49,7 @@ public static class SlideChecks
             // lists and its approved custom layouts. A lone surrogate in the slots is still Core's 'slots: ' refusal.
             var known = template.BuiltIn
                 ? LayoutCatalogue.LayoutNames
-                : LayoutCatalogue.LayoutNames.Where(template.Template.Allows).Concat(template.CustomLayouts.Select(c => c.Layout.Name)).ToArray();
+                : template.AllowedLayoutNames;
             var builtIn = SlideValidator.Validate(layout, slots, known).Errors;
             throw new BadRequestException(builtIn.FirstOrDefault(error => error.StartsWith("layout: ", StringComparison.Ordinal))
                 ?? builtIn.FirstOrDefault(error => error.StartsWith("slots: ", StringComparison.Ordinal))
