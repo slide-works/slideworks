@@ -42,7 +42,8 @@ public class AcceptanceApp
     // The join host: the same server under localhost, which is a different origin from BaseUrl.
     public static string JoinUrl { get; private set; } = null!;
 
-    // The running app's container, for the seams an OAuth flow ends in (see AgentSeed). Never for the database.
+    // The running app's container, for the seams an OAuth flow ends in (see AgentSeed) and for a journey that steps the
+    // clock to clear the rate-limit windows it opened (see TimingSeamJourneyTests). Never for the database.
     public static IServiceProvider Services { get; private set; } = null!;
 
     // The app's TimeProvider. A journey steps it to reach an expiry or a rate-limit window without waiting.
@@ -52,7 +53,10 @@ public class AcceptanceApp
     public static HubAborts Hubs { get; } = new();
 
     // Puts the seams back as they were before a journey stepped them. Call it from the TearDown of any journey that does.
-    // HubAborts has nothing to reset: it only records until AbortAll is called.
+    // HubAborts has nothing to reset: it only records until AbortAll is called. It does not undo what the app kept while
+    // the clock was stepped: a rate-limit window opened ahead of the real clock stays until the real clock reaches its
+    // end, and every journey calls from 127.0.0.1. A journey that steps the clock across a rate-limited endpoint clears
+    // those windows before it calls this, as TimingSeamJourneyTests' TearDown does.
     public static void ResetSeams() => Clock.Reset();
 
     [OneTimeSetUp]
