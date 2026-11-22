@@ -57,7 +57,7 @@ public static class BindingWalk
                         ? [.. list.Fields.Where(field => !string.Equals(field.Name, CustomSlot.ITEM, StringComparison.Ordinal))]
                         : [list.Item with { Name = CustomSlot.ITEM }];
                     herePath = $"{path}.{list.Name}";
-                    repeats = Math.Min(repeats * (list.Max ?? CustomLayoutLimits.MAX_DRAWN_NODES + 1L), CustomLayoutLimits.MAX_DRAWN_NODES + 1L);
+                    repeats = Math.Min(repeats * (list.Max is { } max ? (long)Math.Ceiling(max) : CustomLayoutLimits.MAX_DRAWN_NODES + 1L), CustomLayoutLimits.MAX_DRAWN_NODES + 1L);
                 }
             }
 
