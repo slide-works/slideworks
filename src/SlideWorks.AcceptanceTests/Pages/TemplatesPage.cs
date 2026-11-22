@@ -9,6 +9,10 @@ public sealed class TemplatesPage(IPage page)
 {
     public const string PATH = "/templates";
 
+    // Ids the page builds with a suffix; written whole here so the test-id guard sees them.
+    private const string GROUP = "template-group";
+    private const string NEW_FROM = "new-template-from";
+
     public ILocator Root => page.GetByTestId("templates-page");
 
     public ILocator NewTemplate => page.GetByTestId("new-template");
@@ -20,7 +24,7 @@ public sealed class TemplatesPage(IPage page)
     public ILocator NewCreate => page.GetByTestId("new-template-create");
 
     // A group of rows by its kind: "mine", "shared" or "builtIn".
-    public ILocator Group(string kind) => page.GetByTestId($"template-group-{kind}");
+    public ILocator Group(string kind) => page.GetByTestId($"{GROUP}-{kind}");
 
     // The public page at /t/{id}: its heading is the template's name, or the message when it is private or unknown.
     public ILocator PublicName => page.GetByTestId("template-public-name");
@@ -30,6 +34,9 @@ public sealed class TemplatesPage(IPage page)
     public ILocator PublicUse => page.GetByTestId("template-public-use");
 
     public static string PublicPath(string templateId) => $"/t/{templateId}";
+
+    // A row's status chip: "Draft" or "Published · v1".
+    public static ILocator StatusOf(ILocator row) => row.GetByTestId("template-status");
 
     // The row in a group whose name is exactly name.
     public ILocator Row(string kind, string name) =>
@@ -46,7 +53,7 @@ public sealed class TemplatesPage(IPage page)
         await NewTemplate.ClickAsync();
         await Expect(NewDialog).ToBeVisibleAsync();
         await NewName.FillAsync(name);
-        await page.GetByTestId($"new-template-from-{builtIn}").CheckAsync();
+        await page.GetByTestId($"{NEW_FROM}-{builtIn}").CheckAsync();
         await NewCreate.ClickAsync();
     }
 }

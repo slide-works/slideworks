@@ -4,6 +4,9 @@ namespace SlideWorks.AcceptanceTests.Pages;
 // with its Publish button, and Share.
 public sealed class TemplateEditorPage(IPage page)
 {
+    // Written whole so the test-id guard sees it; the page adds the field after it.
+    private const string FONT_TYPE = "font-type";
+
     public ILocator Root => page.GetByTestId("template-editor");
 
     // "Draft", or "Published · v1" once published.
@@ -16,7 +19,7 @@ public sealed class TemplateEditorPage(IPage page)
     public ILocator FontsTab => page.GetByTestId("template-tab-fonts");
 
     // The heading and body family fields of the Fonts tab, by field: "head" or "body".
-    public ILocator Family(string field) => page.GetByTestId($"font-type-{field}");
+    public ILocator Family(string field) => page.GetByTestId($"{FONT_TYPE}-{field}");
 
     public ILocator RightsTick => page.GetByTestId("font-rights-tick");
 
