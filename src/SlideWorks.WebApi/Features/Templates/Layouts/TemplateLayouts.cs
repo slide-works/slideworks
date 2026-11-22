@@ -32,7 +32,8 @@ public sealed class TemplateLayouts(AppDbContext db, ICustomLayoutCompiler compi
         var layouts = new List<TemplateLayout>();
         foreach (var entry in manifest.CustomLayouts)
         {
-            if (rows.TryGetValue(entry.File, out var row) && Read(row) is { } layout)
+            if (rows.TryGetValue(entry.File, out var row) && Read(row) is { } layout
+                && string.Equals(layout.Layout.Name, entry.Name, StringComparison.Ordinal))
             {
                 layouts.Add(layout);
             }
@@ -57,7 +58,7 @@ public sealed class TemplateLayouts(AppDbContext db, ICustomLayoutCompiler compi
         }
 
         var row = await db.TemplateAssets.SingleOrDefaultAsync(a => a.TemplateId == templateId && a.Kind == TemplateAssetKind.Layout && a.Id == entry.File, ct);
-        if (row is null || Read(row) is not { } current)
+        if (row is null || Read(row) is not { } current || !string.Equals(current.Layout.Name, entry.Name, StringComparison.Ordinal))
         {
             return ApproveOutcome.NotFound;
         }

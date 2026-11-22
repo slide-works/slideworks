@@ -16,18 +16,31 @@ public sealed class LayoutsCheck : IPublishCheck
     {
         var entries = facts.Manifest.CustomLayouts;
         var seen = new HashSet<string>(StringComparer.Ordinal);
+        string? firstPath = null;
+        var failed = new List<string>();
         for (var i = 0; i < entries.Count; i++)
         {
             var entry = entries[i];
+            string? path = null;
             if (facts.Asset(entry.File) is not { Kind: TemplateAssetKind.Layout, Layout: { } layout })
             {
-                return NotFound($"customLayouts[{i}].file");
+                path = $"customLayouts[{i}].file";
+            }
+            else if (!string.Equals(layout.Name, entry.Name, StringComparison.Ordinal) || !seen.Add(entry.Name))
+            {
+                path = $"customLayouts[{i}].name";
             }
 
-            if (!string.Equals(layout.Name, entry.Name, StringComparison.Ordinal) || !seen.Add(entry.Name))
+            if (path is not null)
             {
-                return NotFound($"customLayouts[{i}].name");
+                firstPath ??= path;
+                failed.Add(entry.Name);
             }
+        }
+
+        if (firstPath is not null)
+        {
+            return NotFound(firstPath, failed);
         }
 
         var unapproved = entries.Where(entry => !facts.Asset(entry.File)!.Layout!.Approved).Select(entry => entry.Name).ToList();
@@ -42,6 +55,11 @@ public sealed class LayoutsCheck : IPublishCheck
         return CheckOutcome.Pass(KEY, LABEL, entries.Count == 0 ? "" : $"{entries.Count} approved", TAB);
     }
 
-    private static CheckOutcome NotFound(string path)
-        => CheckOutcome.Fail(KEY, LABEL, TAB, TemplateErrorCodes.LAYOUT_NOT_FOUND, path, TemplateErrorTexts.Format(TemplateErrorCodes.LAYOUT_NOT_FOUND));
+    // The refusal is the first problem's path; the row's detail names every affected layout.
+    private static CheckOutcome NotFound(string path, IReadOnlyList<string> names)
+    {
+        var message = TemplateErrorTexts.Format(TemplateErrorCodes.LAYOUT_NOT_FOUND);
+        return new CheckOutcome(
+            new TemplateChecklistRow(KEY, LABEL, TemplateCheckState.Fail, $"{message}: {string.Join(", ", names.Distinct(StringComparer.Ordinal))}", TAB), true, TemplateErrorCodes.LAYOUT_NOT_FOUND, path, message);
+    }
 }

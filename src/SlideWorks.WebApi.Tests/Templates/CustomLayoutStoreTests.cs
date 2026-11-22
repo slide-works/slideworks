@@ -197,7 +197,7 @@ public class CustomLayoutStoreTests : ApiTestFixture
         var id = await CreateAsync();
         var font = await TemplateRowSeed.AssetAsync(Factory, id, TemplateAssetKind.Font, "head-400.woff2");
         var alpha = await UploadAsync(id, "alpha");
-        await SetManifestAsync(id, ("fonty", font), ("alpha", alpha));
+        await SetRawManifestAsync(id, ("fonty", font), ("alpha", alpha));
 
         var layouts = await ForVersionAsync(id, 0);
 
@@ -210,7 +210,7 @@ public class CustomLayoutStoreTests : ApiTestFixture
         var mine = await CreateAsync();
         var other = await CreateAsync();
         var foreign = await UploadAsync(other, "alpha");
-        await SetManifestAsync(mine, ("alpha", foreign));
+        await SetRawManifestAsync(mine, ("alpha", foreign));
 
         var layouts = await ForVersionAsync(mine, 0);
 
@@ -237,7 +237,7 @@ public class CustomLayoutStoreTests : ApiTestFixture
     public async Task Publish_WhenAnEntryNamesNoLayout_ShouldChangeNothing()
     {
         var id = await CreateAsync();
-        await SetManifestAsync(id, ("alpha", "0123456789abcdef0123456789abcdef"));
+        await SetRawManifestAsync(id, ("alpha", "0123456789abcdef0123456789abcdef"));
 
         var response = await PublishAsync(id);
 
@@ -251,7 +251,7 @@ public class CustomLayoutStoreTests : ApiTestFixture
         var mine = await CreateAsync();
         var other = await CreateAsync();
         var foreign = await UploadAsync(other, "alpha");
-        await SetManifestAsync(mine, ("alpha", foreign));
+        await SetRawManifestAsync(mine, ("alpha", foreign));
 
         var response = await PublishAsync(mine);
 
@@ -264,7 +264,7 @@ public class CustomLayoutStoreTests : ApiTestFixture
     {
         var id = await CreateAsync();
         var alpha = await UploadAsync(id, "alpha");
-        await SetManifestAsync(id, ("gamma", alpha));
+        await SetRawManifestAsync(id, ("gamma", alpha));
 
         var response = await PublishAsync(id);
 
@@ -278,7 +278,7 @@ public class CustomLayoutStoreTests : ApiTestFixture
         var id = await CreateAsync();
         var first = await UploadAsync(id, "alpha");
         var second = await UploadAsync(id, "alpha", variant: "v2");
-        await SetManifestAsync(id, ("alpha", first), ("alpha", second));
+        await SetRawManifestAsync(id, ("alpha", first), ("alpha", second));
 
         var response = await PublishAsync(id);
 
@@ -290,7 +290,7 @@ public class CustomLayoutStoreTests : ApiTestFixture
     public async Task Publish_WhenThirteenLayouts_ShouldChangeNothing()
     {
         var id = await CreateAsync();
-        await SetManifestAsync(id, [.. Enumerable.Range(1, 13).Select(n => ($"layout-{n:00}", "0123456789abcdef0123456789abcd" + n.ToString("00")))]);
+        await SetRawManifestAsync(id, [.. Enumerable.Range(1, 13).Select(n => ($"layout-{n:00}", "0123456789abcdef0123456789abcd" + n.ToString("00")))]);
 
         var response = await PublishAsync(id);
 
@@ -491,6 +491,51 @@ public class CustomLayoutStoreTests : ApiTestFixture
         layouts.ShouldHaveSingleItem().Approved.ShouldBeTrue();
     }
 
+    [Test]
+    public async Task Review_WhenTheEntryNameDiffersFromTheCompiledName_ShouldBe404()
+    {
+        var id = await CreateAsync();
+        var alpha = await UploadAsync(id, "alpha");
+        await SetRawManifestAsync(id, ("gamma", alpha));
+
+        using var asCompiled = await Client.GetAsync($"/api/templates/{id}/layouts/alpha/review");
+        using var asListed = await Client.GetAsync($"/api/templates/{id}/layouts/gamma/review");
+
+        asCompiled.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        asListed.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task Approve_WhenTheEntryNameDiffersFromTheCompiledName_ShouldBe404AndChangeNothing()
+    {
+        var id = await CreateAsync();
+        var alpha = await UploadAsync(id, "alpha");
+        await SetRawManifestAsync(id, ("gamma", alpha));
+
+        var response = await ApproveAsync(id, "gamma", alpha);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await StoredAsync(id, alpha)).Approved.ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task Checklist_WhenEntriesAreInvalid_ShouldNameEveryAffectedLayoutInTheRow()
+    {
+        var id = await CreateAsync();
+        var alpha = await UploadAsync(id, "alpha");
+        await SetRawManifestAsync(id, ("alpha", alpha), ("gamma", alpha), ("ghost", "0123456789abcdef0123456789abcdef"));
+
+        var checklist = await Client.GetFromJsonAsync<JsonElement>($"/api/templates/{id}/checklist");
+
+        var row = checklist.GetProperty("checklist").EnumerateArray().Single(r => r.GetProperty("key").GetString() == "layouts");
+        row.GetProperty("state").GetString().ShouldBe("fail");
+        var detail = row.GetProperty("detail").GetString()!;
+        detail.ShouldContain("gamma");
+        detail.ShouldContain("ghost");
+        detail.ShouldNotContain("alpha");
+        checklist.GetProperty("canPublish").GetBoolean().ShouldBeFalse();
+    }
+
     private static byte[] Body(string name, string variant = "")
         => Encoding.UTF8.GetBytes($$$"""{"markup":"<div>{{{name}}}{{{variant}}}</div>","css":".a{}","slots":{"name":"{{{name}}}"}}""");
 
@@ -541,17 +586,32 @@ public class CustomLayoutStoreTests : ApiTestFixture
 
     private Task<HttpResponseMessage> PublishAsync(string id) => Client.PostAsync($"/api/templates/{id}/publish", null);
 
-    // The draft's customLayouts, set straight in the database so a manifest the editor would not build can be checked.
+    // The draft's customLayouts through the public draft route (GET the editor, PUT the manifest with its revision), so the
+    // route's own checks run. Used for every valid manifest.
     private async Task SetManifestAsync(string id, params (string Name, string File)[] entries)
+    {
+        var editor = await Client.GetFromJsonAsync<JsonElement>($"/api/templates/{id}");
+        var manifest = JsonNode.Parse(editor.GetProperty("manifest").GetRawText())!;
+        manifest["customLayouts"] = Entries(entries);
+        using var put = await Client.PutAsJsonAsync($"/api/templates/{id}", new { manifest, revision = editor.GetProperty("revision").GetInt32() });
+        put.StatusCode.ShouldBe(HttpStatusCode.OK, await put.Content.ReadAsStringAsync());
+    }
+
+    // The draft's customLayouts written straight to the database. Only for malformed states the draft route cannot create
+    // (an entry naming no layout, another template's asset, a font, a mismatched or repeated name, too many entries).
+    private async Task SetRawManifestAsync(string id, params (string Name, string File)[] entries)
     {
         await using var scope = Factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var draft = await db.TemplateVersions.SingleAsync(v => v.TemplateId == id && v.Version == TemplateVersion.DRAFT);
         var manifest = JsonNode.Parse(draft.ManifestJson)!;
-        manifest["customLayouts"] = new JsonArray([.. entries.Select(e => (JsonNode)new JsonObject { ["name"] = e.Name, ["file"] = e.File })]);
+        manifest["customLayouts"] = Entries(entries);
         draft.ManifestJson = manifest.ToJsonString();
         await db.SaveChangesAsync();
     }
+
+    private static JsonArray Entries((string Name, string File)[] entries)
+        => new([.. entries.Select(e => (JsonNode)new JsonObject { ["name"] = e.Name, ["file"] = e.File })]);
 
     private async Task ShareWithAlexAsync(string id)
     {
