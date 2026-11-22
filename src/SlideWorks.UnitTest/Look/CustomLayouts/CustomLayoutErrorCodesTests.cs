@@ -39,7 +39,16 @@ public class CustomLayoutErrorCodesTests
     {
         var shared = CustomLayoutErrorCodes.All.Intersect(TemplateErrorTexts.Codes).ToList();
 
-        shared.ShouldBe([CustomLayoutErrorCodes.CUSTOM_LAYOUTS_UNAVAILABLE, CustomLayoutErrorCodes.LAYOUT_REFUSED], ignoreOrder: true);
+        shared.ShouldBe(
+            [
+                CustomLayoutErrorCodes.CUSTOM_LAYOUTS_UNAVAILABLE,
+                CustomLayoutErrorCodes.LAYOUT_REFUSED,
+                CustomLayoutErrorCodes.LAYOUT_NOT_FOUND,
+                CustomLayoutErrorCodes.LAYOUT_CHANGED,
+                CustomLayoutErrorCodes.LAYOUT_OVERFLOWS,
+                CustomLayoutErrorCodes.LAYOUT_LOW_CONTRAST,
+            ],
+            ignoreOrder: true);
         shared.ShouldAllBe(code => CustomLayoutErrorCodes.Text(code) == TemplateErrorTexts.Format(code));
     }
 

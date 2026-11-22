@@ -257,7 +257,7 @@ public class TemplatePublishingTests : ApiTestFixture
         var checklist = await Client.GetFromJsonAsync<JsonElement>($"/api/templates/{id}/checklist");
 
         checklist.GetProperty("checklist").EnumerateArray().Select(r => r.GetProperty("key").GetString())
-            .ShouldBe(["palette", "fonts", "fontRights", "logoArt", "limits"]);
+            .ShouldBe(["palette", "fonts", "fontRights", "logoArt", "limits", "layouts"]);
         checklist.GetProperty("checklist")[1].GetProperty("state").GetString().ShouldBe("todo");
         checklist.GetProperty("checklist")[1].GetProperty("tab").GetString().ShouldBe("fonts");
         checklist.GetProperty("canPublish").GetBoolean().ShouldBeTrue();
