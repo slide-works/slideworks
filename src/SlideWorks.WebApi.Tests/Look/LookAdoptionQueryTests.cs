@@ -152,6 +152,44 @@ public partial class LookAdoptionQueryTests : ApiTestFixture
         row.ShouldBe(new Dictionary<string, object?> { ["new_decks"] = 2L, ["on_uploaded"] = 1L, ["on_uploaded_pct"] = 50.0 });
     }
 
+    // A copy's entry reads `created the deck like "<title>" from the ...`, so the pattern has to allow for the like.
+    [Test]
+    public async Task Adoption_WhenADeckIsMadeLikeOneOnAnUploadedTemplate_ShouldCountTheCopy()
+    {
+        var template = await UploadedTemplateAsync();
+        var source = await CreateDeckAsync("original", template: template);
+        Clock.Advance(TimeSpan.FromDays(1));
+        var from = Clock.GetUtcNow();
+
+        await CreateDeckAsync("copy", like: source);
+        Clock.Advance(TimeSpan.FromHours(1));
+
+        var row = await RunUploadedAsync(from, Clock.GetUtcNow());
+
+        row.ShouldBe(new Dictionary<string, object?> { ["new_decks"] = 1L, ["on_uploaded"] = 1L, ["on_uploaded_pct"] = 100.0 });
+    }
+
+    [Test]
+    public async Task Query_WhenADeckIsMadeLikeAnother_ShouldCountTheCopy()
+    {
+        var source = await CreateDeckAsync("original");
+        Clock.Advance(TimeSpan.FromDays(1));
+        var from = Clock.GetUtcNow();
+
+        await CreateDeckAsync("copy", like: source);
+        Clock.Advance(TimeSpan.FromHours(1));
+
+        var row = await RunAsync(from, Clock.GetUtcNow());
+
+        row.ShouldBe(new Dictionary<string, object?>
+        {
+            ["new_decks"] = 1L,
+            ["adopted"] = 1L,
+            ["adopted_pct"] = 100.0,
+            ["relooked"] = 0L,
+        });
+    }
+
     // A published template whose manifest is the documented sample, so it resolves like a real upload.
     private async Task<string> UploadedTemplateAsync()
         => await TemplateRowSeed.PublishedAsync(Factory, TestUser.Sam, await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "..", "template-manifest.sample.json")));
@@ -183,9 +221,9 @@ public partial class LookAdoptionQueryTests : ApiTestFixture
         command.Parameters.Add(parameter);
     }
 
-    private async Task<string> CreateDeckAsync(string title, string? template = null, string? palette = null)
+    private async Task<string> CreateDeckAsync(string title, string? template = null, string? palette = null, string? like = null)
     {
-        var response = await Client.PostAsJsonAsync("/api/decks", new { title, template, palette });
+        var response = await Client.PostAsJsonAsync("/api/decks", new { title, template, palette, like });
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
     }

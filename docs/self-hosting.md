@@ -88,23 +88,23 @@ database holds each file's row.
 - **Where they live.** `<SLIDEWORKS_DATA_PATH>/templates/<template id>/<asset id>`, with the default `/data` when the
   setting is unset. The asset id is the first 32 hex characters of the file's SHA-256, so a file is named by its content
   and is never replaced. Files being uploaded wait in `templates/.uploads/` until they pass their checks and are moved
-  into place; a file left there by a crash is harmless.
+  into place; a file left there by a crash is never cleaned up and can be deleted while the app is stopped.
 - **Back them up with the database.** A deck draws with its template's files, so a database restored without the
   `templates` folder has decks whose fonts, logos and art are missing. The backup command under [Storage](#storage)
   copies both. Restore them together.
 - **The app never deletes a stored file.** A published version's files must stay for as long as a deck is pinned to that
   version, so the only files removed are the ones of an upload that failed. An archived template keeps its files.
-  Disk use only grows, up to the limits below.
+  Each template's use is bounded by the limits below, but total disk use has no cap: monitor it.
 - **Disk use per template.** One template stores at most 256 files and 240,000,000 bytes (about 229 MiB) over its whole
-  life, counting every version. The server refuses an upload past either with `template_storage_full`. People can have
-  up to 50 templates, archived ones not counted, so plan for 50 x 240 MB in the worst case; the usual template uses a
-  few megabytes.
+  life, counting every version. The server refuses an upload past either with `template_storage_full`. The limit of 50
+  templates counts only templates that aren't archived, and an archived template keeps its files, so archiving frees a
+  place but no disk and the total across templates is not bounded. The usual template uses a few megabytes.
 - **Per file.** A font is at most 2 MB (2 x 1024 x 1024 bytes) and a logo or title art file at most 10 MB (10 x 1024 x
   1024 bytes). A custom layout's upload document is at most 800,000 bytes.
 - **A bundle** (`POST /api/templates/import`) is a zip of at most 60 MB (60 x 1024 x 1024 bytes) that may not unpack to
-  more than that, with at most 64 files. The server refuses a file that unpacks to more than 100 times its packed size.
+  more than that, with at most 64 files. The server refuses a file over 64 KiB that unpacks to more than 100 times its packed size.
   The request body is limited to the same 60 MB, so the proxy's limit has to allow it.
-- **Serving.** Files come from `/api/templates/{id}/assets/{assetId}` for people who may see the template, with
+- **Serving.** Files come from `/api/templates/{id}/assets/{assetId}` for people who may see the template, anyone who can view a deck on the template, and a guest of a live session on such a deck, with
   `X-Content-Type-Options: nosniff`, and for every file the policy `default-src 'none'; sandbox`, so an SVG opened as a
   page runs no script. A custom layout's stored file is never served.
 - **Chromium for fonts.** Each uploaded font is measured once, in the same headless Chromium that draws the share card,
@@ -119,7 +119,7 @@ Run SlideWorks behind a proxy that ends TLS and forwards plain HTTP to port 8080
 
 - Forward every path to the container, including `/mcp`, `/oauth/*`, `/.well-known/*`, `/signin-google` and `/hubs/deck`.
 - Pass WebSocket upgrades on `/hubs/deck`, which carries live updates. See [Live audience join](#live-audience-join) for the transports and the Host header.
-- Allow request bodies up to 60 MB (60 x 1024 x 1024 bytes), the template bundle import limit. The largest other upload is a 10 MB image. See [Uploaded templates](#uploaded-templates). A proxy that stops a larger body than that also stops the bundle import, which the person sees as a failed upload.
+- Allow request bodies up to 60 MB (60 x 1024 x 1024 bytes), the template bundle import limit. The largest other upload is a 10 MB image. See [Uploaded templates](#uploaded-templates). A proxy limit below 60 MB stops the bundle import, which the person sees as a failed upload.
 
 `SLIDEWORKS_PUBLIC_URL` is the source of truth for the app's scheme and host. SlideWorks never reads `X-Forwarded-Proto` or `X-Forwarded-Host` to decide its own address, and it reads the `Host` header only to choose between the two configured origins (the public URL and, when set, the join URL), so a forged header can't produce a link, OAuth metadata or sign-in callback for any other address. If the proxy serves `https://slides.example.com`, set exactly that, and the session cookie is `Secure` even though the container sees plain HTTP.
 

@@ -17,7 +17,8 @@ after two weeks of use.
 
 - *New decks in the window* come from the activity log. Each deck has exactly one creation entry,
   `created the deck from the <template> template with the <palette> palette`, whether the deck was made in the app
-  (`POST /api/decks`) or by an agent (`create_deck`). `At` on that entry is the creation time.
+  (`POST /api/decks`) or by an agent (`create_deck`). `At` on that entry is the creation time. A deck made like another
+  deck carries `like "<title>" ` after `the deck`, and the pattern allows for it.
 - *The look* is the deck's current row in `Decks`:
   - `Template` and `Palette` hold names, such as `workshop` and `ember`.
   - `ChromeJson` is null when the deck overrides none of the template's chrome. Resetting every key to the template's
@@ -47,7 +48,7 @@ WITH bounds AS (
 created AS (
   SELECT DISTINCT a.DeckId
   FROM ActivityEntries a, bounds b
-  WHERE a.Summary LIKE 'created the deck from the % template with the % palette'
+  WHERE a.Summary LIKE 'created the deck %from the % template with the % palette'
     AND a.At >= b.lo AND a.At < b.hi
 ),
 relooked AS (
@@ -88,7 +89,7 @@ SW-2 query is unchanged, and an uploaded template still never counts as adopted 
 
 - *New decks in the window* come from the activity log, as in Look adoption: each deck has exactly one creation entry,
   `created the deck from the <template> template with the <palette> palette`, and `At` on that entry is the creation
-  time. A deck made like another deck (`like "<title>" `) has the same entry.
+  time. A copy's entry also carries `like "<title>" ` after `the deck`, and the pattern allows for it.
 - *The template* is the deck's current row in `Decks`. `Template` holds `tpl_<id>` for an uploaded template and a
   built-in's name, such as `workshop`, for a built-in. A deck counts as using an uploaded template when `Template`
   starts with `tpl_`. The activity text names the template by its label, never its id, so it cannot be used for this.
@@ -107,7 +108,7 @@ WITH bounds AS (
 created AS (
   SELECT DISTINCT a.DeckId
   FROM ActivityEntries a, bounds b
-  WHERE a.Summary LIKE 'created the deck from the % template with the % palette'
+  WHERE a.Summary LIKE 'created the deck %from the % template with the % palette'
     AND a.At >= b.lo AND a.At < b.hi
 ),
 scored AS (
