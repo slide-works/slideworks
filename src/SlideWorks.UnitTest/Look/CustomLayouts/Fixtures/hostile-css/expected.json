@@ -49,5 +49,8 @@
   "rgb-colour.css": "css_function",
   "font-named.css": "css_font",
   "font-token-elsewhere.css": "css_font",
-  "unbound-var.css": "css_variable"
+  "unbound-var.css": "css_variable",
+  "unclosed-bracket.css": "css_malformed",
+  "unclosed-paren.css": "css_malformed",
+  "unclosed-group.css": "css_malformed"
 }

@@ -140,12 +140,6 @@ internal sealed class CssValueParser(CssRun run)
                 return true;
             }
 
-            if (terms.Count >= CssRuleLimits.MAX_TERMS)
-            {
-                run.Fail(Pos, CustomLayoutErrorCodes.CSS_VALUE);
-                return false;
-            }
-
             var term = ParseTerm(math, depth, property);
             if (term is null)
             {
@@ -199,8 +193,24 @@ internal sealed class CssValueParser(CssRun run)
             return ParseWord(math, depth, property);
         }
 
-        run.Fail(Pos, CustomLayoutErrorCodes.CSS_VALUE);
+        // An opening [ with no ] before the end of the declaration is unbalanced, not just unsupported.
+        run.Fail(Pos, c == '[' && !HasClosing(']') ? CustomLayoutErrorCodes.CSS_MALFORMED : CustomLayoutErrorCodes.CSS_VALUE);
         return null;
+    }
+
+    // Whether the declaration holds the character after Pos, before its ; or }. One scan, and the caller
+    // refuses straight after, so parsing stays linear.
+    private bool HasClosing(char close)
+    {
+        for (var i = Pos + 1; i < S.Length && S[i] is not (';' or '}'); i++)
+        {
+            if (S[i] == close)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsIdentChar(char c) => char.IsAsciiLetterOrDigit(c) || c is '-' or '_';
@@ -298,7 +308,7 @@ internal sealed class CssValueParser(CssRun run)
 
         if (S[Pos] != ')' || terms.Count == 0)
         {
-            run.Fail(Pos, CustomLayoutErrorCodes.CSS_VALUE);
+            run.Fail(Pos, S[Pos] is ';' or '}' ? CustomLayoutErrorCodes.CSS_MALFORMED : CustomLayoutErrorCodes.CSS_VALUE);
             return null;
         }
 

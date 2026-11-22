@@ -91,6 +91,16 @@ public class CssSanitiserTests
     }
 
     [Test]
+    public void Sanitise_WhenACalcSumsManyLengths_ShouldPassAndWriteAllOfThem()
+    {
+        var sum = string.Join(" + ", Enumerable.Range(1, 30).Select(i => $"{i}px"));
+
+        var css = Pass($".a {{ width: calc({sum}); }}");
+
+        css.ShouldContain($"width: calc({sum});");
+    }
+
+    [Test]
     public void Sanitise_WhenCalcReadsABoundVariable_ShouldPass()
     {
         var css = Pass(".a { width: calc(var(--p) * 1%); flex-grow: var(--w); transform: rotate(calc((var(--v) - 50) * 1.8deg)); }");

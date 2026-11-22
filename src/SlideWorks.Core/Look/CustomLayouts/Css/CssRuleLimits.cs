@@ -20,7 +20,4 @@ public static class CssRuleLimits
 
     // z-index is an integer from 0 to this.
     public const int MAX_Z_INDEX = 10;
-
-    // Terms in one argument or one layer of a value.
-    public const int MAX_TERMS = 16;
 }
