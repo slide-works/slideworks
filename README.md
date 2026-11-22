@@ -35,7 +35,7 @@ Connect a local agent to `http://localhost:3000/mcp`, for example `claude mcp ad
 Tests:
 
 ```bash
-dotnet test src/SlideWorks.slnx                 # unit, API and acceptance tests (build the client first, see below)
+dotnet test src/SlideWorks.slnx                 # the full suite, for people (build the client first, see below); agents run filtered tests with tools/agent, and CI runs everything
 cd src/SlideWorks.Client && pnpm test           # frontend unit tests (also: lint, format:check, build)
 ```
 

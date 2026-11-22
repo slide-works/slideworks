@@ -413,7 +413,7 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
     {
         var preview = await AgentSeed.CallAsync(agent, "preview_deck", new() { ["deck"] = deck, ["slides"] = new[] { 1 } });
         var pngs = await AgentSeed.ScreenshotPreviewAsync(Browser, preview);
-        var png = pngs.Single().Value;
+        var png = pngs.Single().Value.Png;
         AgentSeed.PngSize(png).ShouldBe((1920, 1080));
         return png;
     }

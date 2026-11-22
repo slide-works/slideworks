@@ -6,12 +6,13 @@ using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Realtime.Presenting;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Support;
+using SlideWorks.WebApi.Tests.Support.Timing;
 
 namespace SlideWorks.WebApi.Tests.Presenting;
 
 // A connection that closes while its JoinPresentation is still running (P2: "a closed connection leaves every
 // presentation"). SignalR runs OnDisconnectedAsync, and so LeaveAllAsync, without waiting for the connection's in-flight
-// hub calls, so the leave can run before the join has added its entry. The join is held at the access check (JoinGate),
+// hub calls, so the leave can run before the join has added its entry. The join is held at the access check (Gate),
 // the connection is closed, the server's disconnect is awaited (DisconnectWatch), then the join is let go and awaited on
 // the server (InvocationWatch), which also gives the exception the hub method threw. The closed client's own task is no
 // evidence (it fails once the client is disposed, whatever the server did), so the tests read the server's refusal
@@ -23,7 +24,7 @@ public class GhostConnectionTests : ApiTestFixture
     private readonly List<PresentationStates> _connections = [];
     private readonly DisconnectWatch _disconnects = new();
     private readonly InvocationWatch _invocations = new();
-    private JoinGate _gate = new();
+    private Gate _gate = new();
 
     protected override Action<IServiceCollection>? ConfigureTestServices => services => services
         .Configure<HubOptions>(options =>
@@ -37,7 +38,7 @@ public class GhostConnectionTests : ApiTestFixture
     private IPresentations Registry => Factory.Services.GetRequiredService<IPresentations>();
 
     [SetUp]
-    public void NewGate() => _gate = new JoinGate();
+    public void NewGate() => _gate = new Gate();
 
     [TearDown]
     public async Task DisconnectAsync()

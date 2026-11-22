@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+# Checks the host before a wave: toolchain, disk, memory, the test lock, Playwright, the reviewer.
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage="usage: tools/agent/preflight
+Prints one line per check: ok|warn|fail <check> <detail>. Exit 4 when any check failed.
+Checks: dotnet 10 SDK; node; pnpm at package.json's packageManager version; free disk on /
+(warn < 20 GB, fail < 5 GB); available memory (warn < 2 GB); the test lock (holder pids, found in
+/proc/*/fd; a leftover MSBuild node holding it fails); leftover MSBuild nodes (warn); Playwright
+Chromium launches (PLAYWRIGHT_LD_LIBRARY_PATH applied); the cross-family reviewer: runs
+\$AGENT_REVIEWER_CHECK with a 90 s timeout and requires the output 'ok' (unset: warn; a value in the
+environment wins over the env file).
+Host facts come from the env file (see agent.env.example)."
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  echo "$usage"
+  exit 0
+fi
+agent_start
+[[ $# -eq 0 ]] || agent_die 2 "$usage" reason=too-many-arguments
+agent_require git timeout df
+reviewer_override="${AGENT_REVIEWER_CHECK-}"
+# agent_env (K2) exits through agent_die when dotnet is missing; probe it in a subshell so that
+# becomes a `fail dotnet` line instead of ending the run.
+env_file="${SLIDEWORKS_AGENT_ENV:-$HOME/.config/slideworks/agent.env}"
+dotnet_error="$(
+  agent_die() {
+    echo "$2"
+    exit 1
+  }
+  agent_env 2>&1
+)" || true
+dotnet_ok=0
+if [[ -z "$dotnet_error" ]]; then
+  dotnet_ok=1
+  agent_env
+else
+  if [[ -f "$env_file" ]]; then
+    # shellcheck source=/dev/null
+    source "$env_file"
+  fi
+fi
+# A reviewer check set in the environment wins over the env file.
+[[ -z "$reviewer_override" ]] || AGENT_REVIEWER_CHECK="$reviewer_override"
+root="$(agent_root)"
+client="$root/src/SlideWorks.Client"
+fails=0 warns=0
+
+# report <ok|warn|fail> <check> <detail>
+report() {
+  printf '%s %s %s\n' "$@" | tee -a "$AGENT_LOG"
+  case "$1" in
+    fail) fails=$((fails + 1)) ;;
+    warn) warns=$((warns + 1)) ;;
+  esac
+}
+
+# dotnet 10 SDK
+if [[ $dotnet_ok -eq 0 ]]; then
+  report fail dotnet "$dotnet_error"
+else
+  sdk="$(dotnet --list-sdks 2>>"$AGENT_LOG" | awk '$1 ~ /^10\./ {print $1}' | tail -1)"
+  if [[ -n "$sdk" ]]; then
+    report ok dotnet "SDK $sdk at $DOTNET_ROOT"
+  else
+    report fail dotnet "no 10.x SDK in $DOTNET_ROOT"
+  fi
+fi
+
+# node and pnpm
+if command -v node >/dev/null 2>&1; then
+  report ok node "$(node --version)"
+else
+  report fail node "node not found on PATH"
+fi
+want="$(sed -n 's/.*"packageManager": *"pnpm@\([^"]*\)".*/\1/p' "$client/package.json")"
+if command -v pnpm >/dev/null 2>&1; then
+  have="$(cd "$client" && pnpm --version 2>>"$AGENT_LOG" | tail -1)" || have="unknown (pnpm --version failed, see the log)"
+  if [[ "$have" == "$want" ]]; then
+    report ok pnpm "$have"
+  else
+    report fail pnpm "version $have, package.json wants $want"
+  fi
+else
+  report fail pnpm "pnpm not found on PATH (package.json wants $want)"
+fi
+
+# disk and memory
+free_kb="$(df -k --output=avail / | tail -1 | tr -dc '0-9')"
+free_gb="$(awk -v k="$free_kb" 'BEGIN {printf "%.1f", k / 1048576}')"
+if ((free_kb < 5 * 1048576)); then
+  report fail disk "$free_gb GB free on / (under 5 GB)"
+elif ((free_kb < 20 * 1048576)); then
+  report warn disk "$free_gb GB free on / (under 20 GB)"
+else
+  report ok disk "$free_gb GB free on /"
+fi
+avail_kb="$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)"
+avail_mb=$((avail_kb / 1024))
+if ((avail_mb < 2048)); then
+  report warn memory "${avail_mb} MB available (under 2 GB)"
+else
+  report ok memory "${avail_mb} MB available"
+fi
+
+# orphan_nodes: pids of MSBuild worker nodes whose parent is init or is not a dotnet process (a live build's nodes are not leftovers)
+orphan_nodes() {
+  local pid ppid
+  for pid in $(pgrep -f '^[^ ]*dotnet .*MSBuild\.dll.*/nodemode:1' || true); do
+    ppid="$(awk '/^PPid:/ {print $2}' "/proc/$pid/status" 2>/dev/null || echo 1)"
+    if [[ "$ppid" == 1 ]] || ! tr '\0' ' ' <"/proc/$ppid/cmdline" 2>/dev/null | grep -q dotnet; then
+      echo "$pid"
+    fi
+  done
+}
+orphans=" $(orphan_nodes | tr '\n' ' ')"
+
+# the test lock: processes with the lock file open
+lock="${AGENT_LOCK:-/tmp/slideworks-test.lock}"
+holders="" msbuild_holder=0
+if [[ -e "$lock" ]]; then
+  lock_real="$(readlink -f "$lock")"
+  for fd in /proc/[0-9]*/fd/*; do
+    [[ "$(readlink "$fd" 2>/dev/null || true)" == "$lock_real" ]] || continue
+    pid="${fd#/proc/}"
+    pid="${pid%%/*}"
+    [[ "$pid" != "$$" ]] || continue
+    cmd="$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null || true)"
+    holders+="${holders:+; }pid $pid: ${cmd% }"
+    if [[ "$cmd" == *"MSBuild.dll"*"/nodemode:1"* && "$orphans" == *" $pid "* ]]; then
+      msbuild_holder=1
+    fi
+  done
+fi
+if [[ $msbuild_holder -eq 1 ]]; then
+  report fail test-lock "a leftover MSBuild node holds $lock and hangs every agent: $holders"
+elif [[ -n "$holders" ]]; then
+  report warn test-lock "held now by $holders"
+else
+  report ok test-lock "$lock is free"
+fi
+
+# leftover MSBuild nodes
+if [[ -n "${orphans// /}" ]]; then
+  report warn msbuild-nodes "leftover MSBuild node pids:$orphans"
+else
+  report ok msbuild-nodes "none"
+fi
+
+# Playwright Chromium
+launch='const m=["playwright-core","playwright","@playwright/test"].reduce((f,n)=>{if(f)return f;try{return require(n)}catch{return null}},null);if(!m){console.error("no playwright package installed");process.exit(1)}
+(async()=>{const b=await m.chromium.launch({headless:true});await b.close();})().catch(e=>{console.error(e.message);process.exit(1)});'
+if [[ ! -d "$client/node_modules" ]]; then
+  report fail playwright "no node_modules in $client (run tools/agent/bootstrap)"
+elif ! command -v node >/dev/null 2>&1; then
+  report fail playwright "node not found"
+elif (cd "$client" && LD_LIBRARY_PATH="${PLAYWRIGHT_LD_LIBRARY_PATH:+$PLAYWRIGHT_LD_LIBRARY_PATH:}${LD_LIBRARY_PATH:-}" timeout 60 node -e "$launch") >>"$AGENT_LOG" 2>&1; then
+  report ok playwright "chromium launched and closed"
+else
+  report fail playwright "chromium did not launch (see the log; check PLAYWRIGHT_LD_LIBRARY_PATH in $env_file)"
+fi
+
+# the cross-family reviewer: a real call, never a status command
+if [[ -z "${AGENT_REVIEWER_CHECK:-}" ]]; then
+  report warn reviewer "no reviewer check configured (set AGENT_REVIEWER_CHECK in $env_file)"
+else
+  rc=0
+  out="$(timeout -k 5 90 bash -c "$AGENT_REVIEWER_CHECK" 2>>"$AGENT_LOG")" || rc=$?
+  out="${out#"${out%%[![:space:]]*}"}"
+  out="${out%"${out##*[![:space:]]}"}"
+  if [[ $rc -eq 124 ]]; then
+    report fail reviewer "check timed out after 90 s"
+  elif [[ $rc -eq 0 && "$out" == "ok" ]]; then
+    report ok reviewer "check exited 0 and printed ok"
+  else
+    report fail reviewer "check exited $rc and printed '${out:0:60}', expected exit 0 and exactly ok"
+  fi
+fi
+
+# K1: a failed check is `fail` with exit 4 (agent_finish would print `blocked` for 4).
+rc=0 status=ok
+if [[ $fails -gt 0 ]]; then
+  rc=4 status=fail
+fi
+AGENT_FINISHED=1
+line="$(agent_result preflight "$status" "$AGENT_LOG" "fails=$fails" "warns=$warns")"
+printf '%s\n' "$line" | tee -a "$AGENT_LOG"
+agent_mark_done "$AGENT_LOG" "$rc"
+exit "$rc"

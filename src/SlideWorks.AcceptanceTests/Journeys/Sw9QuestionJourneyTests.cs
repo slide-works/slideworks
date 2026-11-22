@@ -1,4 +1,5 @@
 using System.Text.Json;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -30,9 +31,9 @@ public class Sw9QuestionJourneyTests : AcceptanceTest
         await talk.Presenter.PressAsync("q");
         await Expect(talk.Panel.Root).ToBeVisibleAsync();
         await Expect(talk.Panel.EmptyOpen).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
-        await using var firstPhone = await OpenPhoneAsync();
+        await using var firstPhone = await PollJourney.OpenPhoneContextAsync(Browser);
         var first = await JoinAsync(firstPhone, talk.JoinUrl);
-        await using var secondPhone = await OpenPhoneAsync();
+        await using var secondPhone = await PollJourney.OpenPhoneContextAsync(Browser);
         var second = await JoinAsync(secondPhone, talk.JoinUrl);
 
         await first.Questions.QuestionsTab.ClickAsync();
@@ -120,7 +121,7 @@ public class Sw9QuestionJourneyTests : AcceptanceTest
         var contexts = new List<IBrowserContext>();
         for (var g = 1; g <= 7; g++)
         {
-            var phone = await OpenPhoneAsync();
+            var phone = await PollJourney.OpenPhoneContextAsync(Browser);
             contexts.Add(phone);
             var phoneGuest = await JoinAsync(phone, talk.JoinUrl);
             await Expect(phoneGuest.Guest.Slide).ToHaveAttributeAsync("data-slide", $"{QA}", new() { Timeout = PUSH_TIMEOUT });
@@ -196,19 +197,20 @@ public class Sw9QuestionJourneyTests : AcceptanceTest
             await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deckId, ["layout"] = "qa", ["slots"] = new { } });
         }
 
-        await SignIn.AsAsync(Page, TestUser.Sam);
-        var presenter = new PresenterPage(Page);
-        await presenter.GotoAsync(deckId);
-        await presenter.IsLiveAsync();
+        var presenter = await PollJourney.OpenPresenterAsync(Page, deckId);
         await Expect(presenter.Connecting).ToHaveCountAsync(0);
         await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
         await presenter.Live.GoLive.ClickAsync();
         await Expect(presenter.Live.End).ToBeVisibleAsync();
-        var joinUrl = await ReadAsync($"/api/decks/{deckId}/live", "joinUrl");
+        var joinRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/live", "joinUrl");
+        joinRead.Status.ShouldBe(200, joinRead.Body);
+        var joinUrl = joinRead.Value.ShouldNotBeNull();
 
         var audienceTab = await Context.NewPageAsync();
         var audience = new PlayerPage(audienceTab);
-        await audienceTab.GotoAsync(await ReadAsync($"/api/decks/{deckId}/presenter", "audienceUrl"));
+        var audienceRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/presenter", "audienceUrl");
+        audienceRead.Status.ShouldBe(200, audienceRead.Body);
+        await audienceTab.GotoAsync(audienceRead.Value.ShouldNotBeNull());
         await Expect(audience.AudienceMode).ToBeVisibleAsync();
         await Expect(audience.Layer(1)).ToHaveAttributeAsync("data-active", "true");
         await Expect(presenter.AudienceChips).ToHaveCountAsync(1);
@@ -224,18 +226,6 @@ public class Sw9QuestionJourneyTests : AcceptanceTest
         await guest.IsFollowingAsync();
         return new Phone(guest, new GuestQuestions(page));
     }
-
-    private async Task<string> ReadAsync(string path, string field)
-    {
-        var response = await Page.APIRequest.GetAsync(path);
-        response.Status.ShouldBe(200, await response.TextAsync());
-        return JsonDocument.Parse(await response.TextAsync()).RootElement.GetProperty(field).GetString().ShouldNotBeNull();
-    }
-
-    private Task<IBrowserContext> OpenPhoneAsync() => Browser.NewContextAsync(new BrowserNewContextOptions
-    {
-        ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-    });
 
     // The presenter window, the audience window, the panel in the one and the qa slide in the other, and the join link.
     private sealed record Talk(PresenterPage Presenter, PlayerPage Audience, QaPanel Panel, QaSlide Screen, string JoinUrl);

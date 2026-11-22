@@ -24,9 +24,20 @@ public class PollPumpTests : PollTestFixture
         FakePollTallies.AddTo(services);
         FakePollPublisher.AddTo(services);
         services.AddSingleton<WatchedPublisher>().AddSingleton<IPollPublisher>(provider => provider.GetRequiredService<WatchedPublisher>());
+        services.AddSingleton<TimeProvider>(_ => Timers);
     }
 
     private string _deck = null!;
+
+    private TimerWatchingClock? _timers;
+
+    // The fixture's fake clock, counting the window timers the pump arms per deck. The pump arms its timer on the thread
+    // pool after a publish returns: it reads the clock to work out the wait (PollTallyPump, "var wait"), then creates the
+    // timer with that wait, as one step under its lock that a Clock.Advance does not take part in. A test that advanced the
+    // clock in between had the timer made due a half second after the new time, so it never fired and the test waited out
+    // its bound. Forced once with a TimeProvider that held CreateTimer open: advance, release, no second publish in 10 s.
+    // Not seen in CI (about 40 failed runs showed no failure of this test); waiting for the arm first closes the window.
+    private TimerWatchingClock Timers => _timers ??= new TimerWatchingClock(Clock);
 
     private FakePollTallies Tallies => Factory.Services.GetRequiredService<FakePollTallies>();
 
@@ -42,12 +53,14 @@ public class PollPumpTests : PollTestFixture
     {
         await ChangeAsync();
         var first = await PublishedAsync(1);
+        await ArmedAsync(1);
         await ChangeAsync(20);
         var duringTheFirstInterval = Published.PublishedFor(_deck).Count;
         Clock.Advance(_justBefore);
         var justBeforeItEnds = Published.PublishedFor(_deck).Count;
         Clock.Advance(PollTallyPump.Interval - _justBefore);
         var second = await PublishedAsync(2);
+        await ArmedAsync(2);
         await ChangeAsync(20);
         Clock.Advance(_justBefore);
         var duringTheSecondInterval = Published.PublishedFor(_deck).Count;
@@ -69,9 +82,11 @@ public class PollPumpTests : PollTestFixture
     {
         await ChangeAsync();
         await PublishedAsync(1);
+        await ArmedAsync(1);
         await ChangeAsync(1, slide: SLIDE + 1);
         Clock.Advance(PollTallyPump.Interval);
         var trailing = await PublishedAsync(2);
+        await ArmedAsync(2);
         Clock.Advance(PollTallyPump.Interval);
         var quiet = Published.PublishedFor(_deck).Count;
         Clock.Advance(PollTallyPump.Interval);
@@ -91,6 +106,7 @@ public class PollPumpTests : PollTestFixture
         await ChangeAsync();
         await WithinAsync(Watched.PublishedAsync(_deck, 1));
         var failed = Published.PublishedFor(_deck).Count;
+        await ArmedAsync(1);
         await ChangeAsync();
         Clock.Advance(PollTallyPump.Interval);
         await WithinAsync(Watched.PublishedAsync(_deck, 2));
@@ -110,9 +126,11 @@ public class PollPumpTests : PollTestFixture
         await ChangeAsync();
         await WithinAsync(Watched.PublishedAsync(_deck, 1));
         var failed = Published.PublishedFor(_deck).Count;
+        await ArmedAsync(1);
         await ChangeAsync();
         Clock.Advance(PollTallyPump.Interval);
         await WithinAsync(Watched.PublishedAsync(_deck, 2));
+        await ArmedAsync(2);
         Clock.Advance(PollTallyPump.Interval);
         Clock.Advance(PollTallyPump.Interval);
         await ChangeAsync();
@@ -183,6 +201,9 @@ public class PollPumpTests : PollTestFixture
         return Published.PublishedFor(_deck);
     }
 
+    // Waits, at most 10 seconds, until the pump has armed its window timer for the test's deck count times.
+    private Task ArmedAsync(int count) => WithinAsync(Timers.ArmedAsync(_deck, count));
+
     private static async Task WithinAsync(Task task)
     {
         if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(10))) != task)
@@ -193,14 +214,13 @@ public class PollPumpTests : PollTestFixture
     }
 
     // The app's IPollPublisher here: it passes each publish to FakePollPublisher, which records it, except that the next
-    // publish for a deck named by FailNextFor throws instead. PublishedAsync completes once a deck has had that many publish
-    // calls, failed ones included, so a test waits for the pump without polling.
+    // publish for a deck named by FailNextFor throws instead. A CallCounter counts the calls per deck, failed ones included,
+    // so a test waits for the pump without polling.
     private sealed class WatchedPublisher(FakePollPublisher published) : IPollPublisher
     {
         private readonly Lock _gate = new();
+        private readonly CallCounter _counter = new();
         private readonly Dictionary<string, Exception> _failNext = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, int> _calls = new(StringComparer.Ordinal);
-        private readonly List<(string DeckId, int Count, TaskCompletionSource Done)> _waiters = [];
 
         public void FailNextFor(string deckId, Exception failure)
         {
@@ -210,19 +230,7 @@ public class PollPumpTests : PollTestFixture
             }
         }
 
-        public Task PublishedAsync(string deckId, int count)
-        {
-            lock (_gate)
-            {
-                if (_calls.GetValueOrDefault(deckId) >= count)
-                {
-                    return Task.CompletedTask;
-                }
-                var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                _waiters.Add((deckId, count, done));
-                return done.Task;
-            }
-        }
+        public Task PublishedAsync(string deckId, int count) => _counter.WhenCalledAsync(deckId, count);
 
         public async Task PublishAsync(string deckId, int slide)
         {
@@ -231,6 +239,7 @@ public class PollPumpTests : PollTestFixture
             {
                 _failNext.Remove(deckId, out failure);
             }
+            var failed = false;
             try
             {
                 if (failure != null)
@@ -239,17 +248,14 @@ public class PollPumpTests : PollTestFixture
                 }
                 await published.PublishAsync(deckId, slide);
             }
+            catch (Exception)
+            {
+                failed = true;
+                throw;
+            }
             finally
             {
-                lock (_gate)
-                {
-                    var calls = _calls[deckId] = _calls.GetValueOrDefault(deckId) + 1;
-                    foreach (var waiter in _waiters.Where(w => w.DeckId == deckId && w.Count <= calls).ToList())
-                    {
-                        waiter.Done.SetResult();
-                        _waiters.Remove(waiter);
-                    }
-                }
+                _counter.Record(deckId, failed);
             }
         }
     }

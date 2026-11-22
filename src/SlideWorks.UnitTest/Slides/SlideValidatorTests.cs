@@ -130,9 +130,7 @@ public class SlideValidatorTests
     {
         var result = Validate("foo", "{}");
 
-        result.Error.ShouldBe("layout: unknown layout 'foo' (known: title, divider, bullets, two-column, practice, compare, "
-            + "big-number, quote, image, video, table, chart, gantt, numbered-cards, rules, cards, statement, links, stack, bars, flow, levels, "
-            + "columns-list, timeline, loop, close, join, poll, qa, word-cloud, open-text)");
+        result.Error.ShouldBe($"layout: unknown layout 'foo' (known: {string.Join(", ", LayoutCatalogue.LayoutNames)})");
     }
 
     [TestCase("{}")]

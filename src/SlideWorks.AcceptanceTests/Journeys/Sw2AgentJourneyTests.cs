@@ -95,6 +95,6 @@ public class Sw2AgentJourneyTests : AcceptanceTest
     {
         var preview = await AgentSeed.CallAsync(agent, "preview_deck", new() { ["deck"] = deck, ["slides"] = slides });
         preview.GetProperty("slides").EnumerateArray().Select(s => s.GetInt32()).ShouldBe(slides);
-        return await AgentSeed.ScreenshotPreviewAsync(Browser, preview);
+        return (await AgentSeed.ScreenshotPreviewAsync(Browser, preview)).ToDictionary(shot => shot.Key, shot => shot.Value.Png);
     }
 }

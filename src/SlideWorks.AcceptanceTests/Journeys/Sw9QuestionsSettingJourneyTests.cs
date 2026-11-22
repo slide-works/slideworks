@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -35,9 +36,9 @@ public class Sw9QuestionsSettingJourneyTests : AcceptanceTest
         await Expect(panel.SettingsStrip).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
         await Expect(panel.SettingsQuestions).ToHaveTextAsync("Questions open");
 
-        await using var askerContext = await OpenPhoneAsync();
+        await using var askerContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var asker = await JoinAsync(askerContext, joinUrl);
-        await using var otherContext = await OpenPhoneAsync();
+        await using var otherContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var other = await JoinAsync(otherContext, joinUrl);
         await asker.Questions.Ask.ClickAsync();
         await asker.Questions.AskSheetText.FillAsync(QUESTION);
@@ -90,7 +91,7 @@ public class Sw9QuestionsSettingJourneyTests : AcceptanceTest
         response.Status.ShouldBe(200, await response.TextAsync());
         var joinUrl = await JoinUrlAsync(deckId);
 
-        await using var phoneContext = await OpenPhoneAsync();
+        await using var phoneContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var page = await phoneContext.NewPageAsync();
         var guest = new GuestPage(page);
         await guest.GotoUrlAsync(joinUrl);
@@ -149,11 +150,6 @@ public class Sw9QuestionsSettingJourneyTests : AcceptanceTest
         await Expect(questions.ListLoading).ToHaveCountAsync(0);
         return new Phone(guest, questions);
     }
-
-    private Task<IBrowserContext> OpenPhoneAsync() => Browser.NewContextAsync(new BrowserNewContextOptions
-    {
-        ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-    });
 
     private sealed record Phone(GuestPage Guest, GuestQuestions Questions);
 }

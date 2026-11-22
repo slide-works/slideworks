@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Checks a task before it reports: config files changed, stray files and commit subjects since the task's base commit.
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage="usage: tools/agent/self-check --base <sha>   (the task's own base commit, never origin/main)"
+base="" bad=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h | --help)
+      echo "$usage"
+      exit 0
+      ;;
+    --base)
+      [[ $# -ge 2 ]] || bad=1
+      base="${2:-}"
+      shift 2 || break
+      ;;
+    *) bad=1; break ;;
+  esac
+done
+agent_start
+[[ $bad -eq 0 && -n "$base" ]] || agent_die 2 "$usage" reason=bad-usage
+agent_require git
+cd "$(agent_root)"
+git rev-parse --verify -q "$base^{commit}" >/dev/null || agent_die 2 "not a commit: $base" reason=unknown-base
+base="$(git rev-parse "$base^{commit}")"
+git merge-base --is-ancestor "$base" HEAD || agent_die 2 "$base is not an ancestor of HEAD" reason=base-not-ancestor
+
+config_re='(\.csproj|\.props|\.config\.ts|\.config\.js)$|(^|/)(\.editorconfig|package\.json|pnpm-lock\.yaml|BannedSymbols\.txt)$|^\.github/'
+stray_re='(^|/)timeout$|\.tsbuildinfo$|\.log$|(^|/)test-results/|(^|/)playwright-report/'
+
+indent() {
+  local prefix="$1" line
+  while IFS= read -r line; do printf '%s%s\n' "$prefix" "$line"; done
+}
+
+# With AGENT_TASK set, only the commits whose subject starts with "$AGENT_TASK " count, for the subject checks and the
+# file checks alike: a shared branch holds other tasks' commits in the same range.
+task="${AGENT_TASK:-}"
+shas=()
+while IFS=$'\t' read -r sha subject; do
+  [[ -n "$sha" ]] || continue
+  if [[ -z "$task" || "$subject" == "$task "* ]]; then shas+=("$sha"); fi
+done < <(git log --format='%H%x09%s' "$base..HEAD")
+scope="$base..HEAD"
+[[ -z "$task" ]] || scope="$scope, only $task commits (${#shas[@]})"
+
+# Files per commit, so a stray file committed and deleted again later is still listed.
+files_of() { # files_of <diff-filter> : the paths each selected commit touched
+  local sha
+  for sha in "${shas[@]}"; do git diff-tree --no-commit-id --name-only -r --diff-filter="$1" "$sha"; done
+}
+
+problems=0
+config="$(files_of ACDMRT | grep -E "$config_re" | sort -u || true)"
+if [[ -n "$config" ]]; then
+  echo "config files changed in $scope (list each in the report):"
+  indent '  ' <<<"$config"
+  problems=$((problems + 1))
+fi
+
+stray="$(files_of ACMRT | grep -E "$stray_re" | sort -u || true)"
+pngs="$(files_of A | grep -E -- '-snapshots/.*\.png$' | sort -u || true)"
+if [[ -n "$stray$pngs" ]]; then
+  echo "stray files committed in $scope (remove them, or confirm a PNG is a CI baseline):"
+  [[ -z "$stray" ]] || indent '  ' <<<"$stray"
+  [[ -z "$pngs" ]] || indent '  new snapshot PNG: ' <<<"$pngs"
+  problems=$((problems + 1))
+fi
+
+badsubjects=""
+for sha in "${shas[@]}"; do
+  subject="$(git log -1 --format=%s "$sha")"
+  if [[ ${#subject} -gt 120 ]]; then
+    badsubjects+="  ${sha:0:7} subject is ${#subject} characters (max 120)"$'\n'
+  fi
+done
+if [[ -n "$badsubjects" ]]; then
+  echo "commit subjects to fix:"
+  printf '%s' "$badsubjects"
+  problems=$((problems + 1))
+fi
+
+if [[ $problems -gt 0 ]]; then
+  agent_finish 1 "findings=$problems" "base=${base:0:7}"
+fi
+agent_finish 0 "base=${base:0:7}"

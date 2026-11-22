@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 
-namespace SlideWorks.WebApi.Tests.Presenting;
+namespace SlideWorks.WebApi.Tests.Support.Timing;
 
 // A hub filter a fixture adds with ConfigureTestServices: it completes a connection's task once the server has finished
 // handling that connection's disconnect (DeckHub.OnDisconnectedAsync, and so IPresentations.LeaveAllAsync). A test waits

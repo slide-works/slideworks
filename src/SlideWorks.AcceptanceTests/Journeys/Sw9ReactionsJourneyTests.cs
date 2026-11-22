@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -44,9 +45,9 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
     public async Task Reaction_WhenTapped_ShouldFloatOnTheBigScreenAndCountForThePresenterOnly()
     {
         var talk = await PresentAsync("Reactions");
-        await using var contextA = await OpenPhoneAsync();
+        await using var contextA = await PollJourney.OpenPhoneContextAsync(Browser);
         var phoneA = await JoinAsync(contextA, talk.JoinUrl);
-        await using var contextB = await OpenPhoneAsync();
+        await using var contextB = await PollJourney.OpenPhoneContextAsync(Browser);
         var phoneB = await JoinAsync(contextB, talk.JoinUrl);
         var panel = new QaPanel(Page);
         await talk.Presenter.PressAsync("q");
@@ -57,7 +58,7 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
         await talk.AudiencePage.EvaluateAsync<bool>(WATCH_FLOATS, QaSlide.FLOAT_TEST_ID);
         var screen = new QaSlide(talk.Audience.Slide(1));
         await Expect(screen.ReactionsLayer).ToHaveCountAsync(1);
-        var phoneBStatesBefore = StateFrames(phoneB.Frames);
+        var phoneBStatesBefore = Probes.FrameCount(phoneB.Frames, "audienceState");
 
         await phoneA.Questions.Reaction("clap").ClickAsync();
 
@@ -73,15 +74,12 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
         // socket would pass; then no frame it ever received is a reactions burst.
         await talk.Presenter.PressAsync("ArrowRight");
         await Expect(talk.Presenter.Count).ToHaveTextAsync($"2 / {SLIDES}", new() { Timeout = PUSH_TIMEOUT });
-        (await Eventually.ReadAsync(() => Task.FromResult(StateFrames(phoneB.Frames)), count => count > phoneBStatesBefore))
+        (await Probes.CaughtUpAsync(phoneB.Frames, "audienceState", phoneBStatesBefore))
             .ShouldBeGreaterThan(phoneBStatesBefore, "phone B's socket should still deliver events after the tap");
         phoneB.Frames.ShouldNotBeEmpty();
         phoneB.Frames.Where(frame => frame.Contains(REACTIONS_TYPE, StringComparison.Ordinal)).ShouldBeEmpty();
         await Expect(phoneB.Questions.ReactionError).ToHaveCountAsync(0);
     }
-
-    private static int StateFrames(ConcurrentQueue<string> frames) =>
-        frames.Count(frame => frame.Contains("\"type\":\"audienceState\"", StringComparison.Ordinal));
 
     // Criteria (D7): a phone on the Questions tab switches to the Slide tab, and shows the poll, when the poll opens; a phone
     // with the ask sheet open stays on Questions and shows "A poll just opened. It is on the Slide tab." with Go to poll,
@@ -90,9 +88,9 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
     public async Task Poll_WhenOpensWhileOnQuestions_ShouldSwitchToTheSlideTab()
     {
         var talk = await PresentAsync("Poll switch");
-        await using var contextA = await OpenPhoneAsync();
+        await using var contextA = await PollJourney.OpenPhoneContextAsync(Browser);
         var plain = await JoinAsync(contextA, talk.JoinUrl);
-        await using var contextB = await OpenPhoneAsync();
+        await using var contextB = await PollJourney.OpenPhoneContextAsync(Browser);
         var asking = await JoinAsync(contextB, talk.JoinUrl);
         foreach (var phone in new[] { plain, asking })
         {
@@ -154,19 +152,20 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
             });
         }
 
-        await SignIn.AsAsync(Page, TestUser.Sam);
-        var presenter = new PresenterPage(Page);
-        await presenter.GotoAsync(deckId);
-        await presenter.IsLiveAsync();
+        var presenter = await PollJourney.OpenPresenterAsync(Page, deckId);
         await Expect(presenter.Connecting).ToHaveCountAsync(0);
         await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
         await presenter.Live.GoLive.ClickAsync();
         await Expect(presenter.Live.End).ToBeVisibleAsync();
-        var joinUrl = await ReadAsync($"/api/decks/{deckId}/live", "joinUrl");
+        var joinRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/live", "joinUrl");
+        joinRead.Status.ShouldBe(200, joinRead.Body);
+        var joinUrl = joinRead.Value.ShouldNotBeNull();
 
         var audienceTab = await Context.NewPageAsync();
         var audience = new PlayerPage(audienceTab);
-        await audienceTab.GotoAsync(await ReadAsync($"/api/decks/{deckId}/presenter", "audienceUrl"));
+        var audienceRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/presenter", "audienceUrl");
+        audienceRead.Status.ShouldBe(200, audienceRead.Body);
+        await audienceTab.GotoAsync(audienceRead.Value.ShouldNotBeNull());
         await Expect(audience.AudienceMode).ToBeVisibleAsync();
         await Expect(audience.Layer(1)).ToHaveAttributeAsync("data-active", "true");
         await Expect(presenter.AudienceChips).ToHaveCountAsync(1);
@@ -185,18 +184,6 @@ public class Sw9ReactionsJourneyTests : AcceptanceTest
         await guest.IsFollowingAsync();
         return new Phone(page, guest, new GuestQuestions(page), new GuestPollCard(page), frames);
     }
-
-    private async Task<string> ReadAsync(string path, string field)
-    {
-        var response = await Page.APIRequest.GetAsync(path);
-        response.Status.ShouldBe(200, await response.TextAsync());
-        return JsonDocument.Parse(await response.TextAsync()).RootElement.GetProperty(field).GetString().ShouldNotBeNull();
-    }
-
-    private Task<IBrowserContext> OpenPhoneAsync() => Browser.NewContextAsync(new BrowserNewContextOptions
-    {
-        ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-    });
 
     private sealed record Talk(PresenterPage Presenter, PlayerPage Audience, IPage AudiencePage, string JoinUrl);
 

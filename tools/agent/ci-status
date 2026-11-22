@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# Lists the jobs of the newest CI run whose head contains a commit (an ancestor match, not an exact sha match).
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage="usage: tools/agent/ci-status [--branch <branch>] [<sha>]   (default sha: HEAD, default branch: the current one)"
+branch="" sha="" bad=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h | --help)
+      echo "$usage"
+      exit 0
+      ;;
+    --branch)
+      [[ $# -ge 2 ]] || bad=1
+      branch="${2:-}"
+      shift 2 || break
+      ;;
+    -*) bad=1; break ;;
+    *) [[ -z "$sha" ]] || bad=1; sha="$1"; shift ;;
+  esac
+done
+agent_start
+[[ $bad -eq 0 ]] || agent_die 2 "$usage" reason=bad-usage
+agent_require git gh jq
+cd "$(agent_root)"
+sha="$(git rev-parse --verify -q "${sha:-HEAD}^{commit}")" || agent_die 2 "not a commit: ${sha:-HEAD}" reason=unknown-commit
+
+if [[ -z "$branch" ]]; then
+  branch="$(git rev-parse --abbrev-ref HEAD)"
+  [[ "$branch" != "HEAD" ]] || agent_die 2 "detached HEAD: pass --branch <branch>" reason=detached-head
+fi
+
+# Newest run per workflow on the branch whose head has the commit as an ancestor.
+# Pages of 100 runs, newest first, at most 5 pages; stops after the first page with a match.
+declare -A seen=()
+picked=()
+searched=0
+for page in 1 2 3 4 5; do
+  runs="$(gh api "repos/{owner}/{repo}/actions/runs?branch=$branch&per_page=100&page=$page" 2>>"$AGENT_LOG")" \
+    || agent_die 4 "gh api failed listing runs (is gh logged in? see log)" reason=gh-failed
+  count="$(jq '.workflow_runs | length' <<<"$runs")"
+  [[ "$count" -gt 0 ]] || break
+  searched=$((searched + count))
+  while IFS=$'\t' read -r id head wf; do
+    [[ -z "${seen[$wf]:-}" ]] || continue
+    if git cat-file -e "$head^{commit}" 2>/dev/null || git fetch -q origin "$head" >>"$AGENT_LOG" 2>&1; then
+      if git merge-base --is-ancestor "$sha" "$head" 2>/dev/null; then
+        seen[$wf]=1
+        picked+=("$id")
+      fi
+    fi
+  done < <(jq -r '.workflow_runs[] | [.id, .head_sha, .name] | @tsv' <<<"$runs")
+  [[ ${#picked[@]} -eq 0 ]] || break
+  [[ "$count" -eq 100 ]] || break
+done
+
+if [[ ${#picked[@]} -eq 0 ]]; then
+  echo "no run on branch $branch matches: none of the $searched newest runs has $(git rev-parse --short "$sha") as an ancestor of its head (not pushed, CI not started, or the branch is wrong: try --branch)"
+  agent_finish 1 reason=no-run "sha=$(git rev-parse --short "$sha")"
+fi
+
+failed=0 running=0 total=0
+for id in "${picked[@]}"; do
+  view="$(gh run view "$id" --json jobs,url,workflowName,headSha,status 2>>"$AGENT_LOG")" \
+    || agent_die 4 "gh run view $id failed (see log)" reason=gh-failed
+  jq -r '"run \(.workflowName) \(.url) head=\(.headSha[0:7]) status=\(.status)"' <<<"$view"
+  jq -r '.jobs[] | "  \(.name): \(if .conclusion == "" or .conclusion == null then .status else .conclusion end)"' <<<"$view"
+  total=$((total + $(jq '.jobs | length' <<<"$view")))
+  # A run that has not completed (queued, in progress, waiting) is running, whatever its jobs say so far.
+  [[ "$(jq -r '.status' <<<"$view")" == "completed" ]] || running=$((running + 1))
+  # Any finished job that is not success or skipped fails the check.
+  failed=$((failed + $(jq '[.jobs[] | select((.conclusion // "") != "" and .conclusion != "success" and .conclusion != "skipped")] | length' <<<"$view")))
+done
+
+if [[ $failed -gt 0 ]]; then
+  agent_finish 1 "jobs=$total" "failed=$failed" "running_runs=$running"
+elif [[ $running -gt 0 ]]; then
+  AGENT_FINISHED=1
+  line="$(agent_result ci-status blocked "$AGENT_LOG" "running" "jobs=$total" "running_runs=$running")"
+  printf '%s\n' "$line" >>"$AGENT_LOG"
+  printf '%s\n' "$line"
+  agent_mark_done "$AGENT_LOG" 0
+  exit 0
+fi
+agent_finish 0 "jobs=$total"

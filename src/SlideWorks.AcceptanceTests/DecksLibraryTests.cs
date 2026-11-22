@@ -26,7 +26,8 @@ public partial class DecksLibraryTests : AcceptanceTest
     {
         var decks = new DecksPage(Page);
         var title = $"Quarterly plan {Guid.NewGuid():N}";
-        await SignIn.AsAsync(Page, TestUser.Mira);
+        // A fresh person: the library holds only the deck this test creates, whatever else ran as a shared person.
+        await SignIn.AsAsync(Page, TestUser.NewApproved());
         await decks.GotoAsync();
         await decks.CreateDeckAsync(title);
         await Expect(Page).ToHaveURLAsync(DeckPageUrl());

@@ -60,7 +60,6 @@ The ShipLean project **SW** (Slide Works). Each Feature is an SW key: SW-1 is th
 
 ```bash
 (cd src/SlideWorks.Client && pnpm install && pnpm run build)   # once, and after client changes: acceptance tests serve this bundle
-dotnet test src/SlideWorks.slnx                     # run before pushing — includes the acceptance tests, so build the client first (CI's backend job skips them; its acceptance job runs them)
 dotnet run --project src/SlideWorks.WebApi          # dev: Kestrel on :5510, appsettings.Development.json
 cd src/SlideWorks.Client && pnpm run dev            # dev SPA on :3000 (open this, not :5510); proxies /api, /hubs, /mcp, OAuth and sign-in -> :5510
 cd src/SlideWorks.Client && pnpm run format:check && pnpm run lint && pnpm test && pnpm run build   # CI's frontend job
@@ -71,6 +70,7 @@ SLIDEWORKS_DB_PATH=/tmp/x.db dotnet ef migrations add <Name> --project src/Slide
 docker compose -f src/docker-compose.yml up --build
 ```
 
+Agents build and test with the scripts in `tools/agent/` (see [tools/agent/README.md](tools/agent/README.md)) instead of the raw commands above: `tools/agent/test-dotnet <project> <filter>`, `test-vitest <files>`, `test-ct <spec files>` and `test-acceptance <filter>` each run a named slice, never a whole project. CI runs the full suite; never run it locally.
 
 Branch per Feature or story (`feature/sw-<n>-<slug>`), PR to `main`, and name the SW key in the PR.
 
@@ -80,6 +80,7 @@ Branch per Feature or story (`feature/sw-<n>-<slug>`), PR to `main`, and name th
 
 ## Important notes
 
+- **House rules:** [docs/house-rules.md](docs/house-rules.md) lists the analyzers that fail the build (each with its allowed alternative) and the test, client, DI, migration and MCP traps; [docs/testing.md](docs/testing.md) covers races and time in tests. Read both before you write code or tests.
 - **Tests are black-box, in this order of preference**: acceptance tests (`SlideWorks.AcceptanceTests`, Playwright against the real BFF and built bundle), then `WebApplicationFactory` through the HTTP surface (`SlideWorks.WebApi.Tests`, against a temp SQLite file when there is a database); `SlideWorks.UnitTest` only for pure helpers in `SlideWorks.Core`, used sparingly. Acceptance selectors are `data-testid` attributes (`GetByTestId`, enforced by Agoda AG0046), reached through page objects. Fixtures inherit `ApiTestFixture`. Naming: `Method_When_Should`. Never weaken or delete existing tests — see `.claude/skills/preserve-existing-tests/`.
 - **DI via Agoda.IoC attributes** (`[RegisterSingleton]`/`[RegisterPerRequest]`/`[RegisterTransient]`) on the class — no `services.Add*` registration in `Program.cs` for our own types.
 - **One top-level type per file**, named after the type. Only exception: an interface with exactly one implementing class may sit in that class's file, above it.
@@ -94,7 +95,7 @@ Branch per Feature or story (`feature/sw-<n>-<slug>`), PR to `main`, and name th
 - **People sign in with Google and hold a cookie session; agents hold OAuth bearer tokens, on `/mcp` only.** Every endpoint needs an approved person unless it is `[AllowAnonymous]` or names `SignedInPolicy` (pending people too). `AdminPolicy` is stricter: approved admins only, and an approved non-admin gets 403. A pending person gets 403 `{"error":"pending_approval"}`. Read the caller from `ICurrentActor`. `CrossSiteWriteGuard` refuses cross-site writes under `/api`, and a new non-safe route outside `/api` fails `WriteRouteTableTests` unless it joins that test's allow-list.
 - **Enums go on the wire as camelCase strings** (`"private"`, `"link"`, `"agent"`), never integers, over HTTP and MCP alike.
 - **MCP tools return a JSON object, never an array**, through `McpToolErrors.Run`; lists are wrappers such as `{decks:[...]}`, because MCP clients reject an array as structured content. Test at least one call per tool on the raw JSON-RPC wire (`Decks/McpWire.cs`), not only through `McpTestClient`, which tolerates bad shapes. The SDK binds tool arguments with its own serializer, so test enum arguments on the wire too.
-- **Seed tests only through public routes** (`POST /api/decks`, MCP `create_deck`/`add_slide`; helpers in `Decks/DeckSeed.cs` and `McpWire.cs`), never the database. Take people from `TestPeople`: Sam, Alex and Mira are approved, `TestUser.Ada` is the admin and `TestUser.NewPending()` is pending. Template rows are the one exception: see the template rule below. Check a response with `JsonShape.AssertMatches(actual, "<screen>.json", ScreenShapes.<Screen>)` (value kinds only), then assert the real values; wire values use Shouldly's `Case.Sensitive`.
+- **Seed tests only through public routes** (`POST /api/decks`, MCP `create_deck`/`add_slide`; helpers in `Decks/DeckSeed.cs` and `McpWire.cs`), never the database. Take people from `TestPeople`: Sam, Alex and Mira are approved, `TestUser.Ada` is the admin and `TestUser.NewPending()` is pending. Template rows are the one exception: see the template rule below. Check a response with `JsonShape.AssertMatches(actual, "<screen>.json", ScreenShapes.<Screen>)` (value kinds only), then assert the real values; string `ShouldBe` is already ordinal and has no `Case` overload; `Case.Sensitive` exists only on `ShouldContain`, `ShouldStartWith` and `ShouldEndWith`.
 - **Deck writes run in an explicit transaction** (SQLite's `BEGIN IMMEDIATE` serialises them), bump `Deck.Revision`, and record activity through `IActivityLog`, never by hand.
 - **A slide is a layout plus typed slots, and slot text is plain text.** `LayoutCatalogue` is the one definition (one file per layout under `Core/Slides/Layouts/`): the validator, `list_layouts` and the generated `src/contracts/layouts/<layout>.md` and `_blocks.md` come from it, and the client's `slots/<layout>.ts` mirrors it. A layout is one file in each of those places, in its fit fixture and in the client's slot types. After changing one, regenerate the docs with `UPDATE_LAYOUTS_DOC=1 dotnet test src/SlideWorks.UnitTest --filter "FullyQualifiedName~LayoutsDoc"` and commit the files. No Markdown or HTML parsing and no `dangerouslySetInnerHTML` (a lint rule bans it).
 - **The layout seam:** a layout component takes `LayoutProps`; its root carries `.sw-layout` and its content body `.sw-body`. `SlideFrame`'s chrome CSS owns their geometry, so never redeclare their flex, height or margin-top; put an inner wrapper inside `.sw-body`. A layout that needs the slide's part reads `slidePart`'s context. Inactive slides and hidden steps stay rendered (`Reveal`, visibility and opacity, never `display:none`).

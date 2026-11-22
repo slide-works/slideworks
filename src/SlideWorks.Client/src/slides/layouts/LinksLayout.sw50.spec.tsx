@@ -8,6 +8,7 @@ import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { LinksSlots } from '../slots/links';
 import type { SlideDeck } from '../slots';
+import { wideLetters } from '../../test-support/text/maxText';
 
 // The links layout: 1–6 links that open in a new tab, an optional QR code, and
 // no steps.
@@ -145,11 +146,7 @@ const WIDE_TEXT =
   'Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. ';
 
 // Wide-letter text (capitals, W and M) of exactly `length` characters.
-function wide(length: number): string {
-  let text = '';
-  while (text.length < length) text += WIDE_TEXT;
-  return text.slice(0, length).trimEnd().padEnd(length, 'M');
-}
+const wide = (length: number): string => wideLetters(length, WIDE_TEXT);
 
 // Slot keys whose strings are addresses: widening one would make it invalid.
 const NOT_TEXT = new Set(['url']);

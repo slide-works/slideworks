@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -50,9 +51,7 @@ public partial class SharingJourneys : AcceptanceTest
 
         // Leave the deck page before swapping the session: a re-read it still has out (on join, or on the DeckChanged the
         // save publishes) could land after the swap and send the page away, aborting the next navigation.
-        await Page.GotoAsync("about:blank");
-        await Page.Context.ClearCookiesAsync();
-        await SignIn.AsAsync(Page, TestUser.Alex);
+        await Sessions.SwitchSessionAsync(Page, TestUser.Alex);
         var decks = new DecksPage(Page);
         await decks.GotoAsync();
         var shared = decks.SharedRows.Filter(new LocatorFilterOptions { HasText = title });
@@ -65,9 +64,7 @@ public partial class SharingJourneys : AcceptanceTest
         await Expect(Page).ToHaveURLAsync(new Regex($"/d/{deckId}/"));
         await Expect(player.Player).ToHaveAttributeAsync("aria-label", title);
 
-        await Page.GotoAsync("about:blank");
-        await Page.Context.ClearCookiesAsync();
-        await SignIn.AsAsync(Page, TestUser.Mira);
+        await Sessions.SwitchSessionAsync(Page, TestUser.Mira);
         await player.GotoAsync(deckId);
         await Expect(player.NotFound).ToHaveTextAsync("Deck not found");
         await Expect(player.Player).ToHaveCountAsync(0);

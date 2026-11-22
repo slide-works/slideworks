@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.AcceptanceTests.Support;
+using SlideWorks.Core.Slides;
 using SlideWorks.WebApi.Tests.Support;
 using static SlideWorks.AcceptanceTests.Journeys.TenSlideBrief;
 
@@ -35,7 +36,7 @@ public class MeasureJourney : AcceptanceTest
     {
         var layouts = (await agent.CallAsync("list_layouts", new { })).GetProperty("layouts").EnumerateArray()
             .Select(l => l.GetProperty("name").GetString()).ToList();
-        layouts.Count.ShouldBe(31);
+        layouts.Count.ShouldBe(LayoutCatalogue.LayoutNames.Count);
         LAYOUTS.Cast<string?>().ShouldBeSubsetOf(layouts);
 
         var created = await agent.CallAsync("create_deck", new { title = TITLE, subtitle = "Small batches, sooner feedback", author = "Sam Rivera", parts = PARTS });

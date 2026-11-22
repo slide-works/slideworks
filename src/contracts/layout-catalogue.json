@@ -1,0 +1,1177 @@
+{
+  "generated": "From LayoutCatalogue; do not edit by hand. Regenerate: UPDATE_LAYOUTS_DOC=1 tools/agent/test-dotnet src/SlideWorks.UnitTest \"FullyQualifiedName~LayoutCatalogueJsonTests\"",
+  "layouts": [
+    {
+      "name": "title",
+      "surface": "dark",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "subtitle",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "tagline",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "author",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "affiliation",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "stamp",
+          "kind": "stamp",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "divider",
+      "surface": "dark",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "sub",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "image",
+          "kind": "image",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "bullets",
+      "surface": "either",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "style",
+          "kind": "markers | numbered",
+          "required": false
+        },
+        {
+          "name": "items",
+          "kind": "list of text or object",
+          "required": true
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "two-column",
+      "surface": "either",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "left",
+          "kind": "object",
+          "required": true
+        },
+        {
+          "name": "right",
+          "kind": "object",
+          "required": true
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "practice",
+      "surface": "either",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "density",
+          "kind": "regular | compact",
+          "required": false
+        },
+        {
+          "name": "do",
+          "kind": "list of object",
+          "required": true
+        },
+        {
+          "name": "comes_back",
+          "kind": "list of text",
+          "required": false
+        },
+        {
+          "name": "avoid",
+          "kind": "list of text",
+          "required": true
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "compare",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "failure",
+          "kind": "object",
+          "required": true
+        },
+        {
+          "name": "success",
+          "kind": "object",
+          "required": true
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "big-number",
+      "surface": "either",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "value",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "caption",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "detail",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "source",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "quote",
+      "surface": "either",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "quote",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "attribution",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "role",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "stat",
+          "kind": "object",
+          "required": false
+        },
+        {
+          "name": "follow_up",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "source",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "image",
+          "kind": "image",
+          "required": false
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "image",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "image",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "name": "frame",
+          "kind": "card | none",
+          "required": false
+        },
+        {
+          "name": "position",
+          "kind": "below | right",
+          "required": false
+        },
+        {
+          "name": "link",
+          "kind": "link",
+          "required": false
+        },
+        {
+          "name": "points",
+          "kind": "list of text or object",
+          "required": false
+        },
+        {
+          "name": "caption",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "video",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "url",
+          "kind": "youtube",
+          "required": true
+        },
+        {
+          "name": "start",
+          "kind": "whole number",
+          "required": false
+        },
+        {
+          "name": "play",
+          "kind": "click | auto",
+          "required": false
+        },
+        {
+          "name": "caption",
+          "kind": "text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "table",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "columns",
+          "kind": "list of text",
+          "required": true
+        },
+        {
+          "name": "rows",
+          "kind": "list of list of text or object",
+          "required": true
+        },
+        {
+          "name": "highlightRow",
+          "kind": "whole number",
+          "required": false
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one | strike-and-answer",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "chart",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "kind",
+          "kind": "line | bar",
+          "required": true
+        },
+        {
+          "name": "xLabels",
+          "kind": "list of text",
+          "required": true
+        },
+        {
+          "name": "series",
+          "kind": "list of object",
+          "required": true
+        },
+        {
+          "name": "yUnit",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "caption",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        },
+        {
+          "name": "marker",
+          "kind": "object",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "gantt",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "columns",
+          "kind": "list of text",
+          "required": true
+        },
+        {
+          "name": "rows",
+          "kind": "list of object",
+          "required": true
+        },
+        {
+          "name": "caption",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "numbered-cards",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "cards",
+          "kind": "list of object",
+          "required": true
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "rules",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "rules",
+          "kind": "list of object",
+          "required": true
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "cards",
+      "surface": "either",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "cards",
+          "kind": "list of object",
+          "required": true
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "statement",
+      "surface": "either",
+      "tracker": false,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "statement",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "sub",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "links",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "links",
+          "kind": "list of object",
+          "required": true
+        },
+        {
+          "name": "qr",
+          "kind": "object",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "stack",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "segments",
+          "kind": "list of object",
+          "required": true
+        },
+        {
+          "name": "unit",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "total",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "caption",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "points",
+          "kind": "list of text or object",
+          "required": false
+        },
+        {
+          "name": "side",
+          "kind": "right | left",
+          "required": false
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "bars",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "bars",
+          "kind": "list of object",
+          "required": true
+        },
+        {
+          "name": "unit",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "values",
+          "kind": "shown | hidden",
+          "required": false
+        },
+        {
+          "name": "wasLabel",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "caption",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "flow",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "nodes",
+          "kind": "list of object",
+          "required": true
+        },
+        {
+          "name": "caption",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "chips",
+          "kind": "list of chip",
+          "required": false
+        },
+        {
+          "name": "reveal",
+          "kind": "all | one-by-one",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "levels",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "levels",
+          "kind": "levels",
+          "required": true
+        },
+        {
+          "name": "main",
+          "kind": "object",
+          "required": true
+        },
+        {
+          "name": "facts",
+          "kind": "facts",
+          "required": false
+        },
+        {
+          "name": "side",
+          "kind": "right | left",
+          "required": false
+        },
+        {
+          "name": "callout",
+          "kind": "callout",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "columns-list",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "columns",
+          "kind": "list of object",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "timeline",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "events",
+          "kind": "list of object",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "loop",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "steps",
+          "kind": "list of object",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "close",
+      "surface": "dark",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "emphasis",
+          "kind": "emphasis",
+          "required": false
+        },
+        {
+          "name": "sub",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "author",
+          "kind": "text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "join",
+      "surface": "dark",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "kicker",
+          "kind": "text",
+          "required": false
+        },
+        {
+          "name": "count",
+          "kind": "shown | hidden",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "poll",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "question",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "options",
+          "kind": "list of text",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "qa",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "word-cloud",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "question",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "turn",
+          "kind": "none | some",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "open-text",
+      "surface": "light",
+      "tracker": true,
+      "slots": [
+        {
+          "name": "question",
+          "kind": "text",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

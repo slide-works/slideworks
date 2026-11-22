@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
 import { lookViewOf } from '../../test-support/fixtures/lookViewOf';
 import { sampleDeck } from '../../test-support/fixtures/screens';
+import { paintedExtent, slideBox } from '../../test-support/measure/paintedExtent';
 import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { SlideDeck } from '../slots';
@@ -47,57 +48,11 @@ function tokenColour(page: Page, testId: string, key: string): Promise<string> {
   }, key);
 }
 
-type Box = { left: number; top: number; right: number; bottom: number };
-
-// What the layout draws, in canvas px from the slide's top left: every run of
-// text and every painted box (an image, or a background, shadow or border)
-// inside the layout. Layout boxes that only stretch to fill the body, such as
-// a column or the body itself, are left out, so a column of short text is
-// measured where its text ends. Also the top of every element box, the body's
-// own box, the headline's box and the footer's top.
+// paintedExtent plus the headline's box, which the max-text checks bound.
 async function measure(page: Page, layoutTestId: string) {
-  await page.evaluate(() => document.fonts.ready);
-  return page.getByTestId(layoutTestId).evaluate((root: Element) => {
-    const slide = root.closest('[data-layout]')!.getBoundingClientRect();
-    const rel = (rect: DOMRect): Box => ({
-      left: rect.left - slide.left,
-      top: rect.top - slide.top,
-      right: rect.right - slide.left,
-      bottom: rect.bottom - slide.top,
-    });
-    const drawn = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
-    const add = (rect: DOMRect) => {
-      if (rect.width === 0 && rect.height === 0) return;
-      const box = rel(rect);
-      drawn.left = Math.min(drawn.left, box.left);
-      drawn.top = Math.min(drawn.top, box.top);
-      drawn.right = Math.max(drawn.right, box.right);
-      drawn.bottom = Math.max(drawn.bottom, box.bottom);
-    };
-    // A 20 px/1 kicker's glyphs rise a little above its line box; the boxes don't.
-    let boxTop = Infinity;
-    for (const element of root.querySelectorAll('*')) {
-      const rect = element.getBoundingClientRect();
-      if (rect.width > 0 || rect.height > 0) boxTop = Math.min(boxTop, rel(rect).top);
-      const style = getComputedStyle(element);
-      const painted =
-        element.tagName === 'IMG' ||
-        style.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
-        style.boxShadow !== 'none' ||
-        parseFloat(style.borderTopWidth) > 0;
-      if (painted) add(rect);
-    }
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      for (const rect of range.getClientRects()) add(rect);
-    }
-    const body = rel(root.querySelector('.sw-body')!.getBoundingClientRect());
-    const headline = rel(root.querySelector('h2')!.getBoundingClientRect());
-    const footer = document.querySelector('[data-testid="slide-footer"]')!.getBoundingClientRect();
-    return { drawn, boxTop, body, headline, footerTop: footer.top - slide.top };
-  });
+  const extent = await paintedExtent(page, layoutTestId, { images: true });
+  const headline = await slideBox(page, layoutTestId, 'h2');
+  return { ...extent, headline };
 }
 
 // An SVG image of the given natural size, served for /api/images/<id>.

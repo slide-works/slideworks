@@ -8,6 +8,7 @@ import { planBars, barHeight, TRACK } from '../diagrams/barsGeometry';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { BarsSlots } from '../slots/bars';
 import type { SlideDeck } from '../slots';
+import { wideLetters } from '../../test-support/text/maxText';
 
 // The bars layout: where a note goes, bar lengths that follow barsGeometry,
 // hidden numbers, the dashed outline and its legend, steps that keep their
@@ -213,11 +214,7 @@ test('headline emphasis carries its tone', async ({ mount, page }) => {
 // Wide letters (capitals, W and M) of exactly `length` characters. Copied from
 // DataLayouts.fixtures.ts, which is frozen.
 const WIDE_TEXT = 'Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. ';
-function wide(length: number): string {
-  let text = '';
-  while (text.length < length) text += WIDE_TEXT;
-  return text.slice(0, length).trimEnd().padEnd(length, 'M');
-}
+const wide = (length: number): string => wideLetters(length, WIDE_TEXT);
 
 // Every text string widened. Options (tone, values, reveal, in) stay as they
 // are, and so do the numbers (value, was).

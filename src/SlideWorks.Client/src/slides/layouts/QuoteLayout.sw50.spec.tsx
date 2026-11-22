@@ -7,6 +7,7 @@ import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { QuoteSlots } from '../slots/quote';
 import type { SlideDeck } from '../slots';
+import { wideLetters } from '../../test-support/text/maxText';
 
 // The quote layout: a headline, the speaker's role, a stat beside the
 // attribution, a follow-up line and a source, light or dark, revealing the
@@ -197,11 +198,7 @@ test('emphasis in the quote and the headline carry their tone', async ({ mount, 
 // Wide letters (capitals, W and M) of exactly `length` characters. Copied from
 // DataLayouts.fixtures.ts, which is frozen.
 const WIDE_TEXT = 'Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. ';
-function wide(length: number): string {
-  let text = '';
-  while (text.length < length) text += WIDE_TEXT;
-  return text.slice(0, length).trimEnd().padEnd(length, 'M');
-}
+const wide = (length: number): string => wideLetters(length, WIDE_TEXT);
 
 // Every text string widened; options and the stat's value are left as they are.
 const NOT_TEXT = new Set(['reveal', 'tone', 'in', 'value']);
