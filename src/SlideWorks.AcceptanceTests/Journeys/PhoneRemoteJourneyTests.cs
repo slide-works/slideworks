@@ -1,4 +1,5 @@
 using System.Globalization;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using System.Text.RegularExpressions;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
@@ -67,6 +68,9 @@ public partial class PhoneRemoteJourneyTests : AcceptanceTest
         await Expect(speaker.Now).ToHaveAttributeAsync("data-slide", "11");
     }
 
+    private const string LIVE_CARD_PROBE =
+        "root => [...root.querySelectorAll('[data-testid=\"remote-live-card\"]')].map(card => card.textContent ?? '')";
+
     // P4, P8: /remote with nothing live shows the empty note; once the owner's presenter window is open, the QR code's
     // link (/remote?deck={id}) goes straight to that deck's speaker mode.
     [Test]
@@ -79,11 +83,21 @@ public partial class PhoneRemoteJourneyTests : AcceptanceTest
         await remote.GotoAsync();
         await remote.IsLoadedAsync();
         await Expect(remote.Empty).ToBeVisibleAsync();
-        await Expect(remote.LiveCards).ToHaveCountAsync(0);
 
-        var id = await CreateDeckAsync(owner, $"Straight to speaker {Guid.NewGuid():N}");
-        var presenter = await OpenPresenterAsync(owner, id);
-        await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
+        // The same probe runs before a deck of theirs is live (it finds no card) and once it is (it finds the card), so a
+        // broken locator cannot pass the empty half.
+        string id = "";
+        var probe = await Probes.PairedAsync(remote.Root, LIVE_CARD_PROBE, async () =>
+        {
+            id = await CreateDeckAsync(owner, $"Straight to speaker {Guid.NewGuid():N}");
+            var presenter = await OpenPresenterAsync(owner, id);
+            await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
+            await remote.GotoAsync();
+            await remote.IsLoadedAsync();
+            await Expect(remote.LiveCards).ToHaveCountAsync(1);
+        });
+        probe.Absent.ShouldBeEmpty("live cards before anything is presenting");
+        probe.Present.ShouldNotBeEmpty("the probe should find the card once the deck is live");
 
         await remote.GotoAsync(id);
 
