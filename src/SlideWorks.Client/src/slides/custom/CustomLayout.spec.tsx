@@ -99,8 +99,13 @@ test.describe('bindings', () => {
   });
 
   test('data-if hides an element whose slot is absent', async ({ mount, page }) => {
-    const without: { [name: string]: unknown } = { ...sample, note: undefined };
-    await open(mount, page, { slots: without });
+    const withNote = { ...sample, note: 'A note' };
+    const component = await open(mount, page, { slots: withNote });
+    await expect(page.locator(`.${P}note`)).toHaveText('A note');
+    const without: { [name: string]: unknown } = { ...sample };
+    delete without.note;
+    await component.update(slideOf({ slots: without }));
+    await expect(page.locator(`.${P}headline`)).toBeVisible();
     await expect(page.locator(`.${P}note`)).toHaveCount(0);
   });
 
@@ -189,10 +194,15 @@ test.describe('steps', () => {
   });
 
   test('a layout rule cannot show a waiting step', async ({ mount, page }) => {
-    const css = `${view.css}\n.${P}row { visibility: visible !important; opacity: 1 !important; }`;
+    const css = `${view.css}\n.${P}row { visibility: visible; opacity: 1; }`;
     await open(mount, page, { layouts: [{ ...view, css }], slots: oneByOne, step: 0 });
-    await expect(bars(page).nth(2)).toHaveAttribute('style', /visibility: hidden/);
-    await expect(bars(page).nth(2)).toHaveAttribute('aria-hidden', 'true');
+    const waiting = bars(page).nth(2);
+    await expect(waiting).toHaveAttribute('aria-hidden', 'true');
+    const drawn = await waiting.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return [style.visibility, style.opacity];
+    });
+    expect(drawn).toEqual(['hidden', '0']);
   });
 });
 
@@ -290,6 +300,41 @@ test.describe('hostile input', () => {
     await expect(page.getByTestId('custom-layout-error')).toBeVisible();
   });
 
+  test('a levels block with a bad item draws the error', async ({ mount, page }) => {
+    const layout = layoutOf([node({ classes: [`${P}chart`], slot: 'ladder' })], '', {
+      ladder: { type: 'levels' },
+    });
+    const bad = [
+      { items: [null] },
+      { items: [{ text: 5 }] },
+      { items: [{ text: 'a', state: 'loud' }] },
+      { items: [{ text: 'a', mark: 1 }] },
+      { title: 3, items: [] },
+    ];
+    const component = await open(mount, page, { layouts: [layout], slots: { ladder: bad[0] } });
+    for (const ladder of bad) {
+      await component.update(slideOf({ layouts: [layout], slots: { ladder } }));
+      await expect(page.getByTestId('custom-layout-error')).toBeVisible();
+    }
+  });
+
+  test('a facts block with a bad tile draws the error', async ({ mount, page }) => {
+    const layout = layoutOf([node({ classes: [`${P}chart`], slot: 'f' })], '', {
+      f: { type: 'facts' },
+    });
+    const bad = [
+      [null],
+      [{ label: 'a' }],
+      [{ label: 'a', value: 2 }],
+      [{ label: 'a', value: 'b', tone: 'loud' }],
+    ];
+    const component = await open(mount, page, { layouts: [layout], slots: { f: bad[0] } });
+    for (const f of bad) {
+      await component.update(slideOf({ layouts: [layout], slots: { f } }));
+      await expect(page.getByTestId('custom-layout-error')).toBeVisible();
+    }
+  });
+
   test('a variant value outside the enum adds no class', async ({ mount, page }) => {
     const bad = { ...sample, bars: [{ label: 'A', share: 5, state: 'loud' }] };
     await open(mount, page, { slots: bad });
@@ -363,15 +408,24 @@ test.describe('frame', () => {
   });
 
   test("the layout's css does not style the footer", async ({ mount, page }) => {
-    const component = await open(mount, page);
-    const read = () =>
-      page
-        .getByTestId('slide-footer')
-        .evaluate((el) => JSON.stringify(Object.entries(getComputedStyle(el))));
-    const before = await read();
-    const css = `.${P}footer { display: none; font-size: 90px; color: red; }`;
-    await component.update(slideOf({ layouts: [{ ...view, css: view.css + css }] }));
-    expect(await read()).toBe(before);
+    const reads = (testId: string) =>
+      page.getByTestId(testId).evaluate((el) => {
+        const style = getComputedStyle(el);
+        return [style.fontSize, style.color, style.position, style.display];
+      });
+    const marked = layoutOf([node({ classes: [`${P}chart`, `${P}footer`] })]);
+    const component = await open(mount, page, { layouts: [marked] });
+    const chart = page.locator(`.${P}chart`);
+    const chartSize = () => chart.evaluate((el) => getComputedStyle(el).fontSize);
+    const footerBefore = [await reads('slide-footer'), await reads('slide-footer-text')];
+    const chartBefore = await chartSize();
+    const css = `.${P}footer { font-size: 90px; color: rgb(255, 0, 0); position: absolute; }`;
+    await component.update(slideOf({ layouts: [{ ...marked, css }] }));
+    // The rule matches inside the custom layout...
+    await expect(chart).toHaveCSS('font-size', '90px');
+    expect(chartBefore).not.toBe('90px');
+    // ...and leaves the footer as it was.
+    expect([await reads('slide-footer'), await reads('slide-footer-text')]).toEqual(footerBefore);
   });
 
   test('a box positioned outside the body is clipped', async ({ mount, page }) => {
@@ -379,15 +433,22 @@ test.describe('frame', () => {
     await open(mount, page, { layouts: [{ ...view, css: view.css + css }] });
     const tracker = page.getByTestId('part-tracker');
     const box = (await tracker.boundingBox())!;
-    // The tracker's centre still hits the tracker, not the layout's box.
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    // The layout's box reaches over the tracker's centre, so only clipping keeps it off.
+    const chart = (await page.locator(`.${P}chart`).boundingBox())!;
+    expect(x).toBeGreaterThanOrEqual(chart.x);
+    expect(x).toBeLessThanOrEqual(chart.x + chart.width);
+    expect(y).toBeGreaterThanOrEqual(chart.y);
+    expect(y).toBeLessThanOrEqual(chart.y + chart.height);
     const hit = await page.evaluate(
-      ([x, y]) => {
-        const target = document.elementFromPoint(x, y);
-        return target?.closest('[data-testid="part-tracker"]') !== null;
+      ([px, py]) => {
+        const target = document.elementFromPoint(px, py);
+        return target?.closest('[data-testid="part-tracker"]') ?? null;
       },
-      [box.x + box.width / 2, box.y + box.height / 2],
+      [x, y],
     );
-    expect(hit).toBe(true);
+    expect(hit).not.toBeNull();
   });
 
   test('a tall layout does not move the footer', async ({ mount, page }) => {

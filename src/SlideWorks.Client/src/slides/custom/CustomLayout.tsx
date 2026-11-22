@@ -184,6 +184,8 @@ function isObject(value: unknown): value is { [key: string]: unknown } {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+const FACT_TONES = ['accent', 'positive', 'negative', 'inverse', 'good', 'bad', 'info'];
+
 // What a slot shows: text as text, one of SlideWorks' own blocks, or an uploaded image.
 function slotContent(type: string, value: unknown): ReactNode {
   switch (type) {
@@ -207,9 +209,25 @@ function slotContent(type: string, value: unknown): ReactNode {
       return <Callout {...(value as CalloutBlock)} />;
     case 'levels':
       if (!isObject(value) || !Array.isArray(value.items)) throw new CannotDraw();
+      if (value.title !== undefined && typeof value.title !== 'string') throw new CannotDraw();
+      for (const item of value.items) {
+        if (!isObject(item) || typeof item.text !== 'string') throw new CannotDraw();
+        if (item.mark !== undefined && typeof item.mark !== 'string') throw new CannotDraw();
+        if (item.state !== undefined && item.state !== 'plain' && item.state !== 'current') {
+          throw new CannotDraw();
+        }
+      }
       return <Levels levels={value as LevelsBlock} />;
     case 'facts':
       if (!Array.isArray(value)) throw new CannotDraw();
+      for (const fact of value) {
+        if (!isObject(fact) || typeof fact.label !== 'string' || typeof fact.value !== 'string') {
+          throw new CannotDraw();
+        }
+        if (fact.tone !== undefined && !FACT_TONES.includes(fact.tone as string)) {
+          throw new CannotDraw();
+        }
+      }
       return <Facts facts={value as FactsBlock} />;
     case 'image': {
       if (!isObject(value) || typeof value.image !== 'string' || typeof value.alt !== 'string') {
