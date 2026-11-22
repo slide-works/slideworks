@@ -11,7 +11,33 @@ namespace SlideWorks.AcceptanceTests.Journeys;
 public class Sw50VersionJourneyTests : AcceptanceTest
 {
     private const string FRAMES = "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))";
-    private const string TOP_BAR_COUNT = "() => document.querySelectorAll('[data-testid=\"top-bar\"]').length";
+
+    // Every top-bar element in the document, and how many of them are drawn: a box with a size, shown and not transparent.
+    private const string TOP_BAR_PROBE =
+        """
+        () => {
+          const bars = [...document.querySelectorAll('[data-testid="top-bar"]')];
+          const drawn = bars.filter((bar) => {
+            const box = bar.getBoundingClientRect();
+            const style = getComputedStyle(bar);
+            return box.width > 0 && box.height > 0 && style.display !== 'none'
+              && style.visibility === 'visible' && Number(style.opacity) > 0;
+          });
+          return { total: bars.length, drawn: drawn.length };
+        }
+        """;
+
+    private sealed record TopBars
+    {
+        public int Total { get; init; }
+
+        public int Drawn { get; init; }
+    }
+
+    private static Task<TopBars> BarsAsync(IPage page) => page.EvaluateAsync<TopBars>(TOP_BAR_PROBE);
+
+    private static async Task<TopBars> DrawnBarsAsync(IPage page)
+        => await Eventually.ReadAsync(() => BarsAsync(page), bars => bars is { Total: 1, Drawn: 1 });
 
     [Test]
     public async Task Person_WhenANewVersionIsPublished_ShouldBeOfferedTheUpdate()
@@ -35,7 +61,7 @@ public class Sw50VersionJourneyTests : AcceptanceTest
         await player.GotoAsync(deckId);
         await Expect(player.Slide(1)).ToBeVisibleAsync();
         await Page.EvaluateAsync(FRAMES);
-        (await Page.EvaluateAsync<int>(TOP_BAR_COUNT)).ShouldBe(0);
+        (await BarsAsync(Page)).ShouldBe(new TopBars { Total = 0, Drawn = 0 });
 
         await PublishVersion2Async(agent, template);
         await deck.GotoAsync(deckId);
@@ -52,7 +78,7 @@ public class Sw50VersionJourneyTests : AcceptanceTest
 
         await player.GotoAsync(deckId);
         await Expect(player.Slide(1)).ToBeVisibleAsync();
-        (await Eventually.ReadAsync(() => Page.EvaluateAsync<int>(TOP_BAR_COUNT), n => n == 1)).ShouldBe(1);
+        (await DrawnBarsAsync(Page)).ShouldBe(new TopBars { Total = 1, Drawn = 1 });
 
         var look2 = (await AgentSeed.CallAsync(agent, "get_deck", new() { ["deck"] = deckId })).GetProperty("look");
         look2.GetProperty("templateVersion").GetInt32().ShouldBe(2);
@@ -67,12 +93,7 @@ public class Sw50VersionJourneyTests : AcceptanceTest
         await using var alex = await AgentSeed.ConnectAsync(TestUser.Alex);
         var template = await MakeTemplateAsync(sam, name);
         await SignIn.AsAsync(Page, TestUser.Sam);
-        var shared = await Page.APIRequest.PutAsync($"/api/templates/{template}/sharing", new APIRequestContextOptions
-        {
-            DataObject = new { level = "named", viewers = new[] { TestUser.Alex.Email } },
-            Headers = new Dictionary<string, string> { ["Origin"] = AcceptanceApp.BaseUrl },
-        });
-        shared.Status.ShouldBe(200, await shared.TextAsync());
+        await ShareAsync(Page, template, "named", TestUser.Alex.Email);
         var samOne = await MakeDeckAsync(sam, template, "Sam one");
         var samTwo = await MakeDeckAsync(sam, template, "Sam two");
         var alexDeck = await MakeDeckAsync(alex, template, "Alex one");
@@ -90,7 +111,16 @@ public class Sw50VersionJourneyTests : AcceptanceTest
         {
             await player.GotoAsync(id);
             await Expect(player.Slide(1)).ToBeVisibleAsync();
-            (await Eventually.ReadAsync(() => Page.EvaluateAsync<int>(TOP_BAR_COUNT), n => n == 1)).ShouldBe(1);
+            (await DrawnBarsAsync(Page)).ShouldBe(new TopBars { Total = 1, Drawn = 1 });
+        }
+
+        // Each moved deck has exactly one version-move entry in its activity.
+        var samDeckPage = new DeckPage(Page);
+        foreach (var id in new[] { samOne, samTwo })
+        {
+            await samDeckPage.GotoAsync(id);
+            await Expect(samDeckPage.ActivityRows.Filter(new() { HasText = "version 1 to 2" })).ToHaveCountAsync(1);
+            await Expect(samDeckPage.ActivityRows.Filter(new() { HasText = "created the deck" })).ToHaveCountAsync(1);
         }
 
         await using var alexContext = await Browser.NewContextAsync(ContextOptions());
@@ -104,11 +134,55 @@ public class Sw50VersionJourneyTests : AcceptanceTest
         await alexPlayer.GotoAsync(alexDeck);
         await Expect(alexPlayer.Slide(1)).ToBeVisibleAsync();
         await alexPage.EvaluateAsync(FRAMES);
-        (await alexPage.EvaluateAsync<int>(TOP_BAR_COUNT)).ShouldBe(0);
+        (await BarsAsync(alexPage)).ShouldBe(new TopBars { Total = 0, Drawn = 0 });
 
         var alexLook = (await AgentSeed.CallAsync(alex, "get_deck", new() { ["deck"] = alexDeck })).GetProperty("look");
         alexLook.GetProperty("templateVersion").GetInt32().ShouldBe(1);
         alexLook.GetProperty("updateAvailable").GetBoolean().ShouldBeTrue();
+    }
+
+    [Test]
+    public async Task Person_WhenTheTemplateIsNoLongerShared_ShouldRefuseTheUpdateAndStayOnItsVersion()
+    {
+        var name = $"Unshared {Guid.NewGuid():N}"[..24];
+        await using var sam = await AgentSeed.ConnectAsync(TestUser.Sam);
+        await using var alex = await AgentSeed.ConnectAsync(TestUser.Alex);
+        var template = await MakeTemplateAsync(sam, name);
+        await SignIn.AsAsync(Page, TestUser.Sam);
+        await ShareAsync(Page, template, "named", TestUser.Alex.Email);
+        var alexDeck = await MakeDeckAsync(alex, template, "Alex refused");
+        await PublishVersion2Async(sam, template);
+
+        await using var alexContext = await Browser.NewContextAsync(ContextOptions());
+        var alexPage = await alexContext.NewPageAsync();
+        await SignIn.AsAsync(alexPage, TestUser.Alex);
+        var deck = new DeckPage(alexPage);
+        await deck.GotoAsync(alexDeck);
+        await Expect(deck.Look.VersionOffer).ToContainTextAsync("version 2 available");
+
+        // The offer is already showing when Sam takes the template back, so Alex's click is the refused action.
+        await ShareAsync(Page, template, "private");
+        await deck.Look.VersionUpdate.ClickAsync();
+
+        await Expect(deck.Look.VersionError).ToBeVisibleAsync();
+        var message = await deck.Look.VersionError.TextContentAsync() ?? string.Empty;
+        message.ShouldMatch(@"^\S+(\s+\S+)+$");
+        message.ShouldContain("template", Case.Insensitive);
+        await Expect(deck.Look.VersionOffer).ToBeVisibleAsync();
+        await Expect(deck.Look.VersionMessage).ToHaveCountAsync(0);
+        await Expect(deck.ActivityRows.Filter(new() { HasText = "version 1 to 2" })).ToHaveCountAsync(0);
+        var look = (await AgentSeed.CallAsync(alex, "get_deck", new() { ["deck"] = alexDeck })).GetProperty("look");
+        look.GetProperty("templateVersion").GetInt32().ShouldBe(1);
+    }
+
+    private static async Task ShareAsync(IPage page, string template, string level, params string[] viewers)
+    {
+        var response = await page.APIRequest.PutAsync($"/api/templates/{template}/sharing", new APIRequestContextOptions
+        {
+            DataObject = new { level, viewers },
+            Headers = new Dictionary<string, string> { ["Origin"] = AcceptanceApp.BaseUrl },
+        });
+        response.Status.ShouldBe(200, await response.TextAsync());
     }
 
     // Creates a template from talk with no top bar and publishes it as version 1. Returns its tpl_ id.
