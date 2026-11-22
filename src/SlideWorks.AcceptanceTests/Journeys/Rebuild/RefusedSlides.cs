@@ -1,7 +1,8 @@
 namespace SlideWorks.AcceptanceTests.Journeys.Rebuild;
 
-// SW-768: the slides of the second-half rebuild that add_slide refuses with every text at its slot's maximum (23, 29, 37, 40, and
-// 44 when rebuilt as a two-column callout), each with the smallest single change that is accepted. A "lever" is one thing an agent
+// SW-768: the slides of the second-half rebuild that add_slide refuses with every text at its slot's maximum (23, 29, 40, and
+// 44 when rebuilt as a two-column callout; 37, a 4x2 table, was refused at 120-character cells and fits since SW-767 made 80
+// the cell maximum), each with the smallest single change that is accepted. A "lever" is one thing an agent
 // changes: a slot's length, or one kind of decoration. Each slide's row holds three builds: at the maximum (refused, naming
 // the slot in RefusedAt), with the lever (accepted, no warning) and, for a length lever, one step past it (still refused), so
 // the number is the boundary and not a guess. The fit numbers behind the choice (px over the room, from the refusals) are in
@@ -16,8 +17,6 @@ public static class RefusedSlides
             () => Cards(decorated: true), () => Cards(decorated: false)),
         new(29, "compare", 6, "both footers at 53 characters, not 90", "compare.failure",
             () => Compare(footer: 90), () => Compare(footer: 53), () => Compare(footer: 54)),
-        new(37, "table", 7, "all eight cells at 97 characters, not 120", "table.rows",
-            () => Table(cell: 120), () => Table(cell: 97), () => Table(cell: 98)),
         new(40, "links", 7, "all four link sources at 88 characters, not 100", "links.links",
             () => Links(source: 100), () => Links(source: 88), () => Links(source: 89)),
         new(44, "two-column", 8, "callout text at 200 characters, not 220", "two-column.left",
@@ -49,12 +48,6 @@ public static class RefusedSlides
         kicker = M(60, 2901), headline = M(100, 2902),
         failure = ComparePanel(2903, "factory", "negative", footer),
         success = ComparePanel(2911, "people", "positive", footer),
-    };
-
-    private static object Table(int cell) => new
-    {
-        kicker = M(60, 3701), headline = M(100, 3702), columns = new[] { M(30, 3703), M(30, 3704) }, reveal = "strike-and-answer",
-        rows = Enumerable.Range(0, 4).Select(i => new[] { M(cell, 3705 + 2 * i), M(cell, 3706 + 2 * i) }).ToArray(),
     };
 
     private static object Links(int source) => new
