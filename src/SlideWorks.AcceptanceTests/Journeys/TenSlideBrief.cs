@@ -1,6 +1,6 @@
 namespace SlideWorks.AcceptanceTests.Journeys;
 
-// The brief the Measure's agent builds from: "Ship Smaller", three parts, ten slides on ten different layouts. Slot text
+// The brief the Measure's agent builds from: "Ship Smaller", three parts, fourteen slides on fourteen different layouts. Slot text
 // is ordinary sentence and Title Case prose, as an agent writes it. The image slide takes the id upload_image returns.
 public static class TenSlideBrief
 {

@@ -9,7 +9,7 @@ using static SlideWorks.AcceptanceTests.Journeys.TenSlideBrief;
 
 namespace SlideWorks.AcceptanceTests.Journeys;
 
-// SW-1's Measure (D21): an agent builds a ten-slide deck from a brief through MCP alone, with no hand-written HTML, and
+// SW-1's Measure (D21): an agent builds a fourteen-slide deck from a brief through MCP alone, with no hand-written HTML, and
 // the deck presents correctly at 1920×1080 and on a 390 px phone. The agent finds the OAuth server from /mcp's 401,
 // registers itself, gets Sam's consent in the browser and exchanges the code with PKCE; then it builds the deck with the
 // tools an agent has (layouts, an uploaded image, an insert, a move, a delete, an update, notes, sharing and the link).

@@ -61,13 +61,29 @@ public class Sw369DiagramJourneyTests : AcceptanceTest
         var player = new PlayerPage(Page);
         await OpenAsync(player, deck, 5);
 
-        // Each slide shows its parts as text, through the layout's own test ids.
-        await Expect(player.Slide(1).GetByTestId("stack-segment")).ToContainTextAsync(
-            ["Waiting for review", "Waiting for a slot", "Building", "Testing"]);
-        await Expect(player.Slide(2).GetByTestId("bars-bar")).ToContainTextAsync(["Review", "Build", "Test", "Deploy"]);
-        await Expect(player.Slide(3).GetByTestId("flow-node")).ToContainTextAsync(["Slice", "Ship", "Learn"]);
-        await Expect(player.Slide(4).GetByTestId("levels-rung")).ToContainTextAsync(["Continuous flow", "Small batches", "Big launches"]);
-        await Expect(player.Slide(4).GetByTestId("facts-tile")).ToContainTextAsync(["Cycle time", "Slips"]);
+        // Walk the deck, watching the label inside each segment and bar (the segment and bar boxes themselves stay drawn, as a hidden
+        // step keeps its box). On each slide the parts are hidden at step 0 and drawn one per click; once the slide's layer is the
+        // active one and its last step is in, every part is visible, with its text.
+        string[] segments = ["Waiting for review", "Waiting for a slot", "Building", "Testing"];
+        string[] barNames = ["Review", "Build", "Test", "Deploy"];
+        string[] nodes = ["Slice", "Ship", "Learn"];
+        await StepThroughAsync(player, 1, "stack-label", segments);
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await StepThroughAsync(player, 2, "bars-label", barNames);
+
+        // The first bar is drawn in the palette's colour: a visible fill with a box, read once the bar is shown.
+        var bar = new SlideProbe(Page, 2);
+        var before = await Eventually.ReadAsync(() => bar.ComputedAsync("bars-fill", "background-color"), IsDrawn);
+        IsDrawn(before).ShouldBeTrue(before);
+        (await bar.SettledBoxAsync("bars-fill")).ShouldNotBeNull().Width.ShouldBeGreaterThan(0);
+
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await StepThroughAsync(player, 3, "flow-node", nodes);
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await ExpectShownAsync(player, 4, "levels-rung", ["Continuous flow", "Small batches", "Big launches"]);
+        await ExpectShownAsync(player, 4, "facts-tile", ["Cycle time", "Slips"]);
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(player.Layer(5)).ToHaveAttributeAsync("data-active", "true");
         await player.ImageLoadedAsync(5);
 
         // No <img> under the four, and the same probe finds the image slide's picture.
@@ -77,16 +93,12 @@ public class Sw369DiagramJourneyTests : AcceptanceTest
         }
         (await ImageCountAsync(5)).ShouldBe(1);
 
-        // The first bar is drawn in the palette's colour: it is a visible fill, and it changes with the palette.
-        var bar = new SlideProbe(Page, 2);
-        var before = await Eventually.ReadAsync(() => bar.ComputedAsync("bars-fill", "background-color"), IsDrawn);
-        IsDrawn(before).ShouldBeTrue(before);
-        (await bar.SettledBoxAsync("bars-fill")).ShouldNotBeNull().Width.ShouldBeGreaterThan(0);
-
         var look = await AgentSeed.CallAsync(agent, "set_look", new() { ["deck"] = deck, ["palette"] = "midnight" });
         look.GetProperty("look").GetProperty("palette").GetString().ShouldBe("midnight");
-        await OpenAsync(player, deck, 5);
-        await Expect(player.Slide(2).GetByTestId("bars-bar")).ToContainTextAsync(["Review", "Build", "Test", "Deploy"]);
+        await player.GotoAsync(deck, hash: "#2.4");
+        await Expect(player.Count).ToHaveTextAsync("2 / 5");
+        await player.FontsReadyAsync();
+        await ExpectShownAsync(player, 2, "bars-label", barNames);
         var after = await Eventually.ReadAsync(() => bar.ComputedAsync("bars-fill", "background-color"), c => IsDrawn(c) && c != before);
         IsDrawn(after).ShouldBeTrue(after);
         after.ShouldNotBe(before);
@@ -98,7 +110,8 @@ public class Sw369DiagramJourneyTests : AcceptanceTest
         string[] names = ["stack", "bars", "flow", "levels"];
         for (var number = 1; number <= 4; number++)
         {
-            await Expect(deckPage.Thumbnail(number).GetByTestId($"slide-{number}")).ToHaveAttributeAsync("data-layout", names[number - 1]);
+            await Expect(deckPage.Thumbnail(number).GetByTestId("deck-thumb-layout")).ToBeVisibleAsync();
+            await Expect(deckPage.Thumbnail(number).GetByTestId("deck-thumb-layout")).ToHaveTextAsync(names[number - 1]);
         }
     }
 
@@ -142,6 +155,30 @@ public class Sw369DiagramJourneyTests : AcceptanceTest
     }
 
     private static Dictionary<string, object> WithReveal(IReadOnlyDictionary<string, object> slots) => new Dictionary<string, object>(slots) { ["reveal"] = REVEAL };
+
+    // Clicks through a slide's steps: none of the parts is visible at first, and one more shows with each click.
+    private async Task StepThroughAsync(PlayerPage player, int number, string testId, string[] parts)
+    {
+        await Expect(player.Layer(number)).ToHaveAttributeAsync("data-active", "true");
+        var shown = player.Slide(number).GetByTestId(testId).Filter(new LocatorFilterOptions { Visible = true });
+        await Expect(player.Slide(number).GetByTestId(testId)).ToHaveCountAsync(parts.Length);
+        await Expect(shown).ToHaveCountAsync(0);
+        for (var step = 1; step <= parts.Length; step++)
+        {
+            await Page.Keyboard.PressAsync("ArrowRight");
+            await Expect(shown).ToHaveCountAsync(step);
+        }
+        await ExpectShownAsync(player, number, testId, parts);
+    }
+
+    // The slide's layer is the active one and every part is visible, with its text.
+    private async Task ExpectShownAsync(PlayerPage player, int number, string testId, string[] parts)
+    {
+        await Expect(player.Layer(number)).ToHaveAttributeAsync("data-active", "true");
+        var all = player.Slide(number).GetByTestId(testId);
+        await Expect(all.Filter(new LocatorFilterOptions { Visible = true })).ToHaveCountAsync(parts.Length);
+        await Expect(all).ToContainTextAsync(parts);
+    }
 
     private async Task<int> ImageCountAsync(int number) =>
         await Page.EvaluateAsync<int>("n => document.querySelector(`[data-testid=\"slide-${n}\"]`).querySelectorAll('img').length", number);

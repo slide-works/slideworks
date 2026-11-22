@@ -57,7 +57,9 @@ export function SlideThumb({
       </div>
       <div className="flex justify-between text-xs text-ink-muted">
         <span>{slide.number}</span>
-        <span className="font-mono">{slide.layout}</span>
+        <span data-testid="deck-thumb-layout" className="font-mono">
+          {slide.layout}
+        </span>
       </div>
     </li>
   );
