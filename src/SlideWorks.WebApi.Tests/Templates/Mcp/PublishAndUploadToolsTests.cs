@@ -361,7 +361,7 @@ public class PublishAndUploadToolsRealTests : ApiTestFixture
 
         isError.ShouldBeFalse(started.ToString());
         put.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        body.GetProperty("error").GetString().ShouldBe(TemplateErrorCodes.CUSTOM_LAYOUTS_UNAVAILABLE);
+        body.GetProperty("error").GetString().ShouldBe(TemplateErrorCodes.LAYOUT_REFUSED);
     }
 
     [Test]

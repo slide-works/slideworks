@@ -14,4 +14,7 @@ public enum ApproveOutcome
     Overflows,
 
     LowContrast,
+
+    // The template is archived: nothing about it changes any more.
+    Archived,
 }

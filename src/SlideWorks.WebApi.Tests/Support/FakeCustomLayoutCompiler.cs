@@ -107,8 +107,8 @@ public sealed class FakeCustomLayoutCompiler : ICustomLayoutCompiler, ISlotSchem
             name,
             json.GetProperty("type").GetString()!,
             json.TryGetProperty("optional", out var optional) && optional.GetBoolean(),
-            json.TryGetProperty("min", out var min) ? min.GetInt32() : null,
-            json.TryGetProperty("max", out var max) ? max.GetInt32() : null,
+            json.TryGetProperty("min", out var min) ? min.GetDouble() : null,
+            json.TryGetProperty("max", out var max) ? max.GetDouble() : null,
             json.TryGetProperty("values", out var values) ? [.. values.EnumerateArray().Select(value => value.GetString()!)] : [],
             of is { } fields && !scalar ? Slots(fields) : [],
             of is { } item && scalar ? Slot(CustomSlot.ITEM, item) : null);

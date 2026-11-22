@@ -262,13 +262,10 @@ public class TemplateRoutesShapeTests : ApiTestFixture
     // The stubs registered until the real services land read the sample files themselves, so the app runs in the final
     // shape, and a change to a sample changes the stub's answer with it.
     [Test]
-    public async Task Stubs_WhenAsked_ShouldMatchTheScreenShapes()
+    public void Stubs_WhenAsked_ShouldMatchTheScreenShapes()
     {
-        using var scope = Factory.Services.CreateScope();
-        var actor = scope.ServiceProvider.GetRequiredService<ICurrentActor>();
-
-        var review = await new TemplatePublishing(scope.ServiceProvider.GetRequiredService<AppDbContext>(), TimeProvider.System)
-            .LayoutReviewAsync(actor, "tpl_stub00000001", "stage-ladder");
+        // The layout review is real now (TemplatePublishing answers from the store); its sample is read as the other stubs' are.
+        var review = TemplateSamples.Read<LayoutReviewView>(TemplateSamples.LAYOUT_REVIEW);
         var sharing = TemplateSamples.Read<TemplateSharingView>(TemplateSamples.SHARING);
         var page = TemplateSamples.Read<TemplatePublicView>(TemplateSamples.PUBLIC);
 

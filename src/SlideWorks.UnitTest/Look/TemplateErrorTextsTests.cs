@@ -14,7 +14,7 @@ public class TemplateErrorTextsTests
         "too_many_layouts", "too_many_extras", "too_many_templates", "file_too_large", "rights_not_confirmed",
         "stale_revision", "manifest_invalid", "asset_not_found", "bundle_invalid", "bundle_too_large",
         "custom_layouts_unavailable", "renderer_unavailable", "upload_used", "not_published", "template_storage_full",
-        "too_many_uploads", "template_archived",
+        "too_many_uploads", "template_archived", "layout_not_found", "layout_changed", "layout_overflows", "layout_low_contrast",
     ];
 
     [Test]

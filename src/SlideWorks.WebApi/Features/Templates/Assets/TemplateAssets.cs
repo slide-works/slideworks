@@ -319,7 +319,9 @@ public class TemplateAssets(
     }
 
     private static StoredAsset ViewOf(TemplateAsset asset)
-        => new(asset.Id, asset.Kind, asset.FileName, asset.ContentType, asset.Bytes, MetaOf(asset.MetaJson) ?? MetaOf(EMPTY_META)!.Value);
+        // A compiled layout is never sent this way: the review route sends it, to the owner only.
+        => new(asset.Id, asset.Kind, asset.FileName, asset.ContentType, asset.Bytes,
+            (asset.Kind == TemplateAssetKind.Layout ? null : MetaOf(asset.MetaJson)) ?? MetaOf(EMPTY_META)!.Value);
 
     // The stored meta as JSON, null when there is none. A check answers an object or nothing.
     private static JsonElement? MetaOf(string? metaJson)
