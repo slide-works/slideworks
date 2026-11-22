@@ -12,6 +12,16 @@ public sealed class LookPanel(IPage page)
 
     public ILocator Warnings => page.GetByTestId("look-warning");
 
+    // The update offer for a deck behind its template's latest version, its button, the "Now on version N." status that
+    // follows the update (it takes focus) and the failure text.
+    public ILocator VersionOffer => page.GetByTestId("look-version-offer");
+
+    public ILocator VersionUpdate => page.GetByTestId("look-version-update");
+
+    public ILocator VersionMessage => page.GetByTestId("look-version-message");
+
+    public ILocator VersionError => page.GetByTestId("look-version-error");
+
     public ILocator Error => page.GetByTestId("look-error");
 
     public ILocator LogoFile => page.GetByTestId("logo-field-file");
