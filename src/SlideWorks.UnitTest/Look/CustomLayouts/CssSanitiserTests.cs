@@ -309,7 +309,7 @@ public class CssSanitiserTests
     [Test]
     public void Sanitise_WhenTheCssIsOversized_ShouldRefuseBeforeParsing()
     {
-        var css = ".a { width: 1px; }" + new string(' ', 262_144);
+        var css = "@import url(x); .a { width: #fff; }" + new string(' ', 262_144);
 
         var (written, errors) = Run(css);
 
@@ -338,9 +338,9 @@ public class CssSanitiserTests
     }
 
     [Test]
-    public void Sanitise_WhenFunctionsNestFiftyThousandDeep_ShouldRefuseWithoutOverflow()
+    public void Sanitise_WhenFunctionsNestFortyThousandDeep_ShouldRefuseWithoutOverflow()
     {
-        var css = ".a { width: " + string.Concat(Enumerable.Repeat("calc(", 30_000)) + "1px" + new string(')', 30_000) + "; }";
+        var css = ".a { width: " + string.Concat(Enumerable.Repeat("calc(", 40_000)) + "1px" + new string(')', 40_000) + "; }";
 
         FirstRefusal(css).ShouldBe(CustomLayoutErrorCodes.CSS_FUNCTION);
     }
@@ -360,7 +360,10 @@ public class CssSanitiserTests
     {
         var css = Pass(".a .b > .c:first-child, .d.e { width: 1px; } .f { height: 1px; }");
 
-        var selectors = css.Split('\n').Where(l => l.StartsWith('.'));
+        var selectors = css.Split('\n').Where(l => l.StartsWith('.')).ToList();
+        selectors.Count.ShouldBe(2);
+        selectors[0].ShouldBe($"{SCOPE}a {SCOPE}b > {SCOPE}c:first-child, {SCOPE}d{SCOPE}e {{");
+        selectors[1].ShouldBe($"{SCOPE}f {{");
         foreach (var line in selectors)
         {
             var classes = line.TrimEnd('{', ' ').Split([' ', ',', '>', ':'], StringSplitOptions.RemoveEmptyEntries).SelectMany(p => p.Split('.', StringSplitOptions.RemoveEmptyEntries));

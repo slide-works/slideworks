@@ -52,5 +52,6 @@
   "unbound-var.css": "css_variable",
   "unclosed-bracket.css": "css_malformed",
   "unclosed-paren.css": "css_malformed",
-  "unclosed-group.css": "css_malformed"
+  "unclosed-group.css": "css_malformed",
+  "unclosed-selector-paren.css": "css_malformed"
 }

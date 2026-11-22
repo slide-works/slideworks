@@ -2,12 +2,6 @@ using System.Text;
 
 namespace SlideWorks.Core.Look.CustomLayouts.Css;
 
-// Thrown inside the sanitiser to stop at once (parentheses too deep, too many rules). Always caught
-// by CssSheetParser; it never leaves Core.
-public sealed class CssAbortException : Exception
-{
-}
-
 // One run over one upload: the text, where each character's line is, the allow-lists as sets, the
 // bound variables and the errors found so far.
 internal sealed class CssRun

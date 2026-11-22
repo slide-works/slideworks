@@ -95,7 +95,7 @@ internal sealed class CssSheetParser(CssRun run, string classPrefix)
         }
 
         var prelude = S[start..pos];
-        if (prelude.Count(ch => ch == '[') != prelude.Count(ch => ch == ']'))
+        if (depth != 0 || prelude.Count(ch => ch == '[') != prelude.Count(ch => ch == ']'))
         {
             run.Fail(start, CustomLayoutErrorCodes.CSS_MALFORMED);
             SkipBlock();

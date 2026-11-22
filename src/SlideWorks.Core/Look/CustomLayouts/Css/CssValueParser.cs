@@ -2,28 +2,6 @@ using System.Globalization;
 
 namespace SlideWorks.Core.Look.CustomLayouts.Css;
 
-internal enum CssTermKind
-{
-    Integer,
-    Number,
-    Dimension,
-    Keyword,
-    Function,
-    Group,
-    Operator,
-}
-
-// One checked term of a value, already written in its output form. Name is a function's name or a
-// keyword; for var(), IsToken and IsFont say which list the variable came from.
-internal sealed record CssTerm(
-    CssTermKind Kind,
-    string Text,
-    string Name = "",
-    double Number = 0,
-    string Unit = "",
-    bool IsToken = false,
-    bool IsFont = false);
-
 // Parses one declaration's value into numbers, dimensions, keywords, functions and groups, and writes
 // it again from the parsed form. Every error is recorded on the run and returns null; nothing is ever
 // passed through as written. Parentheses are counted as the parser descends: the seventh level stops
