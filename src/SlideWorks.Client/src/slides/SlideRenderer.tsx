@@ -21,6 +21,8 @@ export type RenderableSlide = {
     layout: L;
     part: number | null;
     deepDive: boolean;
+    // The slide's step count, from the server; a custom layout's callout reveals after all but its own. Left out, 0.
+    steps?: number;
     // The slide's own surface on a layout that can be either; left out or null, the layout's.
     surface?: Surface | null;
     slots: Slots[L];
@@ -85,6 +87,7 @@ export function SlideRenderer({ slide, deck, total, step }: SlideRendererProps) 
                 layout={custom}
                 slots={slide.slots as unknown as { [name: string]: unknown }}
                 step={step}
+                steps={slide.steps ?? 0}
               />
             ) : (
               <UnknownLayout />

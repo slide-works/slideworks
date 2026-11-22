@@ -221,6 +221,18 @@ public class CustomLayoutUseTests : ApiTestFixture
     }
 
     [Test]
+    public async Task Play_WhenTheSlideIsOnACustomLayoutWithALastCallout_ShouldCountTheCalloutAsTheFinalStep()
+    {
+        var (agent, deck, _) = await DeckWithLayoutAsync(Layout(DIAL, LayoutSurface.Light));
+        await using var _a = agent;
+        await SlideCalls.OkAsync(agent, "add_slide", new { deck, layout = DIAL, slots = new { headline = "x", items = new[] { "a", "b", "c" }, reveal = "one-by-one", callout = new { tone = "accent", text = "Hi", reveal = "last" } } });
+
+        var play = await Client.GetFromJsonAsync<JsonElement>($"/api/play/{deck}");
+
+        play.GetProperty("slides")[0].GetProperty("steps").GetInt32().ShouldBe(4);
+    }
+
+    [Test]
     public async Task DeckPage_WhenTheSlideIsOnACustomLayout_ShouldCarryItsSteps()
     {
         var (agent, deck, _) = await DeckWithLayoutAsync(Layout(DIAL, LayoutSurface.Light));
@@ -543,6 +555,7 @@ public class CustomLayoutUseTests : ApiTestFixture
                 SlotKit.Req("headline", new TextSlot((int)schema.Slots.Single(s => s.Name == "headline").Max!.Value)),
                 SlotKit.Req("items", new ListSlot(new TextSlot(40), 1, (int)schema.Slots.Single(s => s.Name == "items").Max!.Value)),
                 SlotKit.Opt("reveal", SlotKit.Reveal()),
+                SlotKit.Opt("callout", new BlockSlot(InlineBlocks.Callout)),
             ],
             steps: StepPlan.List("items"));
 
