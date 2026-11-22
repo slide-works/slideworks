@@ -286,24 +286,3 @@ export function checkLayout(layout: CustomLayoutView): boolean {
     tree.root.every((node) => checkNode(prefix, node, layout.slots, 0))
   );
 }
-
-// The latest step the layout's own elements wait for, for a callout that shows after them.
-export function lastStepOf(nodes: TreeNode[], scope: Values): number {
-  let last = 0;
-  for (const node of nodes) {
-    let inner = scope;
-    if (node.each !== undefined) {
-      const items = ownValue(scope, node.each);
-      const count = Array.isArray(items) ? items.length : 0;
-      if (node.step === 0) last = Math.max(last, count);
-      for (let i = 0; i < count; i++) {
-        const entry: unknown = (items as unknown[])[i];
-        inner = isRecord(entry) ? entry : { item: entry };
-        last = Math.max(last, node.step ?? 0, lastStepOf(node.children, inner));
-      }
-    } else {
-      last = Math.max(last, node.step ?? 0, lastStepOf(node.children, inner));
-    }
-  }
-  return last;
-}

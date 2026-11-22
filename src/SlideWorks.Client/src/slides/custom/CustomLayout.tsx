@@ -11,7 +11,6 @@ import {
   classNameOf,
   isPresent,
   itemTypes,
-  lastStepOf,
   ownValue,
   varsOf,
   variantClassesOf,
@@ -28,6 +27,8 @@ type CustomLayoutProps = {
   slots: { [name: string]: unknown };
   // The slide's current step.
   step: number;
+  // The slide's step count, as the server counted it: the layout's own steps and a last-revealing callout's.
+  steps: number;
 };
 
 // A value the slots should not hold: the whole slide is drawn as the error state.
@@ -61,12 +62,12 @@ export function UnknownLayout() {
 // from a node, with only the props this file names; slot values are children as text, so none is
 // ever markup. The css is the server's compiled, sanitised sheet, a text node in its own <style>.
 // A layout that fails the check, or a slot that does not hold what its type says, draws the error.
-export function CustomLayout({ layout, slots, step }: CustomLayoutProps) {
+export function CustomLayout({ layout, slots, step, steps }: CustomLayoutProps) {
   if (!checkLayout(layout)) return <CustomLayoutError />;
   const context: Context = {
     step,
     revealOn: slots.reveal === 'one-by-one',
-    lastStep: lastStepOf(layout.tree.root, slots),
+    lastStep: Math.max(0, steps - calloutStep(0, slots.callout as CalloutBlock | undefined)),
     key: { n: 0 },
   };
   let body: ReactNode[];
