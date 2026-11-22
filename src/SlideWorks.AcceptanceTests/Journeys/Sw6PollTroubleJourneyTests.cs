@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -31,7 +32,7 @@ public partial class Sw6PollTroubleJourneyTests : AcceptanceTest
     public async Task Poll_WhenPickUpToTwo_ShouldSendBothOnSend()
     {
         var talk = await PresentAsync("Poll pick several", new() { ["pick"] = "upTo", ["max"] = 2 });
-        await using var phoneContext = await OpenPhoneAsync();
+        await using var phoneContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var phone = await JoinAsync(phoneContext, talk.JoinUrl);
         var answers = AnswerRequests.Count(phone.Page);
         await MoveToAsync(talk, "ArrowRight", POLL);
@@ -127,9 +128,9 @@ public partial class Sw6PollTroubleJourneyTests : AcceptanceTest
     public async Task Poll_WhenRoundRestartsMidAnswer_ShouldAskThePhoneAgain()
     {
         var talk = await PresentAsync("Poll new round", new() { ["pick"] = "upTo", ["max"] = 2 });
-        await using var tickingContext = await OpenPhoneAsync();
+        await using var tickingContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var ticking = await JoinAsync(tickingContext, talk.JoinUrl);
-        await using var sendingContext = await OpenPhoneAsync();
+        await using var sendingContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var (sending, hub) = await JoinDroppableAsync(sendingContext, talk.JoinUrl);
         var held = await HeldAnswers.RouteAsync(sending.Page);
         try
@@ -209,9 +210,9 @@ public partial class Sw6PollTroubleJourneyTests : AcceptanceTest
     public async Task Poll_WhenPhoneReconnects_ShouldSendTheQueuedPick()
     {
         var talk = await PresentAsync("Poll reconnect", new());
-        await using var firstContext = await OpenPhoneAsync();
+        await using var firstContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var (first, firstHub) = await JoinDroppableAsync(firstContext, talk.JoinUrl);
-        await using var secondContext = await OpenPhoneAsync();
+        await using var secondContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var (second, secondHub) = await JoinDroppableAsync(secondContext, talk.JoinUrl);
         try
         {
@@ -285,11 +286,11 @@ public partial class Sw6PollTroubleJourneyTests : AcceptanceTest
     public async Task Poll_WhenAgentReadsResults_ShouldMatchTheScreen()
     {
         var talk = await PresentAsync("Poll agent read", new());
-        await using var firstContext = await OpenPhoneAsync();
+        await using var firstContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var first = await JoinAsync(firstContext, talk.JoinUrl);
-        await using var secondContext = await OpenPhoneAsync();
+        await using var secondContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var second = await JoinAsync(secondContext, talk.JoinUrl);
-        await using var thirdContext = await OpenPhoneAsync();
+        await using var thirdContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var third = await JoinAsync(thirdContext, talk.JoinUrl);
         string[] guestIds = [await GuestIdAsync(firstContext), await GuestIdAsync(secondContext), await GuestIdAsync(thirdContext)];
         await MoveToAsync(talk, "ArrowRight", POLL);
@@ -430,11 +431,15 @@ public partial class Sw6PollTroubleJourneyTests : AcceptanceTest
         await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
         await presenter.Live.GoLive.ClickAsync();
         await Expect(presenter.Live.End).ToBeVisibleAsync();
-        var joinUrl = await ReadAsync($"/api/decks/{deckId}/live", "joinUrl");
+        var joinUrlRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/live", "joinUrl");
+        joinUrlRead.Status.ShouldBe(200, joinUrlRead.Body);
+        var joinUrl = joinUrlRead.Value.ShouldNotBeNull();
 
         var audienceTab = await Context.NewPageAsync();
         var audience = new PlayerPage(audienceTab);
-        await audienceTab.GotoAsync(await ReadAsync($"/api/decks/{deckId}/presenter", "audienceUrl"));
+        var audienceRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/presenter", "audienceUrl");
+        audienceRead.Status.ShouldBe(200, audienceRead.Body);
+        await audienceTab.GotoAsync(audienceRead.Value.ShouldNotBeNull());
         await Expect(audience.AudienceMode).ToBeVisibleAsync();
         await Expect(audience.Layer(1)).ToHaveAttributeAsync("data-active", "true");
         await Expect(presenter.AudienceChips).ToHaveCountAsync(1);
@@ -496,18 +501,6 @@ public partial class Sw6PollTroubleJourneyTests : AcceptanceTest
         }
         return await step;
     }
-
-    private async Task<string> ReadAsync(string path, string field)
-    {
-        var response = await Page.APIRequest.GetAsync(path);
-        response.Status.ShouldBe(200, await response.TextAsync());
-        return JsonDocument.Parse(await response.TextAsync()).RootElement.GetProperty(field).GetString().ShouldNotBeNull();
-    }
-
-    private Task<IBrowserContext> OpenPhoneAsync() => Browser.NewContextAsync(new BrowserNewContextOptions
-    {
-        ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-    });
 
     private static string[] TextsOf(JsonElement texts) => [.. texts.EnumerateArray().Select(t => t.GetString().ShouldNotBeNull())];
 

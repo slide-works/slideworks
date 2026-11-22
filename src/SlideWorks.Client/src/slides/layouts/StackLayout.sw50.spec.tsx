@@ -7,6 +7,7 @@ import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { StackSlots } from '../slots/stack';
 import type { SlideDeck } from '../slots';
+import { wideLetters } from '../../test-support/text/maxText';
 
 // The stack layout: segments revealed from the bottom up, heights that follow
 // the values, the side the stack is on, the centred figure, its description
@@ -178,11 +179,7 @@ test('headline emphasis carries its tone', async ({ mount, page }) => {
 // Wide letters (capitals, W and M) of exactly `length` characters. Copied from
 // DataLayouts.fixtures.ts, which is frozen.
 const WIDE_TEXT = 'Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. ';
-function wide(length: number): string {
-  let text = '';
-  while (text.length < length) text += WIDE_TEXT;
-  return text.slice(0, length).trimEnd().padEnd(length, 'M');
-}
+const wide = (length: number): string => wideLetters(length, WIDE_TEXT);
 
 // Every text string widened; options and ids are left as they are.
 const NOT_TEXT = new Set(['reveal', 'tone', 'fill', 'in', 'side']);

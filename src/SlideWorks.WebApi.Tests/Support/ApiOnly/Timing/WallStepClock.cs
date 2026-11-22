@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Time.Testing;
 
-namespace SlideWorks.WebApi.Tests.Presenting;
+namespace SlideWorks.WebApi.Tests.Support.Timing;
 
 // A clock whose wall time can step on its own, as NTP or a VM's clock sync steps it, while the monotonic timestamp keeps
 // to the FakeTimeProvider it wraps. FakeTimeProvider ties the two together (its timestamp is its UTC time, and SetUtcNow

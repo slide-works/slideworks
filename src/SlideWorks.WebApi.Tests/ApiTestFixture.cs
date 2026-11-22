@@ -24,6 +24,10 @@ public abstract class ApiTestFixture
     // date plus a lifetime (a cookie, a token) breaks those tests once the calendar passes it. AG0051 reports fixed dates.
     protected FakeTimeProvider Clock { get; } = new(DateTimeOffset.FromUnixTimeSeconds(TimeProvider.System.GetUtcNow().ToUnixTimeSeconds()));
 
+    // SLIDEWORKS_PUBLIC_URL of the app, and the Origin ClientFor sends. Override it with a non-loopback origin to test as
+    // production runs: requests still reach the in-memory server, but the app's own address is somewhere else.
+    protected virtual string PublicUrl => TestAppFactory.PUBLIC_URL;
+
     protected virtual Dictionary<string, string?> ExtraConfig => [];
 
     // An outbound named client to fake at the HTTP boundary, by name.
@@ -36,7 +40,7 @@ public abstract class ApiTestFixture
     public void CreateAppAndClient()
     {
         _dbPath = TestAppFactory.NewDatabasePath();
-        _factory = TestAppFactory.Create(_dbPath, Clock, ExtraConfig, NamedHandlers, ConfigureTestServices);
+        _factory = TestAppFactory.Create(_dbPath, Clock, ExtraConfig, NamedHandlers, ConfigureTestServices, PublicUrl);
         Client = ClientFor(SignedInAs);
     }
 
@@ -54,7 +58,7 @@ public abstract class ApiTestFixture
     protected HttpClient ClientFor(TestUser user)
     {
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        client.DefaultRequestHeaders.Add("Origin", TestAppFactory.PUBLIC_URL);
+        client.DefaultRequestHeaders.Add("Origin", PublicUrl);
         if (!user.IsAnonymous)
         {
             client.DefaultRequestHeaders.Add(TestAuthScheme.HEADER, user.Email);

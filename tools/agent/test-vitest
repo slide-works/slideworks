@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Runs named Vitest files from src/SlideWorks.Client. Never a directory, never the whole suite.
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage='usage: tools/agent/test-vitest <test file...>   e.g. tools/agent/test-vitest src/slides/videoEmbed.test.ts'
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  echo "$usage"
+  exit 0
+fi
+agent_start
+agent_refuse_repeat_each "$@"
+[[ $# -gt 0 ]] || agent_die 2 "at least one test file is required. $usage" reason=missing-files
+root="$(agent_root)"
+client="$root/src/SlideWorks.Client"
+files=()
+for arg in "$@"; do
+  case "$arg" in
+    -*) agent_die 2 "options are not accepted ($arg): name test files only. $usage" reason=option ;;
+  esac
+  path="$arg"
+  [[ -e "$path" ]] || path="$root/$arg"
+  [[ -e "$path" ]] || path="$client/$arg"
+  [[ ! -d "$path" ]] || agent_die 2 "a directory is a full run: name test files ($arg)" reason=directory
+  [[ -f "$path" ]] || agent_die 2 "no such test file: $arg" reason=no-file
+  path="$(realpath "$path")"
+  files+=("${path#"$client"/}")
+done
+agent_require pnpm timeout
+agent_env
+[[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run pnpm install --frozen-lockfile there" missing=node_modules
+
+rc=0
+echo "files: ${files[*]}"
+(cd "$client" && NO_COLOR=1 FORCE_COLOR=0 timeout -k 10 "${AGENT_TEST_TIMEOUT:-600}" pnpm exec vitest run "${files[@]}") >>"$AGENT_LOG" 2>&1 || rc=$?
+[[ $rc -ne 124 ]] || agent_finish 124 reason=test-timed-out
+line="$(grep -E '^ *Tests +' "$AGENT_LOG" | tail -n 1 || true)"
+[[ -n "$line" ]] || agent_finish 1 reason=no-result-line
+count() { sed -nE "s/.*[^0-9]([0-9]+) $1.*/\1/p" <<<"$line" | head -n 1; }
+passed="$(count passed)" failed="$(count failed)" skipped="$(count skipped)"
+mapfile -t failures < <(sed -nE 's/^ *FAIL +(.+)$/\1/p' "$AGENT_LOG" | sort -u)
+names=()
+for name in "${failures[@]:0:10}"; do
+  echo "FAILED $name"
+  names+=("$name")
+done
+if [[ ${#failures[@]} -gt 10 ]]; then
+  echo "+$((${#failures[@]} - 10)) more"
+  names+=("+$((${#failures[@]} - 10)) more")
+fi
+counts=("passed=${passed:-0}" "failed=${failed:-0}" "skipped=${skipped:-0}")
+if [[ ${#names[@]} -gt 0 ]]; then
+  counts+=("failed_tests=$(IFS='|'; echo "${names[*]}")")
+fi
+if [[ $rc -eq 0 && -z "$failed" ]]; then
+  agent_finish 0 "${counts[@]}"
+fi
+agent_finish 1 "${counts[@]}"

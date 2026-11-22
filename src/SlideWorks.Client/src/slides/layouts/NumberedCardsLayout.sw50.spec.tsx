@@ -7,6 +7,7 @@ import { stubApi } from '../../test-support/stubApi';
 import { SlideRenderer, type RenderableSlide } from '../SlideRenderer';
 import type { NumberedCardsSlots } from '../slots/numbered-cards';
 import type { SlideDeck } from '../slots';
+import { wideLetters } from '../../test-support/text/maxText';
 
 // The numbered-cards layout's SW-50 additions: two or three cards across three
 // columns, cards that fill the height, the large scale, a highlighted card, a
@@ -205,11 +206,7 @@ test('headline emphasis carries its tone', async ({ mount, page }) => {
 // Wide letters (capitals, W and M) of exactly `length` characters. Copied from
 // DataLayouts.fixtures.ts, which is frozen.
 const WIDE_TEXT = 'Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. ';
-function wide(length: number): string {
-  let text = '';
-  while (text.length < length) text += WIDE_TEXT;
-  return text.slice(0, length).trimEnd().padEnd(length, 'M');
-}
+const wide = (length: number): string => wideLetters(length, WIDE_TEXT);
 
 // Every text string widened; ids and options (reveal, tone) are left as they are.
 const NOT_TEXT = new Set(['reveal', 'tone', 'fill', 'in']);

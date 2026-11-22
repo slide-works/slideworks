@@ -9,6 +9,9 @@ public sealed class TestUser
     // NewPending() people's emails sit under this domain, so the test scheme knows them from the email alone.
     public const string PENDING_DOMAIN = "pending.test";
 
+    // NewApproved() people's emails sit under this domain; TestPeople approves them on first sign-in, as it does Sam.
+    public const string APPROVED_DOMAIN = "approved.test";
+
     private const string SUBJECT_PREFIX = "test-google-sub-";
 
     public static readonly TestUser Sam = new(SUBJECT_PREFIX + "sam", "sam@team.example", "Sam Rivera");
@@ -42,9 +45,15 @@ public sealed class TestUser
     public bool IsPending => Email.EndsWith("@" + PENDING_DOMAIN, StringComparison.Ordinal);
 
     // A fresh person with a unique email under PENDING_DOMAIN, who stays Pending until a test changes that.
-    public static TestUser NewPending() => FromPendingEmail($"pat-{Guid.NewGuid():N}@{PENDING_DOMAIN}");
+    public static TestUser NewPending() => FromEmail($"pat-{Guid.NewGuid():N}@{PENDING_DOMAIN}");
 
-    // The named person with that email, or a NewPending() person rebuilt from their email alone (an acceptance browser
+    public bool IsFreshApproved => Email.EndsWith("@" + APPROVED_DOMAIN, StringComparison.Ordinal);
+
+    // A fresh person with a unique email under APPROVED_DOMAIN, approved on first sign-in. No other test acts as them, so a
+    // journey that asserts an empty state ("nothing live", "no decks") does not depend on what the shared people did.
+    public static TestUser NewApproved() => FromEmail($"ana-{Guid.NewGuid():N}@{APPROVED_DOMAIN}");
+
+    // The named person with that email, or a NewPending() or NewApproved() person rebuilt from their email alone (an acceptance browser
     // sends only the email). Null for any other email.
     public static TestUser? Find(string email)
     {
@@ -53,13 +62,13 @@ public sealed class TestUser
         {
             return named;
         }
-        var pending = FromPendingEmail(email.Trim().ToLowerInvariant());
-        return pending.IsPending ? pending : null;
+        var fresh = FromEmail(email.Trim().ToLowerInvariant());
+        return fresh.IsPending || fresh.IsFreshApproved ? fresh : null;
     }
 
     public override string ToString() => Name;
 
     // The subject and name both come from the email, so the same email is always the same person.
-    private static TestUser FromPendingEmail(string email)
+    private static TestUser FromEmail(string email)
         => new(SUBJECT_PREFIX + email, email, email.Split('@')[0]);
 }

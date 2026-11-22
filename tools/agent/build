@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Builds the solution, or one project, under the shared lock (no MSBuild node reuse).
+set -euo pipefail
+# shellcheck source-path=SCRIPTDIR source=lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+usage="usage: tools/agent/build [<project dir, csproj or slnx>]   (default src/SlideWorks.slnx)"
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  echo "$usage"
+  exit 0
+fi
+agent_start
+[[ $# -le 1 ]] || agent_die 2 "$usage" reason=too-many-arguments
+agent_require git flock timeout
+agent_env
+target="${1:-src/SlideWorks.slnx}"
+[[ -e "$target" || -e "$(agent_root)/$target" ]] || agent_die 2 "no such project: $target" reason=no-such-project
+rc=0
+AGENT_BUILD_LOG="$AGENT_LOG" agent_build "$target" || rc=$?
+case $rc in
+  0) agent_finish 0 "target=$target" ;;
+  3) agent_finish 3 "target=$target" reason=build-failed ;;
+  4) agent_finish 4 "target=$target" reason=post-build-failed ;;
+  5) agent_finish 5 "target=$target" reason=lock-wait-timed-out ;;
+  *) agent_finish "$rc" "target=$target" reason=timed-out ;;
+esac

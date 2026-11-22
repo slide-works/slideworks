@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -41,9 +42,9 @@ public class Sw8WordCloudJourneyTests : AcceptanceTest
     public async Task Journey_WhenTwoGuestsRepeatAWord_ShouldGrowTheCloudUntilHide()
     {
         var talk = await PresentAsync("Word cloud");
-        await using var firstPhone = await OpenPhoneAsync();
+        await using var firstPhone = await PollJourney.OpenPhoneContextAsync(Browser);
         var first = await JoinAsync(firstPhone, talk.JoinUrl);
-        await using var secondPhone = await OpenPhoneAsync();
+        await using var secondPhone = await PollJourney.OpenPhoneContextAsync(Browser);
         var second = await JoinAsync(secondPhone, talk.JoinUrl);
 
         await talk.Presenter.PressAsync("ArrowRight");
@@ -129,20 +130,21 @@ public class Sw8WordCloudJourneyTests : AcceptanceTest
             await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deckId, ["layout"] = "word-cloud", ["slots"] = new { question = QUESTION } });
         }
 
-        await SignIn.AsAsync(Page, TestUser.Sam);
-        var presenter = new PresenterPage(Page);
-        await presenter.GotoAsync(deckId);
-        await presenter.IsLiveAsync();
+        var presenter = await PollJourney.OpenPresenterAsync(Page, deckId);
         await Expect(presenter.Connecting).ToHaveCountAsync(0);
         await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
         await presenter.Live.GoLive.ClickAsync();
         await Expect(presenter.Live.End).ToBeVisibleAsync();
-        var joinUrl = await ReadAsync($"/api/decks/{deckId}/live", "joinUrl");
+        var joinRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/live", "joinUrl");
+        joinRead.Status.ShouldBe(200, joinRead.Body);
+        var joinUrl = joinRead.Value.ShouldNotBeNull();
 
         var audienceTab = await Context.NewPageAsync();
         var screenHub = new CloudWatch(audienceTab);
         var audience = new PlayerPage(audienceTab);
-        await audienceTab.GotoAsync(await ReadAsync($"/api/decks/{deckId}/presenter", "audienceUrl"));
+        var audienceRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/presenter", "audienceUrl");
+        audienceRead.Status.ShouldBe(200, audienceRead.Body);
+        await audienceTab.GotoAsync(audienceRead.Value.ShouldNotBeNull());
         await Expect(audience.AudienceMode).ToBeVisibleAsync();
         await Expect(audience.Layer(1)).ToHaveAttributeAsync("data-active", "true");
         await Expect(presenter.AudienceChips).ToHaveCountAsync(1);
@@ -159,18 +161,6 @@ public class Sw8WordCloudJourneyTests : AcceptanceTest
         await guest.IsFollowingAsync();
         return new Phone(guest, new WordCard(page), hub);
     }
-
-    private async Task<string> ReadAsync(string path, string field)
-    {
-        var response = await Page.APIRequest.GetAsync(path);
-        response.Status.ShouldBe(200, await response.TextAsync());
-        return JsonDocument.Parse(await response.TextAsync()).RootElement.GetProperty(field).GetString().ShouldNotBeNull();
-    }
-
-    private Task<IBrowserContext> OpenPhoneAsync() => Browser.NewContextAsync(new BrowserNewContextOptions
-    {
-        ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-    });
 
     private sealed record Talk(PresenterPage Presenter, PlayerPage Audience, Panel Panel, Screen Screen, CloudWatch ScreenHub, string JoinUrl);
 

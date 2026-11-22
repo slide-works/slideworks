@@ -2,13 +2,16 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using SlideWorks.WebApi;
 using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Tests.Support;
+using SlideWorks.WebApi.Tests.Support.Timing;
 
 namespace SlideWorks.AcceptanceTests;
 
@@ -22,6 +25,10 @@ namespace SlideWorks.AcceptanceTests;
 // The port is reserved before the host starts, so SLIDEWORKS_PUBLIC_URL can name it: links, OAuth metadata, the MCP
 // resource and the cross-site write guard then all agree with the address the browser uses, even outside a request.
 // SLIDEWORKS_JOIN_URL names the same port as localhost, which gives the run a join host that is not the app's host.
+//
+// Two timing seams are in place for every journey and do nothing until a journey uses them: Clock is the app's
+// TimeProvider (the real clock until a journey steps it), and Hubs is a hub filter that only records open connections
+// until a journey calls AbortAll. The app is shared, so a journey that steps the clock calls ResetSeams in its TearDown.
 [SetUpFixture]
 public class AcceptanceApp
 {
@@ -35,8 +42,22 @@ public class AcceptanceApp
     // The join host: the same server under localhost, which is a different origin from BaseUrl.
     public static string JoinUrl { get; private set; } = null!;
 
-    // The running app's container, for the seams an OAuth flow ends in (see AgentSeed). Never for the database.
+    // The running app's container, for the seams an OAuth flow ends in (see AgentSeed) and for a journey that steps the
+    // clock to clear the rate-limit windows it opened (see TimingSeamJourneyTests). Never for the database.
     public static IServiceProvider Services { get; private set; } = null!;
+
+    // The app's TimeProvider. A journey steps it to reach an expiry or a rate-limit window without waiting.
+    public static StepClock Clock { get; } = new();
+
+    // Every open hub connection, so a journey can abort them from the server and watch the client reconnect.
+    public static HubAborts Hubs { get; } = new();
+
+    // Puts the seams back as they were before a journey stepped them. Call it from the TearDown of any journey that does.
+    // HubAborts has nothing to reset: it only records until AbortAll is called. It does not undo what the app kept while
+    // the clock was stepped: a rate-limit window opened ahead of the real clock stays until the real clock reaches its
+    // end, and every journey calls from 127.0.0.1. A journey that steps the clock across a rate-limited endpoint clears
+    // those windows before it calls this, as TimingSeamJourneyTests' TearDown does.
+    public static void ResetSeams() => Clock.Reset();
 
     [OneTimeSetUp]
     public void StartApp()
@@ -58,7 +79,12 @@ public class AcceptanceApp
                     ["SLIDEWORKS_JOIN_URL"] = JoinUrl,
                     [IUserDirectory.ADMIN_EMAIL_SETTING] = TestUser.Ada.Email,
                 }));
-            builder.ConfigureTestServices(TestAuthScheme.AddTo);
+            builder.ConfigureTestServices(services =>
+            {
+                TestAuthScheme.AddTo(services);
+                services.Replace(ServiceDescriptor.Singleton<TimeProvider>(Clock));
+                services.Configure<HubOptions>(options => options.AddFilter(Hubs));
+            });
         });
         _factory.UseKestrel(options => options.Listen(IPAddress.Loopback, port));
         _factory.StartServer();

@@ -8,7 +8,7 @@ using SlideWorks.WebApi.Tests.Support;
 namespace SlideWorks.WebApi.Tests.Identity.Approval;
 
 // The test people (S7), signed in through TestAuthScheme as every API test is: Sam, Alex and Mira approved, Ada the
-// admin through SLIDEWORKS_ADMIN_EMAIL, NewPending() people left waiting, and a rejected person signed out.
+// admin through SLIDEWORKS_ADMIN_EMAIL, NewApproved() people approved like them, NewPending() people left waiting, and a rejected person signed out.
 [TestFixture]
 public class TestSeamTests : ApiTestFixture
 {
@@ -37,6 +37,23 @@ public class TestSeamTests : ApiTestFixture
 
         actor.Access.ShouldBe(nameof(UserAccess.Approved));
         actor.IsAdmin.ShouldBeTrue();
+    }
+
+    [Test]
+    public async Task NewApproved_ShouldBeApprovedAndNotShared()
+    {
+        var person = TestUser.NewApproved();
+        var other = TestUser.NewApproved();
+
+        var actor = await ProbeAsync(person);
+
+        person.Email.ShouldEndWith("@" + TestUser.APPROVED_DOMAIN);
+        actor.IsSignedIn.ShouldBeTrue();
+        actor.Email.ShouldBe(person.Email);
+        actor.Access.ShouldBe(nameof(UserAccess.Approved));
+        actor.IsAdmin.ShouldBeFalse();
+        other.Email.ShouldNotBe(person.Email);
+        TestUser.Find(person.Email)!.GoogleSubject.ShouldBe(person.GoogleSubject);
     }
 
     [Test]
