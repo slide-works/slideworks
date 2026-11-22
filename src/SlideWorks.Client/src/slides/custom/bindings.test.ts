@@ -149,6 +149,46 @@ describe('prefixOf and isOwnClass', () => {
   });
 });
 
+describe('one prefix per layout', () => {
+  const other = 'cl-ffffffff-bar-chart__';
+  const variant = (c: string) => [{ slot: 'state', classes: { alert: c } }];
+  it('refuses a class from another scope when the tree names its scope', () => {
+    expect(checkLayout(withRoot([node({ classes: [`${P}a`, `${other}b`] })]))).toBe(false);
+    expect(
+      checkLayout(withRoot([node({ classes: [`${P}a`] }), node({ classes: [`${other}b`] })])),
+    ).toBe(false);
+  });
+  it('without a scope, takes the first class and refuses any other prefix', () => {
+    const bare = (root: TreeNode[]) => withRoot(root, { tree: { version: 1, root } });
+    expect(checkLayout(bare([node({ classes: [`${P}a`] }), node({ classes: [`${P}b`] })]))).toBe(
+      true,
+    );
+    expect(
+      checkLayout(bare([node({ classes: [`${P}a`] }), node({ classes: [`${other}b`] })])),
+    ).toBe(false);
+    expect(
+      checkLayout(bare([node({ classes: [`${other}a`] }), node({ classes: [`${P}b`] })])),
+    ).toBe(false);
+    expect(
+      checkLayout(
+        bare([node({ classes: [`${P}a`], children: [node({ classes: [`${other}b`] })] })]),
+      ),
+    ).toBe(false);
+    expect(
+      checkLayout(
+        bare([node({ each: 'bars', classes: [`${P}a`], variants: variant(`${other}is-alert`) })]),
+      ),
+    ).toBe(false);
+  });
+  it('a malformed scope is treated as absent, and a wrong layout name is refused', () => {
+    const root = [node({ classes: [`${P}a`] }), node({ classes: [`${other}b`] })];
+    const bad = { version: 1 as const, scope: 'nothex!!', root };
+    expect(checkLayout(withRoot(root, { tree: bad }))).toBe(false);
+    const wrongName = [node({ classes: ['cl-0a1b2c3d-other__a'] })];
+    expect(checkLayout(withRoot(wrongName, { tree: { version: 1, root: wrongName } }))).toBe(false);
+  });
+});
+
 describe('checkLayout', () => {
   it('passes the contract sample', () => {
     expect(checkLayout(view)).toBe(true);

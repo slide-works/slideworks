@@ -100,6 +100,49 @@ export function classNameOf(node: TreeNode): string {
   return node.classes.join(' ');
 }
 
+// Every class the tree names, in document order: a node's own classes, its variants' classes, then
+// its children.
+function classesInOrder(nodes: unknown): string[] {
+  const found: string[] = [];
+  const walk = (list: unknown, depth: number): void => {
+    if (!Array.isArray(list) || depth > MAX_DEPTH + 1) return;
+    for (const n of list) {
+      if (!isRecord(n)) continue;
+      if (Array.isArray(n.classes)) found.push(...n.classes.filter((c) => typeof c === 'string'));
+      if (Array.isArray(n.variants)) {
+        for (const v of n.variants) {
+          if (isRecord(v) && isRecord(v.classes)) {
+            found.push(...Object.values(v.classes).filter((c) => typeof c === 'string'));
+          }
+        }
+      }
+      walk(n.children, depth + 1);
+    }
+  };
+  walk(nodes, 0);
+  return found;
+}
+
+// The one prefix of the layout: from a valid tree scope, else from the first class in document
+// order. Null when there is no class to name it, or the first does not carry this layout's name.
+function layoutPrefix(layout: CustomLayoutView): string | null | undefined {
+  const fromScope = prefixOf(layout);
+  if (fromScope !== null) return fromScope;
+  const first = classesInOrder(layout.tree.root)[0];
+  if (first === undefined) return undefined;
+  const match = /^(cl-[0-9a-f]{8}-)([a-z][a-z0-9-]*)__/.exec(first);
+  if (match === null || `${match[1]}${layout.name}__` !== match[0]) return null;
+  return match[0];
+}
+
+function isClassUnder(prefix: string, value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    value.startsWith(prefix) &&
+    CLASS_REST.test(value.slice(prefix.length))
+  );
+}
+
 function ownType(types: TypeScope, name: string): CustomSlotType | undefined {
   return Object.prototype.hasOwnProperty.call(types, name) ? types[name] : undefined;
 }
@@ -168,7 +211,7 @@ export function isShowable(type: CustomSlotType): boolean {
 }
 
 function checkNode(
-  layout: CustomLayoutView,
+  prefix: string | undefined,
   node: unknown,
   types: TypeScope,
   depth: number,
@@ -178,7 +221,11 @@ function checkNode(
   if (Object.keys(node).some((key) => !NODE_KEYS.includes(key))) return false;
   const n = node as unknown as TreeNode;
   if (typeof n.tag !== 'string' || !allow.tags.includes(n.tag)) return false;
-  if (!Array.isArray(n.classes) || !n.classes.every((c) => isOwnClass(layout, c))) return false;
+  if (
+    !Array.isArray(n.classes) ||
+    !n.classes.every((c) => prefix !== undefined && isClassUnder(prefix, c))
+  )
+    return false;
   if (!Array.isArray(n.vars) || !Array.isArray(n.variants) || !Array.isArray(n.children)) {
     return false;
   }
@@ -202,27 +249,30 @@ function checkNode(
   for (const v of n.variants) {
     if (!isRecord(v) || typeof v.slot !== 'string' || !isRecord(v.classes)) return false;
     if (ownType(inner, v.slot)?.type !== 'enum') return false;
-    if (!Object.values(v.classes).every((c) => isOwnClass(layout, c))) return false;
+    if (!Object.values(v.classes).every((c) => prefix !== undefined && isClassUnder(prefix, c)))
+      return false;
   }
   if (n.slot !== undefined) {
     const type = typeof n.slot === 'string' ? ownType(inner, n.slot) : undefined;
     if (type === undefined || !isShowable(type) || n.children.length > 0) return false;
   }
-  return n.children.every((child) => checkNode(layout, child, inner, depth + 1));
+  return n.children.every((child) => checkNode(prefix, child, inner, depth + 1));
 }
 
 // Whether the whole layout may be drawn: a sane name and css, version 1, only allowed tags, only
 // the layout's own classes, and every name bound to a slot that is there in its scope.
 export function checkLayout(layout: CustomLayoutView): boolean {
   const { tree } = layout;
+  if (!NAME.test(layout.name) || !isRecord(tree)) return false;
+  const prefix = layoutPrefix(layout);
+  if (prefix === null) return false;
   return (
-    NAME.test(layout.name) &&
     typeof layout.css === 'string' &&
     isRecord(layout.slots) &&
     isRecord(tree) &&
     tree.version === 1 &&
     Array.isArray(tree.root) &&
-    tree.root.every((node) => checkNode(layout, node, layout.slots, 0))
+    tree.root.every((node) => checkNode(prefix, node, layout.slots, 0))
   );
 }
 

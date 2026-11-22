@@ -335,6 +335,55 @@ test.describe('hostile input', () => {
     }
   });
 
+  test('a callout with a bad tone, text or reveal draws the error', async ({ mount, page }) => {
+    const layout = layoutOf([node({ classes: [`${P}chart`], slot: 'c' })], '', {
+      c: { type: 'callout' },
+    });
+    const good = { tone: 'accent', text: 'Hi' };
+    const component = await open(mount, page, { layouts: [layout], slots: { c: good } });
+    await expect(page.getByTestId('custom-slot-c')).toBeVisible();
+    for (const c of [
+      { tone: 'loud', text: 'Hi' },
+      { tone: 'accent', text: 4 },
+      { tone: 'accent', text: 'Hi', reveal: 'sometimes' },
+      { tone: 'accent', text: 'Hi', fill: 'neon' },
+    ]) {
+      await component.update(slideOf({ layouts: [layout], slots: { c } }));
+      await expect(page.getByTestId('custom-layout-error')).toBeVisible();
+    }
+  });
+
+  test('a list slot that is not a list draws the error; an empty list does not', async ({
+    mount,
+    page,
+  }) => {
+    const component = await open(mount, page, { slots: { ...sample, bars: [] } });
+    await expect(page.getByTestId('custom-layout')).toBeVisible();
+    await expect(bars(page)).toHaveCount(0);
+    for (const bars of ['nope', { a: 1 }, 7, [null], ['x']]) {
+      await component.update(slideOf({ slots: { ...sample, bars } }));
+      await expect(page.getByTestId('custom-layout-error')).toBeVisible();
+    }
+  });
+
+  test('a class from another scope draws the error, with and without tree.scope', async ({
+    mount,
+    page,
+  }) => {
+    const foreign = 'cl-ffffffff-bar-chart__x';
+    const root = [node({ classes: [`${P}chart`], children: [node({ classes: [foreign] })] })];
+    const component = await open(mount, page, { layouts: [layoutOf(root)] });
+    await expect(page.getByTestId('custom-layout-error')).toBeVisible();
+    const bare = { ...layoutOf(root), tree: { version: 1 as const, root } };
+    await component.update(slideOf({ layouts: [bare] }));
+    await expect(page.getByTestId('custom-layout-error')).toBeVisible();
+    const fine = [node({ classes: [`${P}chart`], children: [node({ classes: [`${P}x`] })] })];
+    await component.update(
+      slideOf({ layouts: [{ ...layoutOf(fine), tree: { version: 1, root: fine } }] }),
+    );
+    await expect(page.getByTestId('custom-layout')).toBeVisible();
+  });
+
   test('a variant value outside the enum adds no class', async ({ mount, page }) => {
     const bad = { ...sample, bars: [{ label: 'A', share: 5, state: 'loud' }] };
     await open(mount, page, { slots: bad });

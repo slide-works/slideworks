@@ -103,8 +103,13 @@ function drawNodes(
     }
     const list = ownValue(values, node.each);
     const listType = types[node.each];
-    if (!Array.isArray(list) || listType?.type !== 'list') return [];
+    if (listType?.type !== 'list') throw new CannotDraw();
+    // An optional list that is not there draws nothing; a value that is not a list cannot be drawn.
+    if (list === undefined || list === null) return [];
+    if (!Array.isArray(list)) throw new CannotDraw();
     const inner = itemTypes(listType);
+    const scalarItems = typeof (listType.of as { type?: unknown }).type === 'string';
+    if (!scalarItems && !list.every(isObject)) throw new CannotDraw();
     return list.map((entry: unknown, index) =>
       drawNode(node, itemValues(entry), inner, index, context, hiddenAbove),
     );
@@ -184,7 +189,7 @@ function isObject(value: unknown): value is { [key: string]: unknown } {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-const FACT_TONES = ['accent', 'positive', 'negative', 'inverse', 'good', 'bad', 'info'];
+const BLOCK_TONES = ['accent', 'positive', 'negative', 'inverse', 'good', 'bad', 'info'];
 
 // What a slot shows: text as text, one of SlideWorks' own blocks, or an uploaded image.
 function slotContent(type: string, value: unknown): ReactNode {
@@ -203,7 +208,14 @@ function slotContent(type: string, value: unknown): ReactNode {
       if (typeof value !== 'string') throw new CannotDraw();
       return <Badge text={value} />;
     case 'callout':
-      if (!isObject(value) || typeof value.text !== 'string' || typeof value.tone !== 'string') {
+      if (
+        !isObject(value) ||
+        typeof value.text !== 'string' ||
+        typeof value.tone !== 'string' ||
+        !BLOCK_TONES.includes(value.tone) ||
+        (value.fill !== undefined && value.fill !== 'soft' && value.fill !== 'solid') ||
+        (value.reveal !== undefined && value.reveal !== 'with-slide' && value.reveal !== 'last')
+      ) {
         throw new CannotDraw();
       }
       return <Callout {...(value as CalloutBlock)} />;
@@ -224,7 +236,7 @@ function slotContent(type: string, value: unknown): ReactNode {
         if (!isObject(fact) || typeof fact.label !== 'string' || typeof fact.value !== 'string') {
           throw new CannotDraw();
         }
-        if (fact.tone !== undefined && !FACT_TONES.includes(fact.tone as string)) {
+        if (fact.tone !== undefined && !BLOCK_TONES.includes(fact.tone as string)) {
           throw new CannotDraw();
         }
       }
