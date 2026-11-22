@@ -80,7 +80,8 @@ public class TimingSeamJourneyTests : AcceptanceTest
         }
     }
 
-    // The server drops the presenter's hub connection; the window reconnects by itself and carries on presenting.
+    // The server drops the presenter's hub connection; the window reconnects by itself and carries on presenting. The
+    // wait counts Sam's own connections, and Sam has only the presenter window open, so it is that window reopening.
     [Test, Order(3)]
     public async Task PresenterWindow_WhenTheServerAbortsItsHubConnection_ShouldReconnectAndKeepPresenting()
     {
@@ -90,10 +91,11 @@ public class TimingSeamJourneyTests : AcceptanceTest
         await presenter.GotoAsync(id);
         await presenter.IsLiveAsync();
         await Expect(presenter.Count).ToHaveTextAsync($"1 / {SLIDES}");
-        var opened = AcceptanceApp.Hubs.Opens.CallsFor(HubAborts.OPENED);
+        var samOpened = HubAborts.OpenedBy(TestUser.Sam.Email);
+        var opened = AcceptanceApp.Hubs.Opens.CallsFor(samOpened);
 
         AcceptanceApp.Hubs.AbortAll().ShouldBeGreaterThan(0, "the presenter window should have a hub connection to abort");
-        await AcceptanceApp.Hubs.Opens.WhenCalledAsync(HubAborts.OPENED, opened + 1, TimeSpan.FromSeconds(30));
+        await AcceptanceApp.Hubs.Opens.WhenCalledAsync(samOpened, opened + 1, TimeSpan.FromSeconds(30));
 
         await Expect(presenter.Reconnecting).ToBeHiddenAsync();
         await presenter.IsLiveAsync();
