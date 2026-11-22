@@ -1,6 +1,10 @@
 import type { LevelsBlock } from '../slots';
 import styles from './Levels.module.css';
 
+// From this many rungs the ladder tightens its spacing, so the server's maximum (7 rungs of 50
+// characters under a 30-character title) still fits the 620 px card.
+const DENSE_FROM = 7;
+
 type LevelsProps = { levels: LevelsBlock };
 
 // A ladder of 2–7 levels, top rung first, in a 480 px card. Any rung can be
@@ -10,9 +14,13 @@ type LevelsProps = { levels: LevelsBlock };
 export function Levels({ levels }: LevelsProps) {
   const { title, items } = levels;
   return (
-    <div data-testid="block-levels" className={styles.levels}>
+    <div
+      data-testid="block-levels"
+      data-dense={items.length >= DENSE_FROM ? 'true' : undefined}
+      className={styles.levels}
+    >
       {title !== undefined ? (
-        <div data-testid="levels-title" className={styles.title}>
+        <div data-testid="levels-title" data-check-size="designed:16" className={styles.title}>
           {title}
         </div>
       ) : null}
@@ -27,7 +35,7 @@ export function Levels({ levels }: LevelsProps) {
               aria-current={current ? 'true' : undefined}
               className={styles.rung}
             >
-              <span data-testid="levels-mark" className={styles.mark}>
+              <span data-testid="levels-mark" data-check-size="designed:18" className={styles.mark}>
                 {item.mark}
               </span>
               <span className={styles.text}>{item.text}</span>
