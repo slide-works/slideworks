@@ -220,6 +220,36 @@ test("shows the server's refusal for a bad bundle", async ({ mount, page }) => {
   await expect(upload).toBeFocused();
 });
 
+test('shows a sentence when the session ended or the account is pending during an upload', async ({
+  mount,
+  page,
+}) => {
+  await stubTemplatesApi(page);
+  const answers = [
+    { status: 401, json: { error: 'Unauthorized' } },
+    { status: 403, json: { error: 'pending_approval' } },
+  ];
+  await page.route('**/api/templates/import', (route) => route.fulfill(answers.shift() ?? {}));
+  await mount(page_(), route);
+
+  const alert = page.getByRole('alert').filter({ hasText: /\w/ });
+  await page.getByLabel('Template bundle').setInputFiles(zip);
+  await expect(alert).toHaveText('Your session has ended. Sign in again, then upload the bundle.');
+  await expect(page.getByTestId('location')).toHaveText('/templates');
+
+  await page.getByLabel('Template bundle').setInputFiles(zip);
+  await expect(alert).toHaveText('Your request is waiting for an admin to approve it.');
+  await expect(page.getByRole('button', { name: 'Upload a bundle…' })).toBeFocused();
+});
+
+test('offers the download of a draft-only template too', async ({ mount, page }) => {
+  await stubTemplatesApi(page);
+  await mount(page_(), route);
+
+  const link = page.getByRole('link', { name: `Download ${draft.name} as a bundle` });
+  await expect(link).toHaveAttribute('href', `/api/templates/${draft.id}/bundle`);
+});
+
 test('downloads a template of mine as a bundle', async ({ mount, page }) => {
   await stubTemplatesApi(page);
   await mount(page_(), route);

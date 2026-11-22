@@ -345,7 +345,7 @@ public class TemplateAssets(
     };
 
     // The name is a label for people: it is stored on the row and never names a file on disk.
-    private static string CheckFileName(string? fileName)
+    public static string CheckFileName(string? fileName)
     {
         var name = fileName ?? "";
         if (name.Any(char.IsControl))
