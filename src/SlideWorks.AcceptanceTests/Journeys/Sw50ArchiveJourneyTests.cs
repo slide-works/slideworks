@@ -20,7 +20,10 @@ public class Sw50ArchiveJourneyTests : AcceptanceTest
         el => [...el.querySelectorAll('[data-testid^="new-deck-template-"]')].map(o => o.dataset.testid.slice('new-deck-template-'.length))
         """;
     private const string HEADING_FONT = "el => getComputedStyle(el).fontFamily.replace(/[\"']/g, '')";
-    private const string FACE_LOADED = "family => document.fonts.check(`16px \"${family}\"`)";
+    private const string FACE_LOADED = """
+        family => [...document.fonts].some(f => f.family.replace(/["']/g, '') === family && f.status === 'loaded')
+            && document.fonts.check(`16px "${family}"`)
+        """;
     private const string SELECTED_LABEL = "select => select.selectedOptions[0].textContent";
 
     [Test]
