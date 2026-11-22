@@ -33,17 +33,14 @@ function computed(colours: { frame: string; text: string }) {
   const real = window.getComputedStyle.bind(window);
   vi.spyOn(window, 'getComputedStyle').mockImplementation((element: Element) => {
     const style = real(element);
-    const own = element instanceof HTMLElement && element.parentElement?.tagName === 'DIV';
-    const colour =
-      element.tagName === 'P' ? colours.text : own ? 'rgba(0, 0, 0, 0)' : colours.frame;
+    // The frame (a child of body) has the background; the wrapper, holder and text are transparent.
+    const background = element.parentElement === document.body ? colours.frame : 'rgba(0, 0, 0, 0)';
     return new Proxy(style, {
       get: (target, key) =>
         key === 'color'
           ? colours.text
           : key === 'backgroundColor'
-            ? colour === colours.text && element.tagName === 'P'
-              ? 'rgba(0, 0, 0, 0)'
-              : colour
+            ? background
             : (Reflect.get(target, key) as unknown),
     });
   });

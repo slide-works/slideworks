@@ -318,6 +318,7 @@ function Review({
           aria-describedby={REVIEW_TEST_IDS.approveReason}
           aria-busy={approving}
           disabled={!canApprove}
+          aria-disabled={approving || undefined}
           onClick={() => found !== null && !approving && void approve(review, found)}
         >
           Approve layout
@@ -328,7 +329,6 @@ function Review({
             change={draft.change}
             replacing={name}
             onAccepted={() => {
-              setMeasured(null);
               void reread().then((fresh) => {
                 // The new files could not be read back: measuring them needs the review, so offer Retry.
                 if (fresh === null) setState({ kind: 'failed', message: NOT_LOADED });

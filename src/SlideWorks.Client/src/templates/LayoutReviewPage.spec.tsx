@@ -272,6 +272,44 @@ test('a failed re-read after a replacement offers Retry that measures again', as
   await expect(approve(page)).toBeEnabled();
 });
 
+const replacementFiles = [
+  { name: 'l.html', mimeType: 'text/html', buffer: Buffer.from('<div class="chart"></div>') },
+  { name: 'l.css', mimeType: 'text/css', buffer: Buffer.from('.chart { color: red; }') },
+  {
+    name: 'l.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({ name: 'bar-chart', surface: 'light', slots: {} })),
+  },
+];
+
+// Assets are content-addressed: the same files give the same asset id, and the page must still
+// measure and offer Approve.
+test('replacing a layout with files that give the same asset keeps Approve available', async ({
+  mount,
+  page,
+}) => {
+  const requests = await stub(page, { layoutReview: { json: fitting } });
+  await stubTemplateAssets(page, templateEditor.id);
+  await mount(<AppRoutes />, route);
+  await expect(approve(page)).toBeEnabled();
+
+  await page.getByTestId('layout-files').setInputFiles(replacementFiles);
+  await expect.poll(() => requests.filter(({ call }) => call === 'layoutReview').length).toBe(2);
+  await expect(page.getByText('Measuring the layout…')).toHaveCount(0);
+  await expect(approve(page)).toBeEnabled();
+});
+
+test('a failed re-read after approval offers Retry', async ({ mount, page }) => {
+  await stub(page, { layoutReview: [{ json: fitting }, { status: 500 }, { json: fitting }] });
+  await mount(<AppRoutes />, route);
+  await expect(approve(page)).toBeEnabled();
+
+  await approve(page).click();
+  await expect(page.getByText('Could not load this layout.')).toBeVisible();
+  await page.getByRole('button', { name: 'Retry' }).click();
+  await expect(approve(page)).toBeEnabled();
+});
+
 test('screenshot: layout review, needs review', async ({ mount, page }) => {
   await stub(page, { layoutReview: { json: fitting } });
   await mount(<AppRoutes />, route);
