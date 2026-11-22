@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using SlideWorks.WebApi.Infrastructure.Mcp;
@@ -19,6 +18,3 @@ public sealed class SetPartsTool
         [Description("The deck's parts, up to 8, replacing the current list ([] clears it). Each is a name of up to 40 characters, or {name, short, caption, mark}: short (16) shows on the tracker, caption (24) under the journey stop, and a mark of 1–2 characters such as 'A' makes an unnumbered section, shown on neither. A part with a mark must come after every numbered part.")] JsonElement[]? parts)
         => McpToolErrors.Run(async () => new SetPartsResult(await commands.SetAsync(deck, parts, PartsCommands.TOOL)));
 }
-
-// set_parts's result: the deck's parts after the change.
-public sealed record SetPartsResult([property: JsonPropertyName("parts")] IReadOnlyList<DeckPart> Parts);

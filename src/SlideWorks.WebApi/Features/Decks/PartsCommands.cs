@@ -44,7 +44,11 @@ public class PartsCommands(
             if (stranded.Count > 0)
             {
                 var named = string.Join(", ", stranded.Select(s => $"slide {s.Position + 1} (part {s.Part})"));
-                throw new BadRequestException($"parts: slides use parts the new list does not have, so it needs at least {stranded.Max(s => s.Part)} parts: {named}. Move them with update_slide first");
+                var needed = stranded.Max(s => s.Part);
+                var advice = parts.Count == 0
+                    ? "update_slide cannot clear a slide's part, so keep enough parts or delete those slides first"
+                    : "keep at least that many parts, move those slides to a lower part with update_slide, or delete them first";
+                throw new BadRequestException($"parts: slides use parts the new list does not have, so it needs at least {needed} parts: {named}. To go ahead, {advice}");
             }
             deck.PartsJson = DeckParts.Write(parts);
             deck.Revision += 1;
