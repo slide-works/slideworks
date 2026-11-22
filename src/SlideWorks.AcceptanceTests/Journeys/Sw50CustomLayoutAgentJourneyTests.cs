@@ -16,6 +16,7 @@ namespace SlideWorks.AcceptanceTests.Journeys;
 public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
 {
     private const double NEEDLE_TOLERANCE = 0.5;
+    private const double BOX_TOLERANCE = 0.5;
     private const int CUSTOM_SLIDES = 5;
     private const string FRAMES = "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))";
 
@@ -32,14 +33,16 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
           const found = style.transform.match(/^matrix\(([^)]+)\)$/);
           if (!found) return null;
           const [a, b] = found[1].split(',').map(Number);
-          return { angle: Math.atan2(b, a) * 180 / Math.PI, color: style.backgroundColor };
+          const box = needle.getBoundingClientRect();
+          const drawn = style.visibility === 'visible' && box.width > 0 && box.height > 0;
+          return { angle: Math.atan2(b, a) * 180 / Math.PI, color: style.backgroundColor, drawn };
         }
         """;
 
     // How many script and img elements sit anywhere under the slide.
     private const string PICTURE_PROBE = "slide => slide.querySelectorAll('script, img').length";
 
-    private const string TEXT_PROBE = "slide => slide.textContent.replace(/\\s+/g, ' ')";
+    private const string TEXT_PROBE = "slide => slide.innerText.replace(/\\s+/g, ' ')";
 
     // The stepped elements of the slide (the layout's waiting list items): drawn visibility and the inline visibility the
     // element itself carries, and each one's box.
@@ -65,10 +68,12 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
         var deck = await PublishedDeckAsync(agent, LAYOUTS);
         var samples = LAYOUTS.ToDictionary(name => name, SampleOf);
 
+        var steps = new int[CUSTOM_SLIDES];
         for (var index = 0; index < CUSTOM_SLIDES; index++)
         {
             var added = await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deck, ["layout"] = LAYOUTS[index], ["slots"] = samples[LAYOUTS[index]] });
             added.GetProperty("slide").GetInt32().ShouldBe(index + 1);
+            steps[index] = added.GetProperty("steps").GetInt32();
             added.GetProperty("warnings").GetArrayLength().ShouldBe(0, $"{LAYOUTS[index]}: {added.GetRawText()}");
         }
 
@@ -88,24 +93,25 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
         {
             var number = index + 1;
             var name = LAYOUTS[index];
-            await OpenAsync(player, deck, number, CUSTOM_SLIDES + 1);
+            // Opened at its last step, so every waiting item of a one-by-one slide is drawn when its text is read.
+            await OpenAsync(player, deck, number, CUSTOM_SLIDES + 1, steps[index]);
             var slide = player.Slide(number);
             await Expect(slide.GetByTestId("custom-layout")).ToBeVisibleAsync();
             await Expect(slide.GetByTestId("custom-layout-error")).ToHaveCountAsync(0);
             await Page.EvaluateAsync(FRAMES);
 
-            // Its texts are on the slide as text.
+            // Its texts are on the slide as drawn text (innerText leaves out the style sheet and hidden items).
             var text = await slide.EvaluateAsync<string>(TEXT_PROBE);
             foreach (var expected in TextsOf(name, samples[name]))
             {
-                text.ShouldContain(Squash(expected), customMessage: $"{name} should show \"{expected}\"");
+                text.ShouldContain(Squash(expected), Case.Insensitive, customMessage: $"{name} should show \"{expected}\"");
             }
 
             // The built-in blocks the layouts hold: levels rungs and facts tiles, by their test ids.
-            var rungs = name is "agent-lanes" or "code-mock" or "chat-mock" ? 6 : 0;
-            var tiles = name switch { "code-mock" => 3, "chat-mock" => 2, _ => 0 };
-            await Expect(slide.GetByTestId("levels-rung")).ToHaveCountAsync(rungs);
-            await Expect(slide.GetByTestId("facts-tile")).ToHaveCountAsync(tiles);
+            var rungs = LengthOf(samples[name], "levels", "items");
+            var tiles = LengthOf(samples[name], "facts");
+            await Expect(slide.GetByTestId("levels-rung").Filter(new() { Visible = true })).ToHaveCountAsync(rungs);
+            await Expect(slide.GetByTestId("facts-tile").Filter(new() { Visible = true })).ToHaveCountAsync(tiles);
 
             // The overflow probe finds nothing outside the frame.
             var outside = await Eventually.ReadAsync(() => player.OverflowAsync(number), found => found.Length == 0);
@@ -127,7 +133,7 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
         await Expect(deckPage.Thumbnails).ToHaveCountAsync(CUSTOM_SLIDES + 1);
         for (var number = 1; number <= CUSTOM_SLIDES; number++)
         {
-            await Expect(deckPage.Thumbnail(number).GetByTestId("custom-layout")).ToHaveCountAsync(1);
+            await Expect(deckPage.Thumbnail(number).GetByTestId("custom-layout").Filter(new() { Visible = true })).ToHaveCountAsync(1);
         }
         await Page.EvaluateAsync(FRAMES);
         for (var number = 1; number <= CUSTOM_SLIDES; number++)
@@ -165,6 +171,20 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
         before.ShouldBe(1);
         (await SlideCountAsync(agent, deck)).ShouldBe(before);
 
+        // The player at 30: the visible needle points at -36 degrees, and the headline and both end labels are drawn text.
+        var player = new PlayerPage(Page);
+        await OpenAsync(player, deck, 1, 1);
+        await Expect(player.Slide(1).GetByTestId("custom-layout")).ToBeVisibleAsync();
+        var atThirtyNeedle = await ReadNeedleAsync(player, 1, -36);
+        atThirtyNeedle.ShouldNotBeNull("the dial's needle is not there").Drawn.ShouldBeTrue("the needle at 30 is not visible");
+        atThirtyNeedle.Angle.ShouldBe(-36, NEEDLE_TOLERANCE);
+        var ends = new[] { headline, sample.GetProperty("from").GetString()!, sample.GetProperty("to").GetString()! };
+        var text = await player.Slide(1).EvaluateAsync<string>(TEXT_PROBE);
+        foreach (var expected in ends)
+        {
+            text.ShouldContain(Squash(expected), Case.Insensitive);
+        }
+
         // The preview at 30, then the value moves to 85.
         var atThirty = await PreviewAsync(agent, deck);
         var turned = JsonNode.Parse(sample.GetRawText())!;
@@ -180,30 +200,29 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
         var atEightyFive = await PreviewAsync(agent, deck);
         atThirty.SequenceEqual(atEightyFive).ShouldBeFalse("the dial at 30 and at 85 rendered the same PNG");
 
-        // A second dial on the dark surface.
-        var dark = await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deck, ["layout"] = "dial", ["slots"] = sample, ["surface"] = "dark" });
-        dark.GetProperty("slide").GetInt32().ShouldBe(2);
-
-        var player = new PlayerPage(Page);
-        await OpenAsync(player, deck, 1, 2);
-        await Expect(player.Slide(1).GetByTestId("custom-layout")).ToBeVisibleAsync();
-        var needle = await ReadNeedleAsync(player, 1, 63);
-        needle.ShouldNotBeNull("the dial's needle is not drawn").Angle.ShouldBe(63, NEEDLE_TOLERANCE);
-
-        var text = await player.Slide(1).EvaluateAsync<string>(TEXT_PROBE);
-        foreach (var expected in new[] { headline, sample.GetProperty("from").GetString()!, sample.GetProperty("to").GetString()! })
+        // The same slide, reloaded: the needle has turned to 63 degrees.
+        await OpenAsync(player, deck, 1, 1);
+        var turnedNeedle = await ReadNeedleAsync(player, 1, 63);
+        turnedNeedle.ShouldNotBeNull("the dial's needle is not there").Drawn.ShouldBeTrue("the needle at 85 is not visible");
+        turnedNeedle.Angle.ShouldBe(63, NEEDLE_TOLERANCE);
+        text = await player.Slide(1).EvaluateAsync<string>(TEXT_PROBE);
+        foreach (var expected in ends)
         {
-            text.ShouldContain(Squash(expected));
+            text.ShouldContain(Squash(expected), Case.Insensitive);
         }
 
-        // The dark slide is the same dial at 30, on the dark surface, with its own needle colour.
-        var lightSurface = await new SlideProbe(Page, 1).SurfaceAsync();
-        var darkSurface = await new SlideProbe(Page, 2).SurfaceAsync();
-        lightSurface.ShouldNotBe("dark");
-        darkSurface.ShouldBe("dark");
+        // A second dial on the dark surface, opened as the active slide: same value as the first (30), its own needle colour.
+        var dark = await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deck, ["layout"] = "dial", ["slots"] = sample, ["surface"] = "dark" });
+        dark.GetProperty("slide").GetInt32().ShouldBe(2);
+        dark.GetProperty("warnings").GetArrayLength().ShouldBe(0);
+        await OpenAsync(player, deck, 2, 2);
+        await Expect(player.Slide(2).GetByTestId("custom-layout")).ToBeVisibleAsync();
+        (await new SlideProbe(Page, 1).SurfaceAsync()).ShouldNotBe("dark");
+        (await new SlideProbe(Page, 2).SurfaceAsync()).ShouldBe("dark");
         var darkNeedle = await ReadNeedleAsync(player, 2, -36);
-        darkNeedle.ShouldNotBeNull().Angle.ShouldBe(-36, NEEDLE_TOLERANCE);
-        darkNeedle.Color.ShouldNotBe(needle.Color, "the needle should be drawn in another colour on the dark surface");
+        darkNeedle.ShouldNotBeNull("the dark dial's needle is not there").Drawn.ShouldBeTrue("the dark needle is not visible");
+        darkNeedle.Angle.ShouldBe(-36, NEEDLE_TOLERANCE);
+        darkNeedle.Color.ShouldNotBe(turnedNeedle.Color, "the needle should be drawn in another colour on the dark surface");
     }
 
     [Test]
@@ -220,6 +239,7 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
         var player = new PlayerPage(Page);
         await OpenAsync(player, deck, 1, 1);
         var steps = Page.GetByTestId("player-steps");
+        await Expect(steps).ToBeVisibleAsync();
         await Expect(steps).ToHaveAttributeAsync("aria-label", $"Step 0 of {lanes}");
         (await steps.EvaluateAsync<int>("el => el.childElementCount")).ShouldBe(lanes);
         var slide = player.Slide(1);
@@ -234,6 +254,7 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
         one[0].Visible.ShouldBeTrue("the first lane shows after one click");
         one[1].Hidden.ShouldBeTrue("the second lane still waits");
         one[1].Inline.ShouldBe("hidden");
+        one.Skip(2).ShouldAllBe(lane => lane.Hidden && lane.Inline == "hidden", "lanes after the second still wait");
 
         for (var step = 2; step <= lanes; step++)
         {
@@ -358,11 +379,25 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
         }
     }
 
+    // The length of the array at the path in a sample; 0 where the sample has none.
+    private static int LengthOf(JsonElement sample, params string[] path)
+    {
+        var node = sample;
+        foreach (var key in path)
+        {
+            if (node.ValueKind != JsonValueKind.Object || !node.TryGetProperty(key, out node))
+            {
+                return 0;
+            }
+        }
+        return node.ValueKind == JsonValueKind.Array ? node.GetArrayLength() : 0;
+    }
+
     private static string Squash(string text) => Regex.Replace(text, @"\s+", " ").Trim();
 
-    private async Task OpenAsync(PlayerPage player, string deck, int number, int total)
+    private async Task OpenAsync(PlayerPage player, string deck, int number, int total, int step = 0)
     {
-        await player.GotoAsync(deck, hash: $"#{number}");
+        await player.GotoAsync(deck, hash: step == 0 ? $"#{number}" : $"#{number}.{step}");
         await Page.ReloadAsync();
         await Expect(player.Player).ToBeVisibleAsync();
         await Expect(player.Count).ToHaveTextAsync($"{number} / {total}");
@@ -392,7 +427,7 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
                 var found = await slide.EvaluateAsync<JsonElement>(NEEDLE_PROBE);
                 return found.ValueKind == JsonValueKind.Null
                     ? null
-                    : new Needle(found.GetProperty("angle").GetDouble(), found.GetProperty("color").GetString()!);
+                    : new Needle(found.GetProperty("angle").GetDouble(), found.GetProperty("color").GetString()!, found.GetProperty("drawn").GetBoolean());
             },
             needle => needle is not null && Math.Abs(needle.Angle - expected) <= NEEDLE_TOLERANCE);
     }
@@ -428,12 +463,12 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
         return body;
     }
 
-    private sealed record Needle(double Angle, string Color);
+    private sealed record Needle(double Angle, string Color, bool Drawn);
 
     private sealed record Lane(bool Visible, bool Hidden, string Inline, double Left, double Top, double Width, double Height)
     {
         public bool IsSameBoxAs(Lane other) =>
-            Math.Abs(Left - other.Left) <= NEEDLE_TOLERANCE && Math.Abs(Top - other.Top) <= NEEDLE_TOLERANCE
-            && Math.Abs(Width - other.Width) <= NEEDLE_TOLERANCE && Math.Abs(Height - other.Height) <= NEEDLE_TOLERANCE;
+            Math.Abs(Left - other.Left) <= BOX_TOLERANCE && Math.Abs(Top - other.Top) <= BOX_TOLERANCE
+            && Math.Abs(Width - other.Width) <= BOX_TOLERANCE && Math.Abs(Height - other.Height) <= BOX_TOLERANCE;
     }
 }
