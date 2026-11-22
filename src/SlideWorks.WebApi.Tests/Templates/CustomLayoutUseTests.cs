@@ -103,6 +103,36 @@ public class CustomLayoutUseTests : ApiTestFixture
     }
 
     [Test]
+    public async Task AddSlide_WhenTheLayoutIsUnknown_ShouldListTheApprovedCustomLayoutsOnly()
+    {
+        var (agent, deck, _) = await DeckWithLayoutAsync(Layout(DIAL, LayoutSurface.Light), Layout("unapproved-one", LayoutSurface.Light, approved: false));
+        await using var _a = agent;
+        var slots = new { headline = "x", items = new[] { "a" } };
+
+        var added = await SlideCalls.ErrorAsync(agent, "add_slide", new { deck, layout = "never-heard-of", slots });
+
+        added.ShouldStartWith("layout: unknown layout 'never-heard-of' (known: ");
+        added.ShouldEndWith($", {DIAL})");
+        added.ShouldNotContain("unapproved-one");
+    }
+
+    // An uploaded template's refusal keeps the UTF-16 check ahead of the layout lookup.
+    [Test]
+    public async Task AddSlide_WhenTheLayoutIsUnknownAndSlotsHaveALoneSurrogate_ShouldRefuseTheText()
+    {
+        var (agent, deck, _) = await DeckWithLayoutAsync(Layout(DIAL, LayoutSurface.Light));
+        await using var _a = agent;
+
+        var message = await McpWire.SendToolCallAsync(
+            Factory,
+            agent.Tokens.AccessToken,
+            "add_slide",
+            $$$"""{"deck":"{{{deck}}}","layout":"never-heard-of","slots":{"headline":"Ship it \ud83d"}}""");
+
+        McpWire.TextOf(message.GetProperty("result")).ShouldBe("slots.headline: text is not valid UTF-16");
+    }
+
+    [Test]
     public async Task AddSlide_WhenTheLayoutIsNotApproved_ShouldRefuseAsUnknown()
     {
         var (agent, deck, _) = await DeckWithLayoutAsync(Layout(DIAL, LayoutSurface.Light, approved: false));

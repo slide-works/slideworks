@@ -68,6 +68,28 @@ public class SlideTemplateWidthsTests : ApiTestFixture
         refused.ShouldBe("only-here.headline: required");
     }
 
+    // The refusal of a name no template has lists what the deck's template allows (SW-673): on an uploaded template, the
+    // built-ins its version lists; on a built-in one, every built-in as before.
+    [Test]
+    public async Task AddSlide_WhenTheUnknownLayoutIsRefused_ShouldListWhatTheTemplateAllows()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        await DeckSeed.AddQuoteAsync(agent, deck, "Already here.");
+        var slots = Slots("""{ "title": "Hi" }""");
+        var onBuiltIn = await ErrorAsync(agent, "add_slide", new { deck, layout = "poster", slots });
+        var talk = new TemplateCatalogue().Default;
+        Factory.Services.GetRequiredService<FakeTemplates>().Add(
+            BuiltInTemplates.Resolve(talk) with { BuiltIn = false, Template = talk with { Layouts = ["title", "bullets"] } });
+
+        var added = await ErrorAsync(agent, "add_slide", new { deck, layout = "poster", slots });
+        var updated = await UpdateErrorAsync(agent, deck, 1, 1, """{ "title": "Hi" }""", layout: "poster");
+
+        onBuiltIn.ShouldBe("layout: unknown layout 'poster' (known: " + string.Join(", ", LayoutCatalogue.LayoutNames) + ")");
+        added.ShouldBe("layout: unknown layout 'poster' (known: title, bullets, join, poll, qa, word-cloud, open-text)");
+        updated.ShouldBe(added);
+    }
+
     // A built-in layout the deck's template leaves out is refused as not the template's, on add and on a change to it,
     // whatever the slots: never an empty error and never slot errors for a layout the template does not have.
     [Test]

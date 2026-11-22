@@ -8,7 +8,10 @@ public static class SlideValidator
 {
     private const string NOT_UTF16 = "text is not valid UTF-16";
 
-    public static SlideValidationResult Validate(string layout, JsonElement slots)
+    public static SlideValidationResult Validate(string layout, JsonElement slots) => Validate(layout, slots, LayoutCatalogue.LayoutNames);
+
+    // The same, for a deck whose template allows only these layouts: a name that is not a built-in is refused naming them.
+    public static SlideValidationResult Validate(string layout, JsonElement slots, IEnumerable<string> knownLayouts)
     {
         var definition = LayoutCatalogue.Find(layout);
         if (definition is not null)
@@ -23,7 +26,7 @@ public static class SlideValidator
         }
         else
         {
-            validation.Fail("layout", $"unknown layout '{EchoText.Of(layout ?? "")}' (known: {string.Join(", ", LayoutCatalogue.LayoutNames)})");
+            validation.Fail("layout", $"unknown layout '{EchoText.Of(layout ?? "")}' (known: {string.Join(", ", knownLayouts)})");
         }
 
         return Result(validation);
