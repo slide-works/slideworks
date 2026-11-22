@@ -61,15 +61,8 @@ const UNUSED_TEST_IDS: Record<string, string> = {
   'open-response-error':
     'SW-8 phone word-cloud and open-text cards; no acceptance journey reads them yet',
   'qa-card-dim': 'drawn on the big screen only; no acceptance page object reads it yet',
-  'templates-page': 'Templates area; the acceptance suite has no Templates page object yet',
   'templates-error': 'Templates area; the acceptance suite has no Templates page object yet',
-  'template-row': 'Templates area; the acceptance suite has no Templates page object yet',
-  'template-name': 'Templates area; the acceptance suite has no Templates page object yet',
-  'new-template-dialog': 'Templates area; the acceptance suite has no Templates page object yet',
-  'template-share-dialog': 'Templates area; the acceptance suite has no Templates page object yet',
   'template-public-page': 'Templates area; the acceptance suite has no Templates page object yet',
-  'layout-review-page': 'Templates area; the acceptance suite has no Templates page object yet',
-  'template-editor': 'Templates area; the acceptance suite has no Templates page object yet',
   'template-editor-error': 'Templates area; the acceptance suite has no Templates page object yet',
   'template-editor-save-error':
     'Templates area; the acceptance suite has no Templates page object yet',
@@ -79,8 +72,10 @@ const UNUSED_TEST_IDS: Record<string, string> = {
     'Templates area; the acceptance suite has no Templates page object yet',
   'template-publish-checklist':
     'Templates area; the acceptance suite has no Templates page object yet',
-  'template-editor-tab-': 'Templates area; the acceptance suite has no Templates page object yet',
-  'template-tab-': 'Templates area; the acceptance suite has no Templates page object yet',
+  'layout-review-gradient-note': 'covered by component tests only; no acceptance journey reads it',
+  'layout-review-error': 'covered by component tests only; no acceptance journey reads it',
+  'template-short-name': 'covered by component tests only; no acceptance journey reads it',
+  'font-to-add-role': 'covered by component tests only; no acceptance journey reads it',
 };
 
 interface TestId {

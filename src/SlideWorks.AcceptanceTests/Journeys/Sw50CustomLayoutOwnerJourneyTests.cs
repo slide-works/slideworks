@@ -68,7 +68,7 @@ public partial class Sw50CustomLayoutOwnerJourneyTests : AcceptanceTest
         JsonDocument.Parse(await refused.TextAsync()).RootElement.GetProperty("error").GetString().ShouldBe("layout_not_approved");
         await templates.GotoAsync();
         await Expect(templates.Row("mine", name)).ToHaveCountAsync(1);
-        await Expect(templates.Row("mine", name).GetByTestId("template-status")).ToHaveTextAsync("Draft");
+        await Expect(TemplatesPage.StatusOf(templates.Row("mine", name))).ToHaveTextAsync("Draft");
 
         var review = new LayoutReviewPage(Page);
         foreach (var layout in NAMES)
@@ -86,7 +86,7 @@ public partial class Sw50CustomLayoutOwnerJourneyTests : AcceptanceTest
         await editor.Publish.ClickAsync();
         await Expect(editor.Status).ToHaveTextAsync("Published · v1");
         await templates.GotoAsync();
-        await Expect(templates.Row("mine", name).GetByTestId("template-status")).ToHaveTextAsync("Published · v1");
+        await Expect(TemplatesPage.StatusOf(templates.Row("mine", name))).ToHaveTextAsync("Published · v1");
 
         await using var agent = await AgentSeed.ConnectAsync(TestUser.Sam);
         var deck = (await AgentSeed.CallAsync(agent, "create_deck", new() { ["title"] = $"Layouts deck {Guid.NewGuid():N}"[..30], ["template"] = id })).GetProperty("deck").GetString().ShouldNotBeNull();

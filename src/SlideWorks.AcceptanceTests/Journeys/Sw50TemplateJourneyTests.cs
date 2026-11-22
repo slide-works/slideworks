@@ -33,7 +33,7 @@ public partial class Sw50TemplateJourneyTests : AcceptanceTest
         await templates.GotoAsync();
         var row = templates.Row("mine", name);
         await Expect(row).ToHaveCountAsync(1);
-        await Expect(row.GetByTestId("template-status")).ToHaveTextAsync("Published · v1");
+        await Expect(TemplatesPage.StatusOf(row)).ToHaveTextAsync("Published · v1");
 
         await using var alexContext = await Browser.NewContextAsync(ContextOptions());
         var alexPage = await alexContext.NewPageAsync();
