@@ -1,3 +1,4 @@
+import { undrawnOf } from './undrawn';
 import { bodyOf, scaleOf, textNodesOf, textStart } from './textRuns';
 
 // The safe area on the 1920 × 1080 canvas, in whole pixels (D9): nothing of the layout's own may
@@ -26,7 +27,7 @@ const finding = (what: string, { left, top, right, bottom }: Box): string =>
 // counts: the browser reports the box, not what is left visible.
 export function overflowOf(frame: HTMLElement): string[] {
   const body = bodyOf(frame);
-  if (body === null) return [];
+  if (body === null) return [undrawnOf(frame, 'maximum') ?? 'The layout was not drawn'];
   const origin = frame.getBoundingClientRect();
   const scale = scaleOf(frame);
   const canvas = (rect: DOMRect): Box => ({

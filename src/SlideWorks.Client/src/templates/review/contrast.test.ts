@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { gradientTextsOf, lowContrastOf } from './contrast';
 
-type Style = Partial<Record<'color' | 'background' | 'backgroundImage' | 'fontSize', string>>;
+type Style = Partial<
+  Record<'color' | 'background' | 'backgroundImage' | 'fontSize' | 'opacity', string>
+>;
 
 // A frame holding the layout's wrapper and one text element, styled inline.
 function frameOf(frameStyle: Style, textStyle: Style, text = 'A line of text', parent: Style = {}) {
@@ -68,14 +70,79 @@ describe('lowContrastOf', () => {
     expect(lowContrastOf(frame)).toHaveLength(1);
   });
 
-  it('skips text on a gradient and counts it', () => {
+  it('fails closed on text on a gradient, and counts it', () => {
     const frame = frameOf(
       { background: 'rgb(255, 255, 255)' },
       { color: 'rgb(250, 250, 250)', fontSize: '24px' },
       'On a gradient',
       { backgroundImage: 'linear-gradient(rgb(0, 0, 0), rgb(255, 255, 255))' },
     );
-    expect(lowContrastOf(frame)).toEqual([]);
+    expect(lowContrastOf(frame)).toEqual([
+      'On a gradient sits on a gradient or image, so its contrast was not checked',
+    ]);
     expect(gradientTextsOf(frame)).toBe(1);
+  });
+
+  it('blends transparent text over the background', () => {
+    const frame = frameOf(
+      { background: 'rgb(255, 255, 255)' },
+      { color: 'rgba(0, 0, 0, 0.05)', fontSize: '24px' },
+      'Ghost text',
+    );
+    expect(lowContrastOf(frame)).toEqual(['Ghost text 1.1:1, needs 4.5']);
+  });
+
+  it('passes text that is half transparent but still dark enough', () => {
+    const frame = frameOf(
+      { background: 'rgb(255, 255, 255)' },
+      { color: 'rgba(0, 0, 0, 0.8)', fontSize: '24px' },
+    );
+    expect(lowContrastOf(frame)).toEqual([]);
+  });
+
+  it('composites a transparent background over the one behind it', () => {
+    // White at 5% over black is near black: white text on it passes, black text does not.
+    const light = frameOf(
+      { background: 'rgb(0, 0, 0)' },
+      { color: 'rgb(255, 255, 255)', fontSize: '24px' },
+      'Light on dark',
+      { background: 'rgba(255, 255, 255, 0.05)' },
+    );
+    expect(lowContrastOf(light)).toEqual([]);
+    document.body.replaceChildren();
+    const dark = frameOf(
+      { background: 'rgb(0, 0, 0)' },
+      { color: 'rgb(0, 0, 0)', fontSize: '24px' },
+      'Dark on dark',
+      { background: 'rgba(255, 255, 255, 0.05)' },
+    );
+    expect(lowContrastOf(dark)).toHaveLength(1);
+  });
+
+  it('fails closed when the backdrop is see-through all the way down', () => {
+    const frame = frameOf(
+      { background: 'rgba(255, 255, 255, 0.5)' },
+      { color: 'rgb(0, 0, 0)', fontSize: '24px' },
+      'Floating',
+    );
+    expect(lowContrastOf(frame)).toEqual([
+      'Floating sits on a see-through background, so its contrast was not checked',
+    ]);
+  });
+
+  it('multiplies the opacity of an ancestor into the text', () => {
+    const frame = frameOf(
+      { background: 'rgb(255, 255, 255)' },
+      { color: 'rgb(0, 0, 0)', fontSize: '24px' },
+      'Faded out',
+      { opacity: '0.05' },
+    );
+    expect(lowContrastOf(frame)).toEqual(['Faded out 1.1:1, needs 4.5']);
+  });
+
+  it('fails closed when the layout was not drawn', () => {
+    const frame = document.createElement('div');
+    document.body.append(frame);
+    expect(lowContrastOf(frame)).toHaveLength(1);
   });
 });

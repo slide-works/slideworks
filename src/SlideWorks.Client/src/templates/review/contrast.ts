@@ -1,5 +1,6 @@
 import { relativeLuminance } from '../editor/contrast';
 import { bodyOf, textNodesOf, textStart } from './textRuns';
+import { undrawnOf } from './undrawn';
 
 // Text of this size on the canvas, in px, needs the lower bar (WCAG large text).
 export const LARGE_TEXT_PX = 28;
@@ -29,22 +30,65 @@ function ratioOf(fore: string, back: string): number | null {
   return a === null || b === null ? null : (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
 
-// What one text run sits on: a solid colour, a gradient (not checked), or nothing known.
-type Ground = { kind: 'solid'; rgb: string } | { kind: 'gradient' } | { kind: 'unknown' };
+// What the layers behind a text run add up to: a colour (premultiplied-free rgb and the alpha the
+// layers cover), a gradient or image (not checked), or something that could not be read.
+type Backdrop =
+  | { kind: 'colour'; rgb: [number, number, number]; alpha: number }
+  | { kind: 'gradient' }
+  | { kind: 'unreadable' };
 
-// The nearest ancestor with a background wins: an image (a gradient) before a colour of the same
-// element; a transparent colour is looked through. The frame is the last to ask.
+type Ground = Backdrop & { opacity: number };
+
+const channelsOf = (rgb: string): [number, number, number] => {
+  const [r, g, b] = (rgb.match(/\d+/g) ?? ['0', '0', '0']).map(Number);
+  return [r, g, b];
+};
+
+const opacityOf = (style: CSSStyleDeclaration): number => {
+  const value = parseFloat(style.opacity);
+  return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 1;
+};
+
+// The backdrop of `from`, composited from the frame down to the element: each element's background
+// (its alpha times the opacity of it and every ancestor from the frame down) is laid over what is
+// behind it. An opaque layer hides everything below it; a gradient or image stands until one
+// does. `opacity` is the product of the opacities from the frame down to `from`, which the text
+// takes as well.
 function groundOf(from: HTMLElement, frame: HTMLElement): Ground {
+  const chain: HTMLElement[] = [];
   for (let element: HTMLElement | null = from; element !== null; element = element.parentElement) {
-    const style = getComputedStyle(element);
-    if (style.backgroundImage !== '' && style.backgroundImage !== 'none') {
-      return { kind: 'gradient' };
-    }
-    const colour = colourOf(style.backgroundColor);
-    if (colour !== null && colour.alpha > 0) return { kind: 'solid', rgb: colour.rgb };
+    chain.unshift(element);
     if (element === frame) break;
   }
-  return { kind: 'unknown' };
+  let backdrop: Backdrop = { kind: 'colour', rgb: [0, 0, 0], alpha: 0 };
+  let opacity = 1;
+  for (const element of chain) {
+    const style = getComputedStyle(element);
+    opacity *= opacityOf(style);
+    const hasImage = style.backgroundImage !== '' && style.backgroundImage !== 'none';
+    const layer = colourOf(style.backgroundColor);
+    if (layer === null) {
+      backdrop = { kind: 'unreadable' };
+      continue;
+    }
+    const alpha = layer.alpha * opacity;
+    if (hasImage) {
+      backdrop = { kind: 'gradient' };
+      continue;
+    }
+    if (alpha <= 0) continue;
+    if (backdrop.kind !== 'colour') {
+      // A solid layer hides what is under it; a translucent one over a gradient leaves it unknown.
+      if (alpha >= 1) backdrop = { kind: 'colour', rgb: channelsOf(layer.rgb), alpha: 1 };
+      continue;
+    }
+    const fore = channelsOf(layer.rgb);
+    const { rgb: behind, alpha: behindAlpha } = backdrop;
+    const total = alpha + behindAlpha * (1 - alpha);
+    const mix = (i: number) => (fore[i] * alpha + behindAlpha * behind[i] * (1 - alpha)) / total;
+    backdrop = { kind: 'colour', rgb: [mix(0), mix(1), mix(2)], alpha: total };
+  }
+  return { ...backdrop, opacity };
 }
 
 type Run = { node: Text; element: HTMLElement; ground: Ground };
@@ -58,24 +102,52 @@ function runsOf(frame: HTMLElement): Run[] {
   });
 }
 
+const FULLY_COVERED = 0.999;
+
 // The text under the layout's own wrapper whose colour is too close to what it sits on: "<text
-// start> 3.2:1, needs 4.5", 4.5 under 28 px on the canvas and 3.0 from there. The text's computed
-// colour is compared with the solid background of its nearest ancestor that has one, the frame's
-// when none does. Text on a gradient is not checked (see gradientTextsOf). The slide may be scaled:
-// computed sizes are the canvas's.
+// start> 3.2:1, needs 4.5", 4.5 under 28 px on the canvas and 3.0 from there. Colours are the ones
+// a person sees: the text's alpha, times the opacity of it and its ancestors, is blended over the
+// backdrop composited from the backgrounds of its ancestors. What cannot be worked out (a gradient
+// or image behind the text, a colour this cannot read, a backdrop that is not fully covered) is a
+// finding too, never a pass. The slide may be scaled: computed sizes are the canvas's.
 export function lowContrastOf(frame: HTMLElement): string[] {
+  const body = bodyOf(frame);
+  if (body === null) return [undrawnOf(frame, 'sample') ?? 'The layout was not drawn'];
   const found: string[] = [];
   for (const { node, element, ground } of runsOf(frame)) {
-    if (ground.kind !== 'solid') continue;
+    const start = textStart(node.textContent ?? '');
     const style = getComputedStyle(element);
     const fore = colourOf(style.color);
-    if (fore === null) continue;
+    if (fore === null || ground.kind === 'unreadable') {
+      found.push(`${start} has a colour that could not be read, so its contrast was not checked`);
+      continue;
+    }
+    if (ground.kind === 'gradient') {
+      found.push(`${start} sits on a gradient or image, so its contrast was not checked`);
+      continue;
+    }
+    if (ground.alpha < FULLY_COVERED) {
+      found.push(`${start} sits on a see-through background, so its contrast was not checked`);
+      continue;
+    }
+    const alpha = fore.alpha * ground.opacity;
+    const text = channelsOf(fore.rgb);
+    const blended = text.map((channel, i) =>
+      Math.round(channel * alpha + ground.rgb[i] * (1 - alpha)),
+    );
     const needed =
       parseFloat(style.fontSize) >= LARGE_TEXT_PX ? LARGE_TEXT_NEEDS : SMALL_TEXT_NEEDS;
-    const ratio = ratioOf(fore.rgb, ground.rgb);
-    if (ratio === null || ratio >= needed) continue;
+    const ratio = ratioOf(
+      `rgb(${blended.join(' ')})`,
+      `rgb(${ground.rgb.map(Math.round).join(' ')})`,
+    );
+    if (ratio === null) {
+      found.push(`${start} has a colour that could not be read, so its contrast was not checked`);
+      continue;
+    }
+    if (ratio >= needed) continue;
     const shown = (Math.floor(ratio * 10 + 1e-9) / 10).toFixed(1);
-    found.push(`${textStart(node.textContent ?? '')} ${shown}:1, needs ${needed.toFixed(1)}`);
+    found.push(`${start} ${shown}:1, needs ${needed.toFixed(1)}`);
   }
   return found;
 }

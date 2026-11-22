@@ -205,3 +205,56 @@ test('a failed remove says so and keeps the layout', async ({ mount, page }) => 
   await expect(tab.getByText('Could not remove bar-chart. Try again.')).toBeVisible();
   await expect(tab.getByTestId('custom-layout-row')).toHaveCount(1);
 });
+
+// Saves that answer with the manifest they were sent, as the server does.
+async function echoSaves(page: Page) {
+  const sent: TemplateManifest['customLayouts'][] = [];
+  await page.route(new RegExp(`/api/templates/${id}$`), (route) => {
+    const request = route.request();
+    if (request.method() !== 'PUT') return route.fallback();
+    const { manifest, revision } = request.postDataJSON() as {
+      manifest: TemplateManifest;
+      revision: number;
+    };
+    sent.push(manifest.customLayouts);
+    return route.fulfill({
+      json: { ...templateEditor, revision: revision + 1, manifest },
+    });
+  });
+  return sent;
+}
+
+const names = (layouts: TemplateManifest['customLayouts']) => layouts.map(({ name }) => name);
+const two = [
+  { name: 'bar-chart', file: layoutReview.asset },
+  { name: 'funnel', file: 'f2' },
+];
+
+test('removing two layouts at once removes both', async ({ mount, page }) => {
+  const { tab } = await open(page, mount, { get: draftWith(two) });
+  const sent = await echoSaves(page);
+
+  // Both clicks land in one tick, before the first save has answered.
+  await tab
+    .getByRole('button', { name: /^Remove layout / })
+    .evaluateAll((buttons) => buttons.forEach((button) => (button as HTMLElement).click()));
+
+  await expect(tab.getByText('No custom layouts yet.')).toBeVisible();
+  expect(sent.map(names)).toEqual([['funnel'], []]);
+});
+
+test('an upload that overlaps a removal keeps both changes', async ({ mount, page }) => {
+  const { tab, picker } = await open(page, mount, { get: draftWith(two) });
+  const sent = await echoSaves(page);
+
+  const uploading = picker.setInputFiles(
+    files(JSON.stringify({ name: 'donut', surface: 'light', slots: {} })),
+  );
+  await tab.getByRole('button', { name: 'Remove layout funnel' }).click();
+  await uploading;
+
+  await expect(tab.getByTestId('custom-layout-row')).toHaveCount(2);
+  await expect(tab.locator('[data-layout-name="funnel"]')).toHaveCount(0);
+  // Whichever saved first, the last list holds the upload and not the removed layout.
+  expect(names(sent[sent.length - 1]).sort()).toEqual(['bar-chart', 'donut']);
+});

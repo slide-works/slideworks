@@ -11,6 +11,7 @@ import { LayoutUploader } from './editor/layouts/LayoutUploader';
 import { lookFromManifest } from './editor/preview/lookFromManifest';
 import { gradientTextsOf, lowContrastOf } from './review/contrast';
 import { overflowOf, SAFE_AREA } from './review/safeArea';
+import { undrawnOf } from './review/undrawn';
 import { CANVAS_WIDTH } from './review/textRuns';
 import { REVIEW_TEST_IDS, reviewRenderTestId, type ReviewRender } from './review/testIds';
 import { TEMPLATES_TEST_IDS } from './testIds';
@@ -28,7 +29,14 @@ type Measure = {
 
 // What the browser found in this layout's renders: how far the maximum leaves the safe area, the
 // text that is too faint on light and on dark, and how many texts sit on a gradient.
-type Measured = { overflow: string[]; light: string[]; dark: string[]; gradients: number };
+// A render that was missing or not drawn is a finding too (`undrawn`): it can never read as a pass.
+type Measured = {
+  overflow: string[];
+  light: string[];
+  dark: string[];
+  gradients: number;
+  undrawn: string[];
+};
 
 const FRAME = '[data-testid="slide-frame"]';
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -108,19 +116,31 @@ function Review({
       if (!active) return;
       const frameOf = (render: ReviewRender) =>
         frames.current[render]?.querySelector<HTMLElement>(FRAME) ?? null;
+      const needDark = ofSurface(review);
       const maximum = frameOf('maximum');
       const sample = frameOf('sample');
-      const dark = ofSurface(review) ? frameOf('dark') : null;
+      const dark = needDark ? frameOf('dark') : null;
+      const undrawn: string[] = [];
+      // A render that cannot be measured is reported, and measured as nothing.
+      const drawn = (frame: HTMLElement | null, what: string): HTMLElement | null => {
+        const why = undrawnOf(frame, what);
+        if (why !== null) undrawn.push(why);
+        return why === null ? frame : null;
+      };
+      const maximumFrame = drawn(maximum, 'maximum');
+      const sampleFrame = drawn(sample, 'sample');
+      const darkFrame = needDark ? drawn(dark, 'dark') : null;
       setMeasured({
         asset: forAsset,
         found: {
-          overflow: maximum === null ? [] : measureOverflow(maximum),
-          light: sample === null ? [] : measureContrast(sample),
-          dark: dark === null ? [] : measureContrast(dark),
-          gradients: [sample, dark].reduce(
+          overflow: maximumFrame === null ? [] : measureOverflow(maximumFrame),
+          light: sampleFrame === null ? [] : measureContrast(sampleFrame),
+          dark: darkFrame === null ? [] : measureContrast(darkFrame),
+          gradients: [sampleFrame, darkFrame].reduce(
             (total, frame) => total + (frame === null ? 0 : gradientTextsOf(frame)),
             0,
           ),
+          undrawn,
         },
       });
     })();
@@ -362,6 +382,11 @@ const plural = (count: number, one: string, many: string) => (count === 1 ? one 
 function reasonsOf(found: Measured, dark: boolean): string[] {
   const contrast = found.light.length + (dark ? found.dark.length : 0);
   return [
+    ...(found.undrawn.length === 0
+      ? []
+      : [
+          `${found.undrawn.length} ${plural(found.undrawn.length, 'render was', 'renders were')} not measured`,
+        ]),
     ...(found.overflow.length === 0
       ? []
       : [
@@ -377,6 +402,7 @@ function Reasons({ found, dark }: { found: Measured; dark: boolean }) {
   const reasons = reasonsOf(found, dark);
   if (reasons.length === 0) return null;
   const lists: [string, string[]][] = [
+    ['Not measured', found.undrawn],
     ['Outside the safe area', found.overflow],
     ['Too faint on light', found.light],
     ...(dark ? ([['Too faint on dark', found.dark]] as [string, string[]][]) : []),
@@ -421,6 +447,7 @@ function Checks({
     { label: 'Allowed tags', state: 'pass' },
     { label: 'Tokens only', state: 'pass' },
     { label: 'Slots declared', state: 'pass' },
+    { label: 'Renders drawn', state: measuredState(found?.undrawn.length ?? 0) },
     { label: 'Safe area', state: measuredState(found?.overflow.length ?? 0) },
     { label: 'Contrast on light', state: measuredState(found?.light.length ?? 0) },
     ...(dark ? [{ label: 'Contrast on dark', state: measuredState(found?.dark.length ?? 0) }] : []),

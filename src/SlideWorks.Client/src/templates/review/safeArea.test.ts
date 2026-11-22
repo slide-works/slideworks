@@ -66,6 +66,12 @@ describe('overflowOf', () => {
     expect(overflowOf(frame)).toEqual(['wide at x 120–2100, y 200–300']);
   });
 
+  it('fails closed when the layout was not drawn', () => {
+    const frame = boxed(document.createElement('div'), rect(0, 0, 1920, 1080));
+    document.body.append(frame);
+    expect(overflowOf(frame)).toHaveLength(1);
+  });
+
   it('ignores the footer', () => {
     const { frame, body, footer } = frameOf();
     boxed(footer, rect(0, 1030, 1920, 1080));

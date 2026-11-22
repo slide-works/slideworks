@@ -104,6 +104,49 @@ test('approve sends the asset and the measured lists', async ({ mount, page }) =
   ]);
 });
 
+// The approval body is the two measured lists, and the gate keeps any finding out of it: with a
+// finding on either surface Approve is off and a forced click sends nothing, so findings never
+// reach the server through a path that skips the gate.
+test('findings keep approval off and nothing is sent', async ({ mount, page }) => {
+  const requests = await stub(page, { layoutReview: { json: withSurface('either') } });
+  await mount(
+    <StandInReview
+      overflow={['bar at x 200–1850, y 300–400']}
+      contrast={['Quiet 3.2:1, needs 4.5']}
+    />,
+    route,
+  );
+
+  await expect(page.getByText('Too faint on dark')).toBeVisible();
+  await expect(approve(page)).toBeDisabled();
+  await approve(page)
+    .click({ force: true, timeout: 1000 })
+    .catch(() => undefined);
+  expect(requests.filter(({ call }) => call === 'approveLayout')).toEqual([]);
+});
+
+test('a render that shows the error state cannot be approved', async ({ mount, page }) => {
+  const broken = { ...fitting, sample: { ...fitting.sample, headline: { not: 'text' } } };
+  await stub(page, { layoutReview: { json: broken } });
+  await mount(<AppRoutes />, route);
+
+  await expect(page.getByTestId('custom-layout-error').first()).toBeVisible();
+  await expect(page.getByText(/render shows the layout's error state/)).toBeVisible();
+  await expect(page.getByText(/renders? (was|were) not measured/)).toBeVisible();
+  await expect(page.getByTestId(REVIEW_TEST_IDS.checks)).toContainText('Renders drawnFailed');
+  await expect(approve(page)).toBeDisabled();
+});
+
+test('a layout the template does not hold cannot be approved', async ({ mount, page }) => {
+  const missing = { ...fitting, layout: { ...fitting.layout, name: 'other' } };
+  await stub(page, { layoutReview: { json: missing } });
+  await mount(<AppRoutes />, route);
+
+  await expect(page.getByTestId('unknown-layout').first()).toBeVisible();
+  await expect(page.getByText(/renders were not measured/)).toBeVisible();
+  await expect(approve(page)).toBeDisabled();
+});
+
 test('approve turns the status to Approved and moves focus to it', async ({ mount, page }) => {
   const requests = await stub(page, {
     layoutReview: [{ json: layoutReview }, { json: { ...layoutReview, approved: true } }],

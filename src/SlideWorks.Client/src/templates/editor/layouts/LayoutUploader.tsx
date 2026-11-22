@@ -32,6 +32,11 @@ export type LayoutUploaderProps = {
   replacing?: string;
   // The files were accepted and the draft lists the layout: its name.
   onAccepted(name: string): void;
+  // Saves the layouts list built from the newest one when the save runs, so a save that overlaps
+  // another never builds from a list that is out of date. Left out, the draft's list is used.
+  save?(
+    update: (kept: TemplateManifest['customLayouts']) => TemplateManifest['customLayouts'],
+  ): Promise<ChangeOutcome>;
   buttonRef?: Ref<HTMLButtonElement>;
 };
 
@@ -45,6 +50,7 @@ export function LayoutUploader({
   change,
   replacing,
   onAccepted,
+  save,
   buttonRef,
 }: LayoutUploaderProps) {
   const id = useId();
@@ -125,12 +131,14 @@ export function LayoutUploader({
       }
       return;
     }
-    const kept = draft.manifest.customLayouts;
     const entry = { name, file: outcome.asset.assetId };
-    const customLayouts = kept.some((layout) => layout.name === name)
-      ? kept.map((layout) => (layout.name === name ? entry : layout))
-      : [...kept, entry];
-    const saved = await change({ customLayouts });
+    const update = (kept: TemplateManifest['customLayouts']) =>
+      kept.some((layout) => layout.name === name)
+        ? kept.map((layout) => (layout.name === name ? entry : layout))
+        : [...kept, entry];
+    const saved = await (
+      save ?? ((build) => change({ customLayouts: build(draft.manifest.customLayouts) }))
+    )(update);
     if (!saved.ok) {
       setMessage(saved.message);
       return;

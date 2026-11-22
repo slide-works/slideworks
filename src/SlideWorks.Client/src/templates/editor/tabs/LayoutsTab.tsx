@@ -1,8 +1,10 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { templatesApi } from '../../api';
 import { editorTabTestId } from '../../testIds';
 import { LayoutUploader } from '../layouts/LayoutUploader';
+import type { TemplateManifest } from '../../types';
+import type { ChangeOutcome } from '../../useTemplateDraft';
 import type { EditorTabProps } from '../tabProps';
 
 type Status = 'checking' | 'Needs review' | 'Approved' | 'unknown';
@@ -97,11 +99,31 @@ export function LayoutsTab({ draft, change }: EditorTabProps) {
     }
   }, [focusLink, layouts]);
 
+  // Removals and uploads change the one list, so they save one after another, each built from the
+  // list the one before left (not from this render's): two quick removals both land, and an upload
+  // never brings a removed layout back.
+  const newest = useRef(layouts);
+  const tail = useRef<Promise<unknown>>(Promise.resolve());
+  useEffect(() => {
+    newest.current = layouts;
+  }, [layouts]);
+  const save = useCallback(
+    (update: (kept: TemplateManifest['customLayouts']) => TemplateManifest['customLayouts']) => {
+      const run = tail.current.then(async (): Promise<ChangeOutcome> => {
+        const next = update(newest.current);
+        const outcome = await change({ customLayouts: next });
+        if (outcome.ok) newest.current = next;
+        return outcome;
+      });
+      tail.current = run.catch(() => undefined);
+      return run;
+    },
+    [change],
+  );
+
   async function remove(name: string) {
     setRemoveError(null);
-    const outcome = await change({
-      customLayouts: layouts.filter((layout) => layout.name !== name),
-    });
+    const outcome = await save((kept) => kept.filter((layout) => layout.name !== name));
     if (outcome.ok) upload.current?.focus();
     else setRemoveError(`Could not remove ${name}. Try again.`);
   }
@@ -141,7 +163,13 @@ export function LayoutsTab({ draft, change }: EditorTabProps) {
           </p>
         )}
       </div>
-      <LayoutUploader draft={draft} change={change} buttonRef={upload} onAccepted={setFocusLink} />
+      <LayoutUploader
+        draft={draft}
+        change={change}
+        save={save}
+        buttonRef={upload}
+        onAccepted={setFocusLink}
+      />
     </section>
   );
 }
