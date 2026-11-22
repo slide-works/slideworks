@@ -14,7 +14,8 @@ public static class TemplateEditorViews
         asset.FileName,
         asset.ContentType,
         (int)asset.Bytes,
-        Json(asset.MetaJson ?? "{}"),
+        // A compiled layout is never sent to the editor: the review route sends it, to the owner only.
+        Json(asset.Kind == TemplateAssetKind.Layout ? "{}" : asset.MetaJson ?? "{}"),
         asset.RightsConfirmed,
         $"/api/templates/{asset.TemplateId}/assets/{asset.Id}");
 

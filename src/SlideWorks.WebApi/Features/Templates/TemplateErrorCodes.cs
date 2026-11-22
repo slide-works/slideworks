@@ -13,6 +13,11 @@ public static class TemplateErrorCodes
     public const string NOT_AN_IMAGE = "not_an_image";
     public const string PALETTE_CONTRAST = "palette_contrast";
     public const string LAYOUT_NOT_APPROVED = "layout_not_approved";
+    public const string LAYOUT_NOT_FOUND = "layout_not_found";
+    public const string LAYOUT_CHANGED = "layout_changed";
+    public const string LAYOUT_OVERFLOWS = "layout_overflows";
+    public const string LAYOUT_LOW_CONTRAST = "layout_low_contrast";
+    public const string LAYOUT_REFUSED = "layout_refused";
     public const string TOO_MANY_FONTS = "too_many_fonts";
     public const string TOO_MANY_LAYOUTS = "too_many_layouts";
     public const string TOO_MANY_EXTRAS = "too_many_extras";

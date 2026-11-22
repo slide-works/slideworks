@@ -26,5 +26,9 @@
   "not_published": "This template has not been published yet.",
   "template_storage_full": "This template has stored too many files. Start a new template, or ask for unused files to be removed.",
   "too_many_uploads": "Too many uploads are in progress for this template. Finish or wait for them to expire.",
-  "template_archived": "This template is archived, so its draft can't be changed."
+  "template_archived": "This template is archived, so its draft can't be changed.",
+  "layout_not_found": "This layout was not found.",
+  "layout_changed": "This layout has changed since it was reviewed. Review it again.",
+  "layout_overflows": "This layout's content does not fit inside the slide.",
+  "layout_low_contrast": "This layout's text does not have enough contrast with what is behind it."
 }
