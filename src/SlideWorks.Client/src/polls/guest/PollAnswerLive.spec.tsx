@@ -21,6 +21,12 @@ async function guestOnPoll(page: Page, activity: PollActivity, poll: GuestPollVi
   return { hub, api, state };
 }
 
+// The reads of the poll a guest page makes, each named so a new read source moves one obvious number (D5).
+const FIRST_READ = 1; // the read on load
+const READ_AFTER_WATCH = 1; // WatchPoll brings no tally, so one more once the watch is in
+const READ_AFTER_RECONNECT = 1; // the join after a dropped connection reads the poll again
+const READ_AFTER_PHASE_CHANGE = 1; // a pushed activity whose phase changed
+
 const afterAnswer = pollActivity('open', { pick: 'one', max: null, results: 'afterAnswer' });
 const answeredView = (activity: PollActivity): GuestPollView => ({
   ...guestPoll('notAnswered'),
@@ -41,7 +47,7 @@ test('reads the poll on load, watches its results when the guest has answered an
   await expect.poll(() => hub.watchingPoll).toBe(true);
   expect(hub.pollWatches).toEqual(['482913']);
   // One read on load, and one more once the watch is in, since WatchPoll brings no tally (D5).
-  await expect.poll(() => api.gets).toBe(2);
+  await expect.poll(() => api.gets).toBe(FIRST_READ + READ_AFTER_WATCH);
 });
 
 test('after a reconnect it watches the results again and reads the poll again', async ({
@@ -51,14 +57,14 @@ test('after a reconnect it watches the results again and reads the poll again', 
   const { hub, api } = await guestOnPoll(page, afterAnswer, answeredView(afterAnswer));
   await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
   await expect.poll(() => hub.watchingPoll).toBe(true);
-  await expect.poll(() => api.gets).toBe(2);
+  await expect.poll(() => api.gets).toBe(FIRST_READ + READ_AFTER_WATCH);
 
   hub.drop();
 
   await expect.poll(() => hub.audienceJoins.length).toBe(2);
   await expect.poll(() => hub.pollWatches).toEqual(['482913', '482913']);
   await expect.poll(() => hub.watchingPoll).toBe(true);
-  await expect.poll(() => api.gets).toBe(3);
+  await expect.poll(() => api.gets).toBe(FIRST_READ + READ_AFTER_WATCH + READ_AFTER_RECONNECT);
   await expect(page.getByTestId(GUEST_TEST_IDS.chip)).toHaveText('Live');
 });
 
@@ -72,7 +78,7 @@ test('does not watch before the guest has answered', async ({ mount, page }) => 
   await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
 
   await expect(page.getByTestId(POLL_CARD_TEST_IDS.card)).toBeVisible();
-  await expect.poll(() => api.gets).toBe(1);
+  await expect.poll(() => api.gets).toBe(FIRST_READ);
   expect(hub.pollWatches).toEqual([]);
 });
 
@@ -86,15 +92,15 @@ test('reads again when the phase changes, and not when the same poll comes again
     activity: live,
   });
   await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
-  await expect.poll(() => api.gets).toBe(1);
+  await expect.poll(() => api.gets).toBe(FIRST_READ);
 
   hub.pushActivity({ ...live });
   const closed: PollActivity = { ...live, phase: 'closed' };
   api.setView({ ...api.view, activity: closed });
   hub.pushActivity(closed);
 
-  await expect.poll(() => api.gets).toBe(2);
-  expect(api.gets).toBe(2);
+  await expect.poll(() => api.gets).toBe(FIRST_READ + READ_AFTER_PHASE_CHANGE);
+  expect(api.gets).toBe(FIRST_READ + READ_AFTER_PHASE_CHANGE);
 });
 
 test('a read the server refuses shows a plain sentence on the card, never its code', async ({
