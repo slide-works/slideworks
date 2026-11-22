@@ -169,23 +169,33 @@ export function prefixOf(layout: CustomLayoutView): string | null {
     : null;
 }
 
-// Fail-closed check of one class: it starts with the layout's prefix and then holds one plain class
-// name, so a value cannot smuggle a second class in.
-export function isOwnClass(layout: CustomLayoutView, value: unknown): boolean {
-  if (typeof value !== 'string' || !NAME.test(layout.name)) return false;
-  const prefix = prefixOf(layout);
-  let rest: string;
-  if (prefix !== null) {
-    if (!value.startsWith(prefix)) return false;
-    rest = value.slice(prefix.length);
-  } else {
-    const head = `cl-`;
-    const tail = `-${layout.name}__`;
-    if (!value.startsWith(head) || !SCOPE.test(value.slice(3, 11))) return false;
-    if (!value.slice(11).startsWith(tail)) return false;
-    rest = value.slice(11 + tail.length);
+// Whether a value is a slot type the contract allows, so no later lookup meets a malformed schema.
+function isScalarType(type: unknown): boolean {
+  if (!isRecord(type)) return false;
+  const isNumber = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
+  switch (type.type) {
+    case 'text':
+      return isNumber(type.max);
+    case 'number':
+      return isNumber(type.min) && isNumber(type.max);
+    case 'enum':
+      return Array.isArray(type.values) && type.values.every((v) => typeof v === 'string');
+    default:
+      return false;
   }
-  return CLASS_REST.test(rest);
+}
+
+function isListType(type: unknown, depth: number): boolean {
+  if (!isRecord(type) || type.type !== 'list' || depth > 3) return false;
+  const of = type.of;
+  if (!isRecord(of)) return false;
+  if (typeof of.type === 'string') return isScalarType(of);
+  return Object.values(of).every((f) => isScalarType(f) || isListType(f, depth + 1));
+}
+
+function isSlotType(type: unknown): boolean {
+  if (!isRecord(type) || typeof type.type !== 'string') return false;
+  return isScalarType(type) || isListType(type, 0) || type.type === 'image' || isBlock(type.type);
 }
 
 // The slot types of the items of a list.
@@ -266,6 +276,7 @@ export function checkLayout(layout: CustomLayoutView): boolean {
   if (!NAME.test(layout.name) || !isRecord(tree)) return false;
   const prefix = layoutPrefix(layout);
   if (prefix === null) return false;
+  if (!isRecord(layout.slots) || !Object.values(layout.slots).every(isSlotType)) return false;
   return (
     typeof layout.css === 'string' &&
     isRecord(layout.slots) &&

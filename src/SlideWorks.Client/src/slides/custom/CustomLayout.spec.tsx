@@ -366,6 +366,26 @@ test.describe('hostile input', () => {
     }
   });
 
+  test('a malformed list schema draws the error', async ({ mount, page }) => {
+    const root = [
+      node({
+        each: 'g',
+        classes: [`${P}row`],
+        children: [node({ classes: [`${P}label`], slot: 'name' })],
+      }),
+    ];
+    const list = (of: unknown) =>
+      ({ g: { type: 'list', min: 0, max: 3, of } }) as unknown as CustomLayoutView['slots'];
+    const slots = { g: [{ name: 'a' }] };
+    const good = layoutOf(root, '', list({ name: { type: 'text', max: 9 } }));
+    const component = await open(mount, page, { layouts: [good], slots });
+    await expect(page.locator(`.${P}label`)).toHaveText('a');
+    for (const of of [null, 'x', [], { name: { type: 'weird' } }, { name: null }]) {
+      await component.update(slideOf({ layouts: [layoutOf(root, '', list(of))], slots }));
+      await expect(page.getByTestId('custom-layout-error')).toBeVisible();
+    }
+  });
+
   test('a class from another scope draws the error, with and without tree.scope', async ({
     mount,
     page,

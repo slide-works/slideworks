@@ -3,7 +3,6 @@ import { customLayoutSample } from '../../test-support/fixtures/customLayout';
 import {
   checkLayout,
   classNameOf,
-  isOwnClass,
   isPresent,
   lastStepOf,
   prefixOf,
@@ -127,25 +126,11 @@ describe('visibleAt', () => {
   });
 });
 
-describe('prefixOf and isOwnClass', () => {
+describe('prefixOf', () => {
   it('names the prefix from the scope and the layout name', () => {
     expect(prefixOf(view)).toBe(P);
     expect(prefixOf({ ...view, tree: { version: 1, root: [] } })).toBeNull();
     expect(prefixOf({ ...view, name: 'Bad Name' })).toBeNull();
-  });
-  it('accepts only one plain class under the prefix', () => {
-    expect(isOwnClass(view, `${P}bar`)).toBe(true);
-    expect(isOwnClass(view, `${P}bar other`)).toBe(false);
-    expect(isOwnClass(view, `${P}`)).toBe(false);
-    expect(isOwnClass(view, 'bar')).toBe(false);
-    expect(isOwnClass(view, 'cl-ffffffff-bar-chart__bar')).toBe(false);
-    expect(isOwnClass(view, 3)).toBe(false);
-  });
-  it('without a scope accepts any 8 hex characters before the name', () => {
-    const bare = { ...view, tree: { version: 1 as const, root: [] } };
-    expect(isOwnClass(bare, 'cl-ffffffff-bar-chart__bar')).toBe(true);
-    expect(isOwnClass(bare, 'cl-xyz-bar-chart__bar')).toBe(false);
-    expect(isOwnClass(bare, 'cl-ffffffff-other__bar')).toBe(false);
   });
 });
 
@@ -186,6 +171,25 @@ describe('one prefix per layout', () => {
     expect(checkLayout(withRoot(root, { tree: bad }))).toBe(false);
     const wrongName = [node({ classes: ['cl-0a1b2c3d-other__a'] })];
     expect(checkLayout(withRoot(wrongName, { tree: { version: 1, root: wrongName } }))).toBe(false);
+  });
+});
+
+describe('slot schemas', () => {
+  const bad: unknown[] = [
+    { type: 'list', min: 0, max: 3, of: null },
+    { type: 'list', min: 0, max: 3, of: 'x' },
+    { type: 'list', min: 0, max: 3, of: [] },
+    { type: 'list', min: 0, max: 3, of: { a: { type: 'weird' } } },
+    { type: 'list', min: 0, max: 3, of: { a: null } },
+    { type: 'weird' },
+    null,
+    { type: 'enum', values: 'ab' },
+  ];
+  it('refuses a layout whose slot schema is malformed', () => {
+    for (const slot of bad) {
+      const slots = { ...view.slots, extra: slot } as unknown as CustomLayoutView['slots'];
+      expect(checkLayout({ ...view, slots })).toBe(false);
+    }
   });
 });
 
