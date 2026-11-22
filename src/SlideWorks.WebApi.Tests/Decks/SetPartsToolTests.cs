@@ -95,8 +95,9 @@ public class SetPartsToolTests : ApiTestFixture
         result.GetProperty("structuredContent").GetProperty("parts").GetArrayLength().ShouldBe(2);
     }
 
-    // add_slides checks part numbers before its write transaction; set_parts commits in that gap, and the write must
-    // check again against the deck's current parts and refuse, leaving no slide on a removed part.
+    // add_slides reads the deck (and so its parts) before its write transaction; set_parts commits after that read, so
+    // add_slides' early check sees stale parts. The write must check again against the deck's current parts and refuse,
+    // leaving no slide on a removed part.
     [Test]
     public async Task AddSlides_WhenSetPartsShrinksTheListBeforeTheWrite_ShouldRefuseAndWriteNothing()
     {

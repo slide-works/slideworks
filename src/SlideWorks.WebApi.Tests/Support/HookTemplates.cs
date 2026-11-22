@@ -7,8 +7,8 @@ using SlideWorks.WebApi.Infrastructure.Identity;
 namespace SlideWorks.WebApi.Tests.Support;
 
 // ITemplates that runs a test's hook once the next time a deck's template is resolved, then answers as FakeTemplates does.
-// add_slides resolves it after its pre-checks' deck read and before its write transaction, so a test can commit another
-// call in that gap. Arm it with Arm; the hook runs once.
+// add_slides resolves it after reading the deck and before checking parts and opening its write transaction, so a test
+// can commit another call after that read and make the early check stale. Arm it with Arm; the hook runs once.
 public sealed class HookTemplates : ITemplates
 {
     private readonly FakeTemplates _inner = new();
