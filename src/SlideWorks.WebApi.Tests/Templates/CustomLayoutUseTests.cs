@@ -140,7 +140,9 @@ public class CustomLayoutUseTests : ApiTestFixture
         added.GetProperty("warnings").GetArrayLength().ShouldBe(0);
         error.ShouldContain($"{DIAL}.headline");
         var listed = await SlideCalls.OkAsync(agent, "list_layouts", new { deck });
-        listed.GetProperty("layouts").EnumerateArray().Count(r => r.GetProperty("name").GetString() == DIAL && r.GetProperty("custom").GetBoolean()).ShouldBe(1);
+        var rows = listed.GetProperty("layouts").EnumerateArray().Where(r => r.GetProperty("name").GetString() == DIAL).ToList();
+        rows.ShouldHaveSingleItem().GetProperty("custom").GetBoolean().ShouldBeTrue();
+        listed.GetRawText().Split($"\"name\":\"{DIAL}\"").Length.ShouldBe(2, "the name appears once in the whole result, compact or not");
     }
 
     [Test]
