@@ -20,7 +20,7 @@ Every setting is an environment variable with the `SLIDEWORKS_` prefix, except `
 | `SLIDEWORKS_GOOGLE_CLIENT_SECRET` | For sign-in | The Google OAuth client's secret. Sign-in is on only when both Google values are set. With neither set, the server still runs, `/signin` says sign-in isn't set up, and `/signin/google` answers 503. With only one set, the server logs a warning and sign-in stays off. |
 | `SLIDEWORKS_ADMIN_EMAIL` | Recommended | The Google email of the first admin. When that person signs in and no admin exists yet, they become an approved admin. It's honoured only while no admin exists, so it's harmless to leave it set. If it's unset and there is no admin, the server logs a warning at startup, because nobody can approve sign-ups. |
 | `SLIDEWORKS_DB_PATH` | No | The SQLite file. Default `/data/slide-works.db`. The session-cookie keys are kept in `slide-works-keys/` next to it, so a restart or a new image doesn't sign everyone out. |
-| `SLIDEWORKS_DATA_PATH` | No | The data folder for uploaded images. Default `/data`. Images are stored under `images/<deck id>/`. |
+| `SLIDEWORKS_DATA_PATH` | No | The data folder for uploaded files. Default `/data`. Deck images are stored under `images/<deck id>/` and uploaded templates' files under `templates/<template id>/` (see [Uploaded templates](#uploaded-templates)). |
 | `SLIDEWORKS_SEQ_URL` | No | Also send logs to this Seq server. Without it, logs go to the console only (`docker logs`). |
 | `SLIDEWORKS_SEQ_API_KEY` | No | The Seq API key, when your Seq server needs one. |
 | `SLIDEWORKS_TRUSTED_PROXIES` | Behind a proxy | The proxy addresses whose `X-Forwarded-For` header SlideWorks trusts for the client IP, as a comma-separated list of CIDRs such as `172.18.0.0/16, fd00::/8`. A single address, such as `10.0.0.5`, means just that address. Unset by default, which trusts no proxy. The server refuses to start if an entry isn't a CIDR or an address. See [Behind a TLS proxy](#behind-a-tls-proxy). |
@@ -68,17 +68,50 @@ Migrations run on startup, so a new image upgrades the database itself.
 
 ### Storage
 
-- The database, the cookie keys and the images all live on the `/data` volume. Back it up as a unit. The runtime image has no `sqlite3`, so take a consistent copy while the app runs from a throwaway container that mounts the volume and a host folder. Compose prefixes the volume name with the project name, which is the folder name, so from `src/` the volume is `src_slide-works-data` (`docker volume ls` shows it). From `src/`:
+- The database, the cookie keys, the images and the uploaded templates' files all live on the `/data` volume. Back it up as a unit. The runtime image has no `sqlite3`, so take a consistent copy while the app runs from a throwaway container that mounts the volume and a host folder. Compose prefixes the volume name with the project name, which is the folder name, so from `src/` the volume is `src_slide-works-data` (`docker volume ls` shows it). From `src/`:
 
   ```bash
   mkdir -p backup
   docker run --rm -v src_slide-works-data:/data -v "$PWD/backup":/backup alpine sh -c \
-    "apk add --no-cache sqlite >/dev/null && sqlite3 /data/slide-works.db '.backup /backup/slide-works.db' && cp -r /data/slide-works-keys /backup/ && if [ -d /data/images ]; then cp -r /data/images /backup/; fi"
+    "apk add --no-cache sqlite >/dev/null && sqlite3 /data/slide-works.db '.backup /backup/slide-works.db' && cp -r /data/slide-works-keys /backup/ && for d in images templates; do if [ -d /data/$d ]; then cp -r /data/$d /backup/; fi; done"
   ```
 
-  That writes `backup/slide-works.db` plus copies of the cookie keys and any images, owned by root. `.backup` is safe while SlideWorks is writing; copying the `.db` file directly is not.
+  That writes `backup/slide-works.db` plus copies of the cookie keys, any images and any template files, owned by root. `.backup` is safe while SlideWorks is writing; copying the `.db` file directly is not.
 - Keep `/data` on a local disk, such as a named Docker volume. Never bind-mount it onto a network share (NFS, SMB or 9p), because SQLite's locking corrupts the file there.
 - SlideWorks is a single process. Its live updates and rate limits are held in memory, so don't run two instances against one volume.
+
+### Uploaded templates
+
+People can upload templates: fonts, logos, title art, custom layouts and whole bundles. The files go to disk, and the
+database holds each file's row.
+
+- **Where they live.** `<SLIDEWORKS_DATA_PATH>/templates/<template id>/<asset id>`, with the default `/data` when the
+  setting is unset. The asset id is the first 32 hex characters of the file's SHA-256, so a file is named by its content
+  and is never replaced. Files being uploaded wait in `templates/.uploads/` until they pass their checks and are moved
+  into place; a file left there by a crash is harmless.
+- **Back them up with the database.** A deck draws with its template's files, so a database restored without the
+  `templates` folder has decks whose fonts, logos and art are missing. The backup command under [Storage](#storage)
+  copies both. Restore them together.
+- **The app never deletes a stored file.** A published version's files must stay for as long as a deck is pinned to that
+  version, so the only files removed are the ones of an upload that failed. An archived template keeps its files.
+  Disk use only grows, up to the limits below.
+- **Disk use per template.** One template stores at most 256 files and 240,000,000 bytes (about 229 MiB) over its whole
+  life, counting every version. The server refuses an upload past either with `template_storage_full`. People can have
+  up to 50 templates, archived ones not counted, so plan for 50 x 240 MB in the worst case; the usual template uses a
+  few megabytes.
+- **Per file.** A font is at most 2 MB (2 x 1024 x 1024 bytes) and a logo or title art file at most 10 MB (10 x 1024 x
+  1024 bytes). A custom layout's upload document is at most 800,000 bytes.
+- **A bundle** (`POST /api/templates/import`) is a zip of at most 60 MB (60 x 1024 x 1024 bytes) that may not unpack to
+  more than that, with at most 64 files. The server refuses a file that unpacks to more than 100 times its packed size.
+  The request body is limited to the same 60 MB, so the proxy's limit has to allow it.
+- **Serving.** Files come from `/api/templates/{id}/assets/{assetId}` for people who may see the template, with
+  `X-Content-Type-Options: nosniff`, and for every file the policy `default-src 'none'; sandbox`, so an SVG opened as a
+  page runs no script. A custom layout's stored file is never served.
+- **Chromium for fonts.** Each uploaded font is measured once, in the same headless Chromium that draws the share card,
+  so the slide text fits to its width. The image includes it. If Chromium can't start (a host that runs the app outside
+  the image, or a missing system library), a font upload is refused with `renderer_unavailable`, and the person sees
+  "This file can't be checked right now because the renderer is not available. Try again in a minute." A font is never
+  accepted unmeasured. Nothing else about templates needs Chromium, and the share card fails the same way.
 
 ## Behind a TLS proxy
 
@@ -86,7 +119,7 @@ Run SlideWorks behind a proxy that ends TLS and forwards plain HTTP to port 8080
 
 - Forward every path to the container, including `/mcp`, `/oauth/*`, `/.well-known/*`, `/signin-google` and `/hubs/deck`.
 - Pass WebSocket upgrades on `/hubs/deck`, which carries live updates. See [Live audience join](#live-audience-join) for the transports and the Host header.
-- Allow request bodies up to 10 MB, the image upload limit.
+- Allow request bodies up to 60 MB (60 x 1024 x 1024 bytes), the template bundle import limit. The largest other upload is a 10 MB image. See [Uploaded templates](#uploaded-templates). A proxy that stops a larger body than that also stops the bundle import, which the person sees as a failed upload.
 
 `SLIDEWORKS_PUBLIC_URL` is the source of truth for the app's scheme and host. SlideWorks never reads `X-Forwarded-Proto` or `X-Forwarded-Host` to decide its own address, and it reads the `Host` header only to choose between the two configured origins (the public URL and, when set, the join URL), so a forged header can't produce a link, OAuth metadata or sign-in callback for any other address. If the proxy serves `https://slides.example.com`, set exactly that, and the session cookie is `Secure` even though the container sees plain HTTP.
 
