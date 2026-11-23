@@ -91,9 +91,9 @@ public class BuiltInPaletteContrastTests
     [Test]
     public void Ratio_WhenWhiteOnPlainPositive_ShouldMatchTheDescription()
     {
-        // SW-2's contrast section: white on Cobalt's positive colour is 3.3:1, which is why panels have their own ink.
+        // White on Cobalt's positive colour is 5.0:1 since the colour was darkened for text on the paper (4.5:1 needed); panels keep their own ink.
         var cobalt = new PaletteCatalogue().Find("cobalt")!;
 
-        Contrast.Ratio("#ffffff", cobalt.Tokens["good"]).ShouldBe(3.3, 0.05);
+        Contrast.Ratio("#ffffff", cobalt.Tokens["good"]).ShouldBe(5.0, 0.05);
     }
 }
