@@ -185,7 +185,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
             SharingLastChange.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "set_sharing", "changed sharing"), "just now"),
             new SharingOwnerView("sam@team.example", "Sam Rivera", new AvatarView("SR", "teal", "https://slideworks.example/avatars/sam-rivera.png")),
             [
-                new SharingPersonView("alex@team.example", "Alex Chen", new AvatarView("AC", "blue", null), "write"),
+                new SharingPersonView("alex@team.example", "Alex Chen", new AvatarView("AC", "blue", "https://slideworks.example/avatars/alex-chen.png"), "write"),
                 new SharingPersonView("mira@team.example", null, null, "read"),
             ]);
 

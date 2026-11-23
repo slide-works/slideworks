@@ -176,13 +176,20 @@ export type SharingView = {
 
 // name and avatar are null for an email with no account.
 export type SharingOwner = { email: string; name: string; avatar: AvatarView };
-export type SharingPerson = { email: string; name: string | null; avatar: AvatarView | null; access: DeckAccessLevel };
+export type SharingPerson = {
+  email: string;
+  name: string | null;
+  avatar: AvatarView | null;
+  access: DeckAccessLevel;
+};
 
-// The PUT /api/decks/{id}/sharing body: people with access, or the older viewers (each read).
-export type SharingRequest = {
+// The PUT /api/decks/{id}/sharing body.
+export type SharingRequest = { level: SharingLevel; viewers: string[] };
+
+// The same PUT with each person's access instead of plain viewers (each read).
+export type SharingPeopleRequest = {
   level: SharingLevel;
-  viewers?: string[];
-  people?: { email: string; access: DeckAccessLevel }[];
+  people: { email: string; access: DeckAccessLevel }[];
 };
 
 // POST /api/decks body, and its 201 result.

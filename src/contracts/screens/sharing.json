@@ -16,7 +16,7 @@
     {
       "email": "alex@team.example",
       "name": "Alex Chen",
-      "avatar": { "initials": "AC", "colour": "blue", "pictureUrl": null },
+      "avatar": { "initials": "AC", "colour": "blue", "pictureUrl": "https://slideworks.example/avatars/alex-chen.png" },
       "access": "write"
     },
     {
