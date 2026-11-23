@@ -70,7 +70,7 @@ public partial class Sw6PollControlJourneyTests : AcceptanceTest
 
         await MoveAsync(presenter, audience, "ArrowLeft", 1);
         var code = await GoLiveAsync(presenter);
-        await using var phoneContext = await OpenGuestContextAsync();
+        await using var phoneContext = await LiveDeck.OpenPhoneAsync(Browser);
         var card = new GuestPollCard(await JoinAsync(phoneContext, code, presenter, 1));
 
         // Live, the presenter reaches the poll. The panel's view counts the guest who joined since the last read, so it is
@@ -95,7 +95,7 @@ public partial class Sw6PollControlJourneyTests : AcceptanceTest
         // showed slide 3. A view counting the second guest was made after that arrival: it must still be draft.
         await MoveAsync(presenter, audience, "ArrowRight", 3);
         await Expect(card.Root).ToHaveCountAsync(0);
-        await using var secondContext = await OpenGuestContextAsync();
+        await using var secondContext = await LiveDeck.OpenPhoneAsync(Browser);
         await JoinAsync(secondContext, code, presenter, 2);
         await MoveAsync(presenter, audience, "ArrowLeft", POLL_SLIDE);
         await Expect(panel.Rate).ToHaveTextAsync("0% of 2 joined");
@@ -140,7 +140,7 @@ public partial class Sw6PollControlJourneyTests : AcceptanceTest
         var panel = new PollPanel(Page);
         var screen = new PollSlide(audience.Slide(POLL_SLIDE));
         var code = await GoLiveAsync(presenter);
-        await using var phoneContext = await OpenGuestContextAsync();
+        await using var phoneContext = await LiveDeck.OpenPhoneAsync(Browser);
         var card = new GuestPollCard(await JoinAsync(phoneContext, code, presenter, 1));
 
         await MoveAsync(presenter, audience, "ArrowRight", POLL_SLIDE);
@@ -221,9 +221,9 @@ public partial class Sw6PollControlJourneyTests : AcceptanceTest
         var panel = new PollPanel(Page);
         var screen = new PollSlide(audience.Slide(POLL_SLIDE));
         var code = await GoLiveAsync(presenter);
-        await using var rightContext = await OpenGuestContextAsync();
+        await using var rightContext = await LiveDeck.OpenPhoneAsync(Browser);
         var right = new GuestPollCard(await JoinAsync(rightContext, code, presenter, 1));
-        await using var missContext = await OpenGuestContextAsync();
+        await using var missContext = await LiveDeck.OpenPhoneAsync(Browser);
         var miss = new GuestPollCard(await JoinAsync(missContext, code, presenter, 2));
 
         await MoveAsync(presenter, audience, "ArrowRight", POLL_SLIDE);
@@ -323,7 +323,7 @@ public partial class Sw6PollControlJourneyTests : AcceptanceTest
         var panel = new PollPanel(Page);
         var screen = new PollSlide(audience.Slide(POLL_SLIDE));
         var code = await GoLiveAsync(presenter);
-        await using var phoneContext = await OpenGuestContextAsync();
+        await using var phoneContext = await LiveDeck.OpenPhoneAsync(Browser);
         var phone = new GuestPollCard(await JoinAsync(phoneContext, code, presenter, 1));
 
         await using var remoteContext = await OpenRemoteContextAsync();
@@ -452,18 +452,10 @@ public partial class Sw6PollControlJourneyTests : AcceptanceTest
     }
 
     // A key in the presenter window, then both windows showing the slide it moved to.
-    private async Task MoveAsync(PresenterPage presenter, PlayerPage audience, string key, int slide)
+    private static async Task MoveAsync(PresenterPage presenter, PlayerPage audience, string key, int slide)
     {
-        await presenter.PressAsync(key);
-        await Expect(presenter.Count).ToHaveTextAsync($"{slide} / {SLIDES}");
-        await Expect(audience.Layer(slide)).ToHaveAttributeAsync("data-active", "true");
+        await Talks.MoveToAsync(presenter, audience, SLIDES, key, slide);
     }
-
-    private Task<IBrowserContext> OpenGuestContextAsync() => Browser.NewContextAsync(new BrowserNewContextOptions
-    {
-        BaseURL = AcceptanceApp.BaseUrl,
-        ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-    });
 
     // The phone remote: Sam's own browser context at a phone viewport with touch.
     private Task<IBrowserContext> OpenRemoteContextAsync()

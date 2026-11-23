@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using SlideWorks.AcceptanceTests.Journeys.Support;
 using SlideWorks.AcceptanceTests.Pages;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -86,9 +87,9 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
     {
         var deck = await CreateDeckAsync("After close", results: "afterClose", correct: 2);
         var (presenter, audience, joinUrl, presenterFrames) = await PresentLiveAsync(deck);
-        await using var firstPhone = await OpenPhoneAsync();
+        await using var firstPhone = await LiveDeck.OpenPhoneAsync(Browser);
         var first = await JoinAsync(firstPhone, joinUrl);
-        await using var secondPhone = await OpenPhoneAsync();
+        await using var secondPhone = await LiveDeck.OpenPhoneAsync(Browser);
         var second = await JoinAsync(secondPhone, joinUrl);
         var panel = new PollPanel(Page);
         var screen = new PollSlide(audience.Slide(POLL));
@@ -126,7 +127,7 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         // covers what the join's GET brought: the tap hint shows only once the card has left 'loading', which it does
         // when the GET (whose body carries this guest's tally) has landed. No push reaches this phone until the next
         // answer, so the re-check after that answer, behind a tally on its own socket, is the assertion on the push.
-        await using var thirdPhone = await OpenPhoneAsync();
+        await using var thirdPhone = await LiveDeck.OpenPhoneAsync(Browser);
         var third = await JoinAsync(thirdPhone, joinUrl);
         await Expect(third.Card.Question).ToHaveTextAsync(QUESTION);
         await Expect(third.Card.TapHint).ToBeVisibleAsync();
@@ -211,7 +212,7 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         await Expect(screen.Correct(1)).ToHaveCountAsync(0);
 
         // A guest who joins after the close is told so, and sees the final result with no correct mark yet.
-        await using var latePhone = await OpenPhoneAsync();
+        await using var latePhone = await LiveDeck.OpenPhoneAsync(Browser);
         var late = await JoinAsync(latePhone, joinUrl);
         await Expect(late.Card.JoinedLate).ToBeVisibleAsync();
         await Expect(late.Card.NoAnswer).ToHaveCountAsync(0);
@@ -259,9 +260,9 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
             await AgentSeed.CallAsync(agent, "set_sharing", new() { ["deck"] = deck.Id, ["level"] = "link" });
         }
         var (presenter, audience, joinUrl, presenterFrames) = await PresentLiveAsync(deck);
-        await using var firstPhone = await OpenPhoneAsync();
+        await using var firstPhone = await LiveDeck.OpenPhoneAsync(Browser);
         var first = await JoinAsync(firstPhone, joinUrl);
-        await using var secondPhone = await OpenPhoneAsync();
+        await using var secondPhone = await LiveDeck.OpenPhoneAsync(Browser);
         var second = await JoinAsync(secondPhone, joinUrl);
         var panel = new PollPanel(Page);
         var screen = new PollSlide(audience.Slide(POLL));
@@ -419,9 +420,9 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
     {
         var deck = await CreateDeckAsync("After answer", results: "afterAnswer", correct: 2);
         var (presenter, audience, joinUrl, presenterFrames) = await PresentLiveAsync(deck);
-        await using var firstPhone = await OpenPhoneAsync();
+        await using var firstPhone = await LiveDeck.OpenPhoneAsync(Browser);
         var first = await JoinAsync(firstPhone, joinUrl);
-        await using var secondPhone = await OpenPhoneAsync();
+        await using var secondPhone = await LiveDeck.OpenPhoneAsync(Browser);
         var second = await JoinAsync(secondPhone, joinUrl);
         var panel = new PollPanel(Page);
         var screen = new PollSlide(audience.Slide(POLL));
@@ -463,7 +464,7 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         // A third guest joins mid-round and doesn't answer: the open poll, ready to tap, with nothing of the counts. As in
         // the after-close journey, this first check covers the join's GET (the tap hint shows once it has landed); the
         // re-check after the next answer, behind a tally on its own socket, covers the push.
-        await using var thirdPhone = await OpenPhoneAsync();
+        await using var thirdPhone = await LiveDeck.OpenPhoneAsync(Browser);
         var third = await JoinAsync(thirdPhone, joinUrl);
         await Expect(third.Card.TapHint).ToBeVisibleAsync();
         foreach (var position in Enumerable.Range(0, 3))
@@ -528,7 +529,7 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         }
 
         // A guest who joins after the close is told so, and sees the final result.
-        await using var latePhone = await OpenPhoneAsync();
+        await using var latePhone = await LiveDeck.OpenPhoneAsync(Browser);
         var late = await JoinAsync(latePhone, joinUrl);
         await Expect(late.Card.JoinedLate).ToBeVisibleAsync();
         await Expect(late.Card.NoAnswer).ToHaveCountAsync(0);
@@ -613,25 +614,15 @@ public partial class Sw6PollResultsJourneyTests : AcceptanceTest
         var page = await context.NewPageAsync();
         var frames = new ConcurrentQueue<string>();
         page.WebSocket += (_, socket) => socket.FrameReceived += (_, frame) => frames.Enqueue(frame.Text ?? "");
-        var guest = new GuestPage(page);
-        await guest.GotoUrlAsync(joinUrl);
-        await guest.IsFollowingAsync();
+        await Talks.FollowAsync(page, joinUrl);
         return new Phone(page, new GuestPollCard(page), frames);
     }
 
     // The presenter moves to the poll slide; arrival opens it. Waits for both windows to show the move.
-    private async Task MoveToPollAsync(PresenterPage presenter, PlayerPage audience)
+    private static async Task MoveToPollAsync(PresenterPage presenter, PlayerPage audience)
     {
-        await presenter.PressAsync("ArrowRight");
-        await Expect(presenter.Count).ToHaveTextAsync($"{POLL} / {SLIDES}");
-        await Expect(audience.Layer(POLL)).ToHaveAttributeAsync("data-active", "true");
+        await Talks.MoveToAsync(presenter, audience, SLIDES, "ArrowRight", POLL);
     }
-
-    private Task<IBrowserContext> OpenPhoneAsync() => Browser.NewContextAsync(new BrowserNewContextOptions
-    {
-        BaseURL = AcceptanceApp.BaseUrl,
-        ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-    });
 
     private static Task<string[]> PhoneCountsAsync(Phone phone) => phone.Card.Root.EvaluateAsync<string[]>(COUNT_PROBE, PHONE_ALLOWS);
 

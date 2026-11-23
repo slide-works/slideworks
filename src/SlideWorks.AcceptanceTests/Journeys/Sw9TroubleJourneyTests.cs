@@ -164,29 +164,23 @@ public class Sw9TroubleJourneyTests : AcceptanceTest
     }
 
     // A guest scans the code, follows the presenter and opens the Questions tab, whose list has loaded when this returns.
-    private async Task<Phone> JoinAsync(IBrowserContext context, string joinUrl)
+    private static async Task<Phone> JoinAsync(IBrowserContext context, string joinUrl)
     {
         var page = await context.NewPageAsync();
         return await OpenQuestionsAsync(page, joinUrl);
     }
 
     // As JoinAsync, on a phone whose hub connection the test can drop (set up before the page navigates).
-    private async Task<(Phone Phone, DroppableHub Hub)> JoinDroppableAsync(IBrowserContext context, string joinUrl)
+    private static async Task<(Phone Phone, DroppableHub Hub)> JoinDroppableAsync(IBrowserContext context, string joinUrl)
     {
         var page = await context.NewPageAsync();
         var hub = await DroppableHub.RouteAsync(page);
         return (await OpenQuestionsAsync(page, joinUrl), hub);
     }
 
-    private async Task<Phone> OpenQuestionsAsync(IPage page, string joinUrl)
+    private static async Task<Phone> OpenQuestionsAsync(IPage page, string joinUrl)
     {
-        var guest = new GuestPage(page);
-        await guest.GotoUrlAsync(joinUrl);
-        await guest.IsFollowingAsync();
-        var questions = new GuestQuestions(page);
-        await questions.QuestionsTab.ClickAsync();
-        await Expect(questions.List).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
-        await Expect(questions.ListLoading).ToHaveCountAsync(0);
+        var (guest, questions) = await Talks.OpenQuestionsAsync(page, joinUrl, PUSH_TIMEOUT);
         return new Phone(guest, questions);
     }
 
