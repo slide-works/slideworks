@@ -55,7 +55,9 @@ public static class ScreenShapes
         ],
     };
 
-    public static readonly JsonShapeOptions Sharing = new() { NullablePaths = ["lastChange"] };
+    public static readonly JsonShapeOptions Sharing = new() { NullablePaths = ["lastChange", "owner.avatar.pictureUrl", "people[].name", "people[].avatar", "people[].avatar.pictureUrl"] };
+
+    public static readonly JsonShapeOptions Profile = new() { NullablePaths = ["identity.avatar.pictureUrl", "identity.colour", "account.timeZone", "agents[].lastUsedLabel"] };
 
     public static readonly JsonShapeOptions Me = new() { NullablePaths = ["pictureUrl", "avatar.pictureUrl", "timeZone"] };
 

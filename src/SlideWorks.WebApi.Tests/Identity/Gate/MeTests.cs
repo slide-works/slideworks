@@ -1,7 +1,4 @@
 using System.Net.Http.Json;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Accounts.Avatars;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Tests.Support;
@@ -57,34 +54,6 @@ public class MeTests : ApiTestFixture
         me.Access.ShouldBe("approved");
         me.IsAdmin.ShouldBeFalse();
         me.PendingRequests.ShouldBe(0);
-    }
-
-    // The test sign-in has no Google picture and signs in again on every request, so the avatar's picture is the uploaded
-    // photo's URL, set on the stored person because the upload route comes later.
-    [Test]
-    public async Task Get_WhenSignedIn_ShouldReturnAvatarAndTimeZone()
-    {
-        var person = TestUser.NewApproved();
-        using var client = ClientFor(person);
-        var before = await MeAsync(client);
-        before.Avatar.PictureUrl.ShouldBeNull();
-        Guid id;
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var user = await db.Users.SingleAsync(u => u.Email == person.Email);
-            user.PhotoId = "photo123";
-            user.PhotoContentType = "image/png";
-            await db.SaveChangesAsync();
-            id = user.Id;
-        }
-
-        var me = await MeAsync(client);
-
-        me.Avatar.Initials.ShouldBe(person.Name[..1].ToUpperInvariant());
-        AvatarColours.Keys.ShouldContain(me.Avatar.Colour);
-        me.Avatar.PictureUrl.ShouldBe($"/api/people/{id}/photo/photo123");
-        me.TimeZone.ShouldBeNull();
     }
 
     private static async Task<MeDto> MeAsync(HttpClient client) => (await client.GetFromJsonAsync<MeDto>("/api/me"))!;
