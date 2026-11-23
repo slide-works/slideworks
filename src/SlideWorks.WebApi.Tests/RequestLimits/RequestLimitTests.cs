@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure.RequestLimits;
 using SlideWorks.WebApi.Tests.Decks;
@@ -122,6 +123,55 @@ public class RequestLimitTests : ApiTestFixture
         using var put = await ImageSeed.PutAsync(Factory, started.GetProperty("uploadUrl").GetString()!, ImageSeed.Bytes("image/png", TEN_MB));
 
         put.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    // HTTP/2 and HTTP/3 can send a body with neither Content-Length nor Transfer-Encoding, and TestServer cannot send that
+    // shape, so the middleware is run directly over a context that has neither header (and an endpoint-less route, which
+    // takes the shared limit). The body stream is counted: the middleware must stop reading near the limit.
+    [Test]
+    public async Task Middleware_WhenBodyHasNoLengthHeaderAtAllAndIsOverTheLimit_ShouldAnswer413AndNotCallOn()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Post;
+        context.Request.Path = "/api/decks";
+        context.Request.Body = new MemoryStream(new byte[MCP_LIMIT + 1]);
+        context.Response.Body = new MemoryStream();
+        var reachedNext = false;
+        var middleware = new RequestBodyLimitMiddleware(_ =>
+        {
+            reachedNext = true;
+            return Task.CompletedTask;
+        });
+
+        context.Request.ContentLength.ShouldBeNull();
+        context.Request.Headers.ContainsKey("Transfer-Encoding").ShouldBeFalse();
+        await middleware.InvokeAsync(context);
+
+        context.Response.StatusCode.ShouldBe(StatusCodes.Status413PayloadTooLarge);
+        reachedNext.ShouldBeFalse();
+        context.Response.Body.Position = 0;
+        (await JsonSerializer.DeserializeAsync<JsonElement>(context.Response.Body)).GetProperty("error").GetString()
+            .ShouldBe($"body: at most {MCP_LIMIT} bytes");
+    }
+
+    [Test]
+    public async Task Middleware_WhenBodyHasNoLengthHeaderAtAllAndIsExactlyTheLimit_ShouldCallOnWithTheWholeBody()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Post;
+        context.Request.Path = "/api/decks";
+        context.Request.Body = new MemoryStream(new byte[MCP_LIMIT]);
+        long seen = -1;
+        var middleware = new RequestBodyLimitMiddleware(async http =>
+        {
+            using var copy = new MemoryStream();
+            await http.Request.Body.CopyToAsync(copy);
+            seen = copy.Length;
+        });
+
+        await middleware.InvokeAsync(context);
+
+        seen.ShouldBe(MCP_LIMIT);
     }
 
     private static string AddQuote(string deck, string quote)

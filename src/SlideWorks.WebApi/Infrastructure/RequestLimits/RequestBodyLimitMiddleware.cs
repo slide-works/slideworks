@@ -7,14 +7,16 @@ namespace SlideWorks.WebApi.Infrastructure.RequestLimits;
 // applies unless the action says otherwise: [RequestBodyLimit(n)] for a tighter cap, [OwnsBodyLimit] or a framework
 // [RequestSizeLimit] / [DisableRequestSizeLimit] when the action enforces a larger cap of its own (uploads, bundles).
 //
-// A request that declares a Content-Length over the limit is refused without reading a byte. A chunked one has no length to
-// check, so its body is read into memory, at most limit + 1 bytes, and replaced by what was read; over the limit it is
+// A request that declares a Content-Length over the limit is refused without reading a byte. One whose length is unknown
+// (chunked, or an HTTP/2 or HTTP/3 body with no Content-Length) has no length to check, so its body is read into memory, at most limit + 1 bytes, and replaced by what was read; over the limit it is
 // refused. Reading the bytes here, not wrapping the stream, keeps the refusal out of the hands of whatever reads the
 // body later (the MCP transport and model binding both turn a failed read into a different error).
 public class RequestBodyLimitMiddleware(RequestDelegate next)
 {
-    // The largest legal add_slides call is bounded by nothing but this: a slide is at most about 7 KB (4000 characters of
-    // notes plus its slots), so 1 MB holds more than a hundred full slides, and an ordinary deck of 40 is a tenth of it.
+    // Nothing in the product bounds an add_slides batch: there is no per-call slide count, no deck slide cap and no per-slot
+    // size limit (only notes, at 4000 characters, are capped), so no "largest legal call" exists to fit. 1 MB is a chosen
+    // limit, not a derived one: a typical slide is 1 to 2 KB of JSON, so it holds several hundred slides, and an ordinary
+    // 40-slide deck is a few percent of it. A larger batch is refused with 413 and the agent splits it.
     public const int DEFAULT_BYTES = 1024 * 1024;
 
     public static string TooLarge(int maxBytes) => $"body: at most {maxBytes} bytes";
@@ -37,7 +39,9 @@ public class RequestBodyLimitMiddleware(RequestDelegate next)
             await RefuseAsync(context.Response, limit.Value, context.RequestAborted);
             return;
         }
-        if (request.ContentLength is null && request.Headers.ContainsKey("Transfer-Encoding"))
+        // No Content-Length means the length is unknown, whatever Transfer-Encoding says: HTTP/2 and HTTP/3 send a body with
+        // neither header. A GET or HEAD has no body to bound.
+        if (request.ContentLength is null && !HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method))
         {
             var body = await ReadAtMostAsync(request.Body, limit.Value, context.RequestAborted);
             if (body is null)
