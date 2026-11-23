@@ -66,10 +66,10 @@ public class SlideFitTests
     [Test]
     public void Lines_WhenOneWordIsLongerThanALineOfWideLetters_ShouldBreakItByWidth()
     {
-        // 60 W cost 60 × 1.87 = 112 average characters: two lines of 71, where 60 n fit one.
+        // 60 W cost 60 × 1.85 = 111 average characters: two lines of 71, where 60 n fit one.
         Lines(new string('n', 60)).ShouldBe(1);
         Lines(new string('W', 60)).ShouldBe(2);
-        Lines(new string('W', 76)).ShouldBe(3);
+        Lines(new string('W', 80)).ShouldBe(3);
     }
 
     private static int Lines(string text)

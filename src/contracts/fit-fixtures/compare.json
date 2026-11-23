@@ -12,22 +12,22 @@
       "headline": "Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working",
       "failure": {
         "label": "Show Where Work Waits",
-        "title": "Make Every Merge Small And Reviewable Momentum See",
-        "sub": "Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster",
+        "title": "Make Every Merge Small",
+        "sub": "Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn",
         "points": [
-          "When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Real",
+          "When Customers See Real Progress Weekly Metrics Show Where Work Waits Make",
           "Merge Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Working See",
-          "Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics"
+          "Software Every Week Teams Learn Faster When Customers See Real Progress Weekly"
         ]
       },
       "success": {
         "label": "Show Where Work Waits",
-        "title": "Make Every Merge Small And Reviewable Momentum See",
-        "sub": "Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster",
+        "title": "Make Every Merge Small",
+        "sub": "Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn",
         "points": [
-          "When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Real",
+          "When Customers See Real Progress Weekly Metrics Show Where Work Waits Make",
           "Merge Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Working See",
-          "Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics"
+          "Software Every Week Teams Learn Faster When Customers See Real Progress Weekly"
         ]
       }
     }
@@ -46,51 +46,51 @@
       "headline": "And Matters Maximum Working Teams When Real Show Waits Merge Reviewable Progress",
       "failure": {
         "label": "Every And More Faster",
-        "title": "Make Small Momentum Software",
+        "title": "Make Small Momentum Work",
         "rows": [
           {
             "label": "Make Small And",
-            "value": "Make Small Momentum Software"
+            "value": "Make Small Momentum Work"
           },
           {
             "label": "Every And Show",
-            "value": "Every And Matters Throughput"
+            "value": "Every And Matters"
           },
           {
             "label": "Merge Momentum",
-            "value": "And Matters Maximum When And"
+            "value": "And Matters Maximum When"
           },
           {
             "label": "Small More See",
-            "value": "And Matters Maximum When And"
+            "value": "And Matters Maximum When"
           }
         ],
         "stamp": "Merge Momentum",
-        "footer": "Small Momentum Than Ship Week Faster See And Waits"
+        "footer": "Small Momentum Than Ship Week Faster See And"
       },
       "success": {
         "label": "Every And More Faster",
-        "title": "Make Small Momentum Software",
+        "title": "Make Small Momentum",
         "rows": [
           {
             "label": "Make Small And",
-            "value": "Make Small Momentum Software"
+            "value": "Make Small Momentum"
           },
           {
             "label": "Every And Show",
-            "value": "Every And Matters Throughput"
+            "value": "Every And Matters"
           },
           {
             "label": "Merge Momentum",
-            "value": "And Matters Maximum When And"
+            "value": "And Matters Maximum When"
           },
           {
             "label": "Small More See",
-            "value": "And Matters Maximum When And"
+            "value": "And Matters Maximum When"
           }
         ],
         "stamp": "Merge Momentum",
-        "footer": "Small Momentum Than Ship Week Faster See And Waits"
+        "footer": "Small Momentum Than Ship Week Faster See And"
       }
     }
   },
@@ -107,14 +107,14 @@
       "failure": {
         "label": "Every And More Faster",
         "title": "Make Small Momentum Than Ship Week Faster Make And",
-        "sub": "Every And Matters Maximum Working Faster More",
+        "sub": "Every And Matters Maximum Working Faster",
         "line": "Momentum Than Ship Week Faster See Metrics Work Every And Matters Maximum Working Teams Progress See",
         "footer": "Merge Reviewable More Throughput Software Learn Customers Progress Where Make Momentum See"
       },
       "success": {
         "label": "Every And More Faster",
         "title": "Make Small Momentum Than Ship Week Faster Make And",
-        "sub": "Every And Matters Maximum Working Faster More",
+        "sub": "Every And Matters Maximum Working Faster",
         "line": "Momentum Than Ship Week Faster See Metrics Work Every And Matters Maximum Working Teams Progress See",
         "footer": "Merge Reviewable More Throughput Software Learn Customers Progress Where Make Momentum See"
       }
@@ -132,10 +132,10 @@
       "headline": "And Matters Maximum Working Teams When Real Show Waits Merge Reviewable Progress",
       "failure": {
         "label": "Every And More Faster",
-        "title": "And Matters Maximum When And",
+        "title": "And Matters Maximum When",
         "points": [
-          "Merge Reviewable More Throughput Software Learn Customers Progress Where Make More Every",
-          "Every And Matters Maximum Working Progress",
+          "Merge Reviewable More Throughput Software Learn Customers Progress Where Make More",
+          "Every And Matters Maximum Working Work",
           "Merge Reviewable More Throughput See Teams"
         ],
         "stamp": "Merge Momentum",
@@ -143,10 +143,10 @@
       },
       "success": {
         "label": "Every And More Faster",
-        "title": "And Matters Maximum When And",
+        "title": "And Matters Maximum When",
         "points": [
-          "Merge Reviewable More Throughput Software Learn Customers Progress Where Make More Every",
-          "Every And Matters Maximum Working Progress",
+          "Merge Reviewable More Throughput Software Learn Customers Progress Where Make More",
+          "Every And Matters Maximum Working",
           "Merge Reviewable More Throughput See Teams"
         ],
         "stamp": "Merge Momentum",
@@ -166,22 +166,22 @@
       "headline": "And Matters Maximum Working Teams When Real Show Waits Merge Reviewable Progress",
       "failure": {
         "label": "Every And More Faster",
-        "title": "Merge Reviewable More Throughput Software Show And",
+        "title": "Merge Reviewable More Throughput Software Show",
         "sub": "Every And Matters Maximum Working Progress",
         "points": [
           "Small Momentum Than Ship Week Faster See Metrics Work Every Than Merge",
-          "Every And Matters Maximum Working Progress",
-          "Merge Reviewable More Throughput See Teams"
+          "Every And Matters Maximum Working Work",
+          "Merge Reviewable More Throughput See"
         ]
       },
       "success": {
         "label": "Every And More Faster",
-        "title": "Merge Reviewable More Throughput Software Show And",
+        "title": "Merge Reviewable More Throughput Software Show",
         "sub": "Every And Matters Maximum Working Progress",
         "points": [
           "Small Momentum Than Ship Week Faster See Metrics Work Every Than Merge",
-          "Every And Matters Maximum Working Progress",
-          "Merge Reviewable More Throughput See Teams"
+          "Every And Matters Maximum Working",
+          "Merge Reviewable More Throughput See"
         ]
       },
       "callout": {

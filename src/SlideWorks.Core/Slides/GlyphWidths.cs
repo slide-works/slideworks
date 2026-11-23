@@ -17,10 +17,10 @@ namespace SlideWorks.Core.Slides;
 // scale through that em and need no factors of their own.
 internal static class GlyphWidths
 {
-    private const double WIDE = 1.87;
-    private const double WIDE_LOWERCASE = 1.65;
-    private const double CAPITAL = 1.30;
-    private const double DIGIT = 1.15;
+    private const double WIDE = 1.85;
+    private const double WIDE_LOWERCASE = 1.62;
+    private const double CAPITAL = 1.24;
+    private const double DIGIT = 1.12;
 
     public static double Factor(string textElement)
     {

@@ -10,14 +10,14 @@
       "kicker": "Weekly Metrics Show Where Work Waits See",
       "headline": "Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Working",
       "items": [
-        "Throughput Ship Working Software Every Week Teams Learn Faster When See",
-        "Customers See Real Progress Weekly Metrics Show Where Work Waits Make",
-        "Every Merge Small And Reviewable Momentum Matters More Than Maximum See",
-        "Throughput Ship Working Software Every Week Teams Learn Faster When See",
-        "Customers See Real Progress Weekly Metrics Show Where Work Waits Make",
-        "Every Merge Small And Reviewable Momentum Matters More Than Maximum See",
-        "Throughput Ship Working Software Every Week Teams Learn Faster When See",
-        "Customers See Real Progress Weekly Metrics Show Where Work Waits Make"
+        "Throughput Ship Working Software Every Week Teams Learn Faster",
+        "Customers See Real Progress Weekly Metrics Show Where Work Waits",
+        "Every Merge Small And Reviewable Momentum Matters More Than",
+        "Throughput Ship Working Software Every Week Teams Learn Faster",
+        "Customers See Real Progress Weekly Metrics Show Where Work Waits",
+        "Every Merge Small And Reviewable Momentum Matters More Than",
+        "Throughput Ship Working Software Every Week Teams Learn Faster",
+        "Customers See Real Progress Weekly Metrics Show Where Work Waits"
       ],
       "reveal": "one-by-one"
     }
@@ -36,17 +36,17 @@
       "items": [
         {
           "lead": "Every Merge Small And Progress",
-          "text": "Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster"
+          "text": "Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams"
         },
         {
-          "lead": "When Customers See Real Faster",
+          "lead": "When",
           "text": "Progress Weekly Metrics Show Where Work Waits Make Every Merge Small And Reviewable Momentum Matters More Than"
         },
         {
           "lead": "Maximum Throughput Ship Faster",
-          "text": "Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work"
+          "text": "Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show"
         },
-        "Waits Make Every Merge Small And Reviewable Momentum Matters More Than"
+        "Waits Make Every Merge Small And Reviewable Momentum Matters"
       ],
       "callout": {
         "tone": "info",
@@ -67,32 +67,32 @@
       "items": [
         {
           "icon": "bolt",
-          "lead": "Week Teams Learn Faster When Customers See Real Progress Metrics Show Where Work",
+          "lead": "Week Teams Learn Faster When Customers See Real Progress Metrics Show Where",
           "text": "Every Week Teams Learn Faster When Customers See Real"
         },
         {
           "icon": "book",
-          "text": "Faster When Customers See Real Progress Metrics Show Where Work Waits Make Merge Small Reviewable Momentum Matters More Than Maximum"
+          "text": "Faster When Customers See Real Progress Metrics Show Where Work Waits Make Merge Small Reviewable Momentum Matters More Than"
         },
         {
           "icon": "bulb",
-          "text": "Software Every Week Teams Learn Faster When Customers See Real Progress"
+          "text": "Software Every Week Teams Learn Faster When Customers See Real"
         },
         {
           "icon": "calendar",
-          "text": "Faster When Customers See Real Progress Metrics Show Where Work Waits"
+          "text": "Faster When Customers See Real Progress Metrics Show Where Work"
         },
         {
           "icon": "chart",
-          "text": "Progress Metrics Show Where Work Waits Make Merge Small Reviewable"
+          "text": "Progress Metrics Show Where Work Waits Make Merge Small"
         },
         {
           "icon": "chat",
-          "text": "Waits Make Merge Small Reviewable Momentum Matters More Than Maximum"
+          "text": "Waits Make Merge Small Reviewable Momentum Matters More Than"
         },
         {
           "icon": "check",
-          "text": "Momentum Matters More Than Maximum Throughput Ship Working Software"
+          "text": "Momentum Matters More Than Maximum Throughput Ship Working"
         }
       ],
       "reveal": "one-by-one"

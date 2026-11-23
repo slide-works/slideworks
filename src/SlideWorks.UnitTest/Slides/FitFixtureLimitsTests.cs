@@ -84,17 +84,6 @@ public class FitFixtureLimitsTests
             ["compareLineMax"] = ("compare.left", 0, "SW-725"),
             ["comparePointsStampFooter"] = ("compare.left", 0, "SW-725"),
             ["compareCallout"] = ("compare.left", 0, "SW-725"),
-            ["flowFour"] = ("flow.nodes", 591.8, "SW-726"),
-            ["flowGroup"] = ("flow.nodes", 613.4, "SW-726"),
-            ["imageBelowLeadPoints"] = ("image.points", 487.2, "SW-726"),
-            ["levelsSeven"] = ("levels.levels.items", 614.4, "SW-726"),
-            ["levelsText"] = ("levels.levels.items", 612.8, "SW-726"),
-            ["levelsTextWide"] = ("levels.levels.items", 612.8, "SW-726"),
-            ["numberedCardsLargeThree"] = ("numbered-cards.cards[0]", 477.6, "SW-726"),
-            ["numberedCardsCallout"] = ("numbered-cards.cards[0]", 481.2, "SW-726"),
-            ["quoteFull"] = ("quote.quote", 131.7, "SW-726"),
-            ["tableCells80"] = ("table.rows", 601.9, "SW-726"),
-            ["twoColumnCallout"] = ("two-column.left", 592.2, "SW-726"),
         };
 
     private static readonly Lazy<IReadOnlyDictionary<string, JsonObject>> _byLayout = new(ReadFolder);

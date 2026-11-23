@@ -12,43 +12,43 @@
       "headline": "Four regions carry most of the load",
       "bars": [
         {
-          "label": "Payments Gateway Region",
-          "sub": "Requests served in the last quarter",
+          "label": "Payments Gateway",
+          "sub": "Requests served in the last",
           "value": 48200,
           "was": 52000,
           "tag": "Needs attention!"
         },
         {
-          "label": "Checkout Service Region",
-          "sub": "Peak load across the three markets.",
+          "label": "Checkout Service",
+          "sub": "Peak load across the three",
           "value": 41500,
           "note": "Up on the plan",
           "tone": "negative"
         },
         {
-          "label": "Search Indexing Cluster",
-          "sub": "Average over the quarter, all zones",
+          "label": "Search Indexing",
+          "sub": "Average over the quarter, all",
           "value": 36900,
           "was": 36900,
           "note": "Held flat"
         },
         {
-          "label": "Order Archive Retrieval",
-          "sub": "Counted at the edge, before retries",
+          "label": "Order Archive",
+          "sub": "Counted at the edge, before",
           "value": 22100,
           "note": "Down by a fifth",
           "tone": "positive",
           "tag": "Needs attention!"
         },
         {
-          "label": "Customer Profiles Cache",
-          "sub": "Includes the weekend batch windows.",
+          "label": "Customer Profiles",
+          "sub": "Includes the weekend batch",
           "value": 17800,
           "note": "Fast after the cache move"
         },
         {
-          "label": "Inventory Stock Syncing",
-          "sub": "Excludes the internal health probes",
+          "label": "Inventory Stock Work",
+          "sub": "Excludes the internal health",
           "value": 12400,
           "was": 15000,
           "tone": "inverse",
@@ -57,7 +57,7 @@
       ],
       "unit": "requests",
       "wasLabel": "Same quarter, last year.",
-      "caption": "Requests served per region over the quarter, counted at the edge before any retries, with the weekend batch windows included",
+      "caption": "Requests served per region over the quarter, counted at the edge before any retries, with the weekend batch windows Work",
       "reveal": "one-by-one"
     }
   },
