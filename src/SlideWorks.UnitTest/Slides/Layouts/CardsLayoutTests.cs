@@ -30,8 +30,13 @@ public class CardsLayoutTests
         var text = $"{new string('a', 50)} {new string('b', 50)} {new string('c', 30)}";
         var card = $$"""{ "badge": "b", "title": "{{title}}", "text": "{{text}}", "chips": ["c"] }""";
 
-        Validate(Cards(card, 4)).Errors.ShouldHaveSingleItem()
-            .ShouldBe("cards.cards[0]: too much text to fit on the slide (about 355 px of 296 px); use fewer or shorter items");
+        Validate(Cards(card, 4)).Errors.ShouldBe(
+        [
+            "cards.cards[0]: too much text to fit on the slide (about 355 px of 296 px); use fewer or shorter items",
+            "cards.cards[1]: too much text to fit on the slide (about 355 px of 296 px); use fewer or shorter items",
+            "cards.cards[2]: too much text to fit on the slide (about 355 px of 296 px); use fewer or shorter items",
+            "cards.cards[3]: too much text to fit on the slide (about 355 px of 296 px); use fewer or shorter items",
+        ]);
     }
 
     [Test]
@@ -44,8 +49,12 @@ public class CardsLayoutTests
         const string CALLOUT = """, "callout": { "tone": "accent", "text": "c" }""";
 
         Validate(Cards(card, 3, "")).Errors.ShouldBeEmpty();
-        Validate(Cards(card, 3, CALLOUT)).Errors.ShouldHaveSingleItem()
-            .ShouldStartWith("cards.cards[0]: too much text to fit on the slide (about 561 px of 496.2 px)");
+        Validate(Cards(card, 3, CALLOUT)).Errors.ShouldBe(
+        [
+            "cards.cards[0]: too much text to fit on the slide (about 561 px of 496.2 px); use fewer or shorter items",
+            "cards.cards[1]: too much text to fit on the slide (about 561 px of 496.2 px); use fewer or shorter items",
+            "cards.cards[2]: too much text to fit on the slide (about 561 px of 496.2 px); use fewer or shorter items",
+        ]);
     }
 
     [Test]
