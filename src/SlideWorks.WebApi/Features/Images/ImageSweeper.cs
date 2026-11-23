@@ -42,7 +42,7 @@ public sealed class ImageSweeper(ImageStore store, IServiceScopeFactory scopes, 
     }
 
     // Runs on a timer, so nothing it throws may escape: a failed sweep is logged and the next one tries again.
-    private async Task SweepAsync(CancellationToken cancellationToken)
+    public async Task SweepAsync(CancellationToken cancellationToken)
     {
         await _sweeping.WaitAsync(cancellationToken);
         try
@@ -77,6 +77,7 @@ public sealed class ImageSweeper(ImageStore store, IServiceScopeFactory scopes, 
             return 0;
         }
         var removed = 0;
+        var kept = 0;
         foreach (var path in Directory.EnumerateFiles(folder))
         {
             if (store.IsWriting(Path.GetFileName(path)) || File.GetLastWriteTimeUtc(path) >= cutoff)
@@ -88,10 +89,15 @@ public sealed class ImageSweeper(ImageStore store, IServiceScopeFactory scopes, 
                 File.Delete(path);
                 removed++;
             }
-            catch (IOException)
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
-                // Still open: its write finishes or fails on its own, and the next sweep looks again.
+                // Still open, or not ours to delete: one file never stops the sweep, and the next sweep looks again.
+                kept++;
             }
+        }
+        if (kept > 0)
+        {
+            logger.LogWarning("Kept {Files} stray upload files that could not be deleted; the next sweep tries again", kept);
         }
         return removed;
     }
@@ -119,11 +125,11 @@ public sealed class ImageSweeper(ImageStore store, IServiceScopeFactory scopes, 
             // and the next sweep tries again.
             try
             {
-                var path = store.PathFor(image.DeckId, image.Id);
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                }
+                File.Delete(store.PathFor(image.DeckId, image.Id));
+            }
+            catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
+            {
+                // Never had a file, or it is already gone: the row can go.
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {

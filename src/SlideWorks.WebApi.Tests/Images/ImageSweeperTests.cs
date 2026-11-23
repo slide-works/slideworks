@@ -5,6 +5,7 @@ using System.Runtime.Versioning;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Images;
@@ -31,13 +32,10 @@ public class ImageSweeperTests : ApiTestFixture
     [Test]
     public async Task Sweep_WhenTempFilesOldAndRecent_ShouldRemoveOnlyTheOldOne()
     {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        var deck = await DeckSeed.CreateDeckAsync(agent);
-        var marker = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
         var stray = TempFile("stray", Clock.GetUtcNow() + SWEEP_STEP - STRAY_AGE);
         var recent = TempFile("recent", Clock.GetUtcNow() + SWEEP_STEP - RECENT_AGE);
 
-        await SweepAsync(marker);
+        await SweepAsync();
 
         File.Exists(stray).ShouldBeFalse();
         File.Exists(recent).ShouldBeTrue();
@@ -48,7 +46,6 @@ public class ImageSweeperTests : ApiTestFixture
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent);
-        var marker = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
         var started = await ImageSeed.StartAsync(agent, deck);
         var before = Directory.Exists(TempFolder()) ? Directory.GetFiles(TempFolder()) : [];
         var body = new HeldBody(ImageSeed.Bytes("image/png"));
@@ -56,7 +53,7 @@ public class ImageSweeperTests : ApiTestFixture
         var put = http.PutAsync(started.GetProperty("uploadUrl").GetString(), body);
         var temp = await TempFileOfAsync(before);
 
-        await SweepAsync(marker);
+        await SweepAsync();
 
         File.Exists(temp).ShouldBeTrue();
         body.Release();
@@ -78,7 +75,7 @@ public class ImageSweeperTests : ApiTestFixture
         var abandoned = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
         (await RowExistsAsync(abandoned)).ShouldBeTrue();
 
-        await SweepAsync(abandoned);
+        await SweepAsync();
 
         (await RowExistsAsync(abandoned)).ShouldBeFalse();
         (await RowExistsAsync(used)).ShouldBeTrue();
@@ -90,23 +87,17 @@ public class ImageSweeperTests : ApiTestFixture
     [Test]
     public async Task Sweep_WhenTempFileWrittenButNotReleased_ShouldKeepItUntilReleased()
     {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        var deck = await DeckSeed.CreateDeckAsync(agent);
-        var marker = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
         var store = Factory.Services.GetRequiredService<ImageStore>();
         using var body = new MemoryStream(ImageSeed.Bytes("image/png"));
         // Written and checked but not yet moved into place or deleted: the stretch of a request after its body is in.
         var (temp, _) = await store.WriteTempAsync(body, CancellationToken.None);
         File.SetLastWriteTimeUtc(temp, (Clock.GetUtcNow() + SWEEP_STEP - STRAY_AGE).UtcDateTime);
 
-        await SweepAsync(marker);
+        await SweepAsync();
 
         File.Exists(temp).ShouldBeTrue();
         store.ReleaseTemp(temp);
-        // The agent's access token ran out with the clock, so a new one starts the marker for the second sweep.
-        await using var later = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        var next = (await ImageSeed.StartAsync(later, deck)).GetProperty("image").GetString().ShouldNotBeNull();
-        await SweepAsync(next);
+        await SweepAsync();
         File.Exists(temp).ShouldBeFalse();
     }
 
@@ -115,7 +106,6 @@ public class ImageSweeperTests : ApiTestFixture
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent);
-        var marker = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
         var started = await ImageSeed.StartAsync(agent, deck);
         var inFlight = started.GetProperty("image").GetString().ShouldNotBeNull();
         var before = Directory.Exists(TempFolder()) ? Directory.GetFiles(TempFolder()) : [];
@@ -124,16 +114,13 @@ public class ImageSweeperTests : ApiTestFixture
         var put = http.PutAsync(started.GetProperty("uploadUrl").GetString(), body);
         await TempFileOfAsync(before);
 
-        await SweepAsync(marker);
+        await SweepAsync();
 
         (await RowExistsAsync(inFlight)).ShouldBeTrue();
         body.Release();
         using var response = await put;
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        // The agent's access token ran out with the clock, so a new one starts the marker for the second sweep.
-        await using var later = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        var next = (await ImageSeed.StartAsync(later, deck)).GetProperty("image").GetString().ShouldNotBeNull();
-        await SweepAsync(next);
+        await SweepAsync();
         (await RowExistsAsync(inFlight)).ShouldBeFalse();
     }
 
@@ -148,35 +135,86 @@ public class ImageSweeperTests : ApiTestFixture
         Directory.CreateDirectory(folder);
         var file = Path.Combine(folder, stuck);
         await File.WriteAllBytesAsync(file, ImageSeed.Bytes("image/png"));
-        // The marker expires a little later, so the sweep reaches the stuck row first.
-        Clock.Advance(TimeSpan.FromMinutes(1));
-        var marker = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
-        // A folder nobody may write to refuses the delete of a file in it.
-        File.SetUnixFileMode(folder, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        // A folder nobody may open hides its files from File.Exists and refuses the delete of one; the row must not go.
+        File.SetUnixFileMode(folder, UnixFileMode.None);
         try
         {
-            await SweepAsync(marker);
+            await SweepAsync();
 
             (await RowExistsAsync(stuck)).ShouldBeTrue();
-            File.Exists(file).ShouldBeTrue();
         }
         finally
         {
             File.SetUnixFileMode(folder, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         }
-        // The agent's access token ran out with the clock, so a new one starts the marker for the second sweep.
-        await using var later = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        var next = (await ImageSeed.StartAsync(later, deck)).GetProperty("image").GetString().ShouldNotBeNull();
-        await SweepAsync(next);
+        File.Exists(file).ShouldBeTrue();
+        await SweepAsync();
         (await RowExistsAsync(stuck)).ShouldBeFalse();
         File.Exists(file).ShouldBeFalse();
     }
 
-    // Steps the clock past the grace and waits for the sweep it fires to remove marker's row, the last thing a sweep does.
-    private async Task SweepAsync(string markerImage)
+    [Test]
+    [UnsupportedOSPlatform("windows")]
+    public async Task Sweep_WhenRequestCouldNotDeleteItsTempFile_ShouldSweepItOnceItCan()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        var started = await ImageSeed.StartAsync(agent, deck);
+        var before = Directory.Exists(TempFolder()) ? Directory.GetFiles(TempFolder()) : [];
+        var body = new HeldBody(ImageSeed.Bytes("image/png"));
+        using var http = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var put = http.PutAsync(started.GetProperty("uploadUrl").GetString(), body);
+        var temp = await TempFileOfAsync(before);
+        // With the folder closed to writes, the request can neither move its temp file nor delete it.
+        File.SetUnixFileMode(TempFolder(), UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        try
+        {
+            body.Release();
+            using var response = await put;
+            response.IsSuccessStatusCode.ShouldBeFalse();
+            File.Exists(temp).ShouldBeTrue();
+        }
+        finally
+        {
+            File.SetUnixFileMode(TempFolder(), UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+        File.SetLastWriteTimeUtc(temp, (Clock.GetUtcNow() + SWEEP_STEP - STRAY_AGE).UtcDateTime);
+
+        await SweepAsync();
+
+        File.Exists(temp).ShouldBeFalse();
+    }
+
+    [Test]
+    [UnsupportedOSPlatform("windows")]
+    public async Task Sweep_WhenTempFileCannotBeDeleted_ShouldStillSweepExpiredRows()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        var expired = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
+        var stray = TempFile("stray", Clock.GetUtcNow() + SWEEP_STEP - STRAY_AGE);
+        File.SetUnixFileMode(TempFolder(), UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        try
+        {
+            await SweepAsync();
+
+            (await RowExistsAsync(expired)).ShouldBeFalse();
+        }
+        finally
+        {
+            File.SetUnixFileMode(TempFolder(), UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+        File.Exists(stray).ShouldBeTrue();
+        await SweepAsync();
+        File.Exists(stray).ShouldBeFalse();
+    }
+
+    // Steps the clock past the grace, which fires the timer's sweep, then runs a sweep and waits for it. Sweeps never overlap,
+    // so when this returns a whole sweep has run since the clock moved.
+    private async Task SweepAsync()
     {
         Clock.Advance(SWEEP_STEP);
-        await WaitUntilAsync(async () => !await RowExistsAsync(markerImage), "the sweep did not run");
+        await Factory.Services.GetServices<IHostedService>().OfType<ImageSweeper>().Single().SweepAsync(CancellationToken.None);
     }
 
     // Checks on every tick of a timer until it holds, or fails the test after 30 seconds.

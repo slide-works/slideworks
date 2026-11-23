@@ -86,6 +86,7 @@ public class ImageStore(IConfiguration configuration)
         var temp = Path.Combine(folder, name);
         _writing[name] = 0;
         var buffer = ArrayPool<byte>.Shared.Rent(BUFFER_SIZE);
+        var written = false;
         try
         {
             long size = 0;
@@ -105,16 +106,21 @@ public class ImageStore(IConfiguration configuration)
                 await file.FlushAsync(cancellationToken);
                 file.Flush(flushToDisk: true);
             }
+            written = true;
             return (temp, size);
         }
         catch
         {
             File.Delete(temp);
-            _writing.TryRemove(name, out _);
             throw;
         }
         finally
         {
+            // A failed write hands the name back even if deleting the file failed; a good one keeps it until ReleaseTemp.
+            if (!written)
+            {
+                _writing.TryRemove(name, out _);
+            }
             ArrayPool<byte>.Shared.Return(buffer);
         }
     }

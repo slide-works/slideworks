@@ -191,8 +191,14 @@ public class ImageUploads(
         }
         finally
         {
-            File.Delete(temp);
-            store.ReleaseTemp(temp);
+            try
+            {
+                File.Delete(temp);
+            }
+            finally
+            {
+                store.ReleaseTemp(temp);
+            }
         }
     }
 
