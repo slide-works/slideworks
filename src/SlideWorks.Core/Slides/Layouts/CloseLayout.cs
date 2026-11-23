@@ -10,6 +10,12 @@ public static class CloseLayout
     // close h2: 112 px/1.02 in a 1400 px column, so a written line wraps after about 22 characters.
     private const int CLOSE_HEADLINE_MAX_SHOWN_LINES = 4;
 
+    // close sub: 36 px/1.35 in a box 1200 px wide with 36 px of padding either side. With four headline lines
+    // above and a one-line author below, a fourth sub line pushes the author past y 996.
+    private const double CLOSE_SUB_WIDTH = 1128;
+    private const double CLOSE_SUB_SIZE = 36;
+    private const int CLOSE_SUB_MAX_LINES = 3;
+
     public static LayoutDefinition Definition { get; } = new("close", "Closing slide (dark): a short headline of up to three written lines, with an optional sub and author.", LayoutSurface.Dark,
     [
         Req("headline", new TextSlot(80, lineBreaks: true), "Set at 112 px, about 22 characters a line: use \\n for a line break, at most 3 written and 4 shown lines; it shrinks to 60 px to keep 4 lines. An emphasised phrase sits within one written line: a phrase that spans a line break is refused"),
@@ -32,6 +38,15 @@ public static class CloseLayout
         if (shown > CLOSE_HEADLINE_MAX_SHOWN_LINES)
         {
             validation.Fail($"{path}.headline", $"too much text to fit: the headline wraps to about {shown} lines at the close slide's size, and at most {CLOSE_HEADLINE_MAX_SHOWN_LINES} fit");
+        }
+
+        if (slots.TryGetProperty("sub", out var sub) && sub.ValueKind == JsonValueKind.String)
+        {
+            var subLines = SlideFit.Lines(sub.GetString()!, CLOSE_SUB_WIDTH, CLOSE_SUB_SIZE, validation.Widths.Head);
+            if (subLines > CLOSE_SUB_MAX_LINES)
+            {
+                validation.Fail($"{path}.sub", $"too much text to fit: the sub wraps to about {subLines} lines, and at most {CLOSE_SUB_MAX_LINES} fit under the headline");
+            }
         }
     }
 }

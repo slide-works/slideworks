@@ -32,6 +32,23 @@ public class CloseLayoutTests
     }
 
     [Test]
+    public void Validate_WhenTheSubWrapsToFourLines_ShouldRefuseAsTooMuchText()
+    {
+        var sub = string.Join(" ", Enumerable.Repeat("WWWWWWWWW", 11));
+
+        Validate($$"""{ "headline": "Ship it", "sub": "{{sub}}" }""").Errors.ShouldBe(
+            ["close.sub: too much text to fit: the sub wraps to about 4 lines, and at most 3 fit under the headline"]);
+    }
+
+    [Test]
+    public void Validate_WhenTheSubWrapsToThreeLines_ShouldAccept()
+    {
+        var sub = string.Join(" ", Enumerable.Repeat("WWWWWWWWW", 8));
+
+        Validate($$"""{ "headline": "Ship it", "sub": "{{sub}}" }""").Errors.ShouldBeEmpty();
+    }
+
+    [Test]
     public void Count_WhenCloseHasEmphasis_ShouldBeZero()
     {
         Count("""{ "headline": "Ship it", "emphasis": [{ "text": "Ship", "tone": "accent" }] }""").ShouldBe(0);
