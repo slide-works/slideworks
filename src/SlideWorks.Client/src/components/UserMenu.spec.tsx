@@ -20,7 +20,7 @@ test('user menu signs out and goes to sign-in', async ({ mount, page }) => {
     </LocationProbe>,
     { hooksConfig: { route: '/decks' } },
   );
-  await expect(page.getByTestId('user-menu')).toHaveText('SR');
+  await expect(page.getByTestId('user-menu-avatar')).toBeVisible();
 
   await page.getByTestId('user-menu-button').click();
   await expect(page.getByTestId('user-menu-panel')).toContainText(me.email);
@@ -133,8 +133,10 @@ test('user menu button shows the avatar and takes a name saved on the profile pa
   mount,
   page,
 }) => {
-  await stubApi(page, { '/api/me': { json: me }, '/api/decks': { json: decksLibrary } });
+  const noPicture = { ...me, avatar: { ...me.avatar, pictureUrl: null } };
+  await stubApi(page, { '/api/me': { json: noPicture }, '/api/decks': { json: decksLibrary } });
   await mount(<AppRoutes />, { hooksConfig: { route: '/decks' } });
+  await expect(page.getByTestId('user-menu-avatar-initials')).toHaveText(me.avatar.initials);
   await expect(page.getByTestId('user-menu-avatar')).toHaveAttribute(
     'data-colour',
     me.avatar.colour,

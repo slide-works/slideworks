@@ -10,7 +10,7 @@ const renamed = {
     ...profile.identity,
     name: 'Quinn Ames',
     colour: 'teal',
-    avatar: { ...profile.identity.avatar, initials: 'QA', colour: 'teal' },
+    avatar: { initials: 'QA', colour: 'teal', pictureUrl: null },
   },
 };
 
@@ -52,7 +52,8 @@ test('the colour options are named and cancel puts the saved values back', async
 });
 
 test('the form saves the name and colour and shows the saved name', async ({ mount, page }) => {
-  await stubApi(page, { '/api/me': { json: me }, '/api/me/profile': { json: profile } });
+  const noPicture = { ...me, avatar: { ...me.avatar, pictureUrl: null } };
+  await stubApi(page, { '/api/me': { json: noPicture }, '/api/me/profile': { json: profile } });
   const bodies: unknown[] = [];
   await page.route('**/api/me/profile', (route) => {
     if (route.request().method() !== 'PUT') return route.fallback();
