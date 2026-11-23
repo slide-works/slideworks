@@ -33,7 +33,7 @@ test('profile page shows neither Admin nor the admin link for a non-admin', asyn
   mount,
   page,
 }) => {
-  const member = { ...profile, account: { ...profile.account, isAdmin: false, adminUrl: null } };
+  const member = { ...profile, account: { ...profile.account, isAdmin: false } };
   await stubApi(page, { '/api/me': { json: me }, '/api/me/profile': { json: member } });
   await mount(<AppRoutes />, route);
 

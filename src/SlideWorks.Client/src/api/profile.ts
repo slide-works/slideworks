@@ -17,7 +17,7 @@ export type ProfileAccount = {
   timeZone: string | null;
   timeZones: TimeZoneOption[];
   isAdmin: boolean;
-  adminUrl: string | null;
+  adminUrl: string;
 };
 
 // id is the token family id; connectedLabel says "Unknown" for families from before the time was kept.

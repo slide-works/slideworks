@@ -31,7 +31,7 @@ public class ProfileContractTests : ApiTestFixture
         identity.GetProperty("hasPhoto").GetBoolean().ShouldBeFalse();
         var account = profile.GetProperty("account");
         account.GetProperty("isAdmin").GetBoolean().ShouldBeFalse();
-        account.GetProperty("adminUrl").ValueKind.ShouldBe(JsonValueKind.Null);
+        account.GetProperty("adminUrl").GetString().ShouldBe("/admin/users");
         account.GetProperty("timeZones").EnumerateArray().Select(z => z.GetProperty("id").GetString()).ShouldContain("Europe/London");
         var agents = profile.GetProperty("agents").EnumerateArray().ToList();
         agents.Select(a => a.GetProperty("clientName").GetString()).ShouldBe(["Claude", "Cursor"]);
@@ -40,7 +40,7 @@ public class ProfileContractTests : ApiTestFixture
     }
 
     [Test]
-    public async Task GetProfile_WhenAdmin_ShouldCarryTheAdminUrl()
+    public async Task GetProfile_WhenAdmin_ShouldBeAdmin()
     {
         using var ada = ClientFor(TestUser.Ada);
 

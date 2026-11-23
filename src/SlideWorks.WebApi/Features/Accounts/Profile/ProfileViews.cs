@@ -21,7 +21,7 @@ public class ProfileViews(IUserAccounts accounts, ICurrentActor actor, IAvatars 
         var connected = await agents.ListAsync(userId);
         return new ProfileView(
             new IdentityPanel(user.Name, user.Email, avatars.For(user), user.AvatarColour, AvatarColours.Keys, user.PhotoId != null),
-            new AccountPanel(user.TimeZone, timeZones.List(), user.IsAdmin, user.IsAdmin ? ADMIN_URL : null),
+            new AccountPanel(user.TimeZone, timeZones.List(), user.IsAdmin, ADMIN_URL),
             [.. connected.Select(a => new AgentRow(a.FamilyId, a.ClientName, a.Connected, a.LastUsed))]);
     }
 }

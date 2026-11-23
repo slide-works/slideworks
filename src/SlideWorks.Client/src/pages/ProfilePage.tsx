@@ -61,7 +61,7 @@ export function ProfilePage() {
             <p data-testid="profile-access" className="text-meta text-ink-muted">
               Access: {profile.account.isAdmin ? 'Admin' : 'Member'}
             </p>
-            {profile.account.adminUrl !== null && (
+            {profile.account.isAdmin && (
               <Link
                 to={profile.account.adminUrl}
                 data-testid="profile-admin-link"
