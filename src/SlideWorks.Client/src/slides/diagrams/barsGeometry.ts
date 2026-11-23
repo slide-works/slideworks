@@ -1,4 +1,5 @@
 import type { Bar } from '../slots/bars';
+import { glyphCost } from './glyphWidths';
 
 // The bars layout's geometry, in canvas px. It is the one source: the server's
 // BarsLayout rule (src/SlideWorks.Core/Slides/Layouts/BarsLayout.cs) mirrors
@@ -12,6 +13,8 @@ import type { Bar } from '../slots/bars';
 // Label:    30 px on 36 px lines; the sub 20 px on 26 px lines, 4 px under it.
 // End label: the value (and unit) at 28 px × 0.62 em per character, the tag at
 //           18 px × 0.85 em per character + 14, and 30 px.
+// Every "per character" is the sum of the characters' glyphWidths factors (a W costs 1.87, a lowercase
+// letter 1), the server's GlyphWidths table.
 // A bar is at least 6 px long. A note at 22 px × 0.56 em per character is
 // inside its bar when it and 40 px fit, else 18 px after the bar or outline.
 export const LABEL_COLUMN = 400;
@@ -48,16 +51,8 @@ export function rowGap(count: number): number {
   return count >= 5 ? 20 : 28;
 }
 
-// Characters as the server counts them: a letter with its combining marks is
-// one. Without Intl.Segmenter the count is in code points.
-function length(text: string): number {
-  try {
-    return Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text))
-      .length;
-  } catch {
-    return Array.from(text).length;
-  }
-}
+// Text width in average-character units: each character costs its glyphWidths factor, as on the server.
+const length = glyphCost;
 
 const NUMBER = new Intl.NumberFormat('en', { maximumFractionDigits: 15 });
 
