@@ -16,7 +16,7 @@ namespace SlideWorks.WebApi.Features.OpenResponses;
 // A submit with no cookie, or from a guest who has not joined, is the same 404, so a guessed code and a guessed guest
 // learn the same thing. A submit is then counted by OpenResponseLimiter, refused while the round is not the open one the
 // phone saw, and refused by OpenTextRules, before anything is written. One row per guest, at position 0. Its wall number
-// is 1-based in insert order (SQLite rowid, which an update leaves alone), so sending again keeps the number.
+// is 1-based in arrival order (OpenEntry.Arrival, which an update leaves alone), so sending again keeps the number.
 [RegisterPerRequest]
 public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenResponseLimiter limiter, IOpenTextPublisher publisher)
 {
@@ -138,18 +138,15 @@ public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenRespon
         return new LoadedRound(phase == OpenResponsePhase.Draft ? null : round.Id, phase, round.Number, round.Revision, question, answers);
     }
 
-    // Insert order is the SQLite rowid. An update of the text does not change it, so the guest's number stays.
+    // Arrival order: when each guest first sent. An update of the text does not change it, so the guest's number stays.
     private async Task<IReadOnlyList<LoadedAnswer>> AnswersAsync(Guid roundId, CancellationToken cancellationToken)
     {
         var entries = await db.OpenEntries.AsNoTracking()
             .Where(e => e.RoundId == roundId && e.Position == 0)
+            .OrderBy(e => e.Arrival)
             .Select(e => new { e.Id, e.GuestId, e.Text, Hidden = e.HiddenAt != null })
             .ToListAsync(cancellationToken);
-        var order = await db.Database.SqlQuery<string>(
-                $"SELECT \"Id\" AS Value FROM \"OpenEntries\" WHERE \"RoundId\" = {roundId.ToString().ToUpperInvariant()} AND \"Position\" = 0 ORDER BY rowid")
-            .ToListAsync(cancellationToken);
-        var rank = order.Select((id, index) => (id, index)).ToDictionary(row => Guid.Parse(row.id), row => row.index);
-        return [.. entries.Select(entry => new LoadedAnswer(entry.Id, entry.GuestId, entry.Text, entry.Hidden)).OrderBy(entry => rank[entry.Id])];
+        return [.. entries.Select(entry => new LoadedAnswer(entry.Id, entry.GuestId, entry.Text, entry.Hidden))];
     }
 
     private async Task StoreAsync(Guid roundId, string guestId, string text, int revision, CancellationToken cancellationToken)
@@ -167,6 +164,7 @@ public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenRespon
         var entry = await db.OpenEntries.SingleOrDefaultAsync(e => e.RoundId == roundId && e.GuestId == guestId && e.Position == 0, cancellationToken);
         if (entry is null)
         {
+            var last = await db.OpenEntries.Where(e => e.RoundId == roundId).MaxAsync(e => (long?)e.Arrival, cancellationToken);
             db.OpenEntries.Add(new OpenEntry
             {
                 Id = Guid.NewGuid(),
@@ -175,6 +173,7 @@ public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenRespon
                 Position = 0,
                 Text = text,
                 TextKey = OpenTextRules.KeyOf(text),
+                Arrival = (last ?? 0) + 1,
             });
         }
         else

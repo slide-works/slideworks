@@ -134,19 +134,19 @@ public class OpenResponseControls(
     }
 
     // The control entries of a round and the rows behind each (D11): a word is every row with its text key, numbered by
-    // count descending then text key; an answer is its guest's row, numbered by guest id. An entry is hidden only when every
+    // count descending then text key, shown in the casing of its earliest row; an answer is its guest's row, numbered by
+    // when the guest first sent (Arrival), so a number never changes when later answers arrive. An entry is hidden only when every
     // row behind it is, as the audience sees it, so a row sent after a hide shows the entry again.
-    // TODO: an open-text number is the guest's place by guest id, because OpenEntry has no time it was first sent; a
-    // first-sent time on the row replaces this ordering.
     public static IReadOnlyList<(ControlEntry Entry, IReadOnlyList<OpenEntry> Rows)> EntriesOf(OpenResponseKind kind, IReadOnlyList<OpenEntry> rows)
         => kind == OpenResponseKind.WordCloud
             ? [.. rows.GroupBy(row => row.TextKey, StringComparer.Ordinal)
                 .Select(word => (Key: word.Key, Rows: (IReadOnlyList<OpenEntry>)[.. word], Count: word.Select(row => row.GuestId).Distinct(StringComparer.Ordinal).Count()))
                 .OrderByDescending(word => word.Count)
                 .ThenBy(word => word.Key, StringComparer.Ordinal)
-                .Select((word, index) => (new ControlEntry(index + 1, word.Rows.Select(row => row.Text).Order(StringComparer.Ordinal).First(), word.Count, word.Rows.All(row => row.HiddenAt != null)), word.Rows))]
+                .Select((word, index) => (new ControlEntry(index + 1, word.Rows.OrderBy(row => row.Arrival).ThenBy(row => row.Position).ThenBy(row => row.Text, StringComparer.Ordinal).First().Text, word.Count, word.Rows.All(row => row.HiddenAt != null)), word.Rows))]
             : [.. rows.GroupBy(row => row.GuestId, StringComparer.Ordinal)
-                .OrderBy(guest => guest.Key, StringComparer.Ordinal)
+                .OrderBy(guest => guest.Min(row => row.Arrival))
+                .ThenBy(guest => guest.Key, StringComparer.Ordinal)
                 .Select((guest, index) => (Answer: guest.MinBy(row => row.Position)!, Rows: (IReadOnlyList<OpenEntry>)[.. guest], Number: index + 1))
                 .Select(guest => (new ControlEntry(guest.Number, guest.Answer.Text, null, guest.Rows.All(row => row.HiddenAt != null)), guest.Rows))];
 
