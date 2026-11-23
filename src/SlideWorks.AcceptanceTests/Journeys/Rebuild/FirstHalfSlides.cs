@@ -145,10 +145,11 @@ public static class FirstHalfSlides
                 points = new[] { M(90, 148) }, footer = M(90, 149),
             },
         }),
+        // shortened: stat value 6, not 12 ("Ledger"), so the figure stays on one line at 72 px (SW-830 counts its wrapped lines)
         (20, "quote", 5, "dark quote with a figure", false, 0, 0, "dark", _ => new
         {
             kicker = M(60, 150), headline = M(80, 151), quote = M(280, 152), attribution = M(80, 153), role = M(160, 154),
-            stat = new { value = M(12, 155), caption = M(90, 156) }, source = M(200, 158),
+            stat = new { value = M(6, 155), caption = M(90, 156) }, source = M(200, 158),
         }),
         (21, "image", 5, "screenshot and four tips", true, 0, 0, null, image => new
         {
