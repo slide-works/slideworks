@@ -31,16 +31,19 @@ const SHOW_MESSAGE_MS = 2500;
 // its own, and the parent's key on the position clears it when the slide moves.
 function CopyLinkButton({ position }: { position: PlayerPosition }) {
   const copy = useCopyText();
-  const [shown, setShown] = useState(false);
+  const [clicks, setClicks] = useState(0);
+  const [dismissed, setDismissed] = useState(false);
   useEffect(() => {
-    if (copy.state === 'idle') return;
-    setShown(true);
-    const timer = window.setTimeout(() => setShown(false), SHOW_MESSAGE_MS);
+    if (clicks === 0) return;
+    const timer = window.setTimeout(() => setDismissed(true), SHOW_MESSAGE_MS);
     return () => window.clearTimeout(timer);
-  }, [copy.state]);
+  }, [clicks]);
+  const shown = copy.state !== 'idle' && !dismissed;
   const onClick = () => {
     const url = new URL(window.location.href);
     url.hash = formatHash(position);
+    setDismissed(false);
+    setClicks((count) => count + 1);
     copy.copy(url.href);
   };
   const message =
