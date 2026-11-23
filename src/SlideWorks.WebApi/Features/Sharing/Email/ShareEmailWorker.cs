@@ -1,4 +1,3 @@
-#pragma warning disable S6667 // D15: the exception text can hold the recipient address, so it is deliberately never logged
 using System.Threading.Channels;
 using MailKit.Net.Smtp;
 using Agoda.IoC.Core;
@@ -64,10 +63,12 @@ public sealed class ShareEmailWorker(
                 {
                     await SendNoticeAsync(notice, stopping);
                 }
+#pragma warning disable S6667 // D15: the exception text can hold the recipient address, so it is deliberately never logged
                 catch (Exception ex) when (ex is not OperationCanceledException || !stopping.IsCancellationRequested)
                 {
                     logger.LogError("Share emails for deck {DeckId} failed and were dropped ({ExceptionType})", notice.DeckId, ex.GetType().Name);
                 }
+#pragma warning restore S6667
             }
         }
         catch (OperationCanceledException) when (stopping.IsCancellationRequested)
@@ -109,17 +110,21 @@ public sealed class ShareEmailWorker(
                 db.ShareEmails.Add(new ShareEmailRow { Id = Guid.NewGuid(), RecipientEmail = recipient, SharerId = sharer.Id, DeckId = deck.Id, SentAt = clock.GetUtcNow() });
                 await db.SaveChangesAsync(stopping);
             }
+#pragma warning disable S6667 // D15: the exception text can hold the recipient address, so it is deliberately never logged
             catch (SmtpCommandException ex)
             {
                 // D15: logged and dropped, no retry. Never the exception or its message: MailKit puts the address in them.
                 logger.LogWarning("Share email for deck {DeckId} was not sent: {ErrorCode} {StatusCode}", deck.Id, ex.ErrorCode, (int)ex.StatusCode);
                 db.ChangeTracker.Clear();
             }
+#pragma warning restore S6667
+#pragma warning disable S6667 // D15: as above
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogWarning("Share email for deck {DeckId} was not sent: {ExceptionType}", deck.Id, ex.GetType().Name);
                 db.ChangeTracker.Clear();
             }
+#pragma warning restore S6667
         }
     }
 
