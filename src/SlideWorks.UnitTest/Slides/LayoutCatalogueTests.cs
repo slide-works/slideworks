@@ -146,6 +146,14 @@ public class LayoutCatalogueTests
         }
     }
 
+    // "string", or an array of names such as ["string", "null"].
+    private static IEnumerable<string> TypeNames(JsonNode? type) => type switch
+    {
+        JsonValue value => [value.GetValue<string>()],
+        JsonArray array => array.Select(item => item?.GetValue<string>() ?? ""),
+        _ => [""],
+    };
+
     private static void CheckKeyword(string key, JsonNode? value, JsonNode? properties, string path, List<string> problems)
     {
         switch (key)
@@ -153,7 +161,7 @@ public class LayoutCatalogueTests
             case var k when !_keywords.Contains(k):
                 problems.Add($"{path}: unknown keyword");
                 break;
-            case "type" when value is not JsonValue || !_types.Contains(value.GetValue<string>()):
+            case "type" when !TypeNames(value).All(_types.Contains):
                 problems.Add($"{path}: not a JSON Schema type");
                 break;
             case "properties":

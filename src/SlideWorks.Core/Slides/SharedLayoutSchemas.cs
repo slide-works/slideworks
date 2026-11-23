@@ -139,8 +139,16 @@ public static class SharedLayoutSchemas
             return name;
         }
 
-        return schema["type"]?.GetValue<string>() == "string" && schema["enum"] is JsonArray { Count: >= 20 } ? "icon" : null;
+        return IsStringType(schema["type"]) && schema["enum"] is JsonArray { Count: >= 20 } ? "icon" : null;
     }
+
+    // An optional field's type is ["string", "null"].
+    private static bool IsStringType(JsonNode? type) => type switch
+    {
+        JsonValue value => value.GetValue<string>() == "string",
+        JsonArray array => array.Any(item => item?.GetValue<string>() == "string"),
+        _ => false,
+    };
 
     private static JsonObject WithoutDescription(JsonObject schema)
     {
