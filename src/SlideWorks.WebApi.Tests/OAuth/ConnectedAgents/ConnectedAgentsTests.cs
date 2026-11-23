@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Features.OAuth.Stores;
 using SlideWorks.WebApi.Tests.OAuth.Authorize;
 using SlideWorks.WebApi.Tests.OAuth.Token;
@@ -37,17 +38,18 @@ public class ConnectedAgentsTests : ApiTestFixture
     [Test]
     public async Task GetProfile_WhenAgentConnected_ShouldListItWithLabels()
     {
-        var (access, _) = await _endpoint.TokensAsync(_clientId, TestUser.Mira);
+        var zedId = await OAuthFlow.RegisterAsync(_anonymous, "Zed");
+        var (access, _) = await _endpoint.TokensAsync(zedId, TestUser.Mira);
         using var mira = ClientFor(TestUser.Mira);
-        Clock.Advance(TimeSpan.FromHours(2));
+        Clock.Advance(TimeSpan.FromMinutes(30));
 
-        var before = await AgentsAsync(mira);
+        var before = (await AgentsAsync(mira)).Where(a => a.GetProperty("clientName").GetString() == "Zed").ToList();
         (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.OK);
-        var after = await AgentsAsync(mira);
+        var after = (await AgentsAsync(mira)).Where(a => a.GetProperty("clientName").GetString() == "Zed").ToList();
 
         before.Count.ShouldBe(1);
-        before[0].GetProperty("clientName").GetString().ShouldBe("Claude");
-        before[0].GetProperty("connectedLabel").GetString().ShouldBe("2 h ago");
+        before[0].GetProperty("clientName").GetString().ShouldBe("Zed");
+        before[0].GetProperty("connectedLabel").GetString().ShouldBe("30 min ago");
         before[0].GetProperty("lastUsedLabel").ValueKind.ShouldBe(JsonValueKind.Null);
         after[0].GetProperty("lastUsedLabel").GetString().ShouldBe("just now");
     }
@@ -96,16 +98,17 @@ public class ConnectedAgentsTests : ApiTestFixture
     [Test]
     public async Task DeleteAgent_WhenOtherPersonsFamily_ShouldReturn404AndKeepIt()
     {
-        var (access, _) = await _endpoint.TokensAsync(_clientId, TestUser.Mira);
+        var otherId = await OAuthFlow.RegisterAsync(_anonymous, "Other");
+        var (access, _) = await _endpoint.TokensAsync(otherId, TestUser.Mira);
         using var mira = ClientFor(TestUser.Mira);
-        var familyId = (await AgentsAsync(mira)).Single().GetProperty("id").GetString();
+        var familyId = (await AgentsAsync(mira)).Single(a => a.GetProperty("clientName").GetString() == "Other").GetProperty("id").GetString();
         using var alex = ClientFor(TestUser.Alex);
 
         var response = await alex.DeleteAsync($"/api/me/agents/{familyId}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await _endpoint.McpStatusAsync(access)).ShouldBe(HttpStatusCode.OK);
-        (await AgentsAsync(mira)).Count.ShouldBe(1);
+        (await AgentsAsync(mira)).Select(a => a.GetProperty("id").GetString()).ShouldContain(familyId);
     }
 
     [Test]
@@ -113,7 +116,7 @@ public class ConnectedAgentsTests : ApiTestFixture
     {
         await _endpoint.TokensAsync(_clientId, TestUser.Ada);
         using var ada = ClientFor(TestUser.Ada);
-        var familyId = (await AgentsAsync(ada)).First().GetProperty("id").GetString();
+        var familyId = (await AgentsAsync(ada))[0].GetProperty("id").GetString();
         (await ada.DeleteAsync($"/api/me/agents/{familyId}")).StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
         var again = await ada.DeleteAsync($"/api/me/agents/{familyId}");
@@ -140,7 +143,7 @@ public class ConnectedAgentsTests : ApiTestFixture
         third.ShouldBe(Clock.GetUtcNow());
     }
 
-    private async Task<List<JsonElement>> AgentsAsync(HttpClient client)
+    private static async Task<List<JsonElement>> AgentsAsync(HttpClient client)
     {
         var profile = await client.GetFromJsonAsync<JsonElement>("/api/me/profile");
         return [.. profile.GetProperty("agents").EnumerateArray()];
