@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Avatar } from '../../components/Avatar';
 import type { ProfileIdentity, ProfileView } from '../../api/profile';
+import { redirectToPending, redirectToSignIn } from '../../api/client';
+import { announceProfileSaved } from '../../components/UserMenu';
 
 const UNREACHABLE = "Can't reach SlideWorks";
+const MAX_BYTES = 5 * 1024 * 1024;
+// The same sentence the server's 413 carries.
+const TOO_LARGE = `A photo may be at most ${MAX_BYTES / (1024 * 1024)} MB`;
 
 // The photo part of the Identity panel (D28): upload and remove are their own calls (POST and DELETE /api/me/photo) and
 // take effect at once, never waiting for the panel's Save. The line under the photo says which picture is showing, and a
@@ -29,11 +34,18 @@ export function PhotoControl({ identity }: { identity: ProfileIdentity }) {
     try {
       const response = await send();
       if (!response.ok) {
-        setError(await refusal(response));
+        const message = await refusal(response);
+        if (response.status === 401) {
+          redirectToSignIn(window.location);
+        } else if (response.status === 403 && message === 'pending_approval') {
+          redirectToPending(window.location);
+        }
+        setError(message);
         return false;
       }
       const profile = (await response.json()) as ProfileView;
       setShown({ source: profile.identity, from: identity });
+      announceProfileSaved(profile.identity.name, profile.identity.avatar);
       return true;
     } catch {
       setError(UNREACHABLE);
@@ -44,6 +56,10 @@ export function PhotoControl({ identity }: { identity: ProfileIdentity }) {
   };
 
   const upload = async (file: File) => {
+    if (file.size > MAX_BYTES) {
+      setError(TOO_LARGE);
+      return;
+    }
     await apply(() =>
       fetch('/api/me/photo', {
         method: 'POST',

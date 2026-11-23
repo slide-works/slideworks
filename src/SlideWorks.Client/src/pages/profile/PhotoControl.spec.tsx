@@ -100,3 +100,74 @@ test('without a photo there is no Remove photo button', async ({ mount, page }) 
   await expect(page.getByRole('button', { name: 'Upload photo' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Remove photo' })).toHaveCount(0);
 });
+
+test('a saved photo announces the new avatar to the user menu', async ({ mount, page }) => {
+  await open(page, withoutPhoto);
+  await page.route('**/api/me/photo', (r) => r.fulfill({ json: withPhoto }));
+  await mount(<AppRoutes />, route);
+  await page.evaluate(() => {
+    const seen: unknown[] = [];
+    (window as unknown as { seen: unknown[] }).seen = seen;
+    window.addEventListener('slideworks:profile-saved', (e) =>
+      seen.push((e as CustomEvent).detail),
+    );
+  });
+
+  await page.getByTestId('profile-photo-input').setInputFiles(png);
+
+  await expect(page.getByTestId('profile-photo-source')).toHaveText('Picture: Your photo');
+  const seen = await page.evaluate(() => (window as unknown as { seen: unknown[] }).seen);
+  expect(seen).toEqual([{ name: withPhoto.identity.name, avatar: withPhoto.identity.avatar }]);
+});
+
+test('a 401 on upload sends the person to sign in', async ({ mount, page }) => {
+  await open(page, withoutPhoto);
+  await page.route('**/api/me/photo', (r) =>
+    r.fulfill({ status: 401, json: { error: 'unauthorized' } }),
+  );
+  await page.route('**/signin?*', (r) => r.fulfill({ contentType: 'text/html', body: 'sign in' }));
+  await mount(<AppRoutes />, route);
+
+  await page.getByTestId('profile-photo-input').setInputFiles(png);
+
+  await expect(page).toHaveURL(/\/signin\?returnTo=/);
+});
+
+test('a pending_approval 403 on upload sends the person to the pending page', async ({
+  mount,
+  page,
+}) => {
+  await open(page, withoutPhoto);
+  await page.route('**/api/me/photo', (r) =>
+    r.fulfill({ status: 403, json: { error: 'pending_approval' } }),
+  );
+  await page.route('**/pending', (r) => r.fulfill({ contentType: 'text/html', body: 'pending' }));
+  await mount(<AppRoutes />, route);
+
+  await page.getByTestId('profile-photo-input').setInputFiles(png);
+
+  await expect(page).toHaveURL(/\/pending$/);
+});
+
+test('a file over 5 MB is refused before posting, with the server wording', async ({
+  mount,
+  page,
+}) => {
+  await open(page, withoutPhoto);
+  let posted = 0;
+  await page.route('**/api/me/photo', (r) => {
+    posted++;
+    return r.fulfill({ json: withPhoto });
+  });
+  await mount(<AppRoutes />, route);
+
+  await page.getByTestId('profile-photo-input').setInputFiles({
+    name: 'big.png',
+    mimeType: 'image/png',
+    buffer: Buffer.alloc(5 * 1024 * 1024 + 1),
+  });
+
+  await expect(page.getByTestId('profile-photo-error')).toHaveText('A photo may be at most 5 MB');
+  expect(posted).toBe(0);
+  await expect(page.getByTestId('profile-photo-source')).toHaveText('Picture: Initials');
+});

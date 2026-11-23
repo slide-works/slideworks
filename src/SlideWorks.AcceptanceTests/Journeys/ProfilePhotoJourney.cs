@@ -13,6 +13,7 @@ public class ProfilePhotoJourney : AcceptanceTest
     {
         await SignIn.AsAsync(Page, TestUser.NewApproved());
         var profile = new ProfilePage(Page);
+        var menu = new UserMenu(Page);
         await Page.GotoAsync(ProfilePage.PATH);
         await Expect(profile.PhotoSource).ToHaveTextAsync("Picture: Initials");
         await Expect(profile.RemovePhoto).ToHaveCountAsync(0);
@@ -21,17 +22,15 @@ public class ProfilePhotoJourney : AcceptanceTest
 
         await Expect(profile.PhotoSource).ToHaveTextAsync("Picture: Your photo");
         await Expect(profile.RemovePhoto).ToBeVisibleAsync();
-        var photo = Page.GetByTestId("profile-photo-avatar-picture");
+        var photo = profile.PhotoPicture;
         await Expect(photo).ToBeVisibleAsync();
         await Expect(photo).ToHaveAttributeAsync("src", new Regex("^/api/people/[0-9a-f-]+/photo/[0-9A-Za-z]+$"));
 
-        await Page.ReloadAsync();
-        await Expect(Page.GetByTestId("user-menu-avatar-picture")).ToHaveAttributeAsync("src", new Regex("/photo/[0-9A-Za-z]+$"));
+        await Expect(menu.AvatarPicture).ToHaveAttributeAsync("src", new Regex("/photo/[0-9A-Za-z]+$"));
 
         await profile.RemovePhoto.ClickAsync();
         await Expect(profile.RemovePhoto).ToHaveCountAsync(0);
         await Expect(profile.PhotoSource).ToHaveTextAsync("Picture: Initials");
-        await Page.ReloadAsync();
-        await Expect(Page.GetByTestId("user-menu-avatar-picture")).ToHaveCountAsync(0);
+        await Expect(menu.AvatarPicture).ToHaveCountAsync(0);
     }
 }
