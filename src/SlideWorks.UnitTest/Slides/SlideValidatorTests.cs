@@ -497,7 +497,7 @@ public class SlideValidatorTests
     {
         var result = Validate("close", $$"""{ "headline": "{{new string('x', 50)}}\n{{new string('y', 25)}}" }""");
 
-        result.Error.ShouldBe("close.headline: too long to fit: it wraps to about 5 lines at the close slide's size, and at most 4 fit");
+        result.Error.ShouldBe("close.headline: too much text to fit: the headline wraps to about 5 lines at the close slide's size, and at most 4 fit");
     }
 
     [Test]

@@ -54,6 +54,18 @@ const TAGLINE_FIT: FitBudget = {
   maxHeight: roomLeft,
 };
 
+// The byline is set at 28 px and the room left after the tagline's fit. Two
+// 60-character spans of capital W take two lines at 28 px, and under a prose
+// title with the subtitle and tagline at their floors that ended the slide at
+// y 1009.7, so it shrinks too, never below 22 px.
+const BYLINE_FIT: FitBudget = {
+  start: 28,
+  floor: 22,
+  lines: 2,
+  lineHeight: 1.2,
+  maxHeight: roomLeft,
+};
+
 // The opening slide (dark): kicker, title, subtitle, tagline, a byline of the
 // author and affiliation, and an optional stamp in the top right corner.
 export function TitleLayout({ slots }: LayoutProps<'title'>) {
@@ -61,12 +73,14 @@ export function TitleLayout({ slots }: LayoutProps<'title'>) {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const subtitleRef = useRef<HTMLParagraphElement>(null);
   const taglineRef = useRef<HTMLParagraphElement>(null);
-  // The room left depends on every slot in the stack, so both room fits run
+  const bylineRef = useRef<HTMLParagraphElement>(null);
+  // The room left depends on every slot in the stack, so the room fits run
   // again when any of them changes: the subtitle first, then the tagline.
   const stack = [kicker, title, subtitle, tagline, author, affiliation].join('\n');
   useFitText(titleRef, TITLE_FIT, title);
   useFitText(subtitleRef, SUBTITLE_FIT, stack);
   useFitText(taglineRef, TAGLINE_FIT, stack);
+  useFitText(bylineRef, BYLINE_FIT, stack);
   return (
     <div data-testid="layout-title" className={`sw-layout ${styles.title}`}>
       {stamp !== undefined ? <Stamp text={stamp} /> : null}
@@ -92,7 +106,7 @@ export function TitleLayout({ slots }: LayoutProps<'title'>) {
         </p>
       ) : null}
       {author !== undefined || affiliation !== undefined ? (
-        <p data-testid="title-byline" className={styles.byline}>
+        <p ref={bylineRef} data-testid="title-byline" className={styles.byline}>
           {author !== undefined ? <span>{author}</span> : null}
           {author !== undefined && affiliation !== undefined ? (
             <i className={styles.rule} aria-hidden="true" />
