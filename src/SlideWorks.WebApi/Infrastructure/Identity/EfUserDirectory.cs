@@ -57,7 +57,10 @@ public class EfUserDirectory(AppDbContext db, TimeProvider clock, IConfiguration
             db.Users.Add(user);
         }
         user.Email = Normalise(email);
-        user.Name = name;
+        if (!user.NameSetByPerson)
+        {
+            user.Name = name;
+        }
         user.PictureUrl = pictureUrl;
         await db.SaveChangesAsync();
         if (IsAdminEmail(user.Email) && await BootstrapAdminAsync(user.Id))

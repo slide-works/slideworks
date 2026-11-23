@@ -71,6 +71,8 @@ const ME = keys<MeView>({
   email: true,
   name: true,
   pictureUrl: true,
+  avatar: true,
+  timeZone: true,
   access: true,
   isAdmin: true,
   pendingRequests: true,
@@ -491,6 +493,8 @@ describe('screen JSON examples', () => {
 
   it('me.json matches MeView', () => {
     expect(sorted(me)).toEqual(ME);
+    expect(sorted(me.avatar)).toEqual(['colour', 'initials', 'pictureUrl']);
+    expect(me.timeZone).toBe('Europe/London');
     expect(me.access).toBe('approved');
     expect(me.isAdmin).toBe(false);
     expect(me.pendingRequests).toBe(0);
