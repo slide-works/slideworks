@@ -63,8 +63,7 @@ for (const c of CASES) byFixture.set(c.fixture, [...(byFixture.get(c.fixture) ??
 // asserted to still overflow, so a fix turns this spec red until the entry is
 // removed. One Bug per layout covers both variants. Empty since SW-626 wave 1.
 // A case the server refuses never belongs here.
-const KNOWN_OVERFLOWS: Record<string, string> = {
-};
+const KNOWN_OVERFLOWS: Record<string, string> = {};
 
 function slideOf(c: WorstCase): RenderableSlide {
   return {
