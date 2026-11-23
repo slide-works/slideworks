@@ -112,10 +112,10 @@ public static class SecondHalfSlides
                 new { icon = "warning", badge = M(36, 3809), title = M(70, 3810), text = M(140, 3811), tone = "negative", fill = "plain" },
             },
         }),
-        // shortened: second headline line 30, not 40 (SW-802 estimate)
+        // shortened: second headline line 35, not 40 (SW-802 estimate)
         (39, "close", 7, "closing slide", false, 0, 0, null, _ => new
         {
-            headline = M(39, 3901) + "\n" + M(30, 3902), sub = M(110, 3903), author = M(60, 3904),
+            headline = M(39, 3901) + "\n" + M(35, 3902), sub = M(110, 3903), author = M(60, 3904),
         }),
         // shortened: link sources 60 (row 40)
         (40, "links", 7, "four links and a code", false, 0, 0, null, _ => new

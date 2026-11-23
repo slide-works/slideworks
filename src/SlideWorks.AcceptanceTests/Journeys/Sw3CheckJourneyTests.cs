@@ -9,8 +9,8 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests.Journeys;
 
-// SW-3's visual check with the real render engine and the built bundle. Slide 2 of the overflow deck is the shared
-// levelsTextWide fixture: add_slide accepts it (the estimate is blind to wide letters) but it overflows when measured.
+// SW-3's visual check with the real render engine and the built bundle. Slide 2 of the overflow deck is the generated
+// quoteStatOnly stat allW worst case (SW-718): add_slide accepts it but its stat runs off an edge when measured.
 public class Sw3CheckJourneyTests : AcceptanceTest
 {
     private const string OVERFLOW_MESSAGE = "Text runs ";
@@ -174,7 +174,7 @@ public class Sw3CheckJourneyTests : AcceptanceTest
         return deck;
     }
 
-    // Slide 1 and 3 are clean quotes; slide 2 is levelsTextWide, which add_slide accepts without a warning (SW-664).
+    // Slide 1 and 3 are clean quotes; slide 2 is quoteStatOnly stat allW, which add_slide accepts without a warning (SW-718).
     private static async Task<(string Deck, JsonElement Warnings)> OverflowDeckAsync(McpClient agent)
     {
         var deck = await NewDeckAsync(agent);
