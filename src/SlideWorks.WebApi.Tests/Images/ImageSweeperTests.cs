@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Runtime.Versioning;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -71,6 +72,7 @@ public class ImageSweeperTests : ApiTestFixture
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent);
         var used = await ImageSeed.UploadAsync(agent, Factory, deck, ImageSeed.Bytes("image/png"));
+        await DeckSeed.AddSlideAsync(agent, deck, "image", $$"""{ "headline": "The board", "image": { "image": "{{used}}", "alt": "A taskboard" } }""");
         using var logo = await Client.PutAsJsonAsync($"/api/decks/{deck}/look", new { logo = used });
         logo.StatusCode.ShouldBe(HttpStatusCode.OK, await logo.Content.ReadAsStringAsync());
         var abandoned = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
@@ -83,6 +85,90 @@ public class ImageSweeperTests : ApiTestFixture
         using var served = await Client.GetAsync($"/api/images/{used}");
         served.StatusCode.ShouldBe(HttpStatusCode.OK);
         File.Exists(Path.Combine(DataPath(), "images", deck, used)).ShouldBeTrue();
+    }
+
+    [Test]
+    public async Task Sweep_WhenTempFileWrittenButNotReleased_ShouldKeepItUntilReleased()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        var marker = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
+        var store = Factory.Services.GetRequiredService<ImageStore>();
+        using var body = new MemoryStream(ImageSeed.Bytes("image/png"));
+        // Written and checked but not yet moved into place or deleted: the stretch of a request after its body is in.
+        var (temp, _) = await store.WriteTempAsync(body, CancellationToken.None);
+        File.SetLastWriteTimeUtc(temp, (Clock.GetUtcNow() + SWEEP_STEP - STRAY_AGE).UtcDateTime);
+
+        await SweepAsync(marker);
+
+        File.Exists(temp).ShouldBeTrue();
+        store.ReleaseTemp(temp);
+        // The agent's access token ran out with the clock, so a new one starts the marker for the second sweep.
+        await using var later = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var next = (await ImageSeed.StartAsync(later, deck)).GetProperty("image").GetString().ShouldNotBeNull();
+        await SweepAsync(next);
+        File.Exists(temp).ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task Sweep_WhenUploadInFlightPastGrace_ShouldKeepItsRow()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        var marker = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
+        var started = await ImageSeed.StartAsync(agent, deck);
+        var inFlight = started.GetProperty("image").GetString().ShouldNotBeNull();
+        var body = new HeldBody(ImageSeed.Bytes("image/png"));
+        using var http = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var put = http.PutAsync(started.GetProperty("uploadUrl").GetString(), body);
+        await TempFileOfAsync([]);
+
+        await SweepAsync(marker);
+
+        (await RowExistsAsync(inFlight)).ShouldBeTrue();
+        body.Release();
+        using var response = await put;
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        // The agent's access token ran out with the clock, so a new one starts the marker for the second sweep.
+        await using var later = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var next = (await ImageSeed.StartAsync(later, deck)).GetProperty("image").GetString().ShouldNotBeNull();
+        await SweepAsync(next);
+        (await RowExistsAsync(inFlight)).ShouldBeFalse();
+    }
+
+    [Test]
+    [UnsupportedOSPlatform("windows")]
+    public async Task Sweep_WhenFileCannotBeDeleted_ShouldKeepTheRowUntilItCan()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        var stuck = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
+        var folder = Path.Combine(DataPath(), "images", deck);
+        Directory.CreateDirectory(folder);
+        var file = Path.Combine(folder, stuck);
+        await File.WriteAllBytesAsync(file, ImageSeed.Bytes("image/png"));
+        // The marker expires a little later, so the sweep reaches the stuck row first.
+        Clock.Advance(TimeSpan.FromMinutes(1));
+        var marker = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
+        // A folder nobody may write to refuses the delete of a file in it.
+        File.SetUnixFileMode(folder, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        try
+        {
+            await SweepAsync(marker);
+
+            (await RowExistsAsync(stuck)).ShouldBeTrue();
+            File.Exists(file).ShouldBeTrue();
+        }
+        finally
+        {
+            File.SetUnixFileMode(folder, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+        // The agent's access token ran out with the clock, so a new one starts the marker for the second sweep.
+        await using var later = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var next = (await ImageSeed.StartAsync(later, deck)).GetProperty("image").GetString().ShouldNotBeNull();
+        await SweepAsync(next);
+        (await RowExistsAsync(stuck)).ShouldBeFalse();
+        File.Exists(file).ShouldBeFalse();
     }
 
     // Steps the clock past the grace and waits for the sweep it fires to remove marker's row, the last thing a sweep does.

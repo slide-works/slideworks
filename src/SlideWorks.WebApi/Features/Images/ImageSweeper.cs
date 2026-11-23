@@ -57,13 +57,17 @@ public sealed class ImageSweeper(ImageStore store, IServiceScopeFactory scopes, 
         }
         catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            logger.LogError(e, "Sweeping stray image uploads failed; the next sweep tries again");
+            LogFailure(e.GetType().Name);
         }
         finally
         {
             _sweeping.Release();
         }
     }
+
+    // Only the exception's type is logged: its message and stack can carry a path.
+    private void LogFailure(string exceptionType)
+        => logger.LogError("Sweeping stray image uploads failed with {ExceptionType}; the next sweep tries again", exceptionType);
 
     private int SweepFiles(DateTimeOffset cutoff)
     {
@@ -98,23 +102,40 @@ public sealed class ImageSweeper(ImageStore store, IServiceScopeFactory scopes, 
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var expired = await db.DeckImages.AsNoTracking()
             .Where(i => i.UploadedAt == null && i.UploadExpiresAt < cutoff)
+            .OrderBy(i => i.UploadExpiresAt)
             .Select(i => new { i.Id, i.DeckId })
             .ToListAsync(cancellationToken);
         var removed = 0;
+        var kept = 0;
         foreach (var image in expired)
         {
-            // The row goes only if it is still unfinished; a file is deleted only for a row that went.
-            var deleted = await db.DeckImages.Where(i => i.Id == image.Id && i.UploadedAt == null).ExecuteDeleteAsync(cancellationToken);
-            if (deleted == 0)
+            // An upload that took its token before expiry may still be coming in; it ends the row itself.
+            // The row is read again after that check, so one that finished meanwhile keeps its file.
+            if (store.IsUploading(image.Id) || !await db.DeckImages.AnyAsync(i => i.Id == image.Id && i.UploadedAt == null, cancellationToken))
             {
                 continue;
             }
-            removed++;
-            var path = store.PathFor(image.DeckId, image.Id);
-            if (File.Exists(path))
+            // The file goes first: a row is the only way to find its file, so a file that can't be deleted keeps its row
+            // and the next sweep tries again.
+            try
             {
-                File.Delete(path);
+                var path = store.PathFor(image.DeckId, image.Id);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
             }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                kept++;
+                continue;
+            }
+            // The row goes only if it is still unfinished.
+            removed += await db.DeckImages.Where(i => i.Id == image.Id && i.UploadedAt == null).ExecuteDeleteAsync(cancellationToken);
+        }
+        if (kept > 0)
+        {
+            logger.LogWarning("Kept {Rows} expired image uploads whose file could not be deleted; the next sweep tries again", kept);
         }
         return removed;
     }

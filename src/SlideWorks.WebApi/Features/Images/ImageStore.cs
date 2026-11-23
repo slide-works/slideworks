@@ -22,10 +22,15 @@ public class ImageStore(IConfiguration configuration)
     private const string TEMP_FOLDER = ".uploads";
     private const int BUFFER_SIZE = 81920;
 
-    // The temp files a request is writing right now, by file name. One process serves a data folder, so memory is enough.
-    // ImageSweeper leaves these alone however old they look: a slow request body keeps its file open for as long as it
-    // takes to arrive.
+    // The temp files a request owns right now, by file name: from the moment it is made until the request has moved it
+    // into place or deleted it (ReleaseTemp). One process serves a data folder, so memory is enough. ImageSweeper leaves
+    // these alone however old they look: a slow request body can take longer than its grace to arrive. A file left by a
+    // process that has since stopped is in no registry, so it is swept by age.
     private readonly ConcurrentDictionary<string, byte> _writing = new(StringComparer.Ordinal);
+
+    // The image ids with an upload in flight, counted, so ImageSweeper never deletes the row of one whose token expired
+    // while its body was arriving.
+    private readonly Dictionary<string, int> _uploading = new(StringComparer.Ordinal);
 
     // Where the image's file lives once its upload has completed.
     public string PathFor(string deckId, string imageId)
@@ -45,11 +50,34 @@ public class ImageStore(IConfiguration configuration)
     // The folder holding temp files of uploads in progress. It may not exist yet.
     public string TempFolderPath() => Path.Combine(ImagesRoot(), TEMP_FOLDER);
 
-    // Whether a request is writing the temp file with this name right now.
+    // Whether a request owns the temp file with this name right now.
     public bool IsWriting(string tempFileName) => _writing.ContainsKey(tempFileName);
 
+    // Whether an upload for this image is in flight right now.
+    public bool IsUploading(string imageId)
+    {
+        lock (_uploading)
+        {
+            return _uploading.ContainsKey(imageId);
+        }
+    }
+
+    // Marks an upload of this image as in flight until the returned scope is disposed.
+    public IDisposable BeginUpload(string imageId)
+    {
+        lock (_uploading)
+        {
+            _uploading[imageId] = _uploading.GetValueOrDefault(imageId) + 1;
+        }
+        return new UploadScope(this, imageId);
+    }
+
+    // Hands a temp file back once the request has moved it into place or deleted it, so the sweeper may look at the name again.
+    public void ReleaseTemp(string tempPath) => _writing.TryRemove(Path.GetFileName(tempPath), out _);
+
     // Copies body to a new temp file, refusing it with PayloadTooLargeException once it passes MAX_BYTES. Returns the
-    // temp file's path and its size. The temp file is deleted if the copy fails.
+    // temp file's path and its size. The temp file is deleted if the copy fails; otherwise it stays registered as owned
+    // until the caller passes it to ReleaseTemp.
     public async Task<(string Path, long Size)> WriteTempAsync(Stream body, CancellationToken cancellationToken)
     {
         var folder = TempFolderPath();
@@ -82,11 +110,11 @@ public class ImageStore(IConfiguration configuration)
         catch
         {
             File.Delete(temp);
+            _writing.TryRemove(name, out _);
             throw;
         }
         finally
         {
-            _writing.TryRemove(name, out _);
             ArrayPool<byte>.Shared.Return(buffer);
         }
     }
@@ -109,6 +137,34 @@ public class ImageStore(IConfiguration configuration)
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.Move(tempPath, path, overwrite: false);
         return path;
+    }
+
+    private void EndUpload(string imageId)
+    {
+        lock (_uploading)
+        {
+            if (_uploading[imageId] == 1)
+            {
+                _uploading.Remove(imageId);
+            }
+            else
+            {
+                _uploading[imageId]--;
+            }
+        }
+    }
+
+    private sealed class UploadScope(ImageStore store, string imageId) : IDisposable
+    {
+        private int _disposed;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) == 0)
+            {
+                store.EndUpload(imageId);
+            }
+        }
     }
 
     private string ImagesRoot()

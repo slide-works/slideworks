@@ -177,6 +177,8 @@ public class ImageUploads(
             throw new PayloadTooLargeException(ImageStore.TooLargeMessage);
         }
 
+        // In flight from here to the end, so the sweeper never takes this row or its temp file out from under the request.
+        using var inFlight = store.BeginUpload(image.Id);
         var (temp, size) = await store.WriteTempAsync(body, cancellationToken);
         try
         {
@@ -190,6 +192,7 @@ public class ImageUploads(
         finally
         {
             File.Delete(temp);
+            store.ReleaseTemp(temp);
         }
     }
 
