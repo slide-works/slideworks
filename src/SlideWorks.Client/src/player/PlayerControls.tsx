@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useCopyText } from '../components/useCopyText';
 import { LiveChip } from '../live/LiveChip';
 import { formatHash, type PlayerPosition } from './parseHash';
 
@@ -25,31 +24,47 @@ const BUTTON =
 
 const SHOW_MESSAGE_MS = 2500;
 
+type Feedback = { hash: string; result: 'copied' | 'failed' };
+
 // Copies this page's address with the player's hash for the current slide. A
 // short message above the button says it worked, or that the browser refused
-// (the person then copies the address bar by hand). The message goes away on
-// its own, and the parent's key on the position clears it when the slide moves.
+// (the person then copies the address bar by hand). The message belongs to the
+// slide it was made on, so moving on hides it while the button stays mounted
+// (and keeps focus). It goes away 2.5 s after the write settles, not after the
+// click, so a slow permission prompt still gets its answer shown.
 function CopyLinkButton({ position }: { position: PlayerPosition }) {
-  const copy = useCopyText();
-  const [clicks, setClicks] = useState(0);
-  const [dismissed, setDismissed] = useState(false);
+  const hash = formatHash(position);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
   useEffect(() => {
-    if (clicks === 0) return;
-    const timer = window.setTimeout(() => setDismissed(true), SHOW_MESSAGE_MS);
+    if (!feedback) return;
+    const timer = window.setTimeout(() => setFeedback(null), SHOW_MESSAGE_MS);
     return () => window.clearTimeout(timer);
-  }, [clicks]);
-  const shown = copy.state !== 'idle' && !dismissed;
+  }, [feedback]);
   const onClick = () => {
     const url = new URL(window.location.href);
-    url.hash = formatHash(position);
-    setDismissed(false);
-    setClicks((count) => count + 1);
-    copy.copy(url.href);
+    url.hash = hash;
+    setFeedback(null);
+    // navigator.clipboard is undefined outside a secure context, whatever the type declarations say.
+    const clipboard = navigator.clipboard as Clipboard | undefined;
+    const settle = (result: Feedback['result']) => setFeedback({ hash, result });
+    if (!clipboard) {
+      settle('failed');
+      return;
+    }
+    try {
+      clipboard.writeText(url.href).then(
+        () => settle('copied'),
+        () => settle('failed'),
+      );
+    } catch {
+      settle('failed');
+    }
   };
+  const result = feedback?.hash === hash ? feedback.result : null;
   const message =
-    copy.state === 'copied'
+    result === 'copied'
       ? 'Link copied'
-      : copy.state === 'failed'
+      : result === 'failed'
         ? "Couldn't copy · copy the address bar instead"
         : '';
   return (
@@ -75,11 +90,11 @@ function CopyLinkButton({ position }: { position: PlayerPosition }) {
       </button>
       <span
         data-testid="player-copy-link-message"
-        role={copy.state === 'failed' ? 'alert' : 'status'}
-        hidden={!shown}
+        role={result === 'failed' ? 'alert' : 'status'}
+        hidden={!result}
         className="absolute right-0 bottom-full z-10 mb-2 w-max max-w-[min(18rem,calc(100vw-2rem))] rounded-lg bg-slate-900 px-3 py-1.5 text-center text-xs text-slate-100 shadow-lg"
       >
-        {shown ? message : ''}
+        {message}
       </span>
     </span>
   );
@@ -104,7 +119,7 @@ export function PlayerControls({
   return (
     <div
       data-testid="player-controls"
-      className="flex h-14 shrink-0 items-center gap-2.5 px-4 font-sans text-[12.5px] font-medium text-slate-300"
+      className="flex min-h-14 shrink-0 flex-wrap items-center gap-x-2.5 gap-y-2 px-4 py-2 font-sans text-[12.5px] font-medium text-slate-300"
     >
       <button
         type="button"
@@ -171,7 +186,7 @@ export function PlayerControls({
         />
       </span>
       {liveChip && <LiveChip deckTitle={deckTitle} joinBar={joinBar} />}
-      <CopyLinkButton key={formatHash(position)} position={position} />
+      <CopyLinkButton position={position} />
       {canFullscreen && (
         <button
           type="button"

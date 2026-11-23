@@ -19,6 +19,12 @@ function isTyping(target: EventTarget | null): boolean {
   );
 }
 
+// Space presses a focused button (Previous, Fullscreen, Copy link), so the
+// player leaves it alone there.
+function isButton(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest('button, summary, [role="button"]') !== null;
+}
+
 // The player's keyboard: ←/→, Space and Shift+Space, PageUp and PageDown,
 // Home and End, and F for fullscreen. It returns before preventDefault while
 // the person types or composes with an IME, leaves shortcuts that use a
@@ -30,6 +36,7 @@ export function usePlayerKeys(actions: PlayerKeyActions): void {
       if (event.isComposing || event.keyCode === 229) return;
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
       if (isTyping(event.target)) return;
+      if (event.key === ' ' && isButton(event.target)) return;
 
       const action = actionFor(event, actions);
       if (!action) return;
