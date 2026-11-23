@@ -23,33 +23,7 @@ const looks = [
 // deleted.
 type Known = { slide: number; rule: string; wherePrefix: string; bug: string };
 
-// SW-666: the gantt ship marker and the Practice "What comes back" heading, both 3.1:1 under cobalt.
-const cobalt: Known[] = [
-  { slide: 5, rule: 'lowContrast', wherePrefix: 'text "▲"', bug: 'SW-666' },
-  { slide: 8, rule: 'lowContrast', wherePrefix: 'text "What comes back"', bug: 'SW-666' },
-];
-const midnightTable: Known[] = [
-  'One quarter',
-  'Days',
-  'Painful',
-  'Week 10+',
-  'One sprint',
-  'Hours',
-  'Possible',
-  'Week 2–3',
-  '2–4 days',
-  'Under an hour',
-  'Flip a flag',
-  'Same week',
-  'Under a day',
-  'Minutes',
-].map((cell) => ({ slide: 11, rule: 'lowContrast', wherePrefix: `text "${cell}"`, bug: 'SW-665' }));
-const KNOWN: Record<string, Known[]> = {
-  'talk cobalt': cobalt,
-  // SW-665: still 1.0:1 after color(srgb) parsing: the table cells inherit the page ink, dark on midnight's dark card.
-  'talk midnight': midnightTable,
-  'workshop cobalt': cobalt,
-};
+const KNOWN: Record<string, Known[]> = {};
 
 for (const { template, palette } of looks) {
   test(`the sample deck has no contrast or size warnings under every built-in palette: ${template} ${palette}`, async ({
