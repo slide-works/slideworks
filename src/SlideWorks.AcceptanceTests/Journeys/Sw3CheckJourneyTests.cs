@@ -143,7 +143,7 @@ public class Sw3CheckJourneyTests : AcceptanceTest
         return [.. findings.EnumerateArray().Where(f => f.GetProperty("slide").GetInt32() == slide)];
     }
 
-    // src/contracts/fit-fixtures/levels.json, found by walking up from the test binaries to the folder with the solution.
+    // src/contracts/fit-worst-cases.json, found by walking up from the test binaries to the folder with the solution.
     private static string FixturePath()
     {
         var start = AppContext.BaseDirectory;
@@ -158,7 +158,7 @@ public class Sw3CheckJourneyTests : AcceptanceTest
             throw new DirectoryNotFoundException($"SlideWorks.slnx was not found in or above {start}");
         }
 
-        return Path.Combine(directory.FullName, "contracts", "fit-fixtures", "levels.json");
+        return Path.Combine(directory.FullName, "contracts", "fit-worst-cases.json");
     }
 
     private static async Task<string> NewDeckAsync(McpClient agent)
@@ -180,7 +180,10 @@ public class Sw3CheckJourneyTests : AcceptanceTest
         var deck = await NewDeckAsync(agent);
         await AgentSeed.AddQuotesAsync(TestUser.Sam, deck, "Ship small, ship often");
         using var fixtures = JsonDocument.Parse(await File.ReadAllTextAsync(FixturePath()));
-        var slots = fixtures.RootElement.GetProperty("levelsTextWide").GetProperty("slots").Clone();
+        // The server accepts this slide and the client still draws its headline past the footer (the open SW-664).
+        var slots = fixtures.RootElement.GetProperty("cases").EnumerateArray()
+            .Single(c => c.GetProperty("fixture").GetString() == "levelsTextWide" && c.GetProperty("region").GetString() == "headline" && c.GetProperty("variant").GetString() == "allW")
+            .GetProperty("slots").Clone();
         var added = await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deck, ["layout"] = "levels", ["slots"] = slots });
         await AgentSeed.AddQuotesAsync(TestUser.Sam, deck, "Measure twice, cut once");
         return (deck, added.GetProperty("warnings").Clone());
