@@ -21,7 +21,7 @@ public class StatementLayoutTests
         var errors = Validate($$"""{ "statement": "{{wrapped}}\n{{wrapped}}\nbbbbbbbbbb" }""").Errors;
 
         errors.Count.ShouldBe(1);
-        errors[0].ShouldStartWith("statement.statement: too long to fit: it wraps to about ");
+        errors[0].ShouldStartWith("statement.statement: too much text to fit: it wraps to about ");
         errors[0].ShouldEndWith(" lines at the statement's smallest size, and at most 3 fit");
     }
 
@@ -33,7 +33,7 @@ public class StatementLayoutTests
         var errors = Validate($$"""{ "statement": "Ship it", "sub": "{{sub}}" }""", new FitWidths(0.8, 0.8, 0.8)).Errors;
 
         errors.Count.ShouldBe(1);
-        errors[0].ShouldStartWith("statement.sub: too long to fit: it wraps to about ");
+        errors[0].ShouldStartWith("statement.sub: too much text to fit: it wraps to about ");
         errors[0].ShouldEndWith(" lines, and at most 2 fit");
     }
 

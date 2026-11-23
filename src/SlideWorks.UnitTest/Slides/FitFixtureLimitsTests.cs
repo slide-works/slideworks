@@ -36,10 +36,13 @@ public class FitFixtureLimitsTests
     private static readonly IReadOnlyDictionary<string, string> _knownWithoutFitFixture = new Dictionary<string, string>
     {
         ["columns-list"] = "SW-724",
-        ["image"] = "SW-724",
         ["loop"] = "SW-724",
         ["timeline"] = "SW-724",
     };
+
+    // Length-controlled layouts whose own rule still refuses with "too much text to fit", so a fixture of theirs
+    // is refused by fit though no height region is recorded (statement's sub line count).
+    private static readonly HashSet<string> _refusesByFitWording = new(StringComparer.Ordinal) { "statement" };
 
     // Fit-controlled layouts that record their height only when it overflows, so an accepted slide reports
     // no fit region. Each entry names the Bug that makes them record it every time, as SlideFit.Check says.
@@ -144,7 +147,7 @@ public class FitFixtureLimitsTests
         var fitControlled = _fitControlled.Contains(layout);
 
         refusals.Where(r => r is not "fit" and not "length").ShouldBeEmpty();
-        refusals.Contains("fit").ShouldBe(fitControlled && !_knownWithoutFitFixture.ContainsKey(layout),
+        refusals.Contains("fit").ShouldBe((fitControlled && !_knownWithoutFitFixture.ContainsKey(layout)) || _refusesByFitWording.Contains(layout),
             fitControlled
                 ? $"{layout} is fit-controlled: a fixture must prove its height maximum (refusedBy \"fit\"), or the layout is listed with a Bug"
                 : $"{layout} is length-controlled: it has no fit estimate, so every fixture is refused by a character limit");

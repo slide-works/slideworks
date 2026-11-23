@@ -2,25 +2,28 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using SlideWorks.AcceptanceTests.Pages;
+using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests.Journeys;
 
-// SW-3's visual check with the real render engine and the built bundle. Slide 2 of the overflow deck is the generated
-// quoteStatOnly stat allW worst case (SW-718): add_slide accepts it but its stat runs off an edge when measured.
+// SW-3's visual check with the real render engine and the built bundle. Slide 2 of the overflow deck is a legacy row:
+// the bulletsEight items allW worst case, which the server now refuses but a deck saved before the fit rules tightened
+// still holds, so the check must find and show how it overflows.
 public class Sw3CheckJourneyTests : AcceptanceTest
 {
     private const string OVERFLOW_MESSAGE = "Text runs ";
 
     [Test]
-    public async Task CheckDeck_WhenAWideLetterSlideIsAccepted_ShouldReportOverflow()
+    public async Task CheckDeck_WhenALegacySlideOverflows_ShouldReportOverflow()
     {
         await using var agent = await AgentSeed.ConnectAsync(TestUser.Sam);
-        var (deck, warnings) = await OverflowDeckAsync(agent);
-        warnings.GetArrayLength().ShouldBe(0);
+        var deck = await OverflowDeckAsync(agent);
 
         var result = await AgentSeed.CallAsync(agent, "check_deck", new() { ["deck"] = deck });
 
@@ -37,7 +40,7 @@ public class Sw3CheckJourneyTests : AcceptanceTest
     public async Task PreviewDeck_WhenASlideOverflows_ShouldReturnTheFindingWithThePng()
     {
         await using var agent = await AgentSeed.ConnectAsync(TestUser.Sam);
-        var (deck, _) = await OverflowDeckAsync(agent);
+        var deck = await OverflowDeckAsync(agent);
 
         var result = await agent.CallToolAsync("preview_deck", new Dictionary<string, object?> { ["deck"] = deck, ["slides"] = new[] { 2 } });
 
@@ -65,7 +68,7 @@ public class Sw3CheckJourneyTests : AcceptanceTest
     public async Task DeckPage_WhenASlideOverflows_ShouldShowTheBadgeAndTheList()
     {
         await using var agent = await AgentSeed.ConnectAsync(TestUser.Sam);
-        var (deck, _) = await OverflowDeckAsync(agent);
+        var deck = await OverflowDeckAsync(agent);
         var checks = await AgentSeed.CallAsync(agent, "check_deck", new() { ["deck"] = deck });
         var problems = FindingsOf(checks, 2).Count(f => f.GetProperty("severity").GetString() != "note");
 
@@ -174,18 +177,23 @@ public class Sw3CheckJourneyTests : AcceptanceTest
         return deck;
     }
 
-    // Slide 1 and 3 are clean quotes; slide 2 is quoteStatOnly stat allW, which add_slide accepts without a warning (SW-718).
-    private static async Task<(string Deck, JsonElement Warnings)> OverflowDeckAsync(McpClient agent)
+    // Slides 1 and 3 are clean quotes. Slide 2 is a legacy row: every legal slide now fits, so no slide add_slide accepts
+    // overflows. A deck saved before the fit rules tightened can still hold one, and check_deck must report it. The row is
+    // seeded directly in the database (add_slide would refuse it): a clean quote is added through the route, then its
+    // layout and slots are overwritten with the bulletsEight items allW worst case, which the server refuses today.
+    private static async Task<string> OverflowDeckAsync(McpClient agent)
     {
         var deck = await NewDeckAsync(agent);
-        await AgentSeed.AddQuotesAsync(TestUser.Sam, deck, "Ship small, ship often");
+        await AgentSeed.AddQuotesAsync(TestUser.Sam, deck, "Ship small, ship often", "Placeholder for the legacy row", "Measure twice, cut once");
         using var fixtures = JsonDocument.Parse(await File.ReadAllTextAsync(FixturePath()));
-        // The server accepts this slide and the client still draws it past its box (a case still in KNOWN_OVERFLOWS, SW-718).
         var worst = fixtures.RootElement.GetProperty("cases").EnumerateArray()
-            .Single(c => c.GetProperty("fixture").GetString() == "quoteStatOnly" && c.GetProperty("region").GetString() == "stat" && c.GetProperty("variant").GetString() == "allW");
-        var slots = worst.GetProperty("slots").Clone();
-        var added = await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deck, ["layout"] = worst.GetProperty("layout").GetString(), ["slots"] = slots });
-        await AgentSeed.AddQuotesAsync(TestUser.Sam, deck, "Measure twice, cut once");
-        return (deck, added.GetProperty("warnings").Clone());
+            .Single(c => c.GetProperty("fixture").GetString() == "bulletsEight" && c.GetProperty("region").GetString() == "items" && c.GetProperty("variant").GetString() == "allW");
+        await using var scope = AcceptanceApp.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var legacy = await db.Slides.SingleAsync(slide => slide.DeckId == deck && slide.Position == 1);
+        legacy.Layout = worst.GetProperty("layout").GetString()!;
+        legacy.SlotsJson = worst.GetProperty("slots").GetRawText();
+        await db.SaveChangesAsync();
+        return deck;
     }
 }

@@ -174,8 +174,11 @@
   },
   "imageCallout": {
     "layout": "image",
-    "grow": [],
-    "refusedBy": "length",
+    "estimate": 452.1,
+    "grow": [
+      "/callout/text"
+    ],
+    "refusedBy": "fit",
     "slots": {
       "kicker": "Small And Reviewable Momentum Matters Mo",
       "headline": "Every Merge Small And Reviewable Momentum Matters More Than Maximum Throughput S",

@@ -35,8 +35,6 @@ public class FitFixturesTests
     // word is refused by fit before length. Remove an entry when its fixture grows again.
     private static readonly Dictionary<string, string> _knownUngrown = new(StringComparer.Ordinal)
     {
-        ["imageCallout"] = "SW-712",
-        ["statementMaxWide"] = "SW-721",
     };
 
     // Every fixture of every file in the folder, by name. A name in two files throws, and so does a
