@@ -30,7 +30,7 @@ public sealed class TalkLengthCalls : IPresentations
 
     public Task LeaveAllAsync(string connectionId) => Task.CompletedTask;
 
-    public Task<LivePresentationsView> ListLiveAsync(Guid ownerId) => throw new NotSupportedException();
+    public Task<LivePresentationsView> ListLiveAsync(Func<string, Task<bool>> canPresent) => throw new NotSupportedException();
 
     public Task<PresentationState?> GetAsync(string deckId) => throw new NotSupportedException();
 

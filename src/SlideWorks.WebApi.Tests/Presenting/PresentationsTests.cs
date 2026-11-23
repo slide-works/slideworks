@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Realtime.Presenting;
 using SlideWorks.WebApi.Tests.Mcp;
+using SlideWorks.WebApi.Tests.Sharing;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Presenting;
@@ -297,6 +298,34 @@ public class PresentationsTests : ApiTestFixture
             .ShouldBe(("Ship smaller", 2, PresentingSeed.SLIDES));
         var window = live[0].GetProperty("windows").EnumerateArray().Single();
         (window.GetProperty("role").GetString(), window.GetProperty("label").GetString()).ShouldBe(("audience", "Firefox on Linux"));
+    }
+
+    // C5, D7: a person with write presents a deck they do not own, so it is in their live list; a reader of the same deck
+    // does not see it, and neither does the owner's list lose it.
+    [Test]
+    public async Task ListLive_WhenAWriterPresentsASharedDeck_ShouldListItForTheWriterAndNotForAReader()
+    {
+        var deck = await OwnDeckAsync();
+        var shared = await SharingApi.PutAsync(Client, deck, new { level = "named", people = new[] { new { email = TestUser.Alex.Email, access = "write" }, new { email = TestUser.Mira.Email, access = "read" } } });
+        shared.StatusCode.ShouldBe(HttpStatusCode.OK, await shared.Content.ReadAsStringAsync());
+        var alexWindow = await ConnectAsync(TestUser.Alex);
+        await alexWindow.JoinAsync(deck, "k-writer");
+        using var alex = ClientFor(TestUser.Alex);
+        using var mira = ClientFor(TestUser.Mira);
+
+        var writerList = await DeckIdsLiveAsync(alex);
+        var readerList = await DeckIdsLiveAsync(mira);
+        var ownerList = await DeckIdsLiveAsync(Client);
+
+        writerList.ShouldContain(deck);
+        readerList.ShouldNotContain(deck);
+        ownerList.ShouldContain(deck);
+    }
+
+    private static async Task<List<string?>> DeckIdsLiveAsync(HttpClient person)
+    {
+        var view = await person.GetFromJsonAsync<JsonElement>("/api/presentations");
+        return [.. view.GetProperty("presentations").EnumerateArray().Select(p => p.GetProperty("deckId").GetString())];
     }
 
     private static object Resume(int slide, int step, string timerState, long elapsedMs)

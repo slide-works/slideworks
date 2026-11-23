@@ -146,7 +146,7 @@ public sealed class Presentations(
         }
     }
 
-    public async Task<LivePresentationsView> ListLiveAsync(Guid ownerId)
+    public async Task<LivePresentationsView> ListLiveAsync(Func<string, Task<bool>> canPresent)
     {
         var now = clock.GetTimestamp();
         var snapshots = new List<(PresentationState State, long CreatedAt)>();
@@ -165,11 +165,18 @@ public sealed class Presentations(
         {
             return new LivePresentationsView([]);
         }
-        var ids = snapshots.Select(s => s.State.DeckId).ToList();
+        var ids = new List<string>();
+        foreach (var deckId in snapshots.Select(s => s.State.DeckId).Distinct(StringComparer.Ordinal))
+        {
+            if (await canPresent(deckId))
+            {
+                ids.Add(deckId);
+            }
+        }
         using var scope = scopes.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var decks = await db.Decks.AsNoTracking()
-            .Where(d => ids.Contains(d.Id) && d.OwnerId == ownerId)
+            .Where(d => ids.Contains(d.Id))
             .Select(d => new { d.Id, d.Title, Total = db.Slides.Count(s => s.DeckId == d.Id && s.DeletedAt == null) })
             .ToDictionaryAsync(d => d.Id, StringComparer.Ordinal);
         return new LivePresentationsView(snapshots
