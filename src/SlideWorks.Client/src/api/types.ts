@@ -42,6 +42,7 @@ export type AdminUserRow = {
   name: string;
   email: string;
   pictureUrl: string | null;
+  avatar: AvatarView;
   access: 'pending' | 'approved' | 'rejected';
   isAdmin: boolean;
   isSelf: boolean;
@@ -67,7 +68,9 @@ export type DeckRow = {
   playUrl: string;
 };
 
-export type SharedDeckRow = DeckRow & { ownerName: string };
+export type DeckAccessLevel = 'read' | 'write';
+
+export type SharedDeckRow = DeckRow & { ownerName: string; access: DeckAccessLevel };
 
 // GET /api/decks
 export type DecksLibraryView = {
@@ -110,6 +113,8 @@ export type DeckPageView = {
   title: string;
   author: string | null;
   isOwner: boolean;
+  canEdit: boolean;
+  access: 'owner' | DeckAccessLevel;
   playUrl: string;
   join: JoinView;
   sharing: { level: SharingLevel; viewerCount: number };
@@ -165,10 +170,20 @@ export type SharingView = {
   viewers: string[];
   link: string;
   lastChange: SharingChange | null;
+  owner: SharingOwner;
+  people: SharingPerson[];
 };
 
-// The PUT /api/decks/{id}/sharing body.
-export type SharingRequest = { level: SharingLevel; viewers: string[] };
+// name and avatar are null for an email with no account.
+export type SharingOwner = { email: string; name: string; avatar: AvatarView };
+export type SharingPerson = { email: string; name: string | null; avatar: AvatarView | null; access: DeckAccessLevel };
+
+// The PUT /api/decks/{id}/sharing body: people with access, or the older viewers (each read).
+export type SharingRequest = {
+  level: SharingLevel;
+  viewers?: string[];
+  people?: { email: string; access: DeckAccessLevel }[];
+};
 
 // POST /api/decks body, and its 201 result.
 export type CreateDeckRequest = { title: string; template?: string; palette?: string };

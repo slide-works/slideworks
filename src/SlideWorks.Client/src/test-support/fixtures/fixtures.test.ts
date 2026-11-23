@@ -84,6 +84,7 @@ const ADMIN_USER_ROW = keys<AdminUserRow>({
   name: true,
   email: true,
   pictureUrl: true,
+  avatar: true,
   access: true,
   isAdmin: true,
   isSelf: true,
@@ -116,6 +117,7 @@ const SHARED_DECK_ROW = keys<SharedDeckRow>({
   updatedLabel: true,
   playUrl: true,
   ownerName: true,
+  access: true,
 });
 const LIBRARY = keys<DecksLibraryView>({ decks: true, sharedWithMe: true, connect: true });
 const DECK_PAGE = keys<DeckPageView>({
@@ -124,6 +126,8 @@ const DECK_PAGE = keys<DeckPageView>({
   title: true,
   author: true,
   isOwner: true,
+  canEdit: true,
+  access: true,
   playUrl: true,
   join: true,
   sharing: true,
@@ -181,7 +185,7 @@ const DECK_PLAY_SLIDE = keys<DeckPlaySlide>({
   steps: true,
   slots: true,
 });
-const SHARING = keys<SharingView>({ level: true, viewers: true, link: true, lastChange: true });
+const SHARING = keys<SharingView>({ level: true, viewers: true, link: true, lastChange: true, owner: true, people: true });
 const SHARING_CHANGE = keys<SharingChange>({ actor: true, actorKind: true, atLabel: true });
 const LOOK = keys<LookView>({
   template: true,
