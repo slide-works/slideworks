@@ -1,6 +1,7 @@
 /* The headline every content slide opens with (the mockup's .h), under the
    Kicker block, in canvas px: a 20 px/1 kicker with 22 px under it (42 px), then a
-   64 px/1.08 headline of up to two lines (2 × 69 px). The body (.sw-body)
+   64 px/1.08 headline of up to two lines (2 × 69 px; SlideHeading shrinks it down to
+   48 px to keep two lines, so a long headline takes less). The body (.sw-body)
    starts 46 px below, so under a kicker and a two-line headline it starts at
    y = 150 + 42 + 138 + 46 = 376. The server's fit check (SlideFit) assumes
    these sizes, so change them only with it. */
