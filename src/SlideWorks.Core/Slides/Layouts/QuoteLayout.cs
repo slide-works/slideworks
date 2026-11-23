@@ -60,14 +60,10 @@ public static class QuoteLayout
         var statHeight = 0.0;
         if (stat is { } value)
         {
-            // A big number stays on one line: the value at 72 px must fit the 360 px column.
-            var shown = SlideFit.Lines(Text(value, "value")!, STAT_CAPTION_WIDTH, 72, widths.Head);
-            if (shown > 1)
-            {
-                validation.Fail($"{path}.stat.value", $"too much text to fit on one line: it wraps to about {shown} lines at 72 px in the {STAT_CAPTION_WIDTH} px stat column; shorten it");
-            }
-
-            statHeight = 58 + 72 + (SlideFit.Lines(Text(value, "caption")!, STAT_CAPTION_WIDTH, 22, widths.Body) * 28.6);
+            // The value is 72 px with line-height 1 and breaks anywhere in the 360 px column (QuoteLayout.module.css
+            // .statValue), so a long or wide value takes more than one line and each line adds 72 px.
+            var valueLines = SlideFit.Lines(Text(value, "value")!, STAT_CAPTION_WIDTH, 72, widths.Head);
+            statHeight = 58 + (valueLines * 72) + (SlideFit.Lines(Text(value, "caption")!, STAT_CAPTION_WIDTH, 22, widths.Body) * 28.6);
         }
 
         var portrait = ObjectSlot.IsPresent(slots, "image", out _);
