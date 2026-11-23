@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
-import type { SharingView } from '../api/types';
+import type { SharingPeopleRequest, SharingView } from '../api/types';
 import { sharing } from '../test-support/fixtures/screens';
 import { SharingDialogHarness } from '../test-support/SharingDialogHarness';
 
@@ -16,9 +16,10 @@ async function stubSharing(page: Page, view: SharingView, put?: Answer) {
   await page.route(sharingPath, (route) => {
     const request = route.request();
     if (request.method() === 'PUT') {
-      const body = request.postDataJSON() as Pick<SharingView, 'level' | 'viewers'>;
+      const body = request.postDataJSON() as SharingPeopleRequest;
       puts.push(body);
-      return route.fulfill(put ?? { status: 200, json: { ...view, ...body } });
+      const people = body.people.map((p) => ({ ...p, name: null, avatar: null }));
+      return route.fulfill(put ?? { status: 200, json: { ...view, level: body.level, people } });
     }
     return route.fulfill({ json: view });
   });
@@ -32,15 +33,15 @@ test('loads current level and viewers', async ({ mount, page }) => {
 
   const dialog = page.getByRole('dialog', { name: 'Share this deck' });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole('radio', { name: 'Named people' })).toBeChecked();
-  await expect(dialog.getByRole('radio', { name: 'Named people' })).toBeFocused();
-  await expect(dialog.getByTestId('sharing-chip-email')).toHaveText([
+  await expect(dialog.getByRole('radio', { name: 'Only people below' })).toBeChecked();
+  await expect(dialog.getByRole('radio', { name: 'Only people below' })).toBeFocused();
+  await expect(dialog.getByTestId('sharing-person-email')).toHaveText([
     'alex@team.example',
     'mira@team.example',
   ]);
   await expect(dialog.getByTestId('sharing-link')).toHaveText(sharing.link);
   await expect(dialog.getByTestId('sharing-agents-note')).toContainText(
-    'Agents signed in as you can change this too, with set_sharing',
+    'Agents signed in as you can change this too, with set_sharing. People with Can edit can use their own agents',
   );
   await expect(dialog.getByTestId('sharing-last-change')).toHaveText(
     'Last change: Claude, just now.',
@@ -56,37 +57,44 @@ test('switch to link and save sends PUT and calls onSaved', async ({ mount, page
 
   const dialog = page.getByTestId('sharing-dialog');
   await dialog.getByRole('radio', { name: 'Anyone with the link' }).check();
-  await expect(dialog.getByTestId('sharing-chip')).toHaveCount(0);
   await dialog.getByTestId('sharing-save').click();
 
   await expect(page.getByTestId('saved-level')).toHaveText('link');
-  expect(puts).toEqual([{ level: 'link', viewers: ['alex@team.example', 'mira@team.example'] }]);
+  expect(puts).toEqual([
+    {
+      level: 'link',
+      people: [
+        { email: 'alex@team.example', access: 'write' },
+        { email: 'mira@team.example', access: 'read' },
+      ],
+    },
+  ]);
   await expect(page.getByTestId('sharing-dialog')).toHaveCount(0);
   await expect(page.getByTestId('open-sharing')).toBeFocused();
 });
 
-test('add and remove email chips', async ({ mount, page }) => {
+test('add and remove people', async ({ mount, page }) => {
   const puts = await stubSharing(page, sharing);
   await mount(<SharingDialogHarness deckId={deckId} />);
   await page.getByTestId('open-sharing').click();
 
   const dialog = page.getByTestId('sharing-dialog');
   const input = dialog.getByTestId('sharing-email-input');
-  await input.fill('sam@team.example');
+  await input.fill('Sam2@team.example');
   await input.press('Enter');
-  await input.pressSequentially('kai@team.example,');
-  await expect(input).toHaveValue('');
+  await expect(input).toBeFocused();
+  await input.fill('alex@team.example');
+  await input.press('Enter');
+  await expect(dialog.getByTestId('sharing-person')).toHaveCount(3);
   await dialog.getByRole('button', { name: 'Remove alex@team.example' }).click();
-  await expect(dialog.getByTestId('sharing-chip-email')).toHaveText([
+  await expect(input).toBeFocused();
+  await expect(dialog.getByTestId('sharing-person-email')).toHaveText([
     'mira@team.example',
-    'sam@team.example',
-    'kai@team.example',
+    'sam2@team.example',
   ]);
+  await expect(dialog.getByTestId('sharing-people-count')).toHaveText('3');
 
-  // Blank entries never become chips; an email still being typed is saved too.
-  await input.fill('   ');
-  await input.press('Enter');
-  await expect(dialog.getByTestId('sharing-chip')).toHaveCount(3);
+  // An email still typed in full is saved too.
   await input.fill('lee@team.example');
   await dialog.getByTestId('sharing-save').click();
 
@@ -94,33 +102,249 @@ test('add and remove email chips', async ({ mount, page }) => {
   expect(puts).toEqual([
     {
       level: 'named',
-      viewers: ['mira@team.example', 'sam@team.example', 'kai@team.example', 'lee@team.example'],
+      people: [
+        { email: 'mira@team.example', access: 'read' },
+        { email: 'sam2@team.example', access: 'read' },
+        { email: 'lee@team.example', access: 'read' },
+      ],
     },
   ]);
 });
 
-test('server 400 shows message', async ({ mount, page }) => {
-  const error = 'viewers: "not-an-email" is not an email address';
-  await stubSharing(page, sharing, { status: 400, json: { error } });
+test('SharingDialog_WhenPartialEmailTyped_ShouldSuggestNobody', async ({ mount, page }) => {
+  let reads = 0;
+  await page.route('**/api/**', (route) => {
+    reads += route.request().url().includes('/sharing') ? 0 : 1;
+    return route.fallback();
+  });
+  await stubSharing(page, sharing);
   await mount(<SharingDialogHarness deckId={deckId} />);
   await page.getByTestId('open-sharing').click();
 
   const dialog = page.getByTestId('sharing-dialog');
   const input = dialog.getByTestId('sharing-email-input');
-  await input.fill('not-an-email');
+  await input.fill('ale');
+  await expect(dialog.getByTestId('sharing-email-hint')).toHaveText(
+    'Type their full email to share this deck with them.',
+  );
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  // The access selects' own native options are not suggestions: no element is a custom option.
+  await expect(page.locator('[role="option"], [role="combobox"][aria-expanded]')).toHaveCount(0);
+  expect(reads).toBe(0);
+
+  await input.fill('ale@team.example');
+  await expect(dialog.getByTestId('sharing-email-hint')).toHaveCount(0);
   await input.press('Enter');
+  const added = dialog.getByTestId('sharing-person').filter({ hasText: 'ale@team.example' });
+  await expect(added.getByTestId('sharing-person-new')).toHaveText('New');
+  await expect(added.getByLabel('Access for ale@team.example')).toHaveValue('read');
+});
+
+test('SharingDialog_WhenPartialEmailEntered_ShouldNotAdd', async ({ mount, page }) => {
+  await stubSharing(page, sharing);
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
+  const input = dialog.getByTestId('sharing-email-input');
+  await input.fill('alex');
+  await input.press('Enter');
+  await dialog.getByTestId('sharing-add-person').click();
+  await expect(dialog.getByTestId('sharing-person')).toHaveCount(2);
+  await expect(input).toHaveValue('alex');
+});
+
+test('SharingDialog_WhenAccessChanged_ShouldSendPeopleWithWrite', async ({ mount, page }) => {
+  const puts = await stubSharing(page, sharing);
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
+  await dialog.getByLabel('Access for mira@team.example').selectOption('write');
+  await dialog.getByLabel('Access for alex@team.example').selectOption('read');
+  await dialog.getByTestId('sharing-save').click();
+
+  await expect(page.getByTestId('saved-level')).toHaveText('named');
+  expect(puts).toEqual([
+    {
+      level: 'named',
+      people: [
+        { email: 'alex@team.example', access: 'read' },
+        { email: 'mira@team.example', access: 'write' },
+      ],
+    },
+  ]);
+});
+
+test('SharingDialog_WhenPrivate_ShouldShowPeopleAsPaused', async ({ mount, page }) => {
+  await stubSharing(page, sharing);
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
+  await expect(dialog.getByTestId('sharing-person-paused')).toHaveCount(0);
+  await dialog.getByRole('radio', { name: 'Private' }).check();
+  await expect(dialog.getByTestId('sharing-person-paused')).toHaveCount(2);
+  await expect(dialog.getByLabel('Access for alex@team.example')).toBeEnabled();
+  await dialog.getByRole('radio', { name: 'Only people below' }).check();
+  await expect(dialog.getByTestId('sharing-person-paused')).toHaveCount(0);
+});
+
+test('SharingDialog_WhenNewPeopleAdded_ShouldSayHowManyGetAnEmail', async ({ mount, page }) => {
+  await stubSharing(page, sharing);
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
+  const input = dialog.getByTestId('sharing-email-input');
+  await expect(dialog.getByTestId('sharing-new-note')).toHaveCount(0);
+  await input.fill('kai@team.example');
+  await input.press('Enter');
+  await expect(dialog.getByTestId('sharing-new-note')).toHaveText('Saving emails 1 new person.');
+  await input.fill('lee@team.example');
+  await input.press('Enter');
+  await expect(dialog.getByTestId('sharing-new-note')).toHaveText('Saving emails 2 new people.');
+});
+
+test('SharingDialog_When429_ShouldShowServerMessage', async ({ mount, page }) => {
+  const error = 'You can share with 10 new people an hour. Try again at 2026-11-23 15:42 UTC.';
+  const puts = await stubSharing(page, sharing, {
+    status: 429,
+    json: { error },
+  });
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
+  const input = dialog.getByTestId('sharing-email-input');
+  await input.fill('kai@team.example');
+  await dialog.getByTestId('sharing-save').click();
+
+  await expect(dialog.getByTestId('sharing-limit-error')).toContainText('Not shared.');
+  await expect(dialog.getByTestId('sharing-limit-message')).toHaveText(error);
+  await expect(dialog.getByTestId('sharing-limit-error')).toContainText(
+    'Someone added to several of your decks counts once. Nothing was saved and no emails went out.',
+  );
+  await expect(dialog.getByTestId('sharing-person-email')).toHaveText([
+    'alex@team.example',
+    'mira@team.example',
+  ]);
+  await expect(input).toHaveValue('kai@team.example');
+  await expect(page.getByTestId('saved-level')).toHaveText('none');
+  await expect(dialog.getByTestId('sharing-save')).toBeEnabled();
+  await expect(dialog.getByTestId('sharing-save')).toBeFocused();
+  expect(puts).toHaveLength(1);
+});
+
+test('server 400 shows message under the people field', async ({ mount, page }) => {
+  const error = 'people: "x@y.z" is not an email address';
+  await stubSharing(page, sharing, { status: 400, json: { error } });
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
   await dialog.getByTestId('sharing-save').click();
 
   await expect(dialog.getByTestId('sharing-error')).toHaveText(error);
   await expect(dialog.getByTestId('sharing-error')).toHaveAttribute('role', 'alert');
-  await expect(input).toHaveAccessibleDescription(error);
-  await expect(input).toHaveAttribute('aria-invalid', 'true');
   await expect(page.getByTestId('saved-level')).toHaveText('none');
   await expect(dialog.getByTestId('sharing-save')).toBeEnabled();
+  await expect(dialog.getByTestId('sharing-email-input')).toBeFocused();
+  await expect(dialog.getByTestId('sharing-email-input')).toHaveAttribute('aria-invalid', 'true');
+  await expect(dialog.getByTestId('sharing-email-input')).toHaveAttribute(
+    'aria-describedby',
+    'sharing-people-error',
+  );
+});
+
+test('Save with a partial email still typed makes no PUT and keeps the dialog open', async ({
+  mount,
+  page,
+}) => {
+  const puts = await stubSharing(page, sharing);
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
+  const input = dialog.getByTestId('sharing-email-input');
+  await input.fill('alex@team');
+  await dialog.getByTestId('sharing-save').click();
+  await expect(dialog).toBeVisible();
+  await expect(input).toBeFocused();
+  await expect(dialog.getByTestId('sharing-email-hint')).toHaveText(
+    'Type their full email to share this deck with them.',
+  );
+  expect(puts).toHaveLength(0);
+
+  await input.fill('alex@team.example2.test');
+  await dialog.getByTestId('sharing-save').click();
+  await expect(page.getByTestId('saved-level')).toHaveText('named');
+  expect(puts).toHaveLength(1);
+});
+
+test('a typed full email counts in the new-people note', async ({ mount, page }) => {
+  await stubSharing(page, sharing);
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
+  await dialog.getByTestId('sharing-email-input').fill('kai@team.example');
+  await expect(dialog.getByTestId('sharing-new-note')).toHaveText('Saving emails 1 new person.');
+});
+
+test('an email already on the list, or the owner, is not added and says so', async ({
+  mount,
+  page,
+}) => {
+  await stubSharing(page, sharing);
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
+  const input = dialog.getByTestId('sharing-email-input');
+  await input.fill('Alex@team.example');
+  await input.press('Enter');
+  await expect(dialog.getByTestId('sharing-person-notice')).toHaveText(
+    'alex@team.example is already on the list.',
+  );
+  await input.fill(sharing.owner.email);
+  await input.press('Enter');
+  await expect(dialog.getByTestId('sharing-person-notice')).toHaveText(
+    `${sharing.owner.email.toLowerCase()} is already on the list.`,
+  );
+  await expect(dialog.getByTestId('sharing-person')).toHaveCount(2);
+});
+
+test('the owner row shows Owner and has no controls', async ({ mount, page }) => {
+  await stubSharing(page, sharing);
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
+  const owner = dialog.getByTestId('sharing-owner');
+  await expect(owner).toContainText('Sam Rivera (you)');
+  await expect(owner).toContainText('sam@team.example');
+  await expect(dialog.getByTestId('sharing-owner-label')).toHaveText('Owner');
+  await expect(owner.getByRole('combobox')).toHaveCount(0);
+  await expect(owner.getByRole('button')).toHaveCount(0);
+  // Pair: a person row has both, and an account-less email shows bare.
+  const alex = dialog.getByTestId('sharing-person').first();
+  await expect(alex.getByTestId('sharing-person-name')).toHaveText('Alex Chen');
+  await expect(alex.getByRole('combobox')).toHaveCount(1);
+  await expect(alex.getByRole('button')).toHaveCount(1);
+  await expect(
+    dialog.getByTestId('sharing-person').nth(1).getByTestId('sharing-person-name'),
+  ).toHaveCount(0);
 });
 
 test('null lastChange hides the line', async ({ mount, page }) => {
-  await stubSharing(page, { ...sharing, level: 'private', viewers: [], lastChange: null });
+  await stubSharing(page, {
+    ...sharing,
+    level: 'private',
+    viewers: [],
+    people: [],
+    lastChange: null,
+  });
   await mount(<SharingDialogHarness deckId={deckId} />);
   await page.getByTestId('open-sharing').click();
 
@@ -162,7 +386,7 @@ test('esc closes', async ({ mount, page }) => {
   await stubSharing(page, sharing);
   await mount(<SharingDialogHarness deckId={deckId} />);
   await page.getByTestId('open-sharing').click();
-  await expect(page.getByRole('radio', { name: 'Named people' })).toBeFocused();
+  await expect(page.getByRole('radio', { name: 'Only people below' })).toBeFocused();
 
   await page.keyboard.press('Escape');
 
@@ -193,10 +417,21 @@ test('tab stays inside the dialog', async ({ mount, page }) => {
   const link = dialog.getByRole('radio', { name: 'Anyone with the link' });
   await expect(link).toBeFocused();
 
-  // Forward: the link radio, Copy link, Cancel, Save, then back to the radio.
-  for (const next of ['sharing-copy-link', 'sharing-cancel', 'sharing-save']) {
+  // Forward: the link radio, the people field, Add, each person's access and Remove, Copy link,
+  // Cancel, Save, then back to the radio.
+  for (const next of [
+    'sharing-email-input',
+    'sharing-add-person',
+    'sharing-person-access',
+    'sharing-person-remove',
+    'sharing-person-access',
+    'sharing-person-remove',
+    'sharing-copy-link',
+    'sharing-cancel',
+    'sharing-save',
+  ]) {
     await page.keyboard.press('Tab');
-    await expect(dialog.getByTestId(next)).toBeFocused();
+    await expect(dialog.getByTestId(next).and(page.locator(':focus'))).toBeFocused();
   }
   await page.keyboard.press('Tab');
   await expect(link).toBeFocused();
@@ -221,6 +456,6 @@ test('sharing dialog screenshot', async ({ mount, page }) => {
   await stubSharing(page, sharing);
   await mount(<SharingDialogHarness deckId={deckId} />);
   await page.getByTestId('open-sharing').click();
-  await expect(page.getByTestId('sharing-chip')).toHaveCount(2);
+  await expect(page.getByTestId('sharing-person')).toHaveCount(2);
   await expect(page.getByTestId('sharing-dialog')).toHaveScreenshot('sharing-dialog.png');
 });

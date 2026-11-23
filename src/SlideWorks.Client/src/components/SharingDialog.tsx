@@ -15,7 +15,7 @@ type Load =
   { kind: 'loading' } | { kind: 'loaded'; view: SharingView } | { kind: 'failed'; message: string };
 
 // Who can open and present a deck (PNG 04): private, anyone with the link, or
-// named people. It reads GET /api/decks/{id}/sharing each time it opens, and
+// only the people listed. It reads GET /api/decks/{id}/sharing each time it opens, and
 // Save PUTs the change, hands the saved view to onSaved and closes.
 export function SharingDialog({ deckId, open, onClose, onSaved }: SharingDialogProps) {
   if (!open) return null;
@@ -55,7 +55,7 @@ function OpenSharingDialog({ deckId, onClose, onSaved }: Omit<SharingDialogProps
           Share this deck
         </h2>
         <p id={descriptionId} className="mt-1 text-meta text-ink-muted">
-          Who can open and present this deck. Only you can change slides.
+          Who can open it, and who can edit it with you.
         </p>
       </header>
       {load.kind === 'loaded' ? (

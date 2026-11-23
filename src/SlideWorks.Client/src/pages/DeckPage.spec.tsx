@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/experimental-ct-react';
-import type { DeckPageView, LooksView, SharingRequest } from '../api/types';
+import type { DeckPageView, LooksView, SharingPeopleRequest } from '../api/types';
 import { AppRoutes } from '../AppRoutes';
 import { GoTo } from '../test-support/GoTo';
 import { LocationProbe } from '../test-support/LocationProbe';
@@ -364,7 +364,7 @@ test('deck page re-reads when a reconnect joins again', async ({ mount, page }) 
 
 test('saving in the sharing dialog re-reads the deck page once', async ({ mount, page }) => {
   const after: DeckPageView = { ...deckPage, sharing: { level: 'named', viewerCount: 2 } };
-  const puts: SharingRequest[] = [];
+  const puts: SharingPeopleRequest[] = [];
   let reads = 0;
   await stubApi(page, { '/api/me': { json: me } });
   await page.route(`**${deckPath}`, (route) => {
@@ -375,7 +375,7 @@ test('saving in the sharing dialog re-reads the deck page once', async ({ mount,
     if (route.request().method() !== 'PUT') {
       return route.fulfill({ json: { ...sharing, level: 'link' } });
     }
-    const body = route.request().postDataJSON() as SharingRequest;
+    const body = route.request().postDataJSON() as SharingPeopleRequest;
     puts.push(body);
     return route.fulfill({ json: { ...sharing, ...body } });
   });
@@ -384,13 +384,15 @@ test('saving in the sharing dialog re-reads the deck page once', async ({ mount,
 
   await page.getByTestId('deck-share').click();
   const dialog = page.getByTestId('sharing-dialog');
-  await dialog.getByRole('radio', { name: 'Named people' }).check();
+  await dialog.getByRole('radio', { name: 'Only people below' }).check();
   await dialog.getByTestId('sharing-save').click();
 
   await expect(page.getByTestId('deck-sharing-level')).toHaveText('2 named viewers');
   await expect(dialog).toHaveCount(0);
   await expect(page.getByTestId('deck-share')).toBeFocused();
-  expect(puts).toEqual([{ level: 'named', viewers: sharing.viewers }]);
+  expect(puts).toEqual([
+    { level: 'named', people: sharing.people.map(({ email, access }) => ({ email, access })) },
+  ]);
   await settle(page);
   expect(reads).toBe(2);
 });
