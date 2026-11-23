@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Features.Accounts.Avatars;
 using SlideWorks.WebApi.Features.OAuth.Stores;
 using SlideWorks.WebApi.Tests.Dtos;
 using SlideWorks.WebApi.Tests.Identity;
@@ -39,6 +40,19 @@ public class AdminUsersTests : ApiTestFixture
         row.GetProperty("changedBy").ValueKind.ShouldBe(JsonValueKind.Null);
         view.GetProperty("users").EnumerateArray().Single(u => u.GetProperty("isSelf").GetBoolean())
             .GetProperty("email").GetString().ShouldBe(TestUser.Ada.Email);
+    }
+
+    [Test]
+    public async Task List_WhenAdmin_ShouldShowAvatarPerRow()
+    {
+        var pat = await PendingPersonAsync();
+
+        var view = await Client.GetFromJsonAsync<JsonElement>(USERS);
+
+        var avatar = RowFor(view, pat.Id).GetProperty("avatar");
+        avatar.GetProperty("initials").GetString().ShouldNotBeNullOrEmpty();
+        AvatarColours.Keys.ShouldContain(avatar.GetProperty("colour").GetString()!);
+        view.GetProperty("users").EnumerateArray().ShouldAllBe(row => row.GetProperty("avatar").GetProperty("colour").ValueKind == JsonValueKind.String);
     }
 
     [Test]

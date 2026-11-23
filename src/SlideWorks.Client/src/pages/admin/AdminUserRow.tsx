@@ -1,4 +1,5 @@
 import type { AdminUserRow as AdminUserRowData } from '../../api/types';
+import { Avatar } from '../../components/Avatar';
 import { AdminUserActions, type AdminAction } from './AdminUserActions';
 
 type Props = {
@@ -33,16 +34,7 @@ export function AdminUserRow({ user, disabled, error, onAction }: Props) {
     >
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-2.5">
-          {user.pictureUrl ? (
-            <img
-              src={user.pictureUrl}
-              alt=""
-              referrerPolicy="no-referrer"
-              className="h-7 w-7 rounded-full"
-            />
-          ) : (
-            <span aria-hidden className="h-7 w-7 rounded-full bg-accent-soft" />
-          )}
+          <Avatar avatar={user.avatar} testId="admin-user-avatar" />
           <div className="grid">
             <span data-testid="admin-user-name" className="font-semibold text-ink">
               {user.name}

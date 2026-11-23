@@ -20,7 +20,7 @@ test('user menu signs out and goes to sign-in', async ({ mount, page }) => {
     </LocationProbe>,
     { hooksConfig: { route: '/decks' } },
   );
-  await expect(page.getByTestId('user-menu')).toHaveText('SR');
+  await expect(page.getByTestId('user-menu-avatar')).toBeVisible();
 
   await page.getByTestId('user-menu-button').click();
   await expect(page.getByTestId('user-menu-panel')).toContainText(me.email);
@@ -127,4 +127,33 @@ test.describe('user menu panel', () => {
 
     await expect(page.getByTestId('user-menu-panel')).toHaveCount(0);
   });
+});
+
+test('user menu button shows the avatar and takes a name saved on the profile page', async ({
+  mount,
+  page,
+}) => {
+  const noPicture = { ...me, avatar: { ...me.avatar, pictureUrl: null } };
+  await stubApi(page, { '/api/me': { json: noPicture }, '/api/decks': { json: decksLibrary } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/decks' } });
+  await expect(page.getByTestId('user-menu-avatar-initials')).toHaveText(me.avatar.initials);
+  await expect(page.getByTestId('user-menu-avatar')).toHaveAttribute(
+    'data-colour',
+    me.avatar.colour,
+  );
+
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new CustomEvent('slideworks:profile-saved', {
+        detail: { name: 'Quinn Ames', avatar: { initials: 'QA', colour: 'pink', pictureUrl: null } },
+      }),
+    ),
+  );
+
+  await expect(page.getByTestId('user-menu-avatar-initials')).toHaveText('QA');
+  await expect(page.getByTestId('user-menu-avatar')).toHaveAttribute('data-colour', 'pink');
+  await expect(page.getByTestId('user-menu-button')).toHaveAttribute(
+    'aria-label',
+    'Account: Quinn Ames',
+  );
 });

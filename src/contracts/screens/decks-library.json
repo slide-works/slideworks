@@ -52,7 +52,8 @@
       "viewerCount": 5,
       "updatedLabel": "Yesterday",
       "playUrl": "/d/Ob3nWk1Jn9Ef/onboarding-week-one",
-      "ownerName": "Alex Chen"
+      "ownerName": "Alex Chen",
+      "access": "read"
     }
   ],
   "connect": {

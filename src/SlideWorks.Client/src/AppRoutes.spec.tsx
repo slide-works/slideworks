@@ -26,7 +26,7 @@ test('signed in → decks shell', async ({ mount, page }) => {
   await mount(<AppRoutes />, { hooksConfig: { route: '/' } });
   await expect(page.getByTestId('app-shell')).toBeVisible();
   await expect(page.getByTestId('decks-page')).toBeVisible();
-  await expect(page.getByTestId('user-menu')).toHaveText('SR');
+  await expect(page.getByTestId('user-menu-avatar')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Decks' })).toBeVisible();
 });
 
