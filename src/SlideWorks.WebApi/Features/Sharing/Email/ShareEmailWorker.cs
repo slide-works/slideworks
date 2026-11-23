@@ -1,4 +1,6 @@
+#pragma warning disable S6667 // D15: the exception text can hold the recipient address, so it is deliberately never logged
 using System.Threading.Channels;
+using MailKit.Net.Smtp;
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.WebApi.Data;
@@ -64,7 +66,7 @@ public sealed class ShareEmailWorker(
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException || !stopping.IsCancellationRequested)
                 {
-                    logger.LogError(ex, "Share emails for deck {DeckId} failed and were dropped", notice.DeckId);
+                    logger.LogError("Share emails for deck {DeckId} failed and were dropped ({ExceptionType})", notice.DeckId, ex.GetType().Name);
                 }
             }
         }
@@ -107,10 +109,15 @@ public sealed class ShareEmailWorker(
                 db.ShareEmails.Add(new ShareEmailRow { Id = Guid.NewGuid(), RecipientEmail = recipient, SharerId = sharer.Id, DeckId = deck.Id, SentAt = clock.GetUtcNow() });
                 await db.SaveChangesAsync(stopping);
             }
+            catch (SmtpCommandException ex)
+            {
+                // D15: logged and dropped, no retry. Never the exception or its message: MailKit puts the address in them.
+                logger.LogWarning("Share email for deck {DeckId} was not sent: {ErrorCode} {StatusCode}", deck.Id, ex.ErrorCode, (int)ex.StatusCode);
+                db.ChangeTracker.Clear();
+            }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                // D15: logged and dropped, no retry. The log has the deck and the exception, never the message or an address.
-                logger.LogWarning(ex, "Share email for deck {DeckId} was not sent", deck.Id);
+                logger.LogWarning("Share email for deck {DeckId} was not sent: {ExceptionType}", deck.Id, ex.GetType().Name);
                 db.ChangeTracker.Clear();
             }
         }

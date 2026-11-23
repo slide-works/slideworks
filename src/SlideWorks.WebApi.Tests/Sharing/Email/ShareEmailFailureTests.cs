@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using MailKit;
+using MailKit.Net.Smtp;
 using Microsoft.Extensions.DependencyInjection;
+using MimeKit;
 using SlideWorks.WebApi.Features.Sharing.Email;
 using SlideWorks.WebApi.Infrastructure.Mail;
 using SlideWorks.WebApi.Tests.Support;
@@ -60,7 +63,7 @@ public class ShareEmailFailureTests : ApiTestFixture
                 Accepted.TrySetResult();
                 return Task.CompletedTask;
             }
-            throw new InvalidOperationException("relay refused the message");
+            throw new SmtpCommandException(SmtpErrorCode.RecipientNotAccepted, SmtpStatusCode.MailboxUnavailable, new MailboxAddress("", message.To), $"{message.To} rejected");
         }
     }
 }

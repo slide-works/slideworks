@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
-using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Sharing.Email;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Infrastructure.Mail;
@@ -54,9 +53,9 @@ public partial class ShareEmailTests : ApiTestFixture
     {
         var sharer = TestUser.NewApproved();
         using var client = ClientFor(sharer);
-        var deck = await NewDeckAsync(client);
-        await RenameDeckAsync(deck.Id, new string('T', 200));
-        await RenameSharerAsync(sharer, "<script>alert(1)</script>" + new string('N', 100));
+        var name = "<script>alert(1)</script>" + new string('N', 35);
+        var deck = await NewDeckAsync(client, new string('T', 120));
+        await SetNameAsync(client, name);
         var recipient = NewAddress();
 
         await SharingApi.PutOkAsync(client, deck.Id, "named", recipient);
@@ -64,7 +63,6 @@ public partial class ShareEmailTests : ApiTestFixture
 
         mail.Html.ShouldNotContain("<script>");
         mail.Html.ShouldContain("&lt;script&gt;");
-        var name = ("<script>alert(1)</script>" + new string('N', 100))[..60];
         mail.Subject.ShouldBe($"{name} shared a deck with you");
         mail.Html.ShouldContain(new string('T', 80));
         mail.Html.ShouldNotContain(new string('T', 81));
@@ -77,9 +75,8 @@ public partial class ShareEmailTests : ApiTestFixture
         var sharer = TestUser.NewApproved();
         using var client = ClientFor(sharer);
         var title = "Q" + char.ConvertFromUtf32(0x0D) + char.ConvertFromUtf32(0x0A) + char.ConvertFromUtf32(0x07) + char.ConvertFromUtf32(0x202E) + "4";
-        var deck = await NewDeckAsync(client, "Deck");
-        await RenameSharerAsync(sharer, "Eve" + char.ConvertFromUtf32(0x0D) + char.ConvertFromUtf32(0x0A) + "Bcc: x@y.example" + char.ConvertFromUtf32(0x00) + char.ConvertFromUtf32(0x202E) + char.ConvertFromUtf32(0x2066) + "z");
-        await RenameDeckAsync(deck.Id, title);
+        var deck = await NewDeckAsync(client, title);
+        await SetNameAsync(client, "Eve" + char.ConvertFromUtf32(0x0D) + char.ConvertFromUtf32(0x0A) + "Bcc: x@y.example" + char.ConvertFromUtf32(0x00) + char.ConvertFromUtf32(0x202E) + char.ConvertFromUtf32(0x2066) + "z");
         var recipient = NewAddress();
 
         await SharingApi.PutOkAsync(client, deck.Id, "named", recipient);
@@ -199,23 +196,10 @@ public partial class ShareEmailTests : ApiTestFixture
         await WaitForMailAsync(address, 1);
     }
 
-    // There is no route to set a display name or a title to hostile text yet, so these tests write it where the profile will.
-    private async Task RenameSharerAsync(TestUser sharer, string name)
+    private static async Task SetNameAsync(HttpClient client, string name)
     {
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var user = db.Users.Single(u => u.Email == sharer.Email);
-        user.Name = name;
-        user.NameSetByPerson = true;
-        await db.SaveChangesAsync();
-    }
-
-    private async Task RenameDeckAsync(string deckId, string title)
-    {
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Decks.Single(d => d.Id == deckId).Title = title;
-        await db.SaveChangesAsync();
+        var response = await client.PutAsJsonAsync("/api/me/profile", new { name, colour = "teal" });
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
     }
 
     [GeneratedRegex("href=\"([^\"]+)\"")]

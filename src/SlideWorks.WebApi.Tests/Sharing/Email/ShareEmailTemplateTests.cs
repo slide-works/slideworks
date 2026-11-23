@@ -31,4 +31,19 @@ public class ShareEmailTemplateTests
     {
         ShareEmailTemplate.Clean(char.ConvertFromUtf32(0x202E) + "\r\n", 60, "Someone").ShouldBe("Someone");
     }
+
+    [Test]
+    public void Build_WhenNameOverSixty_ShouldCutItToSixty()
+    {
+        var mail = ShareEmailTemplate.Build("a@b.example", new string('N', 90), "s@b.example", "Deck", "https://h.example/d/1", "https://h.example/u");
+
+        mail.Subject.ShouldBe($"{new string('N', 60)} shared a deck with you");
+        mail.Html.ShouldNotContain(new string('N', 61));
+    }
+
+    [Test]
+    public void Clean_WhenValueHasNul_ShouldDropIt()
+    {
+        ShareEmailTemplate.Clean("a" + char.ConvertFromUtf32(0) + "b", 60, "x").ShouldBe("ab");
+    }
 }
