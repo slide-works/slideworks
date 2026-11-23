@@ -37,6 +37,23 @@ services:
       # Behind a TLS proxy: the proxy's CIDR, such as 172.18.0.0/16, so the OAuth
       # rate limits count each client, not the proxy. Unset trusts no proxy.
       - SLIDEWORKS_TRUSTED_PROXIES=${SLIDEWORKS_TRUSTED_PROXIES:-}
+      # Share emails go through any SMTP server (STARTTLS). No host means no emails;
+      # sharing still works. Unset values keep the defaults.
+      - SLIDEWORKS_SMTP_HOST=${SLIDEWORKS_SMTP_HOST:-}
+      # Default 587.
+      - SLIDEWORKS_SMTP_PORT=${SLIDEWORKS_SMTP_PORT:-}
+      - SLIDEWORKS_SMTP_USERNAME=${SLIDEWORKS_SMTP_USERNAME:-}
+      # With Resend the password is the API key, which the hosted instance keeps as
+      # RESEND_KEY, so it is read from there when this is not set.
+      - SLIDEWORKS_SMTP_PASSWORD=${SLIDEWORKS_SMTP_PASSWORD:-${RESEND_KEY:-}}
+      # The From of share emails, such as "SlideWorks <share@mail.example.com>".
+      - SLIDEWORKS_MAIL_FROM=${SLIDEWORKS_MAIL_FROM:-}
+      # Sharing limits. Distinct new people one person may add to their decks in an
+      # hour (default 10) and in 24 hours (default 30), and share emails one address
+      # may get in 24 hours from everyone (default 3).
+      - SLIDEWORKS_SHARE_NEW_PER_HOUR=${SLIDEWORKS_SHARE_NEW_PER_HOUR:-}
+      - SLIDEWORKS_SHARE_NEW_PER_DAY=${SLIDEWORKS_SHARE_NEW_PER_DAY:-}
+      - SLIDEWORKS_SHARE_EMAILS_PER_RECIPIENT_PER_DAY=${SLIDEWORKS_SHARE_EMAILS_PER_RECIPIENT_PER_DAY:-}
     volumes:
       # Named volume on a local disk. Never switch this to a bind mount on a
       # network share (NFS, SMB, 9p): SQLite corrupts there under lock

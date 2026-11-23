@@ -1,18 +1,17 @@
 using Agoda.IoC.Core;
-using SlideWorks.Core;
+using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 
 namespace SlideWorks.WebApi.Features.Accounts.Admin;
 
-// Builds the admin-users screen (S5) from IUserAccounts, in its list order, with labels formatted on the server clock.
+// Builds the admin-users screen (S5) from IUserAccounts, in its list order, with labels formatted by IDisplayDates.
 [RegisterPerRequest]
-public class AdminUserViews(IUserAccounts accounts, ICurrentActor actor, TimeProvider clock)
+public class AdminUserViews(IUserAccounts accounts, ICurrentActor actor, IDisplayDates dates)
 {
     public async Task<AdminUsersView> BuildAsync()
     {
         var users = await accounts.ListAsync();
         var names = users.ToDictionary(u => u.Id, u => u.Name);
-        var now = clock.GetUtcNow();
         var rows = users.Select(u => new AdminUserRow(
             u.Id,
             u.Name,
@@ -21,8 +20,8 @@ public class AdminUserViews(IUserAccounts accounts, ICurrentActor actor, TimePro
             u.Access.ToString().ToLowerInvariant(),
             u.IsAdmin,
             u.Id == actor.PresenterId,
-            DisplayDate.Ago(u.CreatedAt, now),
-            u.AccessChangedAt is { } changedAt ? DisplayDate.Ago(changedAt, now) : null,
+            dates.Ago(u.CreatedAt),
+            u.AccessChangedAt is { } changedAt ? dates.Ago(changedAt) : null,
             u.AccessChangedBy is { } by && names.TryGetValue(by, out var name) ? name : null)).ToList();
         return new AdminUsersView(
             rows,

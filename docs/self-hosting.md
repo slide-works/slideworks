@@ -20,7 +20,15 @@ Every setting is an environment variable with the `SLIDEWORKS_` prefix, except `
 | `SLIDEWORKS_GOOGLE_CLIENT_SECRET` | For sign-in | The Google OAuth client's secret. Sign-in is on only when both Google values are set. With neither set, the server still runs, `/signin` says sign-in isn't set up, and `/signin/google` answers 503. With only one set, the server logs a warning and sign-in stays off. |
 | `SLIDEWORKS_ADMIN_EMAIL` | Recommended | The Google email of the first admin. When that person signs in and no admin exists yet, they become an approved admin. It's honoured only while no admin exists, so it's harmless to leave it set. If it's unset and there is no admin, the server logs a warning at startup, because nobody can approve sign-ups. |
 | `SLIDEWORKS_DB_PATH` | No | The SQLite file. Default `/data/slide-works.db`. The session-cookie keys are kept in `slide-works-keys/` next to it, so a restart or a new image doesn't sign everyone out. |
-| `SLIDEWORKS_DATA_PATH` | No | The data folder for uploaded files. Default `/data`. Deck images are stored under `images/<deck id>/` and uploaded templates' files under `templates/<template id>/` (see [Uploaded templates](#uploaded-templates)). |
+| `SLIDEWORKS_DATA_PATH` | No | The data folder for uploaded files. Default `/data`. Deck images are stored under `images/<deck id>/` and uploaded templates' files under `templates/<template id>/` (see [Uploaded templates](#uploaded-templates)) Profile photos are stored under `avatars/<user id>/`. |
+| `SLIDEWORKS_SMTP_HOST` | For share emails | The SMTP server that sends the email a person gets when a deck is shared with them. Any SMTP server works. With no host set, no emails are sent: sharing still works and the person finds the deck under "Shared with you". See [Share email](#share-email). |
+| `SLIDEWORKS_SMTP_PORT` | No | The SMTP port, with STARTTLS. Default `587`. |
+| `SLIDEWORKS_SMTP_USERNAME` | No | The SMTP username, when the server needs one. |
+| `SLIDEWORKS_SMTP_PASSWORD` | No | The SMTP password. `src/docker-compose.yml` fills it from `RESEND_KEY` when it isn't set. |
+| `SLIDEWORKS_MAIL_FROM` | For share emails | The From of share emails, such as `SlideWorks <share@mail.example.com>`, on a domain your SMTP server may send from. |
+| `SLIDEWORKS_SHARE_NEW_PER_HOUR` | No | How many distinct new people one person may add to their decks in an hour. Default `10`. Each email counts once per window, however many decks it is added to; changing a person's level or removing them doesn't count. |
+| `SLIDEWORKS_SHARE_NEW_PER_DAY` | No | The same limit over 24 hours. Default `30`. |
+| `SLIDEWORKS_SHARE_EMAILS_PER_RECIPIENT_PER_DAY` | No | How many share emails one address may get in 24 hours, from everyone together. Default `3`. |
 | `SLIDEWORKS_SEQ_URL` | No | Also send logs to this Seq server. Without it, logs go to the console only (`docker logs`). |
 | `SLIDEWORKS_SEQ_API_KEY` | No | The Seq API key, when your Seq server needs one. |
 | `SLIDEWORKS_TRUSTED_PROXIES` | Behind a proxy | The proxy addresses whose `X-Forwarded-For` header SlideWorks trusts for the client IP, as a comma-separated list of CIDRs such as `172.18.0.0/16, fd00::/8`. A single address, such as `10.0.0.5`, means just that address. Unset by default, which trusts no proxy. The server refuses to start if an entry isn't a CIDR or an address. See [Behind a TLS proxy](#behind-a-tls-proxy). |
@@ -68,17 +76,35 @@ Migrations run on startup, so a new image upgrades the database itself.
 
 ### Storage
 
-- The database, the cookie keys, the images and the uploaded templates' files all live on the `/data` volume. Back it up as a unit. The runtime image has no `sqlite3`, so take a consistent copy while the app runs from a throwaway container that mounts the volume and a host folder. Compose prefixes the volume name with the project name, which is the folder name, so from `src/` the volume is `src_slide-works-data` (`docker volume ls` shows it). From `src/`:
+- The database, the cookie keys, the images, the profile photos and the uploaded templates' files all live on the `/data` volume. Back it up as a unit. The runtime image has no `sqlite3`, so take a consistent copy while the app runs from a throwaway container that mounts the volume and a host folder. Compose prefixes the volume name with the project name, which is the folder name, so from `src/` the volume is `src_slide-works-data` (`docker volume ls` shows it). From `src/`:
 
   ```bash
   mkdir -p backup
   docker run --rm -v src_slide-works-data:/data -v "$PWD/backup":/backup alpine sh -c \
-    "apk add --no-cache sqlite >/dev/null && sqlite3 /data/slide-works.db '.backup /backup/slide-works.db' && cp -r /data/slide-works-keys /backup/ && for d in images templates; do if [ -d /data/$d ]; then cp -r /data/$d /backup/; fi; done"
+    "apk add --no-cache sqlite >/dev/null && sqlite3 /data/slide-works.db '.backup /backup/slide-works.db' && cp -r /data/slide-works-keys /backup/ && for d in images templates avatars; do if [ -d /data/$d ]; then cp -r /data/$d /backup/; fi; done"
   ```
 
-  That writes `backup/slide-works.db` plus copies of the cookie keys, any images and any template files, owned by root. `.backup` is safe while SlideWorks is writing; copying the `.db` file directly is not.
+  That writes `backup/slide-works.db` plus copies of the cookie keys, any images, profile photos and template files, owned by root. `.backup` is safe while SlideWorks is writing; copying the `.db` file directly is not.
 - Keep `/data` on a local disk, such as a named Docker volume. Never bind-mount it onto a network share (NFS, SMB or 9p), because SQLite's locking corrupts the file there.
 - SlideWorks is a single process. Its live updates and rate limits are held in memory, so don't run two instances against one volume.
+
+### Share email
+
+Sharing a deck with a person by email address sends them one notification: who shared it, the deck's title, a link and an unsubscribe link. It goes through any SMTP server you set with `SLIDEWORKS_SMTP_HOST`, `SLIDEWORKS_SMTP_PORT` (587, STARTTLS), `SLIDEWORKS_SMTP_USERNAME`, `SLIDEWORKS_SMTP_PASSWORD` and `SLIDEWORKS_MAIL_FROM`. With no SMTP host, no emails are sent, and sharing still works.
+
+Resend, as a worked example (any SMTP server works the same way):
+
+```
+SLIDEWORKS_SMTP_HOST=smtp.resend.com
+SLIDEWORKS_SMTP_PORT=587
+SLIDEWORKS_SMTP_USERNAME=resend
+SLIDEWORKS_SMTP_PASSWORD=<your Resend API key>
+SLIDEWORKS_MAIL_FROM=SlideWorks <share@mail.example.com>
+```
+
+`src/docker-compose.yml` also accepts the API key as `RESEND_KEY` when `SLIDEWORKS_SMTP_PASSWORD` is unset. The sender domain must be verified in your Resend account.
+
+The email's unsubscribe link opens a page with one button; pressing it stops further share emails to that address. Sharing limits stop the email being used to spam: one person may add at most `SLIDEWORKS_SHARE_NEW_PER_HOUR` distinct new people an hour and `SLIDEWORKS_SHARE_NEW_PER_DAY` a day (each email counts once per window, however many decks it is added to), and one address gets at most `SLIDEWORKS_SHARE_EMAILS_PER_RECIPIENT_PER_DAY` share emails a day from everyone together.
 
 ### Uploaded templates
 

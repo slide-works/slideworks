@@ -27,7 +27,8 @@ public class SharingService(
     IActivityLog activity,
     IDeckEvents events,
     IPublicUrls urls,
-    TimeProvider clock)
+    TimeProvider clock,
+    IDisplayDates dates)
 {
     public const string TOOL = "set_sharing";
 
@@ -149,7 +150,7 @@ public class SharingService(
             .OrderByDescending(e => e.At)
             .ThenByDescending(e => e.Id)
             .FirstOrDefaultAsync();
-        var lastChange = last == null ? null : SharingLastChange.From(last, DisplayDate.Ago(last.At, clock.GetUtcNow()));
+        var lastChange = last == null ? null : SharingLastChange.From(last, dates.Ago(last.At));
         return new SharingView(deck.Sharing, viewers, urls.Deck(deck.Id, deck.Slug), lastChange);
     }
 
