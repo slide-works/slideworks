@@ -10,10 +10,12 @@ import { DecksPage } from './pages/DecksPage';
 import { PendingPage } from './pages/PendingPage';
 import { PlayerPage } from './pages/PlayerPage';
 import { PresenterPage } from './pages/PresenterPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { RemotePickPage } from './pages/RemotePickPage';
 import { RenderPage } from './pages/RenderPage';
 import { SignInPage } from './pages/SignInPage';
 import { SpeakerPage } from './pages/SpeakerPage';
+import { UnsubscribePage } from './pages/UnsubscribePage';
 import { SignedInGate } from './SignedInGate';
 import { TemplateEditor } from './templates/editor/TemplateEditor';
 import { LayoutReviewPage } from './templates/LayoutReviewPage';
@@ -27,6 +29,8 @@ import { TemplatesPage } from './templates/TemplatesPage';
 const routes: RouteObject[] = [
   { path: '/signin', element: <SignInPage /> },
   { path: '/pending', element: <PendingPage /> },
+  // Where a share email's unsubscribe link leads: open without a sign-in, the token in the fragment is the credential.
+  { path: '/unsubscribe', element: <UnsubscribePage /> },
   { path: '/d/:id/:slug', element: <PlayerPage /> },
   { path: '/d/:id', element: <PlayerPage /> },
   // The guest pages (SW-5 J5): anyone with a join code, no sign-in. /j/{code} is what both hosts serve; the bare /{code}
@@ -56,6 +60,7 @@ const routes: RouteObject[] = [
       { path: 'templates', element: <TemplatesPage /> },
       { path: 'templates/:id/edit', element: <TemplateEditor /> },
       { path: 'templates/:id/layouts/:name', element: <LayoutReviewPage /> },
+      { path: 'profile', element: <ProfilePage /> },
       { path: 'admin/users', element: <AdminUsersPage /> },
       { path: 'oauth/consent', element: <ConsentPage /> },
       { path: '*', element: <Navigate to="/decks" replace /> },

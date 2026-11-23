@@ -1,0 +1,27 @@
+{
+  "identity": {
+    "name": "Sam Rivera",
+    "email": "sam@team.example",
+    "avatar": {
+      "initials": "SR",
+      "colour": "teal",
+      "pictureUrl": "/api/people/0b9c1d42-5a77-4f0e-9d3a-6c1e2f8a7b10/photo/q7Xk2mP9aLw4"
+    },
+    "colour": "teal",
+    "colours": ["slate", "red", "amber", "green", "teal", "blue", "violet", "pink"],
+    "hasPhoto": true
+  },
+  "account": {
+    "timeZone": "Europe/London",
+    "timeZones": [
+      { "id": "Europe/London", "label": "(UTC+00:00) London" },
+      { "id": "America/New_York", "label": "(UTC-05:00) New York" }
+    ],
+    "isAdmin": true,
+    "adminUrl": "/admin/users"
+  },
+  "agents": [
+    { "id": "3f2b7c84-1d5e-4a90-8b6f-9e0d4c7a2b15", "clientName": "Claude", "connectedLabel": "3 days ago", "lastUsedLabel": "2 min ago" },
+    { "id": "8a1e5d36-7c42-4f09-b2d8-5e6f0a9c3d71", "clientName": "Cursor", "connectedLabel": "Unknown", "lastUsedLabel": null }
+  ]
+}

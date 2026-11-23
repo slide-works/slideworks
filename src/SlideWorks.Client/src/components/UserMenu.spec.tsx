@@ -45,19 +45,54 @@ test('user menu keeps the person signed in when sign-out fails', async ({ mount,
   await expect(page.getByTestId('app-shell')).toBeVisible();
 });
 
+test('user menu lists People (admin) for an admin and not for anyone else', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { '/api/me': { json: { ...me, isAdmin: true } } });
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    { hooksConfig: { route: '/decks' } },
+  );
+  await page.getByTestId('user-menu-button').click();
+  await expect(page.getByTestId('user-menu-people')).toHaveText('People (admin)');
+  await expect(page.getByTestId('user-menu-people')).toHaveAttribute('href', '/admin/users');
+});
+
+test('user menu has no People (admin) for a non-admin', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { json: { ...me, isAdmin: false } } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/decks' } });
+  await page.getByTestId('user-menu-button').click();
+
+  await expect(page.getByTestId('user-menu-profile')).toBeVisible();
+  await expect(page.getByTestId('user-menu-people')).toHaveCount(0);
+});
+
 test.describe('user menu panel', () => {
   test.beforeEach(async ({ mount, page }) => {
     await stubApi(page, {
       '/api/me': { json: me },
       '/api/decks': { json: decksLibrary },
     });
-    await mount(<AppRoutes />, { hooksConfig: { route: '/decks' } });
+    await mount(
+      <LocationProbe>
+        <AppRoutes />
+      </LocationProbe>,
+      { hooksConfig: { route: '/decks' } },
+    );
     await page.getByTestId('user-menu-button').click();
     await expect(page.getByTestId('user-menu-panel')).toBeVisible();
   });
 
-  test('opening the user menu moves focus to its first item', async ({ page }) => {
-    await expect(page.getByTestId('user-menu-signout')).toBeFocused();
+  test('opening the user menu moves focus to Profile, which goes to /profile', async ({ page }) => {
+    await expect(page.getByTestId('user-menu-profile')).toBeFocused();
+
+    await page.getByTestId('user-menu-profile').click();
+
+    await expect(page.getByTestId('location')).toHaveText('/profile');
+    await expect(page.getByTestId('user-menu-panel')).toHaveCount(0);
   });
 
   test('escape closes the user menu and returns focus to its button', async ({ page }) => {
@@ -84,6 +119,8 @@ test.describe('user menu panel', () => {
     await expect(page.getByTestId('user-menu-button')).toBeFocused();
     await expect(page.getByTestId('user-menu-panel')).toBeVisible();
 
+    await page.keyboard.press('Tab');
+    await expect(page.getByTestId('user-menu-profile')).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(page.getByTestId('user-menu-signout')).toBeFocused();
     await page.keyboard.press('Tab');
