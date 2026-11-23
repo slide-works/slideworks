@@ -207,7 +207,7 @@ test('SharingDialog_WhenNewPeopleAdded_ShouldSayHowManyGetAnEmail', async ({ mou
 });
 
 test('SharingDialog_When429_ShouldShowServerMessage', async ({ mount, page }) => {
-  const error = 'You can share with 10 new people an hour. Try again in 42 minutes.';
+  const error = 'You can share with 10 new people an hour. Try again at 2026-11-23 15:42 UTC.';
   const puts = await stubSharing(page, sharing, {
     status: 429,
     json: { error },
@@ -218,7 +218,6 @@ test('SharingDialog_When429_ShouldShowServerMessage', async ({ mount, page }) =>
   const dialog = page.getByTestId('sharing-dialog');
   const input = dialog.getByTestId('sharing-email-input');
   await input.fill('kai@team.example');
-  await input.press('Enter');
   await dialog.getByTestId('sharing-save').click();
 
   await expect(dialog.getByTestId('sharing-limit-error')).toContainText('Not shared.');
@@ -229,10 +228,11 @@ test('SharingDialog_When429_ShouldShowServerMessage', async ({ mount, page }) =>
   await expect(dialog.getByTestId('sharing-person-email')).toHaveText([
     'alex@team.example',
     'mira@team.example',
-    'kai@team.example',
   ]);
+  await expect(input).toHaveValue('kai@team.example');
   await expect(page.getByTestId('saved-level')).toHaveText('none');
   await expect(dialog.getByTestId('sharing-save')).toBeEnabled();
+  await expect(dialog.getByTestId('sharing-save')).toBeFocused();
   expect(puts).toHaveLength(1);
 });
 
@@ -249,6 +249,70 @@ test('server 400 shows message under the people field', async ({ mount, page }) 
   await expect(dialog.getByTestId('sharing-error')).toHaveAttribute('role', 'alert');
   await expect(page.getByTestId('saved-level')).toHaveText('none');
   await expect(dialog.getByTestId('sharing-save')).toBeEnabled();
+  await expect(dialog.getByTestId('sharing-email-input')).toBeFocused();
+  await expect(dialog.getByTestId('sharing-email-input')).toHaveAttribute('aria-invalid', 'true');
+  await expect(dialog.getByTestId('sharing-email-input')).toHaveAttribute(
+    'aria-describedby',
+    'sharing-people-error',
+  );
+});
+
+test('Save with a partial email still typed makes no PUT and keeps the dialog open', async ({
+  mount,
+  page,
+}) => {
+  const puts = await stubSharing(page, sharing);
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
+  const input = dialog.getByTestId('sharing-email-input');
+  await input.fill('alex@team');
+  await dialog.getByTestId('sharing-save').click();
+  await expect(dialog).toBeVisible();
+  await expect(input).toBeFocused();
+  await expect(dialog.getByTestId('sharing-email-hint')).toHaveText(
+    'Type their full email to share this deck with them.',
+  );
+  expect(puts).toHaveLength(0);
+
+  await input.fill('alex@team.example2.test');
+  await dialog.getByTestId('sharing-save').click();
+  await expect(page.getByTestId('saved-level')).toHaveText('named');
+  expect(puts).toHaveLength(1);
+});
+
+test('a typed full email counts in the new-people note', async ({ mount, page }) => {
+  await stubSharing(page, sharing);
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
+  await dialog.getByTestId('sharing-email-input').fill('kai@team.example');
+  await expect(dialog.getByTestId('sharing-new-note')).toHaveText('Saving emails 1 new person.');
+});
+
+test('an email already on the list, or the owner, is not added and says so', async ({
+  mount,
+  page,
+}) => {
+  await stubSharing(page, sharing);
+  await mount(<SharingDialogHarness deckId={deckId} />);
+  await page.getByTestId('open-sharing').click();
+
+  const dialog = page.getByTestId('sharing-dialog');
+  const input = dialog.getByTestId('sharing-email-input');
+  await input.fill('Alex@team.example');
+  await input.press('Enter');
+  await expect(dialog.getByTestId('sharing-person-notice')).toHaveText(
+    'alex@team.example is already on the list.',
+  );
+  await input.fill(sharing.owner.email);
+  await input.press('Enter');
+  await expect(dialog.getByTestId('sharing-person-notice')).toHaveText(
+    `${sharing.owner.email.toLowerCase()} is already on the list.`,
+  );
+  await expect(dialog.getByTestId('sharing-person')).toHaveCount(2);
 });
 
 test('the owner row shows Owner and has no controls', async ({ mount, page }) => {

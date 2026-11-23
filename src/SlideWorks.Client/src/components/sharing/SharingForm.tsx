@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError, api } from '../../api/client';
 import type { SharingLevel, SharingPeopleRequest, SharingView } from '../../api/types';
 import { CopyLinkRow } from './CopyLinkRow';
@@ -35,8 +35,8 @@ type SharingFormProps = {
 };
 
 // The loaded dialog: the three levels, the People section, the agents note, the link and Save. Save PUTs
-// { level, people }, adding a full email still typed. A 400's message shows under the people field and a
-// 429 shows the server's text and keeps everything as it was.
+// { level, people }, adding a full email still typed; a partial one stops Save. A 400's message shows under the
+// people field and a 429 shows the server's text; either way nothing moves and focus goes back to a control.
 export function SharingForm({ deckId, view, onCancel, onSaved }: SharingFormProps) {
   const [level, setLevel] = useState(view.level);
   const [people, setPeople] = useState<PersonEntry[]>(() =>
@@ -46,9 +46,21 @@ export function SharingForm({ deckId, view, onCancel, onSaved }: SharingFormProp
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [limited, setLimited] = useState(false);
+  const [failure, setFailure] = useState<{ target: 'input' | 'save' } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const saveRef = useRef<HTMLButtonElement>(null);
+
+  // Save is disabled while the call runs, so after a failure focus is put back once it is enabled again.
+  useEffect(() => {
+    if (failure) (failure.target === 'input' ? inputRef : saveRef).current?.focus();
+  }, [failure]);
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
+    if (pending.trim() !== '' && !FULL_EMAIL.test(pending.trim())) {
+      inputRef.current?.focus();
+      return;
+    }
     const typed = pending.trim().toLowerCase();
     const typedIsNew =
       FULL_EMAIL.test(typed) &&
@@ -73,18 +85,18 @@ export function SharingForm({ deckId, view, onCancel, onSaved }: SharingFormProp
         request,
       );
       onSaved(saved);
-    } catch (failure) {
+    } catch (cause) {
       setSaving(false);
-      if (typedIsNew) {
-        setPeople(all);
-        setPending('');
-      }
-      if (failure instanceof ApiError) {
-        setError(failure.message);
-        setLimited(failure.status === 429);
+      // Nothing moves on a failure: the typed email stays in the field and the list is as it was.
+      let target: 'input' | 'save' = 'save';
+      if (cause instanceof ApiError) {
+        setError(cause.message);
+        setLimited(cause.status === 429);
+        if (cause.message.startsWith(PEOPLE_ERROR_PREFIX)) target = 'input';
       } else {
         setError("Can't reach SlideWorks.");
       }
+      setFailure({ target });
     }
   };
 
@@ -117,6 +129,7 @@ export function SharingForm({ deckId, view, onCancel, onSaved }: SharingFormProp
         level={level}
         error={peopleError}
         pending={pending}
+        inputRef={inputRef}
         onPending={setPending}
         onChange={setPeople}
       />
@@ -170,6 +183,7 @@ export function SharingForm({ deckId, view, onCancel, onSaved }: SharingFormProp
           data-testid="sharing-save"
           className="btn-primary py-1.5"
           disabled={saving}
+          ref={saveRef}
         >
           Save
         </button>

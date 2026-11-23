@@ -8,7 +8,7 @@ public sealed class SharingDialog(IPage page)
     public ILocator Root => page.GetByTestId("sharing-dialog");
 
     // The email of each person row (not the owner's).
-    public ILocator Chips => Root.GetByTestId("sharing-person-email");
+    public ILocator PersonEmails => Root.GetByTestId("sharing-person-email");
 
     public ILocator Rows => Root.GetByTestId("sharing-person");
 

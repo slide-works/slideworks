@@ -28,12 +28,12 @@ public partial class SharingDialogTests : AcceptanceTest
 
         await deck.Share.ClickAsync();
         await Expect(dialog.Level("named")).ToBeCheckedAsync();
-        await Expect(dialog.Chips).ToHaveTextAsync(["viewer@example.test"]);
+        await Expect(dialog.PersonEmails).ToHaveTextAsync(["viewer@example.test"]);
         await Expect(dialog.LastChange).ToHaveTextAsync(new Regex("^Last change: .+, .+\\.$"));
     }
 
     [Test]
-    public async Task Share_WhenEmailIsNotAnEmail_ShouldShowTheServerMessageInTheDialog()
+    public async Task Share_WhenPartialEmailTyped_ShouldAddNobody()
     {
         await CreateDeckAsync(TestUser.Sam, $"Review {Guid.NewGuid():N}");
         var deck = new DeckPage(Page);
@@ -42,10 +42,14 @@ public partial class SharingDialogTests : AcceptanceTest
         await deck.Share.ClickAsync();
         await dialog.ChooseAsync("named");
         await dialog.AddEmailAsync("not-an-email");
-        await dialog.Save.ClickAsync();
 
-        await Expect(dialog.Error).ToHaveTextAsync("viewers: \"not-an-email\" is not an email address");
-        await Expect(dialog.Root).ToBeVisibleAsync();
+        await Expect(dialog.EmailHint).ToHaveTextAsync("Type their full email to share this deck with them.");
+        await Expect(dialog.Rows).ToHaveCountAsync(0);
+
+        await dialog.AddEmailAsync("viewer@example.test");
+
+        await Expect(dialog.EmailHint).ToHaveCountAsync(0);
+        await Expect(dialog.Rows).ToHaveCountAsync(1);
     }
 
     // Signs in as presenter, makes a deck with "+ New deck" and waits for its deck page.

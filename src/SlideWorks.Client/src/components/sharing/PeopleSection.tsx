@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState, type RefObject } from 'react';
 import type { DeckAccessLevel, SharingLevel, SharingOwner } from '../../api/types';
 import { Avatar } from '../Avatar';
 import { FULL_EMAIL, PeopleField } from './PeopleField';
@@ -10,6 +10,7 @@ type PeopleSectionProps = {
   level: SharingLevel;
   error: string | null;
   pending: string;
+  inputRef: RefObject<HTMLInputElement | null>;
   onPending(text: string): void;
   onChange(people: PersonEntry[]): void;
 };
@@ -21,12 +22,18 @@ export function PeopleSection({
   level,
   error,
   pending,
+  inputRef,
   onPending,
   onChange,
 }: PeopleSectionProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState('');
-  const newCount = people.filter((person) => person.isNew).length;
+  // A full email still typed is included by Save, so the note counts it.
+  const typed = pending.trim().toLowerCase();
+  const typedIsNew =
+    FULL_EMAIL.test(typed) &&
+    typed !== owner.email.toLowerCase() &&
+    !people.some((person) => person.email === typed);
+  const newCount = people.filter((person) => person.isNew).length + (typedIsNew ? 1 : 0);
 
   const add = () => {
     const email = pending.trim().toLowerCase();
@@ -57,14 +64,25 @@ export function PeopleSection({
           {people.length + 1}
         </span>
       </h3>
-      <PeopleField value={pending} inputRef={inputRef} onChange={onPending} onAdd={add} />
+      <PeopleField
+        value={pending}
+        inputRef={inputRef}
+        errorId={error ? 'sharing-people-error' : undefined}
+        onChange={onPending}
+        onAdd={add}
+      />
       {notice && (
         <p role="status" data-testid="sharing-person-notice" className="text-meta text-ink-muted">
           {notice}
         </p>
       )}
       {error && (
-        <p role="alert" data-testid="sharing-error" className="text-meta text-bad">
+        <p
+          id="sharing-people-error"
+          role="alert"
+          data-testid="sharing-error"
+          className="text-meta text-bad"
+        >
           {error}
         </p>
       )}

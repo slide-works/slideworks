@@ -5,13 +5,14 @@ export const FULL_EMAIL = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
 type PeopleFieldProps = {
   value: string;
   inputRef: RefObject<HTMLInputElement | null>;
+  errorId?: string;
   onChange(text: string): void;
   onAdd(): void;
 };
 
 // One input and an Add button. It never suggests anyone (D32): anything that is not a full address only shows
 // the same hint, whether or not an account matches it.
-export function PeopleField({ value, inputRef, onChange, onAdd }: PeopleFieldProps) {
+export function PeopleField({ value, inputRef, errorId, onChange, onAdd }: PeopleFieldProps) {
   const hintId = useId();
   const partial = value.trim() !== '' && !FULL_EMAIL.test(value.trim());
 
@@ -31,7 +32,10 @@ export function PeopleField({ value, inputRef, onChange, onAdd }: PeopleFieldPro
           autoComplete="off"
           data-testid="sharing-email-input"
           aria-label="Add someone by their full email"
-          aria-describedby={partial ? hintId : undefined}
+          aria-invalid={errorId ? true : undefined}
+          aria-describedby={
+            [partial ? hintId : null, errorId].filter(Boolean).join(' ') || undefined
+          }
           placeholder="Add someone by their full email"
           className="min-w-0 flex-1 rounded-md border border-edge-strong bg-panel px-2.5 py-1.5 text-meta text-ink placeholder:text-ink-faint"
           value={value}
