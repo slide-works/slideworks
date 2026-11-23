@@ -34,6 +34,7 @@ public static class FirstHalfSlides
                 new { title = M(70, 29), text = M(140, 30), fill = "plain" },
             },
         }),
+        // shortened: list items 110, not 120, callout 190, not 200 (SW-802 estimate)
         (5, "two-column", 1, "list, big word, callout", false, 1, 0, null, _ => new
         {
             kicker = M(60, 31), headline = M(100, 32),
@@ -41,13 +42,13 @@ public static class FirstHalfSlides
             {
                 items = new object[]
                 {
-                    new { icon = "calendar", text = M(120, 34) },
-                    new { icon = "cycle", text = M(120, 36) },
-                    new { icon = "list", text = M(120, 38) },
+                    new { icon = "calendar", text = M(110, 34) },
+                    new { icon = "cycle", text = M(110, 36) },
+                    new { icon = "list", text = M(110, 38) },
                 },
             },
             right = new { title = M(60, 39), icon = "search", text = M(400, 40) },
-            callout = new { tone = "accent", text = M(200, 41) },
+            callout = new { tone = "accent", text = M(190, 41) },
         }),
         (6, "compare", 1, "two kinds, side by side", false, 0, 0, null, _ => new
         {

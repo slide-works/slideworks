@@ -21,10 +21,11 @@ public static class SecondHalfSlides
             callout = new { tone = "accent", text = M(220, 2312) },
         }),
         (25, "divider", 6, "part divider", false, 0, 0, null, _ => new { title = M(44, 2501), sub = M(110, 2502) }),
+        // shortened: statement 69, not 70 (SW-802 estimate)
         (26, "statement", 6, "big statement, sub line", false, 0, 0, null, _ => new
         {
-            kicker = M(60, 2601), statement = M(70, 2602), sub = M(100, 2603),
-            emphasis = new[] { new { text = Last(M(70, 2602)), tone = "accent", @in = "statement" } },
+            kicker = M(60, 2601), statement = M(69, 2602), sub = M(100, 2603),
+            emphasis = new[] { new { text = Last(M(69, 2602)), tone = "accent", @in = "statement" } },
         }),
         (27, "bullets", 6, "dark list, red callout", false, 1, 0, "dark", _ => new
         {
@@ -32,9 +33,10 @@ public static class SecondHalfSlides
             items = new object[] { M(200, 2703) },
             callout = new { tone = "negative", text = M(220, 2704) },
         }),
+        // shortened: statement 69, not 70 (SW-802 estimate)
         (28, "statement", 6, "big dark statement, sub line", false, 0, 0, "dark", _ => new
         {
-            statement = M(70, 2801), sub = M(100, 2802),
+            statement = M(69, 2801), sub = M(100, 2802),
             emphasis = new[] { new { text = Tail(M(100, 2802), 60), tone = "accent", @in = "sub" } }, // the original emphasises the whole sub line; the slot takes 60 characters
         }),
         // shortened: no stamps, footers 60 (row 29)
@@ -110,9 +112,10 @@ public static class SecondHalfSlides
                 new { icon = "warning", badge = M(36, 3809), title = M(70, 3810), text = M(140, 3811), tone = "negative", fill = "plain" },
             },
         }),
+        // shortened: second headline line 30, not 40 (SW-802 estimate)
         (39, "close", 7, "closing slide", false, 0, 0, null, _ => new
         {
-            headline = M(39, 3901) + "\n" + M(40, 3902), sub = M(110, 3903), author = M(60, 3904),
+            headline = M(39, 3901) + "\n" + M(30, 3902), sub = M(110, 3903), author = M(60, 3904),
         }),
         // shortened: link sources 60 (row 40)
         (40, "links", 7, "four links and a code", false, 0, 0, null, _ => new
