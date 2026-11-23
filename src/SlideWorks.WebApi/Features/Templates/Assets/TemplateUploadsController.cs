@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SlideWorks.WebApi.Features.Templates.Views;
 using SlideWorks.WebApi.Infrastructure;
+using SlideWorks.WebApi.Infrastructure.RequestLimits;
 
 namespace SlideWorks.WebApi.Features.Templates.Assets;
 
@@ -14,6 +15,7 @@ public class TemplateUploadsController(ITemplateAssets assets) : ApiControllerBa
 {
     [HttpPut("{token}")]
     [AllowAnonymous]
+    [OwnsBodyLimit]
     [ProducesResponseType<StoredAsset>(StatusCodes.Status200OK)]
     [ProducesResponseType<TemplateErrorResponse>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
