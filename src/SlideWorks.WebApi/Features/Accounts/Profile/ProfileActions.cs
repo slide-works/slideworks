@@ -22,8 +22,7 @@ public class ProfileActions(
 
     public async Task<ProfileView> UpdateAsync(ProfileUpdate update)
     {
-        await commands.SetNameAsync(Me, update.Name);
-        await commands.SetColourAsync(Me, update.Colour);
+        await commands.SaveAsync(Me, update.Name, update.Colour);
         return await views.GetAsync();
     }
 
