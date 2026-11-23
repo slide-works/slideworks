@@ -49,7 +49,7 @@ function render(slide: RenderableSlide) {
   return <SlideRenderer slide={slide} deck={deck} total={sampleDeck.slides.length} step={0} />;
 }
 
-const GOOD = 'rgb(22, 163, 74)';
+const GOOD = 'rgb(21, 128, 61)';
 const BAD = 'rgb(220, 38, 38)';
 const ACCENT = 'rgb(47, 91, 234)';
 const WARN = 'rgb(234, 88, 12)';
