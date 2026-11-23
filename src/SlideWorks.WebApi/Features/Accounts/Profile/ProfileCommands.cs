@@ -11,14 +11,14 @@ public sealed class ProfileCommands(AppDbContext db) : IProfileCommands
 {
     private const int MAX_NAME_LENGTH = 60;
 
-    public async Task SaveAsync(Guid userId, string name, string colour)
+    public async Task SaveAsync(Guid userId, string? name, string? colour)
     {
-        var trimmed = name.Trim();
+        var trimmed = name?.Trim() ?? string.Empty;
         if (trimmed.Length is 0 or > MAX_NAME_LENGTH)
         {
             throw new BadRequestException($"Your name must be 1 to {MAX_NAME_LENGTH} characters.");
         }
-        if (!AvatarColours.Keys.Contains(colour))
+        if (colour is null || !AvatarColours.Keys.Contains(colour))
         {
             throw new BadRequestException("That colour is not one of the choices.");
         }

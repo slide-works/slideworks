@@ -55,6 +55,22 @@ public class ProfileNameTests : ApiTestFixture
         (await client.GetFromJsonAsync<JsonElement>("/api/me")).GetProperty("name").GetString().ShouldBe(new string('y', 60));
     }
 
+    [TestCase("name")]
+    [TestCase("colour")]
+    public async Task PutProfile_WhenNameOrColourNull_ShouldReturn400(string nullField)
+    {
+        var person = TestUser.NewApproved();
+        using var client = ClientFor(person);
+        var body = new Dictionary<string, string?> { ["name"] = "Quinn Ames", ["colour"] = "teal" };
+        body[nullField] = null;
+
+        var response = await client.PutAsJsonAsync(PROFILE, body);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString().ShouldNotBeNullOrEmpty();
+        (await client.GetFromJsonAsync<JsonElement>("/api/me")).GetProperty("name").GetString().ShouldBe(person.Name);
+    }
+
     [Test]
     public async Task PutProfile_WhenRefused_ShouldKeepNameAndColour()
     {
