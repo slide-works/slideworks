@@ -1,10 +1,12 @@
 using Agoda.IoC.Core;
+using Microsoft.EntityFrameworkCore;
+using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Infrastructure;
 
 namespace SlideWorks.WebApi.Features.Accounts.Profile;
 
-// List is real. TODO: SetAsync should check the id against List() and save it on the user.
 [RegisterPerRequest]
-public sealed class TimeZones : ITimeZones
+public sealed class TimeZones(AppDbContext db) : ITimeZones
 {
     public IReadOnlyList<TimeZoneOption> List()
         => TimeZoneInfo.GetSystemTimeZones()
@@ -13,7 +15,16 @@ public sealed class TimeZones : ITimeZones
             .OrderBy(option => option.Label, StringComparer.Ordinal)
             .ToList();
 
-    public Task SetAsync(Guid userId, string? id) => throw new NotImplementedException("Time zone editing is not built yet.");
+    public async Task SetAsync(Guid userId, string? id)
+    {
+        if (id is not null && !List().Any(option => option.Id == id))
+        {
+            throw new BadRequestException("That time zone is not one of the choices.");
+        }
+        var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId) ?? throw new NotFoundException("The signed-in person no longer exists.");
+        user.TimeZone = id;
+        await db.SaveChangesAsync();
+    }
 
     private static string IanaId(TimeZoneInfo zone)
     {

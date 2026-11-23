@@ -1,10 +1,22 @@
+import { useEffect, useRef } from 'react';
 import { Link, Outlet } from 'react-router-dom';
+import { api } from './api/client';
 import type { MeView } from './api/types';
 import { AdminLink } from './components/AdminLink';
 import { UserMenu } from './components/UserMenu';
 
 // The layout every signed-in page renders inside: the top bar, then the routed page.
 export function Shell({ me }: { me: MeView }) {
+  const sentBrowserZone = useRef(false);
+  // A person with no time zone saved gets the browser's, once; it only fills an empty zone (fromBrowser), so a zone
+  // picked on another device is never overwritten. A failed fill is silent: the zone stays empty and dates read UTC.
+  useEffect(() => {
+    if (me.access !== 'approved' || me.timeZone !== null || sentBrowserZone.current) return;
+    sentBrowserZone.current = true;
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    api.put('/api/me/time-zone', { timeZone, fromBrowser: true }).catch(() => undefined);
+  }, [me.access, me.timeZone]);
+
   return (
     <div data-testid="app-shell">
       <header className="sticky top-0 z-10 border-b border-edge bg-panel">

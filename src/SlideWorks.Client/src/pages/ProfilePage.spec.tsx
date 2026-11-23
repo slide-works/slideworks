@@ -14,7 +14,7 @@ test('profile page renders the three panels from the profile', async ({ mount, p
   await expect(page.getByTestId('profile-email')).toHaveText(profile.identity.email);
   await expect(page.getByTestId('profile-photo-source')).toHaveText('Picture: Your photo');
   await expect(page.getByTestId('profile-account-panel')).toBeVisible();
-  await expect(page.getByTestId('profile-time-zone')).toHaveText('(UTC+00:00) London');
+  await expect(page.getByTestId('profile-time-zone-select')).toHaveValue('Europe/London');
   await expect(page.getByTestId('profile-agents')).toBeVisible();
   await expect(page.getByTestId('profile-agent')).toHaveCount(2);
   await expect(page.getByTestId('profile-agent-connected').nth(1)).toHaveText('Connected: Unknown');
