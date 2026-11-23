@@ -37,7 +37,6 @@ public class McpArgumentCheckTests : ApiTestFixture
     [TestCase("add_slide", """{"deck":"{deck}","layout":null,"slots":{"quote":"B","attribution":"Sam"}}""", "layout: required")]
     [TestCase("add_slide", """{"layout":"quote","slots":{"quote":"B","attribution":"Sam"}}""", "deck: required")]
     [TestCase("update_slide", """{"deck":"{deck}","revision":1,"slots":{"quote":"B","attribution":"Sam"}}""", "slide: required")]
-    [TestCase("set_sharing", """{"deck":"{deck}"}""", "level: required")]
     [TestCase("set_sharing", """{"deck":"{deck}","level":1}""", "level: must be text")]
     [TestCase("set_sharing", """{"deck":"{deck}","level":"named","viewers":["alex@team.example",2]}""", "viewers: must be a list of email addresses")]
     [TestCase("create_deck", """{}""", "title: required")]
@@ -220,7 +219,9 @@ public class McpArgumentCheckTests : ApiTestFixture
         Required(schemas["add_slide"]).ShouldBe(["deck", "layout", "slots"]);
         Required(schemas["update_slide"]).ShouldBe(["deck", "slide", "revision", "slots"]);
         Required(schemas["set_notes"]).ShouldBe(["deck", "notes"]);
-        Required(schemas["set_sharing"]).ShouldBe(["level"]);
+        schemas["set_sharing"].TryGetProperty("required", out _).ShouldBeFalse();
+        Property(schemas["set_sharing"], "person").ValueKind.ShouldBe(JsonValueKind.Object);
+        Property(schemas["set_sharing"], "access").ValueKind.ShouldBe(JsonValueKind.Object);
         Required(schemas["create_deck"]).ShouldBe(["title"]);
         Property(schemas["add_slide"], "slots").TryGetProperty("default", out _).ShouldBeFalse();
         Property(schemas["update_slide"], "slots").TryGetProperty("default", out _).ShouldBeFalse();

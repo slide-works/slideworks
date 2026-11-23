@@ -5,6 +5,8 @@
   "author": "Sam Rivera",
   "revision": 7,
   "isOwner": true,
+  "canEdit": true,
+  "access": "owner",
   "playUrl": "/d/7Kq2xYp9LmQa/ship-smaller",
   "join": {
     "code": "482913",

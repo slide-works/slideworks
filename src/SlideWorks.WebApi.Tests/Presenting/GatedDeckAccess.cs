@@ -12,6 +12,8 @@ public sealed class GatedDeckAccess(DeckAccess inner, Gate gate) : IDeckAccess
 
     public Task<bool> CanEditAsync(string deckId, ICurrentActor actor) => inner.CanEditAsync(deckId, actor);
 
+    public Task<bool> IsOwnerAsync(string deckId, ICurrentActor actor) => inner.IsOwnerAsync(deckId, actor);
+
     public async Task<bool> CanPresentAsync(string deckId, ICurrentActor actor)
     {
         await gate.PassAsync(deckId);

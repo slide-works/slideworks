@@ -19,6 +19,8 @@ public class ViewerCapTests : ApiTestFixture
 {
     private const string TOO_MANY = "viewers: at most 50 emails";
 
+    private const string PEOPLE_TOO_MANY = "people: at most 50 emails";
+
     private const int HUGE_LIST = 100_000;
 
     // Generous: the PUT stops reading the list at entry 201 and answers in a few milliseconds. The old quadratic walk
@@ -97,6 +99,34 @@ public class ViewerCapTests : ApiTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe(TOO_MANY);
         await TestContext.Out.WriteLineAsync($"PUT with {HUGE_LIST} viewers answered in {stopwatch.ElapsedMilliseconds} ms");
+        stopwatch.Elapsed.ShouldBeLessThan(FAST);
+    }
+
+    [Test]
+    public async Task Put_WhenMoreThanTwoHundredPeople_ShouldReturn400()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+
+        var response = await SharingApi.PutAsync(Client, deck, new { level = "named", people = Enumerable.Repeat(new { email = TestUser.Alex.Email, access = "read" }, 201).ToArray() });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe(PEOPLE_TOO_MANY);
+    }
+
+    [Test]
+    public async Task Put_WhenHundredThousandPeople_ShouldReturn400Fast()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        var people = Emails(HUGE_LIST).Select(email => new { email, access = "read" }).ToArray();
+        using var content = new StringContent(JsonSerializer.Serialize(new { level = "named", people }), Encoding.UTF8, "application/json");
+
+        var stopwatch = Stopwatch.StartNew();
+        using var response = await Client.PutAsync($"/api/decks/{deck}/sharing", content);
+        stopwatch.Stop();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe(PEOPLE_TOO_MANY);
+        await TestContext.Out.WriteLineAsync($"PUT with {HUGE_LIST} people answered in {stopwatch.ElapsedMilliseconds} ms");
         stopwatch.Elapsed.ShouldBeLessThan(FAST);
     }
 

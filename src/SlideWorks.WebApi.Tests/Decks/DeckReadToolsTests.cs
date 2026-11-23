@@ -211,7 +211,8 @@ public class DeckReadToolsTests : ApiTestFixture
         var decks = structured.GetProperty("decks").EnumerateArray().ToList();
         decks.Select(d => d.GetProperty("id").GetString()).ShouldBe([second, first]);
         decks.Select(d => d.GetProperty("id").GetString()).ShouldNotContain(alexDeck);
-        decks[0].EnumerateObject().Select(p => p.Name).ShouldBe(["id", "slug", "title", "subtitle", "slideCount", "sharing", "url", "updatedLabel"]);
+        decks[0].EnumerateObject().Select(p => p.Name).ShouldBe(["id", "slug", "title", "subtitle", "slideCount", "sharing", "url", "updatedLabel", "access"]);
+        decks[0].GetProperty("access").GetString().ShouldBe("owner");
         decks[0].GetProperty("title").GetString().ShouldBe("Second deck");
         decks[0].GetProperty("slideCount").GetInt32().ShouldBe(1);
         decks[0].GetProperty("sharing").GetString().ShouldBe("private");
