@@ -4,6 +4,7 @@ import { presentationState } from '../test-support/fixtures/presenting';
 import { PresentationHarness } from '../test-support/PresentationHarness';
 import { stubDeckHub } from '../test-support/stubDeckHub';
 import type { PresentationState } from './types';
+import { settle } from '../test-support/gate';
 
 const deckId = '7Kq2abcdEFGH';
 const paused = (overrides: Partial<PresentationState> = {}) =>
@@ -11,11 +12,6 @@ const paused = (overrides: Partial<PresentationState> = {}) =>
 
 const status = (page: Page) => page.getByTestId('status');
 const position = (page: Page) => page.getByTestId('position');
-
-// Lets the page run its pending work, so a call it should not make has had its chance.
-async function settle(page: Page) {
-  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 300)));
-}
 
 test('usePresentation joins with its client id, role, label and time zone, and is live after the join', async ({
   mount,
@@ -55,9 +51,9 @@ test('usePresentation is refused on a refused join and does not try again', asyn
   // Even a reconnect does not ask again.
   hub.drop();
   await expect.poll(() => hub.sockets).toBe(2);
-  await settle(page);
+  await settle(page, 300);
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  await settle(page);
+  await settle(page, 300);
   expect(hub.presentationJoins).toHaveLength(1);
   await expect(status(page)).toHaveText('refused');
 });
@@ -75,7 +71,7 @@ test('usePresentation drops a stale seq within an epoch and applies a new epoch'
   hub.pushState(presentationState({ seq: 43, slide: 9 }));
   await expect(position(page)).toHaveText('9.0');
   hub.pushState(presentationState({ seq: 40, slide: 4 }));
-  await settle(page);
+  await settle(page, 300);
   await expect(position(page)).toHaveText('9.0');
 
   // A restarted server starts a new epoch, with a lower seq.
@@ -100,7 +96,7 @@ test('usePresentation ignores a late join result older than a broadcast it has a
   hub.releasePresentationJoins();
 
   await expect(status(page)).toHaveText('live');
-  await settle(page);
+  await settle(page, 300);
   await expect(page.getByTestId('version')).toHaveText('p-3f9c2a/50');
   await expect(position(page)).toHaveText('10.0');
 });
@@ -150,7 +146,7 @@ test('usePresentation update does nothing until it is live', async ({ mount, pag
   await expect(position(page)).toHaveText('8.0');
 
   await page.getByTestId('next').click();
-  await settle(page);
+  await settle(page, 300);
 
   expect(hub.updates).toEqual([]);
   await expect(position(page)).toHaveText('8.0');
@@ -313,7 +309,7 @@ test('usePresentation shares one WebSocket with useDeckRealtime on the same page
 
   await expect(status(page)).toHaveText('live');
   await expect.poll(() => hub.joined).toEqual([deckId]);
-  await settle(page);
+  await settle(page, 300);
   expect(hub.sockets).toBe(1);
   expect(hub.presentationJoins).toHaveLength(1);
 });
@@ -330,7 +326,7 @@ test('usePresentation leaves the presentation when it unmounts while the page ke
   await component.update(<PresentationHarness deckId={deckId} followDeck present={false} />);
 
   await expect.poll(() => hub.leaves).toEqual([deckId]);
-  await settle(page);
+  await settle(page, 300);
   expect(hub.sockets).toBe(1);
   expect(hub.leftDecks).toEqual([]);
 });
@@ -348,7 +344,7 @@ test('usePresentation does not leave a presentation whose join was refused', asy
 
   await component.update(<PresentationHarness deckId={deckId} followDeck present={false} />);
 
-  await settle(page);
+  await settle(page, 300);
   expect(hub.leaves).toEqual([]);
   expect(hub.sockets).toBe(1);
 });
@@ -365,7 +361,7 @@ test('usePresentation keeps the presentation when the deck events stop, and the 
   await component.update(<PresentationHarness deckId={deckId} followDeck={false} />);
 
   await expect.poll(() => hub.leftDecks).toEqual([deckId]);
-  await settle(page);
+  await settle(page, 300);
   expect(hub.leaves).toEqual([]);
   expect(hub.sockets).toBe(1);
   await expect(status(page)).toHaveText('live');

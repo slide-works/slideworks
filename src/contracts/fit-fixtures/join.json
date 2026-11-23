@@ -4,9 +4,9 @@
     "grow": [
       "/kicker"
     ],
-    "refusedBy": "length",
+    "refusedBy": "fit",
     "slots": {
-      "kicker": "Join on your phone and follow the talk x xxxxxxxxxxxxxxxxxxx",
+      "kicker": "Join on your phone and x",
       "count": "shown"
     }
   }

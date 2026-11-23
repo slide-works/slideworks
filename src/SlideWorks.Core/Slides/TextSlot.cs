@@ -9,7 +9,7 @@ namespace SlideWorks.Core.Slides;
 public sealed class TextSlot(int maxLength, bool lineBreaks = false, bool allowEmpty = false) : ISlotType
 {
     // Combining marks count as part of one character, so the raw UTF-16 length gets a cap as well.
-    private const int UTF16_UNITS_PER_CHARACTER = 4;
+    internal const int UTF16_UNITS_PER_CHARACTER = 4;
 
     public int MaxLength { get; } = maxLength;
 
@@ -67,10 +67,18 @@ public sealed class TextSlot(int maxLength, bool lineBreaks = false, bool allowE
             return;
         }
 
-        var length = new StringInfo(text).LengthInTextElements;
-        if (length > MaxLength || text.Length > MaxLength * UTF16_UNITS_PER_CHARACTER)
+        // The UTF-16 check is O(1); counting grapheme clusters walks the whole text, so a huge text
+        // is refused before it is counted. The fast refusal has no exact count.
+        if (text.Length > MaxLength * UTF16_UNITS_PER_CHARACTER)
         {
-            validation.Fail(path, $"at most {MaxLength} characters (got {Math.Max(length, text.Length / UTF16_UNITS_PER_CHARACTER)})");
+            validation.Fail(path, $"at most {MaxLength} characters (the text is far over that)");
+            return;
+        }
+
+        var length = new StringInfo(text).LengthInTextElements;
+        if (length > MaxLength)
+        {
+            validation.Fail(path, $"at most {MaxLength} characters (got {length})");
         }
     }
 

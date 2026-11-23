@@ -1,0 +1,38 @@
+{
+  "closeMax": {
+    "layout": "close",
+    "grow": [
+      "/sub",
+      "/author"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "headline": "Small Batches Show Us What Works Soon\nHalf Every Week Now\nLearn From Real Use",
+      "sub": "steady teams ship tiny changes often and learn from real use so the risk stays low and the plan holds up wells",
+      "author": "Sam Rivera, Product Engineering, Platform Team, Joe Bloggs J"
+    }
+  },
+  "closeMaxWide": {
+    "layout": "close",
+    "grow": [
+      "/sub",
+      "/author"
+    ],
+    "refusedBy": "length",
+    "slots": {
+      "headline": "Many Women Wander Wide Meadows\nMow Wet Moss With\nMe When Warm Now",
+      "sub": "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm Many Women Who Wander Wide Meadows Mow Moss With",
+      "author": "Many Women Who Wander Wide Meadows Mow Moss With Me Wow Wows"
+    }
+  },
+  "closeHeadline": {
+    "layout": "close",
+    "grow": [
+      "/headline"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "headline": "Small Batches Show Us What Works\nHalf Every Week Now\nLearn From Real Use"
+    }
+  }
+}

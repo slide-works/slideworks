@@ -81,8 +81,8 @@ public sealed partial class AgentOAuthClient : IDisposable
     // exchanges the code the callback gets for an access token.
     public async Task<string> AuthorizeAsync(IPage browser, TestUser presenter)
     {
-        var verifier = Base64Url(RandomNumberGenerator.GetBytes(32));
-        var challenge = Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
+        var verifier = Pkce.NewVerifier();
+        var challenge = Pkce.S256(verifier);
         var state = Base64Url(RandomNumberGenerator.GetBytes(16));
 
         await SignIn.AsAsync(browser, presenter);

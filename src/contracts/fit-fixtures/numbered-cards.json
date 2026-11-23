@@ -134,7 +134,7 @@
   },
   "numberedCardsLargeThree": {
     "layout": "numbered-cards",
-    "estimate": 601.4,
+    "estimate": 477.6,
     "grow": [
       "/callout/text"
     ],
@@ -166,13 +166,13 @@
       "reveal": "one-by-one",
       "callout": {
         "tone": "info",
-        "text": "Small steps keep every release easy to review, so the team learns from real customers every single."
+        "text": "Small steps keep every release easy to review, so the team learns from real customers every Work"
       }
     }
   },
   "numberedCardsCallout": {
     "layout": "numbered-cards",
-    "estimate": 605.0,
+    "estimate": 481.2,
     "grow": [
       "/callout/text"
     ],
@@ -201,7 +201,7 @@
       "reveal": "one-by-one",
       "callout": {
         "tone": "info",
-        "text": "Small steps keep every release easy to review, so the team learns from real customers every single."
+        "text": "Small steps keep every release easy to review, so the team learns from real customers every Work"
       }
     }
   }

@@ -22,10 +22,14 @@ function missingMethod(target: string): string {
   return `Failed to invoke '${target}' due to an error on the server. HubException: Method does not exist.`;
 }
 
+// A presentation state whose seq may be left out: the stub numbers it (1 for the first state, then one more than the
+// last state it sent).
+export type StubPresentationState = Omit<PresentationState, 'seq'> & { seq?: number };
+
 export interface StubPresentationOptions {
   // The state JoinPresentation answers with, as it is when the join arrives. UpdatePresentation, SetTimer and
-  // pushState change it.
-  state: PresentationState;
+  // pushState change it. A seq left out is 1.
+  state: StubPresentationState;
   // The clockMinutes JoinPresentation answers with. 872 (14:32) when left out.
   clockMinutes?: number;
   // Refuse every JoinPresentation, as the hub does for anyone but the deck's owner.
@@ -128,7 +132,9 @@ export async function stubDeckHub(
   const leaves: unknown[] = [];
   const failures = new Map<string, { message: string; sticky: boolean }>();
   let refusing = presentation?.refuse ?? false;
-  let current = presentation ? structuredClone(presentation.state) : undefined;
+  let current: PresentationState | undefined = presentation
+    ? structuredClone({ ...presentation.state, seq: presentation.state.seq ?? 1 })
+    : undefined;
   let sockets = 0;
   let socket: Sink | undefined;
   const audienceJoins: string[] = [];
@@ -544,10 +550,11 @@ export async function stubDeckHub(
       send(connection('push'), { type: 1, target: 'deckEvent', arguments: [event] });
     },
     // Makes state the presentation's current state and broadcasts it to the newest connection as the hub does. A
-    // later JoinPresentation answers with it.
-    pushState(state: PresentationState) {
+    // later JoinPresentation answers with it. A seq left out is one more than the last state's; one given is sent as
+    // it is, so a spec can push a stale state on purpose.
+    pushState(state: StubPresentationState) {
       const ws = connection('pushState');
-      current = structuredClone(state);
+      current = structuredClone({ ...state, seq: state.seq ?? (current?.seq ?? 0) + 1 });
       send(ws, { type: 1, target: 'presentationState', arguments: [current] });
     },
     // Makes the next call of target fail (every call, when sticky) as the real hub does when the method throws

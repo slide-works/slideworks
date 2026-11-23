@@ -210,7 +210,7 @@ for (const name of ['tableCallout', 'tableCells80']) {
     const drawn = await textBox(page);
     expect(drawn.left).toBeGreaterThanOrEqual(120);
     expect(drawn.right).toBeLessThanOrEqual(1800);
-    // The bottom is not asserted: wide-letter cells run past y 996 (SW-130).
+    // The bottom is not asserted: the server refuses this wide twin's rows (allW), so no legal slide draws it.
     test.info().annotations.push({ type: 'bottom', description: `${drawn.bottom}` });
   });
 }

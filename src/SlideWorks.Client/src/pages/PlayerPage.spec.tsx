@@ -5,6 +5,7 @@ import { AppRoutes } from '../AppRoutes';
 import { GoTo } from '../test-support/GoTo';
 import { LocationProbe } from '../test-support/LocationProbe';
 import { deckPlay, me } from '../test-support/fixtures/screens';
+import { longerDeckPlay } from '../test-support/fixtures/longerDecks';
 import { guestView } from '../test-support/fixtures/guestStates';
 import { stubApi } from '../test-support/stubApi';
 import { gate, settle } from '../test-support/gate';
@@ -22,12 +23,6 @@ async function setWindowHash(page: Page, hash: string) {
 
 const windowHash = (page: Page) => page.evaluate(() => window.location.hash);
 
-// The fixture deck after an agent added a fourth slide.
-const longerDeck: DeckPlayView = {
-  ...deckPlay,
-  slides: [...deckPlay.slides, { ...deckPlay.slides[1], number: 4 }],
-};
-
 test('player page loads deck and renders player', async ({ mount, page }) => {
   await stubApi(page, { [playPath]: { json: deckPlay } });
   await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
@@ -41,14 +36,10 @@ test('player page loads deck and renders player', async ({ mount, page }) => {
 
 test('player page refetches on DeckChanged', async ({ mount, page }) => {
   const hub = await stubDeckHub(page);
-  const longer: DeckPlayView = {
-    ...deckPlay,
-    slides: [...deckPlay.slides, { ...deckPlay.slides[1], number: 4 }],
-  };
   let reads = 0;
   await page.route(`**${playPath}`, (route) => {
     reads += 1;
-    return route.fulfill({ json: reads <= 2 ? deckPlay : longer });
+    return route.fulfill({ json: reads <= 2 ? deckPlay : longerDeckPlay });
   });
   await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
 
@@ -81,10 +72,6 @@ test('player page keeps the newest deck when an older re-read answers last', asy
   page,
 }) => {
   const hub = await stubDeckHub(page);
-  const longer: DeckPlayView = {
-    ...deckPlay,
-    slides: [...deckPlay.slides, { ...deckPlay.slides[1], number: 4 }],
-  };
   const held = gate();
   let reads = 0;
   await page.route(`**${playPath}`, async (route) => {
@@ -94,7 +81,7 @@ test('player page keeps the newest deck when an older re-read answers last', asy
       await held.opened;
       return route.fulfill({ json: deckPlay });
     }
-    return route.fulfill({ json: reads <= 2 ? deckPlay : longer });
+    return route.fulfill({ json: reads <= 2 ? deckPlay : longerDeckPlay });
   });
   await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
   await expect(page.getByTestId('slide-3')).toHaveCount(1);
@@ -167,7 +154,7 @@ test('player page re-reads once it has joined, showing a change made before the 
   let reads = 0;
   await page.route(`**${playPath}`, (route) => {
     reads += 1;
-    return route.fulfill({ json: reads === 1 ? deckPlay : longerDeck });
+    return route.fulfill({ json: reads === 1 ? deckPlay : longerDeckPlay });
   });
   await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
   await expect(page.getByTestId('slide-3')).toHaveCount(1);
@@ -200,7 +187,7 @@ test('player page waits for its first read before the join re-reads', async ({ m
       await first.opened;
       return route.fulfill({ json: deckPlay });
     }
-    return route.fulfill({ json: longerDeck });
+    return route.fulfill({ json: longerDeckPlay });
   });
   await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
   await expect.poll(() => hub.joined).toEqual([deckPlay.id]);
@@ -274,7 +261,7 @@ test('player page re-reads when a reconnect joins again', async ({ mount, page }
   let reads = 0;
   await page.route(`**${playPath}`, (route) => {
     reads += 1;
-    return route.fulfill({ json: reads <= 2 ? deckPlay : longerDeck });
+    return route.fulfill({ json: reads <= 2 ? deckPlay : longerDeckPlay });
   });
   await mount(<AppRoutes />, { hooksConfig: { route: canonical } });
   await expect.poll(() => hub.joined).toEqual([deckPlay.id]);

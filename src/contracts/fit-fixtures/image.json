@@ -56,8 +56,8 @@
     ],
     "refusedBy": "length",
     "slots": {
-      "kicker": "Reviewable Momentum Matters More Than Ma",
-      "headline": "Make Every Merge Small And Reviewable Momentum Matters More",
+      "kicker": "Reviewable Momentum Matters More Than",
+      "headline": "Make Every Merge Small And Reviewable",
       "image": {
         "image": "img_sample0001",
         "alt": "A transparent diagram of the story map"
@@ -78,7 +78,7 @@
   },
   "imageRightMaxWide": {
     "layout": "image",
-    "estimate": 803.7,
+    "estimate": 843.7,
     "grow": [
       "/points/0",
       "/points/1",
@@ -87,8 +87,8 @@
     ],
     "refusedBy": "length",
     "slots": {
-      "kicker": "Many Women Who Wander Wide Meadows Mow M",
-      "headline": "Many Women Who Wander Wide Meadows Mow Moss With Me When Wa",
+      "kicker": "Many Women Who Wander Wide Meadows M",
+      "headline": "Many Women Who",
       "image": {
         "image": "img_sample0001",
         "alt": "Many Women Who Wander Wide Meadows Mow"
@@ -115,7 +115,7 @@
     "refusedBy": "length",
     "slots": {
       "kicker": "Make Every Merge Small And Rev",
-      "headline": "Merge Small And Reviewable Momentum Matters More T",
+      "headline": "Merge Small And Reviewable Momentum Matters",
       "image": {
         "image": "img_sample0001",
         "alt": "A transparent diagram of the story map"
@@ -131,7 +131,7 @@
   },
   "imageBelowLeadPoints": {
     "layout": "image",
-    "estimate": 487.0,
+    "estimate": 557.4,
     "grow": [
       "/points/0/text",
       "/points/1/text",
@@ -140,7 +140,7 @@
     ],
     "refusedBy": "length",
     "slots": {
-      "kicker": "Reviewable Momentum Matters More Than Ma",
+      "kicker": "Reviewable Momentum Matters More Than",
       "headline": "Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When",
       "image": {
         "image": "img_sample0001",
@@ -174,10 +174,11 @@
   },
   "imageCallout": {
     "layout": "image",
+    "estimate": 452.1,
     "grow": [
       "/callout/text"
     ],
-    "refusedBy": "length",
+    "refusedBy": "fit",
     "slots": {
       "kicker": "Small And Reviewable Momentum Matters Mo",
       "headline": "Every Merge Small And Reviewable Momentum Matters More Than Maximum Throughput S",
@@ -186,7 +187,7 @@
         "alt": "A transparent diagram of the story map"
       },
       "points": [
-        "Make Every Merge Small And Reviewable Momentum Matters More Than Maximum Through",
+        "Make Every Merge Small And Reviewable Momentum Matters More Than Maximum",
         "Every Merge Small And Reviewable Momentum Matters More Than Maximum Throughput S",
         "Merge Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Wo",
         "Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Workinge"
@@ -194,7 +195,7 @@
       "caption": "More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Wheree",
       "callout": {
         "tone": "accent",
-        "text": "And Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "text": "And Reviewable Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Work Work Work Work",
         "reveal": "last"
       }
     }

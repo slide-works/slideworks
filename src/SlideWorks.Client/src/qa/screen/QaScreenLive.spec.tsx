@@ -10,6 +10,7 @@ import { JoinProvider } from '../../slides/JoinContext';
 import type { QaControlView } from '../types';
 import type { QaScreen } from './QaScreenContext';
 import { QaScreenLive } from './QaScreenLive';
+import { settle } from '../../test-support/gate';
 
 // The real screen provider over the stub hub and the stub presenter routes.
 const deckId = deckPlay.id;
@@ -65,8 +66,6 @@ const read = async (page: Page): Promise<QaScreen | null> =>
   JSON.parse((await page.getByTestId('probe-qa-screen').textContent()) ?? '') as QaScreen | null;
 
 // Lets the page run its pending work, so a call or render it should not make has had its chance.
-const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 300)));
-
 // Both watches are in: the live session's and the screen provider's.
 async function watching(hub: Awaited<ReturnType<typeof stubDeckHub>>) {
   await expect.poll(() => hub.watches.length).toBeGreaterThanOrEqual(2);
@@ -116,14 +115,14 @@ test('questionControl moves the screen, and a lower seq is dropped', async ({ mo
   const late = view({ seq: base + 5 });
   late.questions[0].votes = 1;
   pushQaControl(hub, late);
-  await settle(page);
+  await settle(page, 300);
   expect(votesOf(await read(page))?.[0]).toEqual([1, 20]);
 
   // Equal is not newer either.
   const same = view({ seq: base + 10 });
   same.questions[0].votes = 2;
   pushQaControl(hub, same);
-  await settle(page);
+  await settle(page, 300);
   expect(votesOf(await read(page))?.[0]).toEqual([1, 20]);
 
   // The newest wins again.
@@ -150,7 +149,7 @@ test('a read that lands after a newer questionControl is dropped by seq', async 
   await expect.poll(async () => votesOf(await read(page))?.[0]).toEqual([1, 30]);
 
   slow.release();
-  await settle(page);
+  await settle(page, 300);
   expect(votesOf(await read(page))?.[0]).toEqual([1, 30]);
 });
 
@@ -173,7 +172,7 @@ test('after a reconnect it watches again and reads again', async ({ mount, page 
 test('a viewer who cannot present gets null and makes no call', async ({ mount, page }) => {
   const { hub, qa } = await stubLive(page);
   await mount(screen(false));
-  await settle(page);
+  await settle(page, 300);
   expect(await read(page)).toBeNull();
   expect(hub.watches).toEqual([]);
   expect(qa.calls).toEqual([]);
@@ -193,7 +192,7 @@ test('the owner flag alone keeps the screen null, even when the live session con
   );
   // The live session's own watch is in, so the session is confirmed; the screen provider still makes no call.
   await expect.poll(() => hub.watches.length).toBeGreaterThanOrEqual(1);
-  await settle(page);
+  await settle(page, 300);
   expect(await read(page)).toBeNull();
   expect(qa.calls).toEqual([]);
   expect(hub.watches).toHaveLength(1);
@@ -208,7 +207,7 @@ test('an empty deck id gets null and makes no call', async ({ mount, page }) => 
       </QaScreenLive>
     </JoinProvider>,
   );
-  await settle(page);
+  await settle(page, 300);
   expect(await read(page)).toBeNull();
   expect(hub.watches).not.toContain('');
   expect(qa.calls).toEqual([]);
@@ -222,7 +221,7 @@ test('a deck that is not live gets null and makes no call, then reads once it go
   live.setLive(false);
   const component = await mount(screen(true, { join: { ...liveJoin, live: false } }));
   await expect.poll(() => hub.watches.length).toBeGreaterThanOrEqual(1);
-  await settle(page);
+  await settle(page, 300);
   expect(await read(page)).toBeNull();
   expect(await stateOf(page)).toBe('none');
   expect(qa.calls).toEqual([]);
@@ -241,7 +240,7 @@ test('questions off has no round, so the screen is null', async ({ mount, page }
   await mount(screen(true));
   await watching(hub);
   await expect.poll(() => qa.calls.length).toBe(1);
-  await settle(page);
+  await settle(page, 300);
   expect(await read(page)).toBeNull();
 });
 
@@ -297,7 +296,7 @@ test('a new live session shows no view of the last one', async ({ mount, page })
   live.setLive(true);
   await component.update(screen(true));
   await expect.poll(() => qa.calls.length).toBeGreaterThanOrEqual(2);
-  await settle(page);
+  await settle(page, 300);
   expect(await read(page)).toBeNull();
   slow.release();
   await expect.poll(async () => (await read(page))?.total).toBe(0);
@@ -318,7 +317,7 @@ test('a read held across a deck change is dropped when released', async ({ mount
   await component.update(screen(true, { id: OTHER }));
   await expect.poll(() => hub.watches).toContain(OTHER);
   slow.release();
-  await settle(page);
+  await settle(page, 300);
   expect(await read(page)).toBeNull();
 });
 
@@ -340,7 +339,7 @@ test('a watch held across a deck change does not start a read for the new deck w
   // The new deck's own watch is answered at once and reads once.
   await expect.poll(() => reads.length).toBe(1);
   hub.releaseWatches(deckId);
-  await settle(page);
+  await settle(page, 300);
   expect(reads).toHaveLength(1);
 });
 
@@ -353,7 +352,7 @@ test('with a held read the state is pending, not off, until the read lands, then
   await mount(screen(true));
   await watching(hub);
   await expect.poll(() => qa.calls.length).toBe(1);
-  await settle(page);
+  await settle(page, 300);
   expect(await stateOf(page)).toBe('pending');
   expect(await read(page)).toBeNull();
 
@@ -374,6 +373,6 @@ test('a read with no round is off, not pending', async ({ mount, page }) => {
 test('a viewer who cannot present is none, not pending or off', async ({ mount, page }) => {
   await stubLive(page);
   await mount(screen(false));
-  await settle(page);
+  await settle(page, 300);
   expect(await stateOf(page)).toBe('none');
 });

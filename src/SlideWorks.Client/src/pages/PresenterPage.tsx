@@ -11,6 +11,7 @@ import {
   previousPosition,
   type Position,
 } from '../presentation/navigate';
+import { deviceLabel } from '../presentation/deviceLabel';
 import { Overview } from '../presentation/Overview';
 import { PhoneConnectDialog } from '../presentation/PhoneConnectDialog';
 import { NextPanel } from '../presentation/presenter/NextPanel';
@@ -53,7 +54,7 @@ const TIMER_FAILED = "Couldn't change the timer. Check your connection and try a
 export function PresenterPage() {
   const { id = '' } = useParams();
   // Computed once: a new label would rejoin the presentation.
-  const [label] = useState(browserLabel);
+  const [label] = useState(() => deviceLabel(navigator.userAgent, 'Browser'));
   const { load, refreshFailed } = usePresenterView(id);
   const presentation = usePresentation(id, 'presenter', label);
   const { status, state, clockMinutes } = presentation;
@@ -451,34 +452,6 @@ function useFocusOnClose(open: boolean, opener: RefObject<HTMLElement | null>) {
     if (wasOpen.current && !open) opener.current?.focus();
     wasOpen.current = open;
   }, [open, opener]);
-}
-
-// The window's name in the presentation's connected list, such as "Chrome on Linux".
-function browserLabel(): string {
-  const agent = navigator.userAgent;
-  const browser = /Edg\//.test(agent)
-    ? 'Edge'
-    : /Firefox\//.test(agent)
-      ? 'Firefox'
-      : /Chrome\//.test(agent)
-        ? 'Chrome'
-        : /Safari\//.test(agent)
-          ? 'Safari'
-          : 'Browser';
-  const system = /iPhone/.test(agent)
-    ? 'iPhone'
-    : /iPad/.test(agent)
-      ? 'iPad'
-      : /Android/.test(agent)
-        ? 'Android'
-        : /Windows/.test(agent)
-          ? 'Windows'
-          : /Mac OS X/.test(agent)
-            ? 'Mac'
-            : /Linux/.test(agent)
-              ? 'Linux'
-              : '';
-  return system ? `${browser} on ${system}` : browser;
 }
 
 function readNotesSize(): number {

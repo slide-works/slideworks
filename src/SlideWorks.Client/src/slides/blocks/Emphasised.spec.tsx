@@ -160,7 +160,7 @@ const TONES: Emphasis[] = [
 ];
 // Cobalt's accent, good and bad, its accent glow and its night ink.
 const ACCENT = [47, 91, 234];
-const GOOD = [22, 163, 74];
+const GOOD = [21, 128, 61];
 const BAD = [220, 38, 38];
 const GLOW = [165, 184, 255];
 const NIGHT_INK = [255, 255, 255];

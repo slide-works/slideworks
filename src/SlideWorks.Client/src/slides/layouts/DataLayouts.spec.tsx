@@ -49,7 +49,7 @@ function render(slide: RenderableSlide) {
   return <SlideRenderer slide={slide} deck={deck} total={sampleDeck.slides.length} step={0} />;
 }
 
-const GOOD = 'rgb(22, 163, 74)';
+const GOOD = 'rgb(21, 128, 61)';
 const BAD = 'rgb(220, 38, 38)';
 const ACCENT = 'rgb(47, 91, 234)';
 const WARN = 'rgb(234, 88, 12)';
@@ -617,8 +617,8 @@ test('gantt labels of W and M only stop at two lines', async ({ mount, page }) =
 // its own letters (Title Case or prose) and as a wide-letter twin of the same
 // lengths. Everything drawn stays inside x 120–1800 and y 150–996; a table
 // also stays inside LayoutRules.Table's estimate (to the pixel, as its CSS
-// follows that geometry), except for its wide twin, which the server's
-// average-width estimate does not cover (SW-130).
+// follows that geometry). The wide twin fits too since the per-character
+// estimate (SW-802) shortened the table fixtures.
 const MAX_CASES = Object.entries(DATA_FIT_FIXTURES).flatMap(([name, fixture]) => [
   { name, fixture, wide: false },
   ...(name.endsWith('Title')
@@ -629,10 +629,6 @@ const MAX_CASES = Object.entries(DATA_FIT_FIXTURES).flatMap(([name, fixture]) =>
 for (const { name, fixture, wide } of MAX_CASES) {
   test(`max counts stay inside 1920x1080: ${name}`, async ({ mount, page }) => {
     const { layout, slots, estimate } = fixture;
-    // red until SW-130: wide-letter cells at the table's accepted lengths wrap
-    // well past SlideFit's 0.56 em count (they end near y = 1199), and the
-    // table's CSS can't absorb that at the server's geometry.
-    test.fail(wide && layout === 'table', 'red until SW-130');
     await stubApi(page, {});
     await mount(render({ ...sample(3), layout, slots } as RenderableSlide));
     if (layout === 'image') await loaded(page, 'image-picture');

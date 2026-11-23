@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SlideWorks.WebApi.Infrastructure;
+using SlideWorks.WebApi.Infrastructure.RequestLimits;
 
 namespace SlideWorks.WebApi.Features.Images;
 
@@ -12,6 +13,7 @@ public class UploadsController(ImageUploads images) : ApiControllerBase
 {
     [HttpPut("{token}")]
     [AllowAnonymous]
+    [OwnsBodyLimit]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]

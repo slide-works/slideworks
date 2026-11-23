@@ -315,7 +315,7 @@ public class Sw50LayoutJourneyTests : AcceptanceTest
         await using var agent = await AgentSeed.ConnectAsync(TestUser.Sam);
         var deck = await CreateDeckAsync(agent, "Frameless image", []);
         var upload = await AgentSeed.CallAsync(agent, "upload_image", new() { ["deck"] = deck, ["name"] = "cutout.png", ["contentType"] = "image/png" });
-        await PutImageAsync(upload.GetProperty("uploadUrl").GetString().ShouldNotBeNull(), PngImage.Gradient(640, 640));
+        await PutImageAsync(upload.GetProperty("uploadUrl").GetString().ShouldNotBeNull(), SampleImage.Png());
         var imageId = upload.GetProperty("image").GetString().ShouldNotBeNull();
 
         await AddAsync(agent, deck, "image", new

@@ -468,7 +468,7 @@ public class SlideValidatorTests
     [Test]
     public void Validate_WhenRulesOfWideLettersWrapPastTheSlide_ShouldSayTheyDoNotFit()
     {
-        // 108 characters of text wrap to two lines at 0.56 em, so four such rules come to about 635 px.
+        // 108 characters of text wrap to two lines at 0.56 em, but their wide letters wrap them to three, so four such rules come to about 836 px.
         const string TITLE = "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm";
         const string TEXT = "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays When Many Women Wander Wide Meadows Mow";
         var rule = $$"""{ "title": "{{TITLE[..60]}}", "text": "{{TEXT}}" }""";
@@ -476,7 +476,7 @@ public class SlideValidatorTests
 
         var result = Validate("rules", $$"""{ "headline": "h", "rules": [{{rules}}] }""");
 
-        result.Error.ShouldStartWith("rules.rules: too much text to fit on the slide (about 635 px of 620 px)");
+        result.Error.ShouldStartWith("rules.rules: too much text to fit on the slide (about 836 px of 620 px)");
     }
 
     [Test]
@@ -497,7 +497,7 @@ public class SlideValidatorTests
     {
         var result = Validate("close", $$"""{ "headline": "{{new string('x', 50)}}\n{{new string('y', 25)}}" }""");
 
-        result.Error.ShouldBe("close.headline: too long to fit: it wraps to about 5 lines at the close slide's size, and at most 4 fit");
+        result.Error.ShouldBe("close.headline: too much text to fit: the headline wraps to about 5 lines at the close slide's size, and at most 4 fit");
     }
 
     [Test]
@@ -614,6 +614,71 @@ public class SlideValidatorTests
         Slot("success", "tone").Default.ShouldBe("positive");
         Slot("failure", "fill").Default.ShouldBe("soft");
         Slot("success", "fill").Default.ShouldBe("soft");
+    }
+
+    [Test]
+    public void Validate_WhenTextIsJustOverTheLimit_ShouldGiveTheExactCount()
+    {
+        var result = Validate("big-number", $$"""{ "headline": "Lead time", "value": "{{new string('9', 11)}}", "caption": "Median" }""");
+
+        result.Error.ShouldBe("big-number.value: at most 10 characters (got 11)");
+    }
+
+    [Test]
+    public void Validate_WhenEmojiAndCombiningMarksFillTheLimit_ShouldAcceptThemAndCountOneMoreAsOver()
+    {
+        var emoji = string.Concat(Enumerable.Repeat("\ud83d\ude00", 80));
+        var accented = string.Concat(Enumerable.Repeat("e\u0301", 80));
+
+        Validate("quote", $$"""{ "quote": "q", "attribution": "{{emoji}}" }""").IsValid.ShouldBeTrue();
+        Validate("quote", $$"""{ "quote": "q", "attribution": "{{accented}}" }""").IsValid.ShouldBeTrue();
+        Validate("quote", $$"""{ "quote": "q", "attribution": "{{emoji}}\ud83d\ude00" }""").Error
+            .ShouldBe("quote.attribution: at most 80 characters (got 81)");
+    }
+
+    [Test]
+    public void Validate_WhenTextIsAMegabyte_ShouldRefuseItWithoutAnExactCount()
+    {
+        var result = Validate("quote", $$"""{ "quote": "{{new string('q', 1_000_000)}}", "attribution": "a" }""");
+
+        result.Error.ShouldStartWith("quote.quote: at most ");
+        result.Error.ShouldBe("quote.quote: at most 280 characters (the text is far over that)");
+    }
+
+    [Test]
+    public void Validate_WhenUnknownFieldNameHasBidiControls_ShouldEchoThemEscaped()
+    {
+        var result = Validate("quote", """{ "quote": "q", "attribution": "a", "ab\u202ecd\u2066ef": 1 }""");
+
+        result.Error.ShouldBe("quote.ab\\u202ecd\\u2066ef: unknown field");
+    }
+
+    [Test]
+    public void ToJsonSchema_WhenFieldIsOptional_ShouldAllowNullAndNotForARequiredOne()
+    {
+        var properties = LayoutCatalogue.Find("big-number")!.ToJsonSchema()["properties"]!.AsObject();
+
+        properties["kicker"]!["type"]!.AsArray().Select(type => type!.GetValue<string>()).ShouldBe(["string", "null"]);
+        properties["headline"]!["type"]!.GetValue<string>().ShouldBe("string");
+    }
+
+    [Test]
+    public void ToJsonSchema_WhenColumnHasExactlyOneOf_ShouldCountOnlyNonNullFieldsAsTheValidatorDoes()
+    {
+        var column = LayoutCatalogue.Find("two-column")!.ToJsonSchema()["properties"]!["left"]!;
+
+        var branches = column["oneOf"]!.AsArray();
+        branches.Select(branch => branch!["required"]![0]!.GetValue<string>()).ShouldBe(["items", "text", "image"]);
+        foreach (var branch in branches)
+        {
+            var name = branch!["required"]![0]!.GetValue<string>();
+            branch["properties"]![name]!["not"]!["type"]!.GetValue<string>().ShouldBe("null");
+        }
+
+        Validate("two-column", """{ "headline": "h", "left": { "items": null, "text": "t" }, "right": { "text": "r" } }""")
+            .IsValid.ShouldBeTrue();
+        Validate("two-column", """{ "headline": "h", "left": { "items": null }, "right": { "text": "r" } }""")
+            .Error.ShouldBe("two-column.left: exactly one of items, text, image");
     }
 
     // count options of length characters each, as a JSON list's items.

@@ -94,6 +94,64 @@ for (const [kind, name] of [
   });
 }
 
+// The server (HeadingRules) accepts a headline that takes two lines at 48 px in 1560 px: 82 capital
+// As in one word, 62 Ws (1.87 each, 31 a line; 63 are refused), or 100 characters of lowercase prose. The client shrinks it from 64 px to fit two
+// lines, so neither takes a third, and the body starts no lower than under a two-line headline.
+for (const [kind, text] of [
+  ['82 capital As', 'A'.repeat(82)],
+  ['62 capital Ws', 'W'.repeat(62)],
+  [
+    'a hundred lowercase characters',
+    'every slip we had last year began as a big batch that nobody could ship, so we cut every batch down.',
+  ],
+] as const) {
+  test(`${kind} as the headline take at most two lines and the body starts by y = 376`, async ({
+    mount,
+    page,
+  }) => {
+    await mount(slide('The pattern', text));
+    await page.evaluate(() => document.fonts.ready);
+
+    const headline = await top(page, 'rules-headline');
+    const size = await page
+      .getByTestId('rules-headline')
+      .evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+    expect(size).toBeGreaterThanOrEqual(48);
+    expect(size).toBeLessThanOrEqual(64);
+    expect(headline.height / (size * 1.08)).toBeLessThan(2.05);
+    const body = await top(page, 'body');
+    expect(body.top).toBeLessThanOrEqual(376.5);
+    expect(body.top).toBeCloseTo(192 + headline.height + 46, 0);
+  });
+}
+
+test('a 60-character kicker of wide capitals draws on one row inside x 1800', async ({
+  mount,
+  page,
+}) => {
+  await mount(slide('W'.repeat(60), 'One line'));
+  await page.evaluate(() => document.fonts.ready);
+
+  const frame = (await page.getByTestId('slide-frame').boundingBox())!;
+  const kicker = (await page.getByTestId('rules-kicker').boundingBox())!;
+  expect(kicker.height).toBe(20);
+  expect(kicker.x + kicker.width - frame.x).toBeLessThanOrEqual(1800);
+  // The box is the block, not the text: the drawn text must not spill out of it either.
+  const drawn = await page.getByTestId('rules-kicker').evaluate((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const box = element.getBoundingClientRect();
+    return {
+      fits: element.scrollWidth <= element.clientWidth,
+      textRight: range.getBoundingClientRect().right,
+      boxRight: box.right,
+    };
+  });
+  expect(drawn.fits).toBe(true);
+  expect(drawn.textRight).toBeLessThanOrEqual(drawn.boxRight + 0.5);
+  expect(drawn.textRight - frame.x).toBeLessThanOrEqual(1800.5);
+});
+
 test('headline emphasis carries its tone', async ({ mount, page }) => {
   await mount(
     slide('The pattern', TWO_LINES, [

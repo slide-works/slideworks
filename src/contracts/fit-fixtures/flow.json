@@ -1,7 +1,7 @@
 {
   "flowFour": {
     "layout": "flow",
-    "estimate": 592.0,
+    "estimate": 597.8,
     "grow": [
       "/nodes/0/text"
     ],
@@ -31,7 +31,7 @@
           "text": "Writes each batch to the archive, checks the copy and then clears old files."
         }
       ],
-      "caption": "Every record takes the same four steps in the same order, and nothing moves on until the step before it is done. Always. Always. Always. Alw",
+      "caption": "Every record takes the same four steps in the same order, and nothing moves on until the step before it is done. Always.",
       "chips": [
         "Runs hourly, on the hour",
         "Retries each run twice",
@@ -46,7 +46,7 @@
   },
   "flowGroup": {
     "layout": "flow",
-    "estimate": 613.8,
+    "estimate": 613.4,
     "grow": [
       "/nodes/1/items/0"
     ],

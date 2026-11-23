@@ -1,0 +1,33 @@
+# Patch-level servicing updates only, one pull request per ecosystem each week. Minor and major updates are ignored
+# here and done by hand. GitHub Actions are not covered yet.
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/src"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+    groups:
+      nuget-patches:
+        applies-to: "version-updates"
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/src/SlideWorks.Client"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+    groups:
+      npm-patches:
+        applies-to: "version-updates"
+        patterns:
+          - "*"

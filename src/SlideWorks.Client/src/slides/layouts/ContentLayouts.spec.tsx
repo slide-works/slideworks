@@ -32,7 +32,7 @@ function render(slide: RenderableSlide, step = 0) {
   return <SlideRenderer slide={slide} deck={deck} total={sampleDeck.slides.length} step={step} />;
 }
 
-const GOOD = 'rgb(22, 163, 74)';
+const GOOD = 'rgb(21, 128, 61)';
 const BAD = 'rgb(220, 38, 38)';
 
 // A palette token's computed colour inside an element, so an assertion names
@@ -262,7 +262,7 @@ test('practice shows do comes-back avoid and callout tone', async ({ mount, page
   ]);
   await expect(comesBack.getByTestId('practice-card').nth(0)).toHaveCSS(
     'box-shadow',
-    /rgb\(22, 163, 74\) 6px 0px 0px 0px inset/,
+    /rgb\(21, 128, 61\) 6px 0px 0px 0px inset/,
   );
 
   const avoid = layout.getByTestId('practice-avoid');

@@ -14,6 +14,7 @@ import { POLL_WATCH_FAILED } from './pollMessages';
 import { POLL_PANEL_TEST_IDS as IDS, pollPanelCountTestId } from '../testIds';
 import { PollControlLive } from './PollControlLive';
 import { PollPanel } from './PollPanel';
+import { settle } from '../../test-support/gate';
 
 // The real control provider over the stub hub and the stub poll routes, read through the panel. The poll is on slide 2
 // (POLL_SLIDE_NUMBER); slide 3 has none, so its poll route answers 404.
@@ -52,8 +53,6 @@ const reads = (calls: PollControlCall[]) => calls.filter((c) => c.call === 'read
 const answered = (page: Page) => page.getByTestId(IDS.answered);
 
 // Lets the page run its pending work, so a call it should not make has had its chance.
-const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 300)));
-
 test('PollControlLive_WhenMounted_ShouldWatchTheAudienceThenReadThePresentersSlide', async ({
   mount,
   page,
@@ -85,7 +84,7 @@ test('PollControlLive_WhenTheSlideChangesToANonPollSlideAndBack_ShouldReadEachOn
 
   await view.update(presenter(POLL_SLIDE_NUMBER));
   await expect(page.getByTestId(IDS.state)).toHaveText('Open');
-  await settle(page);
+  await settle(page, 300);
   expect(reads(api.calls).map((c) => c.slide)).toEqual([
     POLL_SLIDE_NUMBER,
     NO_POLL_SLIDE,
@@ -107,12 +106,12 @@ test('PollControlLive_WhenPollControlArrives_ShouldFollowItAndDropALowerSeq', as
 
   pushPollControl(hub, live({ seq: 999, answered: 25 }));
   pushPollControl(hub, live({ seq: 1000, answered: 26 }));
-  await settle(page);
+  await settle(page, 300);
   await expect(answered(page)).toHaveText('30 answers');
 
   // Another slide's poll changing (its round closed when the presenter moved on) doesn't touch this one.
   pushPollControl(hub, live({ seq: 1001, slide: 5, answered: 2 }));
-  await settle(page);
+  await settle(page, 300);
   await expect(answered(page)).toHaveText('30 answers');
 });
 
@@ -130,7 +129,7 @@ test('PollControlLive_WhenPollControlArrivesWhileTheReadIsHeld_ShouldKeepItAndDr
   await expect(answered(page)).toHaveText('33 answers');
 
   held.release();
-  await settle(page);
+  await settle(page, 300);
   await expect(answered(page)).toHaveText('33 answers');
 });
 
@@ -146,14 +145,14 @@ test('PollControlLive_WhenAReadForASlideThePresenterLeftLandsLate_ShouldDropIt',
   await view.update(presenter(NO_POLL_SLIDE));
   await expect.poll(() => reads(api.calls).length).toBe(2);
   first.release();
-  await settle(page);
+  await settle(page, 300);
   await expect(page.getByTestId(IDS.state)).toHaveCount(0);
 
   // Back on the poll slide with its read held: had the late read been kept, the panel would show it now.
   const again = api.hold('read');
   await view.update(presenter(POLL_SLIDE_NUMBER));
   await expect.poll(() => reads(api.calls).length).toBe(3);
-  await settle(page);
+  await settle(page, 300);
   await expect(page.getByTestId(IDS.state)).toHaveCount(0);
   again.release();
   await expect(page.getByTestId(IDS.state)).toHaveText('Open');
@@ -170,7 +169,7 @@ test('PollControlLive_WhenTheDeckChanges_ShouldReadAgain', async ({ mount, page 
   await expect(answered(page)).toHaveText('22 answers');
   // Another deck's event changes nothing.
   hub.push({ type: 'deckChanged', deckId: OTHER_DECK });
-  await settle(page);
+  await settle(page, 300);
   expect(reads(api.calls)).toHaveLength(2);
 });
 
@@ -247,7 +246,7 @@ test('PollControlLive_WhenTheWatchKeepsFailing_ShouldTryAgainOnTheNextSlideChang
   await expect(page.getByTestId(IDS.state)).toHaveText('Open');
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
   // The watch worked: no more retries on a slide change.
-  await settle(page);
+  await settle(page, 300);
   expect(hub.watches).toHaveLength(2);
 });
 
@@ -266,7 +265,7 @@ test('PollControlLive_WhenA404LandsAfterANewerPollControl_ShouldKeepThePushedVie
   await expect(answered(page)).toHaveText('3 answers');
 
   held.release();
-  await settle(page);
+  await settle(page, 300);
   await expect(answered(page)).toHaveText('3 answers');
 });
 
@@ -293,7 +292,7 @@ test('PollControlLive_WhenAReadAfterADeckEventFails_ShouldKeepTheRefusalMessage'
   });
   hub.push({ type: 'deckChanged', deckId: DECK });
   await expect.poll(() => failedReads).toBe(1);
-  await settle(page);
+  await settle(page, 300);
   await expect(page.getByTestId(IDS.error)).toHaveText(refusal);
 });
 
@@ -341,7 +340,7 @@ test('PollControlLive_WhenEachActionIsUsed_ShouldCallItsRouteOnce', async ({ mou
   await expect(page.getByTestId(IDS.state)).toHaveText('Draft');
   await expect(page.getByTestId(IDS.round)).toHaveText('round 2');
 
-  await settle(page);
+  await settle(page, 300);
   expect(api.calls.filter((c) => c.call !== 'read')).toEqual(
     (['open', 'reveal', 'close', 'showAnswer', 'newRound'] as const).map((call) => ({
       call,
@@ -362,7 +361,7 @@ test('PollControlLive_WhenOpenIsDoubleClicked_ShouldOpenOnceAndNotClose', async 
 
   await panel.getByTestId(IDS.open).dblclick();
   await expect(page.getByTestId(IDS.state)).toHaveText('Open');
-  await settle(page);
+  await settle(page, 300);
   expect(api.calls.filter((c) => c.call !== 'read').map((c) => c.call)).toEqual(['open']);
   await expect(page.getByTestId(IDS.state)).toHaveText('Open');
 
@@ -374,7 +373,7 @@ test('PollControlLive_WhenOpenIsDoubleClicked_ShouldOpenOnceAndNotClose', async 
   await panel.getByTestId(IDS.close).click({ force: true });
   held.release();
   await expect(page.getByTestId(IDS.state)).toHaveText('Closed');
-  await settle(page);
+  await settle(page, 300);
   expect(api.calls.filter((c) => c.call !== 'read').map((c) => c.call)).toEqual(['open', 'close']);
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
 });

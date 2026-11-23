@@ -66,12 +66,12 @@ public class WordCloudReader(AppDbContext db, IAudienceSessions sessions)
         return new WordCloudTally(deckId, OpenResponseTarget.Presenter, slide, phase, current.Id.ToString(), current.Number, current.Revision, true, guests, words);
     }
 
-    // OpenEntry holds no time it was sent, so the casing shown is the ordinal least of the key's texts.
+    // The casing shown is the earliest sent row's (by arrival, then position) for the key.
     private static (string Key, CloudWord Word) WordOf(IGrouping<string, OpenEntry> rows)
     {
         var shown = rows.Where(e => e.HiddenAt == null).ToList();
         var counted = shown.Count > 0 ? shown : rows.ToList();
-        var text = rows.Select(e => e.Text).Min(StringComparer.Ordinal)!;
+        var text = rows.OrderBy(e => e.Arrival).ThenBy(e => e.Position).ThenBy(e => e.Text, StringComparer.Ordinal).First().Text;
         return (rows.Key, new CloudWord(text, counted.Select(e => e.GuestId).Distinct(StringComparer.Ordinal).Count(), shown.Count == 0));
     }
 }

@@ -176,6 +176,12 @@ public static class LayoutCapacity
             return (int)Math.Round(region.Parts.Average(part => part.Height));
         }
 
+        // A region recorded per item (cards.cards[3]) is already one item's height; a list's region holds them all.
+        if (region is not null && region.Path.EndsWith(']'))
+        {
+            return (int)Math.Round(region.Height);
+        }
+
         return region is not null && fits > 0 ? (int)Math.Round(region.Height / fits) : 0;
     }
 

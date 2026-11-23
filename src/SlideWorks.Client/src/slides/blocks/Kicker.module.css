@@ -6,6 +6,7 @@
   color: var(--sw-accent);
   font: 700 20px/1 var(--sw-font-body);
   letter-spacing: 0.18em;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
 }
 

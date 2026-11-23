@@ -37,7 +37,7 @@ public static class StatementLayout
             var shown = written.Sum(line => SlideFit.Lines(line, STATEMENT_WIDTH, STATEMENT_FLOOR_SIZE, validation.Widths.Head));
             if (shown > STATEMENT_MAX_LINES)
             {
-                validation.Fail($"{path}.statement", $"too long to fit: it wraps to about {shown} lines at the statement's smallest size, and at most {STATEMENT_MAX_LINES} fit");
+                validation.Fail($"{path}.statement", $"too much text to fit: it wraps to about {shown} lines at the statement's smallest size, and at most {STATEMENT_MAX_LINES} fit");
             }
         }
 
@@ -46,7 +46,7 @@ public static class StatementLayout
             var lines = SlideFit.Lines(sub.GetString()!, STATEMENT_WIDTH, SUB_SIZE, validation.Widths.Head);
             if (lines > SUB_MAX_LINES)
             {
-                validation.Fail($"{path}.sub", $"too long to fit: it wraps to about {lines} lines, and at most {SUB_MAX_LINES} fit");
+                validation.Fail($"{path}.sub", $"too much text to fit: it wraps to about {lines} lines, and at most {SUB_MAX_LINES} fit");
             }
         }
     }

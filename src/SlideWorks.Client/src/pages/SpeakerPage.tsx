@@ -21,7 +21,7 @@ import { PollStrip } from '../polls/presenter/PollStrip';
 import { QaControlLive } from '../qa/presenter/QaControlLive';
 import { QaStrip } from '../qa/presenter/QaStrip';
 import { ActionRow } from '../remote/speaker/ActionRow';
-import { deviceLabel } from '../remote/speaker/deviceLabel';
+import { deviceLabel } from '../presentation/deviceLabel';
 import { NavButtons } from '../remote/speaker/NavButtons';
 import { NextRow, nextLabel } from '../remote/speaker/NextRow';
 import { NowSlide } from '../remote/speaker/NowSlide';
@@ -48,7 +48,7 @@ const PAGE_CLASS = 'mx-auto flex h-dvh max-w-md flex-col bg-slate-950 text-slate
 export function SpeakerPage() {
   const { id = '' } = useParams();
   // Once per page: a new label would rejoin the presentation.
-  const [label] = useState(() => deviceLabel(navigator.userAgent));
+  const [label] = useState(() => deviceLabel(navigator.userAgent, 'Phone'));
   const presentation = usePresentation(id, 'phone', label);
   const [result, setResult] = useState<{ id: string; load: Load } | null>(null);
   const load: Load = result?.id === id ? result.load : { kind: 'loading' };

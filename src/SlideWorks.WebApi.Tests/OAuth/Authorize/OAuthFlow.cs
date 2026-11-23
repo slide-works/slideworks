@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
+using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.OAuth.Authorize;
 
@@ -13,7 +14,7 @@ public static class OAuthFlow
 
     // RFC 7636 appendix B's example pair.
     public const string VERIFIER = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
-    public const string CHALLENGE = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+    public static readonly string CHALLENGE = Pkce.S256(VERIFIER);
 
     public static readonly string Resource = $"{TestAppFactory.PUBLIC_URL}/mcp";
 

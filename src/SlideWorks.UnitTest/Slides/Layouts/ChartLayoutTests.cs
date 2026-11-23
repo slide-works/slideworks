@@ -35,6 +35,28 @@ public class ChartLayoutTests
         Validate($$"""{ "headline": "Lead time fell", {{BASE}}, "emphasis": [{ "text": "fell", "tone": "positive" }] }""").Errors.ShouldBeEmpty();
     }
 
+    [Test]
+    public void Validate_WhenTheCaptionIsTallerThanTheAside_ShouldRefuse()
+    {
+        // Wide letters fill the 408 px column in fewer characters, so 160 of them stand taller than the body once
+        // a three-series legend shares the aside.
+        const string THREE = """ "kind": "bar", "xLabels": ["a", "b"], "series": [{ "name": "One", "values": [1, 2] }, { "name": "Two", "values": [1, 2] }, { "name": "Three", "values": [1, 2] }] """;
+        Validate($$"""{ "headline": "Lead time", {{THREE}}, "caption": "{{new string('W', 160)}}" }""").Errors.ShouldHaveSingleItem()
+            .ShouldBe("chart.caption: too much text to fit beside the chart; shorten the caption");
+        Validate($$"""{ "headline": "Lead time", {{THREE}}, "caption": "{{string.Join(' ', Enumerable.Repeat("words", 26))}}" }""").Errors.ShouldBeEmpty();
+    }
+
+    [Test]
+    public void Validate_WhenALegendAndACalloutShareTheBodyWithTheCaption_ShouldRefuseALongCaption()
+    {
+        var caption = string.Join(' ', Enumerable.Repeat("words", 26));
+        var series = """[{ "name": "One", "values": [1, 2] }, { "name": "Two", "values": [1, 2] }, { "name": "Three", "values": [1, 2] }]""";
+        string Slots(string callout) => $$"""{ "headline": "Lead time", "kind": "bar", "xLabels": ["a", "b"], "series": {{series}}, "caption": "{{caption}}", "callout": { "tone": "info", "text": "{{callout}}" } }""";
+        Validate(Slots("Short.")).Errors.ShouldBeEmpty();
+        Validate(Slots(new string('W', 220))).Errors.ShouldHaveSingleItem()
+            .ShouldBe("chart.caption: too much text to fit beside the chart; shorten the caption");
+    }
+
     private static SlideValidationResult Validate(string slots)
     {
         using var document = JsonDocument.Parse(slots);

@@ -1,22 +1,22 @@
 {
   "quoteFull": {
     "layout": "quote",
-    "estimate": 826.5,
+    "estimate": 131.7,
     "grow": [
       "/quote"
     ],
     "refusedBy": "fit",
     "slots": {
       "kicker": "Make Every Merge Small And Reviewable Mo",
-      "headline": "Small And Reviewable Momentum Matters More Than Maximum Throughput Ship Workinge",
-      "quote": "Small Batches Show Us What Works Sooner And Every Merge Stays Reviewable So Teams Learn Faster When Customers See Real Progress Each Week Small Batches Show Us What Works Sooner And Every Merge Stays",
+      "headline": "Small And Reviewable Momentum Matters More Than Maximum Throughput Ship",
+      "quote": "Small Batches Show Us What Works Sooner And Every Merge Stays Reviewable So Teams Learn Faster When Customers See Real Progress Each Week Small Batches Show Us What Works Sooner And Every",
       "attribution": "Priya Raman",
       "role": "Head Of Search Platform, Team Retrospective Q3 Review Meeting",
       "stat": {
         "value": "11 wks",
         "caption": "Momentum Matters More Than Maximum Throughput Ship Working Software Every Week Teams Learn"
       },
-      "follow_up": "Every Week Teams Learn Faster When Customers See Real Progress And Metrics",
+      "follow_up": "Every Week Teams Learn Faster When Customers See Real Progress And",
       "source": "Ship Working Software Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics Show Where Work Waits Make Every Merge Small And Reviewable Momentum",
       "reveal": "one-by-one"
     }

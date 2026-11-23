@@ -2,14 +2,83 @@
   "columnsListHeadline": {
     "layout": "columns-list",
     "slots": {
-      "headline": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "headline": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       "columns": [
-        { "title": "See", "items": ["One change"] },
-        { "title": "Ship", "items": ["This week"] },
-        { "title": "Learn", "items": ["What happened"] }
+        {
+          "title": "See",
+          "items": [
+            "One change"
+          ]
+        },
+        {
+          "title": "Ship",
+          "items": [
+            "This week"
+          ]
+        },
+        {
+          "title": "Learn",
+          "items": [
+            "What happened"
+          ]
+        }
       ]
     },
-    "grow": ["/headline"],
-    "refusedBy": "length"
+    "grow": [
+      "/headline"
+    ],
+    "refusedBy": "fit"
+  },
+  "columnsListFive": {
+    "layout": "columns-list",
+    "estimate": 620,
+    "grow": [
+      "/columns/0/items/5"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "headline": "Make Every Merge Small And Reviewable",
+      "columns": [
+        {
+          "title": "Ship",
+          "items": [
+            "Where Stays Progress Build Than More Meadows Maximum With Momentum Learn",
+            "Where Stays Progress Build Than More Meadows Maximum With Momentum Learn",
+            "Where Stays Progress Build Than More Meadows Maximum With Momentum Learn",
+            "Teams Pick Women Merge Build Many Learn Working Merge Software Who",
+            "Teams Pick Women Merge Build Many Learn Working Merge Software Who",
+            "Maximum Stays Plan Women Metrics Than Merge Who Where When Many Learn"
+          ]
+        },
+        {
+          "title": "See",
+          "items": [
+            "Watch one customer.",
+            "Change one thing."
+          ]
+        },
+        {
+          "title": "Learn",
+          "items": [
+            "Watch one customer.",
+            "Change one thing."
+          ]
+        },
+        {
+          "title": "Plan",
+          "items": [
+            "Watch one customer.",
+            "Change one thing."
+          ]
+        },
+        {
+          "title": "Check",
+          "items": [
+            "Watch one customer.",
+            "Change one thing."
+          ]
+        }
+      ]
+    }
   }
 }
