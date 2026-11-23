@@ -114,6 +114,32 @@ test('JoinLayout with the longest kicker stays inside x 120-1800, y 150-996', as
   expect(code).toBe(true);
 });
 
+// The server accepts at most 17 capital Ws on the join kicker (36 px, 0.14em, a 828 px column).
+test('JoinLayout draws the widest legal kicker on one row inside x 1800', async ({
+  mount,
+  page,
+}) => {
+  await stubOwnerLive(page, 5);
+  await mount(
+    <JoinProvider deckId={deckPlay.id} join={{ ...join, live: true }} owner>
+      <SlideRenderer
+        slide={slide({ kicker: 'W'.repeat(17), count: 'shown' })}
+        deck={deck}
+        total={1}
+        step={0}
+      />
+    </JoinProvider>,
+  );
+  const frame = (await page.getByTestId('slide-frame').boundingBox())!;
+  const box = (await page.getByTestId('join-kicker').boundingBox())!;
+  // One 36 px line at a 1.2 line height is 43.2 px.
+  expect(box.height).toBeLessThan(44);
+  expect(box.x + box.width - frame.x).toBeLessThanOrEqual(1800.5);
+  expect(
+    await page.getByTestId('join-kicker').evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBe(true);
+});
+
 test('JoinLayout names the QR code by where it goes', async ({ mount, page }) => {
   await mount(
     <JoinProvider deckId={deckPlay.id} join={join} owner={false}>

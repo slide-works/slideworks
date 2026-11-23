@@ -2,7 +2,7 @@
   "columnsListHeadline": {
     "layout": "columns-list",
     "slots": {
-      "headline": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "headline": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       "columns": [
         { "title": "See", "items": ["One change"] },
         { "title": "Ship", "items": ["This week"] },
@@ -10,6 +10,6 @@
       ]
     },
     "grow": ["/headline"],
-    "refusedBy": "length"
+    "refusedBy": "fit"
   }
 }

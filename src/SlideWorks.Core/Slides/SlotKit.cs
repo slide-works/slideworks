@@ -6,8 +6,9 @@ namespace SlideWorks.Core.Slides;
 // plan's section 4. The limits come from the mockup CSS.
 public static class SlotKit
 {
-    // Raised from 40 and 80: real slide copy sat just over those, and the headline shrinks to fit
-    // while a kicker of 60 still sits on one line of the slide.
+    // Raised from 40 and 80: real slide copy sat just over those. The headline shrinks on the client
+    // to 2 lines, down to 48 px, and a kicker must stay on one row; HeadingRules refuses both when
+    // they cannot, so 100 characters of lowercase prose are accepted and 100 capitals are not.
     public const int KICKER = 60;
     public const int HEADLINE = 100;
 

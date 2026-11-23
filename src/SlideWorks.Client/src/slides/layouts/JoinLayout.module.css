@@ -29,6 +29,7 @@
   color: var(--sw-accent-glow);
   font: 700 36px/1.2 var(--sw-font-body);
   letter-spacing: 0.14em;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
 }
 

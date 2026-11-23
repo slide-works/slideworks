@@ -84,6 +84,7 @@ public sealed class LayoutDefinition
         Slots.Validate(slots, Name, validation);
         if (validation.ErrorCount == 0)
         {
+            HeadingRules.Check(Name, slots, Name, validation);
             _rules?.Invoke(slots, Name, validation);
         }
     }
