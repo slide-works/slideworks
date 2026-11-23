@@ -104,6 +104,8 @@ export type ActivityRow = {
   tool: string | null;
   summary: string;
   atLabel: string;
+  // True for a person's entry made by the person looking at the page.
+  isMe: boolean;
 };
 
 // GET /api/decks/{id}. Activity is newest first, at most 50 entries.

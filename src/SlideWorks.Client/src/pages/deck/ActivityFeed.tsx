@@ -2,9 +2,6 @@ import type { ActivityRow } from '../../api/types';
 
 type ActivityFeedProps = {
   rows: ActivityRow[];
-  // On the owner's page, a person's change is the owner's own (people change
-  // only their own decks, through the browser), so it reads "You".
-  isOwner: boolean;
 };
 
 function initials(name: string): string {
@@ -31,8 +28,9 @@ function rowKeys(rows: ActivityRow[]): string[] {
   return oldestFirst.reverse();
 }
 
-// The deck's change log, newest first: "Claude added slide 16 · 2 min ago · via MCP".
-export function ActivityFeed({ rows, isOwner }: ActivityFeedProps) {
+// The deck's change log, newest first: "Claude added slide 16 · 2 min ago · via MCP". A person's own change (isMe, set
+// by the server) reads "You", on an owner's or a writer's page alike; anyone else's reads by name.
+export function ActivityFeed({ rows }: ActivityFeedProps) {
   const keys = rowKeys(rows);
   return (
     <section data-testid="deck-activity" className="panel grid gap-3 p-4">
@@ -43,7 +41,7 @@ export function ActivityFeed({ rows, isOwner }: ActivityFeedProps) {
         <ul className="grid gap-3">
           {rows.map((row, index) => {
             const agent = row.actorKind === 'agent';
-            const actor = !agent && isOwner ? 'You' : row.actor;
+            const actor = row.isMe ? 'You' : row.actor;
             return (
               <li key={keys[index]} data-testid="activity-row" className="flex gap-2.5 text-meta">
                 <span
