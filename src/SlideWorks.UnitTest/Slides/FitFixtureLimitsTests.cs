@@ -27,7 +27,6 @@ public class FitFixtureLimitsTests
     // Layouts with no fixture file yet. Each entry names the Bug that adds it.
     private static readonly IReadOnlyDictionary<string, string> _knownWithoutFixture = new Dictionary<string, string>
     {
-        ["title"] = "SW-723",
     };
 
     // Fit-controlled layouts whose fixtures only grow fields with a character limit, so no fixture proves
