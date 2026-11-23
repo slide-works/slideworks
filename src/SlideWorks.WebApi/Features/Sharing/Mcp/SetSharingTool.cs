@@ -23,7 +23,9 @@ public sealed class SetSharingTool
 
     public const string NONE_GIVEN = "deck: required";
 
-    public const string PERSON_NOT_SUPPORTED = "person: not supported yet";
+    public const string PERSON_AND_VIEWERS = "give person or viewers, not both";
+
+    public const string PERSON_ON_TEMPLATE = "person: only for a deck";
 
     public const string LEVEL_REQUIRED = "level: required";
 
@@ -45,16 +47,22 @@ public sealed class SetSharingTool
             {
                 throw new BadRequestException(BOTH_GIVEN);
             }
-            if (person != null || access != null)
+            if ((person != null || access != null) && viewers != null)
             {
-                // TODO: change one person's access (add, change or remove) through SharingService.
-                throw new BadRequestException(PERSON_NOT_SUPPORTED);
+                throw new BadRequestException(PERSON_AND_VIEWERS);
+            }
+            if ((person != null || access != null) && template != null)
+            {
+                throw new BadRequestException(PERSON_ON_TEMPLATE);
             }
             if (template != null)
             {
                 var update = new TemplateSharingUpdate(TemplateSharing.LevelOf(level ?? throw new BadRequestException(LEVEL_REQUIRED)), viewers?.Select(email => email ?? "").ToList()!);
                 return (object)await templateSharing.SetAsync(actor, template, update);
             }
-            return await sharing.SetFromAgentAsync(deck ?? throw new BadRequestException(NONE_GIVEN), level, viewers);
+            var deckId = deck ?? throw new BadRequestException(NONE_GIVEN);
+            return person != null || access != null
+                ? await sharing.SetPersonFromAgentAsync(deckId, level, person, access)
+                : await sharing.SetFromAgentAsync(deckId, level, viewers);
         });
 }

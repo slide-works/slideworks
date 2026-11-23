@@ -266,18 +266,6 @@ public class SharingContractTests : ApiTestFixture
         AccessOf(result).ShouldBe([(viewer, "read")]);
     }
 
-    [Test]
-    public async Task SetSharing_WhenPersonGiven_ShouldSayNotSupportedYet()
-    {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam, "Claude");
-        var deck = await DeckSeed.CreateDeckAsync(agent);
-
-        var (isError, result) = await agent.CallToolAsync("set_sharing", new { deck, person = "alex@team.example", access = "write" });
-
-        isError.ShouldBeTrue();
-        result.GetString().ShouldBe("person: not supported yet");
-    }
-
     private async Task<JsonElement> PutPeopleAsync(string deck, string level, params (string Email, string Access)[] people)
     {
         var response = await SharingApi.PutAsync(Client, deck, new { level, people = people.Select(p => new { email = p.Email, access = p.Access }).ToArray() });
