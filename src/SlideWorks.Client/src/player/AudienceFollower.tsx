@@ -1,43 +1,16 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { DeckPlayView } from '../api/types';
 import type { PresentationUpdate } from '../presentation/types';
+import { deviceLabel } from '../presentation/deviceLabel';
 import { usePresentation } from '../presentation/usePresentation';
 import { Player, type AudienceControl } from './Player';
-
-// The window's name in the presentation's connected list, such as "Chrome on Linux".
-function browserLabel(): string {
-  const agent = navigator.userAgent;
-  const browser = /Edg\//.test(agent)
-    ? 'Edge'
-    : /Firefox\//.test(agent)
-      ? 'Firefox'
-      : /Chrome\//.test(agent)
-        ? 'Chrome'
-        : /Safari\//.test(agent)
-          ? 'Safari'
-          : 'Browser';
-  const system = /iPhone/.test(agent)
-    ? 'iPhone'
-    : /iPad/.test(agent)
-      ? 'iPad'
-      : /Android/.test(agent)
-        ? 'Android'
-        : /Windows/.test(agent)
-          ? 'Windows'
-          : /Mac OS X/.test(agent)
-            ? 'Mac'
-            : /Linux/.test(agent)
-              ? 'Linux'
-              : '';
-  return system ? `${browser} on ${system}` : browser;
-}
 
 // The player in audience mode (P8): joins the deck's presentation as an audience window and follows its state. A
 // refused join (not the deck's owner, or the deck is gone) means the plain player, which is the one allowed
 // fallback: the play view doesn't say who owns the deck, so the refusal is how the page learns it.
 export function AudienceFollower({ deck }: { deck: DeckPlayView }) {
   // Computed once: a new label would rejoin the presentation.
-  const [label] = useState(browserLabel);
+  const [label] = useState(() => deviceLabel(navigator.userAgent, 'Browser'));
   const presentation = usePresentation(deck.id, 'audience', label);
   const { state, status, update } = presentation;
   const [problem, setProblem] = useState<string | null>(null);
