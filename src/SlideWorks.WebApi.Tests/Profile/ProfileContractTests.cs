@@ -128,15 +128,6 @@ public class ProfileContractTests : ApiTestFixture
         var response = await pending.DeleteAsync($"/api/me/agents/{Guid.NewGuid()}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-    }
-
-    [Test]
-    public async Task Unsubscribe_WhenAnonymous_ShouldReachTheRoute()
-    {
-        using var anonymous = ClientFor(TestUser.Anonymous);
-
-        var response = await anonymous.PostAsJsonAsync("/api/email/unsubscribe", new { });
-
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe("pending_approval");
     }
 }

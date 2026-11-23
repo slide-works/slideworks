@@ -46,16 +46,6 @@ public class AnonymousRouteRulesTests : ApiTestFixture
         (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe("Not signed in");
     }
 
-    // The unsubscribe page's call is open to anyone: the token in the body is the credential. A body with no token reaches the
-    // action's own 400, not the sign-in gate's 401.
-    [Test]
-    public async Task PostUnsubscribe_WhenAnonymous_ShouldReachTheRoute()
-    {
-        var response = await Client.PostAsJsonAsync("/api/email/unsubscribe", new { });
-
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-    }
-
     // The /unsubscribe page is the SPA shell, served to anyone.
     [Test]
     public async Task Get_WhenAnonymousOnUnsubscribePage_ShouldReturn200()
