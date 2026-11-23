@@ -27,10 +27,10 @@ public class DeckQueries(
     IActivityLog activity,
     IPublicUrls urls,
     JoinViews joinViews,
-    TimeProvider clock,
     IDeckLooks looks,
     ITemplates templates,
-    IStoredSlideChecks storedChecks)
+    IStoredSlideChecks storedChecks,
+    IDisplayDates dates)
 {
     public const int ACTIVITY_MAX = 50;
 
@@ -44,7 +44,6 @@ public class DeckQueries(
     public async Task<DeckPageView> PageAsync(string deckId)
     {
         await RequireOwnerAsync(deckId);
-        var now = clock.GetUtcNow();
         var deck = await db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);
         var slides = await db.Slides.AsNoTracking()
             .Where(s => s.DeckId == deckId && s.DeletedAt == null)
@@ -67,7 +66,7 @@ public class DeckQueries(
             DeckParts.Read(deck),
             looks.PageOf(deck, template),
             slides.Select(slide => DeckPageSlide.From(deck, slide, template)).ToList(),
-            entries.Select(entry => ActivityRow.From(entry, DisplayDate.Ago(entry.At, now))).ToList(),
+            entries.Select(entry => ActivityRow.From(entry, dates.Ago(entry.At))).ToList(),
             findings);
     }
 
@@ -112,7 +111,6 @@ public class DeckQueries(
 
     private async Task<IReadOnlyList<DeckRow>> OwnDecksAsync(Guid presenterId)
     {
-        var now = clock.GetUtcNow();
         var decks = await db.Decks.AsNoTracking()
             .Where(d => d.OwnerId == presenterId)
             .OrderByDescending(d => d.UpdatedAt)
@@ -139,7 +137,7 @@ public class DeckQueries(
                 d.LastChange == null ? null : LastChange.From(d.LastChange),
                 d.Sharing,
                 d.ViewerCount,
-                DisplayDate.Ago(d.UpdatedAt, now),
+                dates.Ago(d.UpdatedAt),
                 DeckLinks.Play(d.Id, d.Slug)))
             .ToList();
     }
@@ -153,7 +151,6 @@ public class DeckQueries(
         {
             return [];
         }
-        var now = clock.GetUtcNow();
         var decks = await db.Decks.AsNoTracking()
             .Where(d => d.Sharing == DeckSharing.Named
                 && d.OwnerId != presenterId
@@ -184,7 +181,7 @@ public class DeckQueries(
                     d.LastChange == null ? null : LastChange.From(d.LastChange),
                     d.Sharing,
                     d.ViewerCount,
-                    DisplayDate.Ago(d.UpdatedAt, now),
+                    dates.Ago(d.UpdatedAt),
                     DeckLinks.Play(d.Id, d.Slug)),
                 d.OwnerName))
             .ToList();
