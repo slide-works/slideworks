@@ -36,5 +36,49 @@ public class SlideFitTests
             .ShouldBe(SlideValidator.Validate("title", bad).Errors);
     }
 
+    // One bullet at 36 px in a 1448 px list holds 71 average characters a line: eight 8-letter words fill it exactly.
+    [TestCase(8, 1)]
+    [TestCase(9, 2)]
+    [TestCase(16, 2)]
+    [TestCase(17, 3)]
+    public void Lines_WhenLowercaseProseFillsTheLine_ShouldWrapWhereItAlwaysDid(int words, int lines)
+    {
+        Lines(string.Join(" ", Enumerable.Repeat("abcdefgh", words))).ShouldBe(lines);
+    }
+
+    [Test]
+    public void Lines_WhenTheSameWordsAreWideLetters_ShouldTakeMoreLinesThanNarrowOnes()
+    {
+        var narrow = string.Join(" ", Enumerable.Repeat(new string('n', 9), 6));
+        var wide = string.Join(" ", Enumerable.Repeat(new string('W', 9), 6));
+
+        Lines(wide).ShouldBeGreaterThan(Lines(narrow));
+    }
+
+    [Test]
+    public void Lines_WhenTextIsAllCapitals_ShouldTakeMoreLinesThanLowercase()
+    {
+        var lower = string.Join(" ", Enumerable.Repeat("shipping", 8));
+
+        Lines(lower.ToUpperInvariant()).ShouldBeGreaterThan(Lines(lower));
+    }
+
+    [Test]
+    public void Lines_WhenOneWordIsLongerThanALineOfWideLetters_ShouldBreakItByWidth()
+    {
+        // 60 W cost 60 × 1.87 = 112 average characters: two lines of 71, where 60 n fit one.
+        Lines(new string('n', 60)).ShouldBe(1);
+        Lines(new string('W', 60)).ShouldBe(2);
+        Lines(new string('W', 76)).ShouldBe(3);
+    }
+
+    private static int Lines(string text)
+    {
+        var slots = Slots(new { headline = "One point", items = new[] { text } });
+        var region = SlideValidator.Validate(BulletsLayout.Definition, slots, FitWidths.Default).Regions.Single();
+
+        return (int)Math.Round(region.Height / 48.6);
+    }
+
     private static JsonElement Slots(object slots) => JsonSerializer.SerializeToElement(slots);
 }
