@@ -65,10 +65,7 @@ public static class CompareLayout
                 height += 35 + (SlideFit.Lines(footer.GetString()!, 724, 24, validation.Widths.Body) * 33.6);
             }
 
-            if (height > budget)
-            {
-                SlideFit.Check(height, $"{path}.{side}", validation, budget);
-            }
+            SlideFit.Check(height, $"{path}.{side}", validation, budget);
         }
     }
 

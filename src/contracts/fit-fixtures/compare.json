@@ -1,7 +1,7 @@
 {
   "compare": {
     "layout": "compare",
-    "estimate": 607.2,
+    "estimate": 596.6,
     "grow": [
       "/failure/sub",
       "/success/sub"
