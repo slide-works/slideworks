@@ -19,6 +19,9 @@ internal static class SlideFit
     // 120 px bottom padding and still clear the footer, which starts at y = 1023.
     public const double BODY_HEIGHT = 620;
 
+    // Absorbs floating-point error when a line is filled exactly.
+    private const double EPSILON = 1e-9;
+
     // Greedy word wrap: a word that doesn't fit after the last one starts the next line, and a word
     // longer than a whole line breaks across lines. A line holds perLine average characters; a word
     // costs the sum of its characters' GlyphWidths factors (each at least 1), a space costs 1.
@@ -30,7 +33,7 @@ internal static class SlideFit
         foreach (var word in text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
         {
             var cost = GlyphWidths.Cost(word);
-            if (used > 0 && used + 1 + cost <= perLine)
+            if (used > 0 && used + 1 + cost <= perLine + EPSILON)
             {
                 used += 1 + cost;
                 continue;
@@ -41,9 +44,28 @@ internal static class SlideFit
                 lines++;
             }
 
-            var extra = (int)Math.Ceiling(cost / perLine) - 1;
-            lines += extra;
-            used = cost - (extra * perLine);
+            // A word that fills more than a line breaks between whole characters: each goes on the
+            // current line if it fits and starts the next one if not, so no glyph straddles two lines.
+            used = 0;
+            if (cost > perLine + EPSILON)
+            {
+                var elements = StringInfo.GetTextElementEnumerator(word);
+                while (elements.MoveNext())
+                {
+                    var factor = GlyphWidths.Factor((string)elements.Current);
+                    if (used > 0 && used + factor > perLine + EPSILON)
+                    {
+                        lines++;
+                        used = 0;
+                    }
+
+                    used += factor;
+                }
+            }
+            else
+            {
+                used = cost;
+            }
         }
 
         return lines;

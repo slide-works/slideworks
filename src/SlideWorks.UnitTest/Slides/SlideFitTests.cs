@@ -66,10 +66,57 @@ public class SlideFitTests
     [Test]
     public void Lines_WhenOneWordIsLongerThanALineOfWideLetters_ShouldBreakItByWidth()
     {
-        // 60 W cost 60 × 1.85 = 111 average characters: two lines of 71, where 60 n fit one.
+        // 37 W cost 69.19 of a 71 line, a 38th would not fit: two lines hold 74 W, three 111.
         Lines(new string('n', 60)).ShouldBe(1);
         Lines(new string('W', 60)).ShouldBe(2);
+        Lines(new string('W', 74)).ShouldBe(2);
+        Lines(new string('W', 75)).ShouldBe(3);
         Lines(new string('W', 80)).ShouldBe(3);
+    }
+
+    [Test]
+    public void Lines_WhenWidthsDoNotDivideTheLine_ShouldNotLetAGlyphStraddleTwoLines()
+    {
+        // 115 W cost 215.05 = 3.03 lines of 71, but only 37 whole W fit a line: four lines.
+        Lines(new string('W', 115)).ShouldBe(4);
+        Lines(new string('W', 111)).ShouldBe(3);
+    }
+
+    // Each class's widest members: the most that fit one 71-character line, then one more is a second line.
+    [TestCase('%', 37)]
+    [TestCase('W', 37)]
+    [TestCase('@', 39)]
+    [TestCase('M', 42)]
+    [TestCase('m', 42)]
+    [TestCase('#', 42)]
+    [TestCase('w', 44)]
+    [TestCase('O', 44)]
+    [TestCase('Q', 44)]
+    [TestCase('G', 48)]
+    [TestCase('&', 48)]
+    [TestCase('C', 51)]
+    [TestCase('K', 51)]
+    [TestCase('B', 57)]
+    [TestCase('T', 57)]
+    [TestCase('0', 55)]
+    [TestCase('4', 58)]
+    [TestCase('+', 58)]
+    public void Lines_WhenAClassFillsTheLineExactly_ShouldTakeOneLineAndOneMoreTakesTwo(char letter, int fits)
+    {
+        Lines(new string(letter, fits)).ShouldBe(1);
+        Lines(new string(letter, fits + 1)).ShouldBe(2);
+    }
+
+    [Test]
+    public void Lines_WhenFactorsAreEachAtLeastOne_ShouldNeverTakeFewerLinesThanNarrowText()
+    {
+        foreach (var letter in "%W@MmwOQG&CBT04+")
+        {
+            for (var n = 1; n <= 160; n++)
+            {
+                Lines(new string(letter, n)).ShouldBeGreaterThanOrEqualTo(Lines(new string('n', n)));
+            }
+        }
     }
 
     private static int Lines(string text)
