@@ -488,6 +488,48 @@ test.describe('max-length text stays inside 1920x1080', () => {
         expect(size).toBeLessThan(34);
         expect(size).toBeGreaterThanOrEqual(26);
       });
+
+      // A prose title with a W-word subtitle, tagline and byline all full ended
+      // at y 1009.7 with the subtitle and tagline at their floors: the byline
+      // shrinks too, from 28 px down to 22 px, to end inside y 996.
+      test('title, prose title with a W-word subtitle, tagline and byline', async ({
+        mount,
+        page,
+      }) => {
+        const words = (length: number) =>
+          'WWWWWWWWW '
+            .repeat(Math.ceil(length / 10))
+            .slice(0, length)
+            .trimEnd()
+            .padEnd(length, 'W');
+        await mount(
+          render({
+            number: 1,
+            layout: 'title',
+            part: null,
+            deepDive: false,
+            slots: {
+              kicker: fill(40),
+              title: fill(34),
+              subtitle: words(100),
+              tagline: words(90),
+              author: words(60),
+              affiliation: words(60),
+              stamp: 'M'.repeat(16),
+            },
+          }),
+        );
+
+        expectInsideContent(await drawnBox(page, 'layout-title', '[data-testid="block-stamp"]'));
+        expect(await fontSize(page, 'title-title')).toBe(168);
+        expect(await fontSize(page, 'title-subtitle')).toBe(36);
+        expect(await fontSize(page, 'title-tagline')).toBe(26);
+        const byline = await fontSize(page, 'title-byline');
+        expect(byline).toBeLessThan(28);
+        expect(byline).toBeGreaterThanOrEqual(22);
+        const box = (await page.getByTestId('title-byline').boundingBox())!;
+        expect(box.y + box.height).toBeLessThanOrEqual(996);
+      });
     }
 
     test(`divider with eight long parts in ${letters}`, async ({ mount, page }) => {
