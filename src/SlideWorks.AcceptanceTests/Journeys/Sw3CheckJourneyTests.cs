@@ -13,7 +13,7 @@ namespace SlideWorks.AcceptanceTests.Journeys;
 // levelsTextWide fixture: add_slide accepts it (the estimate is blind to wide letters) but it overflows when measured.
 public class Sw3CheckJourneyTests : AcceptanceTest
 {
-    private const string OVERFLOW_MESSAGE = "Text runs below the footer";
+    private const string OVERFLOW_MESSAGE = "Text runs ";
 
     [Test]
     public async Task CheckDeck_WhenAWideLetterSlideIsAccepted_ShouldReportOverflow()
@@ -180,11 +180,11 @@ public class Sw3CheckJourneyTests : AcceptanceTest
         var deck = await NewDeckAsync(agent);
         await AgentSeed.AddQuotesAsync(TestUser.Sam, deck, "Ship small, ship often");
         using var fixtures = JsonDocument.Parse(await File.ReadAllTextAsync(FixturePath()));
-        // The server accepts this slide and the client still draws its headline past the footer (the open SW-664).
-        var slots = fixtures.RootElement.GetProperty("cases").EnumerateArray()
-            .Single(c => c.GetProperty("fixture").GetString() == "levelsTextWide" && c.GetProperty("region").GetString() == "headline" && c.GetProperty("variant").GetString() == "allW")
-            .GetProperty("slots").Clone();
-        var added = await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deck, ["layout"] = "levels", ["slots"] = slots });
+        // The server accepts this slide and the client still draws it past its box (a case still in KNOWN_OVERFLOWS, SW-718).
+        var worst = fixtures.RootElement.GetProperty("cases").EnumerateArray()
+            .Single(c => c.GetProperty("fixture").GetString() == "quoteStatOnly" && c.GetProperty("region").GetString() == "stat" && c.GetProperty("variant").GetString() == "allW");
+        var slots = worst.GetProperty("slots").Clone();
+        var added = await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deck, ["layout"] = worst.GetProperty("layout").GetString(), ["slots"] = slots });
         await AgentSeed.AddQuotesAsync(TestUser.Sam, deck, "Measure twice, cut once");
         return (deck, added.GetProperty("warnings").Clone());
     }
