@@ -40,8 +40,9 @@ public class RequestBodyLimitMiddleware(RequestDelegate next)
             return;
         }
         // No Content-Length means the length is unknown, whatever Transfer-Encoding says: HTTP/2 and HTTP/3 send a body with
-        // neither header. A GET or HEAD has no body to bound.
-        if (request.ContentLength is null && !HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method))
+        // neither header. Every method is bounded, GET and HEAD included: HTTP lets them carry a body, and reading an empty
+        // one costs nothing.
+        if (request.ContentLength is null)
         {
             var body = await ReadAtMostAsync(request.Body, limit.Value, context.RequestAborted);
             if (body is null)

@@ -128,11 +128,13 @@ public class RequestLimitTests : ApiTestFixture
     // HTTP/2 and HTTP/3 can send a body with neither Content-Length nor Transfer-Encoding, and TestServer cannot send that
     // shape, so the middleware is run directly over a context that has neither header (and an endpoint-less route, which
     // takes the shared limit). The body stream is counted: the middleware must stop reading near the limit.
-    [Test]
-    public async Task Middleware_WhenBodyHasNoLengthHeaderAtAllAndIsOverTheLimit_ShouldAnswer413AndNotCallOn()
+    [TestCase("POST")]
+    [TestCase("GET")]
+    [TestCase("HEAD")]
+    public async Task Middleware_WhenBodyHasNoLengthHeaderAtAllAndIsOverTheLimit_ShouldAnswer413AndNotCallOn(string method)
     {
         var context = new DefaultHttpContext();
-        context.Request.Method = HttpMethods.Post;
+        context.Request.Method = method;
         context.Request.Path = "/api/decks";
         context.Request.Body = new MemoryStream(new byte[MCP_LIMIT + 1]);
         context.Response.Body = new MemoryStream();
