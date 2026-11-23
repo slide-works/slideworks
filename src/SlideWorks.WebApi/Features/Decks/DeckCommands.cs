@@ -129,8 +129,8 @@ public class DeckCommands(
         }
     }
 
-    // The deck whose look a new deck copies, or null. Only the owner may copy it, as only the owner may get_deck it: a deck
-    // shared by link or with named people is "Deck not found" to anyone else (SW-568). template, palette and colors stay
+    // The deck whose look a new deck copies, or null. Only the owner or a person with write (C5) may copy it, as only they
+    // may get_deck it: a deck shared by link or with read access is "Deck not found" to anyone else (SW-568). template, palette and colors stay
     // out: they would disagree with the copy.
     private async Task<Deck?> SourceAsync(CreateDeckRequest request)
     {

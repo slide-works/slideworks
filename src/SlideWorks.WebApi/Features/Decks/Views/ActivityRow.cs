@@ -1,4 +1,5 @@
 using SlideWorks.WebApi.Features.Activity;
+using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Infrastructure.Identity;
 
 namespace SlideWorks.WebApi.Features.Decks.Views;
@@ -8,11 +9,11 @@ namespace SlideWorks.WebApi.Features.Decks.Views;
 // a change made in the browser. AtLabel is formatted on the server ("2 min ago").
 public sealed record ActivityRow(string Actor, ActorKind ActorKind, ActorVia Via, string? Tool, string Summary, string AtLabel)
 {
-    public static ActivityRow From(ActivityEntryRow entry, string atLabel) => new(
+    public static ActivityRow From(ActivityEntryRow entry, string atLabel, bool isOwner) => new(
         entry.ActorName,
         Enum.Parse<ActorKind>(entry.ActorKind),
         Enum.Parse<ActorVia>(entry.Via),
         entry.Tool,
-        entry.Summary,
+        SharingActivity.Visible(entry.Summary, isOwner),
         atLabel);
 }

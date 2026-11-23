@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using SlideWorks.WebApi.Features.Sharing.Limits;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Dtos;
 using SlideWorks.WebApi.Tests.Mcp;
@@ -17,6 +18,9 @@ namespace SlideWorks.WebApi.Tests.Sharing;
 [TestFixture]
 public class ViewerCapTests : ApiTestFixture
 {
+    // These tests share 50 people at once, far past the default new-recipient limits (SW-794).
+    protected override Dictionary<string, string?> ExtraConfig => new() { [SharingLimits.NEW_PER_HOUR_KEY] = "10000", [SharingLimits.NEW_PER_DAY_KEY] = "10000" };
+
     private const string TOO_MANY = "viewers: at most 50 emails";
 
     private const string PEOPLE_TOO_MANY = "people: at most 50 emails";

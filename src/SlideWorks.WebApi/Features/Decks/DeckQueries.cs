@@ -70,7 +70,7 @@ public class DeckQueries(
             DeckParts.Read(deck),
             looks.PageOf(deck, template),
             slides.Select(slide => DeckPageSlide.From(deck, slide, template)).ToList(),
-            entries.Select(entry => ActivityRow.From(entry, dates.Ago(entry.At))).ToList(),
+            entries.Select(entry => ActivityRow.From(entry, dates.Ago(entry.At), isOwner)).ToList(),
             findings);
     }
 
@@ -149,7 +149,7 @@ public class DeckQueries(
                 d.Title,
                 d.Subtitle,
                 d.SlideCount,
-                d.LastChange == null ? null : LastChange.From(d.LastChange),
+                d.LastChange == null ? null : LastChange.From(d.LastChange, isOwner: true),
                 d.Sharing,
                 d.ViewerCount,
                 dates.Ago(d.UpdatedAt),
@@ -195,7 +195,7 @@ public class DeckQueries(
                     d.Title,
                     d.Subtitle,
                     d.SlideCount,
-                    d.LastChange == null ? null : LastChange.From(d.LastChange),
+                    d.LastChange == null ? null : LastChange.From(d.LastChange, isOwner: false),
                     d.Sharing,
                     d.ViewerCount,
                     dates.Ago(d.UpdatedAt),

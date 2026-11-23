@@ -51,10 +51,8 @@ public class SharingService(
 
     private static readonly string[] ACCESS_NAMES = ["read", "write", "remove"];
 
-    private const string SUMMARY_PREFIX = "changed sharing: ";
-
     // The summary names at most this many added or removed emails, each cut to EMAIL_SHOWN characters, and counts the
-    // rest, so it stays under about 200 characters however long the list (the library repeats it as lastChange.summary).
+    // rest, so it stays under about 230 characters however long the list (the library repeats it as lastChange.summary).
     private const int CHANGES_SHOWN = 3;
 
     private const int EMAIL_SHOWN = 40;
@@ -203,7 +201,7 @@ public class SharingService(
         {
             if (list.Count >= ViewerEmails.MAX_VIEWERS)
             {
-                throw new BadRequestException(ViewerEmails.PEOPLE_TOO_MANY);
+                throw new BadRequestException(ViewerEmails.PERSON_TOO_MANY);
             }
             list.Add((email, person.Access == "write" ? DeckViewerAccess.Write : DeckViewerAccess.Read));
         }
@@ -235,9 +233,9 @@ public class SharingService(
         var viewers = ViewerChanges(changes);
         if (from != to)
         {
-            return $"{SUMMARY_PREFIX}{Label(from)} → {Label(to)}{viewers}";
+            return $"{SharingActivity.PREFIX}{Label(from)} → {Label(to)}{viewers}";
         }
-        return viewers.Length == 0 ? null : $"{SUMMARY_PREFIX}{Label(to)}{viewers}";
+        return viewers.Length == 0 ? null : $"{SharingActivity.PREFIX}{Label(to)}{viewers}";
     }
 
     private static string AccessName(DeckViewerAccess access) => access.ToString().ToLowerInvariant();
@@ -277,7 +275,7 @@ public class SharingService(
             ? new SharingPersonView(v.Email, account.Name, avatars.For(account), AccessName(v.Access))
             : new SharingPersonView(v.Email, null, null, AccessName(v.Access))).ToList();
         var last = await db.ActivityEntries.AsNoTracking()
-            .Where(e => e.DeckId == deckId && e.Summary.StartsWith(SUMMARY_PREFIX))
+            .Where(e => e.DeckId == deckId && e.Summary.StartsWith(SharingActivity.PREFIX))
             .OrderByDescending(e => e.At)
             .ThenByDescending(e => e.Id)
             .FirstOrDefaultAsync();

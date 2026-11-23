@@ -39,16 +39,16 @@ public class ScreenRecordShapeTests : ApiTestFixture
         var view = new DecksLibraryView(
             [
                 new DeckRow("7Kq2xYp9LmQa", "ship-smaller", "Ship smaller", "Team offsite · draft", 16,
-                    LastChange.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "add_slide", "added slide 16")),
+                    LastChange.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "add_slide", "added slide 16"), isOwner: true),
                     DeckSharing.Link, 0, "2 min ago", "/d/7Kq2xYp9LmQa/ship-smaller"),
                 new DeckRow("Q4pRv8sT2wXz", "q4-platform-review", "Q4 platform review", "Leadership update", 22,
-                    LastChange.From(Entry("You", ActorKind.Person, ActorVia.Web, null, "changed sharing")),
+                    LastChange.From(Entry("You", ActorKind.Person, ActorVia.Web, null, "changed sharing"), isOwner: true),
                     DeckSharing.Named, 3, "1 h ago", "/d/Q4pRv8sT2wXz/q4-platform-review"),
             ],
             [
                 SharedDeckRow.From(
                     new DeckRow("Ob3nWk1Jn9Ef", "onboarding-week-one", "Onboarding: week one", "For new joiners", 12,
-                        LastChange.From(Entry("Cursor", ActorKind.Agent, ActorVia.Mcp, "set_notes", "updated notes")),
+                        LastChange.From(Entry("Cursor", ActorKind.Agent, ActorVia.Mcp, "set_notes", "updated notes"), isOwner: true),
                         DeckSharing.Named, 5, "Yesterday", "/d/Ob3nWk1Jn9Ef/onboarding-week-one"),
                     "Alex Chen",
                     "read"),
@@ -108,9 +108,9 @@ public class ScreenRecordShapeTests : ApiTestFixture
             example.GetProperty("look").Deserialize<DeckLookView>(AppJsonOptions())!,
             slides,
             [
-                ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "add_slide", "added slide 3 close"), "2 min ago"),
-                ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "set_sharing", "changed sharing: Private → Anyone with the link"), "5 min ago"),
-                ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "create_deck", "created the deck"), "9 min ago"),
+                ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "add_slide", "added slide 3 close"), "2 min ago", isOwner: true),
+                ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "set_sharing", "changed sharing: Private → Anyone with the link"), "5 min ago", isOwner: true),
+                ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "create_deck", "created the deck"), "9 min ago", isOwner: true),
             ],
             example.GetProperty("findings").Deserialize<IReadOnlyList<SlideFinding>>(AppJsonOptions())!);
 
@@ -127,7 +127,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
         var slide = DeckPageSlide.From(deck, new Slide { DeckId = deck.Id, Layout = "bullets", SlotsJson = """{ "items": ["One"] }""" }, Workshop);
         var view = new DeckPageView(deck.Id, deck.Slug, deck.Title, null, 0, false, false, "read", "/d/7Kq2xYp9LmQa/ship-smaller",
             new JoinView("482913", "482 913", "https://slideworks.live/482913", "slideworks.live", false), SharingSummary.From(DeckSharing.Private, 0), [], LookViews.ForPage(deck, Workshop, Palettes), [slide],
-            [ActivityRow.From(Entry("Sam Rivera", ActorKind.Person, ActorVia.Web, null, "created the deck"), "just now")], []);
+            [ActivityRow.From(Entry("Sam Rivera", ActorKind.Person, ActorVia.Web, null, "created the deck"), "just now", isOwner: true)], []);
 
         var json = Serialise(view);
 

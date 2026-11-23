@@ -48,8 +48,8 @@ public class DeckReader(
         return new DeckForRender(await PlayAsync(deck, isOwner: false), deck.Subtitle, deck.Revision, deck.Sharing);
     }
 
-    // Only the owner, or an agent acting for the owner: the slides carry notes and revisions.
-    public async Task<object> GetForOwnerAsync(string deckId, bool summary = false)
+    // The owner or a person with write (C5), or an agent acting for either: the slides carry notes and revisions.
+    public async Task<object> GetForEditorAsync(string deckId, bool summary = false)
     {
         if (!await access.CanEditAsync(deckId, actor))
         {

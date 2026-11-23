@@ -16,7 +16,7 @@ namespace SlideWorks.WebApi.Tests.Sharing;
 public class WriteAccessTests : ApiTestFixture
 {
     [Test]
-    public async Task EditSlide_WhenWrite_ShouldSucceed()
+    public async Task PutLook_WhenWrite_ShouldSucceed()
     {
         var deck = await SharingApi.CreateDeckAsync(Client);
         await SharePeopleAsync(deck, "named", ("write", TestUser.Alex));
@@ -32,7 +32,7 @@ public class WriteAccessTests : ApiTestFixture
     }
 
     [Test]
-    public async Task EditSlide_WhenRead_ShouldReturn404()
+    public async Task PutLook_WhenRead_ShouldReturn404()
     {
         var deck = await SharingApi.CreateDeckAsync(Client);
         await SharePeopleAsync(deck, "named", ("read", TestUser.Alex));
