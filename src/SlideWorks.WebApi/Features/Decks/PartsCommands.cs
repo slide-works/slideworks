@@ -10,7 +10,7 @@ using SlideWorks.WebApi.Realtime;
 
 namespace SlideWorks.WebApi.Features.Decks;
 
-// Replaces a deck's whole parts list (SW-555), for set_parts. Owner only: anyone else, like an unknown deck, gets "Deck not
+// Replaces a deck's whole parts list (SW-555), for set_parts. The owner or a person with write (C5); anyone else, like an unknown deck, gets "Deck not
 // found". The list is checked by the same code as create_deck's parts. Slides keep their part numbers, so a list shorter than
 // the highest part a slide uses is refused, naming those slides, and nothing is written. One call takes the deck's next
 // revision and records one activity entry in one transaction, then publishes DeckChanged.
