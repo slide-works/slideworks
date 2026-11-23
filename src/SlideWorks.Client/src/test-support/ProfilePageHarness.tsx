@@ -3,8 +3,8 @@ import { api } from '../api/client';
 import type { ProfileView } from '../api/profile';
 import { ProfilePage } from '../pages/ProfilePage';
 
-// Component tests only: the profile page with a button that re-reads the profile, for the later tasks' tests that
-// check a write shows up in what the server holds. Shows the first read's agent count ("none" before).
+// Component tests only, and no spec mounts it yet: the profile page beside an output that shows the first read's agent
+// count ("none" before it arrives). A spec that wants to check a write shows up in what the server holds can extend it.
 export function ProfilePageHarness() {
   const [count, setCount] = useState('none');
   useEffect(() => {

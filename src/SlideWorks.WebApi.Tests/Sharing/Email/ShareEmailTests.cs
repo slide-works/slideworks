@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Features.Sharing.Email;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Infrastructure.Mail;
+using SlideWorks.WebApi.Tests.Decks;
+using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Sharing.Email;
@@ -40,8 +42,8 @@ public partial class ShareEmailTests : ApiTestFixture
         mail.Text.ShouldContain("Sam Rivera (sam@team.example)");
         using var scope = Factory.Services.CreateScope();
         var deckUrl = scope.ServiceProvider.GetRequiredService<IPublicUrls>().Deck(deck.Id, deck.Slug);
-        var unsubscribe = scope.ServiceProvider.GetRequiredService<IUnsubscribeLinks>().For(recipient);
-        mail.UnsubscribeUrl.ShouldBe(unsubscribe);
+        var unsubscribe = mail.UnsubscribeUrl;
+        unsubscribe.ShouldStartWith($"{scope.ServiceProvider.GetRequiredService<IPublicUrls>().Base}/unsubscribe#t=");
         HrefRegex().Matches(mail.Html).Select(m => WebUtility.HtmlDecode(m.Groups[1].Value)).ShouldBe([deckUrl, unsubscribe]);
         UrlRegex().Matches(mail.Text).Select(m => m.Value).ShouldBe([deckUrl, unsubscribe]);
         mail.Subject.ShouldNotContain("view", Case.Insensitive);
@@ -110,7 +112,7 @@ public partial class ShareEmailTests : ApiTestFixture
     {
         var recipient = NewAddress();
         var deck = await NewDeckAsync(Client);
-        // The unsubscribe route is not built yet, so the address is suppressed through the seam the route will use.
+        // The address is suppressed through IEmailSuppressions, the store the unsubscribe page writes to.
         using (var scope = Factory.Services.CreateScope())
         {
             await scope.ServiceProvider.GetRequiredService<IEmailSuppressions>().AddAsync(recipient);
@@ -155,6 +157,22 @@ public partial class ShareEmailTests : ApiTestFixture
         await SharingApi.PutAsync(Client, deck.Id, new { level = "named", viewers = Array.Empty<string>() });
         await BarrierAsync();
 
+        Mail.SentTo(recipient).Count.ShouldBe(1);
+    }
+
+    [Test]
+    public async Task SetSharing_WhenPersonGoesFromReadToWriteOverMcp_ShouldSendNothing()
+    {
+        var recipient = NewAddress();
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        await agent.CallToolAsync("set_sharing", new { deck, level = "named", person = recipient, access = "read" });
+        await WaitForMailAsync(recipient, 1);
+
+        var (isError, result) = await agent.CallToolAsync("set_sharing", new { deck, person = recipient, access = "write" });
+        await BarrierAsync();
+
+        isError.ShouldBeFalse(result.ToString());
         Mail.SentTo(recipient).Count.ShouldBe(1);
     }
 
