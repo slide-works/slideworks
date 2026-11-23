@@ -35,8 +35,8 @@ describe('barsGeometry', () => {
       { label: 'B', value: 4 },
     ];
     const widest = endWidth(bars[0], 'ms', true);
-    // "10 ms" is 5 characters at 28 px x 0.62, the tag 10 at 18 px x 0.85 + 14, and 30.
-    expect(widest).toBeCloseTo(5 * 28 * 0.62 + (10 * 18 * 0.85 + 14) + 30, 5);
+    // "10 ms" costs 1.22 + 1.28 + 1 + 1.67 + 1 at 28 px x 0.62, "Bottleneck" 1.24 + 9 at 18 px x 0.85 + 14, and 30.
+    expect(widest).toBeCloseTo(6.17 * 28 * 0.62 + (10.24 * 18 * 0.85 + 14) + 30, 5);
     const plan = planBars(bars, 'ms', true);
     expect(plan.available).toBeCloseTo(TRACK - widest, 5);
     expect(plan.placements[0].length).toBeCloseTo(TRACK - widest, 5);
@@ -53,7 +53,8 @@ describe('barsGeometry', () => {
       undefined,
       false,
     );
-    expect(noteWidth(note)).toBeCloseTo(note.length * NOTE_FONT * 0.56, 5);
+    // One capital F (1.24) and 28 other characters cost 1.0 each.
+    expect(noteWidth(note)).toBeCloseTo((note.length + 0.24) * NOTE_FONT * 0.56, 5);
     expect(plan.placements[1].length + 0).toBeLessThan(noteWidth(note) + NOTE_PAD);
     expect(plan.placements[1].note).toBe('after');
     expect(plan.placements[1].endLeft).toBeCloseTo(plan.placements[1].length + NOTE_GAP, 5);

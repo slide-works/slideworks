@@ -64,13 +64,6 @@ for (const c of CASES) byFixture.set(c.fixture, [...(byFixture.get(c.fixture) ??
 // removed. One Bug per layout covers both variants; the levels and table cases
 // are the open SW-664 and SW-130. A case the server refuses never belongs here.
 const KNOWN_OVERFLOWS: Record<string, string> = {
-  'barsNote bars allW': 'SW-706',
-  'barsNote bars capitals': 'SW-706',
-  'barsNote unit allW': 'SW-706',
-  'chartCallout caption allW': 'SW-709',
-  'chartCalloutWide caption allW': 'SW-709',
-  'chartProse caption allW': 'SW-709',
-  'chartTitle caption allW': 'SW-709',
   'quoteStatOnly stat allW': 'SW-718',
 };
 
