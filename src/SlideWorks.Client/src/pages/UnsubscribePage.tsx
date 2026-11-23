@@ -50,7 +50,7 @@ export function UnsubscribePage() {
       )}
       {(state === 'ask' || state === 'sending') && (
         <section data-testid="unsubscribe-ask" className="grid gap-3">
-          <h1 className="page-title">Stop emails from SlideWorks?</h1>
+          <h1 data-testid="unsubscribe-heading" className="page-title">Stop emails from SlideWorks?</h1>
           <p className="text-meta text-ink-muted">
             We won’t email this address when someone shares a deck with it. Decks shared with you
             still show under Shared with you.

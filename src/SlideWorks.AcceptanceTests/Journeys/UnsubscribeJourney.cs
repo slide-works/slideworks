@@ -20,12 +20,12 @@ public class UnsubscribeJourney : AcceptanceTest
 
         await Page.GotoAsync(link);
 
-        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Stop emails from SlideWorks?" })).ToBeVisibleAsync();
+        await Expect(page.GetByTestId("unsubscribe-heading")).ToHaveTextAsync("Stop emails from SlideWorks?");
         await Expect(Page.GetByTestId("unsubscribe-done")).ToHaveCountAsync(0);
-        await page.GetByRole(AriaRole.Button, new() { Name = "Stop emails" }).ClickAsync();
+        await page.GetByTestId("unsubscribe-stop").ClickAsync();
 
         await Expect(Page.GetByTestId("unsubscribe-done")).ToContainTextAsync("SlideWorks won’t email this address again.");
-        await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Stop emails" })).ToHaveCountAsync(0);
+        await Expect(page.GetByTestId("unsubscribe-stop")).ToHaveCountAsync(0);
         await Expect(page).Not.ToContainTextAsync(address);
         using var check = AcceptanceApp.Services.CreateScope();
         (await check.ServiceProvider.GetRequiredService<IEmailSuppressions>().ContainsAsync(address)).ShouldBeTrue();
