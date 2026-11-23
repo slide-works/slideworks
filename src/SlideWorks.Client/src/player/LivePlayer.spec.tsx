@@ -8,6 +8,7 @@ import { presentationState } from '../test-support/fixtures/presenting';
 import { deckPlay } from '../test-support/fixtures/screens';
 import { stubDeckHub, type StubPresentationState } from '../test-support/stubDeckHub';
 import { Player } from './Player';
+import { settle } from '../test-support/gate';
 
 // The owner's plain player while the deck is live: one more presenter-role client of the presentation. It follows the
 // state it finds, publishes only the moves made in it, and never overwrites a presentation another window drives.
@@ -54,8 +55,6 @@ const stateAt = (
 
 const count = (page: Page) => page.getByTestId('player-count');
 // Lets the page run its pending work, so a call it should not make has had its chance.
-const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 400)));
-
 async function mountLivePlayer(
   mount: (component: React.JSX.Element) => Promise<unknown>,
   page: Page,
@@ -93,7 +92,7 @@ test('LivePlayer_WhenAPresenterWindowIsDriving_ShouldAdoptItsPositionAndPublishN
 
   await expect(count(page)).toContainText('3');
   await expect(page.getByTestId('slide-3')).toBeVisible();
-  await settle(page);
+  await settle(page, 400);
   expect(hub.presentationJoins[0]).toMatchObject({ role: 'presenter', label: 'Player' });
   expect(hub.updates).toEqual([]);
 });
@@ -105,7 +104,7 @@ test('LivePlayer_WhenAPhoneIsDriving_ShouldAdoptItsPositionAndPublishNothing', a
   const hub = await mountLivePlayer(mount, page, stateAt(2, { connected: [phone] }), '#3');
 
   await expect(page.getByTestId('slide-2')).toBeVisible();
-  await settle(page);
+  await settle(page, 400);
   expect(hub.updates).toEqual([]);
 });
 
@@ -140,7 +139,7 @@ test('LivePlayer_WhenNobodyIsConnectedAndTheTalkIsUntouched_ShouldStartItAtItsOw
   await expect
     .poll(() => hub.updates)
     .toEqual([{ slide: 2, step: 0, black: false, skipDeepDives: true }]);
-  await settle(page);
+  await settle(page, 400);
   expect(hub.updates).toHaveLength(1);
 });
 
@@ -151,7 +150,7 @@ test('LivePlayer_WhenNobodyIsConnectedButTheTalkIsPausedMidway_ShouldAdoptItAndP
   const hub = await mountLivePlayer(mount, page, stateAt(3, { connected: [audience] }), '#1');
 
   await expect(page.getByTestId('slide-3')).toBeVisible();
-  await settle(page);
+  await settle(page, 400);
   expect(hub.updates).toEqual([]);
 });
 
@@ -162,7 +161,7 @@ test('LivePlayer_WhenNobodyIsConnectedButTheScreenIsBlack_ShouldAdoptItAndPublis
   const hub = await mountLivePlayer(mount, page, untouched({ black: true }), '#2');
 
   await expect(page.getByTestId('slide-1')).toBeVisible();
-  await settle(page);
+  await settle(page, 400);
   expect(hub.updates).toEqual([]);
 });
 
@@ -173,7 +172,7 @@ test('LivePlayer_WhenAWindowIsConnectedToAnUntouchedTalk_ShouldAdoptItAndPublish
   const hub = await mountLivePlayer(mount, page, untouched({ connected: [window1] }), '#2');
 
   await expect(page.getByTestId('slide-1')).toBeVisible();
-  await settle(page);
+  await settle(page, 400);
   expect(hub.updates).toEqual([]);
 });
 
@@ -256,7 +255,7 @@ test('LivePlayer_WhenTheConnectionIsDown_ShouldFreezeTheMovesAndShowTheReconnect
     .getByTestId('player-next')
     .click({ force: true })
     .catch(() => undefined);
-  await settle(page);
+  await settle(page, 400);
 
   await expect(page.getByTestId('slide-2')).toBeVisible();
   expect(hub.updates).toEqual([]);
@@ -292,7 +291,7 @@ test('LivePlayer_WhenTheConnectionDropsAndAWindowMovedMeanwhile_ShouldAdoptItAnd
   await expect.poll(() => hub.presentationJoins.length).toBe(2);
 
   await expect(page.getByTestId('slide-1')).toBeVisible();
-  await settle(page);
+  await settle(page, 400);
   expect(hub.updates).toEqual([]);
 });
 
@@ -392,7 +391,7 @@ test('LivePlayer_WhenTheFirstJoinKeepsFailing_ShouldKeepTheMovesFrozenAndSayItIs
 
   await expect(page.getByTestId('player-connecting')).toBeVisible();
   await page.keyboard.press('ArrowRight');
-  await settle(page);
+  await settle(page, 400);
   await expect(page.getByTestId('slide-1')).toBeVisible();
   expect(hub.updates).toEqual([]);
 });
@@ -415,6 +414,6 @@ test('LivePlayer_WhenThePresentationRefusesTheJoin_ShouldNotShowTheConnectingNot
   );
 
   await expect(page.getByTestId('live-chip-error')).toContainText('refused');
-  await settle(page);
+  await settle(page, 400);
   await expect(page.getByTestId('player-connecting')).toHaveCount(0);
 });
