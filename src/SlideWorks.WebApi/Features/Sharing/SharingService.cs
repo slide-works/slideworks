@@ -45,6 +45,12 @@ public class SharingService(
 
     public const string PEOPLE_INVALID = "people: must be a list of { email, access } with access \"read\" or \"write\"";
 
+    public const string PERSON_REQUIRED = "person: required with access";
+
+    public const string ACCESS_INVALID = "access: must be \"read\", \"write\" or \"remove\"";
+
+    private static readonly string[] ACCESS_NAMES = ["read", "write", "remove"];
+
     private const string SUMMARY_PREFIX = "changed sharing: ";
 
     // The summary names at most this many added or removed emails, each cut to EMAIL_SHOWN characters, and counts the
@@ -70,11 +76,7 @@ public class SharingService(
     // The dialog's PUT: the body carries the level and the whole list, as people with access or as plain viewers (read).
     public Task<SharingView> UpdateAsync(string deckId, SharingUpdate update)
     {
-        if (update.People == null && update.Viewers == null)
-        {
-            throw new BadRequestException(VIEWERS_INVALID);
-        }
-        return SetAsync(deckId, new SharingChange(update.Level, null, update.Viewers?.Select(v => (string?)v).ToList(), update.People), tool: null);
+        return SetAsync(deckId, new SharingChange(update.Level, null, update.Viewers?.Select(v => (string?)v).ToList(), update.People, null, ListRequired: true), tool: null);
     }
 
     // set_sharing: the level by its wire name; leaving it out keeps the level, and leaving viewers out (or null) keeps the
@@ -82,7 +84,22 @@ public class SharingService(
     // ViewerEmails.MAX_ENTRIES is refused before any entry is read, and a null entry goes on to ViewerEmails, which names
     // it as not an email, the same as in the dialog's PUT.
     public Task<SharingView> SetFromAgentAsync(string deckId, string? level, IReadOnlyList<string?>? viewers)
-        => SetAsync(deckId, new SharingChange(null, level, viewers, null), TOOL);
+        => SetAsync(deckId, new SharingChange(null, level, viewers, null, null, ListRequired: false), TOOL);
+
+    // set_sharing with person: one full email and "read", "write" or "remove" (D20). The rest of the list and, when level is
+    // left out, the level stay as they are. It runs the same path as the PUT, so the guard, the share log and the notifier see it.
+    public Task<SharingView> SetPersonFromAgentAsync(string deckId, string? level, string? person, string? access)
+    {
+        if (person == null)
+        {
+            throw new BadRequestException(PERSON_REQUIRED);
+        }
+        if (access == null || !ACCESS_NAMES.Contains(access))
+        {
+            throw new BadRequestException(ACCESS_INVALID);
+        }
+        return SetAsync(deckId, new SharingChange(null, level, null, null, new PersonChange(person, access), ListRequired: false), TOOL);
+    }
 
     // The whole change in C6's order, inside one write transaction (EF begins SQLite's BEGIN IMMEDIATE, so the lock is held
     // before anything is read): owner check, normalise, added = emails not already on the deck, guard (throws before any
@@ -94,20 +111,22 @@ public class SharingService(
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
             await RequireOwnerAsync(deckId);
+            if (change.ListRequired && change.People == null && change.Emails == null)
+            {
+                throw new BadRequestException(VIEWERS_INVALID);
+            }
             var level = ParseLevel(change);
-            var replaces = change.People != null || change.Emails != null;
-            var wanted = Normalize(change);
-            var wantedAccess = wanted.ToDictionary(w => w.Email, w => w.Access, StringComparer.Ordinal);
+            var replaces = change.People != null || change.Emails != null || change.Person != null;
             await db.Decks.Where(d => d.Id == deckId).ExecuteUpdateAsync(set => set.SetProperty(d => d.UpdatedAt, clock.GetUtcNow()));
             var from = await db.Decks.Where(d => d.Id == deckId).Select(d => d.Sharing).SingleAsync();
             var rows = await db.DeckViewers.Where(v => v.DeckId == deckId).ToListAsync();
             var current = rows.Select(v => v.Email).ToList();
+            var wanted = change.Person == null ? Normalize(change) : ApplyPerson(rows, change.Person);
+            var wantedAccess = wanted.ToDictionary(w => w.Email, w => w.Access, StringComparer.Ordinal);
             var next = replaces ? wanted.Select(w => w.Email).ToList() : current;
             added = next.Except(current, StringComparer.Ordinal).ToList();
             var to = level ?? from;
-            var accessChanged = replaces && rows.Any(row => wantedAccess.TryGetValue(row.Email, out var wantedNow) && wantedNow != row.Access);
-            // TODO: name the access in the summary ("alex@team.example can edit"); today an access-only change is logged without it.
-            var summary = Summary(from, to, current, next) ?? (accessChanged ? $"{SUMMARY_PREFIX}{Label(to)}" : null);
+            var summary = Summary(from, to, rows, replaces ? wanted : null);
             if (summary != null)
             {
                 if (added.Count > 0)
@@ -169,20 +188,59 @@ public class SharingService(
         return change.Emails == null ? [] : ViewerEmails.NormalizeAll(change.Emails, actor.Email).Select(email => (email, DeckViewerAccess.Read)).ToList();
     }
 
-    private sealed record SharingChange(DeckSharing? Level, string? LevelName, IReadOnlyList<string?>? Emails, IReadOnlyList<SharingPersonUpdate>? People);
-
-    // What the change log says, or null when nothing changed.
-    private static string? Summary(DeckSharing from, DeckSharing to, IReadOnlyList<string> before, IReadOnlyList<string> after)
+    // The stored list with one person added, changed or taken off. The email is checked as in the PUT (full address, the owner's
+    // own dropped), and the list may not pass the same cap.
+    private IReadOnlyList<(string Email, DeckViewerAccess Access)> ApplyPerson(IReadOnlyList<DeckViewer> rows, PersonChange person)
     {
-        var added = after.Except(before, StringComparer.Ordinal).ToList();
-        var removed = before.Except(after, StringComparer.Ordinal).ToList();
-        var viewers = ViewerChanges(added.Select(e => "+" + e).Concat(removed.Select(e => "-" + e)).ToList());
+        var list = rows.Select(r => (r.Email, r.Access)).ToList();
+        var email = ViewerEmails.NormalizeAll([person.Email], actor.Email, "person").SingleOrDefault();
+        if (email == null)
+        {
+            return list;
+        }
+        list.RemoveAll(entry => entry.Email == email);
+        if (person.Access != "remove")
+        {
+            if (list.Count >= ViewerEmails.MAX_VIEWERS)
+            {
+                throw new BadRequestException(ViewerEmails.PEOPLE_TOO_MANY);
+            }
+            list.Add((email, person.Access == "write" ? DeckViewerAccess.Write : DeckViewerAccess.Read));
+        }
+        return list;
+    }
+
+    private sealed record PersonChange(string Email, string Access);
+
+    private sealed record SharingChange(
+        DeckSharing? Level,
+        string? LevelName,
+        IReadOnlyList<string?>? Emails,
+        IReadOnlyList<SharingPersonUpdate>? People,
+        PersonChange? Person,
+        bool ListRequired);
+
+    // What the change log says, or null when nothing changed. after is null when the list is left as it is. Added people read
+    // "+email" (with " write" for write access), a changed level of access "email read → write", removed people "-email".
+    private static string? Summary(DeckSharing from, DeckSharing to, IReadOnlyList<DeckViewer> before, IReadOnlyList<(string Email, DeckViewerAccess Access)>? after)
+    {
+        var changes = new List<string>();
+        if (after != null)
+        {
+            var was = before.ToDictionary(v => v.Email, v => v.Access, StringComparer.Ordinal);
+            changes.AddRange(after.Where(a => !was.ContainsKey(a.Email)).Select(a => Shorten("+" + a.Email) + (a.Access == DeckViewerAccess.Write ? " write" : "")));
+            changes.AddRange(after.Where(a => was.TryGetValue(a.Email, out var old) && old != a.Access).Select(a => $"{Shorten(a.Email)} {AccessName(was[a.Email])} → {AccessName(a.Access)}"));
+            changes.AddRange(before.Where(v => after.All(a => a.Email != v.Email)).Select(v => Shorten("-" + v.Email)));
+        }
+        var viewers = ViewerChanges(changes);
         if (from != to)
         {
             return $"{SUMMARY_PREFIX}{Label(from)} → {Label(to)}{viewers}";
         }
         return viewers.Length == 0 ? null : $"{SUMMARY_PREFIX}{Label(to)}{viewers}";
     }
+
+    private static string AccessName(DeckViewerAccess access) => access.ToString().ToLowerInvariant();
 
     // " (+alex@team.example, -mira@team.example and 12 more)", or "" when the list didn't change.
     private static string ViewerChanges(IReadOnlyList<string> changes)
@@ -191,12 +249,12 @@ public class SharingService(
         {
             return "";
         }
-        var shown = string.Join(", ", changes.Take(CHANGES_SHOWN).Select(Shorten));
+        var shown = string.Join(", ", changes.Take(CHANGES_SHOWN));
         var more = changes.Count > CHANGES_SHOWN ? $" and {changes.Count - CHANGES_SHOWN} more" : "";
         return $" ({shown}{more})";
     }
 
-    private static string Shorten(string change) => change.Length <= EMAIL_SHOWN ? change : change[..(EMAIL_SHOWN - 1)] + "…";
+    private static string Shorten(string email) => email.Length <= EMAIL_SHOWN ? email : email[..(EMAIL_SHOWN - 1)] + "…";
 
     // The dialog's words for each level.
     private static string Label(DeckSharing level) => level switch
@@ -213,8 +271,11 @@ public class SharingService(
         var rows = await db.DeckViewers.AsNoTracking().Where(v => v.DeckId == deckId).OrderBy(v => v.Email).ToListAsync();
         var viewers = rows.Select(v => v.Email).ToList();
         var owner = await db.Users.AsNoTracking().SingleAsync(u => u.Id == deck.OwnerId);
-        // TODO: name and avatar for a person with an account (D24); null until then.
-        var people = rows.Select(v => new SharingPersonView(v.Email, null, null, v.Access.ToString().ToLowerInvariant())).ToList();
+        var accounts = (await db.Users.AsNoTracking().Where(u => viewers.Contains(u.Email.ToLower())).ToListAsync())
+            .GroupBy(u => ViewerEmails.Normalize(u.Email)).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+        var people = rows.Select(v => accounts.TryGetValue(v.Email, out var account)
+            ? new SharingPersonView(v.Email, account.Name, avatars.For(account), AccessName(v.Access))
+            : new SharingPersonView(v.Email, null, null, AccessName(v.Access))).ToList();
         var last = await db.ActivityEntries.AsNoTracking()
             .Where(e => e.DeckId == deckId && e.Summary.StartsWith(SUMMARY_PREFIX))
             .OrderByDescending(e => e.At)
