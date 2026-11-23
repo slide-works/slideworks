@@ -120,7 +120,7 @@ public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenRe
     }
 
     // Deletes this guest's rows and inserts the new set, in one transaction. A word one typo from a word other guests sent
-    // is stored under that word's key (SW-606), and a word keeps the first casing already stored for its key, so the
+    // is stored under that word's key (SW-606), and a word keeps the casing of the earliest row (by arrival) already stored for its key, so the
     // group shows one spelling. The round is checked again here so a round that closed or moved on after the read writes nothing.
     private async Task<IReadOnlyList<string>> ReplaceAsync(
         Guid sessionId,
@@ -144,9 +144,9 @@ public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenRe
 
         var saved = await db.OpenEntries.AsNoTracking()
             .Where(e => e.RoundId == roundId)
-            .OrderBy(e => e.GuestId)
+            .OrderBy(e => e.Arrival)
             .ThenBy(e => e.Position)
-            .Select(e => new { e.GuestId, e.TextKey, e.Text })
+            .Select(e => new { e.GuestId, e.TextKey, e.Text, e.Arrival })
             .ToListAsync(cancellationToken);
         var first = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in saved)
@@ -162,6 +162,8 @@ public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenRe
             .ThenBy(g => g.Key, StringComparer.Ordinal)
             .Select(g => g.Key)
             .ToList();
+        // The guest keeps the place of their first send; a guest with no rows yet comes after every row in the round.
+        var arrival = saved.Where(e => e.GuestId == guestId).Select(e => (long?)e.Arrival).Min() ?? (saved.Count == 0 ? 0 : saved.Max(e => e.Arrival)) + 1;
         await db.OpenEntries.Where(e => e.RoundId == roundId && e.GuestId == guestId).ExecuteDeleteAsync(cancellationToken);
         var held = new List<string>(words.Count);
         var mine = new HashSet<string>(StringComparer.Ordinal);
@@ -184,6 +186,7 @@ public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenRe
                 Position = held.Count,
                 Text = text,
                 TextKey = key,
+                Arrival = arrival,
             });
             held.Add(text);
         }
