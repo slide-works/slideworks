@@ -168,7 +168,7 @@ public class TimeZoneTests : ApiTestFixture
     private void AdvanceToTwentyHundredUtc()
     {
         var now = Clock.GetUtcNow();
-        var target = now.Date.AddHours(20);
+        var target = new DateTimeOffset(now.Year, now.Month, now.Day, 20, 0, 0, TimeSpan.Zero);
         Clock.Advance(target > now ? target - now : target.AddDays(1) - now);
     }
 
