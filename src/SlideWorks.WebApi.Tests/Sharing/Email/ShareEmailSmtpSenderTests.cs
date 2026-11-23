@@ -15,7 +15,8 @@ public class ShareEmailSmtpSenderTests
         var mime = SmtpMailSender.Build("SlideWorks <share@mail.slideworks.example>", model);
 
         mime.Headers["List-Unsubscribe"].ShouldBe("<https://h.example/unsubscribe#t=abc>");
-        mime.From.ToString().ShouldBe("SlideWorks <share@mail.slideworks.example>");
+        mime.From.Mailboxes.Single().Name.ShouldBe("SlideWorks");
+        mime.From.Mailboxes.Single().Address.ShouldBe("share@mail.slideworks.example");
         mime.To.Mailboxes.Single().Address.ShouldBe("to@x.example");
         mime.Subject.ShouldBe("Sam shared a deck with you");
         mime.TextBody.ShouldBe("plain");
