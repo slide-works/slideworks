@@ -147,6 +147,9 @@ public class FitFixtureLimitsTests
                 : $"{layout} is length-controlled: it has no fit estimate, so every fixture is refused by a character limit");
     }
 
+    // Layouts whose fit check runs per card or panel, so one step over can refuse several at once.
+    private static readonly HashSet<string> _fitPerItem = new(StringComparer.Ordinal) { "cards", "compare" };
+
     [TestCaseSource(nameof(GrownFixtures))]
     public void Validate_WhenFixtureGrowsOneStepOver_ShouldRefuseWithItsKindsErrorOnly(string name, string pointer)
     {
@@ -156,9 +159,16 @@ public class FitFixtureLimitsTests
 
         var result = Validate(fixture, slots);
 
-        // A fit refusal names every card or panel over the budget, so identical cards give one error each.
-        var errors = byFit ? result.Errors.ToList() : [result.Errors.ShouldHaveSingleItem($"{name}{pointer} one word over")];
+        // Cards and compare check every card or panel, so a fit refusal there names each one over its budget (identical
+        // cards give one error each); every other layout refuses with a single error.
+        var perItem = byFit && _fitPerItem.Contains(fixture["layout"]!.GetValue<string>());
+        var errors = perItem ? result.Errors.ToList() : [result.Errors.ShouldHaveSingleItem($"{name}{pointer} one word over")];
         errors.ShouldNotBeEmpty($"{name}{pointer} one word over");
+        if (perItem)
+        {
+            errors.Count.ShouldBe(result.Regions.Count(r => r.Height > r.Budget),
+                $"{name}{pointer}: one fit error per card or panel over its budget");
+        }
         foreach (var error in errors)
         {
             error.ShouldContain(byFit ? FIT_ERROR : LENGTH_ERROR, Case.Sensitive, $"{name}{pointer} one word over: {error}");

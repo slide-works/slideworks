@@ -126,7 +126,7 @@ public class FitReportTests
     {
         var capacity = LayoutCapacity.Of(CardsLayout.Definition).Single(slot => slot.Slot == "cards");
 
-        capacity.Note.ShouldBe("4 items of about 74 characters (53 px each, budget 296 px).");
+        capacity.Note.ShouldBe("4 items of about 74 characters (213 px each, budget 296 px).");
     }
 
     [Test]
