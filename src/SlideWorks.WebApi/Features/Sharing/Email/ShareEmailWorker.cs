@@ -47,7 +47,7 @@ public sealed class ShareEmailWorker(
     {
         _queue.Writer.TryComplete();
         await _stopping.CancelAsync();
-        await _loop.WaitAsync(cancellationToken);
+        await _loop;
     }
 
     public void Dispose() => _stopping.Dispose();
