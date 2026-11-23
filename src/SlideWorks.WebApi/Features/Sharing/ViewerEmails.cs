@@ -18,6 +18,8 @@ public static class ViewerEmails
 
     public const string PEOPLE_TOO_MANY = "people: at most 50 emails";
 
+    public const string PERSON_TOO_MANY = "person: at most 50 emails";
+
     private const int MAX_LENGTH = 254;
 
     public static string Normalize(string email) => email.Trim().ToLowerInvariant();
@@ -27,7 +29,7 @@ public static class ViewerEmails
     // is refused before anything is normalized, and the walk stops as soon as it finds more than MAX_VIEWERS distinct emails.
     public static IReadOnlyList<string> NormalizeAll(IReadOnlyList<string?> emails, string? ownerEmail, string field = "viewers")
     {
-        var tooMany = field == "viewers" ? TOO_MANY : PEOPLE_TOO_MANY;
+        var tooMany = field switch { "viewers" => TOO_MANY, "person" => PERSON_TOO_MANY, _ => PEOPLE_TOO_MANY };
         if (emails.Count > MAX_ENTRIES)
         {
             throw new BadRequestException(tooMany);

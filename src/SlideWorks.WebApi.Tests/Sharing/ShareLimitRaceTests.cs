@@ -36,6 +36,8 @@ public class ShareLimitRaceTests : ApiTestFixture
         _gate.Arm(GatedShareGuard.Key);
 
         var a = ShareLimitApi.ShareAsync(first, deckA, [.. nine, ShareLimitApi.NewEmails(1)[0]]);
+        // Bounded by Gate.DefaultLimit (10 seconds): if the first share never reaches the guard, the test fails with a
+        // TimeoutException instead of hanging. Nothing else here waits on the clock; B is held by the transaction, not a sleep.
         await _gate.EnteredAsync();
         var b = ShareLimitApi.ShareAsync(second, deckB, ShareLimitApi.NewEmails(1));
         _gate.Release();

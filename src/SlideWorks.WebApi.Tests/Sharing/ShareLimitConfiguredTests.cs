@@ -15,10 +15,17 @@ public class ShareLimitConfiguredTests : ApiTestFixture
 
     protected override Action<IServiceCollection>? ConfigureTestServices => services => _log = CapturingLoggerProvider.Replace<ShareGuard>(services);
 
+    private async Task<Guid> SharerIdAsync(TestUser person)
+    {
+        using var scope = Factory.Services.CreateScope();
+        return (await TestPeople.SignInAsync(scope.ServiceProvider, person)).Id;
+    }
+
     [Test]
     public async Task Put_WhenLimitConfigured_ShouldUseIt()
     {
-        using var sharer = ClientFor(TestUser.NewApproved());
+        var person = TestUser.NewApproved();
+        using var sharer = ClientFor(person);
         var deck = await SharingApi.CreateDeckAsync(sharer);
         var two = ShareLimitApi.NewEmails(2);
         var third = ShareLimitApi.NewEmails(1)[0];
@@ -31,5 +38,6 @@ public class ShareLimitConfiguredTests : ApiTestFixture
         var line = _log.Lines.ShouldHaveSingleItem();
         line.ShouldContain("refused: over 2 new people an hour");
         line.ShouldNotContain(third);
+        line.ShouldContain($"Sharer {await SharerIdAsync(person)} refused");
     }
 }
