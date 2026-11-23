@@ -118,10 +118,11 @@ public class ImageSweeperTests : ApiTestFixture
         var marker = (await ImageSeed.StartAsync(agent, deck)).GetProperty("image").GetString().ShouldNotBeNull();
         var started = await ImageSeed.StartAsync(agent, deck);
         var inFlight = started.GetProperty("image").GetString().ShouldNotBeNull();
+        var before = Directory.Exists(TempFolder()) ? Directory.GetFiles(TempFolder()) : [];
         var body = new HeldBody(ImageSeed.Bytes("image/png"));
         using var http = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var put = http.PutAsync(started.GetProperty("uploadUrl").GetString(), body);
-        await TempFileOfAsync([]);
+        await TempFileOfAsync(before);
 
         await SweepAsync(marker);
 
