@@ -4,7 +4,7 @@ using System.Text;
 namespace SlideWorks.Core.Slides;
 
 // Input echoed back in an error (an unknown field name, an enum value, a layout name): cut to
-// MAX_LENGTH UTF-16 characters and then "…", with control and line-separator characters escaped
+// MAX_LENGTH UTF-16 characters and then "…", with control, line-separator and bidi formatting characters escaped
 // (\n, \u0000), so every error stays one short "<path>: <message>" line whatever the input was.
 internal static class EchoText
 {
@@ -28,7 +28,7 @@ internal static class EchoText
         '\n' => "\\n",
         '\r' => "\\r",
         '\t' => "\\t",
-        _ when char.IsControl(c) || c is '\u2028' or '\u2029' => string.Create(CultureInfo.InvariantCulture, $"\\u{(int)c:x4}"),
+        _ when char.IsControl(c) || c is '\u2028' or '\u2029' or (>= '\u202a' and <= '\u202e') or (>= '\u2066' and <= '\u2069') => string.Create(CultureInfo.InvariantCulture, $"\\u{(int)c:x4}"),
         _ => c.ToString(),
     };
 }

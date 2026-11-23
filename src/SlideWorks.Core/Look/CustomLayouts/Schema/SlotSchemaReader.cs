@@ -95,7 +95,7 @@ internal sealed class SlotSchemaReader
 
         var description = Text(root, "description");
         if (description is null || description.Trim().Length == 0 || description.Any(char.IsControl)
-            || StringInfoLength(description) > SlotSchemaLimits.MAX_DESCRIPTION)
+            || TooLong(description))
         {
             Fail(DOCUMENT, CustomLayoutErrorCodes.SLOTS_DESCRIPTION);
         }
@@ -434,7 +434,10 @@ internal sealed class SlotSchemaReader
     private static string? Text(JsonElement root, string key) =>
         root.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 
-    private static int StringInfoLength(string text) => new StringInfo(text).LengthInTextElements;
+    // The UTF-16 length alone refuses a huge description before any grapheme is counted.
+    private static bool TooLong(string text) =>
+        text.Length > SlotSchemaLimits.MAX_DESCRIPTION * TextSlot.UTF16_UNITS_PER_CHARACTER
+        || new StringInfo(text).LengthInTextElements > SlotSchemaLimits.MAX_DESCRIPTION;
 
     private void Fail(string path, string code, string? identifier = null)
     {

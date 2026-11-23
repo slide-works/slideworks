@@ -616,6 +616,71 @@ public class SlideValidatorTests
         Slot("success", "fill").Default.ShouldBe("soft");
     }
 
+    [Test]
+    public void Validate_WhenTextIsJustOverTheLimit_ShouldGiveTheExactCount()
+    {
+        var result = Validate("big-number", $$"""{ "headline": "Lead time", "value": "{{new string('9', 11)}}", "caption": "Median" }""");
+
+        result.Error.ShouldBe("big-number.value: at most 10 characters (got 11)");
+    }
+
+    [Test]
+    public void Validate_WhenEmojiAndCombiningMarksFillTheLimit_ShouldAcceptThemAndCountOneMoreAsOver()
+    {
+        var emoji = string.Concat(Enumerable.Repeat("\ud83d\ude00", 80));
+        var accented = string.Concat(Enumerable.Repeat("e\u0301", 80));
+
+        Validate("quote", $$"""{ "quote": "q", "attribution": "{{emoji}}" }""").IsValid.ShouldBeTrue();
+        Validate("quote", $$"""{ "quote": "q", "attribution": "{{accented}}" }""").IsValid.ShouldBeTrue();
+        Validate("quote", $$"""{ "quote": "q", "attribution": "{{emoji}}\ud83d\ude00" }""").Error
+            .ShouldBe("quote.attribution: at most 80 characters (got 81)");
+    }
+
+    [Test]
+    public void Validate_WhenTextIsAMegabyte_ShouldRefuseItWithoutAnExactCount()
+    {
+        var result = Validate("quote", $$"""{ "quote": "{{new string('q', 1_000_000)}}", "attribution": "a" }""");
+
+        result.Error.ShouldStartWith("quote.quote: at most ");
+        result.Error.ShouldBe("quote.quote: at most 280 characters (the text is far over that)");
+    }
+
+    [Test]
+    public void Validate_WhenUnknownFieldNameHasBidiControls_ShouldEchoThemEscaped()
+    {
+        var result = Validate("quote", """{ "quote": "q", "attribution": "a", "ab\u202ecd\u2066ef": 1 }""");
+
+        result.Error.ShouldBe("quote.ab\\u202ecd\\u2066ef: unknown field");
+    }
+
+    [Test]
+    public void ToJsonSchema_WhenFieldIsOptional_ShouldAllowNullAndNotForARequiredOne()
+    {
+        var properties = LayoutCatalogue.Find("big-number")!.ToJsonSchema()["properties"]!.AsObject();
+
+        properties["kicker"]!["type"]!.AsArray().Select(type => type!.GetValue<string>()).ShouldBe(["string", "null"]);
+        properties["headline"]!["type"]!.GetValue<string>().ShouldBe("string");
+    }
+
+    [Test]
+    public void ToJsonSchema_WhenColumnHasExactlyOneOf_ShouldCountOnlyNonNullFieldsAsTheValidatorDoes()
+    {
+        var column = LayoutCatalogue.Find("two-column")!.ToJsonSchema()["properties"]!["left"]!;
+
+        var branches = column["oneOf"]!.AsArray();
+        branches.Select(branch => branch!["required"]![0]!.GetValue<string>()).ShouldBe(["items", "text", "image"]);
+        foreach (var branch in branches)
+        {
+            var name = branch!["required"]![0]!.GetValue<string>();
+            branch["properties"]![name]!["not"]!["type"]!.GetValue<string>().ShouldBe("null");
+        }
+
+        Validate("two-column", """{ "headline": "h", "left": { "items": null, "text": "t" }, "right": { "text": "r" } }""")
+            .IsValid.ShouldBeTrue();
+        Validate("two-column", """{ "headline": "h", "left": { "items": null }, "right": { "text": "r" } }""")
+            .Error.ShouldBe("two-column.left: exactly one of items, text, image");
+    }
+
     // count options of length characters each, as a JSON list's items.
     private static string Options(int count, int length) =>
         string.Join(", ", Enumerable.Range(0, count).Select(i => $"\"{(char)('a' + i)}{new string('o', length - 1)}\""));
