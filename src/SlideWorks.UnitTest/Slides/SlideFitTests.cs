@@ -77,9 +77,10 @@ public class SlideFitTests
     [Test]
     public void Lines_WhenWidthsDoNotDivideTheLine_ShouldNotLetAGlyphStraddleTwoLines()
     {
-        // 115 W cost 215.05 = 3.03 lines of 71, but only 37 whole W fit a line: four lines.
-        Lines(new string('W', 115)).ShouldBe(4);
+        // 112 W cost 209.4 = 2.95 lines of 71, but only 37 whole W fit a line (111 in three): four lines.
         Lines(new string('W', 111)).ShouldBe(3);
+        Lines(new string('W', 112)).ShouldBe(4);
+        Lines(new string('W', 115)).ShouldBe(4);
     }
 
     // Each class's widest members: the most that fit one 71-character line, then one more is a second line.
