@@ -68,7 +68,7 @@ public static class RebuildDeck
     public static async Task<string> UploadImageAsync(McpClient agent, string deck)
     {
         var upload = await AgentSeed.CallAsync(agent, "upload_image", new() { ["deck"] = deck, ["name"] = "screen.png", ["contentType"] = "image/png" });
-        await PutAsync(upload.GetProperty("uploadUrl").GetString()!, PngImage.Gradient(640, 360), "image/png", HttpStatusCode.NoContent);
+        await PutAsync(upload.GetProperty("uploadUrl").GetString()!, SampleImage.Png(), "image/png", HttpStatusCode.NoContent);
         return upload.GetProperty("image").GetString()!;
     }
 

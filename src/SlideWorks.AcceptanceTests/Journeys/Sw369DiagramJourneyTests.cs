@@ -35,7 +35,7 @@ public class Sw369DiagramJourneyTests : AcceptanceTest
         var flow = await AddAsync(agent, deck, "flow", WithReveal(Flow));
         var levels = await AddAsync(agent, deck, "levels", Levels);
         var upload = await AgentSeed.CallAsync(agent, "upload_image", new() { ["deck"] = deck, ["name"] = "map.png", ["contentType"] = "image/png" });
-        await PutImageAsync(upload.GetProperty("uploadUrl").GetString().ShouldNotBeNull(), PngImage.Gradient(640, 360));
+        await PutImageAsync(upload.GetProperty("uploadUrl").GetString().ShouldNotBeNull(), SampleImage.Png());
         await AddAsync(agent, deck, "image", Image(upload.GetProperty("image").GetString().ShouldNotBeNull()));
 
         // One step per segment, bar and node; the levels have none.
