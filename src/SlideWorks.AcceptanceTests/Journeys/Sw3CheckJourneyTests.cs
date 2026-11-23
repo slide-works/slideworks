@@ -9,11 +9,11 @@ using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.AcceptanceTests.Journeys;
 
-// SW-3's visual check with the real render engine and the built bundle. Slide 2 of the overflow deck is the shared
-// levelsTextWide fixture: add_slide accepts it (the estimate is blind to wide letters) but it overflows when measured.
+// SW-3's visual check with the real render engine and the built bundle. Slide 2 of the overflow deck is the generated
+// quoteStatOnly stat allW worst case (SW-718): add_slide accepts it but its stat runs off an edge when measured.
 public class Sw3CheckJourneyTests : AcceptanceTest
 {
-    private const string OVERFLOW_MESSAGE = "Text runs below the footer";
+    private const string OVERFLOW_MESSAGE = "Text runs ";
 
     [Test]
     public async Task CheckDeck_WhenAWideLetterSlideIsAccepted_ShouldReportOverflow()
@@ -143,7 +143,7 @@ public class Sw3CheckJourneyTests : AcceptanceTest
         return [.. findings.EnumerateArray().Where(f => f.GetProperty("slide").GetInt32() == slide)];
     }
 
-    // src/contracts/fit-fixtures/levels.json, found by walking up from the test binaries to the folder with the solution.
+    // src/contracts/fit-worst-cases.json, found by walking up from the test binaries to the folder with the solution.
     private static string FixturePath()
     {
         var start = AppContext.BaseDirectory;
@@ -158,7 +158,7 @@ public class Sw3CheckJourneyTests : AcceptanceTest
             throw new DirectoryNotFoundException($"SlideWorks.slnx was not found in or above {start}");
         }
 
-        return Path.Combine(directory.FullName, "contracts", "fit-fixtures", "levels.json");
+        return Path.Combine(directory.FullName, "contracts", "fit-worst-cases.json");
     }
 
     private static async Task<string> NewDeckAsync(McpClient agent)
@@ -174,14 +174,17 @@ public class Sw3CheckJourneyTests : AcceptanceTest
         return deck;
     }
 
-    // Slide 1 and 3 are clean quotes; slide 2 is levelsTextWide, which add_slide accepts without a warning (SW-664).
+    // Slide 1 and 3 are clean quotes; slide 2 is quoteStatOnly stat allW, which add_slide accepts without a warning (SW-718).
     private static async Task<(string Deck, JsonElement Warnings)> OverflowDeckAsync(McpClient agent)
     {
         var deck = await NewDeckAsync(agent);
         await AgentSeed.AddQuotesAsync(TestUser.Sam, deck, "Ship small, ship often");
         using var fixtures = JsonDocument.Parse(await File.ReadAllTextAsync(FixturePath()));
-        var slots = fixtures.RootElement.GetProperty("levelsTextWide").GetProperty("slots").Clone();
-        var added = await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deck, ["layout"] = "levels", ["slots"] = slots });
+        // The server accepts this slide and the client still draws it past its box (a case still in KNOWN_OVERFLOWS, SW-718).
+        var worst = fixtures.RootElement.GetProperty("cases").EnumerateArray()
+            .Single(c => c.GetProperty("fixture").GetString() == "quoteStatOnly" && c.GetProperty("region").GetString() == "stat" && c.GetProperty("variant").GetString() == "allW");
+        var slots = worst.GetProperty("slots").Clone();
+        var added = await AgentSeed.CallAsync(agent, "add_slide", new() { ["deck"] = deck, ["layout"] = worst.GetProperty("layout").GetString(), ["slots"] = slots });
         await AgentSeed.AddQuotesAsync(TestUser.Sam, deck, "Measure twice, cut once");
         return (deck, added.GetProperty("warnings").Clone());
     }
