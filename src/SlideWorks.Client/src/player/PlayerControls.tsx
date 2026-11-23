@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LiveChip } from '../live/LiveChip';
 import { formatHash, type PlayerPosition } from './parseHash';
 
@@ -28,13 +28,17 @@ type Feedback = { hash: string; result: 'copied' | 'failed' };
 
 // Copies this page's address with the player's hash for the current slide. A
 // short message above the button says it worked, or that the browser refused
-// (the person then copies the address bar by hand). The message belongs to the
+// (the person then copies the address bar by hand). "Link copied" belongs to the
 // slide it was made on, so moving on hides it while the button stays mounted
-// (and keeps focus). It goes away 2.5 s after the write settles, not after the
-// click, so a slow permission prompt still gets its answer shown.
+// (and keeps focus); a refusal is never hidden, since the person would otherwise
+// believe the link was copied. Only the latest click's write may set the message,
+// so an older write that settles late can't replace a newer answer. The message
+// goes away 2.5 s after the write settles, not after the click, so a slow
+// permission prompt still gets its answer shown.
 function CopyLinkButton({ position }: { position: PlayerPosition }) {
   const hash = formatHash(position);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const latestRequest = useRef(0);
   useEffect(() => {
     if (!feedback) return;
     const timer = window.setTimeout(() => setFeedback(null), SHOW_MESSAGE_MS);
@@ -43,10 +47,13 @@ function CopyLinkButton({ position }: { position: PlayerPosition }) {
   const onClick = () => {
     const url = new URL(window.location.href);
     url.hash = hash;
+    const request = ++latestRequest.current;
     setFeedback(null);
     // navigator.clipboard is undefined outside a secure context, whatever the type declarations say.
     const clipboard = navigator.clipboard as Clipboard | undefined;
-    const settle = (result: Feedback['result']) => setFeedback({ hash, result });
+    const settle = (result: Feedback['result']) => {
+      if (request === latestRequest.current) setFeedback({ hash, result });
+    };
     if (!clipboard) {
       settle('failed');
       return;
@@ -60,7 +67,8 @@ function CopyLinkButton({ position }: { position: PlayerPosition }) {
       settle('failed');
     }
   };
-  const result = feedback?.hash === hash ? feedback.result : null;
+  const result =
+    feedback?.result === 'failed' || feedback?.hash === hash ? (feedback?.result ?? null) : null;
   const message =
     result === 'copied'
       ? 'Link copied'

@@ -112,6 +112,52 @@ test('copy link button shows a refusal that arrives after the message time', asy
   await expect(page.getByTestId('player-copy-link-message')).toBeHidden({ timeout: 4000 });
 });
 
+test('copy link button still shows a refusal that arrives after moving on', async ({
+  mount,
+  page,
+}) => {
+  await stubClipboard(page, true, 1000);
+  await mountPlayer(mount, page, <Player deck={sampleDeck} />);
+
+  await page.getByTestId('player-copy-link').click();
+  await page.getByTestId('player-next').click();
+  await expect(page.getByTestId('player-count')).toHaveText(`2 / ${sampleDeck.slides.length}`);
+
+  await expect(page.getByTestId('player-copy-link-message')).toContainText("Couldn't copy", {
+    timeout: 3000,
+  });
+});
+
+test('copy link button keeps the newest answer when an older write settles later', async ({
+  mount,
+  page,
+}) => {
+  // The first write is refused after 1.5 s; the second one is copied at once.
+  await page.evaluate(() => {
+    let calls = 0;
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: () =>
+          new Promise<void>((resolve, reject) => {
+            calls += 1;
+            if (calls === 1) setTimeout(() => reject(new Error('NotAllowedError')), 1500);
+            else resolve();
+          }),
+      },
+    });
+  });
+  await mountPlayer(mount, page, <Player deck={sampleDeck} />);
+
+  await page.getByTestId('player-copy-link').click();
+  await page.getByTestId('player-copy-link').click();
+  await expect(page.getByTestId('player-copy-link-message')).toHaveText('Link copied');
+  // Past the first write's refusal, still inside the second answer's 2.5 s.
+  await page.waitForTimeout(1900);
+
+  await expect(page.getByTestId('player-copy-link-message')).toHaveText('Link copied');
+});
+
 test('copy link button presses on Space instead of moving the slide', async ({ mount, page }) => {
   await stubClipboard(page, false);
   await mountPlayer(mount, page, <Player deck={sampleDeck} />);
@@ -169,6 +215,7 @@ test('player bar keeps every control inside a phone viewport', async ({ mount, p
   await expectBarInsideViewport(page);
 
   await page.getByTestId('player-copy-link').click();
+  await expect(page.getByTestId('player-copy-link-message')).toBeVisible();
   const message = await page.getByTestId('player-copy-link-message').boundingBox();
   expect(message!.x).toBeGreaterThanOrEqual(0);
   expect(message!.x + message!.width).toBeLessThanOrEqual(360);
