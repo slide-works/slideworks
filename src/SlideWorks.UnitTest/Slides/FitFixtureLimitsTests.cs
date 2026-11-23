@@ -34,8 +34,12 @@ public class FitFixtureLimitsTests
     private static readonly IReadOnlyDictionary<string, string> _knownWithoutFitFixture = new Dictionary<string, string>
     {
         ["image"] = "SW-724",
-        ["loop"] = "SW-724",
     };
+
+    // Fit-controlled layouts whose budget no legal slide can reach, so character limits bind first and no fixture can be
+    // refused by fit. Loop records its steps' heights (list_layouts reports them), but its tallest two rows come to about
+    // 392 px of the 620 px budget.
+    private static readonly HashSet<string> _fitBudgetUnreachable = new(StringComparer.Ordinal) { "loop" };
 
     // Fit-controlled layouts that record their height only when it overflows, so an accepted slide reports
     // no fit region. Each entry names the Bug that makes them record it every time, as SlideFit.Check says.
@@ -142,7 +146,7 @@ public class FitFixtureLimitsTests
         var fitControlled = _fitControlled.Contains(layout);
 
         refusals.Where(r => r is not "fit" and not "length").ShouldBeEmpty();
-        refusals.Contains("fit").ShouldBe(fitControlled && !_knownWithoutFitFixture.ContainsKey(layout),
+        refusals.Contains("fit").ShouldBe(fitControlled && !_knownWithoutFitFixture.ContainsKey(layout) && !_fitBudgetUnreachable.Contains(layout),
             fitControlled
                 ? $"{layout} is fit-controlled: a fixture must prove its height maximum (refusedBy \"fit\"), or the layout is listed with a Bug"
                 : $"{layout} is length-controlled: it has no fit estimate, so every fixture is refused by a character limit");
