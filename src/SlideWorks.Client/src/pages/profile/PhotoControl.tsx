@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Avatar } from '../../components/Avatar';
 import type { ProfileIdentity, ProfileView } from '../../api/profile';
 
@@ -17,6 +17,11 @@ export function PhotoControl({ identity }: { identity: ProfileIdentity }) {
   const [error, setError] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const choose = useRef<HTMLButtonElement>(null);
+  const [refocus, setRefocus] = useState(0);
+  // Focus returns to the choose button once the buttons are enabled again, since a disabled button cannot take focus.
+  useEffect(() => {
+    if (refocus > 0 && !busy) choose.current?.focus();
+  }, [refocus, busy]);
 
   const apply = async (send: () => Promise<Response>) => {
     setBusy(true);
@@ -47,12 +52,12 @@ export function PhotoControl({ identity }: { identity: ProfileIdentity }) {
         body: file,
       }),
     );
-    choose.current?.focus();
+    setRefocus((n) => n + 1);
   };
 
   const remove = async () => {
     if (await apply(() => fetch('/api/me/photo', { method: 'DELETE', credentials: 'same-origin' }))) {
-      choose.current?.focus();
+      setRefocus((n) => n + 1);
     }
   };
 
