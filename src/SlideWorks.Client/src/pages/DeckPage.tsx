@@ -149,8 +149,8 @@ export function DeckPage({ measure = measureSlide }: { measure?: Measure }) {
             onSelect={(number) => setSelection({ id, number })}
           />
           <div className="grid gap-4">
-            {view.isOwner && <LookPanel deck={view} onSaved={showLook} />}
-            {view.isOwner && (
+            {view.canEdit && <LookPanel deck={view} onSaved={showLook} />}
+            {view.canEdit && (
               <QaControlLive deckId={view.id} slide={null}>
                 <QaSettingsCard deckId={view.id} slide={slide?.number ?? null} />
               </QaControlLive>

@@ -5,6 +5,7 @@ import { SharedWithMeRow } from './SharedWithMeRow';
 const COLUMNS = [
   { label: 'Deck' },
   { label: 'Owner' },
+  { label: 'Access' },
   { label: 'Slides', align: 'right' as const },
   { label: 'Last change' },
   { label: 'Updated', align: 'right' as const },
@@ -12,7 +13,7 @@ const COLUMNS = [
 ];
 
 // "Shared with you": other presenters' decks that name the signed-in person as
-// a viewer. Viewers open them in the player, never on the deck page.
+// a person. Can edit rows open the deck page, Can view rows the player.
 export function SharedDecksTable({ rows }: { rows: SharedDeckRow[] }) {
   return (
     <section data-testid="shared-with-me" className="grid gap-3">
