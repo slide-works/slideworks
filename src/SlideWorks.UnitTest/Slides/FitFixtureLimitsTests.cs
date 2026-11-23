@@ -137,7 +137,10 @@ public class FitFixtureLimitsTests
     [TestCaseSource(nameof(Layouts))]
     public void RefusedBy_WhenLayoutKindIsKnown_ShouldMatchTheKind(string layout)
     {
-        var refusals = Fixtures(layout).Select(f => f.Fixture["refusedBy"]!.GetValue<string>()).ToList();
+        // A fixture that only grows its headline or kicker proves the heading rule (SW-818: the headline's line budget
+        // at the floor, the kicker's one row), which every layout has, not the layout's own body height.
+        var refusals = Fixtures(layout).Where(f => !GrowsOnlyItsHeading(f.Fixture))
+            .Select(f => f.Fixture["refusedBy"]!.GetValue<string>()).ToList();
         var fitControlled = _fitControlled.Contains(layout);
 
         refusals.Where(r => r is not "fit" and not "length").ShouldBeEmpty();
@@ -145,6 +148,12 @@ public class FitFixtureLimitsTests
             fitControlled
                 ? $"{layout} is fit-controlled: a fixture must prove its height maximum (refusedBy \"fit\"), or the layout is listed with a Bug"
                 : $"{layout} is length-controlled: it has no fit estimate, so every fixture is refused by a character limit");
+    }
+
+    private static bool GrowsOnlyItsHeading(JsonNode fixture)
+    {
+        var grow = fixture["grow"]!.AsArray().Select(p => p!.GetValue<string>()).ToList();
+        return grow.Count > 0 && grow.All(p => p is "/headline" or "/kicker");
     }
 
     // Layouts whose fit check runs per card or panel, so one step over can refuse several at once.
