@@ -54,7 +54,9 @@ bite_restore() {
   RESTORED=1
   local rel
   for rel in "${TARGETS[@]}"; do
-    if ! cp -p "$BACKUP_DIR/$rel" "$ROOT/$rel" 2>>"$AGENT_LOG"; then
+    # -p keeps the mode; the touch then gives the file a new mtime. Without it the restored file is older than the
+    # mutated build, so the next build or bundle (test-acceptance's staleness check) is skipped and tests the mutation.
+    if ! { cp -p "$BACKUP_DIR/$rel" "$ROOT/$rel" && touch "$ROOT/$rel"; } 2>>"$AGENT_LOG"; then
       RESTORE_FAILED=1
       echo "bite: could not restore $rel; copy it back by hand from $BACKUP_DIR/$rel" | tee -a "$AGENT_LOG" >&2
     fi
