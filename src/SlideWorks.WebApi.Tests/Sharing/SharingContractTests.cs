@@ -11,6 +11,7 @@ using SlideWorks.WebApi.Features.Sharing.Limits;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Tests.Decks;
+using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Sharing;
@@ -231,6 +232,50 @@ public class SharingContractTests : ApiTestFixture
         var unknown = await access.IsOwnerAsync("nOsUcHdEcK00", new StubActor(alex.Id, alex.Email, ActorKind.Person));
 
         (asPerson, asAgent, unknown).ShouldBe((false, false, false));
+    }
+
+    [Test]
+    public async Task SetSharing_WhenGuardRefuses_ShouldReturnToolErrorWithTheMessageAndStoreNothing()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam, "Claude");
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        var refused = $"mcp-refused-{Guid.NewGuid():N}@team.example";
+        GUARD.Refuse(refused, TimeSpan.FromSeconds(60));
+
+        var (isError, result) = await agent.CallToolAsync("set_sharing", new { deck, level = "named", viewers = new[] { refused } });
+
+        isError.ShouldBeTrue();
+        result.GetString().ShouldBe(RecordingGuard.MESSAGE);
+        var view = await Client.GetFromJsonAsync<JsonElement>($"/api/decks/{deck}/sharing");
+        view.GetProperty("level").GetString().ShouldBe("private");
+        view.GetProperty("viewers").GetArrayLength().ShouldBe(0);
+    }
+
+    [Test]
+    public async Task SetSharing_WhenLevelOmitted_ShouldKeepTheLevelAndChangeTheViewers()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam, "Claude");
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        await SharingApi.PutOkAsync(Client, deck, "link");
+        var viewer = $"mcp-keep-{Guid.NewGuid():N}@team.example";
+
+        var (isError, result) = await agent.CallToolAsync("set_sharing", new { deck, viewers = new[] { viewer } });
+
+        isError.ShouldBeFalse(result.ToString());
+        result.GetProperty("level").GetString().ShouldBe("link");
+        AccessOf(result).ShouldBe([(viewer, "read")]);
+    }
+
+    [Test]
+    public async Task SetSharing_WhenPersonGiven_ShouldSayNotSupportedYet()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam, "Claude");
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+
+        var (isError, result) = await agent.CallToolAsync("set_sharing", new { deck, person = "alex@team.example", access = "write" });
+
+        isError.ShouldBeTrue();
+        result.GetString().ShouldBe("person: not supported yet");
     }
 
     private async Task<JsonElement> PutPeopleAsync(string deck, string level, params (string Email, string Access)[] people)
