@@ -13,10 +13,10 @@
       "columns": [
         "The Team Ships",
         "Small Slice Ofe",
-        "Work To Custome",
+        "Work To Custom",
         "Every Week Ande",
         "The Feedbackeeee",
-        "Arrives In Dayse"
+        "Arrives In Days"
       ],
       "rows": [
         [
@@ -31,7 +31,7 @@
           }
         ],
         [
-          "And Nobody Ha",
+          "And Nobody H",
           "To Guess How",
           "Far Along The",
           "Work Really",
@@ -43,7 +43,7 @@
         ],
         [
           "Of Work Toee",
-          "Customerseeee",
+          "Customerseee",
           "Every Week A",
           "The Feedbacke",
           "Arrives Ineee",
@@ -59,7 +59,7 @@
           "Still Cheap T",
           "Change Course",
           {
-            "text": "And Nobody Ha",
+            "text": "And Nobody H",
             "tone": "info"
           }
         ],
@@ -75,7 +75,7 @@
           }
         ],
         [
-          "Customerseeee",
+          "Customerseee",
           "Every Week A",
           "The Feedbacke",
           "Arrives Ineee",
@@ -127,13 +127,13 @@
           "Work really i",
           "The team ship",
           {
-            "text": "A small slice",
+            "text": "A small slic",
             "tone": "warn"
           }
         ],
         [
-          "Of work toeee",
-          "Customerseeee",
+          "Of work toee",
+          "Customerseee",
           "Every week an",
           "The feedbacke",
           "Arrives ineee",
@@ -158,14 +158,14 @@
           "Far along the",
           "Work really i",
           "The team ship",
-          "A small slice",
+          "A small slic",
           {
-            "text": "Of work toeee",
+            "text": "Of work toee",
             "tone": "good"
           }
         ],
         [
-          "Customerseeee",
+          "Customerseee",
           "Every week an",
           "The feedbacke",
           "Arrives ineee",
