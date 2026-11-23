@@ -1,8 +1,6 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Support;
 
 namespace SlideWorks.WebApi.Tests.Mcp;
@@ -45,13 +43,14 @@ public class McpToolErrorsTests : ApiTestFixture
     [Test]
     public async Task Run_WhenResultIsAnObject_ShouldSendItAsStructuredContentAndText()
     {
-        var result = await CallToolOnTheWireAsync("probe_throw", """{"kind":"none"}""");
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "probe_throw", """{"kind":"none"}""");
 
         (result.TryGetProperty("isError", out var isError) && isError.GetBoolean()).ShouldBeFalse();
         var structured = result.GetProperty("structuredContent");
         structured.ValueKind.ShouldBe(JsonValueKind.Object);
         structured.GetRawText().ShouldBe("""{"answer":42,"items":["a","b"]}""");
-        TextOf(result).ShouldBe("""{"answer":42,"items":["a","b"]}""");
+        McpWire.TextOf(result).ShouldBe("""{"answer":42,"items":["a","b"]}""");
     }
 
     [TestCase("array", """["a","b"]""")]
@@ -60,10 +59,11 @@ public class McpToolErrorsTests : ApiTestFixture
     [TestCase("null", "null")]
     public async Task Run_WhenResultIsNotAnObject_ShouldSendItAsTextOnly(string kind, string text)
     {
-        var result = await CallToolOnTheWireAsync("probe_non_object", $$"""{"kind":"{{kind}}"}""");
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "probe_non_object", $$"""{"kind":"{{kind}}"}""");
 
         result.TryGetProperty("structuredContent", out _).ShouldBeFalse(result.GetRawText());
-        TextOf(result).ShouldBe(text);
+        McpWire.TextOf(result).ShouldBe(text);
     }
 
     [Test]
@@ -91,37 +91,4 @@ public class McpToolErrorsTests : ApiTestFixture
         json.GetProperty("kind").GetString().ShouldBe("agent");
         json.GetProperty("via").GetString().ShouldBe("mcp");
     }
-
-    // POSTs tools/call to /mcp as an agent and returns the JSON-RPC result exactly as it came over the wire.
-    private async Task<JsonElement> CallToolOnTheWireAsync(string tool, string argumentsJson)
-    {
-        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
-        using var http = Factory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/mcp")
-        {
-            Content = new StringContent(
-                $$$"""{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"{{{tool}}}","arguments":{{{argumentsJson}}}}}""",
-                Encoding.UTF8,
-                "application/json"),
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", agent.Tokens.AccessToken);
-        request.Headers.Accept.ParseAdd("application/json");
-        request.Headers.Accept.ParseAdd("text/event-stream");
-
-        using var response = await http.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
-        response.StatusCode.ShouldBe(HttpStatusCode.OK, body);
-        await TestContext.Out.WriteLineAsync(body);
-
-        // A streamable HTTP response is either one JSON body or an event stream whose data line holds the message.
-        var message = response.Content.Headers.ContentType?.MediaType == "text/event-stream"
-            ? body.Split('\n').Select(line => line.TrimEnd('\r')).Last(line => line.StartsWith("data:", StringComparison.Ordinal))["data:".Length..]
-            : body;
-        var root = JsonDocument.Parse(message).RootElement.Clone();
-        root.GetProperty("id").GetInt32().ShouldBe(7);
-        return root.GetProperty("result");
-    }
-
-    private static string TextOf(JsonElement result)
-        => result.GetProperty("content").EnumerateArray().Single(block => block.GetProperty("type").GetString() == "text").GetProperty("text").GetString()!;
 }

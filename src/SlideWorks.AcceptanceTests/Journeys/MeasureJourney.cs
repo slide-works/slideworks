@@ -45,7 +45,7 @@ public class MeasureJourney : AcceptanceTest
 
         var upload = await agent.CallAsync("upload_image", new { deck, name = "story-map.png", contentType = "image/png" });
         upload.GetProperty("method").GetString().ShouldBe("PUT");
-        await PutImageAsync(upload.GetProperty("uploadUrl").GetString().ShouldNotBeNull(), PngImage.Gradient(640, 360));
+        await PutImageAsync(upload.GetProperty("uploadUrl").GetString().ShouldNotBeNull(), SampleImage.Png());
         var imageId = upload.GetProperty("image").GetString().ShouldNotBeNull();
 
         await AddAsync(agent, deck, "title", Title);
