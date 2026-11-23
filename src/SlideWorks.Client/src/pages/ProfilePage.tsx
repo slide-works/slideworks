@@ -7,7 +7,10 @@ import { NameColourForm } from './profile/NameColourForm';
 import { PhotoControl } from './profile/PhotoControl';
 import { TimeZoneField } from './profile/TimeZoneField';
 
-type State = { kind: 'loading' } | { kind: 'loaded'; profile: ProfileView } | { kind: 'failed'; message: string };
+type State =
+  | { kind: 'loading' }
+  | { kind: 'loaded'; profile: ProfileView }
+  | { kind: 'failed'; message: string };
 
 const UNREACHABLE = "Can't reach SlideWorks";
 
@@ -23,7 +26,10 @@ export function ProfilePage() {
       (profile) => active && setState({ kind: 'loaded', profile }),
       (error: unknown) =>
         active &&
-        setState({ kind: 'failed', message: error instanceof ApiError ? error.message : UNREACHABLE }),
+        setState({
+          kind: 'failed',
+          message: error instanceof ApiError ? error.message : UNREACHABLE,
+        }),
     );
     return () => {
       active = false;
@@ -46,14 +52,22 @@ export function ProfilePage() {
       <h2 className="text-lg font-bold tracking-tight text-ink">Profile</h2>
       {profile && (
         <>
-          <section data-testid="profile-identity-panel" aria-labelledby="profile-identity-title" className="panel grid gap-3 p-4">
+          <section
+            data-testid="profile-identity-panel"
+            aria-labelledby="profile-identity-title"
+            className="panel grid gap-3 p-4"
+          >
             <h3 id="profile-identity-title" className="text-sm font-bold text-ink">
               Identity
             </h3>
             <NameColourForm identity={profile.identity} />
             <PhotoControl identity={profile.identity} />
           </section>
-          <section data-testid="profile-account-panel" aria-labelledby="profile-account-title" className="panel grid gap-3 p-4">
+          <section
+            data-testid="profile-account-panel"
+            aria-labelledby="profile-account-title"
+            className="panel grid gap-3 p-4"
+          >
             <h3 id="profile-account-title" className="text-sm font-bold text-ink">
               Account
             </h3>

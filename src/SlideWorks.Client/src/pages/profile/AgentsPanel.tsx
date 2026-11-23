@@ -4,7 +4,11 @@ import type { ProfileAgent } from '../../api/profile';
 // (DELETE /api/me/agents/{id}); for now each row shows what is stored.
 export function AgentsPanel({ agents }: { agents: ProfileAgent[] }) {
   return (
-    <section data-testid="profile-agents" aria-labelledby="profile-agents-title" className="panel grid gap-3 p-4">
+    <section
+      data-testid="profile-agents"
+      aria-labelledby="profile-agents-title"
+      className="panel grid gap-3 p-4"
+    >
       <h3 id="profile-agents-title" className="text-sm font-bold text-ink">
         Connected agents
       </h3>

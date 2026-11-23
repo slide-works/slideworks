@@ -109,7 +109,12 @@ export function UserMenu({ me }: { me: MeView }) {
               People (admin)
             </Link>
           )}
-          <button type="button" className="btn-ghost" data-testid="user-menu-signout" onClick={signOut}>
+          <button
+            type="button"
+            className="btn-ghost"
+            data-testid="user-menu-signout"
+            onClick={signOut}
+          >
             Sign out
           </button>
           {failed && (

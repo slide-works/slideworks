@@ -8,7 +8,9 @@ import { ProfilePage } from '../pages/ProfilePage';
 export function ProfilePageHarness() {
   const [count, setCount] = useState('none');
   useEffect(() => {
-    void api.get<ProfileView>('/api/me/profile').then((profile) => setCount(String(profile.agents.length)));
+    void api
+      .get<ProfileView>('/api/me/profile')
+      .then((profile) => setCount(String(profile.agents.length)));
   }, []);
   return (
     <>
