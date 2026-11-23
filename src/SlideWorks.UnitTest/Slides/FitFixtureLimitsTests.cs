@@ -35,10 +35,8 @@ public class FitFixtureLimitsTests
     // the height estimate's maximum. Each entry names the Bug that adds one.
     private static readonly IReadOnlyDictionary<string, string> _knownWithoutFitFixture = new Dictionary<string, string>
     {
-        ["columns-list"] = "SW-724",
         ["image"] = "SW-724",
         ["loop"] = "SW-724",
-        ["timeline"] = "SW-724",
     };
 
     // Fit-controlled layouts that record their height only when it overflows, so an accepted slide reports
@@ -52,6 +50,7 @@ public class FitFixtureLimitsTests
     {
         ["bars"] = "bars",
         ["bullets"] = "items",
+        ["columns-list"] = "columns",
         ["compare"] = "failure",
         ["flow"] = "nodes",
         ["image"] = "points",
@@ -63,6 +62,7 @@ public class FitFixtureLimitsTests
         ["rules"] = "rules",
         ["stack"] = "segments",
         ["table"] = "rows",
+        ["timeline"] = "events",
         ["two-column"] = "left",
     };
 
