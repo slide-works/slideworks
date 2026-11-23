@@ -59,7 +59,11 @@ export function AudienceFollower({ deck }: { deck: DeckPlayView }) {
   );
 
   return (
-    <div data-testid={refused ? undefined : 'audience-mode'} className="h-dvh">
+    <div
+      data-testid={refused ? undefined : 'audience-mode'}
+      data-following={live}
+      className="h-dvh"
+    >
       <Player deck={deck} audience={audience} notice={notice} />
     </div>
   );
