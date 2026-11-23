@@ -129,8 +129,24 @@ public class FitFixturesTests
 
         var result = Validate(fixture, slots);
 
-        result.Errors.ShouldHaveSingleItem().ShouldContain(RefusalOf(fixture), Case.Sensitive, $"{name}{pointer} with one more word was not refused as expected");
+        // Cards and compare check every card or panel (SW-822), so a fit refusal there names each one over its budget;
+        // every other refusal is a single error.
+        var perItem = fixture["refusedBy"]!.GetValue<string>() == "fit" && _fitPerItem.Contains(fixture["layout"]!.GetValue<string>());
+        var errors = perItem ? result.Errors.ToList() : [result.Errors.ShouldHaveSingleItem()];
+        errors.ShouldNotBeEmpty($"{name}{pointer} with one more word was not refused");
+        if (perItem)
+        {
+            errors.Count.ShouldBe(result.Regions.Count(r => r.Height > r.Budget), $"{name}{pointer}: one fit error per card or panel over its budget");
+        }
+
+        foreach (var error in errors)
+        {
+            error.ShouldContain(RefusalOf(fixture), Case.Sensitive, $"{name}{pointer} with one more word was not refused as expected");
+        }
     }
+
+    // Layouts whose fit check runs per card or panel, so one more word can refuse several at once.
+    private static readonly HashSet<string> _fitPerItem = new(StringComparer.Ordinal) { "cards", "compare" };
 
     private static bool IsAccepted(JsonNode fixture) => fixture["accepted"]?.GetValue<bool>() ?? true;
 
