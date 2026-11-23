@@ -1,6 +1,6 @@
 namespace SlideWorks.WebApi.Features.Decks.Views;
 
-// A deck someone else shared with the caller by name: a DeckRow plus the owner's name.
+// A deck someone else shared with the caller by name: a DeckRow plus the owner's name and the caller's access, "read" or "write" (C4).
 public sealed record SharedDeckRow(
     string Id,
     string Slug,
@@ -12,9 +12,10 @@ public sealed record SharedDeckRow(
     int ViewerCount,
     string UpdatedLabel,
     string PlayUrl,
-    string OwnerName)
+    string OwnerName,
+    string Access)
 {
-    public static SharedDeckRow From(DeckRow row, string ownerName) => new(
+    public static SharedDeckRow From(DeckRow row, string ownerName, string access) => new(
         row.Id,
         row.Slug,
         row.Title,
@@ -25,5 +26,6 @@ public sealed record SharedDeckRow(
         row.ViewerCount,
         row.UpdatedLabel,
         row.PlayUrl,
-        ownerName);
+        ownerName,
+        access);
 }

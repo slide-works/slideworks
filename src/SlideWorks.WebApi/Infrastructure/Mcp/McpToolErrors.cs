@@ -8,7 +8,7 @@ namespace SlideWorks.WebApi.Infrastructure.Mcp;
 // Every MCP tool runs its work through Run (K6). A result always goes back as JSON text. When that JSON is an object it also
 // goes in structuredContent; any other kind (an array, a number, a string, null) goes as text only, because the MCP spec
 // types structuredContent as an object and clients built on the TypeScript SDK refuse the whole result otherwise. So a
-// tool that lists things returns a wrapper object, such as { decks: [...] }, to get structured content. A BadRequestException, NotFoundException or ConflictException goes back as a tool result with
+// tool that lists things returns a wrapper object, such as { decks: [...] }, to get structured content. A BadRequestException, NotFoundException, ConflictException or TooManyRequestsException goes back as a tool result with
 // isError: true and the same message the API would give. Anything else is a bug, and the SDK reports it as one.
 public static class McpToolErrors
 {
@@ -33,6 +33,10 @@ public static class McpToolErrors
         catch (Exception error) when (error is BadRequestException or NotFoundException or ConflictException)
         {
             return Refusal(error.Message);
+        }
+        catch (TooManyRequestsException tooMany)
+        {
+            return Refusal(tooMany.Message);
         }
         catch (TemplateRefusedException refused)
         {

@@ -1,4 +1,5 @@
 using Agoda.IoC.Core;
+using SlideWorks.WebApi.Features.Accounts.Avatars;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 
@@ -6,7 +7,7 @@ namespace SlideWorks.WebApi.Features.Accounts.Admin;
 
 // Builds the admin-users screen (S5) from IUserAccounts, in its list order, with labels formatted by IDisplayDates.
 [RegisterPerRequest]
-public class AdminUserViews(IUserAccounts accounts, ICurrentActor actor, IDisplayDates dates)
+public class AdminUserViews(IUserAccounts accounts, ICurrentActor actor, IDisplayDates dates, IAvatars avatars)
 {
     public async Task<AdminUsersView> BuildAsync()
     {
@@ -17,6 +18,7 @@ public class AdminUserViews(IUserAccounts accounts, ICurrentActor actor, IDispla
             u.Name,
             u.Email,
             u.PictureUrl,
+            avatars.For(u),
             u.Access.ToString().ToLowerInvariant(),
             u.IsAdmin,
             u.Id == actor.PresenterId,

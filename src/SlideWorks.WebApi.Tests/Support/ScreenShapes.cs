@@ -61,7 +61,7 @@ public static class ScreenShapes
 
     public static readonly JsonShapeOptions Me = new() { NullablePaths = ["pictureUrl", "avatar.pictureUrl", "timeZone"] };
 
-    public static readonly JsonShapeOptions AdminUsers = new() { NullablePaths = ["users[].pictureUrl", "users[].changedLabel", "users[].changedBy"] };
+    public static readonly JsonShapeOptions AdminUsers = new() { NullablePaths = ["users[].pictureUrl", "users[].avatar.pictureUrl", "users[].changedLabel", "users[].changedBy"] };
 
     // SW-4's presenter view (presenter.json, P3): the play view's paths plus each slide's notes and headline, and the
     // deck's talk length.
