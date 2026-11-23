@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections.Concurrent;
 using Agoda.IoC.Core;
 using SlideWorks.WebApi.Infrastructure;
 
@@ -21,6 +22,11 @@ public class ImageStore(IConfiguration configuration)
     private const string TEMP_FOLDER = ".uploads";
     private const int BUFFER_SIZE = 81920;
 
+    // The temp files a request is writing right now, by file name. One process serves a data folder, so memory is enough.
+    // ImageSweeper leaves these alone however old they look: a slow request body keeps its file open for as long as it
+    // takes to arrive.
+    private readonly ConcurrentDictionary<string, byte> _writing = new(StringComparer.Ordinal);
+
     // Where the image's file lives once its upload has completed.
     public string PathFor(string deckId, string imageId)
     {
@@ -36,13 +42,21 @@ public class ImageStore(IConfiguration configuration)
     // The path stored on the image row, relative to the data folder.
     public static string RelativePathFor(string deckId, string imageId) => $"{IMAGES_FOLDER}/{deckId}/{imageId}";
 
+    // The folder holding temp files of uploads in progress. It may not exist yet.
+    public string TempFolderPath() => Path.Combine(ImagesRoot(), TEMP_FOLDER);
+
+    // Whether a request is writing the temp file with this name right now.
+    public bool IsWriting(string tempFileName) => _writing.ContainsKey(tempFileName);
+
     // Copies body to a new temp file, refusing it with PayloadTooLargeException once it passes MAX_BYTES. Returns the
     // temp file's path and its size. The temp file is deleted if the copy fails.
     public async Task<(string Path, long Size)> WriteTempAsync(Stream body, CancellationToken cancellationToken)
     {
-        var folder = Path.Combine(ImagesRoot(), TEMP_FOLDER);
+        var folder = TempFolderPath();
         Directory.CreateDirectory(folder);
-        var temp = Path.Combine(folder, Guid.NewGuid().ToString("N"));
+        var name = Guid.NewGuid().ToString("N");
+        var temp = Path.Combine(folder, name);
+        _writing[name] = 0;
         var buffer = ArrayPool<byte>.Shared.Rent(BUFFER_SIZE);
         try
         {
@@ -72,6 +86,7 @@ public class ImageStore(IConfiguration configuration)
         }
         finally
         {
+            _writing.TryRemove(name, out _);
             ArrayPool<byte>.Shared.Return(buffer);
         }
     }
