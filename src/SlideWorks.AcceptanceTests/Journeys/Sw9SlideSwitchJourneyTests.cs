@@ -144,11 +144,9 @@ public class Sw9SlideSwitchJourneyTests : AcceptanceTest
     }
 
     // The presenter moves one slide at a time and waits on the presenter's count and the audience window's layer.
-    private async Task MoveToAsync(Talk talk, int slide)
+    private static async Task MoveToAsync(Talk talk, int slide)
     {
-        await talk.Presenter.PressAsync(slide > 1 ? "ArrowRight" : "ArrowLeft");
-        await Expect(talk.Presenter.Count).ToHaveTextAsync($"{slide} / {SLIDES}", new() { Timeout = PUSH_TIMEOUT });
-        await Expect(talk.Audience.Layer(slide)).ToHaveAttributeAsync("data-active", "true", new() { Timeout = PUSH_TIMEOUT });
+        await Talks.MoveToAsync(talk.Presenter, talk.Audience, SLIDES, slide > 1 ? "ArrowRight" : "ArrowLeft", slide, PUSH_TIMEOUT);
     }
 
     private async Task<string> CreateDeckAsync(string title)
@@ -184,13 +182,7 @@ public class Sw9SlideSwitchJourneyTests : AcceptanceTest
         var joinUrl = joinUrlRead.Value.ShouldNotBeNull();
 
         var audienceTab = await Context.NewPageAsync();
-        var audience = new PlayerPage(audienceTab);
-        var audienceRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/presenter", "audienceUrl");
-        audienceRead.Status.ShouldBe(200, audienceRead.Body);
-        await audienceTab.GotoAsync(audienceRead.Value.ShouldNotBeNull());
-        await Expect(audience.AudienceMode).ToBeVisibleAsync();
-        await Expect(audience.Layer(1)).ToHaveAttributeAsync("data-active", "true");
-        await Expect(presenter.AudienceChips).ToHaveCountAsync(1);
+        var audience = await Talks.OpenAudienceAsync(Page, audienceTab, presenter, deckId);
         await Page.BringToFrontAsync();
         return new Talk(deckId, presenter, audience, new QaPanel(Page), new QaSlide(audience.Slide(QA)), joinUrl);
     }
@@ -198,9 +190,7 @@ public class Sw9SlideSwitchJourneyTests : AcceptanceTest
     private static async Task<Phone> JoinAsync(IBrowserContext context, string joinUrl)
     {
         var page = await context.NewPageAsync();
-        var guest = new GuestPage(page);
-        await guest.GotoUrlAsync(joinUrl);
-        await guest.IsFollowingAsync();
+        var guest = await Talks.FollowAsync(page, joinUrl);
         return new Phone(guest, new GuestQuestions(page));
     }
 

@@ -93,9 +93,7 @@ public class Sw9QuestionsSettingJourneyTests : AcceptanceTest
 
         await using var phoneContext = await PollJourney.OpenPhoneContextAsync(Browser);
         var page = await phoneContext.NewPageAsync();
-        var guest = new GuestPage(page);
-        await guest.GotoUrlAsync(joinUrl);
-        await guest.IsFollowingAsync();
+        var guest = await Talks.FollowAsync(page, joinUrl);
         var questions = new GuestQuestions(page);
         await Expect(guest.Following).ToBeVisibleAsync();
         // Reactions are on, so a visible row proves the phone holds a live room, not a null one.
@@ -138,16 +136,10 @@ public class Sw9QuestionsSettingJourneyTests : AcceptanceTest
     }
 
     // A guest scans the code, follows the presenter and opens the Questions tab, whose list has loaded when this returns.
-    private async Task<Phone> JoinAsync(IBrowserContext context, string joinUrl)
+    private static async Task<Phone> JoinAsync(IBrowserContext context, string joinUrl)
     {
         var page = await context.NewPageAsync();
-        var guest = new GuestPage(page);
-        await guest.GotoUrlAsync(joinUrl);
-        await guest.IsFollowingAsync();
-        var questions = new GuestQuestions(page);
-        await questions.QuestionsTab.ClickAsync();
-        await Expect(questions.List).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
-        await Expect(questions.ListLoading).ToHaveCountAsync(0);
+        var (guest, questions) = await Talks.OpenQuestionsAsync(page, joinUrl, PUSH_TIMEOUT);
         return new Phone(guest, questions);
     }
 
