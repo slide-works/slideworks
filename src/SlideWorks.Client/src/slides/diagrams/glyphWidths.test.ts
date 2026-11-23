@@ -18,7 +18,10 @@ const server = fs.readFileSync(
 // The server's factor for a character, read from GlyphWidths.cs: its constants and the switch arms.
 function serverFactors(): (c: string) => number {
   const constants = new Map(
-    [...server.matchAll(/private const double (\w+) = ([\d.]+);/g)].map((m) => [m[1], Number(m[2])]),
+    [...server.matchAll(/private const double (\w+) = ([\d.]+);/g)].map((m) => [
+      m[1],
+      Number(m[2]),
+    ]),
   );
   const arms: { test: (c: string) => boolean; value: number }[] = [];
   for (const m of server.matchAll(/^\s+(.+?) => (\w+),$/gm)) {

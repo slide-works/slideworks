@@ -36,7 +36,10 @@ export function glyphCost(text: string): number {
 
 function elements(text: string): string[] {
   try {
-    return Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text), (s) => s.segment);
+    return Array.from(
+      new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text),
+      (s) => s.segment,
+    );
   } catch {
     return Array.from(text);
   }
