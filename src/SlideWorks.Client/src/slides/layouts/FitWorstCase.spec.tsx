@@ -61,8 +61,8 @@ for (const c of CASES) byFixture.set(c.fixture, [...(byFixture.get(c.fixture) ??
 // Legal cases that overflow today, keyed by labelOf (`<fixture> fixture` or
 // `<fixture> <region> <variant>`), to the open Bug that tracks it. Each is
 // asserted to still overflow, so a fix turns this spec red until the entry is
-// removed. One Bug per layout covers both variants; the levels and table cases
-// are the open SW-664 and SW-130. A case the server refuses never belongs here.
+// removed. One Bug per layout covers both variants (bars SW-706, chart SW-709).
+// A case the server refuses never belongs here.
 const KNOWN_OVERFLOWS: Record<string, string> = {
   'barsNote bars allW': 'SW-706',
   'barsNote bars capitals': 'SW-706',
@@ -71,7 +71,6 @@ const KNOWN_OVERFLOWS: Record<string, string> = {
   'chartCalloutWide caption allW': 'SW-709',
   'chartProse caption allW': 'SW-709',
   'chartTitle caption allW': 'SW-709',
-  'quoteStatOnly stat allW': 'SW-718',
 };
 
 function slideOf(c: WorstCase): RenderableSlide {
