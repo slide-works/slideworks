@@ -13,8 +13,10 @@
   },
   "statementMaxWide": {
     "layout": "statement",
-    "grow": [],
-    "refusedBy": "length",
+    "grow": [
+      "/sub"
+    ],
+    "refusedBy": "fit",
     "slots": {
       "kicker": "Many Women Who Wander Wide Meadows Mow M",
       "statement": "Many Women Who Wande\nMany Women Who Wande\nMany Women Who Wande",

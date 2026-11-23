@@ -14,6 +14,19 @@ public class QuoteLayoutTests
     }
 
     [Test]
+    public void Validate_WhenStatValueFillsOneLine_ShouldAccept()
+    {
+        Validate("""{ "quote": "Ship it", "attribution": "Sam", "stat": { "value": "999999", "caption": "weeks" } }""").Errors.ShouldBeEmpty();
+    }
+
+    [Test]
+    public void Validate_WhenStatValueWrapsPastOneLine_ShouldRefuseAsTooMuchText()
+    {
+        Validate("""{ "quote": "Ship it", "attribution": "Sam", "stat": { "value": "9999999", "caption": "weeks" } }""").Errors
+            .ShouldHaveSingleItem().ShouldStartWith("quote.stat.value: too much text to fit on one line");
+    }
+
+    [Test]
     public void Validate_WhenAttributionIs81_ShouldRefuse()
     {
         var attribution = new string('a', 81);

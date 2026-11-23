@@ -60,6 +60,13 @@ public static class QuoteLayout
         var statHeight = 0.0;
         if (stat is { } value)
         {
+            // A big number stays on one line: the value at 72 px must fit the 360 px column.
+            var shown = SlideFit.Lines(Text(value, "value")!, STAT_CAPTION_WIDTH, 72, widths.Head);
+            if (shown > 1)
+            {
+                validation.Fail($"{path}.stat.value", $"too much text to fit on one line: it wraps to about {shown} lines at 72 px in the {STAT_CAPTION_WIDTH} px stat column; shorten it");
+            }
+
             statHeight = 58 + 72 + (SlideFit.Lines(Text(value, "caption")!, STAT_CAPTION_WIDTH, 22, widths.Body) * 28.6);
         }
 

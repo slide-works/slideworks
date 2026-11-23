@@ -97,6 +97,7 @@
   display: block;
   color: var(--sw-bad-ink);
   font: 800 72px/1 var(--sw-font-head);
+  overflow-wrap: anywhere;
 }
 
 .statCaption {
