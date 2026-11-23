@@ -70,7 +70,7 @@ test('copy link button writes the next slide link after moving on', async ({ mou
   await page.getByTestId('player-copy-link').click();
   await page.getByTestId('player-next').click();
   await expect(page.getByTestId('player-count')).toHaveText(`2 / ${sampleDeck.slides.length}`);
-  await expect(page.getByTestId('player-copy-link-message')).toBeHidden();
+  await expect(page.getByTestId('player-copy-link-message')).toBeHidden({ timeout: 500 });
 
   await page.getByTestId('player-copy-link').click();
 
@@ -105,7 +105,7 @@ test('copy link button shows a refusal that arrives after the message time', asy
 
   await page.getByTestId('player-copy-link').click();
 
-  await expect(page.getByTestId('player-copy-link-message')).toBeHidden();
+  await expect(page.getByTestId('player-copy-link-message')).toBeHidden({ timeout: 500 });
   await expect(page.getByTestId('player-copy-link-message')).toContainText("Couldn't copy", {
     timeout: 4000,
   });
