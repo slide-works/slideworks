@@ -42,7 +42,8 @@ builder.Services.AddDbContext<AppDbContext>((provider, options) =>
     var dbPath = provider.GetRequiredService<IConfiguration>()["SLIDEWORKS_DB_PATH"] ?? "/data/slide-works.db";
     options.UseSqlite($"Data Source={dbPath}");
 });
-builder.Services.AutoWireAssembly([ApiMarker.Assembly], isMockMode: false);
+builder.Services.AutoWireAssembly([ApiMarker.Assembly], isMockMode: false,
+    options => options.OnRegistrationContextException = ex => Console.Error.WriteLine(ex.ToString()));
 // Framework registration: the AGENTS.md "no services.Add* in Program.cs" rule is
 // about our own types. Tests swap in a FakeTimeProvider.
 builder.Services.AddSingleton(TimeProvider.System);

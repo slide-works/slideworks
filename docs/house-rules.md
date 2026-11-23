@@ -96,7 +96,14 @@ Also banned at build time: `DateTime.Now`, `UtcNow` and friends (`src/BannedSymb
   ```
 
 - **A class derived from a framework type with no interface** (an `OpenIdConnectEvents` subclass) needs `[RegisterPerRequest(Concrete = true)]`; see `Infrastructure/Identity/Google/GoogleSignInEvents.cs`.
-- **Registration errors.** `AutoWireAssembly` (called in `Program.cs`) scans the API assembly at startup. A failure comes out as a `RegistrationContextException`; its message hides the cause. Agoda.IoC.Core 1.1.144 exposes `RegistrationContextExceptions` on the registration context and an `OnRegistrationContextException` hook, so print each exception's `ToString()`. The exact call is unverified: no code here prints it yet.
+- **Registration errors.** `AutoWireAssembly` (called in `Program.cs`) scans the API assembly at startup. A failure comes out as a `RegistrationFailedException` ("There are validations errors") that hides the cause. `Program.cs` passes the `OnRegistrationContextException` hook of `ContainerRegistrationOption` (Agoda.IoC.NetCore 1.1.144), which writes each cause to stderr before the exception propagates, so the test log or console shows it:
+
+  ```csharp
+  builder.Services.AutoWireAssembly([ApiMarker.Assembly], isMockMode: false,
+      options => options.OnRegistrationContextException = ex => Console.Error.WriteLine(ex.ToString()));
+  ```
+
+  Verified output for a `For = typeof(X)` on a class that does not implement `X`: `Agoda.IoC.Core.RegistrationContextException: SlideWorks.WebApi.Sw751BreakA: Explicitly registers For = typeof(SlideWorks.WebApi.ISw751Break), but it does not implement this type.` Look for it near the top of the log, above the `OneTimeSetUp` failure.
 - **A request-dependent singleton** trips AG0009 (section 1): pass only the fields needed, or suppress with a stated reason.
 
 ## 5. EF migrations
