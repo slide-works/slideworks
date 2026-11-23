@@ -11,6 +11,7 @@ import {
 import { stubTemplatesApi } from '../../../test-support/stubTemplatesApi';
 import { editorTabTestId } from '../../testIds';
 import type { TemplateEditorView, TemplateManifest } from '../../types';
+import { gate } from '../../../test-support/gate';
 
 const id = templateEditor.id;
 const route = { hooksConfig: { route: `/templates/${id}/edit?tab=layouts` } };
@@ -222,8 +223,7 @@ test('a failed remove says so and keeps the layout', async ({ mount, page }) => 
 // include `hold` waits until `release()`; `arrived` resolves when that save has been sent.
 async function echoSaves(page: Page, hold?: string) {
   const sent: TemplateManifest['customLayouts'][] = [];
-  let release = () => {};
-  const gate = new Promise<void>((resolve) => (release = resolve));
+  const held = gate();
   let arrive = () => {};
   const arrived = new Promise<void>((resolve) => (arrive = resolve));
   await page.route(new RegExp(`/api/templates/${id}$`), async (route) => {
@@ -235,14 +235,14 @@ async function echoSaves(page: Page, hold?: string) {
     };
     if (hold !== undefined && manifest.customLayouts.some(({ name }) => name === hold)) {
       arrive();
-      await gate;
+      await held.opened;
     }
     sent.push(manifest.customLayouts);
     return route.fulfill({
       json: { ...templateEditor, revision: revision + 1, manifest },
     });
   });
-  return { sent, release, arrived };
+  return { sent, release: held.release, arrived };
 }
 
 const names = (layouts: TemplateManifest['customLayouts']) => layouts.map(({ name }) => name);

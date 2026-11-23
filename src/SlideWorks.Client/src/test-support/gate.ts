@@ -11,7 +11,7 @@ export function gate() {
 
 /**
  * Lets the page settle after a held response is released: the fetch resolves,
- * its JSON is parsed and React renders.
+ * its JSON is parsed and React renders. `ms` is how long to wait.
  */
-export const settle = (page: Page) =>
-  page.evaluate(() => new Promise((done) => setTimeout(done, 200)));
+export const settle = (page: Page, ms = 200) =>
+  page.evaluate((wait) => new Promise((done) => setTimeout(done, wait)), ms);

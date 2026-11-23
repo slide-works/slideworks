@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
-import type { DeckPlayView } from '../api/types';
 import { AppRoutes } from '../AppRoutes';
 import type { PresentationConnection, PresentationState } from '../presentation/types';
 import { deckPlay } from '../test-support/fixtures/screens';
+import { longerDeckPlay } from '../test-support/fixtures/longerDecks';
 import { presentationState } from '../test-support/fixtures/presenting';
 import { stubApi } from '../test-support/stubApi';
 import { stubDeckHub, type StubPresentationState } from '../test-support/stubDeckHub';
+import { settle } from '../test-support/gate';
 
 const playPath = `/api/play/${deckPlay.id}`;
 const audienceRoute = `/d/${deckPlay.id}/${deckPlay.slug}?present`;
@@ -47,8 +48,6 @@ const joined = async (page: Page) => {
 };
 
 // Lets the page run its pending work, so a call it should not make has had its chance.
-const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 300)));
-
 test('audience mode follows pushed states and mirrors them in the hash', async ({
   mount,
   page,
@@ -93,7 +92,7 @@ test('audience mode ignores clicks on the stage while driven', async ({ mount, p
   const box = (await stage.boundingBox())!;
   await page.mouse.click(box.x + box.width * 0.9, box.y + box.height / 2);
   await page.mouse.click(box.x + box.width * 0.1, box.y + box.height / 2);
-  await settle(page);
+  await settle(page, 300);
 
   expect(hub.updates).toEqual([]);
   await expect(page.getByTestId('slide-2')).toBeVisible();
@@ -111,7 +110,7 @@ test('audience mode keys send updates and render the answer', async ({ mount, pa
 
   // Slide 3 is a deep dive, and the presentation skips them: nothing to send.
   await page.keyboard.press('ArrowRight');
-  await settle(page);
+  await settle(page, 300);
   expect(hub.updates).toHaveLength(1);
   await expect(page.getByTestId('slide-2')).toBeVisible();
 
@@ -191,15 +190,11 @@ test('audience mode refetches the deck on DeckChanged over the one socket', asyn
   mount,
   page,
 }) => {
-  const longer: DeckPlayView = {
-    ...deckPlay,
-    slides: [...deckPlay.slides, { ...deckPlay.slides[1], number: 4 }],
-  };
   const hub = await stubDeckHub(page, { presentation: { state: stateAt(2) } });
   let reads = 0;
   await page.route(`**${playPath}`, (route) => {
     reads += 1;
-    return route.fulfill({ json: reads <= 2 ? deckPlay : longer });
+    return route.fulfill({ json: reads <= 2 ? deckPlay : longerDeckPlay });
   });
   await mount(<AppRoutes />, { hooksConfig: { route: audienceRoute } });
 
@@ -260,6 +255,6 @@ test('audience mode sends nothing at the end of the deck', async ({ mount, page 
   await joined(page);
 
   await page.keyboard.press('ArrowRight');
-  await settle(page);
+  await settle(page, 300);
   expect(hub.updates).toEqual([]);
 });

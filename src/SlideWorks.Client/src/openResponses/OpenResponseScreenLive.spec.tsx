@@ -11,6 +11,7 @@ import { deckPlay } from '../test-support/fixtures/screens';
 import { stubDeckHub } from '../test-support/stubDeckHub';
 import { OpenResponseScreenLive } from './OpenResponseScreenLive';
 import type { OpenResponseControlView } from './types';
+import { settle } from '../test-support/gate';
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -90,8 +91,6 @@ function player(owner: boolean) {
 }
 
 // Lets the page run its pending work, so a call or render it should not make has had its chance.
-const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 300)));
-
 const word = (page: Page, slide: number, index: number) =>
   page.getByTestId(`slide-${slide}`).getByTestId(`word-cloud-word-${index}`);
 
@@ -170,7 +169,7 @@ test('OpenResponseScreenLive_WhenTheViewerIsNotTheOwner_ShouldGiveNoRound', asyn
     },
     { target: 'screen' },
   );
-  await settle(page);
+  await settle(page, 300);
 
   expect(hub.watches).toEqual([deckId]);
   expect(reads).toEqual([]);
