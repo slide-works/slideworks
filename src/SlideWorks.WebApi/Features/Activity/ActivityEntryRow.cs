@@ -14,6 +14,9 @@ public class ActivityEntryRow
 
     public required string Via { get; set; }
 
+    // The User.Id of the person, or for an agent its presenter. Null on an entry made before this was stored.
+    public Guid? ActorUserId { get; set; }
+
     // The MCP tool that made the change, when an agent made it.
     public string? Tool { get; set; }
 

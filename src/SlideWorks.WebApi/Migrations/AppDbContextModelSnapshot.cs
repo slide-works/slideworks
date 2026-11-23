@@ -94,6 +94,9 @@ namespace SlideWorks.WebApi.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("At")
                         .HasColumnType("INTEGER");
 

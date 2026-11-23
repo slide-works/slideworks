@@ -108,9 +108,9 @@ public class ScreenRecordShapeTests : ApiTestFixture
             example.GetProperty("look").Deserialize<DeckLookView>(AppJsonOptions())!,
             slides,
             [
-                ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "add_slide", "added slide 3 close"), "2 min ago", isOwner: true),
-                ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "set_sharing", "changed sharing: Private → Anyone with the link"), "5 min ago", isOwner: true),
-                ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "create_deck", "created the deck"), "9 min ago", isOwner: true),
+                ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "add_slide", "added slide 3 close"), "2 min ago", isOwner: true, viewerId: null),
+                ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "set_sharing", "changed sharing: Private → Anyone with the link"), "5 min ago", isOwner: true, viewerId: null),
+                ActivityRow.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "create_deck", "created the deck"), "9 min ago", isOwner: true, viewerId: null),
             ],
             example.GetProperty("findings").Deserialize<IReadOnlyList<SlideFinding>>(AppJsonOptions())!);
 
@@ -127,7 +127,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
         var slide = DeckPageSlide.From(deck, new Slide { DeckId = deck.Id, Layout = "bullets", SlotsJson = """{ "items": ["One"] }""" }, Workshop);
         var view = new DeckPageView(deck.Id, deck.Slug, deck.Title, null, 0, false, false, "read", "/d/7Kq2xYp9LmQa/ship-smaller",
             new JoinView("482913", "482 913", "https://slideworks.live/482913", "slideworks.live", false), SharingSummary.From(DeckSharing.Private, 0), [], LookViews.ForPage(deck, Workshop, Palettes), [slide],
-            [ActivityRow.From(Entry("Sam Rivera", ActorKind.Person, ActorVia.Web, null, "created the deck"), "just now", isOwner: true)], []);
+            [ActivityRow.From(Entry("Sam Rivera", ActorKind.Person, ActorVia.Web, null, "created the deck"), "just now", isOwner: true, viewerId: null)], []);
 
         var json = Serialise(view);
 
