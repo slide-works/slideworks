@@ -186,6 +186,7 @@ public class DeckQueries(
                     dates.Ago(d.UpdatedAt),
                     DeckLinks.Play(d.Id, d.Slug)),
                 d.OwnerName,
+                // TODO: access is hardcoded to "read"; S1 replaces it with the caller's real access.
                 "read"))
             .ToList();
     }

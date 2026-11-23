@@ -158,7 +158,7 @@ public class SharingService(
     {
         if (change.People != null)
         {
-            var emails = ViewerEmails.NormalizeAll(change.People.Select(p => (string?)p.Email).ToList(), actor.Email);
+            var emails = ViewerEmails.NormalizeAll(change.People.Select(p => (string?)p.Email).ToList(), actor.Email, "people");
             var accessGiven = new Dictionary<string, DeckViewerAccess>(StringComparer.Ordinal);
             foreach (var person in change.People)
             {

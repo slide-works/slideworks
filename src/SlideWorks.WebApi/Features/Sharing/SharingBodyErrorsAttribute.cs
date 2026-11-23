@@ -40,6 +40,10 @@ public sealed class SharingBodyErrorsAttribute : ActionFilterAttribute
         {
             return ViewerEmails.TOO_MANY;
         }
+        if (errors.Any(entry => entry.Value!.Errors.Any(e => e.ErrorMessage == ViewerEmails.PEOPLE_TOO_MANY || e.Exception?.Message == ViewerEmails.PEOPLE_TOO_MANY)))
+        {
+            return ViewerEmails.PEOPLE_TOO_MANY;
+        }
         if (errors.Any(entry => Mentions(entry, "level")))
         {
             return SharingService.LEVEL_INVALID;

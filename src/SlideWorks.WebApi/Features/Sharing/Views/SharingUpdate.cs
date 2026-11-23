@@ -10,4 +10,4 @@ namespace SlideWorks.WebApi.Features.Sharing.Views;
 public sealed record SharingUpdate(
     [property: JsonRequired] DeckSharing Level,
     [property: JsonConverter(typeof(ViewerListConverter))] IReadOnlyList<string>? Viewers = null,
-    IReadOnlyList<SharingPersonUpdate>? People = null);
+    [property: JsonConverter(typeof(PeopleListConverter))] IReadOnlyList<SharingPersonUpdate>? People = null);
