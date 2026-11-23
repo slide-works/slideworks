@@ -18,7 +18,7 @@ public class AddSlideNullOptionalSlotTests : ApiTestFixture
             Factory,
             agent.Tokens.AccessToken,
             "add_slide",
-            $$"""{"deck":"{{deck}}","layout":"quote","slots":{"quote":"Ship smaller","attribution":"Sam Rivera","kicker":null}}""");
+            $$$"""{"deck":"{{{deck}}}","layout":"quote","slots":{"quote":"Ship smaller","attribution":"Sam Rivera","kicker":null}}""");
 
         (result.TryGetProperty("isError", out var isError) && isError.GetBoolean()).ShouldBeFalse(result.GetRawText());
     }
