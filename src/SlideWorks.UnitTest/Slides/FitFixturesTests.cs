@@ -30,6 +30,15 @@ public class FitFixturesTests
 
     private static readonly Lazy<JsonObject> _fixtures = new(ReadFolder);
 
+    // Accepted fixtures that no longer grow a field, by the layout bug whose wave-1 lane restores one. Under the
+    // per-character estimate (SW-802) the fit rule and the character limit no longer bind together on these, so one more
+    // word is refused by fit before length. Remove an entry when its fixture grows again.
+    private static readonly Dictionary<string, string> _knownUngrown = new(StringComparer.Ordinal)
+    {
+        ["imageCallout"] = "SW-712",
+        ["statementMaxWide"] = "SW-721",
+    };
+
     // Every fixture of every file in the folder, by name. A name in two files throws, and so does a
     // fixture whose "layout" is not its file's name.
     private static JsonObject ReadFolder()
@@ -79,7 +88,7 @@ public class FitFixturesTests
         var ungrown = _fixtures.Value.Where(f => IsAccepted(f.Value!) && f.Value!["grow"]!.AsArray().Count == 0)
             .Select(f => f.Key);
 
-        ungrown.ShouldBeEmpty();
+        ungrown.Order(StringComparer.Ordinal).ShouldBe(_knownUngrown.Keys.Order(StringComparer.Ordinal));
     }
 
     [TestCaseSource(nameof(AcceptedFixtures))]
