@@ -58,7 +58,7 @@ public partial class SharingJourneys : AcceptanceTest
         await Expect(shared).ToHaveCountAsync(1);
         await Expect(shared.GetByTestId("shared-owner")).ToHaveTextAsync(TestUser.Sam.Name);
         await Expect(decks.Row(title)).ToHaveCountAsync(0);
-        await shared.GetByTestId("deck-title").ClickAsync();
+        await DecksPage.SharedTitle(shared).ClickAsync();
 
         var player = new PlayerPage(Page);
         await Expect(Page).ToHaveURLAsync(new Regex($"/d/{deckId}/"));

@@ -31,6 +31,7 @@ public class ShareEmailChainTests : ApiTestFixture
         await SharingApi.PutOkAsync(Client, first, "named", recipient);
         await WaitForMailAsync(recipient, 1);
         var url = Mail.SentTo(recipient)[0].UnsubscribeUrl.ShouldNotBeNull();
+        url.ShouldContain("#t=");
         var token = url[(url.IndexOf("#t=", StringComparison.Ordinal) + 3)..];
 
         using var anonymous = ClientFor(TestUser.Anonymous);

@@ -7,7 +7,7 @@ namespace SlideWorks.AcceptanceTests.Journeys;
 
 // Write access end to end: Sam names Alex with Can edit and Mira with Can view in the sharing dialog. Alex finds the deck
 // in Shared with you as Can edit, edits its look on the deck page and Sam reads the change, with Alex's name, in the
-// activity. Mira finds it as Can view and gets the player, with no Look panel.
+// activity. Mira finds it as Can view and gets the player; the deck page itself is refused for her.
 public partial class ShareWriteJourney : AcceptanceTest
 {
     [Test]
@@ -41,9 +41,10 @@ public partial class ShareWriteJourney : AcceptanceTest
         await Sessions.SwitchSessionAsync(Page, TestUser.Alex);
         await decks.GotoAsync();
         var alexRow = decks.SharedRow(title);
+        await Expect(alexRow).ToBeVisibleAsync();
         await Expect(alexRow).ToHaveCountAsync(1);
         await Expect(DecksPage.SharedAccess(alexRow)).ToHaveTextAsync("Can edit");
-        await alexRow.GetByTestId("deck-title").ClickAsync();
+        await DecksPage.SharedTitle(alexRow).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DeckPageUrl());
         await Expect(deck.Title).ToHaveTextAsync(title);
         await Expect(deck.AccessBadge).ToHaveTextAsync("Can edit");
@@ -60,12 +61,17 @@ public partial class ShareWriteJourney : AcceptanceTest
         await Sessions.SwitchSessionAsync(Page, TestUser.Mira);
         await decks.GotoAsync();
         var miraRow = decks.SharedRow(title);
+        await Expect(miraRow).ToBeVisibleAsync();
         await Expect(miraRow).ToHaveCountAsync(1);
         await Expect(DecksPage.SharedAccess(miraRow)).ToHaveTextAsync("Can view");
-        await miraRow.GetByTestId("deck-title").ClickAsync();
+        await DecksPage.SharedTitle(miraRow).ClickAsync();
         var player = new PlayerPage(Page);
         await Expect(Page).ToHaveURLAsync(new Regex($"/d/{deckId}/"));
         await Expect(player.Player).ToHaveAttributeAsync("aria-label", title);
+
+        // Nothing on the deck page for her either: opening it directly is refused and shows no Look panel.
+        await deck.GotoAsync(deckId);
+        await Expect(deck.NotFound).ToHaveTextAsync("Deck not found");
         await Expect(deck.LookPanel).ToHaveCountAsync(0);
     }
 

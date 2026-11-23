@@ -44,10 +44,12 @@ public partial class ShareFullEmailJourney : AcceptanceTest
         await dialog.EmailInput.FillAsync("ale");
         await Expect(dialog.EmailHint).ToHaveTextAsync(HINT);
         await Expect(dialog.Root).Not.ToContainTextAsync(TestUser.Alex.Name);
+        await Expect(dialog.Root).Not.ToContainTextAsync(TestUser.Alex.Email);
         await Expect(dialog.Rows).ToHaveCountAsync(0);
         await dialog.EmailInput.FillAsync("alex@team");
         await Expect(dialog.EmailHint).ToHaveTextAsync(HINT);
         await Expect(dialog.Root).Not.ToContainTextAsync(TestUser.Alex.Name);
+        await Expect(dialog.Root).Not.ToContainTextAsync(TestUser.Alex.Email);
         await Expect(dialog.Rows).ToHaveCountAsync(0);
 
         await dialog.AddEmailAsync(TestUser.Alex.Email);
@@ -60,6 +62,7 @@ public partial class ShareFullEmailJourney : AcceptanceTest
 
         await Sessions.SwitchSessionAsync(Page, TestUser.Alex);
         await decks.GotoAsync();
+        await Expect(decks.SharedRow(titleOne)).ToBeVisibleAsync();
         await Expect(decks.SharedRow(titleOne)).ToHaveCountAsync(1);
         await Expect(decks.SharedRow(titleTwo)).ToHaveCountAsync(0);
     }
