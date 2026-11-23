@@ -32,6 +32,8 @@ public sealed class DecksPage(IPage page)
             Has = page.GetByTestId("deck-title").Filter(new LocatorFilterOptions { HasTextRegex = new Regex($"^{Regex.Escape(title)}$") }),
         });
 
+    public static ILocator SharedTitle(ILocator row) => row.GetByTestId("deck-title");
+
     public static ILocator SharedAccess(ILocator row) => row.GetByTestId("shared-access");
 
     public ILocator Empty => page.GetByTestId("decks-empty");

@@ -46,6 +46,9 @@ public sealed class SharingDialog(IPage page)
 
     public ILocator Paused(string email) => Row(email).GetByTestId("sharing-person-paused");
 
+    // The "New" tag of a person row: shown for an email added in this dialog and not yet saved.
+    public ILocator NewTag(string email) => Row(email).GetByTestId("sharing-person-new");
+
     // Types a full email and presses Enter, which adds the person as Can view.
     public async Task AddEmailAsync(string email)
     {
