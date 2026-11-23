@@ -6,8 +6,8 @@ using SlideWorks.WebApi.Tests.Support;
 namespace SlideWorks.WebApi.Tests.Sharing;
 
 // D35: the change log names who was added to or removed from a deck's list only for the owner and the owner's agent. A person
-// with write access reads "changed sharing" on the deck page and in lastChange; the library's "Shared with you" rows and
-// . Sam owns the deck, Alex has write.
+// with write access reads "changed sharing" on the deck page and in lastChange; the library's "Shared with you" rows show the same
+// redacted line, and a person with read access sees no emails there either. Sam owns the deck, Alex has write, or read in the reader case.
 [TestFixture]
 [CancelAfter(60000)]
 public class SharingActivityRedactionTests : ApiTestFixture
@@ -45,6 +45,21 @@ public class SharingActivityRedactionTests : ApiTestFixture
         var own = (await Client.GetFromJsonAsync<JsonElement>("/api/decks")).GetProperty("decks").EnumerateArray().Single(row => row.GetProperty("id").GetString() == deck);
 
         shared.GetProperty("lastChange").GetProperty("summary").GetString().ShouldBe("changed sharing");
+        own.GetProperty("lastChange").GetProperty("summary").GetString()!.ShouldContain(TestUser.Alex.Email);
+    }
+
+    [Test]
+    public async Task LastChange_WhenReaderOpensLibrary_ShouldShowNoEmailsAndOwnerSeesThem()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        var response = await SharingApi.PutAsync(Client, deck, new { level = "named", people = new[] { new { email = TestUser.Alex.Email, access = "read" } } });
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        using var alex = ClientFor(TestUser.Alex);
+
+        var shared = (await alex.GetFromJsonAsync<JsonElement>("/api/decks")).GetProperty("sharedWithMe").EnumerateArray().Single(row => row.GetProperty("id").GetString() == deck);
+        var own = (await Client.GetFromJsonAsync<JsonElement>("/api/decks")).GetProperty("decks").EnumerateArray().Single(row => row.GetProperty("id").GetString() == deck);
+
+        shared.GetProperty("lastChange").GetRawText().ShouldNotContain(TestUser.Alex.Email);
         own.GetProperty("lastChange").GetProperty("summary").GetString()!.ShouldContain(TestUser.Alex.Email);
     }
 

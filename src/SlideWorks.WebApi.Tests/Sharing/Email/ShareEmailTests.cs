@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Sharing.Email;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Infrastructure.Mail;
@@ -44,6 +45,8 @@ public partial class ShareEmailTests : ApiTestFixture
         var deckUrl = scope.ServiceProvider.GetRequiredService<IPublicUrls>().Deck(deck.Id, deck.Slug);
         var unsubscribe = mail.UnsubscribeUrl;
         unsubscribe.ShouldStartWith($"{scope.ServiceProvider.GetRequiredService<IPublicUrls>().Base}/unsubscribe#t=");
+        var token = unsubscribe[(unsubscribe.IndexOf("#t=", StringComparison.Ordinal) + 3)..];
+        (await scope.ServiceProvider.GetRequiredService<IUnsubscribeLinks>().ReadAsync(token)).ShouldBe(ViewerEmails.Normalize(recipient));
         HrefRegex().Matches(mail.Html).Select(m => WebUtility.HtmlDecode(m.Groups[1].Value)).ShouldBe([deckUrl, unsubscribe]);
         UrlRegex().Matches(mail.Text).Select(m => m.Value).ShouldBe([deckUrl, unsubscribe]);
         mail.Subject.ShouldNotContain("view", Case.Insensitive);
