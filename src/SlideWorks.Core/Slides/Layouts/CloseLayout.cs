@@ -31,7 +31,7 @@ public static class CloseLayout
         var shown = written.Sum(line => SlideFit.Lines(line, 1400, 112, validation.Widths.Head));
         if (shown > CLOSE_HEADLINE_MAX_SHOWN_LINES)
         {
-            validation.Fail($"{path}.headline", $"too long to fit: it wraps to about {shown} lines at the close slide's size, and at most {CLOSE_HEADLINE_MAX_SHOWN_LINES} fit");
+            validation.Fail($"{path}.headline", $"too much text to fit: the headline wraps to about {shown} lines at the close slide's size, and at most {CLOSE_HEADLINE_MAX_SHOWN_LINES} fit");
         }
     }
 }

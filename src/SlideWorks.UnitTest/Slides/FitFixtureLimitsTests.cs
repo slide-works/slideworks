@@ -28,7 +28,6 @@ public class FitFixtureLimitsTests
     private static readonly IReadOnlyDictionary<string, string> _knownWithoutFixture = new Dictionary<string, string>
     {
         ["title"] = "SW-723",
-        ["close"] = "SW-723",
     };
 
     // Fit-controlled layouts whose fixtures only grow fields with a character limit, so no fixture proves
