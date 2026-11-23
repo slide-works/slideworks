@@ -8,6 +8,7 @@ using SlideWorks.Core.Look;
 using SlideWorks.WebApi.Features.Checks;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Features.Accounts.Admin;
+using SlideWorks.WebApi.Features.Accounts.Avatars;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Decks.Views;
@@ -215,7 +216,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
         var response = await Client.GetFromJsonAsync<JsonElement>("/api/me");
 
         JsonShape.AssertMatches(response, "me.json", ScreenShapes.Me);
-        var record = Serialise(new MeView("sam@team.example", "Sam Rivera", "https://slideworks.example/avatars/sam-rivera.png", "approved", false, 0, false));
+        var record = Serialise(new MeView("sam@team.example", "Sam Rivera", "https://slideworks.example/avatars/sam-rivera.png", new AvatarView("SR", "teal", "https://slideworks.example/avatars/sam-rivera.png"), "Europe/London", "approved", false, 0, false));
         JsonShape.AssertMatches(record, "me.json");
         SameJson(record, Example("me.json")).ShouldBeTrue(Differs(record, Example("me.json")));
     }

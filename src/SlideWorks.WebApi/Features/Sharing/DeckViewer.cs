@@ -6,4 +6,6 @@ public class DeckViewer
     public required string DeckId { get; set; }
 
     public required string Email { get; set; }
+
+    public DeckViewerAccess Access { get; set; } = DeckViewerAccess.Read;
 }

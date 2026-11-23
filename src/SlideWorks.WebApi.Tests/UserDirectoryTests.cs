@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -21,6 +23,51 @@ public class UserDirectoryTests : ApiTestFixture
         second.PictureUrl.ShouldBe("https://pictures.example/sam.png");
         (await FindByEmailAsync(TestUser.Sam.Email)).ShouldBeNull();
         (await FindByEmailAsync("sam.rivera@team.example"))!.Id.ShouldBe(first.Id);
+    }
+
+    [Test]
+    public async Task UpsertAsync_WhenNameSetByPerson_ShouldKeepName()
+    {
+        var person = TestUser.NewApproved();
+        var first = await UpsertAsync(person.GoogleSubject, person.Email, person.Name, null);
+        await SetAsync(first.Id, u => u.NameSetByPerson = true);
+
+        var second = await UpsertAsync(person.GoogleSubject, person.Email, "Google Renamed", "https://pictures.example/new.png");
+
+        second.Name.ShouldBe(person.Name);
+        second.PictureUrl.ShouldBe("https://pictures.example/new.png");
+    }
+
+    [Test]
+    public async Task UpsertAsync_WhenNameNotSet_ShouldTakeGoogleName()
+    {
+        var person = TestUser.NewApproved();
+        await UpsertAsync(person.GoogleSubject, person.Email, person.Name, null);
+
+        var second = await UpsertAsync(person.GoogleSubject, person.Email, "Google Renamed", null);
+
+        second.Name.ShouldBe("Google Renamed");
+    }
+
+    [Test]
+    public async Task UpsertAsync_WhenProfileFieldsSet_ShouldLeaveThemAlone()
+    {
+        var person = TestUser.NewApproved();
+        var first = await UpsertAsync(person.GoogleSubject, person.Email, person.Name, null);
+        await SetAsync(first.Id, u =>
+        {
+            u.AvatarColour = "pink";
+            u.PhotoId = "abc123";
+            u.PhotoContentType = "image/png";
+            u.TimeZone = "Europe/Paris";
+        });
+
+        var second = await UpsertAsync(person.GoogleSubject, person.Email, person.Name, "https://pictures.example/g.png");
+
+        second.AvatarColour.ShouldBe("pink");
+        second.PhotoId.ShouldBe("abc123");
+        second.PhotoContentType.ShouldBe("image/png");
+        second.TimeZone.ShouldBe("Europe/Paris");
     }
 
     [Test]
@@ -54,6 +101,15 @@ public class UserDirectoryTests : ApiTestFixture
     {
         using var scope = Factory.Services.CreateScope();
         return await scope.ServiceProvider.GetRequiredService<IUserDirectory>().UpsertAsync(subject, email, name, pictureUrl);
+    }
+
+    // Sets profile fields the way a later profile task will, to prove a sign-in leaves them alone.
+    private async Task SetAsync(Guid id, Action<Features.Accounts.User> change)
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        change(await db.Users.SingleAsync(u => u.Id == id));
+        await db.SaveChangesAsync();
     }
 
     private async Task<Features.Accounts.User?> FindByEmailAsync(string email)

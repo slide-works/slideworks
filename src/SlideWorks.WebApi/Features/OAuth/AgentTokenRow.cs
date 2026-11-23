@@ -22,6 +22,12 @@ public class AgentTokenRow
 
     public DateTimeOffset ExpiresAt { get; set; }
 
+    // When the token was issued. Null for rows issued before the profile migration.
+    public DateTimeOffset? IssuedAt { get; set; }
+
+    // When the token family was last used to call the server.
+    public DateTimeOffset? LastUsedAt { get; set; }
+
     public DateTimeOffset? RevokedAt { get; set; }
 
     // Refresh tokens only: set when it is rotated, so a second use is a replay.

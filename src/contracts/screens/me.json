@@ -2,6 +2,12 @@
   "email": "sam@team.example",
   "name": "Sam Rivera",
   "pictureUrl": "https://slideworks.example/avatars/sam-rivera.png",
+  "avatar": {
+    "initials": "SR",
+    "colour": "teal",
+    "pictureUrl": "https://slideworks.example/avatars/sam-rivera.png"
+  },
+  "timeZone": "Europe/London",
   "access": "approved",
   "isAdmin": false,
   "pendingRequests": 0,

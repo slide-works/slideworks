@@ -33,6 +33,9 @@ namespace SlideWorks.WebApi.Migrations
                     b.Property<Guid?>("AccessChangedBy")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("AvatarColour")
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("CreatedAt")
                         .HasColumnType("INTEGER");
 
@@ -51,7 +54,19 @@ namespace SlideWorks.WebApi.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("NameSetByPerson")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PhotoContentType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PhotoId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("PictureUrl")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TimeZone")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -294,9 +309,15 @@ namespace SlideWorks.WebApi.Migrations
                     b.Property<Guid>("FamilyId")
                         .HasColumnType("TEXT");
 
+                    b.Property<long?>("IssuedAt")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<long?>("LastUsedAt")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("PresenterId")
                         .HasColumnType("TEXT");
@@ -871,9 +892,79 @@ namespace SlideWorks.WebApi.Migrations
                     b.Property<string>("Email")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Access")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("DeckId", "Email");
 
                     b.ToTable("DeckViewers");
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Sharing.Email.EmailSuppression", b =>
+                {
+                    b.Property<string>("Email")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("At")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Email");
+
+                    b.ToTable("EmailSuppressions");
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Sharing.Email.ShareEmailRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeckId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RecipientEmail")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SentAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("SharerId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientEmail", "SentAt");
+
+                    b.ToTable("ShareEmails");
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Sharing.Limits.ShareRecipientRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("AddedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DeckId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SharerId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SharerId", "AddedAt");
+
+                    b.ToTable("ShareRecipients");
                 });
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.Slides.Slide", b =>
