@@ -18,7 +18,8 @@ namespace SlideWorks.WebApi.Features.Decks;
 
 // The presenter's reads: the decks library and the deck page (K4), and the list_decks and get_deck_url tools (K6). Every
 // read is an AsNoTracking projection, deleted slides never count or show, and time labels are formatted here from
-// TimeProvider. The deck page is the owner's: anyone else, viewers included, gets 404 "Deck not found".
+// TimeProvider. The deck page is for the owner and for people with write access (C4, C5): anyone else, readers included,
+// gets 404 "Deck not found".
 [RegisterPerRequest]
 public class DeckQueries(
     AppDbContext db,
@@ -43,7 +44,8 @@ public class DeckQueries(
 
     public async Task<DeckPageView> PageAsync(string deckId)
     {
-        await RequireOwnerAsync(deckId);
+        await RequireEditorAsync(deckId);
+        var isOwner = await access.IsOwnerAsync(deckId, actor);
         var deck = await db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);
         var slides = await db.Slides.AsNoTracking()
             .Where(s => s.DeckId == deckId && s.DeletedAt == null)
@@ -59,9 +61,9 @@ public class DeckQueries(
             deck.Title,
             deck.Author,
             deck.Revision,
-            IsOwner: true,
+            IsOwner: isOwner,
             CanEdit: true,
-            Access: "owner",
+            Access: isOwner ? "owner" : "write",
             DeckLinks.Play(deck.Id, deck.Slug),
             await joinViews.ForAsync(deck),
             SharingSummary.From(deck.Sharing, viewerCount),
@@ -72,15 +74,26 @@ public class DeckQueries(
             findings);
     }
 
-    // list_decks: the decks the agent's presenter owns, newest change first, with absolute player links.
+    // list_decks: the decks the agent's presenter owns, newest change first, then the decks shared with them with write
+    // access (access "write", newest change first), with absolute player links. Read shares are not listed (C4), and a
+    // deck at level private is not listed for a person with write (C5, D12).
     public async Task<ListDecksResult> ListForAgentAsync()
-        => new((await OwnDecksAsync(PresenterId())).Select(row => ListedDeck.From(row, urls.Deck(row.Id, row.Slug))).ToList());
+    {
+        var presenterId = PresenterId();
+        var own = (await OwnDecksAsync(presenterId)).Select(row => ListedDeck.From(row, urls.Deck(row.Id, row.Slug), "owner"));
+        var shared = (await SharedWithMeAsync(presenterId)).Where(row => row.Access == "write")
+            .Select(row => ListedDeck.From(
+                new DeckRow(row.Id, row.Slug, row.Title, row.Subtitle, row.SlideCount, row.LastChange, row.Sharing, row.ViewerCount, row.UpdatedLabel, row.PlayUrl),
+                urls.Deck(row.Id, row.Slug),
+                row.Access));
+        return new(own.Concat(shared).ToList());
+    }
 
     // get_deck_url: the absolute player link, to one slide (#n) or one step of it (#n.s) when given. Slide is 1-based
     // among the live slides; step runs from 0 to the slide's steps.
     public async Task<GetDeckUrlResult> UrlAsync(string deckId, int? slide, int? step)
     {
-        await RequireOwnerAsync(deckId);
+        await RequireEditorAsync(deckId);
         var deck = await db.Decks.AsNoTracking().Where(d => d.Id == deckId).Select(d => new { d.Id, d.Slug }).SingleAsync();
         if (slide == null)
         {
@@ -103,7 +116,7 @@ public class DeckQueries(
 
     private Guid PresenterId() => actor.PresenterId ?? throw new InvalidOperationException("Reading decks needs a signed-in caller.");
 
-    private async Task RequireOwnerAsync(string deckId)
+    private async Task RequireEditorAsync(string deckId)
     {
         if (!await access.CanEditAsync(deckId, actor))
         {
@@ -144,8 +157,9 @@ public class DeckQueries(
             .ToList();
     }
 
-    // Decks shared by name with the caller's email, compared case-insensitively, that someone else owns. Each row links to
-    // the player: viewers never get the deck page.
+    // Decks that someone else owns and that list the caller's email, compared case-insensitively, at level named or link
+    // (C5: at private the list is kept but the deck is paused for them, D12). Each row carries the caller's access and
+    // links to the player.
     private async Task<IReadOnlyList<SharedDeckRow>> SharedWithMeAsync(Guid presenterId)
     {
         var email = actor.Email?.ToLowerInvariant();
@@ -154,7 +168,7 @@ public class DeckQueries(
             return [];
         }
         var decks = await db.Decks.AsNoTracking()
-            .Where(d => d.Sharing == DeckSharing.Named
+            .Where(d => d.Sharing != DeckSharing.Private
                 && d.OwnerId != presenterId
                 && db.DeckViewers.Any(v => v.DeckId == d.Id && v.Email.ToLower() == email))
             .OrderByDescending(d => d.UpdatedAt)
@@ -166,6 +180,7 @@ public class DeckQueries(
                 d.Subtitle,
                 d.Sharing,
                 d.UpdatedAt,
+                Write = db.DeckViewers.Any(v => v.DeckId == d.Id && v.Email.ToLower() == email && v.Access == DeckViewerAccess.Write),
                 OwnerName = db.Users.Where(u => u.Id == d.OwnerId).Select(u => u.Name).Single(),
                 SlideCount = db.Slides.Count(s => s.DeckId == d.Id && s.DeletedAt == null),
                 ViewerCount = db.DeckViewers.Count(v => v.DeckId == d.Id),
@@ -186,8 +201,7 @@ public class DeckQueries(
                     dates.Ago(d.UpdatedAt),
                     DeckLinks.Play(d.Id, d.Slug)),
                 d.OwnerName,
-                // TODO: access is hardcoded to "read"; S1 replaces it with the caller's real access.
-                "read"))
+                d.Write ? "write" : "read"))
             .ToList();
     }
 }
