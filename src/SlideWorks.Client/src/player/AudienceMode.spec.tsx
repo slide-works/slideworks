@@ -6,7 +6,7 @@ import type { PresentationConnection, PresentationState } from '../presentation/
 import { deckPlay } from '../test-support/fixtures/screens';
 import { presentationState } from '../test-support/fixtures/presenting';
 import { stubApi } from '../test-support/stubApi';
-import { stubDeckHub } from '../test-support/stubDeckHub';
+import { stubDeckHub, type StubPresentationState } from '../test-support/stubDeckHub';
 
 const playPath = `/api/play/${deckPlay.id}`;
 const audienceRoute = `/d/${deckPlay.id}/${deckPlay.slug}?present`;
@@ -17,28 +17,34 @@ const phone: PresentationConnection = { clientId: 'k-3', role: 'phone', label: '
 const audience: PresentationConnection = { clientId: 'k-2', role: 'audience', label: 'Room' };
 
 // The sample deck is "Ship smaller": 3 slides, so these positions exist.
-// Every state is newer than the last (P1): a push with the same seq is not applied.
-let seq = 100;
-const stateAt = (slide: number, overrides: Partial<PresentationState> = {}) =>
-  presentationState({
+// The stub numbers each state, newer than the last (P1): a push with the same seq is not applied.
+const stateAt = (
+  slide: number,
+  overrides: Partial<PresentationState> = {},
+): StubPresentationState => {
+  const state = presentationState({
     deckId: deckPlay.id,
-    seq: ++seq,
     slide,
     step: 0,
     connected: [presenter, audience, phone],
     ...overrides,
   });
+  return { ...state, seq: undefined };
+};
 
 const count = (page: Page) => page.getByTestId('player-count');
 
-async function openAudience(page: Page, state: PresentationState, options = {}) {
+async function openAudience(page: Page, state: StubPresentationState, options = {}) {
   await stubApi(page, { [playPath]: { json: deckPlay } });
   const hub = await stubDeckHub(page, { presentation: { state, ...options } });
   return hub;
 }
 
 // A state from a presenter has arrived: the page is live and driven, so its controls are gone.
-const joined = (page: Page) => expect(page.getByTestId('player-controls')).toHaveCount(0);
+const joined = async (page: Page) => {
+  await expect(page.getByTestId('audience-mode')).toHaveAttribute('data-following', 'true');
+  await expect(page.getByTestId('player-controls')).toHaveCount(0);
+};
 
 // Lets the page run its pending work, so a call it should not make has had its chance.
 const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 300)));
@@ -51,6 +57,7 @@ test('audience mode follows pushed states and mirrors them in the hash', async (
   await mount(<AppRoutes />, { hooksConfig: { route: audienceRoute } });
 
   await expect(page.getByTestId('audience-mode')).toBeVisible();
+  await expect(page.getByTestId('audience-mode')).toHaveAttribute('data-following', 'true');
   await expect(page.getByTestId('player')).toBeVisible();
   await expect(page.getByTestId('slide-2')).toBeVisible();
   expect(hub.presentationJoins[0]).toMatchObject({ role: 'audience', deckId: deckPlay.id });

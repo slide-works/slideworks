@@ -6,7 +6,7 @@ import { JoinProvider } from '../slides/JoinContext';
 import { guestView } from '../test-support/fixtures/guestStates';
 import { presentationState } from '../test-support/fixtures/presenting';
 import { deckPlay } from '../test-support/fixtures/screens';
-import { stubDeckHub } from '../test-support/stubDeckHub';
+import { stubDeckHub, type StubPresentationState } from '../test-support/stubDeckHub';
 import { Player } from './Player';
 
 // The owner's plain player while the deck is live: one more presenter-role client of the presentation. It follows the
@@ -36,17 +36,21 @@ const window1: PresentationConnection = {
 const phone: PresentationConnection = { clientId: 'k-3', role: 'phone', label: 'Phone' };
 const audience: PresentationConnection = { clientId: 'k-2', role: 'audience', label: 'Room' };
 
-let seq = 200;
-const stateAt = (slide: number, overrides: Partial<PresentationState> = {}) =>
-  presentationState({
+// The stub numbers each state, newer than the last.
+const stateAt = (
+  slide: number,
+  overrides: Partial<PresentationState> = {},
+): StubPresentationState => {
+  const state = presentationState({
     deckId: deckPlay.id,
-    seq: ++seq,
     slide,
     step: 0,
     timer: { state: 'paused', elapsedMs: 760000 },
     connected: [],
     ...overrides,
   });
+  return { ...state, seq: undefined };
+};
 
 const count = (page: Page) => page.getByTestId('player-count');
 // Lets the page run its pending work, so a call it should not make has had its chance.
@@ -55,7 +59,7 @@ const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTime
 async function mountLivePlayer(
   mount: (component: React.JSX.Element) => Promise<unknown>,
   page: Page,
-  state: PresentationState,
+  state: StubPresentationState,
   hash = '',
   options: { holdUpdates?: boolean; holdJoin?: boolean } = {},
 ) {
@@ -206,7 +210,7 @@ test('LivePlayer_WhenAnotherClientMovesAfterAPress_ShouldMoveOnFromTheirPosition
   await expect.poll(() => hub.updates.length).toBe(1);
   const before = hub.updates[0];
 
-  hub.pushState(stateAt(4, { seq: 900, connected: [window1] }));
+  hub.pushState(stateAt(4, { connected: [window1] }));
   await expect(page.getByTestId('slide-4')).toBeVisible();
   await page.keyboard.press('ArrowRight');
 
@@ -257,7 +261,7 @@ test('LivePlayer_WhenTheConnectionIsDown_ShouldFreezeTheMovesAndShowTheReconnect
   await expect(page.getByTestId('slide-2')).toBeVisible();
   expect(hub.updates).toEqual([]);
   await expect.poll(() => hub.presentationJoins.length).toBe(2);
-  hub.pushState(stateAt(4, { seq: 900, connected: [window1] }));
+  hub.pushState(stateAt(4, { connected: [window1] }));
   hub.releasePresentationJoins();
   await expect(page.getByTestId('slide-4')).toBeVisible();
   await expect(page.getByTestId('player-reconnecting')).toHaveCount(0);
