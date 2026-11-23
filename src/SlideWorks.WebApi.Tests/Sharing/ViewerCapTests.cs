@@ -19,7 +19,9 @@ public class ViewerCapTests : ApiTestFixture
 {
     private const string TOO_MANY = "viewers: at most 50 emails";
 
-    private const int HUGE_LIST = 100_000;
+    // Ten times the 200-entry read cap and still inside the 64 KB the sharing PUT accepts (about 52 KB); a body past that
+    // is refused 413 before it is read at all (RequestLimitTests).
+    private const int HUGE_LIST = 2_000;
 
     // Generous: the PUT stops reading the list at entry 201 and answers in a few milliseconds. The old quadratic walk
     // took 2.2 s for 20,000 emails, so 100,000 would take about a minute.
