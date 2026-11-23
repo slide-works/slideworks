@@ -27,10 +27,12 @@ export function DeckHeader({ view, onShare }: DeckHeaderProps) {
       >
         {sharingLabel(view.sharing)}
       </span>
-      {!view.isOwner && (
+      {view.access !== 'owner' && (
         <span
           data-testid="deck-access"
-          className="rounded-full bg-panel-2 px-2 py-0.5 text-xs font-medium text-ink"
+          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+            view.access === 'write' ? 'bg-ok-soft text-ok' : 'bg-panel-2 text-ink'
+          }`}
         >
           {accessLabel(view.access)}
         </span>

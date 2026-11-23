@@ -42,8 +42,13 @@ test('DeckPage_WhenWrite_ShouldShowEditPanelsWithoutShare', async ({ mount, page
   await expect(page.getByRole('region', { name: 'Q&A and reactions' })).toBeVisible();
   await expect(page.getByTestId('deck-access')).toHaveText('Can edit');
   await expect(page.getByTestId('deck-share')).toHaveCount(0);
+  // A writer may present: the split button and the live controls follow canEdit.
+  await page.getByTestId('present-menu').click();
+  await expect(page.getByTestId('present-menu-presenter-view')).toBeVisible();
+  await expect(page.getByTestId('present-menu-phone')).toBeVisible();
 });
 
+// The server sends a reader 404 on the deck page, so this state only guards the client.
 test('DeckPage_WhenRead_ShouldShowNeither', async ({ mount, page }) => {
   await open(mount, page, { ...deckPage, isOwner: false, canEdit: false, access: 'read' });
 

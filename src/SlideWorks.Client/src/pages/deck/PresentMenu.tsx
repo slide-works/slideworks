@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { DeckPageView } from '../../api/types';
 import { PhoneConnectDialog } from '../../presentation/PhoneConnectDialog';
 
-// The split Present button. ▶ Present opens the player as it always did. For the deck's owner the arrow opens
+// The split Present button. ▶ Present opens the player as it always did. For anyone who can edit (owner or write) the arrow opens
 // three ways to present (PNG 03): the player, the presenter view, and the phone remote. Opening the menu moves focus
 // to its first item; Escape closes it and returns focus to the arrow; a click outside or tabbing out closes it.
 export function PresentMenu({ view }: { view: DeckPageView }) {
@@ -59,7 +59,7 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
       ▶ Present
     </Link>
   );
-  if (!view.isOwner) return present;
+  if (!view.canEdit) return present;
 
   return (
     <div ref={rootRef} className="relative" onKeyDown={closeOnEscape} onBlur={closeOnFocusLeaving}>

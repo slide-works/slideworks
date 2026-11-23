@@ -137,7 +137,7 @@ export function DeckPage({ measure = measureSlide }: { measure?: Measure }) {
     view.slides.find((candidate) => candidate.number === selected) ?? view.slides.at(-1);
 
   return (
-    <JoinProvider deckId={view.id} join={view.join} owner={view.isOwner}>
+    <JoinProvider deckId={view.id} join={view.join} owner={view.canEdit}>
       <section ref={root} data-testid="deck-page" data-deck-id={view.id} className="grid gap-5">
         <DeckHeader view={view} onShare={() => setSharing(true)} />
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
