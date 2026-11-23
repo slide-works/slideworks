@@ -39,6 +39,19 @@ public class HeadingRulesTests
     }
 
     [Test]
+    public void Validate_WhenTheHeadlineIsSixtyTwoWideCapitals_ShouldAccept()
+    {
+        Validate("bullets", Bullets(headline: new string('W', 62))).Errors.ShouldBeEmpty();
+    }
+
+    [Test]
+    public void Validate_WhenTheHeadlineIsSixtyThreeWideCapitals_ShouldRefuse()
+    {
+        Validate("bullets", Bullets(headline: new string('W', 63))).Errors
+            .ShouldHaveSingleItem().ShouldContain("too much text to fit in 2 lines", Case.Sensitive);
+    }
+
+    [Test]
     public void Validate_WhenAQuoteHeadlineIsHundredWideCapitals_ShouldNotApplyTheSharedRule()
     {
         Validate("quote", """{ "headline": "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW", "quote": "q", "attribution": "a" }""")
