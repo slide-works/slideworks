@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
-import type { DeckPlayView } from '../api/types';
 import { AppRoutes } from '../AppRoutes';
 import type { PresentationConnection, PresentationState } from '../presentation/types';
 import { deckPlay } from '../test-support/fixtures/screens';
+import { longerDeckPlay } from '../test-support/fixtures/longerDecks';
 import { presentationState } from '../test-support/fixtures/presenting';
 import { stubApi } from '../test-support/stubApi';
 import { stubDeckHub, type StubPresentationState } from '../test-support/stubDeckHub';
@@ -191,15 +191,11 @@ test('audience mode refetches the deck on DeckChanged over the one socket', asyn
   mount,
   page,
 }) => {
-  const longer: DeckPlayView = {
-    ...deckPlay,
-    slides: [...deckPlay.slides, { ...deckPlay.slides[1], number: 4 }],
-  };
   const hub = await stubDeckHub(page, { presentation: { state: stateAt(2) } });
   let reads = 0;
   await page.route(`**${playPath}`, (route) => {
     reads += 1;
-    return route.fulfill({ json: reads <= 2 ? deckPlay : longer });
+    return route.fulfill({ json: reads <= 2 ? deckPlay : longerDeckPlay });
   });
   await mount(<AppRoutes />, { hooksConfig: { route: audienceRoute } });
 
