@@ -3,8 +3,7 @@
     "layout": "stack",
     "estimate": 486.8,
     "grow": [
-      "/segments/0/label",
-      "/points/2/text"
+      "/segments/0/label"
     ],
     "refusedBy": "fit",
     "slots": {
@@ -37,7 +36,7 @@
           "note": "Disks backups and replicas by regioneeee"
         },
         {
-          "label": "Hardware Foundatio",
+          "label": "Hardware",
           "tag": "Fixed Cost"
         }
       ],
@@ -46,7 +45,7 @@
       "points": [
         {
           "lead": "Speed",
-          "text": "Incrementalincrementa Latnemercnilatnemercn Incrementalinincreme"
+          "text": "Incrementalincrementa Latnemercnilatnemercn"
         },
         {
           "lead": "Safety",

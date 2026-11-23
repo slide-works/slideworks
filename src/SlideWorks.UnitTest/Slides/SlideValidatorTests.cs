@@ -468,7 +468,7 @@ public class SlideValidatorTests
     [Test]
     public void Validate_WhenRulesOfWideLettersWrapPastTheSlide_ShouldSayTheyDoNotFit()
     {
-        // 108 characters of text wrap to two lines at 0.56 em, so four such rules come to about 635 px.
+        // 108 characters of text wrap to two lines at 0.56 em, but their wide letters wrap them to three, so four such rules come to about 836 px.
         const string TITLE = "Many Women Who Wander Wide Meadows Mow Moss With Me When Warm";
         const string TEXT = "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays When Many Women Wander Wide Meadows Mow";
         var rule = $$"""{ "title": "{{TITLE[..60]}}", "text": "{{TEXT}}" }""";
@@ -476,7 +476,7 @@ public class SlideValidatorTests
 
         var result = Validate("rules", $$"""{ "headline": "h", "rules": [{{rules}}] }""");
 
-        result.Error.ShouldStartWith("rules.rules: too much text to fit on the slide (about 635 px of 620 px)");
+        result.Error.ShouldStartWith("rules.rules: too much text to fit on the slide (about 836 px of 620 px)");
     }
 
     [Test]
