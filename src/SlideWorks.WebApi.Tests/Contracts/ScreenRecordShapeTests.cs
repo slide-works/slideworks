@@ -9,6 +9,8 @@ using SlideWorks.WebApi.Features.Checks;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Features.Accounts.Admin;
 using SlideWorks.WebApi.Features.Accounts.Avatars;
+using SlideWorks.WebApi.Features.Accounts.Profile;
+using SlideWorks.WebApi.Features.Accounts.Profile.Views;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Decks.Views;
@@ -210,6 +212,24 @@ public class ScreenRecordShapeTests : ApiTestFixture
 
     // GET /api/me is real already: the shape test checks the response
     // for shape only, and the record with every field set.
+    [Test]
+    public void Profile_ShouldMatchContract()
+    {
+        var example = Example("profile.json");
+        var view = new ProfileView(
+            new IdentityPanel("Sam Rivera", "sam@team.example", new AvatarView("SR", "teal", "/api/people/0b9c1d42-5a77-4f0e-9d3a-6c1e2f8a7b10/photo/q7Xk2mP9aLw4"), "teal", AvatarColours.Keys, true),
+            new AccountPanel("Europe/London", [new TimeZoneOption("Europe/London", "(UTC+00:00) London"), new TimeZoneOption("America/New_York", "(UTC-05:00) New York")], true, "/admin/users"),
+            [
+                new AgentRow(Guid.Parse("3f2b7c84-1d5e-4a90-8b6f-9e0d4c7a2b15"), "Claude", "3 days ago", "2 min ago"),
+                new AgentRow(Guid.Parse("8a1e5d36-7c42-4f09-b2d8-5e6f0a9c3d71"), "Cursor", "Unknown", null),
+            ]);
+
+        var json = Serialise(view);
+
+        JsonShape.AssertMatches(json, "profile.json", ScreenShapes.Profile);
+        SameJson(json, example).ShouldBeTrue(Differs(json, example));
+    }
+
     [Test]
     public async Task Me_ShouldMatchContract()
     {
