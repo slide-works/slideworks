@@ -662,6 +662,25 @@ public class SlideValidatorTests
         properties["headline"]!["type"]!.GetValue<string>().ShouldBe("string");
     }
 
+    [Test]
+    public void ToJsonSchema_WhenColumnHasExactlyOneOf_ShouldCountOnlyNonNullFieldsAsTheValidatorDoes()
+    {
+        var column = LayoutCatalogue.Find("two-column")!.ToJsonSchema()["properties"]!["left"]!;
+
+        var branches = column["oneOf"]!.AsArray();
+        branches.Select(branch => branch!["required"]![0]!.GetValue<string>()).ShouldBe(["items", "text", "image"]);
+        foreach (var branch in branches)
+        {
+            var name = branch!["required"]![0]!.GetValue<string>();
+            branch["properties"]![name]!["not"]!["type"]!.GetValue<string>().ShouldBe("null");
+        }
+
+        Validate("two-column", """{ "headline": "h", "left": { "items": null, "text": "t" }, "right": { "text": "r" } }""")
+            .IsValid.ShouldBeTrue();
+        Validate("two-column", """{ "headline": "h", "left": { "items": null }, "right": { "text": "r" } }""")
+            .Error.ShouldBe("two-column.left: exactly one of items, text, image");
+    }
+
     // count options of length characters each, as a JSON list's items.
     private static string Options(int count, int length) =>
         string.Join(", ", Enumerable.Range(0, count).Select(i => $"\"{(char)('a' + i)}{new string('o', length - 1)}\""));

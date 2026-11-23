@@ -43,8 +43,14 @@ public sealed class ObjectSlot(IReadOnlyList<SlotField> fields, IReadOnlyList<st
         };
         if (ExactlyOneOf.Count > 0)
         {
+            // Each branch needs its field present and not null: the validator counts only non-null fields
+            // (IsPresent), so { "items": null, "text": "..." } is one field, not two.
             result["oneOf"] = new JsonArray(ExactlyOneOf
-                .Select(name => (JsonNode?)new JsonObject { ["required"] = new JsonArray(JsonValue.Create(name)) })
+                .Select(name => (JsonNode?)new JsonObject
+                {
+                    ["required"] = new JsonArray(JsonValue.Create(name)),
+                    ["properties"] = new JsonObject { [name] = new JsonObject { ["not"] = new JsonObject { ["type"] = "null" } } },
+                })
                 .ToArray());
         }
 
