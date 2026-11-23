@@ -28,6 +28,11 @@ public sealed class DeckPage(IPage page)
 
     public ILocator Share => page.GetByTestId("deck-share");
 
+    // "Can edit" or "Can view": shown only to a person the deck was shared with, never to its owner.
+    public ILocator AccessBadge => page.GetByTestId("deck-access");
+
+    public ILocator LookPanel => page.GetByTestId("look-panel");
+
     public ILocator Present => page.GetByTestId("deck-present");
 
     // The Present menu's arrow and its three items; the menu shows only to the deck's owner.

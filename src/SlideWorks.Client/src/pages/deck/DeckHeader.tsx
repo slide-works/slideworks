@@ -1,6 +1,7 @@
 import type { DeckPageView } from '../../api/types';
 import { LaterButton } from './LaterButton';
 import { PresentMenu } from './PresentMenu';
+import { accessLabel } from './accessLabel';
 import { sharingLabel } from './sharingLabel';
 
 type DeckHeaderProps = { view: DeckPageView; onShare(): void };
@@ -26,6 +27,16 @@ export function DeckHeader({ view, onShare }: DeckHeaderProps) {
       >
         {sharingLabel(view.sharing)}
       </span>
+      {view.access !== 'owner' && (
+        <span
+          data-testid="deck-access"
+          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+            view.access === 'write' ? 'bg-ok-soft text-ok' : 'bg-panel-2 text-ink'
+          }`}
+        >
+          {accessLabel(view.access)}
+        </span>
+      )}
       <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
         <LaterButton label="Check slides" feature="SW-3" />
         {view.isOwner && (

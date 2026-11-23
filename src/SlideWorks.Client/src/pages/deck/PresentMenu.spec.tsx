@@ -30,9 +30,19 @@ test('owner, Present still opens the player', async ({ mount, page }) => {
 });
 
 test('not the owner, there is no menu, only Present', async ({ mount, page }) => {
-  await mount(<PresentMenu view={{ ...deckPage, isOwner: false }} />);
+  await mount(<PresentMenu view={{ ...deckPage, isOwner: false, canEdit: false }} />);
   await expect(page.getByTestId('deck-present')).toBeVisible();
   await expect(page.getByTestId('present-menu')).toHaveCount(0);
+});
+
+test('a writer, the arrow opens the three ways to present', async ({ mount, page }) => {
+  await mount(
+    <PresentMenu view={{ ...deckPage, isOwner: false, canEdit: true, access: 'write' }} />,
+  );
+  await page.getByTestId('present-menu').click();
+  await expect(page.getByTestId('present-menu-player')).toBeVisible();
+  await expect(page.getByTestId('present-menu-presenter-view')).toBeVisible();
+  await expect(page.getByTestId('present-menu-phone')).toBeVisible();
 });
 
 test('Presenter view opens the audience window and goes to the presenter page', async ({
