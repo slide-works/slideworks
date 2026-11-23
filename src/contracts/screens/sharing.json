@@ -6,5 +6,24 @@
     "actor": "Claude",
     "actorKind": "agent",
     "atLabel": "just now"
-  }
+  },
+  "owner": {
+    "email": "sam@team.example",
+    "name": "Sam Rivera",
+    "avatar": { "initials": "SR", "colour": "teal", "pictureUrl": "https://slideworks.example/avatars/sam-rivera.png" }
+  },
+  "people": [
+    {
+      "email": "alex@team.example",
+      "name": "Alex Chen",
+      "avatar": { "initials": "AC", "colour": "blue", "pictureUrl": null },
+      "access": "write"
+    },
+    {
+      "email": "mira@team.example",
+      "name": null,
+      "avatar": null,
+      "access": "read"
+    }
+  ]
 }

@@ -48,7 +48,8 @@ public class ScreenRecordShapeTests : ApiTestFixture
                     new DeckRow("Ob3nWk1Jn9Ef", "onboarding-week-one", "Onboarding: week one", "For new joiners", 12,
                         LastChange.From(Entry("Cursor", ActorKind.Agent, ActorVia.Mcp, "set_notes", "updated notes")),
                         DeckSharing.Named, 5, "Yesterday", "/d/Ob3nWk1Jn9Ef/onboarding-week-one"),
-                    "Alex Chen"),
+                    "Alex Chen",
+                    "read"),
             ],
             new ConnectAgent(Show: true, McpUrl: "https://slideworks.example/mcp"));
 
@@ -62,7 +63,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
     public void DecksLibrary_WhenOptionalFieldsAreNull_ShouldMatchContract()
     {
         var row = new DeckRow("7Kq2xYp9LmQa", "ship-smaller", "Ship smaller", null, 0, null, DeckSharing.Private, 0, "just now", "/d/7Kq2xYp9LmQa/ship-smaller");
-        var view = new DecksLibraryView([row], [SharedDeckRow.From(row, "Alex Chen")], new ConnectAgent(false, "https://slideworks.example/mcp"));
+        var view = new DecksLibraryView([row], [SharedDeckRow.From(row, "Alex Chen", "read")], new ConnectAgent(false, "https://slideworks.example/mcp"));
 
         var json = Serialise(view);
 
@@ -96,6 +97,8 @@ public class ScreenRecordShapeTests : ApiTestFixture
             "Sam Rivera",
             example.GetProperty("revision").GetInt64(),
             IsOwner: true,
+            CanEdit: true,
+            Access: "owner",
             PlayUrl: "/d/7Kq2xYp9LmQa/ship-smaller",
             example.GetProperty("join").Deserialize<JoinView>(AppJsonOptions())!,
             SharingSummary.From(DeckSharing.Link, 0),
@@ -120,7 +123,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
     {
         var deck = new Deck { Id = "7Kq2xYp9LmQa", Slug = "ship-smaller", Title = "Ship smaller", PartsJson = "[]", Template = "workshop", Palette = "cobalt" };
         var slide = DeckPageSlide.From(deck, new Slide { DeckId = deck.Id, Layout = "bullets", SlotsJson = """{ "items": ["One"] }""" }, Workshop);
-        var view = new DeckPageView(deck.Id, deck.Slug, deck.Title, null, 0, false, "/d/7Kq2xYp9LmQa/ship-smaller",
+        var view = new DeckPageView(deck.Id, deck.Slug, deck.Title, null, 0, false, false, "read", "/d/7Kq2xYp9LmQa/ship-smaller",
             new JoinView("482913", "482 913", "https://slideworks.live/482913", "slideworks.live", false), SharingSummary.From(DeckSharing.Private, 0), [], LookViews.ForPage(deck, Workshop, Palettes), [slide],
             [ActivityRow.From(Entry("Sam Rivera", ActorKind.Person, ActorVia.Web, null, "created the deck"), "just now")], []);
 
@@ -179,13 +182,18 @@ public class ScreenRecordShapeTests : ApiTestFixture
             DeckSharing.Named,
             ["alex@team.example", "mira@team.example"],
             "https://slideworks.example/d/7Kq2xYp9LmQa/ship-smaller",
-            SharingLastChange.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "set_sharing", "changed sharing"), "just now"));
+            SharingLastChange.From(Entry("Claude", ActorKind.Agent, ActorVia.Mcp, "set_sharing", "changed sharing"), "just now"),
+            new SharingOwnerView("sam@team.example", "Sam Rivera", new AvatarView("SR", "teal", "https://slideworks.example/avatars/sam-rivera.png")),
+            [
+                new SharingPersonView("alex@team.example", "Alex Chen", new AvatarView("AC", "blue", null), "write"),
+                new SharingPersonView("mira@team.example", null, null, "read"),
+            ]);
 
         var json = Serialise(view);
 
         JsonShape.AssertMatches(json, "sharing.json", ScreenShapes.Sharing);
         SameJson(json, example).ShouldBeTrue(Differs(json, example));
-        JsonShape.AssertMatches(Serialise(view with { LastChange = null, Viewers = [] }), "sharing.json", ScreenShapes.Sharing);
+        JsonShape.AssertMatches(Serialise(view with { LastChange = null, Viewers = [], People = [] }), "sharing.json", ScreenShapes.Sharing);
     }
 
     // The PUT body is { level, viewers }, read with the app's JSON options.
@@ -231,6 +239,7 @@ public class ScreenRecordShapeTests : ApiTestFixture
                 row.GetProperty("name").GetString()!,
                 row.GetProperty("email").GetString()!,
                 row.GetProperty("pictureUrl").GetString(),
+                row.GetProperty("avatar").Deserialize<AvatarView>(AppJsonOptions())!,
                 row.GetProperty("access").GetString()!,
                 row.GetProperty("isAdmin").GetBoolean(),
                 row.GetProperty("isSelf").GetBoolean(),

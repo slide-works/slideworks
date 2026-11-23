@@ -1,3 +1,5 @@
+using SlideWorks.WebApi.Features.Accounts.Avatars;
+
 namespace SlideWorks.WebApi.Features.Accounts.Admin;
 
 // One account on /admin/users. Access is "pending", "approved" or "rejected". The labels are server-formatted.
@@ -7,6 +9,7 @@ public sealed record AdminUserRow(
     string Name,
     string Email,
     string? PictureUrl,
+    AvatarView Avatar,
     string Access,
     bool IsAdmin,
     bool IsSelf,
