@@ -16,6 +16,7 @@ import imageUploadJson from '@contracts/screens/image-upload.json' with { type: 
 import lookChangeJson from '@contracts/screens/look-change.json' with { type: 'json' };
 import looksJson from '@contracts/screens/looks.json' with { type: 'json' };
 import meJson from '@contracts/screens/me.json' with { type: 'json' };
+import profileJson from '@contracts/screens/profile.json' with { type: 'json' };
 import sharingJson from '@contracts/screens/sharing.json' with { type: 'json' };
 import sampleDeckJson from '@contracts/sample-deck.json' with { type: 'json' };
 import type {
@@ -33,6 +34,7 @@ import type {
   MeView,
   SharingView,
 } from '../../api/types';
+import type { ProfileView } from '../../api/profile';
 import { DEFAULT_QA_TITLE } from '../../slides/layouts/qaTitle';
 import type { LayoutName, Slots } from '../../slides/slots';
 import { LAYOUT_SLOTS } from './layoutSlots';
@@ -43,6 +45,7 @@ export const adminUsers = adminUsersJson satisfies Widen<AdminUsersView> as Admi
 export const decksLibrary = decksLibraryJson satisfies Widen<DecksLibraryView> as DecksLibraryView;
 export const deckPage = deckPageJson satisfies JsonView<DeckPageView> as DeckPageView;
 export const deckPlay = deckPlayJson satisfies JsonView<DeckPlayView> as DeckPlayView;
+export const profile = profileJson satisfies Widen<ProfileView> as ProfileView;
 export const sharing = sharingJson satisfies Widen<SharingView> as SharingView;
 export const consent = consentJson satisfies Widen<ConsentView> as ConsentView;
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FocusEvent, KeyboardEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { MeView } from '../api/types';
 
@@ -14,8 +14,8 @@ function initials(name: string): string {
 }
 
 // The signed-in person's initials in the top bar. Opening it shows who is signed
-// in and a sign-out button, which ends the cookie session (POST /api/signout) and
-// goes to /signin. Opening moves focus to the first item; Escape closes it and
+// in and a list: Profile, People (admin) for admins, and Sign out, which ends the cookie
+// session (POST /api/signout) and goes to /signin. Opening moves focus to the first item; Escape closes it and
 // returns focus to the button; a click outside or tabbing out of it closes it.
 export function UserMenu({ me }: { me: MeView }) {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export function UserMenu({ me }: { me: MeView }) {
   const [failed, setFailed] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const firstItemRef = useRef<HTMLButtonElement>(null);
+  const firstItemRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -90,13 +90,26 @@ export function UserMenu({ me }: { me: MeView }) {
             <span className="text-meta font-semibold text-ink">{me.name}</span>
             <span className="truncate text-meta text-ink-muted">{me.email}</span>
           </div>
-          <button
+          <Link
             ref={firstItemRef}
-            type="button"
+            to="/profile"
             className="btn-ghost"
-            data-testid="user-menu-signout"
-            onClick={signOut}
+            data-testid="user-menu-profile"
+            onClick={() => setOpen(false)}
           >
+            Profile
+          </Link>
+          {me.isAdmin && (
+            <Link
+              to="/admin/users"
+              className="btn-ghost"
+              data-testid="user-menu-people"
+              onClick={() => setOpen(false)}
+            >
+              People (admin)
+            </Link>
+          )}
+          <button type="button" className="btn-ghost" data-testid="user-menu-signout" onClick={signOut}>
             Sign out
           </button>
           {failed && (
