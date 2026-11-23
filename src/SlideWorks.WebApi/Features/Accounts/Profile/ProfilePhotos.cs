@@ -36,6 +36,7 @@ public class ProfilePhotos(AppDbContext db, AvatarFiles files) : IProfilePhotos
         }
         var temp = await files.WriteTempAsync(body, cancellationToken);
         var moved = false;
+        var saved = false;
         string? placed = null;
         try
         {
@@ -57,7 +58,7 @@ public class ProfilePhotos(AppDbContext db, AvatarFiles files) : IProfilePhotos
             user.PhotoId = photoId;
             user.PhotoContentType = type;
             await db.SaveChangesAsync(cancellationToken);
-            placed = null;
+            saved = true;
         }
         finally
         {
@@ -65,7 +66,7 @@ public class ProfilePhotos(AppDbContext db, AvatarFiles files) : IProfilePhotos
             {
                 File.Delete(temp);
             }
-            if (placed != null)
+            if (!saved && placed != null)
             {
                 File.Delete(placed);
             }
