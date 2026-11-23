@@ -6,7 +6,8 @@ namespace SlideWorks.WebApi.Features.Decks.Views;
 
 // GET /api/decks/{id}: the deck page (src/contracts/screens/deck-page.json). PlayUrl is root-relative: /d/{id}/{slug}.
 // Activity is newest first, at most 50 entries. Revision is the deck's change counter; Look is the deck's look with its
-// chrome overrides and contrast summary (L6).
+// chrome overrides and contrast summary (L6). CanEdit says whether the caller may edit the deck and Access is "owner", "write"
+// or "read" (C4); IsOwner keeps its meaning.
 public sealed record DeckPageView(
     string Id,
     string Slug,
@@ -14,6 +15,8 @@ public sealed record DeckPageView(
     string? Author,
     long Revision,
     bool IsOwner,
+    bool CanEdit,
+    string Access,
     string PlayUrl,
     JoinView Join,
     SharingSummary Sharing,

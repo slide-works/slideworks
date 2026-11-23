@@ -44,7 +44,11 @@ public sealed class SharingBodyErrorsAttribute : ActionFilterAttribute
         {
             return SharingService.LEVEL_INVALID;
         }
-        return errors.Any(entry => Mentions(entry, "viewers")) ? SharingService.VIEWERS_INVALID : BODY_INVALID;
+        if (errors.Any(entry => Mentions(entry, "viewers")))
+        {
+            return SharingService.VIEWERS_INVALID;
+        }
+        return errors.Any(entry => Mentions(entry, "people")) ? SharingService.PEOPLE_INVALID : BODY_INVALID;
     }
 
     private static bool Mentions(KeyValuePair<string, ModelStateEntry?> entry, string field)

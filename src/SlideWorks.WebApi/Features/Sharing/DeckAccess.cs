@@ -36,7 +36,9 @@ public class DeckAccess(AppDbContext db) : IDeckAccess
         return await db.DeckViewers.AnyAsync(v => v.DeckId == deckId && v.Email == email);
     }
 
-    public async Task<bool> CanEditAsync(string deckId, ICurrentActor actor)
+    public async Task<bool> CanEditAsync(string deckId, ICurrentActor actor) => await IsOwnerAsync(deckId, actor);
+
+    public async Task<bool> IsOwnerAsync(string deckId, ICurrentActor actor)
     {
         var presenterId = actor.PresenterId;
         return presenterId != null && await db.Decks.AnyAsync(d => d.Id == deckId && d.OwnerId == presenterId);

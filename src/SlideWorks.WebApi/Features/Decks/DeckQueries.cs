@@ -60,6 +60,8 @@ public class DeckQueries(
             deck.Author,
             deck.Revision,
             IsOwner: true,
+            CanEdit: true,
+            Access: "owner",
             DeckLinks.Play(deck.Id, deck.Slug),
             await joinViews.ForAsync(deck),
             SharingSummary.From(deck.Sharing, viewerCount),
@@ -183,7 +185,8 @@ public class DeckQueries(
                     d.ViewerCount,
                     dates.Ago(d.UpdatedAt),
                     DeckLinks.Play(d.Id, d.Slug)),
-                d.OwnerName))
+                d.OwnerName,
+                "read"))
             .ToList();
     }
 }

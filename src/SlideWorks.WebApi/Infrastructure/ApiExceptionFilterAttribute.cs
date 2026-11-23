@@ -24,6 +24,10 @@ public sealed class ApiExceptionFilterAttribute : ExceptionFilterAttribute
         {
             return;
         }
+        if (context.Exception is TooManyRequestsException { RetryAfter: { } retryAfter })
+        {
+            context.HttpContext.Response.Headers.RetryAfter = ((long)Math.Ceiling(retryAfter.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
         context.Result = result;
         context.ExceptionHandled = true;
     }
