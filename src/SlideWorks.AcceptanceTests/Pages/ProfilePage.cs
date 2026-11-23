@@ -34,6 +34,8 @@ public sealed class ProfilePage(IPage page)
 
     public ILocator RemovePhoto => page.GetByTestId("profile-photo-remove");
 
+    public ILocator PhotoPicture => page.GetByTestId("profile-photo-avatar-picture");
+
     // Says which picture is shown: the person's photo, their Google picture or initials.
     public ILocator PhotoSource => page.GetByTestId("profile-photo-source");
 
