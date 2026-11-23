@@ -16,6 +16,11 @@ public class ReconnectRereadJourneyTests : AcceptanceTest
     private const string AFTER = "Edited while offline.";
     private const string OPEN_HUB_SOCKET = "() => window.__hubSockets.some((s) => s.readyState === WebSocket.OPEN)";
 
+    // A mark set on the window before the drop; a reload would clear it, so finding it after the new text shows proves the
+    // page re-read the deck in place.
+    private const string MARK_DOCUMENT = "() => { window.__sw813SameDocument = true; }";
+    private const string SAME_DOCUMENT = "() => window.__sw813SameDocument === true";
+
     [Test]
     public async Task DeckPage_WhenItsHubDropsAndTheSlideIsEditedWhileDown_ShouldShowTheNewTextAfterTheReconnectWithoutReloading()
     {
@@ -29,6 +34,7 @@ public class ReconnectRereadJourneyTests : AcceptanceTest
         await Expect(deck.Thumbnail(1)).ToContainTextAsync(BEFORE, new() { UseInnerText = true });
         await Page.WaitForFunctionAsync(OPEN_HUB_SOCKET);
 
+        await Page.EvaluateAsync(MARK_DOCUMENT);
         (await hub.DropAsync()).ShouldBe(1, "the deck page should have had one hub socket to drop");
         await EditWhileDownAsync(id);
 
@@ -42,6 +48,7 @@ public class ReconnectRereadJourneyTests : AcceptanceTest
         await Expect(deck.Thumbnail(1)).Not.ToContainTextAsync(BEFORE, new() { UseInnerText = true });
         await Expect(deck.Thumbnail(1)).ToBeVisibleAsync();
         await Expect(deck.Error).ToHaveCountAsync(0);
+        (await Page.EvaluateAsync<bool>(SAME_DOCUMENT)).ShouldBeTrue("the page should not have reloaded");
     }
 
     [Test]
@@ -56,6 +63,7 @@ public class ReconnectRereadJourneyTests : AcceptanceTest
         await Expect(player.Slide(1)).ToContainTextAsync(BEFORE, new() { UseInnerText = true });
         await Page.WaitForFunctionAsync(OPEN_HUB_SOCKET);
 
+        await Page.EvaluateAsync(MARK_DOCUMENT);
         (await hub.DropAsync()).ShouldBe(1, "the player should have had one hub socket to drop");
         await EditWhileDownAsync(id);
 
@@ -69,6 +77,7 @@ public class ReconnectRereadJourneyTests : AcceptanceTest
         await Expect(player.Slide(1)).Not.ToContainTextAsync(BEFORE, new() { UseInnerText = true });
         await Expect(player.Slide(1)).ToBeVisibleAsync();
         await Expect(player.Error).ToHaveCountAsync(0);
+        (await Page.EvaluateAsync<bool>(SAME_DOCUMENT)).ShouldBeTrue("the page should not have reloaded");
     }
 
     // Sam's deck with one quote slide saying BEFORE, made the way an agent makes it.
