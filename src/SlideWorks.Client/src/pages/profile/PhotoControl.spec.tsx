@@ -68,7 +68,9 @@ test('a refusal shows the server text under the photo and changes nothing', asyn
 
   await page.getByTestId('profile-photo-input').setInputFiles(png);
 
-  await expect(page.getByTestId('profile-photo-error')).toHaveText('That looks like a damaged image');
+  await expect(page.getByTestId('profile-photo-error')).toHaveText(
+    'That looks like a damaged image',
+  );
   await expect(page.getByTestId('profile-photo-source')).toHaveText('Picture: Initials');
   await expect(page.getByRole('button', { name: 'Remove photo' })).toHaveCount(0);
 });

@@ -56,7 +56,9 @@ export function PhotoControl({ identity }: { identity: ProfileIdentity }) {
   };
 
   const remove = async () => {
-    if (await apply(() => fetch('/api/me/photo', { method: 'DELETE', credentials: 'same-origin' }))) {
+    if (
+      await apply(() => fetch('/api/me/photo', { method: 'DELETE', credentials: 'same-origin' }))
+    ) {
       setRefocus((n) => n + 1);
     }
   };
