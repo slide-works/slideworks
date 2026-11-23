@@ -96,7 +96,7 @@ Also banned at build time: `DateTime.Now`, `UtcNow` and friends (`src/BannedSymb
   ```
 
 - **A class derived from a framework type with no interface** (an `OpenIdConnectEvents` subclass) needs `[RegisterPerRequest(Concrete = true)]`; see `Infrastructure/Identity/Google/GoogleSignInEvents.cs`.
-- **Registration errors.** `AutoWireAssembly` (called in `Program.cs`) scans the API assembly at startup. A failure comes out as a `RegistrationFailedException` ("There are validations errors") that hides the cause. `Program.cs` passes the `OnRegistrationContextException` hook of `ContainerRegistrationOption` (Agoda.IoC.NetCore 1.1.144), which writes each cause to stderr before the exception propagates, so the test log or console shows it:
+- **Registration errors.** `AutoWireAssembly` (called in `Program.cs`) scans the API assembly at startup. A failure comes out as a `RegistrationFailedException` ("There are validations errors") that hides the cause. `Program.cs` passes the `OnRegistrationContextException` hook of `ContainerRegistrationOption` (Agoda.IoC.Core 1.1.144; `AutoWireAssembly` itself is in Agoda.IoC.NetCore), which writes each cause to stderr before the exception propagates, so the test log or console shows it:
 
   ```csharp
   builder.Services.AutoWireAssembly([ApiMarker.Assembly], isMockMode: false,
