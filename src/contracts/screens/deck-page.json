@@ -248,7 +248,8 @@
       "via": "mcp",
       "tool": "add_slide",
       "summary": "added slide 3 close",
-      "atLabel": "2 min ago"
+      "atLabel": "2 min ago",
+      "isMe": false
     },
     {
       "actor": "Claude",
@@ -256,7 +257,8 @@
       "via": "mcp",
       "tool": "set_sharing",
       "summary": "changed sharing: Private → Anyone with the link",
-      "atLabel": "5 min ago"
+      "atLabel": "5 min ago",
+      "isMe": false
     },
     {
       "actor": "Claude",
@@ -264,7 +266,8 @@
       "via": "mcp",
       "tool": "create_deck",
       "summary": "created the deck",
-      "atLabel": "9 min ago"
+      "atLabel": "9 min ago",
+      "isMe": false
     }
   ],
   "findings": [

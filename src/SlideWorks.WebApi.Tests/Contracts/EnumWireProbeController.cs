@@ -39,6 +39,6 @@ public class EnumWireProbeController : ControllerBase
         };
         return new EnumWireSample(
             new SharingView(DeckSharing.Link, [], "https://slideworks.example/d/7Kq2xYp9LmQa/ship-smaller", SharingLastChange.From(entry, "just now"), new SharingOwnerView("sam@team.example", "Sam Rivera", new AvatarView("SR", "teal", null)), []),
-            ActivityRow.From(entry, "just now", isOwner: true));
+            ActivityRow.From(entry, "just now", isOwner: true, viewerId: null));
     }
 }

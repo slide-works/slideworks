@@ -157,6 +157,7 @@ const ACTIVITY = keys<ActivityRow>({
   tool: true,
   summary: true,
   atLabel: true,
+  isMe: true,
 });
 const DECK_PLAY = keys<DeckPlayView>({
   id: true,

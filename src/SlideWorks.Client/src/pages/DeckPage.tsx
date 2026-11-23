@@ -162,7 +162,7 @@ export function DeckPage({ measure = measureSlide }: { measure?: Measure }) {
                 unchecked={checks.unchecked.has(slide.number)}
               />
             )}
-            <ActivityFeed rows={view.activity} isOwner={view.isOwner} />
+            <ActivityFeed rows={view.activity} />
             <LaterOnThisPage />
           </div>
         </div>

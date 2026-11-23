@@ -70,7 +70,7 @@ public class DeckQueries(
             DeckParts.Read(deck),
             looks.PageOf(deck, template),
             slides.Select(slide => DeckPageSlide.From(deck, slide, template)).ToList(),
-            entries.Select(entry => ActivityRow.From(entry, dates.Ago(entry.At), isOwner)).ToList(),
+            entries.Select(entry => ActivityRow.From(entry, dates.Ago(entry.At), isOwner, actor.PresenterId)).ToList(),
             findings);
     }
 

@@ -108,7 +108,10 @@ test('activity shows agent entries', async ({ mount, page }) => {
   await expect(rows.nth(2)).toContainText('Claude created the deck · 9 min ago · via MCP');
 });
 
-test("a person's change on the owner's page reads You", async ({ mount, page }) => {
+test("a person's own change reads You and another person's reads their name", async ({
+  mount,
+  page,
+}) => {
   const view: DeckPageView = {
     ...deckPage,
     activity: [
@@ -119,15 +122,28 @@ test("a person's change on the owner's page reads You", async ({ mount, page }) 
         tool: null,
         summary: 'created the deck',
         atLabel: 'just now',
+        isMe: true,
+      },
+      {
+        actor: 'Alex Chen',
+        actorKind: 'person',
+        via: 'web',
+        tool: null,
+        summary: 'changed the palette to Midnight',
+        atLabel: '1 min ago',
+        isMe: false,
       },
     ],
   };
   await stubApi(page, { '/api/me': { json: me }, [deckPath]: { json: view } });
   await mount(<AppRoutes />, route);
 
-  await expect(page.getByTestId('activity-row')).toContainText(
-    'You created the deck · just now · in the browser',
+  const rows = page.getByTestId('activity-row');
+  await expect(rows.nth(0)).toContainText('You created the deck · just now · in the browser');
+  await expect(rows.nth(1)).toContainText(
+    'Alex Chen changed the palette to Midnight · 1 min ago · in the browser',
   );
+  await expect(rows.nth(1)).not.toContainText('You');
 });
 
 test('deck page re-reads on DeckChanged', async ({ mount, page }) => {
