@@ -30,10 +30,16 @@ public class FirstSentOrderTests : ApiTestFixture
     private static readonly string LATE_SENDER = new('0', 32);
 
     private readonly List<HttpClient> _clients = [];
+    private readonly List<GuestClient> _guestClients = [];
 
     [TearDown]
-    public void DisposeClients()
+    public async Task DisposeClients()
     {
+        foreach (var guest in _guestClients)
+        {
+            await guest.DisposeAsync();
+        }
+        _guestClients.Clear();
         foreach (var client in _clients)
         {
             client.Dispose();
@@ -45,7 +51,7 @@ public class FirstSentOrderTests : ApiTestFixture
     public async Task Answers_WhenGuestsSendOutOfGuestIdOrder_ShouldNumberThemByArrival()
     {
         var room = await OpenTextRoomAsync();
-        await JoinAsync(room.SessionId, EARLY_SENDER, MIDDLE_SENDER, LATE_SENDER);
+        await JoinAsync(room, EARLY_SENDER, MIDDLE_SENDER, LATE_SENDER);
         await PutAnswerAsync(room, EARLY_SENDER, 0, "Early answer");
         Clock.Advance(TimeSpan.FromSeconds(5));
         await PutAnswerAsync(room, LATE_SENDER, 1, "Late answer");
@@ -59,7 +65,7 @@ public class FirstSentOrderTests : ApiTestFixture
     public async Task Answers_WhenALaterAnswerArrivesOrTheFirstGuestEdits_ShouldKeepEveryNumber()
     {
         var room = await OpenTextRoomAsync();
-        await JoinAsync(room.SessionId, EARLY_SENDER, MIDDLE_SENDER, LATE_SENDER);
+        await JoinAsync(room, EARLY_SENDER, MIDDLE_SENDER, LATE_SENDER);
         await PutAnswerAsync(room, EARLY_SENDER, 0, "Early answer");
         Clock.Advance(TimeSpan.FromSeconds(5));
         await PutAnswerAsync(room, LATE_SENDER, 1, "Late answer");
@@ -80,7 +86,7 @@ public class FirstSentOrderTests : ApiTestFixture
     public async Task Answers_WhenSentAtTheSameInstant_ShouldKeepArrivalOrder()
     {
         var room = await OpenTextRoomAsync();
-        await JoinAsync(room.SessionId, EARLY_SENDER, MIDDLE_SENDER, LATE_SENDER);
+        await JoinAsync(room, EARLY_SENDER, MIDDLE_SENDER, LATE_SENDER);
         await PutAnswerAsync(room, MIDDLE_SENDER, 0, "First in");
         await PutAnswerAsync(room, LATE_SENDER, 1, "Second in");
         await PutAnswerAsync(room, EARLY_SENDER, 2, "Third in");
@@ -94,14 +100,14 @@ public class FirstSentOrderTests : ApiTestFixture
     public async Task Wall_WhenGuestsSendOutOfGuestIdOrder_ShouldNumberAsTheControlsDo()
     {
         var room = await OpenTextRoomAsync();
-        await JoinAsync(room.SessionId, EARLY_SENDER, LATE_SENDER);
+        await JoinAsync(room, EARLY_SENDER, LATE_SENDER);
         await using var owner = await HubReceiver.StartAsync(Factory, TestUser.Sam);
         await owner.Connection.InvokeAsync("WatchAudience", room.DeckId);
         await PutAnswerAsync(room, EARLY_SENDER, 0, "Early answer");
         Clock.Advance(TimeSpan.FromSeconds(5));
         await PutAnswerAsync(room, LATE_SENDER, 1, "Late answer");
 
-        var wall = await NextOpenTextAsync(owner.NextAudienceAsync, 2);
+        var wall = await NextOpenTextAsync(owner.NextAudienceAsync, room.BaseRevision + 2);
 
         var shown = wall.GetProperty("answers").EnumerateArray().Select(a => $"{a.GetProperty("number").GetInt32()}:{a.GetProperty("text").GetString()}").ToList();
         shown.ShouldBe(await ControlTextsAsync(room));
@@ -112,7 +118,7 @@ public class FirstSentOrderTests : ApiTestFixture
     public async Task Words_WhenAGuestReplacesTheirWords_ShouldKeepTheirPlaceInArrival()
     {
         var room = await OpenWordRoomAsync();
-        await JoinAsync(room.SessionId, EARLY_SENDER, LATE_SENDER);
+        await JoinAsync(room, EARLY_SENDER, LATE_SENDER);
         await PutWordsAsync(room, EARLY_SENDER, 0, "Calm", "Busy");
         Clock.Advance(TimeSpan.FromSeconds(5));
         await PutWordsAsync(room, LATE_SENDER, 1, "Tired");
@@ -122,43 +128,28 @@ public class FirstSentOrderTests : ApiTestFixture
         (await ArrivalsAsync(room.RoundId)).ShouldBe(["Tired:2", "Quiet:1"], ignoreOrder: true);
     }
 
+    // Both guests send the same word. The guest with the highest id sends first, in lower case: the ordinal-least casing
+    // ("Calm") and the lowest guest id's casing are both the later sender's, so only first-sent order shows "calm".
     [Test]
-    public async Task Cloud_WhenTwoRowsShareAKeyWithDifferentCasing_ShouldShowTheEarliestSendersCasing()
+    public async Task Cloud_WhenGuestsSendTheSameWordInDifferentCasing_ShouldShowTheFirstSendersCasing()
     {
         var room = await OpenWordRoomAsync();
-        await SeedEntriesAsync(room.RoundId, ("a-late", 2, "Calm"), ("z-first", 1, "calm"));
+        await JoinAsync(room, EARLY_SENDER, LATE_SENDER);
+        await using var owner = await HubReceiver.StartAsync(Factory, TestUser.Sam);
+        await owner.Connection.InvokeAsync("WatchAudience", room.DeckId);
+        await PutWordsAsync(room, EARLY_SENDER, 0, "calm");
+        Clock.Advance(TimeSpan.FromSeconds(5));
+        await PutWordsAsync(room, LATE_SENDER, 1, "Calm");
 
+        var wall = await NextWordCloudAsync(owner.NextAudienceAsync, room.BaseRevision + 2);
+
+        wall.GetProperty("words").EnumerateArray().Select(w => w.GetProperty("text").GetString()).ShouldBe(["calm"]);
         using var response = await Client.GetAsync($"/api/decks/{room.DeckId}/slides/{room.Slide}/response");
-
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         response.StatusCode.ShouldBe(HttpStatusCode.OK, body.ToString());
         body.GetProperty("entries").GetArrayLength().ShouldBe(1);
         body.GetProperty("entries")[0].GetProperty("text").GetString().ShouldBe("calm");
         body.GetProperty("entries")[0].GetProperty("count").GetInt32().ShouldBe(2);
-    }
-
-    [Test]
-    public async Task Cloud_WhenTheWallAndTheControlsReadTheSameRows_ShouldShowTheSameCasing()
-    {
-        var room = await OpenWordRoomAsync();
-        await SeedEntriesAsync(room.RoundId, ("a-late", 2, "Calm"), ("z-first", 1, "calm"));
-        await using var owner = await HubReceiver.StartAsync(Factory, TestUser.Sam);
-        await owner.Connection.InvokeAsync("WatchAudience", room.DeckId);
-        await JoinAsync(room.SessionId, LATE_SENDER);
-
-        await PutWordsAsync(room, LATE_SENDER, 0, "Other");
-        while (true)
-        {
-            var frame = await owner.NextAudienceAsync();
-            if (frame.GetProperty("type").GetString() != "wordCloud" || frame.GetProperty("revision").GetInt32() != 1)
-            {
-                continue;
-            }
-            var words = frame.GetProperty("words").EnumerateArray().Select(w => w.GetProperty("text").GetString()).ToList();
-            words.ShouldContain("calm");
-            words.ShouldNotContain("Calm");
-            return;
-        }
     }
 
     [Test]
@@ -225,11 +216,12 @@ public class FirstSentOrderTests : ApiTestFixture
 
     private static string Upper(Guid id) => id.ToString().ToUpperInvariant();
 
-    private async Task<Room> OpenTextRoomAsync() => await OpenRoomAsync("open-text", OpenResponseKind.OpenText, """{"question":"What would help?"}""");
+    private async Task<Room> OpenTextRoomAsync() => await OpenRoomAsync("open-text", """{"question":"What would help?"}""");
 
-    private async Task<Room> OpenWordRoomAsync() => await OpenRoomAsync("word-cloud", OpenResponseKind.WordCloud, """{"question":"How do you feel?"}""");
+    private async Task<Room> OpenWordRoomAsync() => await OpenRoomAsync("word-cloud", """{"question":"How do you feel?"}""");
 
-    private async Task<Room> OpenRoomAsync(string layout, OpenResponseKind kind, string slots)
+    // A deck with one slide, taken live, its round opened through the open route.
+    private async Task<Room> OpenRoomAsync(string layout, string slots)
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deckId = await DeckSeed.CreateDeckAsync(agent);
@@ -240,60 +232,32 @@ public class FirstSentOrderTests : ApiTestFixture
         using var document = JsonDocument.Parse(body);
         var sessionId = Guid.Parse(document.RootElement.GetProperty("sessionId").GetString()!);
         var code = document.RootElement.GetProperty("code").GetString()!;
-        await using var scope = Factory.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var slide = await db.Slides.SingleAsync(s => s.DeckId == deckId && s.Layout == layout && s.DeletedAt == null);
-        var responseId = Guid.NewGuid();
-        var roundId = Guid.NewGuid();
-        db.OpenResponses.Add(new OpenResponse { Id = responseId, DeckId = deckId, SlideId = slide.Id, Kind = kind });
-        db.OpenRounds.Add(new OpenRound
-        {
-            Id = roundId,
-            OpenResponseId = responseId,
-            SessionId = sessionId,
-            Number = 1,
-            Revision = 0,
-            OpenedAt = Clock.GetUtcNow(),
-            RevealedAt = Clock.GetUtcNow(),
-        });
-        await db.SaveChangesAsync();
-        return new Room(deckId, code, sessionId, roundId, slide.Position + 1);
+        using var opened = await Client.PostAsync($"/api/decks/{deckId}/slides/1/response/open", null);
+        var view = await opened.Content.ReadFromJsonAsync<JsonElement>();
+        opened.StatusCode.ShouldBe(HttpStatusCode.OK, view.ToString());
+        return new Room(deckId, code, sessionId, Guid.Parse(view.GetProperty("round").GetString()!), 1, view.GetProperty("revision").GetInt32());
     }
 
-    private async Task JoinAsync(Guid sessionId, params string[] guests)
+    // Each guest joins the live session over the hub with the given sw_guest id, as the join page does.
+    private async Task JoinAsync(Room room, params string[] guests)
     {
-        await using var scope = Factory.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.AudienceJoins.AddRange(guests.Select(guest => new AudienceJoin { SessionId = sessionId, GuestId = guest, JoinedAt = Clock.GetUtcNow() }));
-        await db.SaveChangesAsync();
-    }
-
-    private async Task SeedEntriesAsync(Guid roundId, params (string Guest, long Arrival, string Text)[] rows)
-    {
-        await using var scope = Factory.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.OpenEntries.AddRange(rows.Select(row => new OpenEntry
+        foreach (var guest in guests)
         {
-            Id = Guid.NewGuid(),
-            RoundId = roundId,
-            GuestId = row.Guest,
-            Position = 0,
-            Text = row.Text,
-            TextKey = row.Text.ToLowerInvariant(),
-            Arrival = row.Arrival,
-        }));
-        await db.SaveChangesAsync();
+            var client = await GuestClient.ConnectAsync(Factory, guestId: guest);
+            _guestClients.Add(client);
+            await client.Connection.InvokeAsync<JsonElement>("JoinAudience", room.Code);
+        }
     }
 
     private async Task PutAnswerAsync(Room room, string guestId, int revision, string text)
     {
-        using var response = await SendAsync(room, guestId, "answer", new { round = room.RoundId, revision, text });
+        using var response = await SendAsync(room, guestId, "answer", new { round = room.RoundId, revision = room.BaseRevision + revision, text });
         response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
     }
 
     private async Task PutWordsAsync(Room room, string guestId, int revision, params string[] words)
     {
-        using var response = await SendAsync(room, guestId, "words", new { round = room.RoundId, revision, words });
+        using var response = await SendAsync(room, guestId, "words", new { round = room.RoundId, revision = room.BaseRevision + revision, words });
         response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
     }
 
@@ -322,6 +286,18 @@ public class FirstSentOrderTests : ApiTestFixture
         return [.. rows.Select(row => $"{row.Text}:{row.Arrival}")];
     }
 
+    private static async Task<JsonElement> NextWordCloudAsync(Func<Task<JsonElement>> next, int revision)
+    {
+        while (true)
+        {
+            var frame = await next();
+            if (frame.GetProperty("type").GetString() == "wordCloud" && frame.GetProperty("revision").GetInt32() == revision)
+            {
+                return frame;
+            }
+        }
+    }
+
     private static async Task<JsonElement> NextOpenTextAsync(Func<Task<JsonElement>> next, int revision)
     {
         while (true)
@@ -334,5 +310,5 @@ public class FirstSentOrderTests : ApiTestFixture
         }
     }
 
-    private sealed record Room(string DeckId, string Code, Guid SessionId, Guid RoundId, int Slide);
+    private sealed record Room(string DeckId, string Code, Guid SessionId, Guid RoundId, int Slide, int BaseRevision);
 }
