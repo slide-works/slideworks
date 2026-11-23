@@ -33,7 +33,7 @@ public sealed class CapturingLoggerProvider : ILoggerProvider
         public bool IsEnabled(LogLevel logLevel) => true;
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-            => lines.Enqueue($"{category}: {formatter(state, exception)}");
+            => lines.Enqueue(exception is null ? $"{category}: {formatter(state, exception)}" : $"{category}: {formatter(state, exception)}\n{exception}");
     }
 
     private sealed class Typed<T>(ILogger inner) : ILogger<T>
