@@ -143,6 +143,7 @@ public class FirstSentOrderTests : ApiTestFixture
 
         var wall = await NextWordCloudAsync(owner.NextAudienceAsync, room.BaseRevision + 2);
 
+        (await TextsAsync(room.RoundId)).ShouldBe(["calm", "calm"]);
         wall.GetProperty("words").EnumerateArray().Select(w => w.GetProperty("text").GetString()).ShouldBe(["calm"]);
         using var response = await Client.GetAsync($"/api/decks/{room.DeckId}/slides/{room.Slide}/response");
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -150,6 +151,47 @@ public class FirstSentOrderTests : ApiTestFixture
         body.GetProperty("entries").GetArrayLength().ShouldBe(1);
         body.GetProperty("entries")[0].GetProperty("text").GetString().ShouldBe("calm");
         body.GetProperty("entries")[0].GetProperty("count").GetInt32().ShouldBe(2);
+    }
+
+    // Reader ordering only: submitting through the routes stores every row of a key in one casing, so rows that differ in casing
+    // exist only from before SW-672. These two tests write such rows straight to the database, the one setup public routes cannot reach.
+    [Test]
+    public async Task Cloud_WhenStoredRowsShareAKeyWithDifferentCasing_ShouldShowTheEarliestRowsCasing()
+    {
+        var room = await OpenWordRoomAsync();
+        await SeedEntriesAsync(room.RoundId, ("a-late", 2, "Calm"), ("z-first", 1, "calm"));
+
+        using var response = await Client.GetAsync($"/api/decks/{room.DeckId}/slides/{room.Slide}/response");
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, body.ToString());
+        body.GetProperty("entries").GetArrayLength().ShouldBe(1);
+        body.GetProperty("entries")[0].GetProperty("text").GetString().ShouldBe("calm");
+        body.GetProperty("entries")[0].GetProperty("count").GetInt32().ShouldBe(2);
+    }
+
+    [Test]
+    public async Task Cloud_WhenStoredRowsShareAKeyWithDifferentCasing_ShouldShowTheSameCasingOnTheWall()
+    {
+        var room = await OpenWordRoomAsync();
+        await SeedEntriesAsync(room.RoundId, ("a-late", 2, "Calm"), ("z-first", 1, "calm"));
+        await using var owner = await HubReceiver.StartAsync(Factory, TestUser.Sam);
+        await owner.Connection.InvokeAsync("WatchAudience", room.DeckId);
+        await JoinAsync(room, LATE_SENDER);
+
+        await PutWordsAsync(room, LATE_SENDER, 0, "Other");
+        while (true)
+        {
+            var frame = await owner.NextAudienceAsync();
+            if (frame.GetProperty("type").GetString() != "wordCloud" || frame.GetProperty("revision").GetInt32() != room.BaseRevision + 1)
+            {
+                continue;
+            }
+            var words = frame.GetProperty("words").EnumerateArray().Select(w => w.GetProperty("text").GetString()).ToList();
+            words.ShouldContain("calm");
+            words.ShouldNotContain("Calm");
+            return;
+        }
     }
 
     [Test]
@@ -247,6 +289,30 @@ public class FirstSentOrderTests : ApiTestFixture
             _guestClients.Add(client);
             await client.Connection.InvokeAsync<JsonElement>("JoinAudience", room.Code);
         }
+    }
+
+    private async Task SeedEntriesAsync(Guid roundId, params (string Guest, long Arrival, string Text)[] rows)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.OpenEntries.AddRange(rows.Select(row => new OpenEntry
+        {
+            Id = Guid.NewGuid(),
+            RoundId = roundId,
+            GuestId = row.Guest,
+            Position = 0,
+            Text = row.Text,
+            TextKey = row.Text.ToLowerInvariant(),
+            Arrival = row.Arrival,
+        }));
+        await db.SaveChangesAsync();
+    }
+
+    private async Task<List<string>> TextsAsync(Guid roundId)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return await db.OpenEntries.AsNoTracking().Where(e => e.RoundId == roundId).OrderBy(e => e.Arrival).Select(e => e.Text).ToListAsync();
     }
 
     private async Task PutAnswerAsync(Room room, string guestId, int revision, string text)
