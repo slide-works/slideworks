@@ -58,18 +58,15 @@ function slideOf({ entry, slots }: Case): RenderableSlide {
 }
 
 // Fixtures that overflow today. Each is a real bug, left drawn so it is reported, not skipped.
-const KNOWN_OVERFLOW: Record<string, string> = {
-  levelsTextWide: 'overflows (y 1049-1105, footer at 1023); reported to the conductor: SW-664',
-};
+// None are left: SW-802's shorter fixtures stopped levelsTextWide and tableWide overflowing. The worst-case sweep
+// (FitWorstCase.spec) tracks what still overflows, with the wider letters.
+const KNOWN_OVERFLOW: Record<string, string> = {};
 
 for (const c of cases) {
   test(`every accepted maximum fit fixture draws no overflow: ${c.name}`, async ({
     mount,
     page,
   }) => {
-    // The wide twin of tableTitle ends near y 1199 (SW-130). Reported on purpose: when SW-130 is fixed this case
-    // flips, and the assertion below becomes "no overflow".
-    const expected = c.name === 'tableWide';
     test.fail(c.name in KNOWN_OVERFLOW, KNOWN_OVERFLOW[c.name] ?? '');
     await stubApi(page, {});
     const component = await mount(
@@ -81,7 +78,6 @@ for (const c of cases) {
     await expect(component).toHaveAttribute('data-findings', /.+/);
     const found = JSON.parse((await component.getAttribute('data-findings'))!) as SlideFinding[];
     const overflowing = found.filter((f) => f.rule === 'overflow');
-    if (expected) expect(overflowing.length).toBeGreaterThan(0);
-    else expect(overflowing, JSON.stringify(overflowing)).toEqual([]);
+    expect(overflowing, JSON.stringify(overflowing)).toEqual([]);
   });
 }
