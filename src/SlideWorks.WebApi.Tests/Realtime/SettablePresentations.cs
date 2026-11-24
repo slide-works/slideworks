@@ -117,7 +117,7 @@ public sealed class SettablePresentations : IPresentations
 
     public Task LeaveAllAsync(string connectionId) => ThrowOnLeaveAll ? throw new InvalidOperationException("the registry failed") : Task.CompletedTask;
 
-    public Task<LivePresentationsView> ListLiveAsync(Guid ownerId) => throw new NotSupportedException();
+    public Task<LivePresentationsView> ListLiveAsync(Func<string, Task<bool>> canPresent) => throw new NotSupportedException();
 
     public Task TalkLengthChangedAsync(string deckId, int? minutes) => throw new NotSupportedException();
 }

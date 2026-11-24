@@ -37,7 +37,7 @@ public class CookieAuthTests : ApiTestFixture
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        JsonShape.AssertMatches(body, "me.json", "pictureUrl");
+        JsonShape.AssertMatches(body, "me.json", "pictureUrl", "avatar.pictureUrl", "timeZone");
         body.GetProperty("email").GetString().ShouldBe(TestUser.Sam.Email);
         body.GetProperty("name").GetString().ShouldBe(TestUser.Sam.Name);
     }

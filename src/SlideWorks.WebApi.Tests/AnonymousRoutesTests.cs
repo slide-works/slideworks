@@ -51,6 +51,18 @@ public class AnonymousRoutesTests : ApiTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
+    // The unsubscribe call answers a signed-out caller itself (400 for a body with no token), never the sign-in gate.
+    [Test]
+    public async Task PostUnsubscribe_WhenAnonymousAndSignInRequiredElsewhere_ShouldReachTheRoute()
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        anonymous.DefaultRequestHeaders.Add("Origin", PublicUrl);
+
+        var response = await anonymous.PostAsJsonAsync("/api/email/unsubscribe", new { });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
     // GET live answers a signed-out viewer through the owner check (404 here, the deck is unknown), never the sign-in gate.
     [Test]
     public async Task GetLive_WhenAnonymousAndSignInRequiredElsewhere_ShouldBeAnsweredByTheOwnerCheck()

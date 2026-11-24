@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using SlideWorks.WebApi.Features.Sharing.Limits;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Dtos;
 using SlideWorks.WebApi.Tests.Support;
@@ -14,6 +15,9 @@ namespace SlideWorks.WebApi.Tests.Sharing;
 [TestFixture]
 public class SharingTests : ApiTestFixture
 {
+    // Some tests share 50 people at once, far past the default new-recipient limits (SW-794).
+    protected override Dictionary<string, string?> ExtraConfig => new() { [SharingLimits.NEW_PER_HOUR_KEY] = "10000", [SharingLimits.NEW_PER_DAY_KEY] = "10000" };
+
     [Test]
     public async Task Get_ShouldMatchShape()
     {
@@ -299,12 +303,13 @@ public class SharingTests : ApiTestFixture
         var library = JsonDocument.Parse(body).RootElement;
         JsonShape.AssertMatches(library, "decks-library.json", ScreenShapes.DecksLibrary);
         var shared = library.GetProperty("sharedWithMe").EnumerateArray().Where(r => r.GetProperty("id").GetString() is var id && (id == named || id == linked)).ToList();
-        shared.Count.ShouldBe(1);
-        shared[0].GetProperty("id").GetString().ShouldBe(named);
-        shared[0].GetProperty("title").GetString().ShouldBe("Named for Alex");
-        shared[0].GetProperty("ownerName").GetString().ShouldBe(TestUser.Sam.Name);
-        shared[0].GetProperty("sharing").GetString().ShouldBe("named");
-        shared[0].GetProperty("playUrl").GetString().ShouldBe($"/d/{named}/named-for-alex");
+        shared.Count.ShouldBe(2);
+        shared.Select(r => r.GetProperty("id").GetString()).ShouldBe([linked, named], ignoreOrder: true);
+        var row = shared.Single(r => r.GetProperty("id").GetString() == named);
+        row.GetProperty("title").GetString().ShouldBe("Named for Alex");
+        row.GetProperty("ownerName").GetString().ShouldBe(TestUser.Sam.Name);
+        row.GetProperty("sharing").GetString().ShouldBe("named");
+        row.GetProperty("playUrl").GetString().ShouldBe($"/d/{named}/named-for-alex");
         body.ShouldContain("\"sharing\":\"named\"", Case.Sensitive);
         after.GetProperty("sharedWithMe").EnumerateArray().Select(r => r.GetProperty("id").GetString()).ShouldNotContain(named);
     }

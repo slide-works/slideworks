@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using SlideWorks.WebApi.Features.Sharing.Limits;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Dtos;
 using SlideWorks.WebApi.Tests.Mcp;
@@ -17,11 +18,20 @@ namespace SlideWorks.WebApi.Tests.Sharing;
 [TestFixture]
 public class ViewerCapTests : ApiTestFixture
 {
+    // These tests share 50 people at once, far past the default new-recipient limits (SW-794).
+    protected override Dictionary<string, string?> ExtraConfig => new() { [SharingLimits.NEW_PER_HOUR_KEY] = "10000", [SharingLimits.NEW_PER_DAY_KEY] = "10000" };
+
     private const string TOO_MANY = "viewers: at most 50 emails";
+
+    private const string PEOPLE_TOO_MANY = "people: at most 50 emails";
 
     // Ten times the 200-entry read cap and still inside the 64 KB the sharing PUT accepts (about 52 KB); a body past that
     // is refused 413 before it is read at all (RequestLimitTests).
     private const int HUGE_LIST = 2_000;
+
+    // Five times the 200-entry read cap; each person entry is about twice the size of a bare email, so 1,000 (about 52 KB)
+    // is what still fits inside the 64 KB the sharing PUT accepts.
+    private const int HUGE_PEOPLE_LIST = 1_000;
 
     // Generous: the PUT stops reading the list at entry 201 and answers in a few milliseconds. The old quadratic walk
     // took 2.2 s for 20,000 emails, so 100,000 would take about a minute.
@@ -99,6 +109,34 @@ public class ViewerCapTests : ApiTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe(TOO_MANY);
         await TestContext.Out.WriteLineAsync($"PUT with {HUGE_LIST} viewers answered in {stopwatch.ElapsedMilliseconds} ms");
+        stopwatch.Elapsed.ShouldBeLessThan(FAST);
+    }
+
+    [Test]
+    public async Task Put_WhenMoreThanTwoHundredPeople_ShouldReturn400()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+
+        var response = await SharingApi.PutAsync(Client, deck, new { level = "named", people = Enumerable.Repeat(new { email = TestUser.Alex.Email, access = "read" }, 201).ToArray() });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe(PEOPLE_TOO_MANY);
+    }
+
+    [Test]
+    public async Task Put_WhenHundredThousandPeople_ShouldReturn400Fast()
+    {
+        var deck = await SharingApi.CreateDeckAsync(Client);
+        var people = Emails(HUGE_PEOPLE_LIST).Select(email => new { email, access = "read" }).ToArray();
+        using var content = new StringContent(JsonSerializer.Serialize(new { level = "named", people }), Encoding.UTF8, "application/json");
+
+        var stopwatch = Stopwatch.StartNew();
+        using var response = await Client.PutAsync($"/api/decks/{deck}/sharing", content);
+        stopwatch.Stop();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe(PEOPLE_TOO_MANY);
+        await TestContext.Out.WriteLineAsync($"PUT with {HUGE_PEOPLE_LIST} people answered in {stopwatch.ElapsedMilliseconds} ms");
         stopwatch.Elapsed.ShouldBeLessThan(FAST);
     }
 

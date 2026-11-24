@@ -114,7 +114,7 @@ export function DeckPage({ measure = measureSlide }: { measure?: Measure }) {
     view.slides.find((candidate) => candidate.number === selected) ?? view.slides.at(-1);
 
   return (
-    <JoinProvider deckId={view.id} join={view.join} owner={view.isOwner}>
+    <JoinProvider deckId={view.id} join={view.join} owner={view.canEdit}>
       <section ref={root} data-testid="deck-page" data-deck-id={view.id} className="grid gap-5">
         <DeckHeader view={view} onShare={() => setSharing(true)} />
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
@@ -126,8 +126,8 @@ export function DeckPage({ measure = measureSlide }: { measure?: Measure }) {
             onSelect={(number) => setSelection({ id, number })}
           />
           <div className="grid gap-4">
-            {view.isOwner && <LookPanel deck={view} onSaved={showLook} />}
-            {view.isOwner && (
+            {view.canEdit && <LookPanel deck={view} onSaved={showLook} />}
+            {view.canEdit && (
               <QaControlLive deckId={view.id} slide={null}>
                 <QaSettingsCard deckId={view.id} slide={slide?.number ?? null} />
               </QaControlLive>
@@ -139,7 +139,7 @@ export function DeckPage({ measure = measureSlide }: { measure?: Measure }) {
                 unchecked={checks.unchecked.has(slide.number)}
               />
             )}
-            <ActivityFeed rows={view.activity} isOwner={view.isOwner} />
+            <ActivityFeed rows={view.activity} />
             <LaterOnThisPage />
           </div>
         </div>

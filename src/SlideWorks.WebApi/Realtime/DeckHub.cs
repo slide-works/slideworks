@@ -92,7 +92,7 @@ public sealed class DeckHub(
 
     public Task LeaveDeck(string deckId) => Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(deckId));
 
-    // Only the deck's owner, signed in as a person, may join (D3, IDeckAccess.CanPresentAsync). Anyone else gets the same
+    // Only the deck's owner or a person with write (C5), signed in as a person, may join (D3, IDeckAccess.CanPresentAsync). Anyone else gets the same
     // refusal as JoinDeck, before anything changes.
     public async Task<PresentationJoined> JoinPresentation(
         string deckId,

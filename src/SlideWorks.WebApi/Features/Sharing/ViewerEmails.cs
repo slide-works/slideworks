@@ -16,6 +16,10 @@ public static class ViewerEmails
 
     public const string TOO_MANY = "viewers: at most 50 emails";
 
+    public const string PEOPLE_TOO_MANY = "people: at most 50 emails";
+
+    public const string PERSON_TOO_MANY = "person: at most 50 emails";
+
     private const int MAX_LENGTH = 254;
 
     public static string Normalize(string email) => email.Trim().ToLowerInvariant();
@@ -23,11 +27,12 @@ public static class ViewerEmails
     // The list as stored: each email normalized and checked, duplicates and the owner's own email dropped, in the order
     // given. A bad one is a 400 that names it as the caller wrote it. The work is bounded: a list longer than MAX_ENTRIES
     // is refused before anything is normalized, and the walk stops as soon as it finds more than MAX_VIEWERS distinct emails.
-    public static IReadOnlyList<string> NormalizeAll(IReadOnlyList<string?> emails, string? ownerEmail)
+    public static IReadOnlyList<string> NormalizeAll(IReadOnlyList<string?> emails, string? ownerEmail, string field = "viewers")
     {
+        var tooMany = field switch { "viewers" => TOO_MANY, "person" => PERSON_TOO_MANY, _ => PEOPLE_TOO_MANY };
         if (emails.Count > MAX_ENTRIES)
         {
-            throw new BadRequestException(TOO_MANY);
+            throw new BadRequestException(tooMany);
         }
         var owner = ownerEmail == null ? null : Normalize(ownerEmail);
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -37,7 +42,7 @@ public static class ViewerEmails
             var trimmed = email?.Trim() ?? "";
             if (!IsEmail(trimmed))
             {
-                throw new BadRequestException($"viewers: \"{trimmed}\" is not an email address");
+                throw new BadRequestException($"{field}: \"{trimmed}\" is not an email address");
             }
             var stored = trimmed.ToLowerInvariant();
             if (stored == owner || !seen.Add(stored))
@@ -47,7 +52,7 @@ public static class ViewerEmails
             normalized.Add(stored);
             if (normalized.Count > MAX_VIEWERS)
             {
-                throw new BadRequestException(TOO_MANY);
+                throw new BadRequestException(tooMany);
             }
         }
         return normalized;

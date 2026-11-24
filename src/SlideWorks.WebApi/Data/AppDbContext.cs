@@ -14,6 +14,8 @@ using SlideWorks.WebApi.Features.OpenResponses.Data;
 using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Qa.Data;
 using SlideWorks.WebApi.Features.Sharing;
+using SlideWorks.WebApi.Features.Sharing.Email;
+using SlideWorks.WebApi.Features.Sharing.Limits;
 using SlideWorks.WebApi.Features.Slides;
 using SlideWorks.WebApi.Features.Templates.Data;
 
@@ -32,6 +34,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<DeckViewer> DeckViewers => Set<DeckViewer>();
 
     public DbSet<DeckImage> DeckImages => Set<DeckImage>();
+
+    public DbSet<ShareRecipientRow> ShareRecipients => Set<ShareRecipientRow>();
+
+    public DbSet<ShareEmailRow> ShareEmails => Set<ShareEmailRow>();
+
+    public DbSet<EmailSuppression> EmailSuppressions => Set<EmailSuppression>();
 
     public DbSet<OAuthClientRow> OAuthClients => Set<OAuthClientRow>();
 
@@ -120,6 +128,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             viewer.HasKey(v => new { v.DeckId, v.Email });
             viewer.HasOne<Deck>().WithMany().HasForeignKey(v => v.DeckId);
         });
+
+        modelBuilder.Entity<ShareRecipientRow>(row => row.HasIndex(r => new { r.SharerId, r.AddedAt }));
+
+        modelBuilder.Entity<ShareEmailRow>(row => row.HasIndex(r => new { r.RecipientEmail, r.SentAt }));
+
+        modelBuilder.Entity<EmailSuppression>(row => row.HasKey(s => s.Email));
 
         modelBuilder.Entity<DeckImage>(image =>
         {

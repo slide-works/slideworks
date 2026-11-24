@@ -15,8 +15,8 @@ using SlideWorks.WebApi.Realtime.Presenting;
 namespace SlideWorks.WebApi.Features.Presenting;
 
 // The presenter's reads (SW-4): the presenter view, the presenter window's and the phone's one request (P3), and the
-// signed-in person's live presentations (P4). The presenter view carries notes, so only the deck's owner, signed in as a
-// person, gets it (IDeckAccess.CanPresentAsync, P9); anyone else gets 404 "Deck not found", as for an unknown deck.
+// signed-in person's live presentations (P4). The presenter view carries notes, so only the deck's owner or a person with write, signed in as a
+// person, gets it (IDeckAccess.CanPresentAsync, P9: the owner, or a person with write while the deck is named or link, C5); anyone else gets 404 "Deck not found", as for an unknown deck.
 [RegisterPerRequest]
 public class PresenterQueries(
     AppDbContext db,
@@ -44,5 +44,5 @@ public class PresenterQueries(
     }
 
     public Task<LivePresentationsView> LiveAsync()
-        => presentations.ListLiveAsync(actor.PresenterId ?? throw new InvalidOperationException("Listing presentations needs a signed-in caller."));
+        => presentations.ListLiveAsync(deckId => access.CanPresentAsync(deckId, actor));
 }

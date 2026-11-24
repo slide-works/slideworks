@@ -25,6 +25,17 @@ public sealed class DecksPage(IPage page)
 
     public ILocator SharedRows => page.GetByTestId("shared-with-me").GetByTestId("shared-row");
 
+    // A "Shared with you" row by its exact title, and its "Can edit" or "Can view" cell.
+    public ILocator SharedRow(string title) =>
+        SharedRows.Filter(new LocatorFilterOptions
+        {
+            Has = page.GetByTestId("deck-title").Filter(new LocatorFilterOptions { HasTextRegex = new Regex($"^{Regex.Escape(title)}$") }),
+        });
+
+    public static ILocator SharedTitle(ILocator row) => row.GetByTestId("deck-title");
+
+    public static ILocator SharedAccess(ILocator row) => row.GetByTestId("shared-access");
+
     public ILocator Empty => page.GetByTestId("decks-empty");
 
     // One of the presenter's own decks, by its exact title.

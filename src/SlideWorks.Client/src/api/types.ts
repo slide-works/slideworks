@@ -11,11 +11,21 @@ export type ActorKind = 'agent' | 'person';
 export type Via = 'mcp' | 'web';
 export type SharingLevel = 'private' | 'link' | 'named';
 
+// How a person is shown everywhere. pictureUrl is the uploaded photo, else the
+// Google picture, else null.
+export type AvatarView = {
+  initials: string;
+  colour: string;
+  pictureUrl: string | null;
+};
+
 // GET /api/me
 export type MeView = {
   email: string;
   name: string;
   pictureUrl: string | null;
+  avatar: AvatarView;
+  timeZone: string | null;
   access: 'pending' | 'approved';
   isAdmin: boolean;
   pendingRequests: number;
@@ -32,6 +42,7 @@ export type AdminUserRow = {
   name: string;
   email: string;
   pictureUrl: string | null;
+  avatar: AvatarView;
   access: 'pending' | 'approved' | 'rejected';
   isAdmin: boolean;
   isSelf: boolean;
@@ -57,7 +68,9 @@ export type DeckRow = {
   playUrl: string;
 };
 
-export type SharedDeckRow = DeckRow & { ownerName: string };
+export type DeckAccessLevel = 'read' | 'write';
+
+export type SharedDeckRow = DeckRow & { ownerName: string; access: DeckAccessLevel };
 
 // GET /api/decks
 export type DecksLibraryView = {
@@ -91,6 +104,8 @@ export type ActivityRow = {
   tool: string | null;
   summary: string;
   atLabel: string;
+  // True for a person's entry made by the person looking at the page.
+  isMe: boolean;
 };
 
 // GET /api/decks/{id}. Activity is newest first, at most 50 entries.
@@ -100,6 +115,8 @@ export type DeckPageView = {
   title: string;
   author: string | null;
   isOwner: boolean;
+  canEdit: boolean;
+  access: 'owner' | DeckAccessLevel;
   playUrl: string;
   join: JoinView;
   sharing: { level: SharingLevel; viewerCount: number };
@@ -155,10 +172,27 @@ export type SharingView = {
   viewers: string[];
   link: string;
   lastChange: SharingChange | null;
+  owner: SharingOwner;
+  people: SharingPerson[];
+};
+
+// name and avatar are null for an email with no account.
+export type SharingOwner = { email: string; name: string; avatar: AvatarView };
+export type SharingPerson = {
+  email: string;
+  name: string | null;
+  avatar: AvatarView | null;
+  access: DeckAccessLevel;
 };
 
 // The PUT /api/decks/{id}/sharing body.
 export type SharingRequest = { level: SharingLevel; viewers: string[] };
+
+// The same PUT with each person's access instead of plain viewers (each read).
+export type SharingPeopleRequest = {
+  level: SharingLevel;
+  people: { email: string; access: DeckAccessLevel }[];
+};
 
 // POST /api/decks body, and its 201 result.
 export type CreateDeckRequest = { title: string; template?: string; palette?: string };

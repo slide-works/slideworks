@@ -20,7 +20,7 @@ test('user menu signs out and goes to sign-in', async ({ mount, page }) => {
     </LocationProbe>,
     { hooksConfig: { route: '/decks' } },
   );
-  await expect(page.getByTestId('user-menu')).toHaveText('SR');
+  await expect(page.getByTestId('user-menu-avatar')).toBeVisible();
 
   await page.getByTestId('user-menu-button').click();
   await expect(page.getByTestId('user-menu-panel')).toContainText(me.email);
@@ -45,19 +45,54 @@ test('user menu keeps the person signed in when sign-out fails', async ({ mount,
   await expect(page.getByTestId('app-shell')).toBeVisible();
 });
 
+test('user menu lists People (admin) for an admin and not for anyone else', async ({
+  mount,
+  page,
+}) => {
+  await stubApi(page, { '/api/me': { json: { ...me, isAdmin: true } } });
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    { hooksConfig: { route: '/decks' } },
+  );
+  await page.getByTestId('user-menu-button').click();
+  await expect(page.getByTestId('user-menu-people')).toHaveText('People (admin)');
+  await expect(page.getByTestId('user-menu-people')).toHaveAttribute('href', '/admin/users');
+});
+
+test('user menu has no People (admin) for a non-admin', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { json: { ...me, isAdmin: false } } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/decks' } });
+  await page.getByTestId('user-menu-button').click();
+
+  await expect(page.getByTestId('user-menu-profile')).toBeVisible();
+  await expect(page.getByTestId('user-menu-people')).toHaveCount(0);
+});
+
 test.describe('user menu panel', () => {
   test.beforeEach(async ({ mount, page }) => {
     await stubApi(page, {
       '/api/me': { json: me },
       '/api/decks': { json: decksLibrary },
     });
-    await mount(<AppRoutes />, { hooksConfig: { route: '/decks' } });
+    await mount(
+      <LocationProbe>
+        <AppRoutes />
+      </LocationProbe>,
+      { hooksConfig: { route: '/decks' } },
+    );
     await page.getByTestId('user-menu-button').click();
     await expect(page.getByTestId('user-menu-panel')).toBeVisible();
   });
 
-  test('opening the user menu moves focus to its first item', async ({ page }) => {
-    await expect(page.getByTestId('user-menu-signout')).toBeFocused();
+  test('opening the user menu moves focus to Profile, which goes to /profile', async ({ page }) => {
+    await expect(page.getByTestId('user-menu-profile')).toBeFocused();
+
+    await page.getByTestId('user-menu-profile').click();
+
+    await expect(page.getByTestId('location')).toHaveText('/profile');
+    await expect(page.getByTestId('user-menu-panel')).toHaveCount(0);
   });
 
   test('escape closes the user menu and returns focus to its button', async ({ page }) => {
@@ -85,9 +120,43 @@ test.describe('user menu panel', () => {
     await expect(page.getByTestId('user-menu-panel')).toBeVisible();
 
     await page.keyboard.press('Tab');
+    await expect(page.getByTestId('user-menu-profile')).toBeFocused();
+    await page.keyboard.press('Tab');
     await expect(page.getByTestId('user-menu-signout')).toBeFocused();
     await page.keyboard.press('Tab');
 
     await expect(page.getByTestId('user-menu-panel')).toHaveCount(0);
   });
+});
+
+test('user menu button shows the avatar and takes a name saved on the profile page', async ({
+  mount,
+  page,
+}) => {
+  const noPicture = { ...me, avatar: { ...me.avatar, pictureUrl: null } };
+  await stubApi(page, { '/api/me': { json: noPicture }, '/api/decks': { json: decksLibrary } });
+  await mount(<AppRoutes />, { hooksConfig: { route: '/decks' } });
+  await expect(page.getByTestId('user-menu-avatar-initials')).toHaveText(me.avatar.initials);
+  await expect(page.getByTestId('user-menu-avatar')).toHaveAttribute(
+    'data-colour',
+    me.avatar.colour,
+  );
+
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new CustomEvent('slideworks:profile-saved', {
+        detail: {
+          name: 'Quinn Ames',
+          avatar: { initials: 'QA', colour: 'pink', pictureUrl: null },
+        },
+      }),
+    ),
+  );
+
+  await expect(page.getByTestId('user-menu-avatar-initials')).toHaveText('QA');
+  await expect(page.getByTestId('user-menu-avatar')).toHaveAttribute('data-colour', 'pink');
+  await expect(page.getByTestId('user-menu-button')).toHaveAttribute(
+    'aria-label',
+    'Account: Quinn Ames',
+  );
 });

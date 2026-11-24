@@ -15,6 +15,7 @@ public class EfActivityLog(AppDbContext db, TimeProvider clock) : IActivityLog
             ActorName = entry.ActorName,
             ActorKind = entry.ActorKind.ToString(),
             Via = entry.Via.ToString(),
+            ActorUserId = entry.ActorUserId,
             Tool = entry.Tool,
             Summary = entry.Summary,
             At = clock.GetUtcNow(),

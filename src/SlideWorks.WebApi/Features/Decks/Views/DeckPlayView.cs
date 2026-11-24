@@ -6,7 +6,7 @@ using SlideWorks.WebApi.Features.Templates;
 namespace SlideWorks.WebApi.Features.Decks.Views;
 
 // GET /api/play/{id}: everything the player needs in one request (deck-play.json, K4). The same shape as the sample
-// deck (K3). It never contains notes. Look is the deck's resolved look (L6) and Join how the room reaches it (J1). IsOwner is true only for the signed-in person who owns the deck, the same rule as
+// deck (K3). It never contains notes. Look is the deck's resolved look (L6) and Join how the room reaches it (J1). IsOwner is true for the signed-in person who owns the deck and for a person with write (C5), the same rule as
 // Go live (IDeckAccess.CanPresentAsync); it is false for every other viewer, and always on the render API.
 public sealed record DeckPlayView(
     string Id,

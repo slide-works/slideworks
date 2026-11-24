@@ -73,6 +73,8 @@ public class DeckChecksServiceTests : ApiTestFixture
 
         public Task<bool> CanEditAsync(string deckId, ICurrentActor actor) => Task.FromResult(true);
 
+        public Task<bool> IsOwnerAsync(string deckId, ICurrentActor actor) => Task.FromResult(true);
+
         public Task<bool> CanPresentAsync(string deckId, ICurrentActor actor) => Task.FromResult(true);
     }
 }

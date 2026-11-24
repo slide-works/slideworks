@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using SlideWorks.WebApi.Features.Accounts.Avatars;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -78,5 +79,5 @@ public class MeTests : ApiTestFixture
         }
     }
 
-    private sealed record MeDto(string Email, string Name, string? PictureUrl, string Access, bool IsAdmin, int PendingRequests, bool AdminMissing);
+    private sealed record MeDto(string Email, string Name, string? PictureUrl, AvatarView Avatar, string? TimeZone, string Access, bool IsAdmin, int PendingRequests, bool AdminMissing);
 }

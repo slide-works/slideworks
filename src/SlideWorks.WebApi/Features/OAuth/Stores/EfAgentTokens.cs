@@ -1,5 +1,7 @@
 using Agoda.IoC.Core;
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Infrastructure;
@@ -10,11 +12,11 @@ namespace SlideWorks.WebApi.Features.OAuth.Stores;
 // stored. A rotation is one conditional update inside a write transaction: SQLite's BEGIN IMMEDIATE serialises it with
 // any other rotation or revoke, so of parallel attempts exactly one marks the token used, and every later one sees that.
 [RegisterPerRequest(For = typeof(IAgentTokens))]
-public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
+public class EfAgentTokens(AppDbContext db, TimeProvider clock, ILogger<EfAgentTokens> logger) : IAgentTokens
 {
     public async Task<AgentTokenPair> IssueAsync(CodeGrant grant)
     {
-        var pair = AddPair(Guid.NewGuid(), grant.ClientId, grant.PresenterId, grant.Scope, grant.Resource);
+        var pair = AddPair(Guid.NewGuid(), grant.ClientId, grant.PresenterId, grant.Scope, grant.Resource, clock.GetUtcNow(), null);
         await db.SaveChangesAsync();
         return pair;
     }
@@ -27,7 +29,7 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
         {
             return null;
         }
-        var pair = AddPair(FamilyOf(code), grant.ClientId, grant.PresenterId, grant.Scope, grant.Resource);
+        var pair = AddPair(FamilyOf(code), grant.ClientId, grant.PresenterId, grant.Scope, grant.Resource, clock.GetUtcNow(), null);
         await db.SaveChangesAsync();
         return pair;
     }
@@ -56,7 +58,8 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
         if (marked == 1)
         {
             var row = await db.AgentTokens.AsNoTracking().SingleAsync(t => t.TokenHash == hash);
-            var pair = AddPair(row.FamilyId, row.ClientId, row.PresenterId, row.Scope, row.Resource);
+            // The family keeps its first IssuedAt (null stays null: it predates the connect time) and its last use.
+            var pair = AddPair(row.FamilyId, row.ClientId, row.PresenterId, row.Scope, row.Resource, row.IssuedAt, row.LastUsedAt);
             await db.SaveChangesAsync();
             await transaction.CommitAsync();
             return pair;
@@ -80,12 +83,13 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
     }
 
     // One read joins the token, its client and its presenter, so a deleted client or a presenter who is no longer approved
-    // ends the token on its next use.
+    // ends the token on its next use. The same read says whether the family's last use is stale, so a request writes at
+    // most once per LastUsedInterval per family (D18).
     public async Task<AgentPrincipal?> ValidateAsync(string accessToken, string resource)
     {
         var now = clock.GetUtcNow();
         var hash = SecretTokens.Hash(accessToken);
-        return await (
+        var found = await (
                 from token in db.AgentTokens.AsNoTracking()
                 join client in db.OAuthClients.AsNoTracking() on token.ClientId equals client.ClientId
                 join presenter in db.Users.AsNoTracking() on token.PresenterId equals presenter.Id
@@ -95,8 +99,17 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
                     && token.ExpiresAt > now
                     && token.Resource == resource
                     && presenter.Access == UserAccess.Approved
-                select new AgentPrincipal(presenter.Id, presenter.Email, client.ClientName))
+                select new { token.FamilyId, token.LastUsedAt, Principal = new AgentPrincipal(presenter.Id, presenter.Email, client.ClientName) })
             .SingleOrDefaultAsync();
+        if (found is null)
+        {
+            return null;
+        }
+        if (found.LastUsedAt is null || found.LastUsedAt <= now - LastUsedInterval)
+        {
+            await StampLastUsedAsync(found.FamilyId, now);
+        }
+        return found.Principal;
     }
 
     public async Task RevokeAsync(string token)
@@ -121,6 +134,25 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
     // SecretTokens.Hash ever touches the code.
     private static Guid FamilyOf(string code) => Guid.ParseExact(SecretTokens.Hash(code)[..32], "N");
 
+    private static readonly TimeSpan LastUsedInterval = TimeSpan.FromMinutes(5);
+
+    // The use is a courtesy to the profile page: a failed write is logged and never fails the agent's request. The
+    // condition re-checks the stamp, so parallel requests that all saw it stale write once.
+    private async Task StampLastUsedAsync(Guid familyId, DateTimeOffset now)
+    {
+        var stale = now - LastUsedInterval;
+        try
+        {
+            await db.AgentTokens
+                .Where(t => t.FamilyId == familyId && (t.LastUsedAt == null || t.LastUsedAt <= stale))
+                .ExecuteUpdateAsync(set => set.SetProperty(t => t.LastUsedAt, now));
+        }
+        catch (DbException failure)
+        {
+            logger.LogWarning(failure, "Could not stamp the last use of token family {FamilyId}", familyId);
+        }
+    }
+
     private Task<int> RevokeFamilyAsync(Guid familyId, DateTimeOffset now)
         => db.AgentTokens
             .Where(t => t.FamilyId == familyId && t.RevokedAt == null)
@@ -128,7 +160,7 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
 
     // Adds an access token (OAuthLifetimes.AccessToken) and a refresh token (OAuthLifetimes.RefreshToken) to the family;
     // the caller saves.
-    private AgentTokenPair AddPair(Guid familyId, string clientId, Guid presenterId, string scope, string resource)
+    private AgentTokenPair AddPair(Guid familyId, string clientId, Guid presenterId, string scope, string resource, DateTimeOffset? issuedAt, DateTimeOffset? lastUsedAt)
     {
         var now = clock.GetUtcNow();
         var access = Add(AgentTokenKind.Access, now + OAuthLifetimes.AccessToken);
@@ -149,6 +181,8 @@ public class EfAgentTokens(AppDbContext db, TimeProvider clock) : IAgentTokens
                 Scope = scope,
                 Resource = resource,
                 ExpiresAt = expiresAt,
+                IssuedAt = issuedAt,
+                LastUsedAt = lastUsedAt,
             });
             return token;
         }

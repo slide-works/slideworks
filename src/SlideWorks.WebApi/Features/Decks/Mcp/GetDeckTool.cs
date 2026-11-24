@@ -15,7 +15,7 @@ public sealed class GetDeckTool
         DeckReader reader,
         [Description("The deck's id, as create_deck returned it.")] string deck,
         [Description("\"full\" (the default) includes every slide's slots. \"summary\" returns number, layout, part and headline.")] string? detail = null)
-        => McpToolErrors.Run(() => reader.GetForOwnerAsync(deck, detail switch
+        => McpToolErrors.Run(() => reader.GetForEditorAsync(deck, detail switch
         {
             null or "" or "full" => false,
             "summary" => true,

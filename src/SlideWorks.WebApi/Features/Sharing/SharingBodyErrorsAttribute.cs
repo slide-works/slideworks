@@ -40,11 +40,19 @@ public sealed class SharingBodyErrorsAttribute : ActionFilterAttribute
         {
             return ViewerEmails.TOO_MANY;
         }
+        if (errors.Any(entry => entry.Value!.Errors.Any(e => e.ErrorMessage == ViewerEmails.PEOPLE_TOO_MANY || e.Exception?.Message == ViewerEmails.PEOPLE_TOO_MANY)))
+        {
+            return ViewerEmails.PEOPLE_TOO_MANY;
+        }
         if (errors.Any(entry => Mentions(entry, "level")))
         {
             return SharingService.LEVEL_INVALID;
         }
-        return errors.Any(entry => Mentions(entry, "viewers")) ? SharingService.VIEWERS_INVALID : BODY_INVALID;
+        if (errors.Any(entry => Mentions(entry, "viewers")))
+        {
+            return SharingService.VIEWERS_INVALID;
+        }
+        return errors.Any(entry => Mentions(entry, "people")) ? SharingService.PEOPLE_INVALID : BODY_INVALID;
     }
 
     private static bool Mentions(KeyValuePair<string, ModelStateEntry?> entry, string field)

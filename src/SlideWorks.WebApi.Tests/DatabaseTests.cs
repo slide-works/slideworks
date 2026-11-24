@@ -28,7 +28,7 @@ public class DatabaseTests : ApiTestFixture
     [
         "_Initial", "_Sw1Foundation", "_Sw54SignUpApproval", "_Sw2Look", "_Sw4TalkLength", "_Sw5AudienceJoin", "_Sw6Polls", "_Sw9PollKinds",
         "_Sw9Qa", "_Sw50Templates", "_Sw556PaletteTokens", "_Sw568OpenAnswers", "_Sw8OpenResponses", "_Sw8OpenResponseSlideKey",
-        "_Sw672OpenEntryFirstSent",
+        "_ProfileAndSharing", "_Sw672OpenEntryFirstSent", "_ActivityActorUserId",
     ];
 
     [Test]

@@ -8,7 +8,7 @@ public sealed class DeckPage(IPage page)
 
     public ILocator Root => page.GetByTestId("deck-page");
 
-    public ILocator Title => page.GetByTestId("deck-title");
+    public ILocator Title => Root.GetByTestId("deck-title");
 
     public ILocator SlideCount => page.GetByTestId("deck-slide-count");
 
@@ -27,6 +27,11 @@ public sealed class DeckPage(IPage page)
     public ILocator ActivityRows => page.GetByTestId("deck-activity").GetByTestId("activity-row");
 
     public ILocator Share => page.GetByTestId("deck-share");
+
+    // "Can edit" or "Can view": shown only to a person the deck was shared with, never to its owner.
+    public ILocator AccessBadge => page.GetByTestId("deck-access");
+
+    public ILocator LookPanel => page.GetByTestId("look-panel");
 
     public ILocator Present => page.GetByTestId("deck-present");
 

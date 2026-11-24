@@ -1,29 +1,38 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FocusEvent, KeyboardEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import type { MeView } from '../api/types';
+import type { AvatarView, MeView } from '../api/types';
+import { Avatar } from './Avatar';
 
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0].toUpperCase())
-    .join('');
+const PROFILE_SAVED = 'slideworks:profile-saved';
+
+type ProfileSaved = { name: string; avatar: AvatarView };
+
+// The profile page tells the menu when the person saved a new name or picture, so the top bar shows it without a reload.
+export function announceProfileSaved(name: string, avatar: AvatarView): void {
+  window.dispatchEvent(new CustomEvent<ProfileSaved>(PROFILE_SAVED, { detail: { name, avatar } }));
 }
 
 // The signed-in person's initials in the top bar. Opening it shows who is signed
-// in and a sign-out button, which ends the cookie session (POST /api/signout) and
-// goes to /signin. Opening moves focus to the first item; Escape closes it and
+// in and a list: Profile, People (admin) for admins, and Sign out, which ends the cookie
+// session (POST /api/signout) and goes to /signin. Opening moves focus to the first item; Escape closes it and
 // returns focus to the button; a click outside or tabbing out of it closes it.
-export function UserMenu({ me }: { me: MeView }) {
+export function UserMenu({ me: loaded }: { me: MeView }) {
+  const [saved, setSaved] = useState<ProfileSaved | null>(null);
+  const me = saved === null ? loaded : { ...loaded, ...saved };
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [failed, setFailed] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const firstItemRef = useRef<HTMLButtonElement>(null);
+  const firstItemRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    const onSaved = (event: Event) => setSaved((event as CustomEvent<ProfileSaved>).detail);
+    window.addEventListener(PROFILE_SAVED, onSaved);
+    return () => window.removeEventListener(PROFILE_SAVED, onSaved);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -77,9 +86,9 @@ export function UserMenu({ me }: { me: MeView }) {
         aria-expanded={open}
         data-testid="user-menu-button"
         onClick={() => setOpen((value) => !value)}
-        className="grid h-7 w-7 place-items-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent-dark"
+        className="rounded-full"
       >
-        {initials(me.name)}
+        <Avatar avatar={me.avatar} testId="user-menu-avatar" />
       </button>
       {open && (
         <div
@@ -90,8 +99,26 @@ export function UserMenu({ me }: { me: MeView }) {
             <span className="text-meta font-semibold text-ink">{me.name}</span>
             <span className="truncate text-meta text-ink-muted">{me.email}</span>
           </div>
-          <button
+          <Link
             ref={firstItemRef}
+            to="/profile"
+            className="btn-ghost"
+            data-testid="user-menu-profile"
+            onClick={() => setOpen(false)}
+          >
+            Profile
+          </Link>
+          {me.isAdmin && (
+            <Link
+              to="/admin/users"
+              className="btn-ghost"
+              data-testid="user-menu-people"
+              onClick={() => setOpen(false)}
+            >
+              People (admin)
+            </Link>
+          )}
+          <button
             type="button"
             className="btn-ghost"
             data-testid="user-menu-signout"

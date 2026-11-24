@@ -55,11 +55,13 @@ public static class ScreenShapes
         ],
     };
 
-    public static readonly JsonShapeOptions Sharing = new() { NullablePaths = ["lastChange"] };
+    public static readonly JsonShapeOptions Sharing = new() { NullablePaths = ["lastChange", "owner.avatar.pictureUrl", "people[].name", "people[].avatar", "people[].avatar.pictureUrl"] };
 
-    public static readonly JsonShapeOptions Me = new() { NullablePaths = ["pictureUrl"] };
+    public static readonly JsonShapeOptions Profile = new() { NullablePaths = ["identity.avatar.pictureUrl", "identity.colour", "account.timeZone", "agents[].lastUsedLabel"] };
 
-    public static readonly JsonShapeOptions AdminUsers = new() { NullablePaths = ["users[].pictureUrl", "users[].changedLabel", "users[].changedBy"] };
+    public static readonly JsonShapeOptions Me = new() { NullablePaths = ["pictureUrl", "avatar.pictureUrl", "timeZone"] };
+
+    public static readonly JsonShapeOptions AdminUsers = new() { NullablePaths = ["users[].pictureUrl", "users[].avatar.pictureUrl", "users[].changedLabel", "users[].changedBy"] };
 
     // SW-4's presenter view (presenter.json, P3): the play view's paths plus each slide's notes and headline, and the
     // deck's talk length.
@@ -271,6 +273,8 @@ public static class ScreenShapes
         "question-votes.json" => QuestionVotes,
         "qa-control.json" => _qaControlFile,
         "questions-report.json" => QuestionsReport,
+        "sharing.json" => Sharing,
+        "profile.json" => Profile,
         TemplateScreenShapes.TEMPLATES_FILE => TemplateScreenShapes.Templates,
         TemplateScreenShapes.EDITOR_FILE => TemplateScreenShapes.Editor,
         TemplateScreenShapes.LAYOUT_REVIEW_FILE => TemplateScreenShapes.LayoutReview,

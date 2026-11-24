@@ -27,6 +27,23 @@ test('lists pending first with approve and reject', async ({ mount, page }) => {
   await expect(page.getByTestId('admin-pending-count')).toHaveText('1 waiting');
 });
 
+test("shows each person's avatar: their picture, else their initials", async ({ mount, page }) => {
+  const view: AdminUsersView = {
+    ...adminUsers,
+    users: [pat, { ...ada, avatar: { ...ada.avatar, pictureUrl: null } }],
+  };
+  await stubApi(page, { '/api/admin/users': { json: view } });
+  await mount(<AdminUsersPage />, route);
+
+  await expect(row(page, pat.id).getByTestId('admin-user-avatar-picture')).toHaveAttribute(
+    'src',
+    pat.avatar.pictureUrl!,
+  );
+  await expect(row(page, pat.id).getByTestId('admin-user-avatar-initials')).toHaveCount(0);
+  await expect(row(page, ada.id).getByTestId('admin-user-avatar-initials')).toHaveText('AB');
+  await expect(row(page, ada.id).getByTestId('admin-user-avatar-picture')).toHaveCount(0);
+});
+
 test('shows the right buttons for each access state', async ({ mount, page }) => {
   await stubApi(page, { '/api/admin/users': { json: adminUsers } });
   await mount(<AdminUsersPage />, route);

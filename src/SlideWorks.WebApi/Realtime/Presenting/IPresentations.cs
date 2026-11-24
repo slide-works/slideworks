@@ -30,8 +30,9 @@ public interface IPresentations
     // A closed connection leaves every presentation (DeckHub.OnDisconnectedAsync).
     Task LeaveAllAsync(string connectionId);
 
-    // P4: the owner's decks with at least one presenter or audience connection, newest first.
-    Task<LivePresentationsView> ListLiveAsync(Guid ownerId);
+    // P4: the decks with at least one presenter or audience connection that canPresent accepts (IDeckAccess.CanPresentAsync
+    // for the caller: the owner, or a person with write), newest first.
+    Task<LivePresentationsView> ListLiveAsync(Func<string, Task<bool>> canPresent);
 
     // P7: the deck's talk length changed; sends a new state when the deck has one.
     Task TalkLengthChangedAsync(string deckId, int? minutes);

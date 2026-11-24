@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/experimental-ct-react';
-import type { DeckPageView, LooksView, SharingRequest } from '../api/types';
+import type { DeckPageView, LooksView, SharingPeopleRequest } from '../api/types';
 import { AppRoutes } from '../AppRoutes';
 import { GoTo } from '../test-support/GoTo';
 import { LocationProbe } from '../test-support/LocationProbe';
@@ -103,7 +103,10 @@ test('activity shows agent entries', async ({ mount, page }) => {
   await expect(rows.nth(2)).toContainText('Claude created the deck · 9 min ago · via MCP');
 });
 
-test("a person's change on the owner's page reads You", async ({ mount, page }) => {
+test("a person's own change reads You and another person's reads their name", async ({
+  mount,
+  page,
+}) => {
   const view: DeckPageView = {
     ...deckPage,
     activity: [
@@ -114,15 +117,28 @@ test("a person's change on the owner's page reads You", async ({ mount, page }) 
         tool: null,
         summary: 'created the deck',
         atLabel: 'just now',
+        isMe: true,
+      },
+      {
+        actor: 'Alex Chen',
+        actorKind: 'person',
+        via: 'web',
+        tool: null,
+        summary: 'changed the palette to Midnight',
+        atLabel: '1 min ago',
+        isMe: false,
       },
     ],
   };
   await stubApi(page, { '/api/me': { json: me }, [deckPath]: { json: view } });
   await mount(<AppRoutes />, route);
 
-  await expect(page.getByTestId('activity-row')).toContainText(
-    'You created the deck · just now · in the browser',
+  const rows = page.getByTestId('activity-row');
+  await expect(rows.nth(0)).toContainText('You created the deck · just now · in the browser');
+  await expect(rows.nth(1)).toContainText(
+    'Alex Chen changed the palette to Midnight · 1 min ago · in the browser',
   );
+  await expect(rows.nth(1)).not.toContainText('You');
 });
 
 test('deck page re-reads on DeckChanged', async ({ mount, page }) => {
@@ -345,7 +361,7 @@ test('deck page re-reads when a reconnect joins again', async ({ mount, page }) 
 
 test('saving in the sharing dialog re-reads the deck page once', async ({ mount, page }) => {
   const after: DeckPageView = { ...deckPage, sharing: { level: 'named', viewerCount: 2 } };
-  const puts: SharingRequest[] = [];
+  const puts: SharingPeopleRequest[] = [];
   let reads = 0;
   await stubApi(page, { '/api/me': { json: me } });
   await page.route(`**${deckPath}`, (route) => {
@@ -356,7 +372,7 @@ test('saving in the sharing dialog re-reads the deck page once', async ({ mount,
     if (route.request().method() !== 'PUT') {
       return route.fulfill({ json: { ...sharing, level: 'link' } });
     }
-    const body = route.request().postDataJSON() as SharingRequest;
+    const body = route.request().postDataJSON() as SharingPeopleRequest;
     puts.push(body);
     return route.fulfill({ json: { ...sharing, ...body } });
   });
@@ -365,13 +381,15 @@ test('saving in the sharing dialog re-reads the deck page once', async ({ mount,
 
   await page.getByTestId('deck-share').click();
   const dialog = page.getByTestId('sharing-dialog');
-  await dialog.getByRole('radio', { name: 'Named people' }).check();
+  await dialog.getByRole('radio', { name: 'Only people below' }).check();
   await dialog.getByTestId('sharing-save').click();
 
   await expect(page.getByTestId('deck-sharing-level')).toHaveText('2 named viewers');
   await expect(dialog).toHaveCount(0);
   await expect(page.getByTestId('deck-share')).toBeFocused();
-  expect(puts).toEqual([{ level: 'named', viewers: sharing.viewers }]);
+  expect(puts).toEqual([
+    { level: 'named', people: sharing.people.map(({ email, access }) => ({ email, access })) },
+  ]);
   await settle(page);
   expect(reads).toBe(2);
 });
