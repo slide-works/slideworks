@@ -12,6 +12,7 @@ import { JoinProvider } from '../JoinContext';
 import { SlideRenderer } from '../SlideRenderer';
 import type { SlideDeck } from '../slots';
 import type { WordCloudSlots } from '../slots/word-cloud';
+import { settle } from '../../test-support/gate';
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -159,7 +160,6 @@ async function tokenColour(page: Page, token: string) {
 const slide = (page: Page) => page.getByTestId(`slide-${SLIDE}`);
 const word = (page: Page, index: number) => slide(page).getByTestId(`word-cloud-word-${index}`);
 // Lets the page run its pending work, so a call or render it should not make has had its chance.
-const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 300)));
 const fontPx = (page: Page, index: number) =>
   word(page, index).evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
 
@@ -224,7 +224,7 @@ test('Cloud_WhenTheViewerCannotPresent_ShouldShowTheQuestionOnly', async ({ moun
   await mount(player());
   await expect.poll(() => live.liveAnswers).toBe(1);
   await expect.poll(() => live.hub.sockets).toBeGreaterThanOrEqual(1);
-  await settle(page);
+  await settle(page, 300);
 
   expect(live.hub.watches).toEqual([]);
   expect(live.reads).toEqual([]);

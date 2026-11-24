@@ -1,10 +1,9 @@
 {
   "levelsSeven": {
     "layout": "levels",
-    "estimate": 645.2,
+    "estimate": 614.4,
     "grow": [
-      "/levels/items/0/text",
-      "/main/items/2/text"
+      "/levels/items/0/text"
     ],
     "refusedBy": "fit",
     "slots": {
@@ -50,7 +49,7 @@
         "items": [
           {
             "lead": "Leadaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "text": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            "text": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
           },
           {
             "lead": "Leadbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -87,7 +86,7 @@
   },
   "levelsText": {
     "layout": "levels",
-    "estimate": 0,
+    "estimate": 612.8,
     "grow": [
       "/main/text",
       "/levels/items/0/text"
@@ -97,7 +96,7 @@
       "kicker": "Every Slip Starts As A Big Batch And End",
       "headline": "Every Slip Starts As A Big Batch And Ends As A Late Release That Costs Real Mone",
       "levels": {
-        "title": "Every Slip Starts As A Big Bat",
+        "title": "Every Slip Starts As A Big",
         "items": [
           {
             "text": "Every Slip Starts As A Big Batch And Ends As A Lat",
@@ -144,45 +143,44 @@
   },
   "levelsTextWide": {
     "layout": "levels",
-    "estimate": 0,
+    "estimate": 612.8,
     "grow": [
-      "/main/text",
-      "/levels/items/0/text"
+      "/main/text"
     ],
     "refusedBy": "length",
     "slots": {
       "kicker": "Whom We Name WOMBAT MUMMY Mavens, Wow, M",
       "headline": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wins Most Wednesdays. Whom We Na",
       "levels": {
-        "title": "Whom We Name WOMBAT MUMMY Mave",
+        "title": "Whom We Name WOMBAT",
         "items": [
           {
-            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi",
+            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow,",
             "mark": "Who",
             "state": "plain"
           },
           {
-            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi",
+            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow,",
             "mark": "Who",
             "state": "plain"
           },
           {
-            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi",
+            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow,",
             "mark": "Who",
             "state": "current"
           },
           {
-            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi",
+            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow,",
             "mark": "Who",
             "state": "plain"
           },
           {
-            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi",
+            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow,",
             "mark": "Who",
             "state": "plain"
           },
           {
-            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow, Momentum Wi",
+            "text": "Whom We Name WOMBAT MUMMY Mavens, Wow,",
             "mark": "Who",
             "state": "plain"
           }

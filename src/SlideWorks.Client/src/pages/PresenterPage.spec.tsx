@@ -6,6 +6,7 @@ import { presentationState, presenterView } from '../test-support/fixtures/prese
 import { me } from '../test-support/fixtures/screens';
 import { stubApi } from '../test-support/stubApi';
 import { stubDeckHub, type StubPresentationOptions } from '../test-support/stubDeckHub';
+import { settle } from '../test-support/gate';
 
 const view = presenterView();
 const deckId = view.id;
@@ -40,8 +41,6 @@ async function waitUntilLive(page: Page) {
 }
 
 // Lets the page run its pending work, so a call it should not make has had its chance.
-const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 300)));
-
 test('PresenterPage_WhenArrowSpaceAndPageKeysPressed_ShouldMoveThroughUpdatePresentation', async ({
   mount,
   page,
@@ -191,7 +190,7 @@ test('PresenterPage_WhenOPressed_ShouldOpenOverviewAndEscShouldCloseIt', async (
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('overview')).toHaveCount(0);
   await expect(page.getByTestId('presenter-tool-overview')).toBeFocused();
-  await settle(page);
+  await settle(page, 300);
   expect(hub.updates).toEqual([]);
 
   // A slide picked in the overview is a jump: step 0, even for a deep dive.
@@ -224,7 +223,7 @@ test('PresenterPage_WhenACheckboxHasFocus_ShouldStillMoveWithTheArrowsAndLeaveSp
   // Space toggles the checkbox and does not move the talk.
   await page.keyboard.press(' ');
   await expect(page.locator('#probe-checkbox')).toBeChecked();
-  await settle(page);
+  await settle(page, 300);
   expect(hub.updates).toHaveLength(2);
 });
 
@@ -241,7 +240,7 @@ test('PresenterPage_WhenNumberThenEnterTyped_ShouldJumpToThatSlide', async ({ mo
   await page.keyboard.press('4');
   await page.keyboard.press('0');
   await page.keyboard.press('Enter');
-  await settle(page);
+  await settle(page, 300);
   expect(hub.updates).toEqual([{ slide: 12, step: 0, black: false, skipDeepDives: false }]);
 });
 
@@ -340,7 +339,7 @@ test('PresenterPage_WhenTheJoinIsRefused_ShouldShowNotFound', async ({ mount, pa
   const hub = await openPresenter(page, mount, { state: paused(), refuse: true });
 
   await expect(page.getByTestId('presenter-not-found')).toHaveText('Deck not found');
-  await settle(page);
+  await settle(page, 300);
   expect(hub.updates).toEqual([]);
 });
 

@@ -20,6 +20,12 @@ public sealed class ObjectSlot(IReadOnlyList<SlotField> fields, IReadOnlyList<st
         foreach (var field in Fields)
         {
             var schema = field.Type.ToJsonSchema();
+            if (!field.Required)
+            {
+                // The validator reads a JSON null as absent (IsPresent), so the schema allows it.
+                AllowNull(schema);
+            }
+
             if (field.Description is not null)
             {
                 schema["description"] = field.Description;
@@ -37,12 +43,33 @@ public sealed class ObjectSlot(IReadOnlyList<SlotField> fields, IReadOnlyList<st
         };
         if (ExactlyOneOf.Count > 0)
         {
+            // Each branch needs its field present and not null: the validator counts only non-null fields
+            // (IsPresent), so { "items": null, "text": "..." } is one field, not two.
             result["oneOf"] = new JsonArray(ExactlyOneOf
-                .Select(name => (JsonNode?)new JsonObject { ["required"] = new JsonArray(JsonValue.Create(name)) })
+                .Select(name => (JsonNode?)new JsonObject
+                {
+                    ["required"] = new JsonArray(JsonValue.Create(name)),
+                    ["properties"] = new JsonObject { [name] = new JsonObject { ["not"] = new JsonObject { ["type"] = "null" } } },
+                })
                 .ToArray());
         }
 
         return result;
+    }
+
+    // Adds null to what the schema accepts, keeping every other keyword where it was. A schema with a type
+    // gains "null" there (and in its enum, which applies to every type); a oneOf gains a null branch.
+    private static void AllowNull(JsonObject schema)
+    {
+        if (schema["type"] is JsonValue type)
+        {
+            schema["type"] = new JsonArray(JsonValue.Create(type.GetValue<string>()), JsonValue.Create("null"));
+            schema["enum"]?.AsArray().Add(null);
+        }
+        else if (schema["oneOf"] is JsonArray oneOf)
+        {
+            oneOf.Add(new JsonObject { ["type"] = "null" });
+        }
     }
 
     public void Validate(JsonElement value, string path, SlotValidation validation)

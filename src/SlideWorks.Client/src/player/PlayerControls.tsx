@@ -1,5 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import { LiveChip } from '../live/LiveChip';
-import type { PlayerPosition } from './parseHash';
+import { formatHash, type PlayerPosition } from './parseHash';
 
 type PlayerControlsProps = {
   deckTitle: string;
@@ -21,8 +22,94 @@ const BUTTON =
   'grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg bg-white/10 text-slate-200 ' +
   'hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#93a8ff]';
 
+const SHOW_MESSAGE_MS = 2500;
+
+type Feedback = { hash: string; result: 'copied' | 'failed' };
+
+// Copies this page's address with the player's hash for the current slide. A
+// short message above the button says it worked, or that the browser refused
+// (the person then copies the address bar by hand). "Link copied" belongs to the
+// slide it was made on, so moving on hides it while the button stays mounted
+// (and keeps focus); a refusal is never hidden, since the person would otherwise
+// believe the link was copied. Only the latest click's write may set the message,
+// so an older write that settles late can't replace a newer answer. The message
+// goes away 2.5 s after the write settles, not after the click, so a slow
+// permission prompt still gets its answer shown.
+function CopyLinkButton({ position }: { position: PlayerPosition }) {
+  const hash = formatHash(position);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const latestRequest = useRef(0);
+  useEffect(() => {
+    if (!feedback) return;
+    const timer = window.setTimeout(() => setFeedback(null), SHOW_MESSAGE_MS);
+    return () => window.clearTimeout(timer);
+  }, [feedback]);
+  const onClick = () => {
+    const url = new URL(window.location.href);
+    url.hash = hash;
+    const request = ++latestRequest.current;
+    setFeedback(null);
+    // navigator.clipboard is undefined outside a secure context, whatever the type declarations say.
+    const clipboard = navigator.clipboard as Clipboard | undefined;
+    const settle = (result: Feedback['result']) => {
+      if (request === latestRequest.current) setFeedback({ hash, result });
+    };
+    if (!clipboard) {
+      settle('failed');
+      return;
+    }
+    try {
+      clipboard.writeText(url.href).then(
+        () => settle('copied'),
+        () => settle('failed'),
+      );
+    } catch {
+      settle('failed');
+    }
+  };
+  const result =
+    feedback?.result === 'failed' || feedback?.hash === hash ? (feedback?.result ?? null) : null;
+  const message =
+    result === 'copied'
+      ? 'Link copied'
+      : result === 'failed'
+        ? "Couldn't copy · copy the address bar instead"
+        : '';
+  return (
+    <span className="relative shrink-0">
+      <button
+        type="button"
+        data-testid="player-copy-link"
+        aria-label="Copy link to this slide"
+        title="Copy link to this slide"
+        className={BUTTON}
+        onClick={onClick}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          className="size-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden="true"
+        >
+          <path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />
+        </svg>
+      </button>
+      <span
+        data-testid="player-copy-link-message"
+        role={result === 'failed' ? 'alert' : 'status'}
+        hidden={!result}
+        className="absolute right-0 bottom-full z-10 mb-2 w-max max-w-[min(18rem,calc(100vw-2rem))] rounded-lg bg-slate-900 px-3 py-1.5 text-center text-xs text-slate-100 shadow-lg"
+      >
+        {message}
+      </span>
+    </span>
+  );
+}
+
 // The bar under the stage: previous and next, "n / total", one dot per step of
-// the current slide, the deck's progress, and fullscreen (or exit fullscreen).
+// the current slide, the deck's progress, copy link, and fullscreen (or exit fullscreen).
 export function PlayerControls({
   deckTitle,
   position,
@@ -40,7 +127,7 @@ export function PlayerControls({
   return (
     <div
       data-testid="player-controls"
-      className="flex h-14 shrink-0 items-center gap-2.5 px-4 font-sans text-[12.5px] font-medium text-slate-300"
+      className="flex min-h-14 shrink-0 flex-wrap items-center gap-x-2.5 gap-y-2 px-4 py-2 font-sans text-[12.5px] font-medium text-slate-300"
     >
       <button
         type="button"
@@ -107,6 +194,7 @@ export function PlayerControls({
         />
       </span>
       {liveChip && <LiveChip deckTitle={deckTitle} joinBar={joinBar} />}
+      <CopyLinkButton position={position} />
       {canFullscreen && (
         <button
           type="button"

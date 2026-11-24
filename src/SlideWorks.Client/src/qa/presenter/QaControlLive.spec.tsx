@@ -22,6 +22,7 @@ import { QA_ACTIONS, type QaControlView, type ReactionCounts } from '../types';
 import { QaControlLive } from './QaControlLive';
 import { QaPanel } from './QaPanel';
 import { QaControlProbe } from '../../test-support/QaControlProbe';
+import { settle } from '../../test-support/gate';
 
 // The real control provider over the stub hub and the stub Q&A routes, read through the panel. The live sample: seq 212,
 // open 1 (14 votes), 2 (on screen) and 6, waiting 4, answered 3, hidden 5; reactions 41/12/7/3/28.
@@ -50,8 +51,6 @@ const tab = (page: Page, id: string) => page.getByTestId(id);
 const thumbs = (page: Page) => page.getByTestId(qaPanelReactionCountTestId('thumbsUp'));
 
 // Lets the page run its pending work, so a call it should not make has had its chance.
-const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 300)));
-
 const withReactions = (view: QaControlView, reactions: Partial<ReactionCounts>, seq: number) => ({
   ...view,
   seq,
@@ -88,7 +87,7 @@ test('QaControlLive_WhenQuestionControlArrives_ShouldFollowItAndDropALowerSeq', 
 
   pushQaControl(hub, withReactions(base, { thumbsUp: 60 }, 999));
   pushQaControl(hub, withReactions(base, { thumbsUp: 61 }, 1000));
-  await settle(page);
+  await settle(page, 300);
   await expect(thumbs(page)).toContainText('50');
 
   pushQaControl(hub, withReactions(base, { thumbsUp: 70 }, 1001));
@@ -108,7 +107,7 @@ test('QaControlLive_WhenQuestionControlArrivesWhileTheReadIsHeld_ShouldKeepItAnd
   await expect(thumbs(page)).toContainText('90');
 
   held.release();
-  await settle(page);
+  await settle(page, 300);
   await expect(thumbs(page)).toContainText('90');
 });
 
@@ -120,7 +119,7 @@ test('QaControlLive_WhenTheSlideChanges_ShouldReadAgainOncePerChange', async ({ 
   await view.update(presenter(6));
   await expect.poll(() => reads(api.calls).length).toBe(2);
   await view.update(presenter(6));
-  await settle(page);
+  await settle(page, 300);
   expect(reads(api.calls)).toHaveLength(2);
 });
 
@@ -140,7 +139,7 @@ test('QaControlLive_WhenTheDeckGoesLive_ShouldReadAgainAndShowTheNewRound', asyn
 
   // Another deck's event changes nothing.
   hub.push({ type: 'liveChanged', deckId: OTHER_DECK });
-  await settle(page);
+  await settle(page, 300);
   expect(reads(api.calls)).toHaveLength(2);
 });
 
@@ -272,7 +271,7 @@ test('QaControlLive_WhenAnActionFailsOnTheNetwork_ShouldSayWhatFailedAndReadAgai
   );
   await expect.poll(() => reads(api.calls).length).toBe(2);
   // A later good read doesn't wipe the message of the failed call.
-  await settle(page);
+  await settle(page, 300);
   await expect(page.getByTestId(IDS.error)).toBeVisible();
 });
 
@@ -306,7 +305,7 @@ test('QaControlLive_WhenReactionsArriveBetweenViews_ShouldAddThemToTheViewAndNev
 
   // A newer view already holds both batches: it replaces the sum, it doesn't add to it.
   pushQaControl(hub, withReactions(qaControlView('live'), { thumbsUp: 45 }, 2000));
-  await settle(page);
+  await settle(page, 300);
   await expect(thumbs(page)).toContainText('45');
   expect((await thumbs(page).textContent())!.replace(/\D/g, '')).toBe('45');
 
@@ -315,7 +314,7 @@ test('QaControlLive_WhenReactionsArriveBetweenViews_ShouldAddThemToTheViewAndNev
 
   // A view that is not newer is dropped whole, so its totals don't replace the held ones.
   pushQaControl(hub, withReactions(qaControlView('live'), { thumbsUp: 10 }, 2000));
-  await settle(page);
+  await settle(page, 300);
   await expect(thumbs(page)).toContainText('47');
 });
 
@@ -385,10 +384,10 @@ test('QaControlLive_WhenAButtonIsPressedTwiceBeforeTheAnswer_ShouldSendOneCall',
   await show.click();
   await expect.poll(() => writes(api.calls).length).toBe(1);
   await show.click({ force: true });
-  await settle(page);
+  await settle(page, 300);
   held.release();
   await expect(page.getByTestId(qaPanelActionTestId('unshow', 1))).toBeVisible();
-  await settle(page);
+  await settle(page, 300);
   expect(writes(api.calls)).toEqual([{ call: 'show', number: 1 }]);
 });
 
@@ -424,7 +423,7 @@ test('QaControlLive_WhenReactionsOfEveryEmojiArrive_ShouldFoldEachOnceAndReplace
   const totals = { thumbsUp: 100, heart: 101, laugh: 102, wow: 103, clap: 104 };
   pushQaControl(hub, { ...view, reactions: totals });
   await expectTotals(page, totals);
-  await settle(page);
+  await settle(page, 300);
   await expectTotals(page, totals);
 
   hub.pushAudienceEvent(reactionsBurst({ counts: batch }));
@@ -475,7 +474,7 @@ test('QaControlLive_WhenAnActionSucceedsAfterTheDeckChanged_ShouldNotShowTheOldD
   await expect(page.getByTestId(IDS.notLive)).toBeVisible();
 
   held.release();
-  await settle(page);
+  await settle(page, 300);
   // The old deck's answer (seq 9001) is not the new deck's view.
   await expect(page.getByTestId(IDS.notLive)).toBeVisible();
   await expect(tab(page, IDS.tabOpen)).toHaveCount(0);
@@ -497,7 +496,7 @@ test('QaControlLive_WhenAnActionFailsAfterTheDeckChanged_ShouldShowNoMessageAndR
   await expect(page.getByTestId(IDS.notLive)).toBeVisible();
 
   held.release();
-  await settle(page);
+  await settle(page, 300);
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
   // No re-read of the old deck after its failure; the new deck was read once.
   expect(reads(api.calls)).toHaveLength(1);
@@ -517,7 +516,7 @@ test('QaControlLive_WhenTheDeckChanges_ShouldStopListeningForTheOldDecksEvents',
 
   // The old deck's event must not make the new deck read again.
   hub.push({ type: 'liveChanged', deckId: DECK });
-  await settle(page);
+  await settle(page, 300);
   expect(reads(other.calls)).toHaveLength(1);
 
   hub.push({ type: 'liveChanged', deckId: OTHER_DECK });
@@ -550,7 +549,7 @@ test('QaControlLive_WhenTheWatchFailsBeforeAnyViewIsRead_ShouldNotSayLiveUpdates
   const held = api.hold('read');
   await mount(presenter(5));
   await expect.poll(() => reads(api.calls).length).toBe(1);
-  await settle(page);
+  await settle(page, 300);
   // Nothing to be out of date yet.
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
 
@@ -573,6 +572,6 @@ test('QaControlLive_WhenAPanelButtonIsPressedWithFocusOutsideThePanel_ShouldNotM
     .getByTestId(qaPanelActionTestId('answer', 1))
     .evaluate((button) => (button as HTMLElement).click());
   await expect(page.getByTestId(qaPanelRowTestId(1))).toHaveCount(0);
-  await settle(page);
+  await settle(page, 300);
   await expect(probe).toBeFocused();
 });

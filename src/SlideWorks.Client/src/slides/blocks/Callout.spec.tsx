@@ -24,7 +24,7 @@ test('callout tones', async ({ mount, page }) => {
 
   await expect(callouts.nth(1)).toHaveAttribute('data-tone', 'good');
   await expect(callouts.nth(1)).toHaveCSS('background-color', 'rgb(220, 252, 231)');
-  await expect(callouts.nth(1)).toHaveCSS('box-shadow', 'rgb(22, 163, 74) 6px 0px 0px 0px inset');
+  await expect(callouts.nth(1)).toHaveCSS('box-shadow', 'rgb(21, 128, 61) 6px 0px 0px 0px inset');
 
   await expect(callouts.nth(2)).toHaveAttribute('data-tone', 'bad');
   await expect(callouts.nth(2)).toHaveCSS('background-color', 'rgb(253, 236, 236)');

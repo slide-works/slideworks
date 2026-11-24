@@ -13,6 +13,7 @@ import {
 import { PollControlFixture } from './PollControlFixture';
 import { PollPanel } from './PollPanel';
 import type { PollAction } from './usePollControl';
+import { settle } from '../../test-support/gate';
 
 // The poll panel under the frozen fixture provider: every phase of V8, the controls each phase allows, earlier rounds,
 // a slide with no poll, a refused call's message, and the P, R and A keys. The real provider has its own spec
@@ -55,8 +56,6 @@ async function expectButtons(page: Page, shown: string[]) {
 }
 
 // Lets the page run its pending work, so a call it should not make has had its chance.
-const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 200)));
-
 test('PollPanel_WhenDraft_ShouldOfferOpenOnlyAndSayTheRoundIsNotOpenYet', async ({
   mount,
   page,
@@ -278,7 +277,7 @@ test('PollPanel_WhenEachButtonPressed_ShouldCallItsActionOnce', async ({ mount, 
   await button(page, IDS.showAnswer).click();
   await button(page, IDS.newRound).click();
 
-  await settle(page);
+  await settle(page, 200);
   expect(actions).toEqual(['open', 'reveal', 'close', 'showAnswer', 'newRound']);
 });
 
@@ -309,7 +308,7 @@ test('PollPanel_WhenPPressed_ShouldOpenADraftAndCloseAnOpenPoll', async ({ mount
   await expect(page.getByTestId(IDS.state)).toHaveText('Closed');
   await page.keyboard.press('p');
 
-  await settle(page);
+  await settle(page, 200);
   expect(actions).toEqual(['open', 'close']);
 });
 
@@ -327,7 +326,7 @@ test('PollPanel_WhenRPressed_ShouldRevealOnlyWhileHiddenFromTheRoom', async ({ m
   await page.keyboard.press('r');
 
   await expect.poll(() => actions).toEqual(['reveal']);
-  await settle(page);
+  await settle(page, 200);
   expect(actions).toEqual(['reveal']);
 });
 
@@ -358,7 +357,7 @@ test('PollPanel_WhenAPressed_ShouldShowTheAnswerOnlyWhenClosedWithOneNotShown', 
   await page.keyboard.press('a');
 
   await expect.poll(() => actions).toEqual(['showAnswer']);
-  await settle(page);
+  await settle(page, 200);
   expect(actions).toEqual(['showAnswer']);
 });
 
@@ -380,14 +379,14 @@ test('PollPanel_WhenNoPollOrTypingOrAnOverlayIsOpen_ShouldIgnoreTheKeys', async 
   await page.getByTestId('typing').blur();
 
   await view.update(panel(hidden(), { onAction, overlayOpen: true }));
-  await settle(page);
+  await settle(page, 200);
   for (const key of ['p', 'r']) await page.keyboard.press(key);
   // With a modifier held the key belongs to the browser or the system.
   await view.update(panel(hidden(), { onAction }));
-  await settle(page);
+  await settle(page, 200);
   await page.keyboard.press('Alt+p');
 
-  await settle(page);
+  await settle(page, 200);
   expect(actions).toEqual([]);
 
   // The same panel still answers a plain key, so the presses above were really ignored.

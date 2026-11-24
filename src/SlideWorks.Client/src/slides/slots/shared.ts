@@ -16,8 +16,9 @@ export type Reveal = 'all' | 'one-by-one';
 export type DeepDive = { part: number | null; number: number; headline: string };
 
 // What a layout knows about its deck. The player passes the play view's values;
-// the deck page's thumbnails pass the deck page's (with a null author). look is
-// the deck's resolved look, and deepDives comes from deepDivesOf(slides).
+// the deck page's thumbnails pass the deck page's. The look preview and the
+// layout review page have no deck author and pass null. look is the deck's
+// resolved look, and deepDives comes from deepDivesOf(slides).
 export type SlideDeck = {
   title: string;
   author: string | null;

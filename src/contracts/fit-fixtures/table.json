@@ -11,77 +11,77 @@
       "kicker": "So The Risk Shows Up Early While It Isee",
       "headline": "Still Cheap To Change Course And Nobody Has To Guess How Far Along The Workeeeee",
       "columns": [
-        "The Team Ships Ae",
-        "Small Slice Ofeee",
-        "Work To Customers",
-        "Every Week Andeee",
-        "The Feedbackeeeee",
-        "Arrives In Daysee"
+        "The Team Ships",
+        "Small Slice Ofe",
+        "Work To Custom",
+        "Every Week Ande",
+        "The Feedbackeeee",
+        "Arrives In Days"
       ],
       "rows": [
         [
-          "Rather Thaneee",
-          "Quarters So The Risk Shows",
-          "Up Early While",
-          "It Is Stilleee",
-          "Cheap Toeeeeee",
+          "Rather Thanee",
+          "Quarters So The Risk Sho",
+          "Up Early Whi",
+          "It Is Stillee",
+          "Cheap Toeeeee",
           {
-            "text": "Change Coursee",
+            "text": "Change Course",
             "tone": "good"
           }
         ],
         [
-          "And Nobody Has",
-          "To Guess Howee",
-          "Far Along Thee",
-          "Work Really Is",
-          "The Team Ships",
+          "And Nobody H",
+          "To Guess How",
+          "Far Along The",
+          "Work Really",
+          "The Team Shi",
           {
-            "text": "A Small Slicee",
+            "text": "A Small Slic",
             "tone": "warn"
           }
         ],
         [
-          "Of Work Toeeee",
-          "Customerseeeee",
-          "Every Week And",
-          "The Feedbackee",
-          "Arrives Ineeee",
+          "Of Work Toee",
+          "Customerseee",
+          "Every Week A",
+          "The Feedbacke",
+          "Arrives Ineee",
           {
-            "text": "Days Rathereee",
+            "text": "Days Ratheree",
             "tone": "bad"
           }
         ],
         [
-          "Than Quarterse",
-          "So The Risk Shows Up Early",
-          "While It Iseee",
-          "Still Cheap To",
-          "Change Coursee",
+          "Than Quarters",
+          "So The Risk Shows Up Ear",
+          "While It Ise",
+          "Still Cheap T",
+          "Change Course",
           {
-            "text": "And Nobody Has",
+            "text": "And Nobody H",
             "tone": "info"
           }
         ],
         [
-          "To Guess Howee",
-          "Far Along Thee",
-          "Work Really Is",
-          "The Team Ships",
-          "A Small Slicee",
+          "To Guess How",
+          "Far Along The",
+          "Work Really",
+          "The Team Shi",
+          "A Small Slic",
           {
-            "text": "Of Work Toeeee",
+            "text": "Of Work Toee",
             "tone": "good"
           }
         ],
         [
-          "Customerseeeee",
-          "Every Week And",
-          "The Feedbackee",
-          "Arrives Ineeee",
-          "Days Rathereee",
+          "Customerseee",
+          "Every Week A",
+          "The Feedbacke",
+          "Arrives Ineee",
+          "Days Ratheree",
           {
-            "text": "Than Quarterse",
+            "text": "Than Quarters",
             "tone": "bad"
           }
         ]
@@ -101,77 +101,77 @@
       "kicker": "So the risk shows up early while it isee",
       "headline": "Still cheap to change course and nobody has to guess how far along the workeeeee",
       "columns": [
-        "The team ships ae",
-        "Small slice ofeee",
-        "Work to customers",
-        "Every week andeee",
-        "The feedbackeeeee",
-        "Arrives in daysee"
+        "The team ships a",
+        "Small slice ofee",
+        "Work to custome",
+        "Every week andee",
+        "The feedbackeeee",
+        "Arrives in dayse"
       ],
       "rows": [
         [
-          "Rather thaneee",
-          "Quarters so the risk shows",
-          "Up early while",
-          "It is stilleee",
-          "Cheap toeeeeee",
+          "Rather thanee",
+          "Quarters so the risk show",
+          "Up early whil",
+          "It is stillee",
+          "Cheap toeeeee",
           {
-            "text": "Change coursee",
+            "text": "Change course",
             "tone": "good"
           }
         ],
         [
-          "And nobody has",
-          "To guess howee",
-          "Far along thee",
-          "Work really is",
-          "The team ships",
+          "And nobody ha",
+          "To guess howe",
+          "Far along the",
+          "Work really i",
+          "The team ship",
           {
-            "text": "A small slicee",
+            "text": "A small slic",
             "tone": "warn"
           }
         ],
         [
-          "Of work toeeee",
-          "Customerseeeee",
-          "Every week and",
-          "The feedbackee",
-          "Arrives ineeee",
+          "Of work toee",
+          "Customerseee",
+          "Every week an",
+          "The feedbacke",
+          "Arrives ineee",
           {
-            "text": "Days rathereee",
+            "text": "Days ratheree",
             "tone": "bad"
           }
         ],
         [
-          "Than quarterse",
-          "So the risk shows up early",
-          "While it iseee",
-          "Still cheap to",
-          "Change coursee",
+          "Than quarters",
+          "So the risk shows up earl",
+          "While it isee",
+          "Still cheap t",
+          "Change course",
           {
-            "text": "And nobody has",
+            "text": "And nobody ha",
             "tone": "info"
           }
         ],
         [
-          "To guess howee",
-          "Far along thee",
-          "Work really is",
-          "The team ships",
-          "A small slicee",
+          "To guess howe",
+          "Far along the",
+          "Work really i",
+          "The team ship",
+          "A small slic",
           {
-            "text": "Of work toeeee",
+            "text": "Of work toee",
             "tone": "good"
           }
         ],
         [
-          "Customerseeeee",
-          "Every week and",
-          "The feedbackee",
-          "Arrives ineeee",
-          "Days rathereee",
+          "Customerseee",
+          "Every week an",
+          "The feedbacke",
+          "Arrives ineee",
+          "Days ratheree",
           {
-            "text": "Than quarterse",
+            "text": "Than quarters",
             "tone": "bad"
           }
         ]
@@ -181,7 +181,7 @@
   },
   "tableCells80": {
     "layout": "table",
-    "estimate": 602.1,
+    "estimate": 601.9,
     "grow": [
       "/rows/4/0"
     ],

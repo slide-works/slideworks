@@ -164,9 +164,7 @@ public partial class Sw5FollowJourneyTests : AcceptanceTest
         await using var phone = await PollJourney.OpenPhoneContextAsync(Browser);
         var page = await phone.NewPageAsync();
         var hub = await DroppableHub.RouteAsync(page);
-        var guest = new GuestPage(page);
-        await guest.GotoUrlAsync(joinUrl);
-        await guest.IsFollowingAsync();
+        var guest = await Talks.FollowAsync(page, joinUrl);
         await Expect(guest.Slide).ToHaveAttributeAsync("data-slide", "1");
 
         (await hub.DropAsync()).ShouldBe(1, "the phone should have one hub connection to drop");

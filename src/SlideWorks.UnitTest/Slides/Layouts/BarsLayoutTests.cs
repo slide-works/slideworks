@@ -88,6 +88,26 @@ public class BarsLayoutTests
     }
 
     [Test]
+    public void Validate_WhenAWideNoteWouldNeedMoreThanTheTrack_ShouldRefuse()
+    {
+        // 50 capital Ws cost 1.87 each (1152 px at 22 px), where 50 lowercase letters cost 616 px.
+        var bars = """[{ "label": "a", "value": 100 }, { "label": "b", "value": 1, "tag": "aaaaaaaaaaaaaaaa", "note": "NOTE" }]""";
+        Validate(Slots(bars.Replace("NOTE", new string('a', 50)))).Errors.ShouldBeEmpty();
+        Validate(Slots(bars.Replace("NOTE", new string('W', 50)))).Errors.ShouldHaveSingleItem()
+            .ShouldBe("bars.bars[1].note: too much text to fit in this bar; shorten it or leave it out");
+    }
+
+    [Test]
+    public void Validate_WhenAWideTagTakesTheTrackFromTheNote_ShouldRefuse()
+    {
+        // A note of 25 Ws and 25 lowercase letters fits after a bar whose tag is 16 lowercase letters, but not when the tag is 16 Ws.
+        var bars = """[{ "label": "a", "value": 100 }, { "label": "b", "value": 1, "tag": "TAG", "note": "WWWWWWWWWWWWWWWWWWWWWWWWWaaaaaaaaaaaaaaaaaaaaaaaaa" }]""";
+        Validate(Slots(bars.Replace("TAG", new string('a', 16)))).Errors.ShouldBeEmpty();
+        Validate(Slots(bars.Replace("TAG", new string('W', 16)))).Errors.ShouldHaveSingleItem()
+            .ShouldBe("bars.bars[1].note: too much text to fit in this bar; shorten it or leave it out");
+    }
+
+    [Test]
     public void Count_WhenOneByOneAndCalloutRevealsLast_ShouldBeBarsPlusOne()
     {
         Count(Slots("""[{ "label": "a", "value": 1 }, { "label": "b", "value": 2 }]""", "\"reveal\": \"one-by-one\", \"callout\": { \"tone\": \"accent\", \"text\": \"c\", \"reveal\": \"last\" }, ")).ShouldBe(3);

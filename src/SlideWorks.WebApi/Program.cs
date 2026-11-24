@@ -42,7 +42,8 @@ builder.Services.AddDbContext<AppDbContext>((provider, options) =>
     var dbPath = provider.GetRequiredService<IConfiguration>()["SLIDEWORKS_DB_PATH"] ?? "/data/slide-works.db";
     options.UseSqlite($"Data Source={dbPath}");
 });
-builder.Services.AutoWireAssembly([ApiMarker.Assembly], isMockMode: false);
+builder.Services.AutoWireAssembly([ApiMarker.Assembly], isMockMode: false,
+    options => options.OnRegistrationContextException = ex => Console.Error.WriteLine(ex.ToString()));
 // Framework registration: the AGENTS.md "no services.Add* in Program.cs" rule is
 // about our own types. Tests swap in a FakeTimeProvider.
 builder.Services.AddSingleton(TimeProvider.System);
@@ -78,6 +79,9 @@ using (var scope = app.Services.CreateScope())
 
 // First, so the rate limits see the client's address behind a trusted proxy (SLIDEWORKS_TRUSTED_PROXIES, opt-in).
 app.UseSlideWorksTrustedProxies(trustedProxies);
+
+// Then the body limit for /mcp and /api, before anything reads a body.
+app.UseSlideWorksRequestLimits();
 
 // SPA assets ship inside wwwroot (built there by src/SlideWorks.Client). Static files
 // come before authentication: a request for a file matches no endpoint, so a fallback

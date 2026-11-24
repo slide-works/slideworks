@@ -42,6 +42,7 @@
 .cell {
   padding: 22px 24px;
   overflow-wrap: anywhere;
+  color: var(--sw-ink);
   border-top: 1px solid var(--sw-grid);
   vertical-align: top;
 }

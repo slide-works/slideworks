@@ -20,6 +20,7 @@ import { JoinProvider } from './JoinContext';
 import { PollScreenLive } from './PollScreenLive';
 import { SlideRenderer } from './SlideRenderer';
 import type { SlideDeck } from './slots';
+import { settle } from '../test-support/gate';
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -127,8 +128,6 @@ const percent = (page: Page, position: number) =>
   pollSlide(page).getByTestId(pollSlidePercentTestId(position));
 
 // Lets the page run its pending work, so a call or render it should not make has had its chance.
-const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 300)));
-
 // Both watches are in: the live session's and the screen provider's.
 async function watching(hub: Awaited<ReturnType<typeof stubDeckHub>>) {
   await expect.poll(() => hub.watches.length).toBeGreaterThanOrEqual(2);
@@ -156,7 +155,7 @@ test('no poll is read for a slide that is not a poll', async ({ mount, page }) =
   await mount(player(true));
   await watching(hub);
   hub.pushState(stateAt(1));
-  await settle(page);
+  await settle(page, 300);
   expect(polls.calls).toEqual([]);
   await expect(pollSlide(page).getByTestId(IDS.state)).toHaveCount(0);
 });
@@ -177,7 +176,7 @@ test('after the GET, pollControl moves the bars, and a lower seq is dropped', as
 
   // Late: an older view than the one on screen.
   pushPollControl(hub, pollView({ seq: 999_999, answered: 20, counts: [20, 0, 0, 0] }));
-  await settle(page);
+  await settle(page, 300);
   await expect(percent(page, 1)).toHaveText('50%');
   await expect(pollSlide(page).getByTestId(IDS.answered)).toHaveText('40 answers');
 
@@ -241,7 +240,7 @@ test('a viewer who cannot present gets empty tracks and makes no call', async ({
   const { hub, polls } = await stubLive(page);
   await mount(player(false));
   await expect(pollSlide(page).getByTestId(IDS.question)).toBeVisible();
-  await settle(page);
+  await settle(page, 300);
   expect(hub.watches).toEqual([]);
   expect(polls.calls).toEqual([]);
   await expect(pollSlide(page).getByTestId(IDS.state)).toHaveCount(0);
@@ -306,7 +305,7 @@ test('a state that arrives before the live session is confirmed is kept, and the
   // The real hub broadcasts the state to the presentation group when a window joins; the stub only answers the join,
   // so the broadcast is pushed here, while GET /live is still out.
   hub.pushState(stateAt(POLL_SLIDE_NUMBER));
-  await settle(page);
+  await settle(page, 300);
   expect(polls.calls).toEqual([]);
   await expect(pollSlide(page).getByTestId(IDS.state)).toHaveCount(0);
 
@@ -325,7 +324,7 @@ test('a deck that goes live after the presenter reached the poll slide shows the
   // The live session confirms the owner (not live) and watches the joined count: the connection is up.
   await expect.poll(() => hub.watches.length).toBeGreaterThanOrEqual(1);
   hub.pushState(stateAt(POLL_SLIDE_NUMBER));
-  await settle(page);
+  await settle(page, 300);
   expect(polls.calls).toEqual([]);
   await expect(pollSlide(page).getByTestId(IDS.state)).toHaveCount(0);
 
@@ -354,7 +353,7 @@ test('a read for a slide the presenter has left is dropped', async ({ mount, pag
   hub.pushState(stateAt(3));
   await expect(slide3Percent).toHaveText('75%');
   slow.release();
-  await settle(page);
+  await settle(page, 300);
   await expect(slide3Percent).toHaveText('75%');
   await expect(pollSlide(page).getByTestId(IDS.state)).toHaveCount(0);
 
@@ -362,7 +361,7 @@ test('a read for a slide the presenter has left is dropped', async ({ mount, pag
   const again = polls.hold('read');
   hub.pushState(stateAt(POLL_SLIDE_NUMBER));
   await expect.poll(() => polls.calls.length).toBe(3);
-  await settle(page);
+  await settle(page, 300);
   await expect(pollSlide(page).getByTestId(IDS.state)).toHaveCount(0);
   again.release();
   await expect(percent(page, 1)).toHaveText('45%');
@@ -379,7 +378,7 @@ test('a read that lands after a newer pollControl is dropped by seq', async ({ m
   await expect(percent(page, 1)).toHaveText('50%');
 
   slow.release();
-  await settle(page);
+  await settle(page, 300);
   await expect(percent(page, 1)).toHaveText('50%');
   await expect(pollSlide(page).getByTestId(IDS.answered)).toHaveText('40 answers');
 });
@@ -394,7 +393,7 @@ test('a new deck starts with no view of the last one', async ({ mount, page }) =
   await component.update(player(true, { id: 'otherDeck1' }));
   // The other deck is live and watched too, but nothing is known of its presenter yet.
   await expect.poll(() => hub.watches).toContain('otherDeck1');
-  await settle(page);
+  await settle(page, 300);
   await expect(pollSlide(page).getByTestId(IDS.state)).toHaveCount(0);
   await expect(percent(page, 1)).toBeEmpty();
 });
@@ -419,7 +418,7 @@ test('a new live session shows no view of the last one, and keeps the presenter 
   const slow = polls.hold('read');
   await component.update(player(true));
   await expect.poll(() => polls.calls.length).toBe(2);
-  await settle(page);
+  await settle(page, 300);
   await expect(pollSlide(page).getByTestId(IDS.state)).toHaveCount(0);
   slow.release();
   await expect(percent(page, 1)).toHaveText('50%');

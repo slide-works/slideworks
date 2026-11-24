@@ -2,13 +2,58 @@
   "timelineHeadline": {
     "layout": "timeline",
     "slots": {
-      "headline": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "headline": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       "events": [
-        { "when": "Monday", "text": "Pick one change." },
-        { "when": "Friday", "text": "Show what shipped." }
+        {
+          "when": "Monday",
+          "text": "Pick one change."
+        },
+        {
+          "when": "Friday",
+          "text": "Show what shipped."
+        }
       ]
     },
-    "grow": ["/headline"],
-    "refusedBy": "length"
+    "grow": [
+      "/headline"
+    ],
+    "refusedBy": "fit"
+  },
+  "timelineSix": {
+    "layout": "timeline",
+    "estimate": 600,
+    "grow": [
+      "/events/0/text"
+    ],
+    "refusedBy": "fit",
+    "slots": {
+      "headline": "Make Every Merge Small And Reviewable",
+      "events": [
+        {
+          "when": "Week 1",
+          "text": "steady teams ship small changes often and learn from real use so the risk stays low and the plan"
+        },
+        {
+          "when": "Week 2",
+          "text": "steady teams ship small changes often and learn from real use so the risk stays low and the plan"
+        },
+        {
+          "when": "Week 3",
+          "text": "steady teams ship small changes often and learn from real use so the risk stays low and the plan"
+        },
+        {
+          "when": "Week 4",
+          "text": "steady teams ship small changes often and learn from real use so the risk stays low and the plan holds while we watch customers pick"
+        },
+        {
+          "when": "Week 5",
+          "text": "steady teams ship small changes often and learn from real use so the risk stays low and the plan holds while we watch customers pick"
+        },
+        {
+          "when": "Week 6",
+          "text": "steady teams ship small changes often and learn from real use so the risk stays low and the plan holds while we watch customers pick"
+        }
+      ]
+    }
   }
 }

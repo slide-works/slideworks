@@ -10,6 +10,7 @@ import { stubDeckHub } from '../../test-support/stubDeckHub';
 import { stubPollControlApi } from '../../test-support/stubPollControlApi';
 import type { PollControlView } from '../types';
 import { POLL_PANEL_TEST_IDS as IDS } from '../testIds';
+import { settle } from '../../test-support/gate';
 
 // The poll panel in SW-4's presenter window, over the stub hub and the stub poll routes: where it sits, and the P, R and
 // A keys beside SW-4's own. The window starts on slide 8; the poll is on slide 9 unless a test says otherwise.
@@ -61,8 +62,6 @@ const actions = (api: Awaited<ReturnType<typeof stubPollControlApi>>) =>
   api.calls.filter((c) => c.call !== 'read').map((c) => c.call);
 
 // Lets the page run its pending work, so a call it should not make has had its chance.
-const settle = (page: Page) => page.evaluate(() => new Promise((done) => setTimeout(done, 300)));
-
 test('PresenterPollPanel_WhenOnAPollSlide_ShouldShowThePanelBetweenNextAndNotes', async ({
   mount,
   page,
@@ -104,7 +103,7 @@ test('PresenterPollPanel_WhenPRAndAPressed_ShouldRunThePollThroughItsRoutes', as
   // Closed with the answer shown: none of the three keys has anything left to do.
   for (const key of ['p', 'r', 'a']) await page.keyboard.press(key);
 
-  await settle(page);
+  await settle(page, 300);
   expect(actions(api)).toEqual(['open', 'reveal', 'close', 'showAnswer']);
   await expect(page.getByTestId(IDS.error)).toHaveCount(0);
 });
@@ -123,7 +122,7 @@ test('PresenterPollPanel_WhenPROrAIsHeld_ShouldActOnceAndIgnoreTheRepeats', asyn
   await page.keyboard.down('p');
   await page.keyboard.down('p');
   await page.keyboard.up('p');
-  await settle(page);
+  await settle(page, 300);
   await expect(state).toHaveText('Open');
 
   // Held R reveals once.
@@ -140,7 +139,7 @@ test('PresenterPollPanel_WhenPROrAIsHeld_ShouldActOnceAndIgnoreTheRepeats', asyn
   await page.keyboard.down('a');
   await page.keyboard.up('a');
 
-  await settle(page);
+  await settle(page, 300);
   expect(actions(api)).toEqual(['open', 'reveal', 'close', 'showAnswer']);
 });
 
@@ -155,7 +154,7 @@ test('PresenterPollPanel_WhenTheSlideHasNoPoll_ShouldShowNoPanelAndIgnorePRAndA'
   await expect(page.getByTestId(IDS.state)).toHaveCount(0);
   for (const key of ['p', 'r', 'a']) await page.keyboard.press(key);
 
-  await settle(page);
+  await settle(page, 300);
   expect(actions(api)).toEqual([]);
   expect(hub.updates).toEqual([]);
 });
@@ -192,7 +191,7 @@ test('PresenterPollPanel_WhenTypingOrAnOverlayIsOpen_ShouldIgnorePAndKeepOAndNWo
   await page.keyboard.press('n');
   await expect(page.getByTestId('presenter-notes')).toBeVisible();
 
-  await settle(page);
+  await settle(page, 300);
   expect(actions(api)).toEqual([]);
   await expect(page.getByTestId(IDS.state)).toHaveText('Draft');
 });

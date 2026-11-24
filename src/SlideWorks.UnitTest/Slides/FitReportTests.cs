@@ -122,6 +122,14 @@ public class FitReportTests
     }
 
     [Test]
+    public void Capacity_WhenCards_ShouldReportTheRecordedHeightAndGridBudget()
+    {
+        var capacity = LayoutCapacity.Of(CardsLayout.Definition).Single(slot => slot.Slot == "cards");
+
+        capacity.Note.ShouldBe("4 items of about 74 characters (213 px each, budget 296 px).");
+    }
+
+    [Test]
     public void ToJsonSchema_WhenAFieldIsRequired_ShouldListIt()
     {
         var missing = new List<string>();

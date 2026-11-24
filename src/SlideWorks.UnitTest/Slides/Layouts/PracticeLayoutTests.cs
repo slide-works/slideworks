@@ -24,7 +24,8 @@ public class PracticeLayoutTests
         Validate(slots).Errors.ShouldBeEmpty();
 
         // Two lines of callout text instead of one is what the callout adds past the body.
-        var taller = slots.Replace("\"Every Week Teams Learn Faster When Customers See Real Progress Weekly Metrics\"", "\"" + new string('W', 160) + "\"");
+        var taller = slots.Replace("\"Every Week Teams Learn Faster When Customers See Real Progress Weekly Work\"", "\"" + new string('W', 160) + "\"");
+        taller.ShouldNotBe(slots);
         Validate(taller).Errors.ShouldNotBeEmpty();
     }
 

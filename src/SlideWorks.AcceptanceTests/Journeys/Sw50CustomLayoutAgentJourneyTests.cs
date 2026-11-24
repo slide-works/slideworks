@@ -79,7 +79,7 @@ public class Sw50CustomLayoutAgentJourneyTests : AcceptanceTest
 
         // The companion for the picture probe: an image slide of the same deck, where the same probe must find its img.
         var upload = await AgentSeed.CallAsync(agent, "upload_image", new() { ["deck"] = deck, ["name"] = "cutout.png", ["contentType"] = "image/png" });
-        await PutAsync(upload.GetProperty("uploadUrl").GetString().ShouldNotBeNull(), PngImage.Gradient(640, 640), "image/png", HttpStatusCode.NoContent);
+        await PutAsync(upload.GetProperty("uploadUrl").GetString().ShouldNotBeNull(), SampleImage.Png(), "image/png", HttpStatusCode.NoContent);
         var imageSlots = JsonSerializer.SerializeToElement(new
         {
             headline = "A picture for comparison",

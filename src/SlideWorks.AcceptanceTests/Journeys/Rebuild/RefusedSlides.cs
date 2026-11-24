@@ -15,12 +15,12 @@ public static class RefusedSlides
     [
         new(23, "cards", 5, "no badges and no icons (any one of the two, or any one text shortened alone, is still refused)", "cards.cards[0]",
             () => Cards(decorated: true), () => Cards(decorated: false)),
-        new(29, "compare", 6, "both footers at 53 characters, not 90", "compare.failure",
-            () => Compare(footer: 90), () => Compare(footer: 53), () => Compare(footer: 54)),
-        new(40, "links", 7, "all four link sources at 88 characters, not 100", "links.links",
-            () => Links(source: 100), () => Links(source: 88), () => Links(source: 89)),
-        new(44, "two-column", 8, "callout text at 200 characters, not 220", "two-column.left",
-            () => TwoColumn(callout: 220), () => TwoColumn(callout: 200), () => TwoColumn(callout: 210)),
+        new(29, "compare", 6, "both footers at 50 characters, not 90", "compare.failure",
+            () => Compare(footer: 90), () => Compare(footer: 50), () => Compare(footer: 51)),
+        new(40, "links", 7, "all four link sources at 85 characters, not 100", "links.links",
+            () => Links(source: 100), () => Links(source: 85), () => Links(source: 86)),
+        new(44, "two-column", 8, "callout text at 199 characters, not 220", "two-column.left",
+            () => TwoColumn(callout: 220), () => TwoColumn(callout: 199), () => TwoColumn(callout: 200)),
     ];
 
     private static string M(int length, int salt) => MadeUpWords.Of(length, salt);

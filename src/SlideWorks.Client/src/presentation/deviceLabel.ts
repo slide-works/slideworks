@@ -1,10 +1,11 @@
-// The label a phone joins its presentation with (P1), as the presenter window's chips show it: "Safari on iPhone",
-// "Chrome on Android". Read from the user agent once per page; anything unrecognised is just "Phone".
-export function deviceLabel(userAgent: string): string {
+// The label a window joins its presentation with, as the presenter window's chips show it: "Safari on iPhone",
+// "Chrome on Android". Read from the user agent once per page; when neither the browser nor the device is
+// recognised the caller's fallback word is the label ("Phone" on the remote, "Browser" on a window).
+export function deviceLabel(userAgent: string, fallback: string): string {
   const browser = browserOf(userAgent);
   const device = deviceOf(userAgent);
   if (browser && device) return `${browser} on ${device}`;
-  return browser ?? device ?? 'Phone';
+  return browser ?? device ?? fallback;
 }
 
 function browserOf(ua: string): string | null {

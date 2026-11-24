@@ -12,6 +12,8 @@ public static class BarsLayout
     // (32.4 px lines); the label at 30 px (36 px lines) and the sub at 20 px (26 px lines, 4 px above);
     // the end label's value at 28 px x 0.62 em, its tag at 18 px x 0.85 em + 14, plus 30; a bar of at least 6 px;
     // a note at 22 px x 0.56 em, inside a bar with 40 px to spare, or 18 px after the bar or the outline.
+    // Every em is per character: each character costs its GlyphWidths factor (a W 1.87, a digit 1.22, a
+    // lowercase letter 1.0), the same table as the client's glyphWidths.ts, because a bar's label never wraps.
     private const double LABEL_COLUMN = 400;
     private const double TRACK = 1248;
     private const double LEGEND = 38;
@@ -86,7 +88,7 @@ public static class BarsLayout
                 continue;
             }
 
-            var noteWidth = TextSlot.Length(note.GetString()!) * NOTE_FONT * NOTE_EM;
+            var noteWidth = GlyphWidths.Cost(note.GetString()!) * NOTE_FONT * NOTE_EM;
             var inside = noteWidth + NOTE_PAD <= Length(Number(bars[i], "value"), largest, available);
             var mark = Length(Math.Max(Number(bars[i], "value"), Number(bars[i], "was")), largest, available);
             var after = mark + NOTE_GAP + noteWidth + ends[i] <= TRACK;
@@ -127,12 +129,12 @@ public static class BarsLayout
         if (shown)
         {
             var text = Number(bar, "value").ToString("#,##0.####################", CultureInfo.InvariantCulture) + (unit.Length > 0 ? " " + unit : "");
-            width += TextSlot.Length(text) * VALUE_FONT * VALUE_EM;
+            width += GlyphWidths.Cost(text) * VALUE_FONT * VALUE_EM;
         }
 
         if (ObjectSlot.IsPresent(bar, "tag", out var tag))
         {
-            width += (TextSlot.Length(tag.GetString()!) * TAG_FONT * TAG_EM) + TAG_PAD;
+            width += (GlyphWidths.Cost(tag.GetString()!) * TAG_FONT * TAG_EM) + TAG_PAD;
         }
 
         return width > 0 ? width + END_PAD : 0;

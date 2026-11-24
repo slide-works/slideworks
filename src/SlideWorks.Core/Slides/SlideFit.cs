@@ -8,9 +8,10 @@ namespace SlideWorks.Core.Slides;
 // validation's FitWidths, never from a constant here; the built-in ones are 0.56 em for the Inter body
 // text, for the bold Plus Jakarta Sans headings and for table cells (rendered cells fill to about
 // 0.55 em). Body text is measured at 0.56, not its 0.47 em average, because Title Case runs at
-// 0.54 em (0.56 for a bold lead) and must fit too (SW-117). Lines dense with acronyms or all in
-// capitals (0.62–0.65 em) can still overflow. Text wraps word by word, as the browser breaks it, and spaces count as whole
-// characters. The estimates err on the side of wrapping early, so a slide that passes fits.
+// 0.54 em (0.56 for a bold lead) and must fit too (SW-117). Wide characters (capitals, W, M, w, m,
+// digits) cost more than one average character each (GlyphWidths), so all-capitals text wraps sooner;
+// the line capacity itself is unchanged, which keeps lowercase prose where it was. Text wraps word by
+// word, as the browser breaks it, and spaces count as whole characters. The estimates err on the side of wrapping early, so a slide that passes fits.
 internal static class SlideFit
 {
     // Content slides: the 1680×810 box under the 150 px top padding, less the kicker (42 px), a two-line
@@ -18,18 +19,23 @@ internal static class SlideFit
     // 120 px bottom padding and still clear the footer, which starts at y = 1023.
     public const double BODY_HEIGHT = 620;
 
+    // Absorbs floating-point error when a line is filled exactly.
+    private const double EPSILON = 1e-9;
+
     // Greedy word wrap: a word that doesn't fit after the last one starts the next line, and a word
-    // longer than a whole line breaks across lines.
+    // longer than a whole line breaks across lines. A line holds perLine average characters; a word
+    // costs the sum of its characters' GlyphWidths factors (each at least 1), a space costs 1.
     public static int Lines(string text, double width, double fontSize, double em)
     {
         var perLine = Math.Max(1, (int)(width / (fontSize * em)));
         var lines = 1;
-        var used = 0;
-        foreach (var length in text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Select(TextSlot.Length))
+        var used = 0.0;
+        foreach (var word in text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
         {
-            if (used > 0 && used + 1 + length <= perLine)
+            var cost = GlyphWidths.Cost(word);
+            if (used > 0 && used + 1 + cost <= perLine + EPSILON)
             {
-                used += 1 + length;
+                used += 1 + cost;
                 continue;
             }
 
@@ -38,9 +44,28 @@ internal static class SlideFit
                 lines++;
             }
 
-            var extra = (length - 1) / perLine;
-            lines += extra;
-            used = length - (extra * perLine);
+            // A word that fills more than a line breaks between whole characters: each goes on the
+            // current line if it fits and starts the next one if not, so no glyph straddles two lines.
+            used = 0;
+            if (cost > perLine + EPSILON)
+            {
+                var elements = StringInfo.GetTextElementEnumerator(word);
+                while (elements.MoveNext())
+                {
+                    var factor = GlyphWidths.Factor((string)elements.Current);
+                    if (used > 0 && used + factor > perLine + EPSILON)
+                    {
+                        lines++;
+                        used = 0;
+                    }
+
+                    used += factor;
+                }
+            }
+            else
+            {
+                used = cost;
+            }
         }
 
         return lines;

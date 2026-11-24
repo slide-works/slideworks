@@ -10,6 +10,7 @@ import {
   looksTemplateOf,
 } from '../test-support/fixtures/lookViewOf';
 import { deckPage, me, sharing } from '../test-support/fixtures/screens';
+import { longerDeckPage } from '../test-support/fixtures/longerDecks';
 import { stubApi } from '../test-support/stubApi';
 import { gate, settle } from '../test-support/gate';
 import { stubDeckHub } from '../test-support/stubDeckHub';
@@ -30,12 +31,6 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ path: 'src/test-support/fixtures/sample-image.png', contentType: 'image/png' }),
   );
 });
-
-// The fixture deck after an agent added a fourth slide.
-const longerDeck: DeckPageView = {
-  ...deckPage,
-  slides: [...deckPage.slides, { ...deckPage.slides[1], number: 4, link: `${deckPage.playUrl}#4` }],
-};
 
 test('deck page grid shows thumbnails and notes of clicked slide', async ({ mount, page }) => {
   await stubApi(page, { '/api/me': { json: me }, [deckPath]: { json: deckPage } });
@@ -148,18 +143,11 @@ test("a person's own change reads You and another person's reads their name", as
 
 test('deck page re-reads on DeckChanged', async ({ mount, page }) => {
   const hub = await stubDeckHub(page);
-  const longer: DeckPageView = {
-    ...deckPage,
-    slides: [
-      ...deckPage.slides,
-      { ...deckPage.slides[1], number: 4, link: `${deckPage.playUrl}#4` },
-    ],
-  };
   let reads = 0;
   await stubApi(page, { '/api/me': { json: me } });
   await page.route(`**${deckPath}`, (route) => {
     reads += 1;
-    return route.fulfill({ json: reads <= 2 ? deckPage : longer });
+    return route.fulfill({ json: reads <= 2 ? deckPage : longerDeckPage });
   });
   await mount(<AppRoutes />, route);
 
@@ -184,13 +172,6 @@ test('deck page keeps the newest deck when an older re-read answers last', async
   page,
 }) => {
   const hub = await stubDeckHub(page);
-  const longer: DeckPageView = {
-    ...deckPage,
-    slides: [
-      ...deckPage.slides,
-      { ...deckPage.slides[1], number: 4, link: `${deckPage.playUrl}#4` },
-    ],
-  };
   const held = gate();
   let reads = 0;
   await stubApi(page, { '/api/me': { json: me } });
@@ -201,7 +182,7 @@ test('deck page keeps the newest deck when an older re-read answers last', async
       await held.opened;
       return route.fulfill({ json: deckPage });
     }
-    return route.fulfill({ json: reads <= 2 ? deckPage : longer });
+    return route.fulfill({ json: reads <= 2 ? deckPage : longerDeckPage });
   });
   await mount(<AppRoutes />, route);
   await expect(page.getByTestId('deck-thumb')).toHaveCount(3);
@@ -276,7 +257,7 @@ test('deck page re-reads once it has joined, showing a change made before the jo
   await stubApi(page, { '/api/me': { json: me } });
   await page.route(`**${deckPath}`, (route) => {
     reads += 1;
-    return route.fulfill({ json: reads === 1 ? deckPage : longerDeck });
+    return route.fulfill({ json: reads === 1 ? deckPage : longerDeckPage });
   });
   await mount(<AppRoutes />, route);
   await expect(page.getByTestId('deck-thumb')).toHaveCount(3);
@@ -303,7 +284,7 @@ test('deck page waits for its first read before the join re-reads', async ({ mou
       await first.opened;
       return route.fulfill({ json: deckPage });
     }
-    return route.fulfill({ json: longerDeck });
+    return route.fulfill({ json: longerDeckPage });
   });
   await mount(<AppRoutes />, route);
   await expect.poll(() => hub.joined).toEqual([deckPage.id]);
@@ -340,7 +321,7 @@ test('deck page sends no re-read after it unmounts with a join waiting on its fi
       answered = true;
       return;
     }
-    return route.fulfill({ json: longerDeck });
+    return route.fulfill({ json: longerDeckPage });
   });
   const component = await mount(<AppRoutes />, route);
   await expect.poll(() => hub.joined).toEqual([deckPage.id]);
@@ -363,7 +344,7 @@ test('deck page re-reads when a reconnect joins again', async ({ mount, page }) 
   await stubApi(page, { '/api/me': { json: me } });
   await page.route(`**${deckPath}`, (route) => {
     reads += 1;
-    return route.fulfill({ json: reads <= 2 ? deckPage : longerDeck });
+    return route.fulfill({ json: reads <= 2 ? deckPage : longerDeckPage });
   });
   await mount(<AppRoutes />, route);
   await expect.poll(() => hub.joined).toEqual([deckPage.id]);

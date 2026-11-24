@@ -60,12 +60,7 @@ public static class CardsLayout
         foreach (var card in cards.EnumerateArray())
         {
             var height = Height(card, grid, large, validation.Widths);
-            if (height > budget)
-            {
-                SlideFit.Check(height, $"{path}.cards[{index}]", validation, budget);
-                return;
-            }
-
+            SlideFit.Check(height, $"{path}.cards[{index}]", validation, budget);
             index++;
         }
     }

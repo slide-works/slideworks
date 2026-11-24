@@ -44,6 +44,7 @@ export function ImageLayout({ slots, step }: LayoutProps<'image'>) {
       kicker={kicker}
       headline={headline}
       emphasis={emphasisFor(slots, 'headline')}
+      lines={position === 'right' ? 3 : 2}
     />
   );
   const figure = (

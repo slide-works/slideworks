@@ -34,6 +34,7 @@ public static class FirstHalfSlides
                 new { title = M(70, 29), text = M(140, 30), fill = "plain" },
             },
         }),
+        // shortened: list items 110, not 120, callout 190, not 200 (SW-802 estimate)
         (5, "two-column", 1, "list, big word, callout", false, 1, 0, null, _ => new
         {
             kicker = M(60, 31), headline = M(100, 32),
@@ -41,13 +42,13 @@ public static class FirstHalfSlides
             {
                 items = new object[]
                 {
-                    new { icon = "calendar", text = M(120, 34) },
-                    new { icon = "cycle", text = M(120, 36) },
-                    new { icon = "list", text = M(120, 38) },
+                    new { icon = "calendar", text = M(110, 34) },
+                    new { icon = "cycle", text = M(110, 36) },
+                    new { icon = "list", text = M(110, 38) },
                 },
             },
             right = new { title = M(60, 39), icon = "search", text = M(400, 40) },
-            callout = new { tone = "accent", text = M(200, 41) },
+            callout = new { tone = "accent", text = M(190, 41) },
         }),
         (6, "compare", 1, "two kinds, side by side", false, 0, 0, null, _ => new
         {
@@ -144,10 +145,11 @@ public static class FirstHalfSlides
                 points = new[] { M(90, 148) }, footer = M(90, 149),
             },
         }),
+        // shortened: stat value 6, not 12 ("Ledger"), so the figure stays on one line at 72 px (SW-830 counts its wrapped lines)
         (20, "quote", 5, "dark quote with a figure", false, 0, 0, "dark", _ => new
         {
             kicker = M(60, 150), headline = M(80, 151), quote = M(280, 152), attribution = M(80, 153), role = M(160, 154),
-            stat = new { value = M(12, 155), caption = M(90, 156) }, source = M(200, 158),
+            stat = new { value = M(6, 155), caption = M(90, 156) }, source = M(200, 158),
         }),
         (21, "image", 5, "screenshot and four tips", true, 0, 0, null, image => new
         {

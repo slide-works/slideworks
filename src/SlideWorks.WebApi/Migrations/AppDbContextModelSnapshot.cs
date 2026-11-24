@@ -461,6 +461,9 @@ namespace SlideWorks.WebApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<long>("Arrival")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("GuestId")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -486,6 +489,8 @@ namespace SlideWorks.WebApi.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("RoundId", "Arrival");
 
                     b.HasIndex("RoundId", "TextKey");
 

@@ -14,6 +14,23 @@ public class QuoteLayoutTests
     }
 
     [Test]
+    public void Validate_WhenStatValueHasAUnit_ShouldAccept()
+    {
+        Validate("""{ "quote": "Ship it", "attribution": "Sam", "stat": { "value": "40% faster", "caption": "lead time" } }""").Errors.ShouldBeEmpty();
+    }
+
+    // The value breaks anywhere at 72 px with line-height 1 in the 360 px column, so a value that wraps to three
+    // lines takes two more lines (144 px) of the quote's budget than one that fits on one.
+    [Test]
+    public void Validate_WhenStatValueWraps_ShouldCountEachLineInTheHeight()
+    {
+        var oneLine = QuoteBudget("40%");
+        var threeLines = QuoteBudget(new string('W', 12));
+
+        (oneLine - threeLines).ShouldBe(144, 0.5);
+    }
+
+    [Test]
     public void Validate_WhenAttributionIs81_ShouldRefuse()
     {
         var attribution = new string('a', 81);
@@ -97,4 +114,8 @@ public class QuoteLayoutTests
         using var document = JsonDocument.Parse(slots);
         return SlideSteps.Count(QuoteLayout.Definition, document.RootElement);
     }
+
+    private static double QuoteBudget(string value) =>
+        Validate($$"""{ "quote": "Ship it", "attribution": "Sam", "stat": { "value": "{{value}}", "caption": "weeks" } }""")
+            .Regions.Single(region => region.Path == "quote.quote").Budget;
 }

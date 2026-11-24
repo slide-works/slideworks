@@ -27,7 +27,8 @@ public class DatabaseTests : ApiTestFixture
     private static readonly string[] KNOWN_MIGRATIONS =
     [
         "_Initial", "_Sw1Foundation", "_Sw54SignUpApproval", "_Sw2Look", "_Sw4TalkLength", "_Sw5AudienceJoin", "_Sw6Polls", "_Sw9PollKinds",
-        "_Sw9Qa", "_Sw50Templates", "_Sw556PaletteTokens", "_Sw568OpenAnswers", "_Sw8OpenResponses", "_Sw8OpenResponseSlideKey", "_ProfileAndSharing", "_ActivityActorUserId",
+        "_Sw9Qa", "_Sw50Templates", "_Sw556PaletteTokens", "_Sw568OpenAnswers", "_Sw8OpenResponses", "_Sw8OpenResponseSlideKey",
+        "_ProfileAndSharing", "_Sw672OpenEntryFirstSent", "_ActivityActorUserId",
     ];
 
     [Test]

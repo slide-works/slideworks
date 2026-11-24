@@ -405,6 +405,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entry.Property(e => e.TextKey).HasMaxLength(OpenTextRules.MAX_TEXT_LENGTH);
             entry.HasIndex(e => new { e.RoundId, e.GuestId, e.Position }).IsUnique();
             entry.HasIndex(e => new { e.RoundId, e.TextKey });
+            entry.HasIndex(e => new { e.RoundId, e.Arrival });
             // SQLite ignores a column's length, so the limits are checks.
             entry.ToTable(table =>
             {

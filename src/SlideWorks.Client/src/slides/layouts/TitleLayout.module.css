@@ -71,6 +71,7 @@
   align-items: center;
   margin: 76px 0 0;
   color: var(--sw-night-2);
+  /* The size is set by the fit in TitleLayout.tsx (two lines and the room left), from 28 px to 22 px. */
   font: 500 28px/1.2 var(--sw-font-body);
 }
 

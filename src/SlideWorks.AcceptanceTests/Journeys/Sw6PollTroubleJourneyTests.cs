@@ -436,33 +436,23 @@ public partial class Sw6PollTroubleJourneyTests : AcceptanceTest
         var joinUrl = joinUrlRead.Value.ShouldNotBeNull();
 
         var audienceTab = await Context.NewPageAsync();
-        var audience = new PlayerPage(audienceTab);
-        var audienceRead = await PollJourney.ReadAsync(Page, $"/api/decks/{deckId}/presenter", "audienceUrl");
-        audienceRead.Status.ShouldBe(200, audienceRead.Body);
-        await audienceTab.GotoAsync(audienceRead.Value.ShouldNotBeNull());
-        await Expect(audience.AudienceMode).ToBeVisibleAsync();
-        await Expect(audience.Layer(1)).ToHaveAttributeAsync("data-active", "true");
-        await Expect(presenter.AudienceChips).ToHaveCountAsync(1);
+        var audience = await Talks.OpenAudienceAsync(Page, audienceTab, presenter, deckId);
         await Page.BringToFrontAsync();
         return new Talk(deckId, presenter, audience, new PollPanel(Page), new PollSlide(audience.Slide(POLL)), joinUrl);
     }
 
     // Presses a key in the presenter window and waits until the presenter window and the audience window both show slide
     // {to}, so the next step starts from the move the server answered.
-    private async Task MoveToAsync(Talk talk, string key, int to)
+    private static async Task MoveToAsync(Talk talk, string key, int to)
     {
-        await talk.Presenter.PressAsync(key);
-        await Expect(talk.Presenter.Count).ToHaveTextAsync($"{to} / {SLIDES}");
-        await Expect(talk.Audience.Layer(to)).ToHaveAttributeAsync("data-active", "true");
+        await Talks.MoveToAsync(talk.Presenter, talk.Audience, SLIDES, key, to);
     }
 
     // A guest scans the code: the phone follows the presenter's slide.
     private static async Task<Phone> JoinAsync(IBrowserContext context, string joinUrl)
     {
         var page = await context.NewPageAsync();
-        var guest = new GuestPage(page);
-        await guest.GotoUrlAsync(joinUrl);
-        await guest.IsFollowingAsync();
+        var guest = await Talks.FollowAsync(page, joinUrl);
         return new Phone(page, guest, new GuestPollCard(page));
     }
 
@@ -471,9 +461,7 @@ public partial class Sw6PollTroubleJourneyTests : AcceptanceTest
     {
         var page = await context.NewPageAsync();
         var hub = await DroppableHub.RouteAsync(page);
-        var guest = new GuestPage(page);
-        await guest.GotoUrlAsync(joinUrl);
-        await guest.IsFollowingAsync();
+        var guest = await Talks.FollowAsync(page, joinUrl);
         return (new Phone(page, guest, new GuestPollCard(page)), hub);
     }
 

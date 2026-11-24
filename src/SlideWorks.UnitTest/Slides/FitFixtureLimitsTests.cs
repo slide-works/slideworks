@@ -27,37 +27,36 @@ public class FitFixtureLimitsTests
     // Layouts with no fixture file yet. Each entry names the Bug that adds it.
     private static readonly IReadOnlyDictionary<string, string> _knownWithoutFixture = new Dictionary<string, string>
     {
-        ["title"] = "SW-723",
-        ["close"] = "SW-723",
     };
 
     // Fit-controlled layouts whose fixtures only grow fields with a character limit, so no fixture proves
     // the height estimate's maximum. Each entry names the Bug that adds one.
     private static readonly IReadOnlyDictionary<string, string> _knownWithoutFitFixture = new Dictionary<string, string>
     {
-        ["columns-list"] = "SW-724",
-        ["image"] = "SW-724",
-        ["loop"] = "SW-724",
-        ["timeline"] = "SW-724",
     };
+
+    // Length-controlled layouts whose own rule still refuses with "too much text to fit", so a fixture of theirs
+    // is refused by fit though no height region is recorded (statement's sub line count).
+    private static readonly HashSet<string> _refusesByFitWording = new(StringComparer.Ordinal) { "statement" };
+
+    // Fit-controlled layouts whose budget no legal slide can reach, so character limits bind first and no fixture can be
+    // refused by fit. Loop records its steps' heights (list_layouts reports them), but its tallest two rows come to about
+    // 392 px of the 620 px budget.
+    private static readonly HashSet<string> _fitBudgetUnreachable = new(StringComparer.Ordinal) { "loop" };
 
     // Fit-controlled layouts that record their height only when it overflows, so an accepted slide reports
     // no fit region. Each entry names the Bug that makes them record it every time, as SlideFit.Check says.
-    private static readonly IReadOnlyDictionary<string, string> _knownMeasuredOnlyWhenOver = new Dictionary<string, string>
-    {
-        ["cards"] = "SW-725",
-        ["compare"] = "SW-725",
-    };
+    private static readonly IReadOnlyDictionary<string, string> _knownMeasuredOnlyWhenOver = new Dictionary<string, string>();
 
     // The region each layout's "estimate" describes: the part of the path after "<layout>.". A layout that
     // records several regions (stack's segments and points, practice's do and comes_back) names the one its
-    // fixtures fill. A region the server does not record (compare and cards only record when over, SW-725)
-    // counts as height 0.
+    // fixtures fill. A region the server does not record counts as height 0.
     private static readonly IReadOnlyDictionary<string, string> _estimateRegionByLayout = new Dictionary<string, string>
     {
         ["bars"] = "bars",
         ["bullets"] = "items",
-        ["compare"] = "left",
+        ["columns-list"] = "columns",
+        ["compare"] = "failure",
         ["flow"] = "nodes",
         ["image"] = "points",
         ["levels"] = "levels.items",
@@ -68,6 +67,7 @@ public class FitFixtureLimitsTests
         ["rules"] = "rules",
         ["stack"] = "segments",
         ["table"] = "rows",
+        ["timeline"] = "events",
         ["two-column"] = "left",
     };
 
@@ -77,25 +77,7 @@ public class FitFixtureLimitsTests
     // Fixtures whose "estimate" does not match the height of the region they are pinned to: name → (that
     // region's height today, 0 when the server records none, and the Bug that corrects the fixture or the layout).
     private static readonly IReadOnlyDictionary<string, (string Region, double Height, string Bug)> _knownMisfits =
-        new Dictionary<string, (string Region, double Height, string Bug)>
-        {
-            ["compare"] = ("compare.left", 0, "SW-725"),
-            ["compareRowsMax"] = ("compare.left", 0, "SW-725"),
-            ["compareLineMax"] = ("compare.left", 0, "SW-725"),
-            ["comparePointsStampFooter"] = ("compare.left", 0, "SW-725"),
-            ["compareCallout"] = ("compare.left", 0, "SW-725"),
-            ["flowFour"] = ("flow.nodes", 591.8, "SW-726"),
-            ["flowGroup"] = ("flow.nodes", 613.4, "SW-726"),
-            ["imageBelowLeadPoints"] = ("image.points", 487.2, "SW-726"),
-            ["levelsSeven"] = ("levels.levels.items", 614.4, "SW-726"),
-            ["levelsText"] = ("levels.levels.items", 612.8, "SW-726"),
-            ["levelsTextWide"] = ("levels.levels.items", 612.8, "SW-726"),
-            ["numberedCardsLargeThree"] = ("numbered-cards.cards[0]", 477.6, "SW-726"),
-            ["numberedCardsCallout"] = ("numbered-cards.cards[0]", 481.2, "SW-726"),
-            ["quoteFull"] = ("quote.quote", 131.7, "SW-726"),
-            ["tableCells80"] = ("table.rows", 601.9, "SW-726"),
-            ["twoColumnCallout"] = ("two-column.left", 592.2, "SW-726"),
-        };
+        new Dictionary<string, (string Region, double Height, string Bug)>();
 
     private static readonly Lazy<IReadOnlyDictionary<string, JsonObject>> _byLayout = new(ReadFolder);
 
@@ -160,15 +142,28 @@ public class FitFixtureLimitsTests
     [TestCaseSource(nameof(Layouts))]
     public void RefusedBy_WhenLayoutKindIsKnown_ShouldMatchTheKind(string layout)
     {
-        var refusals = Fixtures(layout).Select(f => f.Fixture["refusedBy"]!.GetValue<string>()).ToList();
+        // A fixture that only grows its headline or kicker proves the heading rule (SW-818: the headline's line budget
+        // at the floor, the kicker's one row), which every layout has, not the layout's own body height.
+        var refusals = Fixtures(layout).Where(f => !GrowsOnlyItsHeading(f.Fixture))
+            .Select(f => f.Fixture["refusedBy"]!.GetValue<string>()).ToList();
         var fitControlled = _fitControlled.Contains(layout);
 
         refusals.Where(r => r is not "fit" and not "length").ShouldBeEmpty();
-        refusals.Contains("fit").ShouldBe(fitControlled && !_knownWithoutFitFixture.ContainsKey(layout),
+        refusals.Contains("fit").ShouldBe(
+            (fitControlled && !_knownWithoutFitFixture.ContainsKey(layout) && !_fitBudgetUnreachable.Contains(layout)) || _refusesByFitWording.Contains(layout),
             fitControlled
                 ? $"{layout} is fit-controlled: a fixture must prove its height maximum (refusedBy \"fit\"), or the layout is listed with a Bug"
                 : $"{layout} is length-controlled: it has no fit estimate, so every fixture is refused by a character limit");
     }
+
+    private static bool GrowsOnlyItsHeading(JsonNode fixture)
+    {
+        var grow = fixture["grow"]!.AsArray().Select(p => p!.GetValue<string>()).ToList();
+        return grow.Count > 0 && grow.All(p => p is "/headline" or "/kicker");
+    }
+
+    // Layouts whose fit check runs per card or panel, so one step over can refuse several at once.
+    private static readonly HashSet<string> _fitPerItem = new(StringComparer.Ordinal) { "cards", "compare" };
 
     [TestCaseSource(nameof(GrownFixtures))]
     public void Validate_WhenFixtureGrowsOneStepOver_ShouldRefuseWithItsKindsErrorOnly(string name, string pointer)
@@ -179,10 +174,23 @@ public class FitFixtureLimitsTests
 
         var result = Validate(fixture, slots);
 
-        var error = result.Errors.ShouldHaveSingleItem($"{name}{pointer} one word over");
-        error.ShouldContain(byFit ? FIT_ERROR : LENGTH_ERROR, Case.Sensitive, $"{name}{pointer} one word over: {error}");
-        error.ShouldNotContain(byFit ? LENGTH_ERROR : FIT_ERROR, Case.Sensitive, $"{name}{pointer} one word over: {error}");
-        result.Regions.Any(r => r.Height > r.Budget).ShouldBe(error.Contains(FIT_ERROR + " on the slide", StringComparison.Ordinal),
+        // Cards and compare check every card or panel, so a fit refusal there names each one over its budget (identical
+        // cards give one error each); every other layout refuses with a single error.
+        var perItem = byFit && _fitPerItem.Contains(fixture["layout"]!.GetValue<string>());
+        var errors = perItem ? result.Errors.ToList() : [result.Errors.ShouldHaveSingleItem($"{name}{pointer} one word over")];
+        errors.ShouldNotBeEmpty($"{name}{pointer} one word over");
+        if (perItem)
+        {
+            errors.Count.ShouldBe(result.Regions.Count(r => r.Height > r.Budget),
+                $"{name}{pointer}: one fit error per card or panel over its budget");
+        }
+        foreach (var error in errors)
+        {
+            error.ShouldContain(byFit ? FIT_ERROR : LENGTH_ERROR, Case.Sensitive, $"{name}{pointer} one word over: {error}");
+            error.ShouldNotContain(byFit ? LENGTH_ERROR : FIT_ERROR, Case.Sensitive, $"{name}{pointer} one word over: {error}");
+        }
+
+        result.Regions.Any(r => r.Height > r.Budget).ShouldBe(errors.Any(error => error.Contains(FIT_ERROR + " on the slide", StringComparison.Ordinal)),
             $"{name}{pointer}: an overflowing height region goes with the slide's fit error");
     }
 

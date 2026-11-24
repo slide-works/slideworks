@@ -4,6 +4,7 @@ import { adminUsers } from '../test-support/fixtures/screens';
 import { PendingHandlerSilenced } from '../test-support/PendingHandlerSilenced';
 import { stubApi } from '../test-support/stubApi';
 import { AdminUsersPage } from './AdminUsersPage';
+import { gate } from '../test-support/gate';
 
 const route = { hooksConfig: { route: '/admin/users' } };
 const [pat, ada, sam, mira] = adminUsers.users;
@@ -159,10 +160,9 @@ test('revoke asks to confirm', async ({ mount, page }) => {
 
 test('every row is disabled while an action is in flight', async ({ mount, page }) => {
   await stubApi(page, { '/api/admin/users': { json: adminUsers } });
-  let release: () => void = () => {};
-  const gate = new Promise<void>((resolve) => (release = resolve));
+  const held = gate();
   await page.route(`**/api/admin/users/${pat.id}/approve`, async (route) => {
-    await gate;
+    await held.opened;
     await route.fulfill({ json: adminUsers });
   });
   await mount(<AdminUsersPage />, route);
@@ -170,7 +170,7 @@ test('every row is disabled while an action is in flight', async ({ mount, page 
   await row(page, pat.id).getByTestId('admin-approve').click();
   await expect(row(page, sam.id).getByTestId('admin-make-admin')).toBeDisabled();
   await expect(row(page, mira.id).getByTestId('admin-approve')).toBeDisabled();
-  release();
+  held.release();
   await expect(row(page, sam.id).getByTestId('admin-make-admin')).toBeEnabled();
 });
 
