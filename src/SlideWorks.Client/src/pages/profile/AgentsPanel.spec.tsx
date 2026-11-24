@@ -65,9 +65,7 @@ test('confirming removes the row, says so and focuses the panel heading', async 
 
 test('a failed disconnect shows a message and keeps the row', async ({ mount, page }) => {
   await stubApi(page, { '/api/me': { json: me }, '/api/me/profile': { json: profile } });
-  await page.route(agentUrl, (r) =>
-    r.fulfill({ status: 500, json: { error: 'Something broke' } }),
-  );
+  await page.route(agentUrl, (r) => r.fulfill({ status: 500, json: { error: 'Something broke' } }));
   await mount(<AppRoutes />, route);
   await page.getByRole('button', { name: 'Disconnect Claude' }).click();
 

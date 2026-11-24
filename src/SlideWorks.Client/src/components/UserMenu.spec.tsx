@@ -145,7 +145,10 @@ test('user menu button shows the avatar and takes a name saved on the profile pa
   await page.evaluate(() =>
     window.dispatchEvent(
       new CustomEvent('slideworks:profile-saved', {
-        detail: { name: 'Quinn Ames', avatar: { initials: 'QA', colour: 'pink', pictureUrl: null } },
+        detail: {
+          name: 'Quinn Ames',
+          avatar: { initials: 'QA', colour: 'pink', pictureUrl: null },
+        },
       }),
     ),
   );

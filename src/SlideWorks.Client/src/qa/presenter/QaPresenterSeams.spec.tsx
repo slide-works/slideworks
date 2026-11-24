@@ -348,7 +348,7 @@ async function openDeckPage(page: Page, mount: Mount, isOwner: boolean) {
   await stubDeckHub(page);
   await stubApi(page, {
     '/api/me': { json: me },
-    [`/api/decks/${deckPage.id}`]: { json: { ...deckPage, isOwner } },
+    [`/api/decks/${deckPage.id}`]: { json: { ...deckPage, isOwner, canEdit: isOwner } },
   });
   await mount(<AppRoutes />, { hooksConfig: { route: `/decks/${deckPage.id}` } });
   await expect(page.getByTestId('deck-page')).toBeVisible();

@@ -314,7 +314,7 @@ test('QaSettingsCard_WhenThePersonCannotPresent_ShouldNotBeRendered', async ({ m
   const api = await stubs(page, deckPage.id, qaControlView('live'));
   await stubApi(page, {
     '/api/me': { json: me },
-    [deckPath]: { json: { ...deckPage, isOwner: false } },
+    [deckPath]: { json: { ...deckPage, isOwner: false, canEdit: false } },
   });
   await mount(<AppRoutes />, route);
   await expect(page.getByTestId('deck-page')).toBeVisible();

@@ -452,7 +452,10 @@ test('a failed load shows the message', async ({ mount, page }) => {
 // The baseline comes from CI's playwright job (never from a dev machine); E2
 // refreshes the baselines from its report.
 test('sharing dialog screenshot', async ({ mount, page }) => {
-  await page.setViewportSize({ width: 900, height: 720 });
+  await page.setViewportSize({ width: 900, height: 900 });
+  await page.route('**/avatars/*.png', (route) =>
+    route.fulfill({ path: 'src/test-support/fixtures/sample-image.png', contentType: 'image/png' }),
+  );
   await stubSharing(page, sharing);
   await mount(<SharingDialogHarness deckId={deckId} />);
   await page.getByTestId('open-sharing').click();

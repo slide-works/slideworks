@@ -273,6 +273,8 @@ public static class ScreenShapes
         "question-votes.json" => QuestionVotes,
         "qa-control.json" => _qaControlFile,
         "questions-report.json" => QuestionsReport,
+        "sharing.json" => Sharing,
+        "profile.json" => Profile,
         TemplateScreenShapes.TEMPLATES_FILE => TemplateScreenShapes.Templates,
         TemplateScreenShapes.EDITOR_FILE => TemplateScreenShapes.Editor,
         TemplateScreenShapes.LAYOUT_REVIEW_FILE => TemplateScreenShapes.LayoutReview,

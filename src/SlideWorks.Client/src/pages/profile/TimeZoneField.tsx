@@ -46,7 +46,11 @@ export function TimeZoneField({ account }: { account: ProfileAccount }) {
           value={choice}
           onChange={(event) => setChoice(event.target.value)}
           aria-invalid={error !== null}
-          aria-describedby={error === null ? 'profile-time-zone-hint' : 'profile-time-zone-hint profile-time-zone-error'}
+          aria-describedby={
+            error === null
+              ? 'profile-time-zone-hint'
+              : 'profile-time-zone-hint profile-time-zone-error'
+          }
           className="min-w-0 flex-1 rounded-md border border-edge bg-panel px-2.5 py-1.5 text-sm text-ink"
         >
           {saved === null && <option value="">Not set (UTC)</option>}

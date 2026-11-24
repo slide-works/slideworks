@@ -57,7 +57,7 @@ export function ModalDialog({
       aria-labelledby={labelledBy}
       aria-describedby={describedBy}
       data-testid={testId}
-      className={`m-auto w-[calc(100%-2rem)] ${widthClassName} overflow-hidden rounded-xl bg-panel p-0 text-ink shadow-[0_24px_56px_-16px_rgb(16_24_40/0.4)] backdrop:bg-slate-900/30`}
+      className={`m-auto w-[calc(100%-2rem)] ${widthClassName} overflow-y-auto rounded-xl bg-panel p-0 text-ink shadow-[0_24px_56px_-16px_rgb(16_24_40/0.4)] backdrop:bg-slate-900/30`}
       onKeyDown={onKeyDown}
       // Esc fires cancel; the parent decides whether the dialog stays mounted.
       onCancel={(event) => {

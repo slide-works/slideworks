@@ -18,7 +18,7 @@ public class ProfilePhotoJourney : AcceptanceTest
         await Expect(profile.PhotoSource).ToHaveTextAsync("Picture: Initials");
         await Expect(profile.RemovePhoto).ToHaveCountAsync(0);
 
-        await profile.PhotoInput.SetInputFilesAsync(new FilePayload { Name = "me.png", MimeType = "image/png", Buffer = PngImage.Gradient(64, 64) });
+        await profile.PhotoInput.SetInputFilesAsync(new FilePayload { Name = "me.png", MimeType = "image/png", Buffer = SampleImage.Png() });
 
         await Expect(profile.PhotoSource).ToHaveTextAsync("Picture: Your photo");
         await Expect(profile.RemovePhoto).ToBeVisibleAsync();
