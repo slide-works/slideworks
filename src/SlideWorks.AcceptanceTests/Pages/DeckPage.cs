@@ -8,7 +8,7 @@ public sealed class DeckPage(IPage page)
 
     public ILocator Root => page.GetByTestId("deck-page");
 
-    public ILocator Title => page.GetByTestId("deck-title");
+    public ILocator Title => Root.GetByTestId("deck-title");
 
     public ILocator SlideCount => page.GetByTestId("deck-slide-count");
 
