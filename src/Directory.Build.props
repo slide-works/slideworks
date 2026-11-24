@@ -28,7 +28,7 @@
     </PackageReference>
     <!-- Agoda.Analyzers declares Roslyn 4.5 and Newtonsoft.Json 12.0.3 (GHSA-5crp-9r3c-p9vr) as
          ordinary dependencies; without "runtime" they are not copied into bin or flagged by NuGet audit. -->
-    <PackageReference Include="Agoda.Analyzers" Version="1.1.203">
+    <PackageReference Include="Agoda.Analyzers" Version="1.1.204">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>build; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
