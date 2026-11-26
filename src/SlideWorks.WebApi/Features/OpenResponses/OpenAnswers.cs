@@ -141,9 +141,7 @@ public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenRespon
     // Arrival order: when each guest first sent. An update of the text does not change it, so the guest's number stays.
     private async Task<IReadOnlyList<LoadedAnswer>> AnswersAsync(Guid roundId, CancellationToken cancellationToken)
     {
-        var entries = await db.OpenEntries.AsNoTracking()
-            .Where(e => e.RoundId == roundId && e.Position == 0)
-            .OrderBy(e => e.Arrival)
+        var entries = await OpenTextWall.InArrivalOrder(db.OpenEntries.AsNoTracking(), roundId)
             .Select(e => new { e.Id, e.GuestId, e.Text, Hidden = e.HiddenAt != null })
             .ToListAsync(cancellationToken);
         return [.. entries.Select(entry => new LoadedAnswer(entry.Id, entry.GuestId, entry.Text, entry.Hidden))];
@@ -202,8 +200,8 @@ public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenRespon
             mine);
     }
 
-    private static WallAnswer[] AnswersOf(LoadedRound round)
-        => [.. round.Answers.Select((answer, index) => new WallAnswer(index + 1, answer.Text, answer.Hidden))];
+    private static IReadOnlyList<WallAnswer> AnswersOf(LoadedRound round)
+        => OpenTextWall.Number(round.Answers.Select(answer => (answer.Text, answer.Hidden)));
 
     private static OpenTextTally Tally(string deckId, int slide, LoadedRound round, OpenResponseTarget target, IReadOnlyList<WallAnswer> answers)
         => new(
