@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FocusEvent, KeyboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { downloadFile } from '../../api/downloadFile';
 import type { DeckPageView } from '../../api/types';
 import { PhoneConnectDialog } from '../../presentation/PhoneConnectDialog';
 
 // The split Present button. ▶ Present opens the player as it always did. For anyone who can edit (owner or write) the arrow opens
-// three ways to present (PNG 03): the player, the presenter view, and the phone remote. Opening the menu moves focus
+// four ways to present (PNG 03): the player, the presenter view, and the phone remote, and the PDF download. Opening the menu moves focus
 // to its first item; Escape closes it and returns focus to the arrow; a click outside or tabbing out closes it.
 export function PresentMenu({ view }: { view: DeckPageView }) {
   const navigate = useNavigate();
@@ -14,6 +15,9 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const arrowRef = useRef<HTMLButtonElement>(null);
   const firstItemRef = useRef<HTMLAnchorElement>(null);
+  const pdfRef = useRef<HTMLButtonElement>(null);
+  const [pdfRunning, setPdfRunning] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   // The menu closes as the dialog opens, so the dialog's own focus restore finds nothing to return to: when the
   // dialog closes, focus goes back to the arrow.
@@ -52,6 +56,24 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
     setOpen(false);
     window.open(`/d/${view.id}/${view.slug}?present`, `sw-audience-${view.id}`);
     navigate(`/decks/${view.id}/present`);
+  }
+
+  // The menu stays open while the PDF is made. aria-disabled (not disabled) keeps focus on the item; clicks are ignored
+  // meanwhile. Success closes the menu and returns focus to the arrow; failure shows the error under the item.
+  async function downloadPdf() {
+    if (pdfRunning) return;
+    setPdfRunning(true);
+    setPdfError(null);
+    try {
+      await downloadFile(`/api/decks/${view.id}/pdf`, `${view.slug}.pdf`);
+      setOpen(false);
+      arrowRef.current?.focus();
+    } catch (error) {
+      setPdfError(error instanceof Error ? error.message : String(error));
+      pdfRef.current?.focus();
+    } finally {
+      setPdfRunning(false);
+    }
   }
 
   const present = (
@@ -126,6 +148,32 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
             <b className="text-meta">Control from your phone</b>
             <span className="text-xs text-ink-muted">Shows a QR code that opens the remote.</span>
           </button>
+          <button
+            ref={pdfRef}
+            type="button"
+            role="menuitem"
+            data-testid="present-menu-pdf"
+            aria-label={`Download PDF of ${view.title}`}
+            aria-disabled={pdfRunning}
+            className="grid rounded-panel px-2.5 py-2 text-left text-ink hover:bg-panel-2"
+            onClick={downloadPdf}
+          >
+            <b className="text-meta">Download PDF</b>
+            <span className="text-xs text-ink-muted">
+              {pdfRunning
+                ? 'Making the PDF…'
+                : "One page per slide, every reveal shown, with the last talk's results."}
+            </span>
+          </button>
+          {pdfError !== null && (
+            <p
+              role="alert"
+              data-testid="present-menu-pdf-error"
+              className="px-2.5 pb-1 text-xs text-bad"
+            >
+              {pdfError}
+            </p>
+          )}
         </div>
       )}
       <PhoneConnectDialog
