@@ -39,9 +39,102 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
 
     public Task<byte[]> RenderGenericCardAsync(CancellationToken ct) => RenderAsync(null, ct);
 
-    // TODO: the real print-page render replaces this stub.
-    public Task<byte[]> RenderPdfAsync(string deckId, CancellationToken ct)
-        => throw new RendererUnavailableException("PDF rendering is not built yet");
+    private const int PDF_DEADLINE_FACTOR = 3;
+    private const string PRINT_TEST_ID = "print-deck";
+    private const string PRINT_SETTLED = "() => { const deck = document.querySelector('[data-testid=print-deck]'); return !!deck && (deck.dataset.ready === 'true' || deck.hasAttribute('data-error')); }";
+
+    // The deck's print page (/print/{id}, a Print token) saved as a PDF: one 1920x1080 page per slide. The deadline is
+    // three times RenderOptions.Timeout and covers the slot, the browser start and the page.
+    public async Task<byte[]> RenderPdfAsync(string deckId, CancellationToken ct)
+    {
+        var limit = _options.Timeout * PDF_DEADLINE_FACTOR;
+        var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(limit);
+        var deadlineToken = deadline.Token;
+        var render = RenderPdfInSlotAsync(deckId, limit, deadlineToken);
+        _ = render.ContinueWith(_ => deadline.Dispose(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using (deadlineToken.Register(() => stopped.TrySetResult()))
+        {
+            if (await Task.WhenAny(render, stopped.Task) == render && !(render.IsCanceled && deadlineToken.IsCancellationRequested))
+            {
+                return await render;
+            }
+        }
+
+        ct.ThrowIfCancellationRequested();
+        throw new System.TimeoutException(TIMED_OUT);
+    }
+
+    private async Task<byte[]> RenderPdfInSlotAsync(string deckId, TimeSpan limit, CancellationToken ct)
+    {
+        await _pages.WaitAsync(ct);
+        try
+        {
+            var chromium = await browser.GetAsync(ct);
+            try
+            {
+                ct.ThrowIfCancellationRequested();
+                return await RenderPdfPageAsync(chromium, deckId, limit, ct);
+            }
+            catch (PlaywrightException) when (!chromium.IsConnected && !ct.IsCancellationRequested)
+            {
+                var restarted = await browser.GetAsync(ct);
+                ct.ThrowIfCancellationRequested();
+                return await RenderPdfPageAsync(restarted, deckId, limit, ct);
+            }
+        }
+        catch (PlaywrightException)
+        {
+            ct.ThrowIfCancellationRequested();
+            throw Failed(PAGE_ERROR);
+        }
+        finally
+        {
+            ReleaseSlot();
+        }
+    }
+
+    private async Task<byte[]> RenderPdfPageAsync(IBrowser chromium, string deckId, TimeSpan limit, CancellationToken ct)
+    {
+        var origin = BaseUrl();
+        var token = tokens.Issue(deckId, RenderPurpose.Print);
+        var url = new Uri(origin, $"print/{Uri.EscapeDataString(deckId)}#token={Uri.EscapeDataString(token)}");
+        await using var context = await chromium.NewContextAsync(new BrowserNewContextOptions
+        {
+            ViewportSize = new ViewportSize { Width = SLIDE_WIDTH, Height = SLIDE_HEIGHT },
+            ExtraHTTPHeaders = new Dictionary<string, string> { [RenderSessions.HEADER] = token },
+        });
+        await using var closeOnDeadline = ct.Register(() => _ = context.CloseAsync());
+        context.SetDefaultTimeout((float)limit.TotalMilliseconds);
+        await context.RouteAsync("**/*", route => SameOrigin(route.Request.Url, origin) ? route.ContinueAsync() : route.AbortAsync());
+
+        var imageFailed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var page = await context.NewPageAsync();
+        page.RequestFailed += (_, request) => FailOnImage(imageFailed, request, ok: false);
+        page.Response += (_, response) => FailOnImage(imageFailed, response.Request, response.Ok);
+        await page.GotoAsync(url.ToString());
+        var settled = page.WaitForFunctionAsync(PRINT_SETTLED);
+        if (await Task.WhenAny(settled, imageFailed.Task) == imageFailed.Task)
+        {
+            throw Failed(await imageFailed.Task);
+        }
+
+        await settled;
+        var error = await page.GetByTestId(PRINT_TEST_ID).GetAttributeAsync("data-error");
+        if (error != null)
+        {
+            throw Failed(error.StartsWith(FAILED, StringComparison.Ordinal) ? error[FAILED.Length..] : error);
+        }
+
+        return await page.PdfAsync(new PagePdfOptions
+        {
+            Width = $"{SLIDE_WIDTH}px",
+            Height = $"{SLIDE_HEIGHT}px",
+            PrintBackground = true,
+            Margin = new Margin { Top = "0", Right = "0", Bottom = "0", Left = "0" },
+        });
+    }
 
     public const int SLIDE_WIDTH = 1920;
     public const int SLIDE_HEIGHT = 1080;
