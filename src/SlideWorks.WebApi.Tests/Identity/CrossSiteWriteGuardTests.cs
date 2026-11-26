@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using SlideWorks.WebApi.Features.Render;
 using SlideWorks.WebApi.Tests.Dtos;
 using SlideWorks.WebApi.Tests.Support;
 
@@ -129,6 +130,40 @@ public class CrossSiteWriteGuardTests : ApiTestFixture
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe("Upload not found");
+    }
+
+    // A write under /api/render that carries the render token header rides on no cookie, so a foreign Origin doesn't stop
+    // it at the guard: the route itself refuses a token that isn't valid for its deck.
+    [Test]
+    public async Task Post_WhenForeignOriginOnRenderPathWithRenderToken_ShouldPassTheGuard()
+    {
+        var request = Write(HttpMethod.Post, origin: FOREIGN_ORIGIN, path: "/api/render/dk_NOPE0001/session");
+        request.Headers.Add(RenderSessions.HEADER, "not-a-token");
+
+        var response = await Client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await response.Content.ReadFromJsonAsync<ErrorDto>())!.Error.ShouldBe("Deck not found");
+    }
+
+    [Test]
+    public async Task Post_WhenForeignOriginOnRenderPathWithoutRenderToken_ShouldReturn403()
+    {
+        var response = await Client.SendAsync(Write(HttpMethod.Post, origin: FOREIGN_ORIGIN, path: "/api/render/dk_NOPE0001/session"));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    // The header buys nothing outside /api/render.
+    [Test]
+    public async Task Post_WhenForeignOriginWithRenderTokenOutsideRenderPath_ShouldReturn403()
+    {
+        var request = Write(HttpMethod.Post, origin: FOREIGN_ORIGIN);
+        request.Headers.Add(RenderSessions.HEADER, "not-a-token");
+
+        var response = await Client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
     [Test]
