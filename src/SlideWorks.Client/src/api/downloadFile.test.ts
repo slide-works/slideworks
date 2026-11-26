@@ -13,11 +13,11 @@ describe('downloadFile', () => {
     const revoked = vi.fn();
     vi.stubGlobal('URL', { createObjectURL: created, revokeObjectURL: revoked });
     const names: string[] = [];
-    const click = vi
-      .spyOn(HTMLAnchorElement.prototype, 'click')
-      .mockImplementation(function (this: HTMLAnchorElement) {
-        names.push(this.download);
-      });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      names.push(this.download);
+    });
 
     await downloadFile('/api/decks/d1/pdf', 'my-deck.pdf');
 
