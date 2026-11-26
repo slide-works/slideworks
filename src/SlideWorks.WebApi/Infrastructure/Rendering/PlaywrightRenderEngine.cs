@@ -23,6 +23,8 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
     public const int HEIGHT = 630;
     public const string TIMED_OUT = "Rendering timed out";
     public const string FAILED = "Rendering failed: ";
+    public const int SLIDE_WIDTH = 1920;
+    public const int SLIDE_HEIGHT = 1080;
 
     private const int MAX_PAGES = 2;
     private const string MEASURE_TIMED_OUT = "Measuring the font timed out";
@@ -135,9 +137,6 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
             Margin = new Margin { Top = "0", Right = "0", Bottom = "0", Left = "0" },
         });
     }
-
-    public const int SLIDE_WIDTH = 1920;
-    public const int SLIDE_HEIGHT = 1080;
 
     private const string SLIDE_TEST_ID = "render-slide";
     private const string SLIDE_SETTLED = "() => { const slide = document.querySelector('[data-testid=render-slide]'); return !!slide && (slide.dataset.ready === 'true' || slide.hasAttribute('data-error')); }";
