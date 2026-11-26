@@ -4,7 +4,7 @@ import { DOWNLOAD_FALLBACK_ERROR, downloadFile } from './downloadFile';
 afterEach(() => vi.unstubAllGlobals());
 
 describe('downloadFile', () => {
-  it('downloadFile_WhenOk_ShouldClickALinkNamedAfterTheFileAndRevokeTheUrl', async () => {
+  it('downloadFile_WhenOk_ShouldClickALinkNamedAfterTheFileAndRevokeTheUrlAfterATick', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => new Response('%PDF', { status: 200 })),
@@ -19,10 +19,15 @@ describe('downloadFile', () => {
       names.push(this.download);
     });
 
+    vi.useFakeTimers();
+
     await downloadFile('/api/decks/d1/pdf', 'my-deck.pdf');
 
     expect(names).toEqual(['my-deck.pdf']);
+    expect(revoked).not.toHaveBeenCalled();
+    vi.runAllTimers();
     expect(revoked).toHaveBeenCalledWith('blob:x');
+    vi.useRealTimers();
     click.mockRestore();
   });
 

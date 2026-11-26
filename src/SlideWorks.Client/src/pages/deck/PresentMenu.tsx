@@ -6,8 +6,9 @@ import type { DeckPageView } from '../../api/types';
 import { PhoneConnectDialog } from '../../presentation/PhoneConnectDialog';
 
 // The split Present button. ▶ Present opens the player as it always did. For anyone who can edit (owner or write) the arrow opens
-// four ways to present (PNG 03): the player, the presenter view, and the phone remote, and the PDF download. Opening the menu moves focus
-// to its first item; Escape closes it and returns focus to the arrow; a click outside or tabbing out closes it.
+// four ways to present (PNG 03): the player, the presenter view, the phone remote and the PDF download. Opening the
+// menu moves focus to its first item; Escape closes it and returns focus to the arrow; a click outside or tabbing out
+// closes it. While the PDF is being made the menu stays open: those three ways to close it do nothing until it ends.
 export function PresentMenu({ view }: { view: DeckPageView }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -17,6 +18,7 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
   const firstItemRef = useRef<HTMLAnchorElement>(null);
   const pdfRef = useRef<HTMLButtonElement>(null);
   const [pdfRunning, setPdfRunning] = useState(false);
+  const pdfRunningRef = useRef(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
 
   // The menu closes as the dialog opens, so the dialog's own focus restore finds nothing to return to: when the
@@ -31,6 +33,7 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
     if (!open) return;
     firstItemRef.current?.focus();
     function closeOnOutsidePointer(event: PointerEvent) {
+      if (pdfRunningRef.current) return;
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     }
     document.addEventListener('pointerdown', closeOnOutsidePointer);
@@ -40,12 +43,14 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
   function closeOnEscape(event: KeyboardEvent) {
     if (open && event.key === 'Escape') {
       event.preventDefault();
+      if (pdfRunningRef.current) return;
       setOpen(false);
       arrowRef.current?.focus();
     }
   }
 
   function closeOnFocusLeaving(event: FocusEvent) {
+    if (pdfRunningRef.current) return;
     const next = event.relatedTarget;
     if (next instanceof Node && !rootRef.current?.contains(next)) setOpen(false);
   }
@@ -61,7 +66,8 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
   // The menu stays open while the PDF is made. aria-disabled (not disabled) keeps focus on the item; clicks are ignored
   // meanwhile. Success closes the menu and returns focus to the arrow; failure shows the error under the item.
   async function downloadPdf() {
-    if (pdfRunning) return;
+    if (pdfRunningRef.current) return;
+    pdfRunningRef.current = true;
     setPdfRunning(true);
     setPdfError(null);
     try {
@@ -72,6 +78,7 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
       setPdfError(error instanceof Error ? error.message : String(error));
       pdfRef.current?.focus();
     } finally {
+      pdfRunningRef.current = false;
       setPdfRunning(false);
     }
   }
@@ -101,7 +108,10 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
           aria-haspopup="menu"
           aria-expanded={open}
           className="btn-primary rounded-l-none px-2"
-          onClick={() => setOpen((value) => !value)}
+          onClick={() => {
+            setPdfError(null);
+            setOpen((value) => !value);
+          }}
         >
           ▾
         </button>
@@ -165,6 +175,9 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
                 : "One page per slide, every reveal shown, with the last talk's results."}
             </span>
           </button>
+          <p role="status" className="sr-only">
+            {pdfRunning ? 'Making the PDF…' : ''}
+          </p>
           {pdfError !== null && (
             <p
               role="alert"

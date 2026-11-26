@@ -177,6 +177,55 @@ test("Download PDF shows the server's error and keeps focus on the item", async 
   await expect(page.getByTestId('present-menu-pdf')).toHaveAttribute('aria-disabled', 'false');
 });
 
+test('Download PDF keeps the menu open on Escape and shows the 503 when it lands', async ({
+  mount,
+  page,
+}) => {
+  let release: () => void = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(`**/api/decks/${owned.id}/pdf`, async (route) => {
+    await gate;
+    await route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'The PDF renderer is busy. Try again in a minute.' }),
+    });
+  });
+  await mount(<PresentMenu view={owned} />);
+  await page.getByTestId('present-menu').click();
+  await page.getByTestId('present-menu-pdf').click();
+  await expect(page.getByTestId('present-menu-pdf')).toContainText('Making the PDF…');
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('present-menu-pdf')).toBeVisible();
+  release();
+
+  await expect(page.getByTestId('present-menu-pdf-error')).toHaveText(
+    'The PDF renderer is busy. Try again in a minute.',
+  );
+  await expect(page.getByTestId('present-menu-pdf')).toBeFocused();
+});
+
+test('Download PDF announces Making the PDF… in a status region', async ({ mount, page }) => {
+  let release: () => void = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(`**/api/decks/${owned.id}/pdf`, async (route) => {
+    await gate;
+    await route.fulfill({ status: 200, contentType: 'application/pdf', body: '%PDF-1.4' });
+  });
+  await mount(<PresentMenu view={owned} />);
+  await page.getByTestId('present-menu').click();
+  await page.getByTestId('present-menu-pdf').click();
+
+  await expect(page.getByRole('status')).toHaveText('Making the PDF…');
+  release();
+  await expect(page.getByTestId('present-menu-pdf')).toHaveCount(0);
+});
+
 test('Download PDF shows the client text when the network fails', async ({ mount, page }) => {
   await page.route(`**/api/decks/${owned.id}/pdf`, (route) => route.abort('failed'));
   await mount(<PresentMenu view={owned} />);

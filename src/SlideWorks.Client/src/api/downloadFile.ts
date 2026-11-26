@@ -17,16 +17,14 @@ export async function downloadFile(path: string, filename: string): Promise<void
     throw new Error(await errorText(response));
   }
   const url = URL.createObjectURL(await response.blob());
-  try {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  // Firefox and Safari can cancel the download if the URL is revoked in the same tick as the click.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 async function errorText(response: Response): Promise<string> {
