@@ -3,7 +3,10 @@ import { useLocation, useParams } from 'react-router-dom';
 import type { DeckPrintView } from '../api/types';
 import { deepDivesOf } from '../look/deepDivesOf';
 import { fontsSettled } from '../look/fontsSettled';
+import { OpenResponseScreenStatic } from '../openResponses/OpenResponseScreenLive';
+import { QaScreenProvider, type QaScreenState } from '../qa/screen/QaScreenContext';
 import { JoinProvider } from '../slides/JoinContext';
+import { PollScreenProvider, type PollScreenSource } from '../slides/PollContext';
 import { PrintingProvider } from '../slides/printing';
 import { SlideRenderer } from '../slides/SlideRenderer';
 import type { SlideDeck } from '../slides/slots';
@@ -79,6 +82,14 @@ function cloudsPacked(root: HTMLElement): Promise<void> {
   });
 }
 
+// The poll entry of a slide as the provider's source, or null for a slide with no entry.
+function pollSourceOf(view: DeckPrintView, number: number): PollScreenSource {
+  const entry = view.polls.find((poll) => poll.slide === number);
+  if (entry === undefined) return null;
+  const { slide, ...screen } = entry;
+  return { slide, screen };
+}
+
 // /print/:id: every slide of the deck stacked, 1920×1080 each with every step revealed, for the PDF engine. Outside the
 // sign-in gate, with no realtime subscription. The render token comes only from the fragment (#token=…) and is removed
 // from the address bar at once. data-ready="true" is set once fonts, images and word clouds have settled; a failure sets
@@ -129,6 +140,15 @@ export function PrintPage() {
     [deck],
   );
 
+  const openEvents = useMemo(() => (view ? [...view.wordClouds, ...view.openTexts] : []), [view]);
+  const qaState = useMemo<QaScreenState | undefined>(
+    () =>
+      view?.qa
+        ? { kind: 'on', screen: { ...view.qa, onScreen: null, showOn: 'qaSlide' } }
+        : undefined,
+    [view],
+  );
+
   useEffect(() => {
     const element = root.current;
     if (!deck || !element) return;
@@ -161,24 +181,30 @@ export function PrintPage() {
           {error}
         </p>
       )}
-      {!error && deck && slideDeck && (
+      {!error && view && deck && slideDeck && (
         <PrintingProvider>
           <JoinProvider deckId={deck.id} join={deck.join} owner={false}>
-            {deck.slides.map((slide) => (
-              <section
-                key={slide.number}
-                data-testid="print-slide"
-                data-slide={slide.number}
-                className={styles.slide}
-              >
-                <SlideRenderer
-                  slide={slide}
-                  deck={slideDeck}
-                  total={deck.slides.length}
-                  step={slide.steps}
-                />
-              </section>
-            ))}
+            <OpenResponseScreenStatic events={openEvents}>
+              <QaScreenProvider state={qaState}>
+                {deck.slides.map((slide) => (
+                  <section
+                    key={slide.number}
+                    data-testid="print-slide"
+                    data-slide={slide.number}
+                    className={styles.slide}
+                  >
+                    <PollScreenProvider source={pollSourceOf(view, slide.number)}>
+                      <SlideRenderer
+                        slide={slide}
+                        deck={slideDeck}
+                        total={deck.slides.length}
+                        step={slide.steps}
+                      />
+                    </PollScreenProvider>
+                  </section>
+                ))}
+              </QaScreenProvider>
+            </OpenResponseScreenStatic>
           </JoinProvider>
         </PrintingProvider>
       )}

@@ -116,3 +116,100 @@ test('PrintPage is ready at once when a word cloud has no words', async ({ mount
   await expect(page.getByTestId('print-deck')).toHaveAttribute('data-ready', 'true');
   await expect(page.getByTestId('word-cloud-body')).toHaveAttribute('data-packed', 'true');
 });
+
+const resultsView = (patch: Partial<DeckPrintView>): DeckPrintView => ({
+  ...deckPrint,
+  ...patch,
+});
+
+test("PrintPage draws a poll slide's bars and percentages from polls[]", async ({
+  mount,
+  page,
+}) => {
+  await stubPrint(page, deckPrint);
+  await mount(<AppRoutes />, { hooksConfig: { route: route(deckPrint.deck.id) } });
+
+  await expect(page.getByTestId('print-deck')).toHaveAttribute('data-ready', 'true');
+  const slide = page.locator('[data-testid="print-slide"][data-slide="2"]');
+  await expect(slide.getByTestId('poll-slide-row-0')).toContainText('Weekly');
+  await expect(slide.getByTestId('poll-slide-row-1')).toContainText('Daily');
+  await expect(slide.getByTestId('poll-slide-percent-0')).toHaveText('29%');
+  await expect(slide.getByTestId('poll-slide-percent-1')).toHaveText('71%');
+});
+
+test('PrintPage marks the correct option only when the answer was shown', async ({
+  mount,
+  page,
+}) => {
+  const hidden = resultsView({
+    polls: deckPrint.polls.map((poll) => ({ ...poll, answerShown: false, correct: null })),
+  });
+  await stubPrint(page, hidden);
+  const component = await mount(<AppRoutes />, { hooksConfig: { route: route(hidden.deck.id) } });
+  await expect(page.getByTestId('print-deck')).toHaveAttribute('data-ready', 'true');
+  await expect(page.getByTestId('poll-slide-correct-1')).toHaveCount(0);
+  await component.unmount();
+
+  await page.unroute('**/api/render/**');
+  await stubPrint(page, deckPrint);
+  await mount(<AppRoutes />, { hooksConfig: { route: route(deckPrint.deck.id) } });
+  await expect(page.getByTestId('print-deck')).toHaveAttribute('data-ready', 'true');
+  await expect(page.getByTestId('poll-slide-correct-1')).toBeVisible();
+  await expect(page.getByTestId('poll-slide-correct-0')).toHaveCount(0);
+});
+
+test('PrintPage draws a word cloud from wordClouds[] and is ready only after it packs', async ({
+  mount,
+  page,
+}) => {
+  await stubPrint(page, deckPrint);
+  await mount(<AppRoutes />, { hooksConfig: { route: route(deckPrint.deck.id) } });
+
+  await expect(page.getByTestId('print-deck')).toHaveAttribute('data-ready', 'true');
+  const body = page.locator('[data-slide="3"]').getByTestId('word-cloud-body');
+  await expect(body).toHaveAttribute('data-packed', 'true');
+  await expect(body).toContainText('Focused');
+  await expect(body).toContainText('Calm');
+});
+
+test('PrintPage lists open-text answers from openTexts[] with their numbers', async ({
+  mount,
+  page,
+}) => {
+  await stubPrint(page, deckPrint);
+  await mount(<AppRoutes />, { hooksConfig: { route: route(deckPrint.deck.id) } });
+
+  await expect(page.getByTestId('print-deck')).toHaveAttribute('data-ready', 'true');
+  const slide = page.locator('[data-slide="4"]');
+  await expect(slide.getByTestId('open-text-text')).toHaveText([
+    'More demos',
+    'A shared definition of done',
+  ]);
+  await expect(slide.getByTestId('open-text-number')).toHaveText(['1', '3']);
+});
+
+test('PrintPage lists the top questions on a Q&A slide from qa', async ({ mount, page }) => {
+  await stubPrint(page, deckPrint);
+  await mount(<AppRoutes />, { hooksConfig: { route: route(deckPrint.deck.id) } });
+
+  await expect(page.getByTestId('print-deck')).toHaveAttribute('data-ready', 'true');
+  const slide = page.locator('[data-slide="5"]');
+  await expect(slide.getByTestId('qa-slide-row-text-4')).toHaveText('How do I self-host?');
+  await expect(slide.getByTestId('qa-slide-row-votes-4')).toContainText('11');
+  await expect(slide.getByTestId('qa-slide-row-text-2')).toHaveText('Can I export to PDF?');
+});
+
+test('PrintPage draws an interactive slide with no result entry as it does today', async ({
+  mount,
+  page,
+}) => {
+  const bare = resultsView({ polls: [], wordClouds: [], openTexts: [], qa: null });
+  await stubPrint(page, bare);
+  await mount(<AppRoutes />, { hooksConfig: { route: route(bare.deck.id) } });
+
+  await expect(page.getByTestId('print-deck')).toHaveAttribute('data-ready', 'true');
+  await expect(page.getByTestId('poll-slide-percent-0')).toHaveText('');
+  await expect(page.getByTestId('open-text-answer')).toHaveCount(0);
+  await expect(page.getByTestId('qa-slide-rows')).toHaveCount(0);
+  await expect(page.getByTestId('print-slide')).toHaveCount(bare.deck.slides.length);
+});

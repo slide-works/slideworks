@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SlideHeading } from '../blocks/SlideHeading';
 import { emphasisFor } from '../emphasis';
+import { usePrinting } from '../printing';
 import { useSlideShowing } from '../slideShowing';
 import type { LayoutProps } from '../slots';
 import {
@@ -15,15 +16,21 @@ import styles from './VideoLayout.module.css';
 // A headline over one YouTube video. A poster and a play button show until
 // someone plays it, or until the slide is shown when play is 'auto'. The
 // player is built from the video id, never from the link text. A link under
-// it opens the same video on YouTube. A hidden slide drops the player, so a
+// it opens the same video on YouTube. While printing it loads nothing from
+// YouTube: no poster and no player, only the frame, the play glyph and the link. A hidden slide drops the player, so a
 // video that has started does not keep playing under the next slide.
 export function VideoLayout({ slots, deck }: LayoutProps<'video'>) {
   const showing = useSlideShowing();
+  const printing = usePrinting();
   const interactive = deck.interactive !== false;
   const [started, setStarted] = useState(false);
   const video = played(slots.url, slots.start);
   const playing =
-    video !== undefined && showing && interactive && (started || slots.play === 'auto');
+    video !== undefined &&
+    showing &&
+    interactive &&
+    !printing &&
+    (started || slots.play === 'auto');
   const embed = video === undefined || !playing ? undefined : youtubeEmbedSrc(video, true);
   const poster = video === undefined ? undefined : youtubePosterSrc(video);
   const watch = video === undefined ? undefined : youtubeWatchHref(video);
@@ -56,8 +63,10 @@ export function VideoLayout({ slots, deck }: LayoutProps<'video'>) {
                 />
               ) : (
                 <>
-                  <img data-testid="video-poster" className={styles.poster} alt="" src={poster} />
-                  {interactive ? (
+                  {printing ? null : (
+                    <img data-testid="video-poster" className={styles.poster} alt="" src={poster} />
+                  )}
+                  {interactive && !printing ? (
                     <button
                       type="button"
                       data-testid="video-play"

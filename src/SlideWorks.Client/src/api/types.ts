@@ -553,7 +553,6 @@ export type DeckPrintQaQuestion = { number: number; text: string; votes: number 
 export type DeckPrintQa = { phase: 'open' | 'closed'; total: number; top: DeckPrintQaQuestion[] };
 
 // GET /api/render/{id}/print (a Print render token): the play view and the last talk's results.
-// TODO: the results lane feeds polls, wordClouds, openTexts and qa to the slides; the print page ignores them for now.
 export type DeckPrintView = {
   deck: DeckPlayView;
   polls: DeckPrintPoll[];

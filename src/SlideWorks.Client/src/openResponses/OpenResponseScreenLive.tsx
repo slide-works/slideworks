@@ -177,3 +177,21 @@ export function OpenResponseScreenLive({ deckId, owner, children }: OpenResponse
 
   return <ScreenContext value={value}>{children}</ScreenContext>;
 }
+
+const NO_MARK = () => () => undefined;
+
+// A fixed screen for each slide, for a page that draws results it was handed and follows nothing (the print page). Each
+// event is given to the layout of its slide as it is; marking a slide does nothing.
+export function OpenResponseScreenStatic({
+  events,
+  children,
+}: {
+  events: readonly RoomEvent[];
+  children: ReactNode;
+}) {
+  const value = useMemo<Screen>(
+    () => ({ mark: NO_MARK, screens: new Map(events.map((event) => [event.slide, event])) }),
+    [events],
+  );
+  return <ScreenContext value={value}>{children}</ScreenContext>;
+}
