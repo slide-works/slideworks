@@ -213,3 +213,84 @@ test('PrintPage draws an interactive slide with no result entry as it does today
   await expect(page.getByTestId('qa-slide-rows')).toHaveCount(0);
   await expect(page.getByTestId('print-slide')).toHaveCount(bare.deck.slides.length);
 });
+
+test('PrintPage declares its page size only while mounted', async ({ mount, page }) => {
+  const pageRule = () =>
+    page.evaluate(() =>
+      Array.from(document.styleSheets)
+        .flatMap((sheet) => Array.from(sheet.cssRules))
+        .some((rule) => rule.cssText.startsWith('@page') && rule.cssText.includes('1920px 1080px')),
+    );
+  await stubPrint(page, deckPrint);
+  expect(await pageRule()).toBe(false);
+  const component = await mount(<AppRoutes />, {
+    hooksConfig: { route: route(deckPrint.deck.id) },
+  });
+  await expect(page.getByTestId('print-deck')).toHaveAttribute('data-ready', 'true');
+  expect(await pageRule()).toBe(true);
+  await component.unmount();
+  expect(await pageRule()).toBe(false);
+});
+
+test('PrintPage stays settled when it re-renders with words on a word cloud', async ({
+  mount,
+  page,
+}) => {
+  await stubPrint(page, deckPrint);
+  const component = await mount(<AppRoutes />, {
+    hooksConfig: { route: route(deckPrint.deck.id) },
+  });
+  const body = page.getByTestId('word-cloud-body');
+  await expect(page.getByTestId('print-deck')).toHaveAttribute('data-ready', 'true');
+  await component.update(<AppRoutes />);
+  await expect(body).toHaveAttribute('data-packed', 'true');
+  await expect(body).toContainText('Focused');
+  await expect(page.getByTestId('print-deck')).toHaveAttribute('data-ready', 'true');
+});
+
+test('PrintPage sets data-error when a word cloud has words and no room to pack them', async ({
+  mount,
+  page,
+}) => {
+  await stubPrint(page, deckPrint);
+  await page.addStyleTag({ content: '[data-testid="word-cloud-body"] { display: none; }' });
+  await mount(<AppRoutes />, { hooksConfig: { route: route(deckPrint.deck.id) } });
+
+  await expect(page.getByTestId('print-deck')).toHaveAttribute(
+    'data-error',
+    'Rendering failed: word cloud on slide 3',
+  );
+  await expect(page.getByTestId('print-deck')).not.toHaveAttribute('data-ready', /.*/);
+});
+
+test('PrintPage waits for a slow image before it is ready', async ({ mount, page }) => {
+  await stubPrint(page, deckPrint);
+  await page.route('**/api/images/img_logo0001', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.fulfill({
+      path: 'src/test-support/fixtures/sample-image.png',
+      contentType: 'image/png',
+    });
+  });
+  await mount(<AppRoutes />, { hooksConfig: { route: route(deckPrint.deck.id) } });
+
+  await expect(page.getByTestId('print-slide').first()).toBeAttached();
+  await expect(page.getByTestId('print-deck')).not.toHaveAttribute('data-ready', /.*/);
+  await expect(page.getByTestId('print-deck')).toHaveAttribute('data-ready', 'true', {
+    timeout: 10000,
+  });
+});
+
+test('PrintPage sets data-error naming the image when an image fails to load', async ({
+  mount,
+  page,
+}) => {
+  await stubPrint(page, deckPrint);
+  await page.route('**/api/images/img_logo0001', (route) => route.fulfill({ status: 404 }));
+  await mount(<AppRoutes />, { hooksConfig: { route: route(deckPrint.deck.id) } });
+
+  await expect(page.getByTestId('print-deck')).toHaveAttribute(
+    'data-error',
+    'Rendering failed: image img_logo0001',
+  );
+});

@@ -43,9 +43,10 @@ function usePackedWords(
   size: Size | null,
   words: readonly CloudWord[],
   turn: boolean,
-): { packed: PackedWord[]; settled: boolean } {
+): { packed: PackedWord[]; settled: boolean; failed: boolean } {
   const [packed, setPacked] = useState<PackedWord[]>([]);
   const [placed, setPlaced] = useState<readonly CloudWord[] | null>(null);
+  const [failed, setFailed] = useState(false);
   const spots = useRef(new Map<string, Spot>());
   const sprites = useRef<SpriteCache>(new Map());
   useEffect(() => {
@@ -58,9 +59,16 @@ function usePackedWords(
       .catch(() => undefined)
       .then(() => {
         if (!active) return;
-        const next = packWords(words, size, { font }, turn, spots.current, sprites.current);
-        spots.current = new Map(next.map((word) => [word.text, { x: word.x, y: word.y }]));
-        setPacked(next);
+        try {
+          const next = packWords(words, size, { font }, turn, spots.current, sprites.current);
+          spots.current = new Map(next.map((word) => [word.text, { x: word.x, y: word.y }]));
+          setPacked(next);
+          setFailed(false);
+        } catch {
+          // A cloud that cannot pack is settled with no words; data-pack-error lets the print page fail the render.
+          setPacked([]);
+          setFailed(true);
+        }
         setPlaced(words);
       });
     return () => {
@@ -70,6 +78,7 @@ function usePackedWords(
   return {
     packed: words.length === 0 ? [] : packed,
     settled: words.length === 0 || placed === words,
+    failed: words.length > 0 && failed,
   };
 }
 
@@ -91,7 +100,7 @@ export function WordCloudLayout({ slots }: LayoutProps<'word-cloud'>) {
   const words = screen?.type === 'wordCloud' ? screen.words : NO_WORDS;
   const box = useRef<HTMLDivElement>(null);
   const size = useBoxSize(box);
-  const { packed, settled } = usePackedWords(box, size, words, slots.turn === 'some');
+  const { packed, settled, failed } = usePackedWords(box, size, words, slots.turn === 'some');
   return (
     <div data-testid="layout-word-cloud" className="sw-layout">
       <SlideHeading layout="word-cloud" headline={slots.question} />
@@ -99,6 +108,7 @@ export function WordCloudLayout({ slots }: LayoutProps<'word-cloud'>) {
         data-testid="word-cloud-body"
         className="sw-body"
         data-packed={settled ? 'true' : undefined}
+        data-pack-error={failed ? 'true' : undefined}
       >
         <div ref={box} style={BOX}>
           {words.length > 0 && size !== null && (

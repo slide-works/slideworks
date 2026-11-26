@@ -12,6 +12,9 @@ import { SlideRenderer } from '../slides/SlideRenderer';
 import type { SlideDeck } from '../slides/slots';
 import styles from './PrintPage.module.css';
 
+// @page cannot be scoped by a CSS module, so the rule exists only while this page is mounted.
+const PAGE_STYLE = <style>{'@page { size: 1920px 1080px; margin: 0; }'}</style>;
+
 const TOKEN_HEADER = 'X-Render-Token';
 const TOKEN_MISSING = 'Render token missing';
 
@@ -66,19 +69,55 @@ function imagesLoaded(root: HTMLElement): Promise<void> {
   ).then(() => undefined);
 }
 
-// Resolves once every word-cloud body under root carries data-packed="true".
+const CLOUD_BODY = '[data-testid="word-cloud-body"]';
+
+function slideOf(body: Element): string {
+  return body.closest('[data-slide]')?.getAttribute('data-slide') ?? '?';
+}
+
+// The first word cloud whose words could not be packed: its packing threw, or its box has no size to pack into.
+function brokenCloud(root: HTMLElement): Error | undefined {
+  for (const body of root.querySelectorAll(`${CLOUD_BODY}:not([data-packed="true"])`)) {
+    const box = body.firstElementChild as HTMLElement | null;
+    if (box !== null && (box.offsetWidth === 0 || box.offsetHeight === 0))
+      return new Error(`Rendering failed: word cloud on slide ${slideOf(body)}`);
+  }
+  const failed = root.querySelector(`${CLOUD_BODY}[data-pack-error="true"]`);
+  return failed === null
+    ? undefined
+    : new Error(`Rendering failed: word cloud on slide ${slideOf(failed)}`);
+}
+
+// Resolves once every word-cloud body under root carries data-packed="true"; rejects when a cloud cannot pack, so a
+// render never waits out its deadline.
 function cloudsPacked(root: HTMLElement): Promise<void> {
-  const pending = () =>
-    root.querySelectorAll('[data-testid="word-cloud-body"]:not([data-packed="true"])').length;
-  if (pending() === 0) return Promise.resolve();
-  return new Promise((resolve) => {
-    const observer = new MutationObserver(() => {
+  const pending = () => root.querySelectorAll(`${CLOUD_BODY}:not([data-packed="true"])`).length;
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      const broken = root.querySelector(`${CLOUD_BODY}[data-pack-error="true"]`);
+      if (broken !== null) {
+        observer.disconnect();
+        return reject(brokenCloud(root));
+      }
       if (pending() === 0) {
         observer.disconnect();
-        resolve();
+        return resolve();
       }
+      return undefined;
+    };
+    const observer = new MutationObserver(() => {
+      check();
     });
     observer.observe(root, { subtree: true, childList: true, attributes: true });
+    check();
+    // Once the boxes have been laid out, a cloud with words and no room will never pack.
+    void nextFrame().then(() => {
+      const broken = brokenCloud(root);
+      if (broken !== undefined) {
+        observer.disconnect();
+        reject(broken);
+      }
+    });
   });
 }
 
@@ -181,6 +220,7 @@ export function PrintPage() {
           {error}
         </p>
       )}
+      {PAGE_STYLE}
       {!error && view && deck && slideDeck && (
         <PrintingProvider>
           <JoinProvider deckId={deck.id} join={deck.join} owner={false}>
