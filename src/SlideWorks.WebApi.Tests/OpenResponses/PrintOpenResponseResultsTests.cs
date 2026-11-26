@@ -72,6 +72,18 @@ public class PrintOpenResponseResultsTests : ApiTestFixture
     }
 
     [Test]
+    public async Task ReadAsync_WhenTwoGuestsHoldAWordAndOneEntryWasHidden_ShouldKeepTheWordWithCountOne()
+    {
+        var deck = await LiveDeckAsync(("word-cloud", CLOUD));
+        await SeedRoundAsync(deck, 1, 1, closed: true, ("a", "Focused"), ("b", "Focused"));
+        await HideAsync(deck, 1, "b");
+
+        var read = await ReadAsync(deck);
+
+        read.WordClouds.ShouldHaveSingleItem().Words.Select(w => (w.Text, w.Count)).ShouldBe([("Focused", 1)]);
+    }
+
+    [Test]
     public async Task ReadAsync_WhenTheSlideRanTwoRounds_ShouldReturnTheNewest()
     {
         var deck = await LiveDeckAsync(("word-cloud", CLOUD));
