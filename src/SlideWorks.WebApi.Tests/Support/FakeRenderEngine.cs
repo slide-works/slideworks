@@ -52,6 +52,20 @@ public sealed class FakeRenderEngine : IRenderEngine
 
     public Task<byte[]> RenderCardAsync(string deckId, CancellationToken ct) => Render(deckId);
 
+    // Fixed bytes of a PDF: the header the server checks for, and nothing the server decodes.
+    public static readonly byte[] PDF = 
+    [
+        0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x37, 0x0A,
+        0x25, 0x66, 0x61, 0x6B, 0x65, 0x0A,
+    ];
+
+    // Records "pdf:<deck>", and throws ThrowOnRender when set, as every render does.
+    public Task<byte[]> RenderPdfAsync(string deckId, CancellationToken ct)
+    {
+        _calls.Enqueue($"pdf:{deckId}");
+        return ThrowOnRender == null ? Task.FromResult(PDF.ToArray()) : Task.FromException<byte[]>(ThrowOnRender);
+    }
+
     public Task<byte[]> RenderGenericCardAsync(CancellationToken ct) => Render(GENERIC);
 
     private readonly ConcurrentDictionary<int, IReadOnlyList<SlideFinding>> _findings = new();

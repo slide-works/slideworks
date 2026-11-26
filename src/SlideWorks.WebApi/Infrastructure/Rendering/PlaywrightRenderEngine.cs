@@ -39,6 +39,10 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
 
     public Task<byte[]> RenderGenericCardAsync(CancellationToken ct) => RenderAsync(null, ct);
 
+    // TODO: the real print-page render replaces this stub.
+    public Task<byte[]> RenderPdfAsync(string deckId, CancellationToken ct)
+        => throw new RendererUnavailableException("PDF rendering is not built yet");
+
     public const int SLIDE_WIDTH = 1920;
     public const int SLIDE_HEIGHT = 1080;
 
