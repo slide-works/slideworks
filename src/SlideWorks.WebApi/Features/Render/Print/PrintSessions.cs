@@ -12,6 +12,7 @@ public class PrintSessions(AppDbContext db)
         await db.AudienceSessions.AsNoTracking()
             .Where(session => session.DeckId == deckId)
             .OrderByDescending(session => session.StartedAt)
+            .ThenByDescending(session => session.Id)
             .Select(session => (Guid?)session.Id)
             .FirstOrDefaultAsync(ct);
 }

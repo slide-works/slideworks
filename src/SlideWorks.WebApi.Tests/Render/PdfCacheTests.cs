@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SlideWorks.WebApi.Features.Images;
+using SlideWorks.WebApi.Infrastructure.Rendering;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Mcp;
 using SlideWorks.WebApi.Tests.Support;
@@ -84,7 +85,6 @@ public class PdfCacheTests : ApiTestFixture
         var first = Client.GetAsync($"/api/decks/{deck}/pdf");
         var second = Client.GetAsync($"/api/decks/{deck}/pdf");
         await WaitForAsync(() => PdfRendersOf(deck) >= 1);
-        await Task.Delay(TimeSpan.FromMilliseconds(300));
         hold.Dispose();
         var responses = await Task.WhenAll(first, second);
 
@@ -120,9 +120,10 @@ public class PdfCacheTests : ApiTestFixture
 
     private static async Task WaitForAsync(Func<bool> condition)
     {
-        for (var attempt = 0; !condition() && attempt < 1000; attempt++)
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        while (!condition() && stopwatch.Elapsed < TimeSpan.FromSeconds(20))
         {
-            await Task.Delay(20);
+            await Task.Yield();
         }
     }
 
