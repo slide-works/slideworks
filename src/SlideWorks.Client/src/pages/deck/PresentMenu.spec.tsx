@@ -208,6 +208,37 @@ test('Download PDF keeps the menu open on Escape and shows the 503 when it lands
   await expect(page.getByTestId('present-menu-pdf')).toBeFocused();
 });
 
+test('Download PDF keeps the menu open on an arrow click and shows the 503 when it lands', async ({
+  mount,
+  page,
+}) => {
+  let release: () => void = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(`**/api/decks/${owned.id}/pdf`, async (route) => {
+    await gate;
+    await route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'The PDF renderer is busy. Try again in a minute.' }),
+    });
+  });
+  await mount(<PresentMenu view={owned} />);
+  await page.getByTestId('present-menu').click();
+  await page.getByTestId('present-menu-pdf').click();
+  await expect(page.getByTestId('present-menu-pdf')).toContainText('Making the PDF…');
+
+  await page.getByTestId('present-menu').click();
+  await expect(page.getByTestId('present-menu-pdf')).toBeVisible();
+  release();
+
+  await expect(page.getByTestId('present-menu-pdf-error')).toBeVisible();
+  await expect(page.getByTestId('present-menu-pdf-error')).toHaveText(
+    'The PDF renderer is busy. Try again in a minute.',
+  );
+});
+
 test('Download PDF announces Making the PDF… in a status region', async ({ mount, page }) => {
   let release: () => void = () => {};
   const gate = new Promise<void>((resolve) => {

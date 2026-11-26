@@ -109,6 +109,7 @@ export function PresentMenu({ view }: { view: DeckPageView }) {
           aria-expanded={open}
           className="btn-primary rounded-l-none px-2"
           onClick={() => {
+            if (pdfRunningRef.current) return;
             setPdfError(null);
             setOpen((value) => !value);
           }}
