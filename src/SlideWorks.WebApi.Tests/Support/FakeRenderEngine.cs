@@ -60,10 +60,35 @@ public sealed class FakeRenderEngine : IRenderEngine
     ];
 
     // Records "pdf:<deck>", and throws ThrowOnRender when set, as every render does.
-    public Task<byte[]> RenderPdfAsync(string deckId, CancellationToken ct)
+    public async Task<byte[]> RenderPdfAsync(string deckId, CancellationToken ct)
     {
         _calls.Enqueue($"pdf:{deckId}");
-        return ThrowOnRender == null ? Task.FromResult(PDF.ToArray()) : Task.FromException<byte[]>(ThrowOnRender);
+        if (Volatile.Read(ref _pdfGate) is { } gate)
+        {
+            await gate.Task;
+        }
+        return await (ThrowOnRender == null ? Task.FromResult(PDF.ToArray()) : Task.FromException<byte[]>(ThrowOnRender));
+    }
+
+    private TaskCompletionSource? _pdfGate;
+
+    // Holds every PDF render that starts from now on, after its call is recorded, until the handle is disposed (or Reset).
+    public IDisposable HoldPdfRenders()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Volatile.Write(ref _pdfGate, gate);
+        return new PdfHold(this, gate);
+    }
+
+    private void ReleasePdfRenders(TaskCompletionSource gate)
+    {
+        Interlocked.CompareExchange(ref _pdfGate, null, gate);
+        gate.TrySetResult();
+    }
+
+    private sealed class PdfHold(FakeRenderEngine engine, TaskCompletionSource gate) : IDisposable
+    {
+        public void Dispose() => engine.ReleasePdfRenders(gate);
     }
 
     public Task<byte[]> RenderGenericCardAsync(CancellationToken ct) => Render(GENERIC);
@@ -78,6 +103,10 @@ public sealed class FakeRenderEngine : IRenderEngine
     public void Reset()
     {
         ThrowOnRender = null;
+        if (Volatile.Read(ref _pdfGate) is { } gate)
+        {
+            ReleasePdfRenders(gate);
+        }
         _findings.Clear();
         _failures.Clear();
     }
