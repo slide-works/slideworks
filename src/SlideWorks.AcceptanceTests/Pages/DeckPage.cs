@@ -76,4 +76,13 @@ public sealed class DeckPage(IPage page)
     // Selects slide {number} in the grid, so its notes and link show beside it.
     public async Task SelectSlideAsync(int number) =>
         await Thumbnail(number).GetByTestId("deck-thumb-select").ClickAsync();
+
+    // Opens the Present menu and saves the PDF; returns the download, whose suggested name is "<slug>.pdf".
+    public async Task<IDownload> DownloadPdfAsync()
+    {
+        await PresentMenu.ClickAsync();
+        return await page.RunAndWaitForDownloadAsync(
+            async () => await page.GetByTestId("present-menu-pdf").ClickAsync(),
+            new PageRunAndWaitForDownloadOptions { Timeout = 180_000 });
+    }
 }
