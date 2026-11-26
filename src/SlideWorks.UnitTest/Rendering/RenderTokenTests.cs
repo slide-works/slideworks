@@ -20,6 +20,7 @@ public class RenderTokenTests
 
     [TestCase(RenderPurpose.Preview, 600)]
     [TestCase(RenderPurpose.Card, 60)]
+    [TestCase(RenderPurpose.Print, 300)]
     public void Validate_WhenInsideAndAfterThePurposesLifetime_ShouldPassThenFail(RenderPurpose purpose, int seconds)
     {
         var token = _tokens.Issue(DECK, purpose);
@@ -28,6 +29,12 @@ public class RenderTokenTests
         _tokens.Validate(token, DECK, purpose).ShouldBeTrue();
         _clock.Advance(TimeSpan.FromMilliseconds(1));
         _tokens.Validate(token, DECK, purpose).ShouldBeFalse();
+    }
+
+    [Test]
+    public void LifetimeOf_WhenPrint_ShouldBeFiveMinutes()
+    {
+        RenderTokens.LifetimeOf(RenderPurpose.Print).ShouldBe(TimeSpan.FromMinutes(5));
     }
 
     [Test]

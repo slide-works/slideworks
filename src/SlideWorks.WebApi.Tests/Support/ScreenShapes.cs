@@ -44,6 +44,18 @@ public static class ScreenShapes
         OpaquePaths = ["slides[].slots"],
     };
 
+    // The print view (deck-print.json): the play view under "deck", and the results of the last talk.
+    public static readonly JsonShapeOptions DeckPrint = new()
+    {
+        NullablePaths =
+        [
+            "deck.author", "deck.parts[].caption", "deck.parts[].mark", "deck.slides[].part", "deck.look.template.titleArt", "deck.look.logo",
+            .. LookNullablePaths.Select(path => "deck." + path),
+            "polls[].max", "polls[].correct", "qa",
+        ],
+        OpaquePaths = ["deck.slides[].slots"],
+    };
+
     public static readonly JsonShapeOptions Looks = new() { NullablePaths = ["templates[].titleArt", "templates[].lockedPalette", "templates[].version", "templates[].owner"] };
 
     public static readonly JsonShapeOptions Card = new()
@@ -258,6 +270,7 @@ public static class ScreenShapes
     {
         "deck-play.json" or "deck-page.json" or "presenter.json" => BuiltInLookFile("", "parts[].caption", "parts[].mark"),
         "card.json" => BuiltInLookFile(),
+        "deck-print.json" => DeckPrint,
         "deck-checks.json" => DeckChecks,
         "look-change.json" => BuiltInLookFile("response."),
         "guest.json" => GuestFile,

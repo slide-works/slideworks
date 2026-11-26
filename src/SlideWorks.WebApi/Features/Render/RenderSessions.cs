@@ -18,7 +18,7 @@ public class RenderSessions
     // no other route.
     public static readonly string[] COOKIE_PATHS = ["/api/images", "/api/templates"];
 
-    private static readonly RenderPurpose[] PURPOSES = [RenderPurpose.Preview, RenderPurpose.Card];
+    private static readonly RenderPurpose[] PURPOSES = [RenderPurpose.Preview, RenderPurpose.Card, RenderPurpose.Print];
 
     private readonly IRenderTokens _tokens;
     private readonly TimeProvider _clock;

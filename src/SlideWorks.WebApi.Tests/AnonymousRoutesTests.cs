@@ -126,6 +126,19 @@ public class AnonymousRoutesTests : ApiTestFixture
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
+    [Test]
+    public async Task GetRenderPrint_WhenAnonymousWithPrintToken_ShouldReturn200()
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var (deck, _) = await SeedPrivateImageAsync();
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/render/{deck}/print");
+        request.Headers.Add(RenderSessions.HEADER, Factory.Services.GetRequiredService<IRenderTokens>().Issue(deck, RenderPurpose.Print));
+
+        using var response = await anonymous.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
     // A private deck with one image, made the way an agent makes them.
     private async Task<(string Deck, string Image)> SeedPrivateImageAsync()
     {

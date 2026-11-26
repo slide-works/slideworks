@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SlideWorks.WebApi.Features.Decks.Views;
 using SlideWorks.WebApi.Features.Look.Views;
+using SlideWorks.WebApi.Features.Render.Print;
 using SlideWorks.WebApi.Infrastructure;
 
 namespace SlideWorks.WebApi.Features.Render;
@@ -10,7 +11,7 @@ namespace SlideWorks.WebApi.Features.Render;
 // The token is never read from a query string or a cookie. A missing, invalid or wrong token is 404 "Deck not found".
 [Route("api/render")]
 [AllowAnonymous]
-public class RenderController(RenderViews views) : ApiControllerBase
+public class RenderController(RenderViews views, PrintViews prints) : ApiControllerBase
 {
     public const string TOKEN_HEADER = "X-Render-Token";
 
@@ -25,4 +26,10 @@ public class RenderController(RenderViews views) : ApiControllerBase
     [ProducesResponseType<CardView>(StatusCodes.Status200OK)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
     public Task<CardView> Card(string id, [FromHeader(Name = TOKEN_HEADER)] string? token) => views.CardAsync(id, token);
+
+    // print.json, for the print page (a Print token): the deck and the last talk's results.
+    [HttpGet("{id}/print")]
+    [ProducesResponseType<DeckPrintView>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
+    public Task<DeckPrintView> Print(string id, [FromHeader(Name = TOKEN_HEADER)] string? token, CancellationToken ct) => prints.PrintAsync(id, token, ct);
 }

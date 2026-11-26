@@ -24,6 +24,19 @@ public class RenderSessionTests : ApiTestFixture
         _deck = await DeckSeed.CreateDeckAsync(agent);
     }
 
+    [Test]
+    public async Task PostSession_WhenTokenIsForPrint_ShouldSetTheImageCookie()
+    {
+        var token = Issue(_deck, RenderPurpose.Print);
+
+        using var response = await PostSessionAsync(_deck, token);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        var cookies = SetCookies(response);
+        cookies.Select(c => c.Path.ToString()).ShouldBe(["/api/images", "/api/templates"], ignoreOrder: true);
+        cookies.ShouldAllBe(cookie => cookie.Value.ToString() == token);
+    }
+
     [TestCase(RenderPurpose.Preview)]
     [TestCase(RenderPurpose.Card)]
     public async Task Post_WhenTokenValid_ShouldSetTheRenderCookieOnBothPaths(RenderPurpose purpose)

@@ -1,0 +1,319 @@
+{
+  "deck": {
+    "id": "7Kq2xYp9LmQa",
+    "slug": "ship-smaller",
+    "title": "Ship smaller",
+    "author": "Sam Rivera",
+    "parts": [
+      {
+        "name": "The cost",
+        "short": "The cost",
+        "caption": null,
+        "mark": null
+      },
+      {
+        "name": "Slice it",
+        "short": "Slice it",
+        "caption": null,
+        "mark": null
+      },
+      {
+        "name": "Ship it",
+        "short": "Ship it",
+        "caption": null,
+        "mark": null
+      },
+      {
+        "name": "Make it stick",
+        "short": "Make it stick",
+        "caption": null,
+        "mark": null
+      }
+    ],
+    "look": {
+      "template": {
+        "name": "workshop",
+        "label": "Workshop",
+        "layouts": [
+          "title",
+          "divider",
+          "bullets",
+          "two-column",
+          "practice",
+          "compare",
+          "quote",
+          "image",
+          "table",
+          "numbered-cards",
+          "rules",
+          "cards",
+          "close"
+        ],
+        "chrome": {
+          "tracker": true,
+          "footer": "author",
+          "progress": true,
+          "deepDivesOnDivider": true,
+          "draft": true
+        },
+        "type": {
+          "head": "Plus Jakarta Sans",
+          "body": "Inter",
+          "headWeight": 800,
+          "headTracking": "-0.025em"
+        },
+        "shape": {
+          "radius": {
+            "sm": 10,
+            "md": 12,
+            "lg": 16,
+            "xl": 18
+          },
+          "shadow": "0 1px 2px rgb(15 23 42 / 0.06), 0 14px 36px rgb(15 23 42 / 0.09)"
+        },
+        "ornament": "dots",
+        "titleArt": null
+      },
+      "palette": {
+        "name": "cobalt",
+        "label": "Cobalt",
+        "tokens": {
+          "paper": "#f7f8fa",
+          "card": "#ffffff",
+          "chip": "#eef1f6",
+          "grid": "#e3e6ec",
+          "ink": "#111827",
+          "muted": "#5b6474",
+          "accent": "#2f5bea",
+          "accent-2": "#2f5bea",
+          "accent-dark": "#1e3a8a",
+          "accent-light": "#e4eafd",
+          "accent-glow": "#a5b8ff",
+          "accent-past": "#b9c8f8",
+          "on-accent": "#ffffff",
+          "good": "#16a34a",
+          "good-soft": "#dcfce7",
+          "good-ink": "#166534",
+          "bad": "#dc2626",
+          "bad-soft": "#fdecec",
+          "bad-ink": "#991b1b",
+          "warn": "#ea580c",
+          "warn-soft": "#ffedd5",
+          "warn-ink": "#9a3412",
+          "dd": "#c2410c",
+          "on-dd": "#ffffff",
+          "dd-on-night": "#fdba74",
+          "night": "#0b1020",
+          "night-ink": "#ffffff",
+          "night-2": "#cbd5e1",
+          "night-muted": "#8c97ad",
+          "night-line": "#334155",
+          "night-glow": "#2f5bea",
+          "number-from": "#c3d0ff",
+          "number-to": "#5b7cff",
+          "stamp": "#fcd34d",
+          "panel-accent": "#2f5bea",
+          "panel-accent-ink": "#ffffff",
+          "panel-positive": "#15803d",
+          "panel-positive-ink": "#ffffff",
+          "panel-negative": "#b91c1c",
+          "panel-negative-ink": "#ffffff",
+          "panel-inverse": "#0b1020",
+          "panel-inverse-ink": "#ffffff"
+        }
+      },
+      "logo": {
+        "url": "/api/images/img_logo0001"
+      },
+      "fonts": [],
+      "logos": {
+        "light": null,
+        "dark": null,
+        "showOnDark": false
+      },
+      "art": {
+        "kind": "none",
+        "generator": null,
+        "url": null
+      },
+      "ornament": {
+        "colours": []
+      },
+      "topBar": "none",
+      "templateRef": "workshop",
+      "templateVersion": null,
+      "latestVersion": null,
+      "extras": [],
+      "customLayouts": [],
+      "draft": true,
+      "footerDateLabel": "16 Nov 2026",
+      "joinBar": false,
+      "templateMissing": false
+    },
+    "join": {
+      "code": "482913",
+      "codeLabel": "482 913",
+      "joinUrl": "https://slideworks.live/482913",
+      "hostLabel": "slideworks.live",
+      "live": false
+    },
+    "isOwner": true,
+    "slides": [
+      {
+        "number": 1,
+        "layout": "title",
+        "part": 1,
+        "deepDive": false,
+        "surface": "dark",
+        "steps": 0,
+        "slots": {
+          "kicker": "Team offsite · 2026",
+          "title": "Ship smaller",
+          "subtitle": "Why small batches beat big plans, and how to start on Monday",
+          "tagline": "One change a day beats one launch a quarter.",
+          "author": "Sam Rivera",
+          "affiliation": "Product Engineering",
+          "stamp": "Draft"
+        }
+      },
+      {
+        "number": 2,
+        "layout": "poll",
+        "part": 2,
+        "deepDive": false,
+        "surface": "light",
+        "steps": 0,
+        "slots": {
+          "question": "How often do you ship?",
+          "options": [
+            "Weekly",
+            "Daily"
+          ]
+        }
+      },
+      {
+        "number": 3,
+        "layout": "word-cloud",
+        "part": 3,
+        "deepDive": false,
+        "surface": "light",
+        "steps": 0,
+        "slots": {
+          "question": "One word for our releases?"
+        }
+      },
+      {
+        "number": 4,
+        "layout": "open-text",
+        "part": 3,
+        "deepDive": false,
+        "surface": "light",
+        "steps": 0,
+        "slots": {
+          "question": "What would help most?"
+        }
+      },
+      {
+        "number": 5,
+        "layout": "qa",
+        "part": 4,
+        "deepDive": false,
+        "surface": "light",
+        "steps": 0,
+        "slots": {
+          "title": "Questions"
+        }
+      }
+    ]
+  },
+  "polls": [
+    {
+      "slide": 2,
+      "phase": "closed",
+      "number": 2,
+      "answered": 41,
+      "counts": [
+        12,
+        29
+      ],
+      "answerShown": true,
+      "correct": 2,
+      "pick": "upTo",
+      "max": 2,
+      "answers": "choice",
+      "replies": [
+        "Daily, when CI is green"
+      ],
+      "words": [
+        {
+          "text": "daily",
+          "count": 9
+        }
+      ]
+    }
+  ],
+  "wordClouds": [
+    {
+      "type": "wordCloud",
+      "slide": 3,
+      "phase": "closed",
+      "round": "6e2f9a14-3c7b-4d58-a1e0-9b4c7d2f5a63",
+      "number": 1,
+      "revision": 7,
+      "revealed": true,
+      "guests": 23,
+      "words": [
+        {
+          "text": "Focused",
+          "count": 9,
+          "hidden": false
+        },
+        {
+          "text": "Calm",
+          "count": 4,
+          "hidden": false
+        }
+      ]
+    }
+  ],
+  "openTexts": [
+    {
+      "type": "openText",
+      "slide": 4,
+      "phase": "closed",
+      "round": "a3d81c5e-7f2b-4e96-b0c4-1d8e6f9a2b57",
+      "number": 1,
+      "revision": 4,
+      "revealed": true,
+      "guests": 12,
+      "answers": [
+        {
+          "number": 1,
+          "text": "More demos",
+          "hidden": false
+        },
+        {
+          "number": 3,
+          "text": "A shared definition of done",
+          "hidden": false
+        }
+      ]
+    }
+  ],
+  "qa": {
+    "phase": "closed",
+    "total": 6,
+    "top": [
+      {
+        "number": 4,
+        "text": "How do I self-host?",
+        "votes": 11
+      },
+      {
+        "number": 2,
+        "text": "Can I export to PDF?",
+        "votes": 8
+      }
+    ]
+  }
+}
