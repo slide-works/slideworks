@@ -82,6 +82,38 @@ public class PrintPollResultsTests : PollTestFixture
     }
 
     [Test]
+    public async Task ReadAsync_WhenTheOnlyRoundsAreADraftAndADiscardedDraft_ShouldLeaveTheSlideOut()
+    {
+        var poll = await SeedPollAsync();
+        var discarded = await Rows.RoundAsync(poll.SlideId, poll.SessionId, PollPhase.Draft);
+        await Rows.CloseAsync(discarded.Id, joinedAtClose: 0);
+        var draft = await Rows.RoundAsync(poll.SlideId, poll.SessionId, PollPhase.Draft, number: 2);
+        await Rows.AnswerAsync(draft.Id, "guest-a", 0);
+
+        var results = await ReadAsync(poll.DeckId, poll.SessionId);
+
+        results.ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task ReadAsync_WhenTheRoundIsOpenOnAnUpToPoll_ShouldCarryLiveCountsAndTheMax()
+    {
+        var poll = await SeedPollAsync();
+        await Rows.SettingsAsync(poll.SlideId, new PollSettings(PollPick.UpTo, 2, PollResults.Live, null, PollOpens.OnArrival, PollPrivacy.Private));
+        var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await Rows.AnswerAsync(round.Id, "guest-a", 0, 1);
+        await Rows.AnswerAsync(round.Id, "guest-b", 2);
+
+        var result = (await ReadAsync(poll.DeckId, poll.SessionId)).ShouldHaveSingleItem();
+
+        result.Phase.ShouldBe(PollPhase.Open);
+        result.Answered.ShouldBe(2);
+        result.Counts.ShouldBe([1, 1, 1]);
+        result.Pick.ShouldBe(PollPick.UpTo);
+        result.Max.ShouldBe(2);
+    }
+
+    [Test]
     public async Task ReadAsync_WhenTheAnswerWasNotShown_ShouldHaveNoCorrectOption()
     {
         var poll = await SeedPollAsync();

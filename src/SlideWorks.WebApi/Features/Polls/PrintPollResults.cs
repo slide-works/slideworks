@@ -34,10 +34,12 @@ public class PrintPollResults(AppDbContext db, IPollTallies tallies) : IPrintPol
         foreach (var slide in slides)
         {
             var newest = opened.Where(r => r.SlideId == slide.Id).MaxBy(r => r.Number);
-            if (newest == null || !settings.TryGetValue(slide.Id, out var poll))
+            if (newest == null)
             {
                 continue;
             }
+            // As PollReader.SlideAsync: a poll slide always has its settings row.
+            var poll = settings.GetValueOrDefault(slide.Id) ?? throw new InvalidOperationException($"Poll slide {slide.Id} has no settings row.");
             if (await PrintAsync(slide.Position + 1, newest, poll, slide.SlotsJson, ct) is { } result)
             {
                 printed.Add(result);
