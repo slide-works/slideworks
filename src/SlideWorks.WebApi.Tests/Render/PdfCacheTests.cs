@@ -1,7 +1,9 @@
 using System.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SlideWorks.WebApi.Features.Qa;
 using SlideWorks.WebApi.Features.Images;
+using SlideWorks.WebApi.Features.Render.Print;
 using SlideWorks.WebApi.Infrastructure.Rendering;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Mcp;
@@ -16,6 +18,19 @@ namespace SlideWorks.WebApi.Tests.Render;
 [CancelAfter(60000)]
 public class PdfCacheTests : ApiTestFixture
 {
+    private readonly QaReadCounter _qaReads = new();
+
+    // Counts every print view's Q&A read, to know when both overlapping downloads have computed their key.
+    protected override Action<IServiceCollection>? ConfigureTestServices => services =>
+    {
+        foreach (var registered in services.Where(service => service.ServiceType == typeof(IPrintQaResults)).ToList())
+        {
+            services.Remove(registered);
+        }
+        services.AddScoped<IPrintQaResults>(provider =>
+            new CountingPrintQaResults(ActivatorUtilities.CreateInstance<PrintQaResults>(provider), _qaReads));
+    };
+
     private FakeRenderEngine Engine => Factory.Services.GetRequiredService<FakeRenderEngine>();
 
     [TearDown]
@@ -79,12 +94,17 @@ public class PdfCacheTests : ApiTestFixture
     [Test]
     public async Task GetPdf_WhenTwoDownloadsOverlap_ShouldShareOneRender()
     {
+        // The session is live so each download reads the Q&A results. Both reads done means both downloads have their
+        // key; a small race remains, because the second may not have reached the in-flight lookup when the gate opens.
         var deck = await CreateDeckWithSlideAsync("Overlap");
+        (await Client.PostAsync($"/api/decks/{deck}/live", null)).EnsureSuccessStatusCode();
         var hold = Engine.HoldPdfRenders();
+        var bothKeysRead = _qaReads.WhenReads(2);
 
         var first = Client.GetAsync($"/api/decks/{deck}/pdf");
         var second = Client.GetAsync($"/api/decks/{deck}/pdf");
-        await WaitForAsync(() => PdfRendersOf(deck) >= 1);
+        await Engine.PdfRenderHeld;
+        await bothKeysRead;
         hold.Dispose();
         var responses = await Task.WhenAll(first, second);
 
@@ -117,15 +137,6 @@ public class PdfCacheTests : ApiTestFixture
 
     private string[] PdfFiles(string deck) =>
         Directory.Exists(RendersFolder(deck)) ? Directory.GetFiles(RendersFolder(deck), "pdf-*.pdf") : [];
-
-    private static async Task WaitForAsync(Func<bool> condition)
-    {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        while (!condition() && stopwatch.Elapsed < TimeSpan.FromSeconds(20))
-        {
-            await Task.Yield();
-        }
-    }
 
     private async Task AddSlideAsync(string deck, string quote)
     {

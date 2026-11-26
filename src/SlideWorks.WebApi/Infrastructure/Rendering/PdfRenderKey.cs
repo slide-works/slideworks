@@ -9,6 +9,8 @@ namespace SlideWorks.WebApi.Infrastructure.Rendering;
 public static class PdfRenderKey
 {
     public const string NO_SESSION = "none";
+    public const string FILE_PREFIX = "pdf-";
+    public const string FILE_EXTENSION = ".pdf";
 
     // 16 hex characters (64 bits), as RenderKey's look hash.
     private const int VIEW_HASH_LENGTH = 16;
@@ -20,6 +22,10 @@ public static class PdfRenderKey
             revision.ToString(CultureInfo.InvariantCulture),
             sessionId?.ToString("N") ?? NO_SESSION,
             ViewHash(viewJson));
+
+    // The file the PDF of that key is kept in: pdf-<revision>-<session>-<viewHash>.pdf, built from the key's parts.
+    public static string FileName(long revision, Guid? sessionId, string viewJson) =>
+        $"{FILE_PREFIX}{revision.ToString(CultureInfo.InvariantCulture)}-{sessionId?.ToString("N") ?? NO_SESSION}-{ViewHash(viewJson)}{FILE_EXTENSION}";
 
     private static string ViewHash(string viewJson) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(viewJson)))[..VIEW_HASH_LENGTH];
