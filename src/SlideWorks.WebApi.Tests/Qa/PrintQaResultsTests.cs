@@ -111,8 +111,46 @@ public class PrintQaResultsTests : QaTestFixture
     public async Task ReadAsync_WhenTheSessionHadNoQaRound_ShouldBeNull()
     {
         var qa = await SeedQaAsync();
+        await QaRowSeed.QuestionAsync(qa.RoundId, "Asked in the first talk");
 
         (await ReadAsync(qa.DeckId, Guid.NewGuid())).ShouldBeNull();
+        (await ReadAsync(qa.DeckId, qa.SessionId)).ShouldNotBeNull();
+    }
+
+    [Test]
+    public async Task ReadAsync_WhenTheNewerSessionHasNoQuestions_ShouldNotCarryTheOlderOnes()
+    {
+        var qa = await SeedQaAsync();
+        await QaRowSeed.QuestionAsync(qa.RoundId, "Asked in the first talk");
+        (await Client.DeleteAsync($"/api/decks/{qa.DeckId}/live")).EnsureSuccessStatusCode();
+        Clock.Advance(TimeSpan.FromMinutes(30));
+        var second = await Client.PostAsync($"/api/decks/{qa.DeckId}/live", null);
+        second.EnsureSuccessStatusCode();
+        var newer = Guid.Parse((await second.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sessionId").GetString()!);
+
+        var older = await ReadAsync(qa.DeckId, qa.SessionId);
+        var newest = await ReadAsync(qa.DeckId, newer);
+
+        older.ShouldNotBeNull();
+        older.Total.ShouldBe(1);
+        newest.ShouldNotBeNull();
+        newest.Total.ShouldBe(0);
+        newest.Top.ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task ReadAsync_WhenAGuestChangedTheirVote_ShouldCountTheLatestPick()
+    {
+        var qa = await SeedQaAsync();
+        await QaRowSeed.QuestionAsync(qa.RoundId, "First question");
+        await QaRowSeed.QuestionAsync(qa.RoundId, "Second question");
+        await QaRowSeed.VoteAsync(qa.RoundId, "guest-a", 1);
+        await QaRowSeed.VoteAsync(qa.RoundId, "guest-a", 2);
+
+        var result = await ReadAsync(qa.DeckId, qa.SessionId);
+
+        result.ShouldNotBeNull();
+        result.Top.Select(q => (q.Number, q.Votes)).ToList().ShouldBe([(2, 1), (1, 0)]);
     }
 
     [Test]
