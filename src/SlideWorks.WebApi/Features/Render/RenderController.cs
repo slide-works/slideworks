@@ -27,7 +27,7 @@ public class RenderController(RenderViews views, PrintViews prints) : ApiControl
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
     public Task<CardView> Card(string id, [FromHeader(Name = TOKEN_HEADER)] string? token) => views.CardAsync(id, token);
 
-    // print.json, for the print page (a Print token): the deck and the last talk's results.
+    // deck-print.json, for the print page (a Print token): the deck and the last talk's results.
     [HttpGet("{id}/print")]
     [ProducesResponseType<DeckPrintView>(StatusCodes.Status200OK)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]

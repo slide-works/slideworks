@@ -60,6 +60,19 @@ public class PrintViewTests : ApiTestFixture
     }
 
     [Test]
+    public async Task GetPrint_WhenThePrintTokenIsInTheQueryStringOnly_ShouldBe404()
+    {
+        var deck = await CreateDeckAsync("Query token");
+        var token = Issue(deck, RenderPurpose.Print);
+        using var browser = Browser(null);
+
+        var response = await browser.GetAsync($"/api/render/{deck}/print?token={Uri.EscapeDataString(token)}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await response.Content.ReadAsStringAsync()).ShouldContain("Deck not found");
+    }
+
+    [Test]
     public async Task NewestAsync_WhenTheDeckRanTwoSessions_ShouldPickTheLaterOne()
     {
         var deck = await CreateDeckAsync("Two talks");
