@@ -36,15 +36,15 @@ public class DeckPdfs(IDeckAccess access, ICurrentActor actor, DeckReader reader
         }
         catch (RendererUnavailableException)
         {
-            return new PdfUnavailableResult(UNAVAILABLE);
+            return new CardUnavailableResult(UNAVAILABLE);
         }
         catch (TimeoutException)
         {
-            return new PdfUnavailableResult(TIMED_OUT);
+            return new CardUnavailableResult(TIMED_OUT);
         }
         catch (RenderingFailedException e)
         {
-            return new PdfUnavailableResult(FAILED + e.Reason);
+            return new CardUnavailableResult(FAILED + e.Reason);
         }
     }
 }

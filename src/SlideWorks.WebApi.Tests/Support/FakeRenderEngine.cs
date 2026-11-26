@@ -6,7 +6,8 @@ using SlideWorks.WebApi.Infrastructure.Rendering;
 namespace SlideWorks.WebApi.Tests.Support;
 
 // The test double for IRenderEngine (L9), swapped in on every test host by TestAppFactory. It returns a fixed 1200x630
-// PNG, records every call (a deck id, or GENERIC for the generic card), and throws on demand.
+// PNG (or the PDF bytes), records every call (a deck id, "pdf:<deck>" for a PDF, or GENERIC for the generic card), can
+// hold PDF renders at a gate, and throws on demand.
 public sealed class FakeRenderEngine : IRenderEngine
 {
     public const string GENERIC = "generic";
@@ -46,14 +47,14 @@ public sealed class FakeRenderEngine : IRenderEngine
         return ThrowOnMeasure == null ? Task.FromResult(MeasuredRaw) : Task.FromException<double>(ThrowOnMeasure);
     }
 
-    public void ThrowUnavailable() => ThrowOnRender = new RendererUnavailableException("Card rendering isn't available");
+    public void ThrowUnavailable() => ThrowOnRender = new RendererUnavailableException("Rendering isn't available");
 
     public void ThrowTimeout() => ThrowOnRender = new TimeoutException("Rendering timed out");
 
     public Task<byte[]> RenderCardAsync(string deckId, CancellationToken ct) => Render(deckId);
 
     // Fixed bytes of a PDF: the header the server checks for, and nothing the server decodes.
-    public static readonly byte[] PDF = 
+    public static readonly byte[] PDF =
     [
         0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x37, 0x0A,
         0x25, 0x66, 0x61, 0x6B, 0x65, 0x0A,
@@ -65,17 +66,23 @@ public sealed class FakeRenderEngine : IRenderEngine
         _calls.Enqueue($"pdf:{deckId}");
         if (Volatile.Read(ref _pdfGate) is { } gate)
         {
+            _pdfHeld?.TrySetResult();
             await gate.Task;
         }
         return await (ThrowOnRender == null ? Task.FromResult(PDF.ToArray()) : Task.FromException<byte[]>(ThrowOnRender));
     }
 
     private TaskCompletionSource? _pdfGate;
+    private TaskCompletionSource? _pdfHeld;
+
+    // Completed once a PDF render has reached the gate of the latest HoldPdfRenders (call that first).
+    public Task PdfRenderHeld => Volatile.Read(ref _pdfHeld)?.Task ?? Task.FromException(new InvalidOperationException("Call HoldPdfRenders first."));
 
     // Holds every PDF render that starts from now on, after its call is recorded, until the handle is disposed (or Reset).
     public IDisposable HoldPdfRenders()
     {
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Volatile.Write(ref _pdfHeld, new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
         Volatile.Write(ref _pdfGate, gate);
         return new PdfHold(this, gate);
     }

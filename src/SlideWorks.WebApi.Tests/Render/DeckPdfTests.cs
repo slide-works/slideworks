@@ -107,6 +107,24 @@ public class DeckPdfTests : ApiTestFixture
         response.Headers.CacheControl!.NoStore.ShouldBeTrue();
     }
 
+    [TestCase("unavailable")]
+    [TestCase("timeout")]
+    public async Task GetPdf_WhenTheEngineErrorCarriesAToken_ShouldBe503WithoutTheTokenInTheBody(string failure)
+    {
+        const string TOKEN = "eyJhbGciOiJIUzI1NiJ9.render-token-value";
+        var deck = await CreateDeckWithSlideAsync("Leaky error");
+        Engine.ThrowOnRender = failure == "timeout"
+            ? new TimeoutException($"Timed out opening /print/{deck}#token={TOKEN}")
+            : new RendererUnavailableException($"Chromium failed at /print/{deck}#token={TOKEN}");
+
+        var response = await Client.GetAsync($"/api/decks/{deck}/pdf");
+        var body = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        body.ShouldNotContain(TOKEN);
+        body.ShouldNotContain("token");
+    }
+
     [Test]
     public async Task GetPdf_WhenAnonymous_ShouldBeRefused()
     {
