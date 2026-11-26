@@ -1,3 +1,5 @@
+using SlideWorks.WebApi.Features.Render;
+
 namespace SlideWorks.WebApi.Infrastructure.Identity;
 
 // Refuses a write under /api that another site could have made the browser send (K1). The session cookie is SameSite=Lax,
@@ -15,10 +17,17 @@ namespace SlideWorks.WebApi.Infrastructure.Identity;
 // SLIDEWORKS_PUBLIC_URL when it is configured, so behind a proxy (or the Vite dev server) the configured URL is what a
 // browser's Origin is compared with, and a forged Host header changes nothing. With no public URL (Development only),
 // it is the address the request was made to.
+//
+// One write passes whatever its Origin: a write under /api/render that carries the X-Render-Token header. The server's
+// headless renderer (check_deck) opens the render page at its own address (SLIDEWORKS_RENDER_URL, or Kestrel's loopback),
+// which is not the public URL, so the page's POST /api/render/{id}/session carries an Origin the guard would call foreign.
+// That request rides on no cookie: the header is its only credential, another site's page can't add a custom header
+// without a CORS preflight SlideWorks never grants, and the route accepts nothing but a valid token for its deck.
 public class CrossSiteWriteGuard(RequestDelegate next)
 {
     private static readonly PathString API_PREFIX = new("/api");
     private static readonly PathString HUBS_PREFIX = new("/hubs");
+    private static readonly PathString RENDER_PREFIX = new("/api/render");
 
     // AG0003 is about helpers taking the whole HttpContext; a middleware's InvokeAsync has to, it is the shape ASP.NET
     // calls.
@@ -28,7 +37,7 @@ public class CrossSiteWriteGuard(RequestDelegate next)
     {
         var request = context.Request;
         var refused = IsGuardedWrite(request)
-            ? !IsSameSite(request, context.User.Identity?.IsAuthenticated == true)
+            ? !IsSameSite(request, context.User.Identity?.IsAuthenticated == true) && !IsRenderTokenWrite(request)
             : request.Path.StartsWithSegments(HUBS_PREFIX) && HasForeignOrigin(request);
         if (refused)
         {
@@ -46,6 +55,9 @@ public class CrossSiteWriteGuard(RequestDelegate next)
     // routes today.
     private static bool IsSafe(string method)
         => HttpMethods.IsGet(method) || HttpMethods.IsHead(method) || HttpMethods.IsOptions(method) || HttpMethods.IsTrace(method);
+
+    private static bool IsRenderTokenWrite(HttpRequest request)
+        => request.Path.StartsWithSegments(RENDER_PREFIX) && request.Headers[RenderSessions.HEADER].ToString().Length > 0;
 
     private static bool IsSameSite(HttpRequest request, bool signedIn)
     {

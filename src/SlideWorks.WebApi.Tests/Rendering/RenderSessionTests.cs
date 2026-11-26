@@ -71,16 +71,33 @@ public class RenderSessionTests : ApiTestFixture
         SetCookies(response).ShouldBeEmpty();
     }
 
+    // The server's own headless renderer (check_deck) opens the render page at its loopback address, not the public URL, so
+    // this POST arrives with an Origin that isn't SlideWorks' public one. The token header is its only credential, and the
+    // cross-site guard must let it through, or every measured slide is a renderFailed "Cross-site request refused".
+    [Test]
+    public async Task Post_WhenOriginIsTheRenderersLoopbackAddress_ShouldSetTheRenderCookie()
+    {
+        using var response = await PostSessionAsync(_deck, Issue(_deck, RenderPurpose.Preview), origin: "http://127.0.0.1:8080");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        SetCookies(response).ShouldNotBeEmpty();
+    }
+
     private string Issue(string deck, RenderPurpose purpose) =>
         Factory.Services.GetRequiredService<IRenderTokens>().Issue(deck, purpose);
 
-    private async Task<HttpResponseMessage> PostSessionAsync(string deck, string? token)
+    private async Task<HttpResponseMessage> PostSessionAsync(string deck, string? token, string? origin = null)
     {
         using var anonymous = ClientFor(TestUser.Anonymous);
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/render/{deck}/session");
         if (token != null)
         {
             request.Headers.Add(RenderSessions.HEADER, token);
+        }
+        if (origin != null)
+        {
+            request.Headers.Remove("Origin");
+            request.Headers.Add("Origin", origin);
         }
         return await anonymous.SendAsync(request);
     }
