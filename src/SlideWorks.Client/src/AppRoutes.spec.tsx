@@ -2,7 +2,13 @@ import { test, expect } from '@playwright/experimental-ct-react';
 import { AppRoutes } from './AppRoutes';
 import { GoTo } from './test-support/GoTo';
 import { LocationProbe } from './test-support/LocationProbe';
-import { adminUsers, card as cardView, me, sampleDeck } from './test-support/fixtures/screens';
+import {
+  adminUsers,
+  card as cardView,
+  deckPrint,
+  me,
+  sampleDeck,
+} from './test-support/fixtures/screens';
 import { stubApi } from './test-support/stubApi';
 import { stubTemplatesApi } from './test-support/stubTemplatesApi';
 import { TEMPLATES_TEST_IDS } from './templates/testIds';
@@ -109,6 +115,25 @@ test('render route renders without sign-in', async ({ mount, page }) => {
   await expect(slide).toHaveAttribute('data-slide', '3');
   await expect(slide).not.toHaveAttribute('data-error');
   await expect(page.getByTestId('location')).toHaveText('/render/7Kq2xYp9LmQa/3#token=abc.def');
+});
+
+test('print route renders without sign-in', async ({ mount, page }) => {
+  await page.route(`**/api/images/img_logo0001`, (route) =>
+    route.fulfill({ path: 'src/test-support/fixtures/sample-image.png', contentType: 'image/png' }),
+  );
+  await stubApi(page, {
+    '/api/me': { status: 401, json: { error: 'Not signed in' } },
+    [`/api/render/${deckPrint.deck.id}/session`]: { json: {} },
+    [`/api/render/${deckPrint.deck.id}/print`]: { json: deckPrint },
+  });
+  await mount(<AppRoutes />, {
+    hooksConfig: { route: `/print/${deckPrint.deck.id}#token=abc.def` },
+  });
+  const root = page.getByTestId('print-deck');
+  await expect(root).toBeVisible();
+  await expect(root).toHaveAttribute('data-deck-id', deckPrint.deck.id);
+  await expect(root).not.toHaveAttribute('data-error', /.*/);
+  await expect(page.getByTestId('print-slide')).toHaveCount(deckPrint.deck.slides.length);
 });
 
 test('render route without a token in the fragment reports it', async ({ mount, page }) => {

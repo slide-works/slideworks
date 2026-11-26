@@ -60,6 +60,7 @@ import {
   me,
   sampleDeck,
   sharing,
+  deckPrint,
 } from './screens';
 
 // The run-time half of the fixture check: `satisfies` in screens.ts checks the
@@ -570,6 +571,27 @@ describe('screen JSON examples', () => {
       expect(sorted(slide)).toEqual(DECK_PLAY_SLIDE);
       expectSlots(slide.layout, slide.slots);
     }
+  });
+
+  it('deck-print.json matches DeckPrintView: the play view and a non-empty example at every array path', () => {
+    expect(sorted(deckPrint)).toEqual(['deck', 'openTexts', 'polls', 'qa', 'wordClouds']);
+    expect(sorted(deckPrint.deck)).toEqual(DECK_PLAY);
+    expect(deckPrint.deck.id).toMatch(DECK_ID);
+    expect(deckPrint.deck.slides.map((slide) => slide.layout)).toEqual([
+      'title',
+      'poll',
+      'word-cloud',
+      'open-text',
+      'qa',
+    ]);
+    for (const slide of deckPrint.deck.slides) expectSlots(slide.layout, slide.slots);
+    expect(deckPrint.polls.length).toBeGreaterThan(0);
+    expect(deckPrint.wordClouds.length).toBeGreaterThan(0);
+    expect(deckPrint.openTexts.length).toBeGreaterThan(0);
+    expect(deckPrint.qa?.top.length).toBeGreaterThan(0);
+    expect(deckPrint.polls.map((poll) => poll.slide)).toEqual([2]);
+    expect(deckPrint.wordClouds.map((cloud) => cloud.slide)).toEqual([3]);
+    expect(deckPrint.openTexts.map((text) => text.slide)).toEqual([4]);
   });
 
   it('sample-deck.json matches DeckPlayView, with a look and a deep dive', () => {

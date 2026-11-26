@@ -12,6 +12,7 @@ import { PlayerPage } from './pages/PlayerPage';
 import { PresenterPage } from './pages/PresenterPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RemotePickPage } from './pages/RemotePickPage';
+import { PrintPage } from './pages/PrintPage';
 import { RenderPage } from './pages/RenderPage';
 import { SignInPage } from './pages/SignInPage';
 import { SpeakerPage } from './pages/SpeakerPage';
@@ -39,6 +40,7 @@ const routes: RouteObject[] = [
   { path: '/j/:code', element: <GuestRoute /> },
   { path: '/:code', element: <GuestRoute /> },
   { path: '/render/:id/:n', element: <RenderPage /> },
+  { path: '/print/:id', element: <PrintPage /> },
   { path: '/card/generic', element: <CardPage /> },
   { path: '/card/:id', element: <CardPage /> },
   // A template's page, where its share link leads: open without a sign-in, as the player is.
