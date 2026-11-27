@@ -113,6 +113,13 @@ export function Player({
     };
   }, [control, navigation, position, stepCounts, deepDives]);
   const { next, previous, first, last } = moves;
+  // B or . in the owner's live player blacks the room out and brings it back, as it does in the presenter window. It
+  // keeps the position the presentation is at, so it never moves the room.
+  const black = useMemo(() => {
+    if (audience || !control?.live || control.frozen) return undefined;
+    const { send, latest, skipDeepDives } = control;
+    return () => send({ ...(latest?.() ?? position), black: !control.black, skipDeepDives });
+  }, [audience, control, position]);
   const driven = audience?.driven ?? false;
 
   const fullscreen = useSyncExternalStore(subscribeFullscreen, isFullscreen);
@@ -126,8 +133,8 @@ export function Player({
   }, []);
 
   const keyActions = useMemo(
-    () => ({ next, previous, first, last, fullscreen: toggleFullscreen }),
-    [next, previous, first, last, toggleFullscreen],
+    () => ({ next, previous, first, last, fullscreen: toggleFullscreen, black }),
+    [next, previous, first, last, toggleFullscreen, black],
   );
   usePlayerKeys(keyActions);
 
@@ -139,26 +146,18 @@ export function Player({
       aria-label={deck.title}
       className="relative flex h-dvh w-full flex-col overflow-hidden bg-[#05070d]"
     >
-      {audience ? (
-        <div className="relative flex min-h-0 flex-1 flex-col">
-          <PlayerStage
-            deck={deck}
-            slideDeck={slideDeck}
-            position={position}
-            onNext={driven ? noop : next}
-            onPrevious={driven ? noop : previous}
-          />
-          {audience.black && <Blackout />}
-        </div>
-      ) : (
+      {/* One relative box for the stage and its cover, so the black screen covers the slide and never the control bar. */}
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <PlayerStage
           deck={deck}
           slideDeck={slideDeck}
           position={position}
-          onNext={next}
-          onPrevious={previous}
+          onNext={driven ? noop : next}
+          onPrevious={driven ? noop : previous}
         />
-      )}
+        {/* The audience window and the owner's live player both show the room's black screen. */}
+        {control?.black && <Blackout />}
+      </div>
       {!driven && (
         <PlayerControls
           deckTitle={deck.title}
