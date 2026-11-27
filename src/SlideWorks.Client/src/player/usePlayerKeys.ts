@@ -6,6 +6,8 @@ export type PlayerKeyActions = {
   first(): void;
   last(): void;
   fullscreen(): void;
+  // The owner's live player only: black the room out, or bring it back. Left out, B and . do nothing.
+  black?(): void;
 };
 
 // Keys belong to whatever the person is typing in: form fields, editable text
@@ -26,7 +28,7 @@ function isButton(target: EventTarget | null): boolean {
 }
 
 // The player's keyboard: ←/→, Space and Shift+Space, PageUp and PageDown,
-// Home and End, and F for fullscreen. It returns before preventDefault while
+// Home and End, F for fullscreen, and B or . for the black screen while live. It returns before preventDefault while
 // the person types or composes with an IME, leaves shortcuts that use a
 // modifier to the browser, and ignores auto-repeats of a held key.
 export function usePlayerKeys(actions: PlayerKeyActions): void {
@@ -68,6 +70,10 @@ function actionFor(event: KeyboardEvent, actions: PlayerKeyActions): (() => void
     case 'f':
     case 'F':
       return actions.fullscreen;
+    case 'b':
+    case 'B':
+    case '.':
+      return actions.black ?? null;
     default:
       return null;
   }

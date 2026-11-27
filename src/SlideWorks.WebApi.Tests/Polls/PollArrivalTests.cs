@@ -56,10 +56,41 @@ public class PollArrivalTests : PollTestFixture
         Polls.CallsFor(poll.DeckId).ShouldBe([$"Close {poll.Slide}", $"Open {next}"]);
     }
 
+    // A poll is open whenever the presenter is on it (changed 27 Nov 2026: returning used to leave it closed, and phones
+    // showed a dead card).
     [Test]
-    public async Task Presenter_WhenReturningToAClosedPoll_ShouldCallNothing()
+    public async Task Presenter_WhenReturningToAClosedPoll_ShouldReopenIt()
     {
         var poll = await SeedAsync();
+        var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await Rows.CloseAsync(round.Id, joinedAtClose: 0);
+
+        await MoveAsync(poll.DeckId, poll.OtherSlide);
+        await MoveAsync(poll.DeckId, poll.Slide);
+
+        Polls.CallsFor(poll.DeckId).ShouldBe([$"Reopen {poll.Slide}"]);
+    }
+
+    [Test]
+    public async Task Presenter_WhenStayingOnAPollClosedThere_ShouldCallNothing()
+    {
+        var poll = await SeedAsync();
+        await MoveAsync(poll.DeckId, poll.Slide);
+        var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await Rows.CloseAsync(round.Id, joinedAtClose: 0);
+        Polls.Reset();
+        var before = Polls.CallsFor(poll.DeckId).Count;
+
+        await MoveAsync(poll.DeckId, poll.Slide, step: 0);
+
+        Polls.CallsFor(poll.DeckId).Count.ShouldBe(before);
+    }
+
+    [Test]
+    public async Task Presenter_WhenReturningToAClosedManualPoll_ShouldCallNothing()
+    {
+        var poll = await SeedAsync();
+        await Rows.SettingsAsync(poll.SlideId, PollSettings.Default with { Opens = PollOpens.Manual });
         var round = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
         await Rows.CloseAsync(round.Id, joinedAtClose: 0);
 

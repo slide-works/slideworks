@@ -23,7 +23,7 @@ public sealed class FakePollArrival : IPollArrival
         }
     }
 
-    public Task ArrivedAsync(string deckId, int slide)
+    public Task ArrivedAsync(string deckId, int slide, bool moved)
     {
         lock (_gate)
         {

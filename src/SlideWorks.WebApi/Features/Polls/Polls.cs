@@ -155,6 +155,34 @@ public class Polls(
         return await AnnounceAsync(deckId, slide);
     }
 
+    public async Task<PollControlView> ReopenAsync(string deckId, int slide)
+    {
+        int number;
+        await using (var transaction = await db.Database.BeginTransactionAsync())
+        {
+            var (poll, _) = await RequirePollAsync(deckId, slide);
+            var session = await reader.LiveSessionAsync(deckId);
+            var rounds = session == null ? [] : await reader.RoundsAsync(poll.Id, session.Value, tracked: true);
+            if (session == null || Phase(rounds) != PollPhase.Closed)
+            {
+                throw new ConflictException(PollRefusals.WRONG_PHASE);
+            }
+            var other = await OtherSlidesRoundAsync(session.Value, poll.Id);
+
+            await DiscardAsync(other, clock.GetUtcNow());
+            var round = rounds.Last(PollReader.IsClosed);
+            round.ClosedAt = null;
+            round.JoinedAtClose = null;
+            round.Final = null;
+            round.AnswerShownAt = null;
+            number = round.Number;
+            await db.SaveChangesAsync();
+            await RecordAsync(deckId, $"reopened round {number} of poll on slide {slide}");
+            await transaction.CommitAsync();
+        }
+        return await AnnounceAsync(deckId, slide);
+    }
+
     public Task<PollControlView?> ControlAsync(string deckId, int slide) => reader.ControlAsync(deckId, slide);
 
     // Ending the live session (LiveCommands.EndAsync, with the session it is ending, before it ends it): an open round is

@@ -181,13 +181,13 @@ public class Sw6PollJourneyTests : AcceptanceTest
     }
 
     // Criteria: moving on closes the poll, and the phone shows the next slide with nothing to answer, since the closed
-    // result stays on the phone only until the presenter moves on. Coming back shows it closed, not reopened, since a
-    // poll opens on arrival only once per session: still round 1, with New round offered and no Close. The closed poll
-    // shows its result on every phone: the guest who answered sees the percentages with its own pick marked, the guest
-    // who joined before and didn't answer sees them too and is told so, and a guest who joins after the close is told
-    // it joined late. Nothing can be tapped any more.
+    // result stays on the phone only until the presenter moves on. Coming back reopens it (changed 27 Nov 2026: a poll that
+    // opens on arrival is open whenever the presenter is on it): still round 1, with the answer it had, the guest's pick
+    // still marked and the guest who hadn't answered able to tap. Close then shows the closed result on every phone: the
+    // guest who answered sees the percentages with its own pick marked, the guest who joined before and didn't answer sees
+    // them too and is told so, and a guest who joins after the close is told it joined late. Nothing can be tapped any more.
     [Test]
-    public async Task Poll_WhenPresenterMovesOnThenBack_ShouldHaveClosedItAndShowTheResultOnThePhone()
+    public async Task Poll_WhenPresenterMovesOnThenBack_ShouldReopenItAndCloseShouldShowTheResultOnThePhone()
     {
         var talk = await PresentAsync("Poll close");
         await using var firstPhone = await PollJourney.OpenPhoneContextAsync(Browser);
@@ -212,6 +212,14 @@ public class Sw6PollJourneyTests : AcceptanceTest
         await Expect(talk.Panel.State).ToHaveCountAsync(0);
 
         await MoveToAsync(talk, "ArrowLeft", POLL);
+
+        await Expect(talk.Panel.State).ToHaveTextAsync("Open", new() { Timeout = PUSH_TIMEOUT });
+        await Expect(talk.Screen.State).ToHaveTextAsync("Open", new() { Timeout = PUSH_TIMEOUT });
+        await Expect(talk.Screen.Answered).ToHaveTextAsync("1 answer", new() { Timeout = PUSH_TIMEOUT });
+        await Expect(first.Card.OptionYou(0)).ToBeVisibleAsync(new() { Timeout = PUSH_TIMEOUT });
+        await Expect(second.Card.Option(0)).ToBeEnabledAsync(new() { Timeout = PUSH_TIMEOUT });
+
+        await talk.Panel.Close.ClickAsync();
 
         await Expect(talk.Panel.State).ToHaveTextAsync("Closed", new() { Timeout = PUSH_TIMEOUT });
         await Expect(talk.Panel.Round).ToHaveTextAsync("round 1");

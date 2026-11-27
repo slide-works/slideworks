@@ -19,6 +19,11 @@ public interface IPolls
 
     Task<PollControlView> NewRoundAsync(string deckId, int slide);
 
+    // Opens the poll's last closed round again, with the answers it already has, so the room can go on answering it. Its
+    // Final, JoinedAtClose and shown answer are cleared and written again when it next closes. Refused (wrong_phase) unless
+    // the poll is closed in the live session.
+    Task<PollControlView> ReopenAsync(string deckId, int slide);
+
     // The presenter's view of the poll on that slide in the deck's current audience session, or null when the slide is not
     // a poll. Seq comes from PollSeq. A closed round's Answered and Counts are its Final snapshot, written in the close
     // transaction; an open round's come from IPollTallies.

@@ -59,6 +59,8 @@ public sealed class FakePolls : IPolls
 
     public Task<PollControlView> NewRoundAsync(string deckId, int slide) => ActAsync("NewRound", deckId, slide);
 
+    public Task<PollControlView> ReopenAsync(string deckId, int slide) => ActAsync("Reopen", deckId, slide);
+
     // Records "EndSession" for the deck and does nothing else.
     public Task EndSessionAsync(string deckId, Guid sessionId)
     {

@@ -121,6 +121,33 @@ test('LivePlayer_WhenMovedWhileAWindowDrives_ShouldPublishTheMoveKeepingTheBlack
   expect(hub.updates).toEqual([{ slide: 3, step: 0, black: true, skipDeepDives: false }]);
 });
 
+test('LivePlayer_WhenTheRoomIsBlack_ShouldCoverTheSlideUntilItComesBack', async ({
+  mount,
+  page,
+}) => {
+  const hub = await mountLivePlayer(mount, page, stateAt(2, { black: true, connected: [window1] }));
+  await expect(page.getByTestId('slide-2')).toBeVisible();
+
+  await expect(page.getByTestId('blackout')).toBeVisible();
+
+  hub.pushState(stateAt(2, { black: false, connected: [window1] }));
+  await expect(page.getByTestId('blackout')).toHaveCount(0);
+});
+
+test('LivePlayer_WhenBIsPressed_ShouldPublishTheBlackScreenAtTheSamePosition', async ({
+  mount,
+  page,
+}) => {
+  const hub = await mountLivePlayer(mount, page, stateAt(2, { connected: [window1] }));
+  await expect(page.getByTestId('slide-2')).toBeVisible();
+
+  await page.keyboard.press('b');
+
+  await expect
+    .poll(() => hub.updates)
+    .toEqual([{ slide: 2, step: 0, black: true, skipDeepDives: false }]);
+});
+
 const untouched = (overrides: Partial<PresentationState> = {}) =>
   stateAt(1, { timer: { state: 'notStarted', elapsedMs: 0 }, ...overrides });
 

@@ -14,7 +14,9 @@ namespace SlideWorks.WebApi.Features.Polls;
 // round in the session. Then:
 //   - not live, or the unclosed round is on the slide reached: nothing;
 //   - a round really open on another slide: IPolls.CloseAsync on that slide;
-//   - a poll with opens onArrival and no round row in this session: IPolls.OpenAsync, which discards a draft elsewhere first.
+//   - a poll with opens onArrival and no round row in this session: IPolls.OpenAsync, which discards a draft elsewhere first;
+//   - a poll with opens onArrival whose round is closed, when the presenter has moved onto it: IPolls.ReopenAsync, so the
+//     room can answer it again. A state that only repeats the slide never reopens it, so a Close pressed there holds.
 // A draft is never touched here: it stays until Open or New round on another slide, or the end of the session, discards it.
 // A refusal from IPolls (ConflictException: arrival raced a presenter's button or another arrival) and a slide that stopped
 // being a poll under it (NotFoundException) are expected and logged; the next state settles it. Anything else is thrown to
@@ -22,7 +24,7 @@ namespace SlideWorks.WebApi.Features.Polls;
 [RegisterPerRequest(For = typeof(IPollArrival))]
 public class PollArrival(AppDbContext db, IPolls polls, ILogger<PollArrival> logger) : IPollArrival
 {
-    public async Task ArrivedAsync(string deckId, int slide)
+    public async Task ArrivedAsync(string deckId, int slide, bool moved)
     {
         var position = slide - 1;
         var facts = await db.AudienceSessions.AsNoTracking()
@@ -58,6 +60,10 @@ public class PollArrival(AppDbContext db, IPolls polls, ILogger<PollArrival> log
         if (facts.Layout == PollRows.LAYOUT && facts.Opens == PollOpens.OnArrival && !facts.HasRound)
         {
             await TryAsync(deckId, slide, "open", () => polls.OpenAsync(deckId, slide));
+        }
+        else if (moved && facts.Layout == PollRows.LAYOUT && facts.Opens == PollOpens.OnArrival)
+        {
+            await TryAsync(deckId, slide, "reopen", () => polls.ReopenAsync(deckId, slide));
         }
     }
 
