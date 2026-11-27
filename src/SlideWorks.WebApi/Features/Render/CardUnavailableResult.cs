@@ -4,8 +4,9 @@ using SlideWorks.WebApi.Infrastructure;
 
 namespace SlideWorks.WebApi.Features.Render;
 
-// A share card that can't be rendered right now (the renderer is unavailable or timed out, SW-81 D5): 503 with the
-// error's text. no-store keeps a CDN or a link previewer from keeping the error, and Retry-After says when to try again.
+// A share card or a PDF that can't be rendered right now (the renderer is unavailable, timed out or failed; SW-81 D5): 503
+// with the error's text. no-store keeps a CDN or a link previewer from keeping the error, and Retry-After says when to
+// try again.
 public sealed class CardUnavailableResult(string error) : IActionResult
 {
     public const int RETRY_AFTER_SECONDS = 30;

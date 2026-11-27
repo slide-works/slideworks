@@ -364,3 +364,22 @@ test('WordCloudLayout_WhenOneWordIsShownScreenshot_ShouldMatchTheBaseline', asyn
 
   await expect(slide(page)).toHaveScreenshot('word-cloud-one-word.png');
 });
+
+test('WordCloudLayout_WhenWordsArePlaced_ShouldMarkItsBodyPacked', async ({ mount, page }) => {
+  await stubLive(page, control(5, SEVEN));
+  await mount(player());
+
+  await expect(word(page, 0)).toBeVisible();
+  await expect(slide(page).getByTestId('word-cloud-body')).toHaveAttribute('data-packed', 'true');
+});
+
+test('WordCloudLayout_WhenThereAreNoWords_ShouldMarkItsBodyPackedAtOnce', async ({
+  mount,
+  page,
+}) => {
+  await stubLive(page, control(5, []));
+  await mount(player());
+
+  await expect(slide(page).getByTestId('word-cloud-body')).toHaveAttribute('data-packed', 'true');
+  await expect(word(page, 0)).toHaveCount(0);
+});

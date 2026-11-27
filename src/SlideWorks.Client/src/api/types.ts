@@ -525,3 +525,38 @@ export type DeckChecksView = {
   measured: boolean;
   error: string | null;
 };
+
+// SW-173's print view, appended (P1).
+import type { OpenTextEvent, WordCloudEvent } from '../openResponses/types';
+import type { PollPhase, PollPick } from '../polls/types';
+
+// One poll slide's newest opened round in the newest session: PollScreen plus the slide. Counts are always filled (only
+// a person who can present downloads the PDF); max is null unless pick is upTo, correct is null unless answerShown.
+export type DeckPrintPoll = {
+  slide: number;
+  phase: PollPhase;
+  number: number;
+  answered: number;
+  counts: number[];
+  answerShown: boolean;
+  correct: number | null;
+  pick: PollPick;
+  max: number | null;
+  answers: 'choice' | 'text' | 'cloud';
+  replies: string[];
+  words: { text: string; count: number }[];
+};
+
+export type DeckPrintQaQuestion = { number: number; text: string; votes: number };
+
+// The newest Q&A round: phase is closed once the round has been closed, else open; top is the five with most votes.
+export type DeckPrintQa = { phase: 'open' | 'closed'; total: number; top: DeckPrintQaQuestion[] };
+
+// GET /api/render/{id}/print (a Print render token): the play view and the last talk's results.
+export type DeckPrintView = {
+  deck: DeckPlayView;
+  polls: DeckPrintPoll[];
+  wordClouds: WordCloudEvent[];
+  openTexts: OpenTextEvent[];
+  qa: DeckPrintQa | null;
+};

@@ -103,7 +103,7 @@ public class CardPngTests : ApiTestFixture
             var response = await anonymous.GetAsync($"/api/cards/{deck}.png");
 
             response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
-            (await response.Content.ReadFromJsonAsync<ErrorBody>())!.Error.ShouldBe("Card rendering isn't available");
+            (await response.Content.ReadFromJsonAsync<ErrorBody>())!.Error.ShouldBe("Rendering isn't available");
             ShouldNotBeStored(response);
             response.Headers.RetryAfter!.Delta.ShouldBe(TimeSpan.FromSeconds(30));
         }

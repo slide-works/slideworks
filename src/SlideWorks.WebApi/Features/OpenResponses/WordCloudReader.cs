@@ -55,23 +55,8 @@ public class WordCloudReader(AppDbContext db, IAudienceSessions sessions)
         }
         var entries = await db.OpenEntries.AsNoTracking().Where(e => e.RoundId == current.Id).ToListAsync(cancellationToken);
         var phase = current.ClosedAt == null ? OpenResponsePhase.Open : OpenResponsePhase.Closed;
-        var guests = entries.Where(e => e.HiddenAt == null).Select(e => e.GuestId).Distinct(StringComparer.Ordinal).Count();
-        var words = entries
-            .GroupBy(e => e.TextKey, StringComparer.Ordinal)
-            .Select(WordOf)
-            .OrderByDescending(w => w.Word.Count)
-            .ThenBy(w => w.Key, StringComparer.Ordinal)
-            .Select(w => w.Word)
-            .ToList();
+        var guests = WordCloudCounts.GuestsOf(entries);
+        var words = WordCloudCounts.WordsOf(entries);
         return new WordCloudTally(deckId, OpenResponseTarget.Presenter, slide, phase, current.Id.ToString(), current.Number, current.Revision, true, guests, words);
-    }
-
-    // The casing shown is the earliest sent row's (by arrival, then position) for the key.
-    private static (string Key, CloudWord Word) WordOf(IGrouping<string, OpenEntry> rows)
-    {
-        var shown = rows.Where(e => e.HiddenAt == null).ToList();
-        var counted = shown.Count > 0 ? shown : rows.ToList();
-        var text = rows.OrderBy(e => e.Arrival).ThenBy(e => e.Position).ThenBy(e => e.Text, StringComparer.Ordinal).First().Text;
-        return (rows.Key, new CloudWord(text, counted.Select(e => e.GuestId).Distinct(StringComparer.Ordinal).Count(), shown.Count == 0));
     }
 }

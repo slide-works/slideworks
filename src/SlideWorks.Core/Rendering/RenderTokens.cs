@@ -14,6 +14,7 @@ public sealed class RenderTokens : IRenderTokens
 {
     private static readonly TimeSpan PREVIEW_LIFETIME = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan CARD_LIFETIME = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan PRINT_LIFETIME = TimeSpan.FromMinutes(5);
     private const int MAC_BYTES = 32;
 
     private readonly byte[] _key;
@@ -37,6 +38,7 @@ public sealed class RenderTokens : IRenderTokens
     {
         RenderPurpose.Preview => PREVIEW_LIFETIME,
         RenderPurpose.Card => CARD_LIFETIME,
+        RenderPurpose.Print => PRINT_LIFETIME,
         _ => throw new ArgumentOutOfRangeException(nameof(purpose), purpose, "Unknown render purpose"),
     };
 

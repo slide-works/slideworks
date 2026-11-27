@@ -10,6 +10,7 @@ import adminUsersJson from '@contracts/screens/admin-users.json' with { type: 'j
 import cardJson from '@contracts/screens/card.json' with { type: 'json' };
 import consentJson from '@contracts/screens/consent.json' with { type: 'json' };
 import deckPageJson from '@contracts/screens/deck-page.json' with { type: 'json' };
+import deckPrintJson from '@contracts/screens/deck-print.json' with { type: 'json' };
 import deckPlayJson from '@contracts/screens/deck-play.json' with { type: 'json' };
 import decksLibraryJson from '@contracts/screens/decks-library.json' with { type: 'json' };
 import imageUploadJson from '@contracts/screens/image-upload.json' with { type: 'json' };
@@ -25,6 +26,7 @@ import type {
   ConsentView,
   DeckPageView,
   DeckPlayView,
+  DeckPrintView,
   DecksLibraryView,
   ImageUploadRequest,
   ImageUploadResult,
@@ -45,6 +47,10 @@ export const adminUsers = adminUsersJson satisfies Widen<AdminUsersView> as Admi
 export const decksLibrary = decksLibraryJson satisfies Widen<DecksLibraryView> as DecksLibraryView;
 export const deckPage = deckPageJson satisfies JsonView<DeckPageView> as DeckPageView;
 export const deckPlay = deckPlayJson satisfies JsonView<DeckPlayView> as DeckPlayView;
+type JsonDeckPrint = {
+  [K in keyof DeckPrintView]: K extends 'deck' ? JsonView<DeckPlayView> : Widen<DeckPrintView[K]>;
+};
+export const deckPrint = deckPrintJson satisfies JsonDeckPrint as DeckPrintView;
 export const profile = profileJson satisfies Widen<ProfileView> as ProfileView;
 export const sharing = sharingJson satisfies Widen<SharingView> as SharingView;
 export const consent = consentJson satisfies Widen<ConsentView> as ConsentView;
