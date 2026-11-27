@@ -31,6 +31,7 @@ public static class McpWireCases
         ["delete_slide"] = Plain(c => Json(new { deck = c.Deck, slide = 1 })),
         ["set_notes"] = Plain(c => Json(new { deck = c.Deck, notes = new[] { new { slide = 1, text = "Open with the story." } } })),
         ["set_parts"] = Plain(c => Json(new { deck = c.Deck, parts = new[] { "Open", "Close" } })),
+        ["set_title"] = Plain(c => Json(new { deck = c.Deck, title = "Renamed" })),
         ["validate_slide"] = Plain(c => $$"""{"deck":"{{c.Deck}}","layout":"quote","slots":{{QUOTE}},"surface":"dark"}"""),
 
         // Look

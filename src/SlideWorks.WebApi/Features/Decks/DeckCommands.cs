@@ -33,9 +33,9 @@ public class DeckCommands(
     ImageUploads images,
     ILogger<DeckCommands> logger)
 {
-    private const int TITLE_MAX_LENGTH = 120;
-    private const int SUBTITLE_MAX_LENGTH = 200;
-    private const int AUTHOR_MAX_LENGTH = 80;
+    public const int TITLE_MAX_LENGTH = 120;
+    public const int SUBTITLE_MAX_LENGTH = 200;
+    public const int AUTHOR_MAX_LENGTH = 80;
     private const int JOIN_CODE_TRIES = 5;
     private const int SQLITE_CONSTRAINT = 19;
 
@@ -190,10 +190,10 @@ public class DeckCommands(
     private static bool IsJoinCodeConflict(DbUpdateException ex)
         => ex.InnerException is SqliteException { SqliteErrorCode: SQLITE_CONSTRAINT } inner && inner.Message.Contains("Decks.JoinCode", StringComparison.Ordinal);
 
-    private static string Required(string field, string? value, int maxLength, bool showLength = false)
+    public static string Required(string field, string? value, int maxLength, bool showLength = false)
         => Optional(field, value, maxLength, showLength) ?? throw new BadRequestException($"{field}: required");
 
-    private static string? Optional(string field, string? value, int maxLength, bool showLength = false)
+    public static string? Optional(string field, string? value, int maxLength, bool showLength = false)
     {
         var text = value?.Trim();
         if (string.IsNullOrEmpty(text))
