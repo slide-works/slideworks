@@ -25,6 +25,10 @@ namespace SlideWorks.WebApi.Features.Polls;
 // constructor) are resolved through a scope per call. The registry awaits observers inline: this never throws into it. A
 // failure the arrival rule does not expect is logged here as an error and dropped, so the presenter's move still lands; the
 // next state for the deck tries again.
+//
+// Whether the presenter moved onto the slide is worked out here, from the slide this observer last handed to the arrival
+// rule for the deck, read under the same gate, so it follows the order the positions were read in. The first position seen
+// for a deck (after a restart, say) counts as not moved, so a restart never reopens a poll the presenter closed.
 [RegisterSingleton(For = typeof(IPresentationObserver), OfCollection = true)]
 public sealed class PollArrivalObserver(IServiceScopeFactory scopes, ILogger<PollArrivalObserver> logger) : IPresentationObserver
 {
@@ -32,6 +36,9 @@ public sealed class PollArrivalObserver(IServiceScopeFactory scopes, ILogger<Pol
 
     // A deck's gate and how many turns hold or wait on it; the entry goes when the last one leaves, so gates don't pile up.
     private readonly Dictionary<string, DeckGate> _gates = new(StringComparer.Ordinal);
+
+    // The slide last handed to the arrival rule, per deck, while it has a presentation. Read and written under the deck's gate.
+    private readonly Dictionary<string, int> _lastSlides = new(StringComparer.Ordinal);
 
     public async Task OnChangedAsync(PresentationState state)
     {
@@ -63,9 +70,19 @@ public sealed class PollArrivalObserver(IServiceScopeFactory scopes, ILogger<Pol
         await using var scope = scopes.CreateAsyncScope();
         if (await scope.ServiceProvider.GetRequiredService<IPresentations>().GetAsync(deckId) is not { } current)
         {
+            lock (_gatesLock)
+            {
+                _lastSlides.Remove(deckId);
+            }
             return;
         }
-        await scope.ServiceProvider.GetRequiredService<IPollArrival>().ArrivedAsync(deckId, current.Slide);
+        bool moved;
+        lock (_gatesLock)
+        {
+            moved = _lastSlides.TryGetValue(deckId, out var last) && last != current.Slide;
+            _lastSlides[deckId] = current.Slide;
+        }
+        await scope.ServiceProvider.GetRequiredService<IPollArrival>().ArrivedAsync(deckId, current.Slide, moved);
     }
 
     private DeckGate Enter(string deckId)

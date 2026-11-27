@@ -329,6 +329,39 @@ public class PollLifecycleTests : PollTestFixture
     }
 
     [Test]
+    public async Task Reopen_WhenClosed_ShouldOpenTheSameRoundAndKeepItsAnswers()
+    {
+        var poll = await SeedPollAsync();
+        var first = await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+        await Rows.AnswerAsync(first.Id, "guest one", 1);
+        await Rows.CloseAsync(first.Id, joinedAtClose: 3, answerShown: true);
+
+        await ActByServiceAsync("reopen", poll.DeckId, poll.Slide);
+        var view = await ControlAsync(poll.DeckId, poll.Slide);
+        var reopened = await StoredRoundAsync(first.Id);
+
+        view.GetProperty("phase").GetString().ShouldBe("open");
+        view.GetProperty("number").GetInt32().ShouldBe(1);
+        view.GetProperty("round").GetString().ShouldBe(first.Id.ToString());
+        (await AnswerCountAsync(first.Id)).ShouldBe(1);
+        reopened.ClosedAt.ShouldBeNull();
+        reopened.Final.ShouldBeNull();
+        reopened.JoinedAtClose.ShouldBeNull();
+        reopened.AnswerShownAt.ShouldBeNull();
+    }
+
+    [Test]
+    public async Task Reopen_WhenOpen_ShouldRefuseWithWrongPhase()
+    {
+        var poll = await SeedPollAsync();
+        await Rows.RoundAsync(poll.SlideId, poll.SessionId);
+
+        var reopen = () => ActByServiceAsync("reopen", poll.DeckId, poll.Slide);
+
+        (await reopen.ShouldThrowAsync<ConflictException>()).Message.ShouldBe(PollRefusals.WRONG_PHASE);
+    }
+
+    [Test]
     public async Task NewRound_WhenPollIsManual_ShouldStayDraft()
     {
         var poll = await SeedPollAsync();
@@ -684,12 +717,20 @@ public class PollLifecycleTests : PollTestFixture
             "reveal" => polls.RevealAsync,
             "answer" => polls.ShowAnswerAsync,
             "round" => polls.NewRoundAsync,
+            "reopen" => polls.ReopenAsync,
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
         };
         await act(deckId, slide);
     }
 
     private static string ActionPath(string action, string deckId, int slide) => $"/api/decks/{deckId}/polls/{slide}/{action}";
+
+    // The round's answer rows, read straight from the database: the tally is not used here, because the seeded rows bypass it.
+    private async Task<int> AnswerCountAsync(Guid roundId)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().PollAnswers.CountAsync(a => a.RoundId == roundId);
+    }
 
     private async Task<int> ActivityCountAsync(string deckId) => await ActivityCountAsync(Factory.Services.GetRequiredService<IServiceScopeFactory>(), deckId);
 
