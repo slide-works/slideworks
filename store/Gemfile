@@ -1,0 +1,4 @@
+source "https://rubygems.org"
+
+# The only fastlane in the repo; store/push_listing.sh is the only caller.
+gem "fastlane", "~> 2.228"
