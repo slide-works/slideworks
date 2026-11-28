@@ -1017,6 +1017,9 @@ namespace SlideWorks.WebApi.Migrations
                     b.Property<string>("Surface")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("TranslationsJson")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DeckId", "Position");
@@ -1190,6 +1193,27 @@ namespace SlideWorks.WebApi.Migrations
                     b.HasKey("TemplateId", "Email");
 
                     b.ToTable("TemplateViewers");
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Translations.Data.DeckTranslationSettingsRow", b =>
+                {
+                    b.Property<string>("DeckId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LanguagesJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Primary")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("DeckId");
+
+                    b.ToTable("DeckTranslationSettings");
                 });
 
             modelBuilder.Entity("SlideWorks.WebApi.Features.Activity.ActivityEntryRow", b =>
@@ -1438,6 +1462,15 @@ namespace SlideWorks.WebApi.Migrations
                     b.HasOne("SlideWorks.WebApi.Features.Templates.Data.TemplateRecord", null)
                         .WithMany()
                         .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.Translations.Data.DeckTranslationSettingsRow", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Decks.Deck", null)
+                        .WithOne()
+                        .HasForeignKey("SlideWorks.WebApi.Features.Translations.Data.DeckTranslationSettingsRow", "DeckId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

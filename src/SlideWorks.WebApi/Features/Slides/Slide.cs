@@ -18,6 +18,10 @@ public class Slide
 
     public string? Notes { get; set; }
 
+    // The slide's translated lines by language and slot path (SW-883 K2); null means none. Written only by Features/Translations
+    // and the slide edits that carry the lines with the slide.
+    public string? TranslationsJson { get; set; }
+
     public int Steps { get; set; }
 
     public long Revision { get; set; }
