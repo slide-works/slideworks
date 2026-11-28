@@ -1,0 +1,9 @@
+# One pnpm workspace for every JavaScript package in the repo, with one lockfile (src/pnpm-lock.yaml).
+# Install from src/: pnpm install --frozen-lockfile (CI and the Dockerfile add --filter <package>... for one package).
+packages:
+  - SlideWorks.Client
+  - SlideWorks.Core.Client
+
+# Dependencies whose install scripts may run. Every other dependency's install script stays off; add an entry here,
+# with the reason beside it, only when a package fails without its script.
+allowBuilds: {}
