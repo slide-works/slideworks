@@ -123,7 +123,8 @@ public sealed class DeckHub(
 
     public Task LeavePresentation(string deckId) => presentations.LeaveAsync(Context.ConnectionId, deckId);
 
-    // The guests of a deck's session: audienceState and audienceEnded (J4).
+    // The guests of a deck's session: audienceEnded, the tallies and the Q&A (J4). audienceState goes to the slide-state
+    // group of each language instead (AudienceSlideGroups, SW-883 D11).
     public static string AudienceGroupName(string deckId) => $"audience:{deckId}";
 
     // The owner's view of the audience: joinedCount (J4).

@@ -31,11 +31,14 @@ function MirroredSlide({
   current,
   room,
   dimmed,
+  lang,
 }: {
   view: GuestView;
   current: AudienceCurrent;
   room: AudienceState['room'];
   dimmed: boolean;
+  // The language the slide is in, so the browser and tokens.css pick that language's glyph forms; undefined while off.
+  lang?: string;
 }) {
   const { code = '' } = useParams();
   const frame = useRef<HTMLDivElement>(null);
@@ -82,6 +85,7 @@ function MirroredSlide({
     >
       {!current.black && (
         <div
+          lang={lang}
           className="absolute top-0 left-0 overflow-hidden"
           style={{
             width: CANVAS_WIDTH,
@@ -166,7 +170,13 @@ export function GuestFollowing({
         <PortraitHint />
         {current ? (
           <>
-            <MirroredSlide view={view} current={current} room={state.room} dimmed={reconnecting} />
+            <MirroredSlide
+              view={view}
+              current={current}
+              room={state.room}
+              dimmed={reconnecting}
+              lang={state.language?.code}
+            />
             <LandscapeLayer
               index={current.index}
               count={current.count}

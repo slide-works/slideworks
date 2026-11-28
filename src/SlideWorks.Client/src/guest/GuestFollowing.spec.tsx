@@ -33,6 +33,39 @@ test('mirrors state.current at the phone width with the waiting card and no side
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
+test('GuestFollowing_WhenSlideIsChinese_ShouldPutThatScriptsNotoFaceFirst', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const stackOf = async (code: string) => {
+    const state = { ...view.state, language: { code, fallbackLines: 0 } };
+    await mount(<GuestFollowing view={view} state={state} status="live" />);
+    const slide = page.getByTestId(GUEST_TEST_IDS.slide).getByTestId('slide-3');
+    return slide.evaluate((el) => ({
+      lang: el.closest('[lang]')?.getAttribute('lang'),
+      stack: getComputedStyle(el).getPropertyValue('--sw-noto-stack'),
+    }));
+  };
+  const hans = await stackOf('zh-Hans');
+  expect(hans.lang).toBe('zh-Hans');
+  expect(hans.stack).toMatch(/^'Noto Sans Thai', 'Noto Sans SC', 'Noto Sans JP'/);
+});
+
+test('GuestFollowing_WhenSlideIsTraditionalChinese_ShouldPutNotoSansTcFirst', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const state = { ...view.state, language: { code: 'zh-Hant', fallbackLines: 0 } };
+  await mount(<GuestFollowing view={view} state={state} status="live" />);
+  const slide = page.getByTestId(GUEST_TEST_IDS.slide).getByTestId('slide-3');
+  const stack = await slide.evaluate((el) =>
+    getComputedStyle(el).getPropertyValue('--sw-noto-stack'),
+  );
+  expect(stack).toMatch(/^'Noto Sans Thai', 'Noto Sans TC', 'Noto Sans JP'/);
+});
+
 test('a black state shows a black screen with no slide in it', async ({ mount, page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const state = { ...view.state, current: { ...view.state.current!, black: true } };

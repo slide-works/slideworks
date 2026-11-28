@@ -1,8 +1,14 @@
 import { test, expect } from '@playwright/experimental-ct-react';
-import { audienceState, guestView } from '../test-support/fixtures/guestStates';
+import {
+  audienceState,
+  guestTranslations,
+  guestView,
+  translationsOff,
+} from '../test-support/fixtures/guestStates';
 import { OFFLINE_JITTER_MS, OFFLINE_RETRY_MS } from './GuestOffline';
 import { GuestScreens } from './GuestScreens';
 import { GUEST_TEST_IDS } from './testIds';
+import type { GuestLanguageControl } from './language/useGuestLanguage';
 
 const noop = () => {};
 
@@ -200,6 +206,52 @@ test('"You\'re in" shows for 2 seconds, then the slide mirror', async ({ mount, 
   await page.clock.runFor(200);
   await expect(page.getByTestId(GUEST_TEST_IDS.following)).toBeVisible();
   await expect(page.getByTestId(GUEST_TEST_IDS.joined)).toHaveCount(0);
+});
+
+test('translations off: the slide mirror does not wait for the hub to answer the join', async ({
+  mount,
+  page,
+}) => {
+  await page.clock.install({ time: 0 });
+  await page.clock.pauseAt(1000);
+  const view = translationsOff();
+  await mount(<GuestScreens view={view} state={view.state} status="connecting" onRetry={noop} />);
+  await expect(page.getByTestId(GUEST_TEST_IDS.joined)).toBeVisible();
+  await page.clock.runFor(2100);
+  await expect(page.getByTestId(GUEST_TEST_IDS.following)).toBeVisible();
+});
+
+test('a phone that wants another language holds "You\'re in" until the hub answers', async ({
+  mount,
+  page,
+}) => {
+  await page.clock.install({ time: 0 });
+  await page.clock.pauseAt(1000);
+  const view = guestView('live');
+  const language: GuestLanguageControl = {
+    translations: guestTranslations(),
+    current: 'th',
+    wanted: 'th',
+    fallbackLines: 0,
+    banner: false,
+    dismissBanner: noop,
+    pick: () => Promise.resolve(),
+  };
+  const screens = (status: 'connecting' | 'live') => (
+    <GuestScreens
+      view={view}
+      state={view.state}
+      status={status}
+      onRetry={noop}
+      language={language}
+    />
+  );
+  const component = await mount(screens('connecting'));
+  await page.clock.runFor(5000);
+  await expect(page.getByTestId(GUEST_TEST_IDS.joined)).toBeVisible();
+  await component.update(screens('live'));
+  await page.clock.runFor(2100);
+  await expect(page.getByTestId(GUEST_TEST_IDS.following)).toBeVisible();
 });
 
 test('the joined screen keeps the main landmark and a status inside it', async ({
