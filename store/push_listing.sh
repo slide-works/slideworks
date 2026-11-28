@@ -74,6 +74,9 @@ stage_and_check() {
   python3 -I "$store_dir/check_listing.py" "$work/staged"
 }
 
+# The keys are written owner-only.
+umask 077
+
 ios_key() {
   # fastlane reads the App Store Connect key as a JSON file; the secret is the .p8 text.
   python3 -I - "$work/asc_key.json" <<'PY'

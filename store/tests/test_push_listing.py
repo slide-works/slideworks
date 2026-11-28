@@ -15,6 +15,9 @@ for flag in ("--metadata_path", "--screenshots_path"):
     if flag in args:
         path = args[args.index(flag) + 1]
         record["dirs"][flag] = os.path.isdir(path)
+for flag in ("--json_key", "--api_key_path"):
+    if flag in args:
+        record.setdefault("key_modes", {})[flag] = oct(os.stat(args[args.index(flag) + 1]).st_mode & 0o777)
 if "--json_key" in args:
     record["json_key"] = open(args[args.index("--json_key") + 1]).read()
 if "--api_key_path" in args:
@@ -80,6 +83,14 @@ class PushListingTests(unittest.TestCase):
         self.assertEqual({"--metadata_path": True}, android["dirs"])
         self.assertEqual(SECRETS["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"], android["json_key"])
         self.assertTrue(android["gemfile"].endswith("store/Gemfile"))
+
+    def test_key_files_are_owner_only(self):
+        for platform in ("ios", "android"):
+            result = self.run_script(platform, "push", **SECRETS)
+            self.assertEqual(0, result.returncode, result.stderr)
+        ios, android = self.fastlane_calls()
+        self.assertEqual({"--api_key_path": "0o600"}, ios["key_modes"])
+        self.assertEqual({"--json_key": "0o600"}, android["key_modes"])
 
     def test_push_refuses_a_listing_that_fails_the_checks(self):
         (self.store / "android" / "metadata" / "en-US" / "title.txt").write_text("t" * 31)
