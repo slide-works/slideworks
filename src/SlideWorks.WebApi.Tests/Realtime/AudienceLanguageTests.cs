@@ -268,6 +268,38 @@ public class AudienceLanguageTests : ApiTestFixture
         frame.GetProperty("language").GetProperty("fallbackLines").GetInt32().ShouldBe(0);
     }
 
+    // translate_slides publishes DeckChanged, and the feed composes again on it: a guest reading in Thai gets the new line on
+    // the slide on screen with no slide move.
+    [Test]
+    public async Task TranslateSlides_WhenGuestReadsThatLanguage_ShouldPushTheNewLineWithoutAMove()
+    {
+        var deck = await DeckAsync();
+        await Seed.SettingsAsync(deck, true, "en", "th");
+        var (_, code) = await GoLiveAsync(deck);
+        await MoveAsync(deck, slide: 1, step: 0);
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
+        var before = await guest.Connection.InvokeAsync<JsonElement>("SetLanguage", code, "th");
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var (_, read) = await agent.CallToolAsync("get_deck", new { deck });
+        var revision = read.GetProperty("slides").EnumerateArray().Single(s => s.GetProperty("number").GetInt32() == 1).GetProperty("revision").GetInt64();
+
+        var (isError, written) = await agent.CallToolAsync("translate_slides", new
+        {
+            deck,
+            language = "th",
+            slides = new[] { new { slide = 1, revision, lines = new Dictionary<string, string?> { ["/quote"] = QUOTE_TH } } },
+        });
+        var pushed = await NextStateAsync(guest);
+
+        isError.ShouldBeFalse(written.ToString());
+        before.GetProperty("current").GetProperty("slots").GetProperty("quote").GetString().ShouldBe(QUOTE);
+        pushed.GetProperty("current").GetProperty("index").GetInt32().ShouldBe(1);
+        pushed.GetProperty("current").GetProperty("slots").GetProperty("quote").GetString().ShouldBe(QUOTE_TH);
+        pushed.GetProperty("language").GetProperty("code").GetString().ShouldBe("th");
+        pushed.GetProperty("language").GetProperty("fallbackLines").GetInt32().ShouldBe(2);
+    }
+
     // Slide 1: a quote with a headline; slide 2: a Q&A slide with its title.
     private async Task<string> DeckAsync()
     {

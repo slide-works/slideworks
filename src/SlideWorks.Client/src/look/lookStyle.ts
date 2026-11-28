@@ -8,9 +8,9 @@ type CustomProperties = Record<`--sw-${string}`, string | number>;
 const quoted = (family: string) => `'${family.replace(/['"\\]/g, '')}'`;
 
 // The Noto faces tokens.css imports, after the template's fonts and before system-ui, so Thai, Japanese,
-// Korean and Chinese text is drawn in them and Latin text is untouched (SW-883).
-const NOTO_FALLBACKS =
-  "'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC'";
+// Korean and Chinese text is drawn in them and Latin text is untouched (SW-883). The stack is tokens.css's
+// --sw-noto-stack, which puts SC or TC first under lang="zh-Hans" or "zh-Hant" (an element above the slide sets it).
+const NOTO_FALLBACKS = 'var(--sw-noto-stack)';
 
 // The look as CSS custom properties for a slide's root element (SW-2 L10):
 // every palette token as --sw-<key> (accent-2 among them), the template's type and shape, and the

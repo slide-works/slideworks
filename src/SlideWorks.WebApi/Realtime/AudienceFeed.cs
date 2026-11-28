@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SlideWorks.Core.Slides;
 using SlideWorks.Core.Slides.Layouts;
 using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Features.Decks.Views;
 using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Qa;
 using SlideWorks.WebApi.Features.Slides;
@@ -75,7 +76,7 @@ public sealed class AudienceFeed : IDisposable
         if (feed is null)
         {
             // A lobby or an ended deck has no position to order and gets no entry, but its answer still comes from the one seq source.
-            return found is null ? null : await ComposeAsync(scope.ServiceProvider, found, early);
+            return found is null ? null : ComposeNotLive(found, early);
         }
         try
         {
@@ -287,18 +288,9 @@ public sealed class AudienceFeed : IDisposable
         _feeds.TryRemove(new KeyValuePair<string, DeckFeed>(deckId, feed));
     }
 
-    // A lobby or an ended state: no slide, no language (only a live state is composed per language).
-    private static Task<AudienceState> ComposeAsync(IServiceProvider services, AudienceSessionRef found, long seq)
-        => found.Phase == AudiencePhase.Live
-            ? ComposePrimaryAsync(services, found, seq)
-            : Task.FromResult(new AudienceState(found.DeckId, seq, found.Phase, null, 0, null, null, null));
-
-    // A live deck answered outside its feed entry (it went live between the two reads of the phase): in the primary language.
-    private static async Task<AudienceState> ComposePrimaryAsync(IServiceProvider services, AudienceSessionRef found, long seq)
-    {
-        var live = await LiveAsync(services, found);
-        return await ComposeLanguageAsync(services, found.DeckId, live, live.Snapshot.Settings.Primary, seq);
-    }
+    // A lobby or an ended state: no slide, no language (only a live state is composed per language, through its feed entry).
+    private static AudienceState ComposeNotLive(AudienceSessionRef found, long seq)
+        => new(found.DeckId, seq, found.Phase, null, 0, null, null, null);
 
     // What every language's state of one compose shares: the deck loaded once through TranslationMerge (never per language),
     // the presenter's position, the deck's revision and the room.
@@ -385,9 +377,9 @@ public sealed class AudienceFeed : IDisposable
         var index = Math.Clamp(presentation.Slide, 1, slides.Count);
         var slide = slides[index - 1];
         var step = Math.Clamp(presentation.Step, 0, slide.Steps);
-        // The surface is the slide's stored one, else the layout's own. TODO: a custom layout (wave 2) is not in the built-in
-        // catalogue, so it reads "light" unless the slide stores a surface. No template lookup here: the feed is a singleton.
-        var surface = slide.Surface ?? (LayoutCatalogue.Find(slide.Layout)?.Dark == true ? SlideSurface.DARK : SlideSurface.LIGHT);
+        // The surface is the slide's stored one, else the layout's own, found through the deck's template (a custom layout
+        // is not in the built-in catalogue).
+        var surface = DeckPlaySlide.SurfaceOf(slide, snapshot.Template);
         var merged = TranslationMerge.For(slide, snapshot.Template, snapshot.Settings, language);
         return (new AudienceSlide(index, slides.Count, slide.Layout, merged.Slots, slide.Steps, step, presentation.Black, surface), merged.FallbackLines);
     }

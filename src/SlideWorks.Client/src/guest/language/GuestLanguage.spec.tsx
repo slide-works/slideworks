@@ -168,6 +168,7 @@ test('GuestLanguage_WhenSwitchFailsAndEscapePressedMeanwhile_ShouldKeepTheSheetA
   page,
 }) => {
   const translations = view.translations!;
+  let closes = 0;
   await mount(
     <LanguageSheet
       translations={translations}
@@ -175,7 +176,7 @@ test('GuestLanguage_WhenSwitchFailsAndEscapePressedMeanwhile_ShouldKeepTheSheetA
       onPick={() =>
         new Promise<void>((_, reject) => setTimeout(() => reject(new Error('no')), 400))
       }
-      onClose={() => undefined}
+      onClose={() => closes++}
     />,
   );
   await page.getByTestId(GUEST_TEST_IDS.languageOption).nth(2).click();
@@ -185,6 +186,7 @@ test('GuestLanguage_WhenSwitchFailsAndEscapePressedMeanwhile_ShouldKeepTheSheetA
   await expect(page.getByTestId(GUEST_TEST_IDS.languageError)).toHaveText(
     "Couldn't switch language. Try again.",
   );
+  expect(closes).toBe(0);
 });
 
 test.describe('phone in Thai, held and banner once', () => {

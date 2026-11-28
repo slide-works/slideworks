@@ -47,16 +47,23 @@ export function GuestScreens({
   const needsCookies = !ended && status === 'needs_cookies';
   const following = !offline && !needsCookies && live && joinedDone;
 
-  // The first render of the slide waits for the hub's answer to the join (JoinAudience, then SetLanguage), so a slow
-  // SetLanguage never shows the primary slide first. The latch keeps later reconnects from going back to "You're in".
+  // A phone that wants a language other than the primary holds its first render for the hub's answer to the join
+  // (JoinAudience, then SetLanguage), so a slow SetLanguage never shows the primary slide first. Every other phone,
+  // including every phone of a deck with translations off, starts the "You're in" timer as before (SW-883 D29). The latch
+  // keeps later reconnects from going back to "You're in".
+  const waitsForLanguage =
+    language != null &&
+    language.wanted != null &&
+    language.wanted !== language.translations.primary;
   const [joinAnswered, setJoinAnswered] = useState(false);
   if (status === 'live' && !joinAnswered) setJoinAnswered(true);
+  const ready = !waitsForLanguage || joinAnswered;
 
   useEffect(() => {
-    if (!live || !joinAnswered) return;
+    if (!live || !ready) return;
     const timer = setTimeout(() => setJoinedDone(true), JOINED_MS);
     return () => clearTimeout(timer);
-  }, [live, joinAnswered]);
+  }, [live, ready]);
 
   let screen;
   if (ended) screen = <GuestEnded view={view} />;

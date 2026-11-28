@@ -15,15 +15,13 @@
 @import '@fontsource/plus-jakarta-sans/700.css';
 @import '@fontsource/plus-jakarta-sans/800.css';
 @import './notoFaces.css';
+@import './notoStacks.css';
 
 :root {
-  /* Fonts */
-  --sw-font-head:
-    'Plus Jakarta Sans', 'Inter', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC',
-    'Noto Sans TC', system-ui, sans-serif;
-  --sw-font-body:
-    'Inter', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC',
-    system-ui, sans-serif;
+  /* Fonts. The Noto stack is overridden per language in notoStacks.css. */
+  --sw-noto-stack: 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC';
+  --sw-font-head: 'Plus Jakarta Sans', 'Inter', var(--sw-noto-stack), system-ui, sans-serif;
+  --sw-font-body: 'Inter', var(--sw-noto-stack), system-ui, sans-serif;
   --sw-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* The slide canvas: every slide is drawn at this size and scaled to fit. */

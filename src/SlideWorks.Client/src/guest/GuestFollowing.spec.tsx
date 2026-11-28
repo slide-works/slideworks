@@ -33,6 +33,66 @@ test('mirrors state.current at the phone width with the waiting card and no side
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
+test('GuestFollowing_WhenSlideIsChinese_ShouldPutThatScriptsNotoFaceFirst', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const stackOf = async (code: string) => {
+    const state = { ...view.state, language: { code, fallbackLines: 0 } };
+    await mount(<GuestFollowing view={view} state={state} status="live" />);
+    const slide = page.getByTestId(GUEST_TEST_IDS.slide).getByTestId('slide-3');
+    return slide.evaluate((el) => ({
+      lang: el.closest('[lang]')?.getAttribute('lang'),
+      stack: getComputedStyle(el).getPropertyValue('--sw-noto-stack').replaceAll('"', "'"),
+    }));
+  };
+  const hans = await stackOf('zh-Hans');
+  expect(hans.lang).toBe('zh-Hans');
+  expect(hans.stack).toMatch(/^'Noto Sans Thai', 'Noto Sans SC', 'Noto Sans JP'/);
+});
+
+test('GuestFollowing_WhenSlideIsTraditionalChinese_ShouldPutNotoSansTcFirst', async ({
+  mount,
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const state = { ...view.state, language: { code: 'zh-Hant', fallbackLines: 0 } };
+  await mount(<GuestFollowing view={view} state={state} status="live" />);
+  const slide = page.getByTestId(GUEST_TEST_IDS.slide).getByTestId('slide-3');
+  const stack = await slide.evaluate((el) =>
+    getComputedStyle(el).getPropertyValue('--sw-noto-stack').replaceAll('"', "'"),
+  );
+  expect(stack).toMatch(/^'Noto Sans Thai', 'Noto Sans TC', 'Noto Sans JP'/);
+});
+
+for (const [code, noto] of [
+  ['zh-Hans', 'SC'],
+  ['zh-Hant', 'TC'],
+] as const) {
+  test(`GuestFollowing_When${code === 'zh-Hans' ? 'Simplified' : 'Traditional'}ChineseOnATemplateWithItsOwnFont_ShouldKeepTheTemplateFontOnTheLayout`, async ({
+    mount,
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const look = structuredClone(view.look);
+    look.template.type.head = 'Playfair Display';
+    look.template.type.body = 'Lora';
+    const state = { ...view.state, language: { code, fallbackLines: 0 } };
+    await mount(<GuestFollowing view={{ ...view, look }} state={state} status="live" />);
+    const heading = page.getByTestId(GUEST_TEST_IDS.slide).getByTestId('bullets-headline');
+    const family = (await heading.evaluate((el) => getComputedStyle(el).fontFamily)).replaceAll(
+      '"',
+      "'",
+    );
+    expect(family).toMatch(
+      new RegExp(
+        `^'Playfair Display', '?Lora'?, 'Noto Sans Thai', 'Noto Sans ${noto}', 'Noto Sans JP'`,
+      ),
+    );
+  });
+}
+
 test('a black state shows a black screen with no slide in it', async ({ mount, page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const state = { ...view.state, current: { ...view.state.current!, black: true } };

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PALETTES, TEMPLATES, lookViewOf } from '../test-support/fixtures/lookViewOf';
 import { lookStyle } from './lookStyle';
 
-const NOTO = "'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC'";
+const NOTO = 'var(--sw-noto-stack)';
 
 const styleOf = (template: string, palette: string) =>
   lookStyle(lookViewOf(template, palette)) as Record<string, string | number>;
@@ -40,10 +40,10 @@ describe('lookStyle', () => {
   it('lookStyle_WhenTemplateFonts_ShouldAppendNotoFallbacks', () => {
     const style = styleOf('talk', 'cobalt');
     expect(style['--sw-font-head']).toMatch(
-      /^'[^']+', '[^']+', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC', system-ui, sans-serif$/,
+      /^'[^']+', '[^']+', var\(--sw-noto-stack\), system-ui, sans-serif$/,
     );
     expect(style['--sw-font-body']).toMatch(
-      /^'[^']+', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC', system-ui, sans-serif$/,
+      /^'[^']+', var\(--sw-noto-stack\), system-ui, sans-serif$/,
     );
   });
 
