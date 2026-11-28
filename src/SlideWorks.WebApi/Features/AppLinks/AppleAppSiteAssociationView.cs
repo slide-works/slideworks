@@ -16,13 +16,3 @@ public sealed record AppleAppSiteAssociationView([property: JsonPropertyName("ap
         return new(new AppleAppLinksView([], [new AppleAppLinkDetailView([appId], components)]));
     }
 }
-
-public sealed record AppleAppLinksView(
-    [property: JsonPropertyName("apps")] IReadOnlyList<string> Apps,
-    [property: JsonPropertyName("details")] IReadOnlyList<AppleAppLinkDetailView> Details);
-
-public sealed record AppleAppLinkDetailView(
-    [property: JsonPropertyName("appIDs")] IReadOnlyList<string> AppIds,
-    [property: JsonPropertyName("components")] IReadOnlyList<AppleAppLinkComponentView> Components);
-
-public sealed record AppleAppLinkComponentView([property: JsonPropertyName("/")] string Path);
