@@ -112,8 +112,6 @@ test('Landscape_WhenOverlayReopenedAfterRefusal_ShouldNotShowMessage', async ({ 
   await tapSurface(page).click();
   await page.getByTestId(GUEST_TEST_IDS.landscapeFullscreen).click();
   await expect(page.getByTestId(GUEST_TEST_IDS.landscapeFullscreenError)).toBeVisible();
-  // The press moved focus into the overlay; move it out so the timer may hide the overlay.
-  await page.evaluate(() => (document.activeElement as HTMLElement).blur());
   await page.clock.runFor(3100);
   await expect(page.getByTestId(GUEST_TEST_IDS.landscapeOverlay)).toBeHidden();
 
@@ -131,7 +129,8 @@ test('Landscape_WhenFocusInsideOverlay_ShouldStayUntilFocusLeaves', async ({ mou
   const overlay = page.getByTestId(GUEST_TEST_IDS.landscapeOverlay);
   const button = page.getByTestId(GUEST_TEST_IDS.landscapeFullscreen);
   await tapSurface(page).click();
-  await button.focus();
+  await page.keyboard.press('Tab');
+  await expect(button).toBeFocused();
   await page.clock.runFor(5000);
   await expect(overlay).toBeVisible();
   await expect(button).toBeFocused();
@@ -139,6 +138,21 @@ test('Landscape_WhenFocusInsideOverlay_ShouldStayUntilFocusLeaves', async ({ mou
   await button.blur();
   await page.clock.runFor(3100);
   await expect(overlay).toBeHidden();
+});
+
+test('Landscape_WhenFullscreenPressedWithPointer_ShouldHideAfterThreeSeconds', async ({
+  mount,
+  page,
+}) => {
+  await page.clock.install({ time: 0 });
+  await page.clock.pauseAt(1000);
+  await stubFullscreen(page, 'supported');
+  await page.setViewportSize(LANDSCAPE);
+  await mount(layer);
+  await tapSurface(page).click();
+  await page.getByTestId(GUEST_TEST_IDS.landscapeFullscreen).click();
+  await page.clock.runFor(3100);
+  await expect(page.getByTestId(GUEST_TEST_IDS.landscapeOverlay)).toBeHidden();
 });
 
 test('Landscape_WhenHiddenByTapWithFocusInside_ShouldFocusTapSurface', async ({ mount, page }) => {
@@ -213,6 +227,21 @@ test('PortraitHint_WhenNothingFollows_ShouldFocusParentOnClose', async ({ mount,
   await page.getByRole('button', { name: 'Close hint' }).click();
   await expect(page.getByTestId(GUEST_TEST_IDS.portraitHint)).toHaveCount(0);
   await expect(page.locator('#root')).toBeFocused();
+});
+
+test('PortraitHint_WhenInertContentFollows_ShouldFocusNextRealControl', async ({ mount, page }) => {
+  await page.setViewportSize(PORTRAIT);
+  await mount(
+    <>
+      <PortraitHint />
+      <div inert>
+        <a href="#mirror">Mirror link</a>
+      </div>
+      <button type="button">Real control</button>
+    </>,
+  );
+  await page.getByRole('button', { name: 'Close hint' }).click();
+  await expect(page.getByRole('button', { name: 'Real control' })).toBeFocused();
 });
 
 test('PortraitHint_WhenTabletPortrait_ShouldBeHidden', async ({ mount, page }) => {

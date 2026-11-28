@@ -7,17 +7,19 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
 
 // Closing the hint removes the focused button, so focus goes to the next focusable element after the hint, or to the
-// hint's parent when nothing follows it.
+// hint's parent when nothing usable follows it. Anything inside an inert subtree (the slide mirror) cannot take focus
+// and is skipped.
 function moveFocusPast(hint: HTMLElement): void {
   const next = Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE)).find(
     (element) =>
       !hint.contains(element) &&
       (hint.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0 &&
+      element.closest('[inert]') === null &&
       element.getClientRects().length > 0,
   );
   if (next !== undefined) {
     next.focus();
-    return;
+    if (document.activeElement === next) return;
   }
   const parent = hint.parentElement;
   if (parent === null) return;
