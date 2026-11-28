@@ -52,7 +52,7 @@ public class GuestViews(
         var presenter = await db.Users.AsNoTracking().Where(u => u.Id == deck.OwnerId).Select(u => u.Name).SingleAsync();
         // The relay answers null only for a deck with no session, and the sessions just found one: that is a fault, not a
         // lobby to make up.
-        var state = await relay.CurrentAsync(found.DeckId)
+        var state = await relay.CurrentAsync(found.DeckId, null)
             ?? throw new InvalidOperationException($"The relay has no state for deck {found.DeckId}, which has a session.");
         return new GuestView(
             deck.Title,

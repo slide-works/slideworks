@@ -115,7 +115,7 @@ public class JoinAudienceRaceTests : ApiTestFixture
             Volatile.Write(ref _reads, 0);
         }
 
-        public Task<AudienceState?> CurrentAsync(string deckId) => Script(Interlocked.Increment(ref _reads), deckId);
+        public Task<AudienceState?> CurrentAsync(string deckId, string? language) => Script(Interlocked.Increment(ref _reads), deckId);
 
         public Task StartedAsync(string deckId) => Task.CompletedTask;
 

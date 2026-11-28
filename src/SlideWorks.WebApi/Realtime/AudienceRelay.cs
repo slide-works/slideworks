@@ -7,7 +7,8 @@ namespace SlideWorks.WebApi.Realtime;
 [RegisterSingleton(For = typeof(IAudienceRelay))]
 public sealed class AudienceRelay(AudienceFeed feed) : IAudienceRelay
 {
-    public Task<AudienceState?> CurrentAsync(string deckId) => feed.CurrentAsync(deckId);
+    // TODO: the language is ignored and every state is the primary one; composing in the guest's language replaces this.
+    public Task<AudienceState?> CurrentAsync(string deckId, string? language) => feed.CurrentAsync(deckId);
 
     public Task StartedAsync(string deckId) => feed.StartedAsync(deckId);
 

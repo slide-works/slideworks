@@ -151,7 +151,8 @@ public sealed class DeckHub(
         await Groups.AddToGroupAsync(Context.ConnectionId, AudienceGroupName(found.DeckId));
         // Read again now the guest is in the group: a state published between the first read and the join would otherwise
         // be missed by this guest. A state that arrives after this read reaches it through the group.
-        var state = await relay.CurrentAsync(found.DeckId);
+        // In the primary language (SW-883 K5): SetLanguage moves the guest to another.
+        var state = await relay.CurrentAsync(found.DeckId, null);
         if (state == null)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, AudienceGroupName(found.DeckId));

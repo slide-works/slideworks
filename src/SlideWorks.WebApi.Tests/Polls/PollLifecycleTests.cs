@@ -788,7 +788,7 @@ public class PollLifecycleTests : PollTestFixture
 
     private sealed class OrderedRelay(FakeAudienceRelay inner, CallOrder order, IServiceScopeFactory scopes) : IAudienceRelay
     {
-        public Task<AudienceState?> CurrentAsync(string deckId) => inner.CurrentAsync(deckId);
+        public Task<AudienceState?> CurrentAsync(string deckId, string? language) => inner.CurrentAsync(deckId, language);
 
         public Task StartedAsync(string deckId) => inner.StartedAsync(deckId);
 
