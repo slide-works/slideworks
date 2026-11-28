@@ -12,6 +12,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-9-qa-reactions/`](sw-9-qa-reactions/) | SW-9 Audience Q&A and reactions | Built (decisions D1–D22 settled) |
 | [`sw-50-custom-templates/`](sw-50-custom-templates/) | SW-50 Custom templates, and the layout gaps a real deck found | Partly built: the template editor and the new layouts are on main; template bundles (upload and download) and custom layouts are not built yet. Decisions D4–D17 settled; D18–D48 recorded as recommended, not reviewed |
 | [`sw-108-profile-sharing/`](sw-108-profile-sharing/) | SW-108 Profile page and sharing decks with people | Mockups reviewed 22 Nov; decisions D12 and D24–D32 settled, D33 open; not built |
+| [`sw-883-translations/`](sw-883-translations/) | SW-883 Slide translations, and the guest phone's full-screen landscape | Mockups reviewed 28 Nov; decisions D1–D9 settled; not built |
 
 ## SW-1 Foundation
 
@@ -337,3 +338,41 @@ D1–D11 and D13–D23 are on SW-108. These are the ones the mockups show:
 - **D31. User menu:** Profile, People (admin) for admins, and Sign out. The top-bar badge for people waiting stays.
 - **D32. Per deck, full email every time:** a new deck is shared with nobody. Each deck is shared on its own, by typing each person's full email, every time. There is no favourites list, autocomplete, search or "People you share with" panel. This replaces D5 and D9.
 - **D33 (open, recommended). What the limit counts:** each distinct email the sharer newly added to any of their decks in the last hour or day. Adding one person to five decks counts once.
+
+## SW-883 Slide translations
+
+Open [`sw-883-translations/sw-883-mockups.html`](sw-883-translations/sw-883-mockups.html) in a browser. A deck can carry translations of its slides. Each guest picks a language on the phone, while the big screen, the presenter window, the phone remote and the notes stay in the deck's primary language.
+
+The live demo works. Step through the deck on the laptop, switch the phone between English, ไทย, 日本語 and Español with its language chip, and turn the phone sideways. A dashed outline marks a line that falls back to English; the outline is for review only and is not in the app. The PNGs are screenshots of each section at 1300 px wide.
+
+| Screen | PNG |
+|---|---|
+| Scope: what is translated and what stays in the primary language | [01-scope](sw-883-translations/png/sw-883-01-scope.png) |
+| Live demo: the presenter in English and a guest's phone in four languages | [02-live-demo](sw-883-translations/png/sw-883-02-live-demo.png) |
+| The new phone states: joined in the phone's language, the language sheet, a line in English, a translated poll, the landscape hint, a deck without translations, landscape on Android | [03-phone-states](sw-883-translations/png/sw-883-03-phone-states.png) |
+| Landscape: SW-5's CI baseline beside what SW-883 adds | [04-landscape](sw-883-translations/png/sw-883-04-landscape.png) |
+| The deck page's Translations card, off and on | [05-deck-page](sw-883-translations/png/sw-883-05-deck-page.png) |
+| Three ways to store translations | [06-storage](sw-883-translations/png/sw-883-06-storage.png) |
+| The agent's side: an MCP session and the tools | [07-agent-mcp](sw-883-translations/png/sw-883-07-agent-mcp.png) |
+| How each phone gets its language through `DeckHub` | [08-realtime](sw-883-translations/png/sw-883-08-realtime.png) |
+| Design questions and the answers given | [09-questions-answered](sw-883-translations/png/sw-883-09-questions-answered.png) |
+
+`as-built-landscape.png` is the `guest-following-landscape` CI baseline on main. Section 04 shows it for comparison. Landscape full screen was built in SW-5 (`GuestFollowing.tsx`), so SW-883 only adds to it.
+
+### Decisions (2026-11-28)
+
+- **D1. Storage:** translations sit beside the slots, keyed by slot path (JSON pointer). Each entry holds the text and the primary text it was translated from (`from`). The slots stay plain primary-language strings, and one merge applies a language before rendering, so the renderer, fit check, lint, PDF export and share card don't change. When a slide's slots are replaced, the server re-keys the entries it can match, and the others go stale.
+- **D2. Picker:** a language chip in the guest header next to Live. It opens a sheet listing the deck's languages in their own names, with how complete each one is. The choice changes only that phone.
+- **D3. Starting language:** the phone's own language when the deck has it, with a one-line banner offering to change it. Otherwise the primary language. The choice is kept for the session.
+- **D4. App text:** SW-883 translates slides only. The guest app's own text (tabs, the waiting card, the poll card's hints, the privacy sheet) stays English, and translating it is a separate Feature.
+- **D5. Turning it on:** off by default for every deck. `set_translations` over MCP turns it on, as does a switch on the deck page's Translations card, which also lists coverage for each language.
+- **D6. Landscape:** SW-5's full-screen slide, plus a tap overlay for 3 seconds (slide number, Live chip, language chip, progress), a one-time portrait hint ("Turn sideways to read the slide full screen"), and a Full screen button in the overlay where the browser supports it (Android Chrome, not iPhone Safari). Pinch to zoom is out.
+- **D7. Presenter:** a small "Reading in" counter next to the live chip, shown only when translations are on.
+- **D8. Translating:** the agent writes the translations over MCP. SlideWorks only stores them, fit-checks them in the language's font, and tracks which are stale. There is no machine-translation provider.
+- **D9. Stale lines and right-to-left:** a stale line shows the primary text until it is translated again. Right-to-left languages are a later Feature.
+
+Proposed in the mockups for the plan to confirm:
+
+- **MCP.** New tools: `set_translations` (on or off, primary language, language list) and `translate_slides` (one language, many slides, each slide's revision; `null` removes a line). `get_deck` and `preview_deck` take a `language`. `check_deck` checks every language. `update_slide` warns about the lines it made stale.
+- **Realtime.** A guest calls `setLanguage` on `DeckHub` and joins `audience:{session}:{lang}`. On each move the hub sends each language group the current slide with its language already merged, so the guest renderer doesn't change. Polls count by option index, so every language adds to the same bars.
+- **Fonts.** Each language gets a Noto fallback (Noto Sans Thai, Noto Sans JP and so on), and the fit check measures with that font, using SW-50 D8's font widths.

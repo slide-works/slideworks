@@ -1,0 +1,976 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-883 mockups: slide translations and full-screen landscape</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&family=Noto+Sans+Thai:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   Review-page chrome: the same light ledger as the SW-5 / SW-9 mockups
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", "Noto Sans Thai", "Noto Sans JP", system-ui, sans-serif;
+  --head: "Plus Jakarta Sans", "Noto Sans Thai", "Noto Sans JP", "Inter", sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+
+  /* SlideWorks app tokens (src/SlideWorks.Client/src/theme/tokens.css) */
+  --sw-night: #0b1020; --sw-night-2: #cbd5e1; --sw-night-muted: #8c97ad; --sw-night-line: #334155;
+  --sw-accent: #2f5bea; --sw-accent-light: #e4eafd; --sw-accent-glow: #a5b8ff; --sw-accent-dark: #1e3a8a;
+  --sw-paper: #f7f8fa; --sw-card: #fff; --sw-ink: #111827; --sw-muted: #5b6474; --sw-grid: #e3e6ec;
+  --sw-good: #16a34a; --sw-warn: #ea580c; --sw-bad: #dc2626; --sw-stamp: #fcd34d;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 16px 80px; }
+h1, h2, h3 { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+:where(p, li, td, th, .pill) { overflow-wrap: anywhere; }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 22px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { margin: 0; color: var(--muted); max-width: 860px; font-size: 15px; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 10px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 900px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); font: 500 13px/1.2 var(--ui); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); }
+
+/* scope */
+.scope { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .scope { grid-template-columns: minmax(0, 1fr); } }
+.scope .card { padding: 16px 18px; }
+.scope h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.scope ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.scope li { position: relative; padding-left: 22px; }
+.scope li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.scope .later-list li::before { background: var(--later); opacity: .55; }
+.note-card { margin-top: 16px; padding: 12px 16px; border-color: #c7d3fb; background: #f6f8ff; }
+.note-card b { font-weight: 600; color: var(--accent-dark); }
+
+/* =====================================================================
+   Phone frame + the guest page (mobile web, SlideWorks tokens)
+   ===================================================================== */
+.phone { width: 292px; max-width: 100%; margin: 0 auto; border-radius: 40px; padding: 10px; background: #11151d; box-shadow: var(--raise), inset 0 0 0 2px #2a303b; }
+.ps { position: relative; border-radius: 31px; overflow: hidden; height: 600px; display: flex; flex-direction: column; color: #fff; font-family: var(--ui);
+  background: radial-gradient(420px 320px at 100% 105%, rgb(47 91 234 / .38), transparent 62%), radial-gradient(300px 260px at -10% -8%, rgb(47 91 234 / .12), transparent 60%), var(--sw-night); }
+.sbar { flex: none; height: 38px; padding: 12px 22px 0; display: flex; justify-content: space-between; font: 600 12.5px/1 var(--ui); }
+.sbar .ic { display: flex; gap: 5px; align-items: center; }
+.sbar .ic i { display: block; width: 15px; height: 9px; border-radius: 2px; border: 1.5px solid currentColor; opacity: .9; }
+.sbar .ic b { display: block; width: 4px; height: 9px; background: currentColor; border-radius: 1px; opacity: .9; }
+.island { position: absolute; top: 10px; left: 50%; translate: -50% 0; width: 84px; height: 22px; border-radius: 12px; background: #000; z-index: 5; }
+.pbody { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 16px 10px; gap: 12px; position: relative; }
+.urlbar { flex: none; margin: 0 14px 12px; padding: 8px 12px; border-radius: 13px; background: rgb(255 255 255 / .1); display: flex; gap: 6px; align-items: center; justify-content: center; font: 500 12px/1 var(--ui); color: rgb(255 255 255 / .82); }
+.urlbar svg { width: 10px; height: 10px; }
+
+.g-top { display: flex; align-items: center; gap: 8px; }
+.g-mark { width: 22px; height: 22px; border-radius: 6px; background: var(--sw-accent); display: grid; place-items: center; font: 800 11px/1 var(--head); color: #fff; flex: none; }
+.g-deck { min-width: 0; flex: 1; }
+.g-deck b { display: block; font: 700 13px/1.2 var(--head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-deck span { display: block; font-size: 11px; color: var(--sw-night-muted); }
+.live { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font: 600 10.5px/1 var(--ui); background: rgb(22 163 74 / .18); color: #86efac; white-space: nowrap; }
+.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
+
+/* NEW: the language chip in the guest header */
+.lang { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 3px 8px 3px 7px; border-radius: 999px; font: 600 11px/1 var(--ui); background: rgb(255 255 255 / .1); color: #fff; white-space: nowrap; cursor: pointer; outline: 1px solid rgb(165 184 255 / .35); }
+.lang:focus-visible { outline: 2px solid var(--sw-accent-glow); }
+.lang svg { width: 13px; height: 13px; color: var(--sw-accent-glow); flex: none; }
+.lang .car { font-size: 8px; opacity: .7; }
+.new-ring { box-shadow: 0 0 0 3px rgb(122 90 248 / .55); }
+
+.mirror { border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgb(0 0 0 / .35); outline: 1px solid rgb(255 255 255 / .08); flex: none; }
+.slidemeta { display: flex; justify-content: space-between; align-items: center; font: 500 11px/1 var(--ui); color: var(--sw-night-muted); margin-top: -4px; }
+.slidemeta .prog { flex: 1; height: 3px; margin: 0 10px; border-radius: 3px; background: rgb(255 255 255 / .12); overflow: hidden; }
+.slidemeta .prog i { display: block; height: 100%; background: var(--sw-accent-glow); }
+.fallnote { display: flex; gap: 6px; align-items: center; margin-top: -6px; font-size: 11px; color: #fcd9a8; }
+.fallnote i { width: 6px; height: 6px; border-radius: 50%; background: #fb923c; flex: none; }
+.hint { display: flex; gap: 8px; align-items: center; margin-top: -4px; padding: 8px 10px; border-radius: 10px; background: rgb(165 184 255 / .12); font-size: 11.5px; color: var(--sw-night-2); }
+.hint svg { width: 18px; height: 18px; color: var(--sw-accent-glow); flex: none; }
+.hint button { all: unset; margin-left: auto; color: var(--sw-night-muted); font-size: 11px; cursor: pointer; }
+
+.wait { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 8px; padding: 0 8px; border-radius: 14px; border: 1px dashed rgb(255 255 255 / .16); min-height: 0; }
+.wait .dots { display: flex; gap: 6px; }
+.wait .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--sw-accent-glow); opacity: .3; animation: blink 1.4s infinite; }
+.wait .dots i:nth-child(2) { animation-delay: .2s; } .wait .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 40% { opacity: 1; } }
+.wait b { font: 700 14px/1.3 var(--head); }
+.wait p { margin: 0; font-size: 12px; line-height: 1.45; color: var(--sw-night-2); }
+
+.activity { flex: 1; min-height: 0; border-radius: 14px; background: #fff; color: var(--sw-ink); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.activity .tag { align-self: flex-start; font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--later); background: var(--later-soft); padding: 4px 7px; border-radius: 5px; }
+.activity b { font: 700 14.5px/1.3 var(--head); }
+.activity .opt { padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--sw-grid); font-size: 13px; font-weight: 500; }
+.activity .opt.on { border-color: var(--sw-accent); background: var(--sw-accent-light); }
+.activity .note { margin-top: auto; font-size: 11px; color: var(--sw-muted); }
+.activity.poll { gap: 5px; padding: 9px 12px; overflow: hidden; }
+.activity.poll b { font-size: 13.5px; }
+.activity.poll .opt { padding: 5px 10px; font-size: 12.5px; }
+
+.tabs { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: rgb(255 255 255 / .09); }
+.tabs span { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border-radius: 10px; font: 600 13px/1 var(--ui); color: var(--sw-night-2); }
+.tabs span.on { background: #fff; color: var(--sw-ink); }
+.tabs .bdg { font: 700 10.5px/1 var(--ui); padding: 3px 6px; border-radius: 999px; background: var(--sw-accent); color: #fff; }
+.rx { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.rx span { display: grid; place-items: center; min-height: 40px; border-radius: 12px; background: rgb(255 255 255 / .09); font-size: 18px; line-height: 1; }
+
+.banner { position: absolute; left: 12px; right: 12px; top: 4px; z-index: 4; padding: 10px 12px; border-radius: 12px; font-size: 12px; line-height: 1.35; display: flex; gap: 8px; align-items: center; background: #1e2a55; color: #e4eafd; box-shadow: 0 8px 24px rgb(0 0 0 / .45); outline: 1px solid rgb(165 184 255 / .35); }
+.banner svg { width: 16px; height: 16px; color: var(--sw-accent-glow); flex: none; }
+.banner .act { all: unset; margin-left: auto; font-weight: 700; color: var(--sw-accent-glow); cursor: pointer; white-space: nowrap; }
+
+.sheet-dim { position: absolute; inset: 0; background: rgb(0 0 0 / .55); z-index: 6; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 7; background: #161c2c; border-radius: 20px 20px 0 0; padding: 10px 16px 20px; display: grid; gap: 10px; }
+.sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .25); margin: 0 auto 2px; }
+.sheet h4 { margin: 0; font: 700 16px/1.25 var(--head); }
+.sheet .sub { margin: -4px 0 0; font-size: 12px; color: var(--sw-night-muted); }
+.langlist { display: grid; gap: 6px; }
+.langlist button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) 20px; align-items: center; gap: 8px; min-height: 48px; padding: 8px 12px; border-radius: 12px; background: rgb(255 255 255 / .06); cursor: pointer; }
+.langlist button:focus-visible { outline: 2px solid var(--sw-accent-glow); }
+.langlist button.on { background: rgb(47 91 234 / .28); outline: 1.5px solid var(--sw-accent-glow); }
+.langlist b { display: block; font: 700 14px/1.2 var(--head); }
+.langlist small { display: block; font-size: 11px; color: var(--sw-night-muted); margin-top: 2px; }
+.langlist small.part { color: #fcd9a8; }
+.langlist .tickc { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid rgb(255 255 255 / .3); display: grid; place-items: center; font-size: 11px; }
+.langlist button.on .tickc { background: var(--sw-accent); border-color: var(--sw-accent); }
+.sheet .foot-note { font-size: 11.5px; color: var(--sw-night-2); line-height: 1.45; }
+
+/* landscape phone */
+.phone.land { width: 620px; border-radius: 34px; }
+.phone.land .ps { height: 280px; border-radius: 26px; align-items: center; justify-content: center; background: #000; }
+.phone.land .ps .mirror { width: 480px; border-radius: 0; box-shadow: none; outline: none; cursor: pointer; }
+.land-over { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.land-over.show { opacity: 1; }
+.land-over .bar { position: absolute; left: 70px; right: 70px; top: 0; padding: 10px 12px 18px; display: flex; align-items: center; gap: 8px; background: linear-gradient(rgb(0 0 0 / .72), transparent); font: 600 11px/1 var(--ui); color: #fff; pointer-events: auto; }
+.land-over .bar .sp { flex: 1; }
+.fsbtn { all: unset; display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 3px 9px; border-radius: 999px; background: rgb(255 255 255 / .14); font: 600 11px/1 var(--ui); color: #fff; cursor: pointer; pointer-events: auto; }
+.fsbtn svg { width: 12px; height: 12px; }
+.land-over .bar .lang { pointer-events: auto; }
+.land-over .bot { position: absolute; left: 70px; right: 70px; bottom: 0; height: 3px; background: rgb(255 255 255 / .15); }
+.land-over .bot i { display: block; height: 100%; background: var(--sw-accent-glow); }
+.phone.land .sheet { left: auto; top: 0; width: 250px; border-radius: 20px 0 0 20px; padding: 14px; align-content: start; overflow: auto; }
+.phone.land .sheet .grab { display: none; }
+.phone.land .langlist button { min-height: 40px; padding: 6px 10px; }
+.zoomed .mirror .frame > .sl { transform: scale(calc(var(--s) * 1.7)) translate(-6%, -10%); }
+
+.states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 18px; }
+@media (max-width: 1100px) { .states { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .states { grid-template-columns: minmax(0, 1fr); } }
+.states .wide { grid-column: span 2; }
+@media (max-width: 1100px) { .states .wide { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .phone.land { width: 100%; } .phone.land .ps .mirror { width: 78%; } }
+.st-cap { margin-top: 10px; display: grid; gap: 3px; }
+.st-cap b { font-weight: 600; }
+.st-cap span { color: var(--muted); font-size: 12.5px; }
+
+/* =====================================================================
+   Slides (drawn at 960x540, half the 1920x1080 canvas, scaled to fit)
+   ===================================================================== */
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sw-paper); }
+.frame > .sl { position: absolute; left: 0; top: 0; transform: scale(var(--s, .3)); transform-origin: 0 0; }
+.sl { width: 960px; height: 540px; padding: 75px 60px 60px; display: flex; flex-direction: column; background: var(--sw-paper); color: var(--sw-ink); font-family: var(--ui); position: relative; overflow: hidden; }
+.sl::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--sw-accent); }
+.sl.dark { color: #fff; background: radial-gradient(550px 350px at 88% 112%, rgb(47 91 234 / .45), transparent 62%), radial-gradient(450px 300px at -5% -10%, rgb(125 150 255 / .12), transparent 60%), var(--sw-night); }
+.sl .kick { font: 600 13px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--sw-accent); margin-bottom: 14px; }
+.sl.dark .kick { color: var(--sw-accent-glow); }
+.sl h2 { font: 800 50px/1.12 var(--head); letter-spacing: -.02em; margin: 0; }
+.sl h3 { font: 700 30px/1.2 var(--head); margin: 0 0 22px; letter-spacing: -.01em; }
+.sl .sub { margin-top: 18px; font-size: 19px; color: var(--sw-night-2); }
+.sl .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; }
+.sl .cards div { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 2px rgb(15 23 42 / .06), 0 14px 36px rgb(15 23 42 / .09); }
+.sl .cards b { display: block; font: 700 20px/1.25 var(--head); margin-bottom: 8px; }
+.sl .cards span { font-size: 15px; color: var(--sw-muted); line-height: 1.5; }
+.sl .cards .num { font: 800 36px/1 var(--head); color: var(--sw-accent); margin-bottom: 10px; }
+.sl .statement { flex: 1; display: flex; align-items: center; font: 800 52px/1.16 var(--head); letter-spacing: -.02em; max-width: 800px; }
+.sl .statement em { font-style: normal; color: var(--sw-accent); }
+.sl .pollopts { display: grid; gap: 12px; max-width: 640px; }
+.sl .pollopts div { display: flex; justify-content: space-between; padding: 14px 18px; border-radius: 10px; background: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .06); font-size: 18px; font-weight: 500; }
+.sl .pollopts div span { color: var(--sw-muted); font-size: 14px; }
+.sl .sprog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--sw-accent); }
+.sl .foot { position: absolute; left: 60px; right: 60px; bottom: 16px; display: flex; justify-content: space-between; font-size: 11px; color: var(--sw-muted); }
+.sl.dark .foot { color: var(--sw-night-muted); }
+.sl .fb { outline: 2px dashed #fb923c; outline-offset: 3px; border-radius: 3px; }
+.hide-fb .sl .fb { outline: none; }
+
+/* =====================================================================
+   Live demo: presenter laptop + guest phone
+   ===================================================================== */
+.demo { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; }
+.demo.is-land { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 980px) { .demo { grid-template-columns: minmax(0, 1fr); } }
+.laptop { background: #1a1f2b; border-radius: 14px 14px 4px 4px; padding: 10px 10px 0; box-shadow: var(--raise); }
+.laptop .scr { border-radius: 6px; overflow: hidden; background: #000; }
+.laptop .base { height: 14px; margin: 0 -26px; background: linear-gradient(#c9ced8, #a9b0bd); border-radius: 0 0 14px 14px; }
+@media (max-width: 680px) { .laptop .base { margin: 0 -10px; } }
+.ptool { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #0f1420; color: #cbd5e1; font: 500 12px/1 var(--ui); }
+.ptool .tb { border: 0; background: rgb(255 255 255 / .08); color: #fff; padding: 6px 9px; border-radius: 6px; font: 600 12px/1 var(--ui); cursor: pointer; }
+.ptool .tb:disabled { opacity: .35; cursor: default; }
+.ptool .count { font-family: var(--mono); color: #94a3b8; }
+.ptool .sp { flex: 1; }
+.ptool .livechip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 6px; background: rgb(22 163 74 / .18); color: #86efac; font: 600 12px/1 var(--ui); }
+.ptool .livechip b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.ptool .livechip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.ptool .langmix { display: inline-flex; gap: 8px; align-items: center; padding: 5px 9px; border-radius: 6px; background: rgb(122 90 248 / .2); color: #ddd6fe; font: 500 11.5px/1 var(--ui); }
+.ptool .langmix b { color: #fff; font-weight: 600; }
+.dctl { margin-top: 14px; padding: 12px 14px; display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center; }
+.dctl .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+.dctl label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
+.demo-notes { margin: 12px 0 0; padding: 0 0 0 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+
+/* compare: as built vs proposed */
+.cmp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 980px) { .cmp { grid-template-columns: minmax(0, 1fr); } }
+.cmp .card { padding: 14px; display: grid; gap: 12px; align-content: start; }
+.cmp h3 { font: 600 14px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.shot { border-radius: 22px; padding: 8px; background: #11151d; box-shadow: inset 0 0 0 2px #2a303b; }
+.shot img { display: block; width: 100%; border-radius: 15px; }
+.cmp .phone.land { width: 100%; }
+.cmp .phone.land .ps .mirror { width: 80%; }
+.demo.is-land > div:first-child { max-width: 880px; }
+.cmp ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+
+/* deck page card */
+.deckpage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 900px) { .deckpage { grid-template-columns: minmax(0, 1fr); } }
+.dp { padding: 0; overflow: hidden; }
+.dp .dphead { padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; font: 600 12px/1 var(--ui); color: var(--muted); background: var(--surface-2); }
+.dp .dpbody { padding: 16px; display: grid; gap: 12px; }
+.set { border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; }
+.set.new { border-color: #c4b5fd; box-shadow: 0 0 0 3px var(--later-soft); }
+.set.dimmed { opacity: .55; }
+.set .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.set h4 { margin: 0; font: 600 14px/1.3 var(--ui); flex: 1; }
+.set p { margin: 0; font-size: 13px; color: var(--muted); }
+.sw { width: 34px; height: 20px; border-radius: 999px; background: var(--line-2); position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+.sw.on { background: var(--accent); }
+.sw.on::after { left: 16px; }
+.field { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.field .lbl { color: var(--muted); min-width: 120px; }
+.sel { display: inline-flex; gap: 8px; align-items: center; padding: 5px 10px; border: 1px solid var(--line-2); border-radius: 6px; background: #fff; font-size: 13px; }
+.cov { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cov td { padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: middle; }
+.cov td.l b { font: 700 14px/1.2 var(--head); }
+.cov td.l span { display: block; font-size: 11.5px; color: var(--muted); }
+.cov .meter { width: 90px; height: 6px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.cov .meter i { display: block; height: 100%; background: var(--ok); }
+.cov .meter i.part { background: var(--warn); }
+.cov td.n { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* options + code */
+.opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1050px) { .opts { grid-template-columns: minmax(0, 1fr); } }
+.opt-card { padding: 16px; display: grid; gap: 10px; align-content: start; }
+.opt-card.rec { border-color: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.opt-card h3 { font: 600 15px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.opt-card .pc { display: grid; gap: 4px; font-size: 13px; }
+.opt-card .pc div { padding-left: 18px; position: relative; color: var(--muted); }
+.opt-card .pc .p::before { content: "+"; position: absolute; left: 2px; color: var(--ok); font-weight: 700; }
+.opt-card .pc .c::before { content: "−"; position: absolute; left: 2px; color: var(--bad); font-weight: 700; }
+pre.code { margin: 0; padding: 12px 14px; border-radius: 8px; background: #0f1420; color: #dbe4f3; font: 400 12px/1.55 var(--mono); overflow-x: auto; white-space: pre; }
+pre.code .k { color: #a5b8ff; } pre.code .s { color: #86efac; } pre.code .c { color: #8c97ad; } pre.code .w { color: #fdba74; }
+.mcp { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 1000px) { .mcp { grid-template-columns: minmax(0, 1fr); } }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 10px; border-bottom: 1px solid var(--line); }
+.tbl td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl td:first-child { font-family: var(--mono); font-size: 12.5px; color: var(--accent-dark); white-space: nowrap; }
+.tbl tr:last-child td { border-bottom: 0; }
+.diagram { padding: 18px; overflow: hidden; }
+.diagram svg { width: 100%; height: auto; display: block; font-family: var(--ui); }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px 18px; }
+.q h3 { font: 600 15px/1.35 var(--ui); margin-bottom: 4px; }
+.q .why { color: var(--muted); margin: 0 0 10px; }
+.q .choices { display: grid; gap: 6px; }
+.q label.choice { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.q label.choice:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.q label.choice input { margin: 3px 0 0; accent-color: var(--accent); }
+.q label.choice b { font-weight: 600; }
+.q label.choice span:not(.rec) { display: block; color: var(--muted); font-size: 12.5px; }
+.q .rec { display: inline-block; font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.q textarea { width: 100%; margin-top: 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.4 var(--ui); resize: vertical; }
+.q .qfoot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.q .state { font-size: 12.5px; color: var(--faint); }
+.q .state.queued { color: var(--ok); font-weight: 600; }
+.copyall { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.copyall textarea { width: 100%; }
+</style>
+<script type="application/json" data-lavish-revisions>
+[{ "id": "r1", "label": "Round 1", "timestamp": "2026-11-28T11:40:00+07:00", "summary": "Joel answered Q1–Q9: all as recommended, and Q6 adds the Android Full screen button (no pinch to zoom). Recorded as D1–D9 on SW-883." }]
+</script>
+</head>
+<body>
+<main>
+
+<header class="page-head">
+  <div class="eyebrow">SlideWorks · SW-883 · design mockups · 28 Nov 2026</div>
+  <h1>Slide translations: each guest reads the slides in their own language</h1>
+  <p>A deck can carry translations of its slides. It is off by default, and an agent turns it on over MCP. A guest on the phone picks a language and sees the slides in it, while the big screen, the presenter window and the phone remote stay in the deck's primary language. Turning the phone sideways shows the slide full screen. The phone and slide styles come from the SW-5 and SW-9 mockups and the app's <code>tokens.css</code>.</p>
+</header>
+
+<nav class="toc">
+  <a href="#scope">01 Scope</a><a href="#demo">02 Live demo</a><a href="#states">03 Phone states</a><a href="#landscape">04 Landscape</a><a href="#deckpage">05 Deck page</a><a href="#model">06 Storage</a><a href="#mcp">07 MCP</a><a href="#flow">08 Realtime</a><a href="#questions">09 Questions</a>
+</nav>
+
+<!-- 01 -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">01</span><h2>What SW-883 ships</h2><span class="pill grey">off by default, per deck</span></div>
+  <div class="scope">
+    <div class="card">
+      <h3><span class="pill ok">ships</span> In this Feature</h3>
+      <ul>
+        <li><b>A translations setting on each deck.</b> It is off by default. <code>set_translations</code> turns it on and sets the primary language (English by default) and the other languages.</li>
+        <li><b>Translated text for each element.</b> Every text slot is the primary text, and each other language can have its own version. A missing line shows in the primary language.</li>
+        <li><b>A language picker on the guest phone.</b> It is a chip in the header that opens a sheet. The choice changes only that phone.</li>
+        <li><b>Translated polls.</b> The question and options are translated. Answers are counted by option, so every language adds to the same bars.</li>
+        <li data-lavish-revision="r1"><b>Landscape, finished.</b> The full-screen slide that SW-5 built, plus the language, a tap overlay, a one-time hint and a "Full screen" button on Android (D6).</li>
+        <li><b>The visual check in every language.</b> <code>check_deck</code> and the fit check run on each language's text in that language's font.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="pill later">stays as it is</span> Not translated</h3>
+      <ul class="later-list">
+        <li>The big screen, the presenter window, the phone remote and the speaker notes all stay in the primary language.</li>
+        <li>What guests type, meaning questions and word-cloud or open-text answers, is shown as typed.</li>
+        <li>The guest app's own buttons and labels (tabs, the waiting card, the privacy sheet). That is a separate Feature (D4).</li>
+        <li>Right-to-left languages such as Arabic and Hebrew: a later Feature (D9).</li>
+        <li>SlideWorks doesn't translate anything itself: the agent writes the translations (D8).</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card note-card"><b>Landscape already exists.</b> SW-5 built it (<code>GuestFollowing.tsx</code>): on a phone turned sideways, the slide fills the height of the screen and everything else is hidden. Section 04 shows the CI baseline and what this Feature adds to it.</div>
+</section>
+
+<!-- 02 -->
+<section class="block" id="demo">
+  <div class="sec-head"><span class="n">02</span><h2>Live demo: one talk, read in four languages</h2><span class="pill ok">step the deck, switch the phone's language, turn it sideways</span></div>
+  <p class="sec-sub">The laptop is the presenter window, in English. The phone is a guest. Tap its language chip to switch, or use the buttons under the laptop. Slide 5 has one line nobody has translated into 日本語 yet, so it shows in English with a dashed outline here (the outline is for this review, not the app). Slide 4 is a poll: every language's answers count on the same bars.</p>
+  <div class="demo" id="demoWrap">
+    <div>
+      <div class="laptop">
+        <div class="scr">
+          <div class="ptool">
+            <button class="tb" id="dPrev">◀ Prev</button><button class="tb" id="dNext">Next ▶</button>
+            <span class="count" id="dCount">1 / 6</span>
+            <span class="sp"></span>
+            <span class="langmix" title="D7: how many guests read each language"><span>Reading in</span><b>EN 31</b><b>ไทย 9</b><b>日本語 5</b><b>ES 2</b></span>
+            <span class="livechip">Live <b>47</b></span>
+          </div>
+          <div class="frame" id="dBig"></div>
+        </div>
+        <div class="base"></div>
+      </div>
+      <div class="card dctl">
+        <span class="lbl">Phone language</span>
+        <span id="dLangBtns" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span>
+        <span class="lbl" style="margin-left:6px">Phone</span>
+        <button class="btn" id="dRotate">↻ Turn sideways</button>
+        <label><input type="checkbox" id="dFb" checked> Outline untranslated lines</label>
+      </div>
+      <ul class="demo-notes">
+        <li>The presenter window never changes language. The purple "Reading in" counter is D7.</li>
+        <li>In landscape, tap the slide to show the overlay with the slide number and the language chip for 3 seconds.</li>
+      </ul>
+    </div>
+    <div id="dPhoneCol"><div class="phone" id="dPhoneFrame"><div class="ps" id="dPhone"></div></div></div>
+  </div>
+</section>
+
+<!-- 03 -->
+<section class="block" id="states">
+  <div class="sec-head"><span class="n">03</span><h2>Every phone state</h2></div>
+  <p class="sec-sub">These are the new states only. The lobby, reconnecting, ended, offline and privacy screens are SW-5's and don't change, except that a deck with translations shows the language chip in the header.</p>
+  <div class="states" id="stateGrid"></div>
+</section>
+
+<!-- 04 -->
+<section class="block" id="landscape">
+  <div class="sec-head"><span class="n">04</span><h2>Landscape: what is built, and what SW-883 adds</h2></div>
+  <p class="sec-sub">Today the phone takes the slide full screen as soon as it is sideways and under 500 px tall. D6 settled the additions: the overlay, the hint and Full screen on Android.</p>
+  <div class="cmp">
+    <div class="card">
+      <h3><span class="pill grey">as built</span> SW-5: <code>guest-following-landscape</code> baseline</h3>
+      <div class="shot"><img src="as-built-landscape.png" alt="CI screenshot of the guest page in landscape: the slide fills the height, black at the sides"></div>
+      <ul>
+        <li>The slide is sized to the height, with black bars at the sides. The header, progress, activity card, reactions, tabs and footer are hidden.</li>
+        <li>There is no way to see the slide number, the connection state or the language without turning the phone back.</li>
+        <li>On iPhone the browser's own bars can still show, because iOS Safari has no full-screen mode for a page element.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="pill ok">decided</span> The same, plus a tap overlay, the language and Full screen on Android</h3>
+      <div class="phone land" style="margin:0"><div class="ps" id="landProposed"></div></div>
+      <ul>
+        <li><b>A tap shows an overlay</b> for 3 seconds, with the slide number, the Live or Offline chip, the language chip and the progress line. A second tap hides it.</li>
+        <li><b>The language applies here too</b>, and the chip opens the list as a side panel.</li>
+        <li><b>A one-time hint</b> in portrait, "Turn sideways to read the slide full screen", which goes away once someone has turned the phone or closed the hint.</li>
+        <li data-lavish-revision="r1"><b>A "Full screen" button on Android</b>, in the overlay, which hides the browser's bars. iPhone Safari can't do this, so the button doesn't show there (D6).</li>
+        <li data-lavish-revision="r1" style="color:var(--faint)">Not in SW-883: pinch to zoom.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 05 -->
+<section class="block" id="deckpage">
+  <div class="sec-head"><span class="n">05</span><h2>Deck page: the Translations card</h2><span class="pill later">new card beside "Q&amp;A and reactions"</span></div>
+  <p class="sec-sub">The owner can see what an agent has done: which languages there are, how much of each is translated, and what went out of date when the English changed. The switch is here as well as over MCP (D5).</p>
+  <div class="deckpage">
+    <div class="card dp">
+      <div class="dphead">Shipping smaller changes · Settings <span class="pill grey" style="margin-left:auto">off (the default)</span></div>
+      <div class="dpbody">
+        <div class="set dimmed"><div class="row"><h4>Q&amp;A and reactions</h4><span class="sw on"></span></div><p>Questions open, reactions on.</p></div>
+        <div class="set new">
+          <div class="row"><h4>Translations</h4><span class="sw"></span></div>
+          <p>Off. Guests see the slides in English only.</p>
+          <p>Turn it on here, or ask your agent to add translations. It will call <code>set_translations</code>.</p>
+        </div>
+      </div>
+    </div>
+    <div class="card dp">
+      <div class="dphead">Shipping smaller changes · Settings <span class="pill ok" style="margin-left:auto">on, 3 languages</span></div>
+      <div class="dpbody">
+        <div class="set new">
+          <div class="row"><h4>Translations</h4><span class="sw on"></span></div>
+          <div class="field"><span class="lbl">Primary language</span><span class="sel">English ▾</span></div>
+          <p>Primary is what the big screen, the presenter and the notes use, and what every other language falls back to.</p>
+          <table class="cov">
+            <tr><td class="l"><b>ไทย</b><span>Thai</span></td><td><div class="meter"><i style="width:100%"></i></div></td><td class="n">24 of 24</td><td><span class="pill ok">complete</span></td></tr>
+            <tr><td class="l"><b>日本語</b><span>Japanese</span></td><td><div class="meter"><i class="part" style="width:96%"></i></div></td><td class="n">23 of 24</td><td><span class="pill warn">1 missing · slide 5</span></td></tr>
+            <tr><td class="l"><b>Español</b><span>Spanish</span></td><td><div class="meter"><i class="part" style="width:96%"></i></div></td><td class="n">23 of 24</td><td><span class="pill warn">1 out of date · slide 3</span></td></tr>
+          </table>
+          <div class="row"><span class="btn">Preview in ▾</span><span style="font-size:12.5px;color:var(--muted)">This opens the player in that language. A missing or out-of-date line shows in English.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 -->
+<section class="block" id="model">
+  <div class="sec-head"><span class="n">06</span><h2>How translations are stored</h2><span class="pill ok">decided: A (D1)</span></div>
+  <p class="sec-sub">A slide is a layout plus typed slots (SW-1 D3), and the renderer, the fit check, lint, the PDF export and the share card all read plain strings from those slots. The choice is where the other languages go.</p>
+  <div class="opts">
+    <div class="card opt-card rec">
+      <h3>A · Translations beside the slots, keyed by slot path <span class="pill ok">decided</span></h3>
+      <pre class="code">{ <span class="k">"layout"</span>: <span class="s">"cards"</span>,
+  <span class="k">"slots"</span>: {
+    <span class="k">"headline"</span>: <span class="s">"Three things get better"</span>,
+    <span class="k">"cards"</span>: [{ <span class="k">"title"</span>: <span class="s">"Faster…"</span> }] },
+  <span class="k">"translations"</span>: {
+    <span class="k">"th"</span>: {
+      <span class="k">"/headline"</span>: { <span class="k">"text"</span>: <span class="s">"สามสิ่งที่ดีขึ้น"</span>,
+                     <span class="k">"from"</span>: <span class="s">"Three things…"</span> },
+      <span class="k">"/cards/0/title"</span>: { … } } } }</pre>
+      <div class="pc">
+        <div class="p">The slots are unchanged. One function merges a language over them before rendering, so nothing downstream changes.</div>
+        <div class="p"><code>from</code> records the English it was translated from. When the English changes, the line is out of date instead of silently wrong.</div>
+        <div class="p">A deck with translations off is exactly what it is today.</div>
+        <div class="c">When cards are moved or deleted, the paths shift. The server re-keys entries when a slide's slots are replaced, and any entry it can't match goes out of date.</div>
+      </div>
+    </div>
+    <div class="card opt-card">
+      <h3>B · Every string becomes a language map <span class="pill grey">as first described</span></h3>
+      <pre class="code">{ <span class="k">"layout"</span>: <span class="s">"cards"</span>,
+  <span class="k">"slots"</span>: {
+    <span class="k">"headline"</span>: {
+      <span class="k">"en"</span>: <span class="s">"Three things get better"</span>,
+      <span class="k">"th"</span>: <span class="s">"สามสิ่งที่ดีขึ้น"</span>,
+      <span class="k">"ja"</span>: <span class="s">"3つのことが良くなる"</span> },
+    <span class="k">"cards"</span>: [{ <span class="k">"title"</span>: { <span class="k">"en"</span>: …, <span class="k">"th"</span>: … } }] } }</pre>
+      <div class="pc">
+        <div class="p">This reads most directly as "each element is keyed on the primary language and has other keys".</div>
+        <div class="p">A moved card carries its translations with it.</div>
+        <div class="c">Every slot schema becomes <code>string | map</code>, and so do all 30-odd layout components, the fit fixtures, lint, the PDF export and custom layouts (SW-50).</div>
+        <div class="c">An agent editing the English has to send every language back, or it loses them.</div>
+      </div>
+    </div>
+    <div class="card opt-card">
+      <h3>C · A deck dictionary keyed by the English text</h3>
+      <pre class="code">{ <span class="k">"translations"</span>: {
+    <span class="s">"Faster reviews"</span>: {
+      <span class="k">"th"</span>: <span class="s">"รีวิวเร็วขึ้น"</span>,
+      <span class="k">"ja"</span>: <span class="s">"レビューが速くなる"</span> },
+    <span class="s">"Three things get better"</span>: { … } } }</pre>
+      <div class="pc">
+        <div class="p">A line that repeats, such as a part name or a footer, is translated once.</div>
+        <div class="p">Editing the English orphans the old entry, so stale lines show in English without any re-keying.</div>
+        <div class="c">The same English can't have two translations for two contexts.</div>
+        <div class="c">Orphaned entries pile up, and coverage per slide is harder to report.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 07 -->
+<section class="block" id="mcp">
+  <div class="sec-head"><span class="n">07</span><h2>Agents add translations over MCP</h2></div>
+  <p class="sec-sub">The agent does the translating itself. SlideWorks stores the text, checks that it fits, and tracks what has gone out of date. This is a sample session with option A.</p>
+  <div class="mcp">
+    <pre class="code"><span class="c">// turn it on: off by default, like Q&amp;A's settings in update_qa</span>
+<span class="k">set_translations</span>({ deck: <span class="s">"7Kq2"</span>, enabled: true, primary: <span class="s">"en"</span>,
+                   languages: [<span class="s">"th"</span>, <span class="s">"ja"</span>, <span class="s">"es"</span>] })
+<span class="c">← Translations on. Primary English. ไทย 0 of 24, 日本語 0 of 24, Español 0 of 24.</span>
+
+<span class="c">// read what needs translating</span>
+<span class="k">get_deck</span>({ deck: <span class="s">"7Kq2"</span>, language: <span class="s">"th"</span> })
+<span class="c">← slide 3 · revision 12 · 8 lines
+   /kicker          "Why it matters"            missing
+   /headline        "Three things get better"   missing
+   /cards/0/title   "Faster reviews"            missing  …</span>
+
+<span class="c">// many slides in one call (SW-568: fewer round trips)</span>
+<span class="k">translate_slides</span>({ deck: <span class="s">"7Kq2"</span>, language: <span class="s">"th"</span>, slides: [
+  { slide: 3, revision: 12, lines: {
+      <span class="s">"/kicker"</span>: <span class="s">"ทำไมจึงสำคัญ"</span>,
+      <span class="s">"/headline"</span>: <span class="s">"สามสิ่งที่ดีขึ้น"</span>, … } }, … ] })
+<span class="c">← ไทย 24 of 24.</span>
+
+<span class="k">translate_slides</span>({ deck: <span class="s">"7Kq2"</span>, language: <span class="s">"es"</span>, slides: [
+  { slide: 5, revision: 9, lines: { <span class="s">"/cards/1"</span>:
+    <span class="s">"Oculta el trabajo que aún no está terminado</span>
+<span class="s">     detrás de un feature flag en producción"</span> } } ] })
+<span class="w">← refused: slide 5 /cards/1 runs past its card in Español
+   (needs 412 px, has 360 px in Noto Sans). Shorten it.</span>
+
+<span class="c">// the English changes afterwards</span>
+<span class="k">update_slide</span>({ deck: <span class="s">"7Kq2"</span>, slide: 3, revision: 12, slots: { … } })
+<span class="w">← warning: /cards/1/body changed. Its ไทย, 日本語 and Español lines
+   are out of date and show in English until they are translated again.</span>
+
+<span class="k">translate_slides</span>({ language: <span class="s">"th"</span>, … }) · <span class="k">translate_slides</span>({ language: <span class="s">"ja"</span>, … })
+<span class="c">← ไทย 24 of 24. 日本語 23 of 24 (slide 5 /cards/2 missing).
+  Español is left at 23 of 24 with 1 out of date: the deck page in 05.</span></pre>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="tbl">
+        <tr><th>Tool</th><th>What changes</th></tr>
+        <tr><td>set_translations</td><td><b>New.</b> This turns translations on or off and sets the primary language and the language list. Removing a language keeps its lines, in case it is added back. The change shows in the activity log.</td></tr>
+        <tr><td>translate_slides</td><td><b>New.</b> This sets lines for one language across many slides, with the revision of each slide. Each line is fit-checked in the language's font. <code>null</code> removes a line.</td></tr>
+        <tr><td>get_deck</td><td>A new <code>language</code> argument lists each slide's lines with the primary text, the translation and its state: <code>missing</code>, <code>current</code> or <code>stale</code>.</td></tr>
+        <tr><td>check_deck</td><td>This runs the visual check in each language, or in only the one given.</td></tr>
+        <tr><td>preview_deck</td><td>A new <code>language</code> argument gives the per-slide preview URLs for that language.</td></tr>
+        <tr><td>update_slide · add_slide</td><td>These don't change. A replaced slot makes its translations stale, and the reply lists them as warnings.</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section class="block" id="flow">
+  <div class="sec-head"><span class="n">08</span><h2>How each phone gets its language</h2></div>
+  <p class="sec-sub">A guest is sent only the slide that is on screen (SW-5 D3), so translations travel the same way. The phone tells <code>DeckHub</code> its language, and the hub sends each language group the current slide with that language already merged in. The phone's renderer doesn't change.</p>
+  <div class="card diagram">
+    <svg viewBox="0 0 1000 330" role="img" aria-labelledby="flowT">
+      <title id="flowT">An agent writes translations to the deck store. DeckHub sends the presenter screens the primary slide and each language group of phones its own merged slide.</title>
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8a93a3"/></marker></defs>
+      <g id="n-agent"><title>The agent</title><rect x="10" y="125" width="150" height="70" rx="10" fill="#efeafe" stroke="#7a5af8"/><text x="85" y="155" text-anchor="middle" font-size="14" font-weight="600" fill="#1b2230">Agent</text><text x="85" y="175" text-anchor="middle" font-size="12" fill="#5b6474">translate_slides</text></g>
+      <path d="M160 160 H220" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/>
+      <g id="n-store"><title>The deck store</title><rect x="222" y="95" width="210" height="130" rx="10" fill="#fff" stroke="#d3d8e0"/><text x="327" y="122" text-anchor="middle" font-size="14" font-weight="600" fill="#1b2230">Deck</text><rect x="240" y="135" width="174" height="30" rx="6" fill="#e6ecfd"/><text x="327" y="155" text-anchor="middle" font-size="12" fill="#1e3a8a">slots (English)</text><rect x="240" y="175" width="174" height="30" rx="6" fill="#fdf0e1"/><text x="327" y="195" text-anchor="middle" font-size="12" fill="#b4580b">translations th · ja · es</text></g>
+      <path d="M432 160 H490" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/>
+      <g id="n-hub"><title>DeckHub merges per language group</title><rect x="492" y="110" width="170" height="100" rx="10" fill="#0b1020"/><text x="577" y="145" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">DeckHub</text><text x="577" y="167" text-anchor="middle" font-size="12" fill="#cbd5e1">on each move, one</text><text x="577" y="183" text-anchor="middle" font-size="12" fill="#cbd5e1">message per language</text></g>
+      <path d="M662 130 C700 130 700 45 735 45" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+      <path d="M662 150 C705 150 705 125 735 125" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+      <path d="M662 170 C705 170 705 205 735 205" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+      <path d="M662 190 C700 190 700 285 735 285" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+      <g id="n-present"><title>Presenter screens: always primary</title><rect x="737" y="20" width="250" height="50" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="752" y="42" font-size="13" font-weight="600" fill="#1b2230">Presenter, big screen, remote</text><text x="752" y="60" font-size="12" fill="#5b6474">present:{deck} · English, as today</text></g>
+      <g id="n-en"><title>Phones reading English</title><rect x="737" y="100" width="250" height="50" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="752" y="122" font-size="13" font-weight="600" fill="#1b2230">Phones · English</text><text x="752" y="140" font-size="12" fill="#5b6474">audience:{session} · as today</text></g>
+      <g id="n-th"><title>Phones reading Thai</title><rect x="737" y="180" width="250" height="50" rx="8" fill="#fff" stroke="#7a5af8"/><text x="752" y="202" font-size="13" font-weight="600" fill="#1b2230">Phones · ไทย</text><text x="752" y="220" font-size="12" fill="#5b6474">audience:{session}:th · merged slots</text></g>
+      <g id="n-ja"><title>Phones reading Japanese</title><rect x="737" y="260" width="250" height="50" rx="8" fill="#fff" stroke="#7a5af8"/><text x="752" y="282" font-size="13" font-weight="600" fill="#1b2230">Phones · 日本語 …</text><text x="752" y="300" font-size="12" fill="#5b6474">one group per language in use</text></g>
+      <path d="M737 220 C640 260 600 260 577 212" stroke="#7a5af8" stroke-width="1.5" stroke-dasharray="5 4" fill="none" marker-end="url(#ar)"/>
+      <text x="560" y="268" font-size="12" fill="#7a5af8">setLanguage("th")</text>
+    </svg>
+  </div>
+  <ul class="demo-notes" style="margin-top:10px">
+    <li><b>Fonts.</b> Plus Jakarta Sans and Inter have no Thai or Japanese glyphs. Each language gets a Noto fallback in the font stack, and the fit check measures with that font (SW-50 D8 already measures font widths).</li>
+    <li><b>Load.</b> A move costs one message per language in use instead of one in total. SW-6's 1,000-guest load run gets a mixed-language variant.</li>
+    <li><b>Polls.</b> An answer is the option's index, so answers in every language count on the same bars. The big screen shows the primary labels.</li>
+  </ul>
+</section>
+
+<!-- 09 -->
+<section class="block" id="questions" data-lavish-question-group>
+  <div class="sec-head"><span class="n">09</span><h2>Questions before planning</h2></div>
+  <div class="card" data-lavish-revision="r1" style="padding:12px 16px;margin:0 0 14px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">Answered 28 Nov.</b> Q1–Q5 and Q7–Q9 went as recommended. Q6 went as recommended plus <b>the "Full screen" button on Android</b>; pinch to zoom is out. All nine are recorded as decisions D1–D9 on SW-883.</div>
+  <div class="qs">
+
+    <form class="card q" data-lavish-question="storage">
+      <h3>Q1 · How are translations stored?</h3>
+      <p class="why">See section 06. This decides how much of the renderer, fit check and lint has to change.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="A: translations beside the slots, keyed by slot path, each with the primary text it came from" checked><div><b>A · Beside the slots, keyed by slot path</b><span class="rec">answered</span><span>Nothing downstream changes, and stale lines are detected from <code>from</code>.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="B: every slot string becomes a language map"><div><b>B · Every string becomes a language map</b><span>The literal reading of the request. It changes every slot schema and layout.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="C: a deck dictionary keyed by the primary text"><div><b>C · A deck dictionary keyed by the English text</b><span>Repeated lines are translated once. The same English can't be translated two ways.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="picker">
+      <h3>Q2 · Where does the language picker live on the phone?</h3>
+      <p class="why">The guest page already has the header, the slide, the activity card, reactions and two tabs (SW-9 D1).</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="A chip in the header next to Live, opening a sheet with the languages" checked><div><b>A chip in the header that opens a sheet</b><span class="rec">answered</span><span>As mocked. Always visible and one tap away, without adding a third tab.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="A third tab, Language"><div><b>A third tab</b><span>Easy to find, but a tab is for a place you stay, and this is a setting you change once.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Only on the joined screen, chosen once when joining"><div><b>Only when joining</b><span>Simplest, but there is no way back after a wrong pick.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="starting-language">
+      <h3>Q3 · Which language does a phone start in?</h3>
+      <p class="why">A Thai phone joining a deck that has Thai could start in Thai without asking.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="The phone's own language when the deck has it, with a one-line banner offering to change; otherwise primary. The choice is kept for the session" checked><div><b>The phone's language if the deck has it, with a banner</b><span class="rec">answered</span><span>As mocked in state 1. The common case needs no taps, and the banner shows where to change it.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Always the primary language; the guest picks"><div><b>Always the primary language</b><span>Predictable, but most people never find the chip.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Ask on the joined screen when the deck has more than one language"><div><b>Ask when joining</b><span>Explicit, but it adds a step to SW-5's "0 taps after the camera".</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="app-chrome">
+      <h3>Q4 · Does the phone's own text change language too?</h3>
+      <p class="why">The tabs, the waiting card, the poll card's hints and the privacy sheet are app text, not deck text. As mocked, a Thai reader sees Thai slides and English buttons.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="No: slides only in SW-883; translating the guest app is a separate Feature" checked><div><b>No, slides only. The guest app's text is a separate Feature</b><span class="rec">answered</span><span>The guest app has about 80 strings and no i18n setup. That deserves its own Feature, with its own language list rather than the deck's.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Yes: ship the guest app's text in a fixed set of languages with this Feature"><div><b>Yes, in a fixed set of languages</b><span>Better for the reader. It roughly doubles the Feature, and a deck language without app strings still shows English buttons.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="switch">
+      <h3>Q5 · Who can turn translations on?</h3>
+      <p class="why">The request says "can be enabled via MCP". Q&amp;A's settings can be changed in the presenter panel, on the deck page and with <code>update_qa</code> (SW-9 D16).</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Both: set_translations over MCP, and a switch plus the coverage list on the deck page's Translations card" checked><div><b>MCP and a switch on the deck page</b><span class="rec">answered</span><span>The same pattern as Q&amp;A. The owner can turn off a language that isn't ready without an agent.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="MCP only; the deck page card shows status and coverage but has no switch"><div><b>MCP only. The card shows status but has no switch</b><span>Exactly as asked. The owner needs an agent to turn it off.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="landscape">
+      <h3>Q6 · What does landscape add to what SW-5 built?</h3>
+      <p class="why">See section 04. Pick any number.</p>
+      <div class="choices">
+        <label class="choice"><input type="checkbox" name="a" value="Tap overlay: slide number, Live chip, language chip, progress, for 3 seconds" checked><div><b>Tap overlay with the slide number, Live chip and language</b><span class="rec">answered</span><span>Without it, a reader in landscape can't change language or tell if the phone is offline.</span></div></label>
+        <label class="choice"><input type="checkbox" name="a" value="One-time hint in portrait: Turn sideways to read the slide full screen" checked><div><b>A one-time "turn sideways" hint</b><span class="rec">answered</span><span>Most people won't discover landscape on their own.</span></div></label>
+        <label class="choice"><input type="checkbox" name="a" value="Pinch to zoom on the slide in landscape"><div><b>Pinch to zoom in landscape</b><span>Helps with tables and charts. The slide mirror is inert today, so this means handling gestures.</span></div></label>
+        <label class="choice"><input type="checkbox" name="a" value="A Full screen button where the browser supports it (Android Chrome; not iPhone Safari)" checked><div><b>A "Full screen" button on Android</b><span class="rec">answered</span><span>Hides the browser bars. iPhone can't, so the two would behave differently.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="presenter-mix">
+      <h3>Q7 · Does the presenter see which languages people are reading in?</h3>
+      <p class="why">The presenter window stays in English. A count by language could tell the presenter to slow down, or that a translation is going unused.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Yes: a small Reading in counter next to the live chip, only when translations are on" checked><div><b>Yes, a "Reading in" counter next to the live chip</b><span class="rec">answered</span><span>As mocked in purple. The counts come from the per-language hub groups for free.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="No counter in the presenter window; only in get_deck's session stats"><div><b>No, only in the session stats</b><span>Keeps the presenter bar as it is.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="who-translates">
+      <h3>Q8 · Who does the translating?</h3>
+      <p class="why">SlideWorks is open source and has no provider integrations today.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="The agent, over MCP; SlideWorks only stores, checks and tracks" checked><div><b>The agent, over MCP</b><span class="rec">answered</span><span>No provider or keys. The agent building the deck already has the context to translate it well.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Also an optional machine-translation provider as an instance setting, for a Translate button on the deck page"><div><b>Also an optional machine-translation setting</b><span>A Translate button for people without an agent. It adds a configurable integration to maintain.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="stale">
+      <h3>Q9 · Stale lines and right-to-left languages</h3>
+      <p class="why">When the English changes after a line was translated, what do readers see? And are Arabic and Hebrew in scope?</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Stale lines show the primary text until re-translated; right-to-left languages are a later Feature" checked><div><b>A stale line shows in English. Right-to-left comes later</b><span class="rec">answered</span><span>English that is correct is better than a translation that is out of date. Right-to-left needs mirrored layouts, which is its own piece of work.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Stale lines keep showing the old translation; check_deck warns; right-to-left later"><div><b>A stale line keeps its old translation, and <code>check_deck</code> warns</b><span>A typo fix in the English doesn't drop every language back to English.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Stale lines show the primary text; right-to-left languages included in SW-883"><div><b>A stale line shows in English, and right-to-left is in SW-883</b><span>Complete for Arabic and Hebrew readers, at the cost of a mirrored version of every layout.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+  </div>
+
+  <div class="copyall">
+    <button type="button" class="btn" id="copyAll">Copy all answers</button>
+    <span id="copyStatus" role="status" aria-live="polite" style="color:var(--muted);font-size:13px"></span>
+  </div>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const N = 6;
+  const LANGS = [
+    { id: 'en', chip: 'EN', name: 'English', sub: "Sam's language" },
+    { id: 'th', chip: 'ไทย', name: 'ไทย', sub: 'Thai' },
+    { id: 'ja', chip: '日本語', name: '日本語', sub: 'Japanese' },
+    { id: 'es', chip: 'ES', name: 'Español', sub: 'Spanish' },
+  ];
+  const EN = {
+    deck: 'Shipping smaller changes',
+    's1.kick': 'Engineering all-hands · Nov 2026',
+    's2.st': 'Small changes are *easier to review*, easier to ship, and easier to undo.',
+    's3.kick': 'Why it matters', 's3.h': 'Three things get better',
+    's3.c1t': 'Faster reviews', 's3.c1b': 'A 200-line change gets reviewed the same day.',
+    's3.c2t': 'Safer releases', 's3.c2b': 'Fewer changes at once, so less to roll back.',
+    's3.c3t': 'Quicker learning', 's3.c3b': 'Users see the work sooner and tell us sooner.',
+    's4.kick': 'Poll', 's4.h': 'How big was your last merge request?',
+    's4.o1': 'Under 100 lines', 's4.o2': '100 to 500 lines', 's4.o3': 'Over 500 lines',
+    's5.kick': 'Where to start', 's5.h': 'Three habits to try this sprint',
+    's5.n1': 'Slice by what a user can do', 's5.n2': 'Hide unfinished work behind a flag', 's5.n3': 'Merge to main every day',
+    's6.kick': 'Thank you', 's6.h': 'Questions?',
+  };
+  const TR = {
+    th: {
+      deck: 'ส่งมอบการเปลี่ยนแปลงที่เล็กลง',
+      's1.kick': 'ประชุมรวมทีมวิศวกรรม · พ.ย. 2026',
+      's2.st': 'การเปลี่ยนแปลงเล็กๆ *รีวิวง่ายกว่า* ส่งง่ายกว่า และย้อนกลับง่ายกว่า',
+      's3.kick': 'ทำไมจึงสำคัญ', 's3.h': 'สามสิ่งที่ดีขึ้น',
+      's3.c1t': 'รีวิวเร็วขึ้น', 's3.c1b': 'การเปลี่ยนแปลง 200 บรรทัดได้รับการรีวิวภายในวันเดียวกัน',
+      's3.c2t': 'ปล่อยงานปลอดภัยขึ้น', 's3.c2b': 'เปลี่ยนทีละน้อย จึงมีสิ่งที่ต้องย้อนกลับน้อยลง',
+      's3.c3t': 'เรียนรู้ได้เร็วขึ้น', 's3.c3b': 'ผู้ใช้เห็นงานเร็วขึ้น และบอกเราได้เร็วขึ้น',
+      's4.kick': 'โพล', 's4.h': 'Merge request ล่าสุดของคุณใหญ่แค่ไหน?',
+      's4.o1': 'น้อยกว่า 100 บรรทัด', 's4.o2': '100 ถึง 500 บรรทัด', 's4.o3': 'มากกว่า 500 บรรทัด',
+      's5.kick': 'เริ่มจากตรงไหน', 's5.h': 'สามนิสัยที่ลองได้ในสปรินต์นี้',
+      's5.n1': 'แบ่งงานตามสิ่งที่ผู้ใช้ทำได้', 's5.n2': 'ซ่อนงานที่ยังไม่เสร็จไว้หลัง feature flag', 's5.n3': 'Merge เข้า main ทุกวัน',
+      's6.kick': 'ขอบคุณ', 's6.h': 'มีคำถามไหม?',
+    },
+    ja: {
+      deck: '変更を小さく出荷する',
+      's1.kick': 'エンジニアリング全体会議 · 2026年11月',
+      's2.st': '小さな変更は*レビューしやすく*、出荷しやすく、元に戻しやすい。',
+      's3.kick': 'なぜ重要か', 's3.h': '3つのことが良くなる',
+      's3.c1t': 'レビューが速くなる', 's3.c1b': '200行の変更なら、その日のうちにレビューされます。',
+      's3.c2t': 'リリースが安全になる', 's3.c2b': '一度に変える量が少ないので、戻す量も少なくなります。',
+      's3.c3t': '学びが速くなる', 's3.c3b': 'ユーザーが早く成果を見て、早く反応をくれます。',
+      's4.kick': 'アンケート', 's4.h': '直近のマージリクエストの大きさは?',
+      's4.o1': '100行未満', 's4.o2': '100〜500行', 's4.o3': '500行超',
+      's5.kick': 'どこから始めるか', 's5.h': '今スプリントで試す3つの習慣',
+      's5.n1': 'ユーザーができることで分割する', 's5.n2': '未完成の作業はフラグで隠す',
+      's6.kick': 'ありがとうございました', 's6.h': '質問はありますか?',
+    },
+    es: {
+      deck: 'Entregar cambios más pequeños',
+      's1.kick': 'Reunión general de ingeniería · nov. 2026',
+      's2.st': 'Los cambios pequeños son *más fáciles de revisar*, de entregar y de deshacer.',
+      's3.kick': 'Por qué importa', 's3.h': 'Tres cosas mejoran',
+      's3.c1t': 'Revisiones más rápidas', 's3.c1b': 'Un cambio de 200 líneas se revisa el mismo día.',
+      's3.c2t': 'Entregas más seguras',
+      's3.c3t': 'Aprender más rápido', 's3.c3b': 'Los usuarios ven el trabajo antes y nos responden antes.',
+      's4.kick': 'Encuesta', 's4.h': '¿Qué tamaño tenía tu última merge request?',
+      's4.o1': 'Menos de 100 líneas', 's4.o2': 'Entre 100 y 500 líneas', 's4.o3': 'Más de 500 líneas',
+      's5.kick': 'Por dónde empezar', 's5.h': 'Tres hábitos para este sprint',
+      's5.n1': 'Divide por lo que el usuario puede hacer', 's5.n2': 'Oculta el trabajo sin terminar tras un flag', 's5.n3': 'Haz merge a main cada día',
+      's6.kick': 'Gracias', 's6.h': '¿Preguntas?',
+    },
+  };
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // t(): the translated line, or the primary line marked as a fallback
+  function mk(lang) {
+    const miss = [];
+    const t = (k) => {
+      if (lang !== 'en' && TR[lang] && TR[lang][k] != null) return esc(TR[lang][k]).replace(/\*(.+?)\*/g, '<em>$1</em>');
+      const v = esc(EN[k]).replace(/\*(.+?)\*/g, '<em>$1</em>');
+      if (lang !== 'en') { miss.push(k); return '<span class="fb">' + v + '</span>'; }
+      return v;
+    };
+    return { t, miss };
+  }
+  function missingOn(i, lang) { const m = mk(lang); slideHTML(i, lang, m); return m.miss.length; }
+  function slideHTML(i, lang, m) {
+    m = m || mk(lang);
+    const t = m.t;
+    const foot = '<div class="foot"><span>' + (i + 1) + ' / ' + N + ' · ' + t('deck') + ' · Sam Rivera</span><span></span></div><div class="sprog" style="width:' + ((i + 1) / N * 100) + '%"></div>';
+    switch (i) {
+      case 0: return '<div class="sl dark"><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div class="kick">' + t('s1.kick') + '</div><h2>' + t('deck') + '</h2><div class="sub">Sam Rivera</div></div>' + foot + '</div>';
+      case 1: return '<div class="sl"><div class="statement"><div>' + t('s2.st') + '</div></div>' + foot + '</div>';
+      case 2: return '<div class="sl"><div class="kick">' + t('s3.kick') + '</div><h3>' + t('s3.h') + '</h3><div class="cards">' + [1, 2, 3].map(n => '<div><b>' + t('s3.c' + n + 't') + '</b><span>' + t('s3.c' + n + 'b') + '</span></div>').join('') + '</div>' + foot + '</div>';
+      case 3: return '<div class="sl"><div class="kick">' + t('s4.kick') + '</div><h3>' + t('s4.h') + '</h3><div class="pollopts">' + [['o1', 18], ['o2', 21], ['o3', 8]].map(([k, v]) => '<div>' + t('s4.' + k) + '<span>' + v + '</span></div>').join('') + '</div>' + foot + '</div>';
+      case 4: return '<div class="sl"><div class="kick">' + t('s5.kick') + '</div><h3>' + t('s5.h') + '</h3><div class="cards">' + [1, 2, 3].map(n => '<div><div class="num">' + n + '</div><b>' + t('s5.n' + n) + '</b></div>').join('') + '</div>' + foot + '</div>';
+      default: return '<div class="sl dark"><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div class="kick">' + t('s6.kick') + '</div><h2>' + t('s6.h') + '</h2><div class="sub">slideworks.live/482913</div></div>' + foot + '</div>';
+    }
+  }
+
+  // scale every 960x540 slide to its frame
+  const ro = new ResizeObserver(es => es.forEach(e => { e.target.style.setProperty('--s', e.contentRect.width / 960); const sl = e.target.firstElementChild; if (sl) sl.style.setProperty('--s', e.contentRect.width / 960); }));
+  function frame(i, lang, extra) { return '<div class="mirror"' + (extra || '') + '><div class="frame" data-i="' + i + '" data-lang="' + lang + '"></div></div>'; }
+  function hydrate(root) {
+    root.querySelectorAll('.frame[data-i]').forEach(f => {
+      f.innerHTML = slideHTML(+f.dataset.i, f.dataset.lang);
+      ro.observe(f);
+    });
+  }
+
+  // ---------- guest phone pieces ----------
+  const lock = '<svg viewBox="0 0 10 12" fill="currentColor"><path d="M2 5V3.5a3 3 0 0 1 6 0V5h.5A1.5 1.5 0 0 1 10 6.5v4A1.5 1.5 0 0 1 8.5 12h-7A1.5 1.5 0 0 1 0 10.5v-4A1.5 1.5 0 0 1 1.5 5zm1.3 0h3.4V3.5a1.7 1.7 0 0 0-3.4 0z"/></svg>';
+  const globe = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.3"/><path d="M1.8 8h12.4M8 1.7c1.8 1.9 2.6 4 2.6 6.3S9.8 12.4 8 14.3C6.2 12.4 5.4 10.3 5.4 8S6.2 3.6 8 1.7z"/></svg>';
+  const rotateIc = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="2" width="8" height="14" rx="1.6"/><path d="M3 12.5a7 7 0 0 0 5 5.2M3 12.5l-.2 2.6M3 12.5l2.5.8"/></svg>';
+  const sbar = '<div class="island"></div><div class="sbar"><span>9:41</span><span class="ic"><b></b><i></i></span></div>';
+  const urlbar = '<div class="urlbar">' + lock + '<span>slideworks.live/482913</span></div>';
+  const L = (id) => LANGS.find(l => l.id === id);
+  const chip = (lang, ring) => '<button type="button" class="lang' + (ring ? ' new-ring' : '') + '" data-open-lang aria-label="Slide language: ' + L(lang).name + '. Change">' + globe + '<span>' + L(lang).chip + '</span><span class="car">▼</span></button>';
+  function top(lang, o) {
+    const title = lang === 'en' || !TR[lang] ? EN.deck : TR[lang].deck;
+    return '<div class="g-top"><div class="g-mark">S</div><div class="g-deck"><b>' + esc(title) + '</b><span>Sam Rivera</span></div>' + (o.noLang ? '' : chip(lang, o.ring)) + '<span class="live">Live</span></div>';
+  }
+  const meta = (i) => '<div class="slidemeta"><span>Slide ' + (i + 1) + '</span><span class="prog"><i style="width:' + ((i + 1) / N * 100) + '%"></i></span><span>' + N + '</span></div>';
+  const waitCard = '<div class="wait"><div class="dots"><i></i><i></i><i></i></div><b>Nothing to answer yet</b><p>Polls appear here when Sam gets to them.</p></div>';
+  const rx = '<div class="rx"><span>👍</span><span>❤️</span><span>😂</span><span>😮</span><span>👏</span></div>';
+  const tabs = '<div class="tabs"><span class="on">Slide</span><span>Questions<span class="bdg">3</span></span></div>';
+  function pollCard(lang, picked) {
+    const m = mk(lang);
+    return '<div class="activity poll"><span class="tag">Poll</span><b>' + m.t('s4.h') + '</b>' + ['o1', 'o2', 'o3'].map((k, n) => '<div class="opt' + (picked === n ? ' on' : '') + '">' + m.t('s4.' + k) + '</div>').join('') + '</div>';
+  }
+  function fallnote(i, lang) {
+    if (lang === 'en') return '';
+    const n = missingOn(i, lang);
+    return n ? '<div class="fallnote"><i></i>' + n + ' line' + (n > 1 ? 's' : '') + ' on this slide ' + (n > 1 ? 'are' : 'is') + ' in English</div>' : '';
+  }
+  function sheet(lang) {
+    return '<div class="sheet-dim" data-close-lang></div><div class="sheet" role="dialog" aria-label="Slide language"><div class="grab"></div><h4>Read the slides in</h4><p class="sub">Sam presents in English.</p><div class="langlist">' +
+      LANGS.map(l => { const miss = l.id === 'en' ? 0 : [0, 1, 2, 3, 4, 5].reduce((a, i) => a + missingOn(i, l.id), 0); return '<button type="button" data-lang="' + l.id + '" class="' + (l.id === lang ? 'on' : '') + '"><span><b>' + l.name + '</b><small class="' + (miss ? 'part' : '') + '">' + (miss ? l.sub + ' · ' + miss + ' line in English' : l.sub) + '</small></span><span class="tickc">' + (l.id === lang ? '✓' : '') + '</span></button>'; }).join('') +
+      '</div><div class="foot-note">Only your phone changes. The big screen stays in English.</div></div>';
+  }
+  // o: i, lang, sheet, banner, hint, poll, noLang, ring
+  function portrait(o) {
+    const lang = o.lang || 'en';
+    const i = o.i || 0;
+    const card = o.poll != null ? pollCard(lang, o.poll) : waitCard;
+    const banner = o.banner ? '<div class="banner">' + globe + '<span>Slides in <b>' + L(lang).name + '</b>, your phone\'s language.</span><button type="button" class="act" data-open-lang>Change</button></div>' : '';
+    const hint = o.hint ? '<div class="hint">' + rotateIc + '<span>Turn sideways to read the slide full screen</span><button type="button">✕</button></div>' : '';
+    return sbar + '<div class="pbody">' + banner + top(lang, o) + frame(i, lang) + meta(i) + fallnote(i, lang) + hint + card + rx + tabs + '</div>' + urlbar + (o.sheet ? sheet(lang) : '');
+  }
+  function landscape(o) {
+    const lang = o.lang || 'en';
+    const i = o.i || 0;
+    const fs = o.fs ? '<button type="button" class="fsbtn" aria-label="Full screen (Android)"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4V1h3M8 1h3v3M11 8v3H8M4 11H1V8"/></svg>Full screen</button>' : '';
+    const over = '<div class="land-over' + (o.over ? ' show' : '') + '"><div class="bar"><span>' + (i + 1) + ' / ' + N + '</span><span class="live">Live</span><span class="sp"></span>' + fs + chip(lang) + '</div><div class="bot"><i style="width:' + ((i + 1) / N * 100) + '%"></i></div></div>';
+    return frame(i, lang, ' data-tap') + over + (o.sheet ? sheet(lang) : '');
+  }
+
+  // ---------- live demo ----------
+  const D = { i: 0, lang: 'th', land: false, sheet: false, over: false };
+  const dBig = document.getElementById('dBig'), dPhone = document.getElementById('dPhone'), dFrame = document.getElementById('dPhoneFrame');
+  const wrap = document.getElementById('demoWrap');
+  let overT;
+  function paintDemo() {
+    dBig.innerHTML = slideHTML(D.i, 'en'); ro.observe(dBig);
+    document.getElementById('dCount').textContent = (D.i + 1) + ' / ' + N;
+    document.getElementById('dPrev').disabled = D.i === 0;
+    document.getElementById('dNext').disabled = D.i === N - 1;
+    dFrame.classList.toggle('land', D.land);
+    wrap.classList.toggle('is-land', D.land);
+    dPhone.innerHTML = D.land ? landscape(D) : portrait({ i: D.i, lang: D.lang, sheet: D.sheet, poll: D.i === 3 ? 1 : null });
+    hydrate(dPhone);
+    document.getElementById('dLangBtns').innerHTML = LANGS.map(l => '<button type="button" class="btn' + (l.id === D.lang ? ' on' : '') + '" data-l="' + l.id + '">' + l.name + '</button>').join('');
+    document.getElementById('dRotate').textContent = D.land ? '↺ Turn upright' : '↻ Turn sideways';
+  }
+  document.getElementById('dPrev').onclick = () => { if (D.i > 0) { D.i--; paintDemo(); } };
+  document.getElementById('dNext').onclick = () => { if (D.i < N - 1) { D.i++; paintDemo(); } };
+  document.getElementById('dRotate').onclick = () => { D.land = !D.land; D.sheet = false; D.over = false; paintDemo(); };
+  document.getElementById('dLangBtns').onclick = (e) => { const b = e.target.closest('[data-l]'); if (b) { D.lang = b.dataset.l; D.sheet = false; paintDemo(); } };
+  document.getElementById('dFb').onchange = (e) => document.body.classList.toggle('hide-fb', !e.target.checked);
+  dPhone.addEventListener('click', (e) => {
+    if (e.target.closest('[data-open-lang]')) { D.sheet = true; clearTimeout(overT); paintDemo(); return; }
+    if (e.target.closest('[data-close-lang]')) { D.sheet = false; paintDemo(); return; }
+    const pick = e.target.closest('.langlist [data-lang]');
+    if (pick) { D.lang = pick.dataset.lang; D.sheet = false; D.over = false; paintDemo(); return; }
+    if (D.land && e.target.closest('[data-tap]')) {
+      D.over = !D.over; paintDemo(); clearTimeout(overT);
+      if (D.over) overT = setTimeout(() => { D.over = false; paintDemo(); }, 3000);
+    }
+  });
+  document.addEventListener('keydown', (e) => { if (e.target.closest('input, textarea, button')) return; if (e.key === 'ArrowRight') document.getElementById('dNext').click(); if (e.key === 'ArrowLeft') document.getElementById('dPrev').click(); });
+  paintDemo();
+
+  // ---------- state gallery ----------
+  const STATES = [
+    { o: { i: 0, lang: 'th', banner: true, ring: true }, b: '1 · Joined, in the phone\'s language', s: 'This phone is set to Thai and the deck has Thai, so it starts in ไทย (D3). The banner goes away after 6 seconds or a tap.' },
+    { o: { i: 2, lang: 'th', sheet: true }, b: '2 · The language sheet', s: 'The chip opens this sheet. It lists the deck\'s languages in their own names and says how complete each one is. A tap switches at once.' },
+    { o: { i: 2, lang: 'ja' }, b: '3 · Following, in 日本語', s: 'The slide is in Japanese and everything else on the page is as before. The chip shows the current language.' },
+    { o: { i: 4, lang: 'ja' }, b: '4 · A line not translated yet', s: 'Card 3 on slide 5 has no Japanese, so it shows in English and a line under the slide says so (no dashed outline in the app).' },
+    { o: { i: 3, lang: 'es', poll: 0 }, b: '5 · A poll, in Español', s: 'The question and options are translated. The answer is option 1, so it counts with everyone else\'s "Under 100 lines".' },
+    { o: { i: 1, lang: 'en', hint: true }, b: '6 · The one-time landscape hint', s: 'Shown once in portrait (D6). It goes away when closed or when the phone is turned.' },
+    { o: { i: 1, lang: 'en', noLang: true }, b: '7 · A deck without translations', s: 'This is the default, and it is exactly what SW-5 and SW-9 built: no chip, no banner, no hint.' },
+  ];
+  const grid = document.getElementById('stateGrid');
+  grid.innerHTML = STATES.map((s, k) => '<div><div class="phone"><div class="ps" data-state="' + k + '"></div></div><div class="st-cap"><b>' + s.b + '</b><span>' + s.s + '</span></div></div>').join('') +
+    '<div><div class="phone land"><div class="ps" data-land="1"></div></div><div class="st-cap"><b>8 · Landscape on Android, overlay showing</b><span>A tap shows the overlay for 3 seconds (D6). On Android it also has "Full screen", which hides the browser&rsquo;s bars. iPhone shows the same overlay without that button.</span></div></div>';
+  grid.querySelectorAll('[data-state]').forEach(el => { el.innerHTML = portrait(STATES[+el.dataset.state].o); hydrate(el); });
+  grid.querySelector('.phone.land').parentElement.classList.add('wide');
+  const gl = grid.querySelector('[data-land]'); gl.innerHTML = landscape({ i: 2, lang: 'th', over: true, fs: true }); hydrate(gl);
+  const lp = document.getElementById('landProposed'); lp.innerHTML = landscape({ i: 2, lang: 'th', over: true, fs: true }); hydrate(lp);
+
+  // ---------- questions: local state until "Queue answer" ----------
+  document.querySelectorAll('form.q').forEach(form => {
+    const state = form.querySelector('.state');
+    form.addEventListener('change', () => { if (state.classList.contains('queued')) { state.textContent = 'Changed since queued. Queue again to replace.'; state.classList.remove('queued'); } });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const key = form.dataset.lavishQuestion;
+      const title = form.querySelector('h3').textContent.trim();
+      const fd = new FormData(form);
+      const note = (fd.get('note') || '').toString().trim();
+      const answer = fd.getAll('a').map(String).join('; ') || '(none selected)';
+      const data = { question: key, answer }; if (note) data.note = note;
+      const prompt = 'SW-883 mockups, ' + title + ' → ' + answer + (note ? '. Note: ' + note : '') + '. Record this as a decision on SW-883 and update the mockups if it changes them.';
+      if (window.lavish && window.lavish.queuePrompt) {
+        window.lavish.queuePrompt(prompt, { tag: 'choice', text: title + ': ' + answer, element: form, queueKey: key, data });
+        state.textContent = 'Queued. Press Send to agent in the Lavish bar.';
+      } else {
+        state.textContent = 'Lavish is not running. Use "Copy all answers" below.';
+      }
+      state.classList.add('queued');
+    });
+  });
+  document.getElementById('copyAll').addEventListener('click', async () => {
+    const out = [...document.querySelectorAll('form.q')].map(f => {
+      const fd = new FormData(f); const note = (fd.get('note') || '').toString().trim();
+      return f.querySelector('h3').textContent.trim() + ': ' + (fd.getAll('a').join('; ') || '(none)') + (note ? ' (note: ' + note + ')' : '');
+    }).join('\n');
+    const st = document.getElementById('copyStatus');
+    try { await navigator.clipboard.writeText(out); st.textContent = 'Answers copied.'; }
+    catch { const t = document.createElement('textarea'); t.value = out; t.rows = 10; t.readOnly = true; document.querySelector('.copyall').appendChild(t); t.select(); st.textContent = 'Clipboard blocked. Copy the answers below.'; }
+  });
+})();
+</script>
+</body>
+</html>
