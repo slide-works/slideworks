@@ -21,12 +21,14 @@ namespace SlideWorks.WebApi.Features.Polls;
 [RegisterPerRequest(For = typeof(IAudienceActivity))]
 public class AudienceActivity(AppDbContext db, IAudienceSessions sessions, IPresentations presentations, PollReader reader) : IAudienceActivity
 {
-    public async Task<PollActivity?> ForDeckAsync(string deckId)
+    // TODO: the language is ignored here and in ForCodeAsync, so every activity is the primary one; translating the
+    // activity replaces this.
+    public async Task<PollActivity?> ForDeckAsync(string deckId, string? language)
         => await sessions.ForDeckAsync(deckId) is { Phase: AudiencePhase.Live, SessionId: { } session }
             ? await BuildAsync(deckId, Guid.Parse(session))
             : null;
 
-    public async Task<PollActivity?> ForCodeAsync(string code)
+    public async Task<PollActivity?> ForCodeAsync(string code, string? language)
         => await sessions.FindAsync(code) is { Phase: AudiencePhase.Live, SessionId: { } session } found
             ? await BuildAsync(found.DeckId, Guid.Parse(session))
             : null;

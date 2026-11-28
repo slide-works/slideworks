@@ -27,7 +27,7 @@ public sealed class FakeAudienceActivity : IAudienceActivity
         }
     }
 
-    public Task<PollActivity?> ForDeckAsync(string deckId)
+    public Task<PollActivity?> ForDeckAsync(string deckId, string? language)
     {
         lock (_gate)
         {
@@ -35,7 +35,7 @@ public sealed class FakeAudienceActivity : IAudienceActivity
         }
     }
 
-    public Task<PollActivity?> ForCodeAsync(string code)
+    public Task<PollActivity?> ForCodeAsync(string code, string? language)
     {
         lock (_gate)
         {

@@ -47,7 +47,7 @@ public class GuestPollViews(AppDbContext db, IAudienceSessions sessions, IAudien
         {
             return _nothing;
         }
-        var activity = await activities.ForCodeAsync(code);
+        var activity = await activities.ForCodeAsync(code, null);
         if (activity?.Round is null || !Guid.TryParse(activity.Round, out var roundId))
         {
             return activity is null ? _nothing : new GuestPollView(activity, null, null, false);

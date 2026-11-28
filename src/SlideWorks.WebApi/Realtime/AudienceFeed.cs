@@ -283,7 +283,8 @@ public sealed class AudienceFeed : IDisposable
     // publishes. Neither gate is ever taken while the other is held, so the two can't deadlock.
     private static async Task<JsonElement?> ActivityAsync(IServiceProvider services, string deckId)
     {
-        var activity = await services.GetRequiredService<IAudienceActivity>().ForDeckAsync(deckId);
+        // TODO: always the primary language until the state is composed in the guest's language.
+        var activity = await services.GetRequiredService<IAudienceActivity>().ForDeckAsync(deckId, null);
         return activity is null ? null : JsonSerializer.SerializeToElement(activity, JsonSerializerOptions.Web);
     }
 
