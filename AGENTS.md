@@ -40,7 +40,9 @@ The ShipLean project **SW** (Slide Works). Each Feature is an SW key: SW-1 is th
 | `src/SlideWorks.WebApi.Tests/` | NUnit black-box tests through `WebApplicationFactory`. `Support/` (`TestPeople`, `TestUser`, `JsonShape`, `ScreenShapes`) is also compiled into the acceptance project, so it may use only packages both share |
 | `src/SlideWorks.AcceptanceTests/` | Playwright (.NET) journeys against the real app on Kestrel serving the built SPA bundle; page objects in `Pages/`. Needs the client built first |
 | `src/SlideWorks.UnitTest/` | Last-resort NUnit tests for `SlideWorks.Core` helpers; see its `CLAUDE.md` |
-| `src/SlideWorks.Client/` | React SPA; `pnpm run build` emits straight into `src/SlideWorks.WebApi/wwwroot` (gitignored) |
+| `src/package.json`, `src/pnpm-workspace.yaml`, `src/pnpm-lock.yaml` | The one pnpm workspace: every JavaScript package in `src/`, one lockfile, pnpm pinned by `packageManager`. Install from `src/`; `allowBuilds` names each dependency whose install script may run, with the reason |
+| `src/SlideWorks.Core.Client/` | `@slideworks/core`: the API client, DTO types, error mapping and realtime factory shared by the SPA and the app. Pure TypeScript, exports its `.ts` sources (`@slideworks/core/<file>`), no build step. Its ESLint config bans browser globals and React, React DOM, React Native and SPA imports |
+| `src/SlideWorks.Client/` | React SPA (`slide-works-client`); `pnpm run build` emits straight into `src/SlideWorks.WebApi/wwwroot` (gitignored) |
 | `src/SlideWorks.Client/src/slides/` | `SlideRenderer`, `SlideFrame` and `chrome/` (tracker, footer, progress), one component per layout in `layouts/`, inline `blocks/`, `charts/`, `useFitText`, and `slidePart` (the current slide's part, through context) |
 | `src/SlideWorks.Client/src/player/` | The player: 1920×1080 canvas scaled to fit, steps, `#slide.step` hash, keys, click and swipe |
 | `src/SlideWorks.Client/src/realtime/` | `subscribeToDeck` (connect, join, rejoin, back-off), `useDeckRealtime`, `deckEvents.ts` mirroring the server's event types |
@@ -54,18 +56,21 @@ The ShipLean project **SW** (Slide Works). Each Feature is an SW key: SW-1 is th
 | `src/SlideWorks.Client/src/**/*.spec.tsx` | Playwright component tests next to the component; screenshot baselines in `*.spec.tsx-snapshots/` (committed, made only in CI's container) |
 | `src/Directory.Build.props`, `.editorconfig` | net10, warnings as errors, Sonar + Agoda analyzers, `TimeProvider`-only clock (`src/BannedSymbols.txt`) |
 | `src/Dockerfile`, `src/docker-compose.yml` | Single image: node stage builds the SPA into wwwroot, then dotnet publish; runs as the non-root app user |
-| `.github/workflows/` | `ci.yml` (backend, acceptance, frontend, playwright-in-container) and `docker-publish.yml` (GHCR `:latest` + `:sha` on main) |
+| `.github/workflows/` | `ci.yml` (`changes` path filters, backend, acceptance, frontend, `core-checks`, playwright-in-container) and `docker-publish.yml` (GHCR `:latest` + `:sha` on main) |
 | `docs/self-hosting.md` | Running a server and connecting agents; every `SLIDEWORKS_` setting |
 
 ## Build / contribute
 
 ```bash
-(cd src/SlideWorks.Client && pnpm install && pnpm run build)   # once, and after client changes: acceptance tests serve this bundle
+(cd src && pnpm install --frozen-lockfile)        # once per worktree, from the workspace root: every package in src/pnpm-workspace.yaml
+pnpm --dir src/SlideWorks.Client run build        # once, and after client changes: acceptance tests serve this bundle
 dotnet run --project src/SlideWorks.WebApi          # dev: Kestrel on :5510, appsettings.Development.json
 cd src/SlideWorks.Client && pnpm run dev            # dev SPA on :3000 (open this, not :5510); proxies /api, /hubs, /mcp, OAuth and sign-in -> :5510
 cd src/SlideWorks.Client && pnpm run format:check && pnpm run lint && pnpm test && pnpm run build   # CI's frontend job
 cd src/SlideWorks.Client && pnpm exec vitest run <file>                          # one unit test file (`pnpm test -- <file>` does not filter)
 cd src/SlideWorks.Client && pnpm exec playwright test -c playwright-ct.config.ts <spec>   # one component spec (`pnpm run test-ct -- <spec>` does not filter); screenshot asserts may false-fail locally (see below)
+pnpm --dir src/SlideWorks.Core.Client exec vitest run <files>   # @slideworks/core tests
+pnpm --dir src/SlideWorks.Core.Client run check                # @slideworks/core: prettier, eslint, tsc --noEmit, vitest (CI's core-checks job)
 dotnet tool restore                               # once, for dotnet-ef
 SLIDEWORKS_DB_PATH=/tmp/x.db dotnet ef migrations add <Name> --project src/SlideWorks.WebApi
 docker compose -f src/docker-compose.yml up --build
