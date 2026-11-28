@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { ApiError } from '../api/client';
+import { ApiError, api } from '../api/client';
 import { getPresenterView } from '../api/presenter';
-import type { PresenterView } from '../api/types';
+import type { LookChangeRequest, PresenterView } from '../api/types';
 import {
   nextPosition,
   nextPreview,
@@ -11,6 +11,7 @@ import {
 } from '../presentation/navigate';
 import type { PresentationState, PresentationUpdate } from '../presentation/types';
 import { usePresentation, type Presentation } from '../presentation/usePresentation';
+import { useLiveSessionContext } from '../live/LiveSessionProvider';
 import { useDeckRealtime } from '../realtime/useDeckRealtime';
 import { JoinProvider } from '../slides/JoinContext';
 import { SlidesSheet } from '../remote/SlidesSheet';
@@ -38,13 +39,14 @@ type Load =
 const NOT_YOURS = "This presentation isn't yours, or it doesn't exist";
 const SEND_FAILED = "That didn't reach the talk, so nothing changed. Try again.";
 const REFRESH_FAILED = "Couldn't load the deck's latest changes.";
+const JOIN_BAR_FAILED = "Couldn't change the join code on the screen. Try again.";
 
 const PAGE_CLASS = 'mx-auto flex h-dvh max-w-md flex-col bg-slate-950 text-slate-100';
 
 // /remote/:id, the phone's speaker mode (P8): signed in, with no Shell chrome. One request (P3) for the deck and its
 // notes, and the presentation (P6) joined as a phone. The slide comes first, the notes underneath (D6), then Next and
-// Previous, Slides, Skip deep dives and Blackout. Every button sends a position worked out by navigate.ts (P5) and
-// renders what the server sends back; nothing moves locally (D4).
+// Previous, Slides, Skip deep dives and Blackout, and Join code while the deck is live (SW-609). Every button sends a
+// position worked out by navigate.ts (P5) and renders what the server sends back; nothing moves locally (D4).
 export function SpeakerPage() {
   const { id = '' } = useParams();
   // Once per page: a new label would rejoin the presentation.
@@ -79,16 +81,22 @@ export function SpeakerPage() {
     };
   }, [id, attempt]);
 
-  // The deck going live or ending elsewhere (the presenter window's chip) changes its join slide's state, so the view
-  // is read again. A failed re-read keeps the talk on screen and says so; the next one that works clears the message.
-  useDeckRealtime(id, (event) => {
-    if (event.type !== 'liveChanged') return;
+  // The deck going live or ending elsewhere (the presenter window's chip) changes its join slide's state, and a change
+  // to the deck (its join bar turned on or off, here or on the laptop) changes what the room sees, so the view is read
+  // again. A failed re-read keeps the talk on screen and says so; the next one that works clears the message.
+  // Latest wins: two changes close together must not leave the older answer on screen.
+  const reread = useRef(0);
+  useDeckRealtime(id, () => {
+    const seq = ++reread.current;
     getPresenterView(id).then(
       (view) => {
+        if (seq !== reread.current) return;
         setRefreshFailed(false);
         setResult({ id, load: { kind: 'loaded', view } });
       },
-      () => setRefreshFailed(true),
+      () => {
+        if (seq === reread.current) setRefreshFailed(true);
+      },
     );
   });
 
@@ -258,6 +266,18 @@ function SpeakerMode({
       .catch(() => setError(SEND_FAILED));
   };
 
+  // The join bar is the deck's look, not the presentation's state, so it goes through the look's own request. The
+  // button shows the new state once the deck's change comes back and the view is read again.
+  const audience = useLiveSessionContext();
+  const joinBarOn = view.look.joinBar;
+  const toggleJoinBar = () => {
+    setError('');
+    const body: LookChangeRequest = { chrome: { joinBar: !joinBarOn } };
+    api
+      .put(`/api/decks/${encodeURIComponent(id)}/look`, body)
+      .catch(() => setError(JOIN_BAR_FAILED));
+  };
+
   const onTimerTap = () => {
     setError('');
     presentation
@@ -362,6 +382,7 @@ function SpeakerMode({
             onSlides={openSheet}
             onSkip={() => send({ skipDeepDives: !skip })}
             onBlack={() => send({ black: !state.black })}
+            joinBar={audience.live ? { on: joinBarOn, onToggle: toggleJoinBar } : undefined}
             slidesRef={slidesRef}
           />
         </>

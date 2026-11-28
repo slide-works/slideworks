@@ -51,6 +51,9 @@ public sealed class SpeakerPage(IPage page)
     public ILocator Skip => page.GetByTestId("speaker-skip");
     public ILocator Blackout => page.GetByTestId("speaker-blackout");
 
+    // Join code, only while the deck is live for an audience: aria-pressed is whether the join bar is on the room's screen.
+    public ILocator JoinCode => page.GetByTestId("speaker-join-bar");
+
     public ILocator Reconnecting => page.GetByTestId("speaker-reconnecting");
     public ILocator NotYours => page.GetByTestId("speaker-not-yours");
 

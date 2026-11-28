@@ -109,6 +109,40 @@ public partial class PhoneRemoteJourneyTests : AcceptanceTest
         await Expect(speaker.Now).ToHaveAttributeAsync("data-slide", "1");
     }
 
+    // SW-609: with the deck live for an audience, the phone's Join code puts the join bar on the room's screen and takes
+    // it off again, and the presenter window's own toggle follows it.
+    [Test]
+    public async Task PhoneTogglesJoinCode_WhenTheDeckIsLive_ShouldShowAndHideTheJoinBarOnTheRoomsScreen()
+    {
+        var id = await CreateDeckAsync(TestUser.Sam, $"Phone join code {Guid.NewGuid():N}");
+        var presenter = await OpenPresenterAsync(TestUser.Sam, id);
+        var audience = await Talks.OpenAudienceAsync(Page, await Context.NewPageAsync(), presenter, id);
+        await using var phone = await OpenPhoneAsync(TestUser.Sam);
+        var speaker = new SpeakerPage(phone.Page);
+        await speaker.GotoAsync(id);
+        await speaker.IsLiveAsync();
+        await Expect(speaker.Blackout).ToBeVisibleAsync();
+        await Expect(speaker.JoinCode).ToHaveCountAsync(0);
+
+        await presenter.Live.GoLive.ClickAsync();
+
+        await Expect(speaker.JoinCode).ToHaveAttributeAsync("aria-pressed", "false");
+        await Expect(audience.JoinBar(1)).ToHaveCountAsync(0);
+
+        await speaker.JoinCode.ClickAsync();
+
+        await Expect(audience.JoinBar(1)).ToBeVisibleAsync();
+        await Expect(audience.JoinBarCode(1)).ToHaveTextAsync(await presenter.Live.Code.InnerTextAsync());
+        await Expect(speaker.JoinCode).ToHaveAttributeAsync("aria-pressed", "true");
+        await Expect(presenter.Live.JoinBarToggle).ToHaveAttributeAsync("aria-pressed", "true");
+
+        await speaker.JoinCode.ClickAsync();
+
+        await Expect(audience.JoinBar(1)).ToHaveCountAsync(0);
+        await Expect(speaker.JoinCode).ToHaveAttributeAsync("aria-pressed", "false");
+        await Expect(presenter.Live.JoinBarToggle).ToHaveAttributeAsync("aria-pressed", "false");
+    }
+
     // A private deck of SLIDES quote slides, each with its own text, made the way an agent makes one.
     private static async Task<string> CreateDeckAsync(TestUser owner, string title)
     {

@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import type { Page } from 'playwright/test';
 import { AppRoutes } from '../AppRoutes';
+import type { LiveView } from '../live/liveView';
 import type { PresentationState } from '../presentation/types';
+import { guestView } from '../test-support/fixtures/guestStates';
 import { presentationState, presenterView } from '../test-support/fixtures/presenting';
 import { me } from '../test-support/fixtures/screens';
 import { stubApi } from '../test-support/stubApi';
@@ -431,4 +433,114 @@ test('a failed re-read after the deck goes live or ends shows a message, and the
   failing = false;
   hub.push({ type: 'liveChanged', deckId });
   await expect(page.getByTestId('speaker-error')).toHaveCount(0);
+});
+
+const livePath = `/api/decks/${deckId}/live`;
+const lookPath = `/api/decks/${deckId}/look`;
+const liveView: LiveView = {
+  sessionId: 'session-1',
+  code: view.join.code,
+  codeLabel: view.join.codeLabel,
+  joinUrl: view.join.joinUrl,
+  hostLabel: view.join.hostLabel,
+  live: true,
+  joinedCount: 7,
+  joinBar: false,
+};
+
+// The owner's phone while the deck is live for an audience: GET /live answers, and the presenter view carries the
+// deck's join bar as it stands. Returns the PUT /look bodies the page sent.
+async function openLive(page: Page, joinBar: () => boolean, lookStatus = 200) {
+  const lookBodies: unknown[] = [];
+  await stubApi(page, { '/api/me': { json: me }, [livePath]: { json: liveView } });
+  await page.route(`**${presenterPath}`, (r) =>
+    r.fulfill({
+      json: {
+        ...view,
+        join: { ...view.join, live: true },
+        look: { ...view.look, joinBar: joinBar() },
+      },
+    }),
+  );
+  await page.route(`**${lookPath}`, (r) => {
+    lookBodies.push(r.request().postDataJSON());
+    return lookStatus === 200
+      ? r.fulfill({ json: {} })
+      : r.fulfill({ status: lookStatus, json: { error: 'boom' } });
+  });
+  const hub = await stubDeckHub(page, {
+    presentation: { state: paused() },
+    audience: { state: guestView('live').state },
+  });
+  return { hub, lookBodies };
+}
+
+test('Join code is not offered while the deck is not live', async ({ mount, page }) => {
+  await open(page, { state: paused() });
+  await mount(<AppRoutes />, route);
+  await live(page);
+  await expect(page.getByTestId('speaker-blackout')).toBeVisible();
+  await expect(page.getByTestId('speaker-join-bar')).toHaveCount(0);
+});
+
+test('Join code turns the join bar on, and shows it once the deck change comes back', async ({
+  mount,
+  page,
+}) => {
+  let on = false;
+  const { hub, lookBodies } = await openLive(page, () => on);
+  await mount(<AppRoutes />, route);
+  await live(page);
+  const button = page.getByTestId('speaker-join-bar');
+  await expect(button).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('speaker-now').getByTestId('join-bar')).toHaveCount(0);
+
+  await button.click();
+  await expect.poll(() => lookBodies).toEqual([{ chrome: { joinBar: true } }]);
+  on = true;
+  hub.push({ type: 'deckChanged', deckId });
+
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('speaker-now').getByTestId('join-bar')).toBeVisible();
+
+  await button.click();
+  await expect.poll(() => lookBodies[1]).toEqual({ chrome: { joinBar: false } });
+});
+
+test('Join code follows the join bar turned on from the laptop', async ({ mount, page }) => {
+  let on = false;
+  const { hub } = await openLive(page, () => on);
+  await mount(<AppRoutes />, route);
+  await live(page);
+  await expect(page.getByTestId('speaker-join-bar')).toHaveAttribute('aria-pressed', 'false');
+
+  on = true;
+  hub.push({ type: 'deckChanged', deckId });
+
+  await expect(page.getByTestId('speaker-join-bar')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('a failed Join code tap shows a message and the button stays as it was', async ({
+  mount,
+  page,
+}) => {
+  await openLive(page, () => false, 500);
+  await mount(<AppRoutes />, route);
+  await live(page);
+
+  await page.getByTestId('speaker-join-bar').click();
+
+  await expect(page.getByTestId('speaker-error')).toHaveText(
+    "Couldn't change the join code on the screen. Try again.",
+  );
+  await expect(page.getByTestId('speaker-join-bar')).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('screenshot: speaker mode with Join code on, at phone size', async ({ mount, page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openLive(page, () => true);
+  await mount(<AppRoutes />, route);
+  await live(page);
+  await expect(page.getByTestId('speaker-join-bar')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('speaker-page')).toHaveScreenshot('speaker-mode-join-code.png');
 });

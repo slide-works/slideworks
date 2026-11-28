@@ -51,7 +51,7 @@ A deck can have an optional talk length in whole minutes (1 to 600). It is set b
 Open the phone remote from the Present menu's **Control from your phone** item, or go to `/remote` on the phone while signed in as the owner.
 
 - **Pick the talk**: `/remote` lists your live talks. A talk that is live opens straight to its speaker mode when you arrive from its QR code.
-- **Speaker mode** (`/remote/{id}`): the current slide, then its notes underneath, then Next and Previous. **Slides** opens a list of every slide to jump to; a tap jumps there and closes the list. Blackout and Skip deep dives are on the same screen.
+- **Speaker mode** (`/remote/{id}`): the current slide, then its notes underneath, then Next and Previous. **Slides** opens a list of every slide to jump to; a tap jumps there and closes the list. Blackout and Skip deep dives are on the same screen. While the deck is live for an audience, **Join code** is there too: it turns the join bar (the QR code and the code on every slide) on and off on the room's screen, the same switch as the live chip's Join bar on the laptop.
 - The phone shows a status line: **Live**, **Connecting** or **Reconnecting**. Tapping the timer starts, pauses or resumes it.
 - The screen stays awake while the page is open where the phone browser supports it; otherwise it may dim.
 
