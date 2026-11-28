@@ -1,6 +1,6 @@
 # SW-982 design notes: the SlideWorks voice
 
-28 Nov 2026. SW-982 sits under the Translations epic (SW-942) and comes after SW-885. The design PR adds `design/sw-982-slideworks-voice/`: the mockup page, 8 PNGs and these notes. ShipLean has the same HTML and PNGs attached to SW-982.
+28 Nov 2026. Design PR: https://github.com/slide-works/slideworks/pull/60. SW-982 sits under the Translations epic (SW-942) and comes after SW-885. The design PR adds `design/sw-982-slideworks-voice/`: the mockup page, 8 PNGs and these notes. ShipLean has the same HTML and PNGs attached to SW-982.
 
 ## The problem
 
