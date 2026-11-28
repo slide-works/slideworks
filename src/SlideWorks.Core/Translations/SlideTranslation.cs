@@ -9,7 +9,7 @@ namespace SlideWorks.Core.Translations;
 // fallback; an entry whose path is not a line is ignored. With dropUnmatchedEmphasis, an emphasis whose
 // phrase is no longer in its merged text is dropped, so the slide renders without that highlight.
 // The server's TranslationMerge.For is the only caller outside translate_slides; nothing else merges.
-public static class SlideTranslation
+public static partial class SlideTranslation
 {
     public static MergedSlide Merge(
         LayoutDefinition layout,
