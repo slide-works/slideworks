@@ -1,0 +1,44 @@
+/* A phone drawn at 390 x 844 points; calc(var(--u) * 1) inside .phone is one point, whatever the export size. */
+.phone-box { container-type: inline-size; aspect-ratio: 390 / 844; position: relative; }
+.phone {
+  --bg: var(--sw-paper); --card: var(--sw-card); --ink: var(--sw-ink); --muted: var(--sw-muted); --line: var(--sw-grid); --chip: var(--sw-chip);
+  position: absolute; inset: 0; --u: calc(100cqw / 390); overflow: hidden; background: var(--bg); color: var(--ink);
+  border-radius: calc(var(--u) * 56); box-shadow: 0 0 0 calc(var(--u) * 11) #0a0f1d, 0 0 0 calc(var(--u) * 13) #2b3552, 0 calc(var(--u) * 60) calc(var(--u) * 120) rgba(0, 0, 0, 0.45);
+  font-family: var(--sw-font-body);
+}
+.phone.dark { --bg: #0b1020; --card: #151c33; --ink: #fff; --muted: #8c97ad; --line: #26304d; --chip: #1c2542; }
+.island { position: absolute; top: calc(var(--u) * 12); left: 50%; width: calc(var(--u) * 118); height: calc(var(--u) * 34); margin-left: calc(var(--u) * -59); background: #000; border-radius: calc(var(--u) * 20); }
+.status { position: absolute; top: calc(var(--u) * 18); left: calc(var(--u) * 34); right: calc(var(--u) * 34); display: flex; justify-content: space-between; font-weight: 600; font-size: calc(var(--u) * 16); }
+.status i { display: inline-block; width: calc(var(--u) * 24); height: calc(var(--u) * 11); border-radius: calc(var(--u) * 3); background: var(--ink); opacity: 0.85; }
+.screen { position: absolute; inset: calc(var(--u) * 64) calc(var(--u) * 22) 0 calc(var(--u) * 22); display: flex; flex-direction: column; }
+.brand { display: flex; align-items: center; gap: calc(var(--u) * 10); font-family: var(--sw-font-head); font-weight: 800; font-size: calc(var(--u) * 20); margin-top: calc(var(--u) * 8); }
+.brand svg { width: calc(var(--u) * 34); height: calc(var(--u) * 34); border-radius: calc(var(--u) * 8); }
+h1 { font-family: var(--sw-font-head); font-weight: 800; font-size: calc(var(--u) * 34); line-height: 1.1; letter-spacing: -0.01em; }
+.sub { color: var(--muted); font-size: calc(var(--u) * 16); line-height: 1.4; margin-top: calc(var(--u) * 8); }
+.label { font-weight: 600; font-size: calc(var(--u) * 13); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: calc(var(--u) * 26) 0 calc(var(--u) * 10); }
+.btn { display: flex; align-items: center; justify-content: center; height: calc(var(--u) * 54); border-radius: calc(var(--u) * 14); font-weight: 700; font-size: calc(var(--u) * 17); background: var(--sw-accent); color: #fff; }
+.btn.alt { background: var(--card); color: var(--ink); border: calc(var(--u) * 1.5) solid var(--line); }
+.digits { display: flex; gap: calc(var(--u) * 9); }
+.digits b { flex: 1; height: calc(var(--u) * 62); border-radius: calc(var(--u) * 12); background: var(--card); border: calc(var(--u) * 1.5) solid var(--line); display: flex; align-items: center; justify-content: center; font-family: var(--sw-font-head); font-weight: 800; font-size: calc(var(--u) * 28); }
+.digits b.on { border-color: var(--sw-accent); box-shadow: 0 0 0 calc(var(--u) * 4) color-mix(in srgb, var(--sw-accent) 22%, transparent); }
+.or { display: flex; align-items: center; gap: calc(var(--u) * 12); color: var(--muted); font-size: calc(var(--u) * 14); margin: calc(var(--u) * 22) 0; }
+.or::before, .or::after { content: ''; flex: 1; height: calc(var(--u) * 1.5); background: var(--line); }
+.foot { color: var(--muted); font-size: calc(var(--u) * 14); text-align: center; margin-top: calc(var(--u) * 18); }
+.pill { align-self: flex-start; display: inline-flex; align-items: center; gap: calc(var(--u) * 8); height: calc(var(--u) * 30); padding: 0 calc(var(--u) * 14); border-radius: calc(var(--u) * 999); font-weight: 700; font-size: calc(var(--u) * 14); background: var(--sw-good-soft); color: var(--sw-good); margin-top: calc(var(--u) * 22); }
+.dark .pill { background: color-mix(in srgb, #22c55e 18%, transparent); color: #4ade80; }
+.pill::before { content: ''; width: calc(var(--u) * 9); height: calc(var(--u) * 9); border-radius: 50%; background: currentColor; }
+.big { margin-top: calc(var(--u) * 34); border-radius: calc(var(--u) * 28); background: var(--card); border: calc(var(--u) * 1.5) solid var(--line); padding: calc(var(--u) * 34) calc(var(--u) * 26) calc(var(--u) * 30); text-align: center; box-shadow: 0 calc(var(--u) * 10) calc(var(--u) * 30) rgba(17, 24, 39, 0.06); }
+.dark .big { box-shadow: none; }
+.big small { display: block; font-weight: 600; font-size: calc(var(--u) * 15); color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.big strong { display: block; font-family: var(--sw-font-head); font-weight: 800; font-size: calc(var(--u) * 190); line-height: 1.05; color: var(--sw-accent); margin-top: calc(var(--u) * 4); }
+.dark .big strong { color: var(--sw-accent-glow); }
+.big p { color: var(--muted); font-size: calc(var(--u) * 15); margin-top: calc(var(--u) * 6); }
+.nav { display: flex; align-items: center; justify-content: space-between; margin-top: calc(var(--u) * 8); }
+.avatar { width: calc(var(--u) * 38); height: calc(var(--u) * 38); border-radius: 50%; background: var(--sw-accent-light); color: var(--sw-accent-dark); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: calc(var(--u) * 14); }
+.row { background: var(--card); border: calc(var(--u) * 1.5) solid var(--line); border-radius: calc(var(--u) * 18); padding: calc(var(--u) * 17) calc(var(--u) * 18); margin-top: calc(var(--u) * 12); }
+.row b { display: block; font-size: calc(var(--u) * 17); font-weight: 600; }
+.row span { color: var(--muted); font-size: calc(var(--u) * 14); display: block; margin-top: calc(var(--u) * 4); }
+.field { height: calc(var(--u) * 54); border-radius: calc(var(--u) * 14); background: var(--card); border: calc(var(--u) * 1.5) solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 calc(var(--u) * 16); font-size: calc(var(--u) * 16); }
+.field em { font-style: normal; font-weight: 600; font-size: calc(var(--u) * 13); color: var(--sw-good); }
+.spacer { flex: 1; }
+.btn + .btn, .field + .btn { margin-top: calc(var(--u) * 14); }

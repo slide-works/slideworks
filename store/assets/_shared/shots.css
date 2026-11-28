@@ -1,0 +1,7 @@
+/* One marketing screenshot: night surface, a headline, and a phone bleeding off the bottom edge.
+   The set's asset.html sets --w, --h, --phone-w and --phone-top. */
+.shot { container-type: inline-size; position: relative; width: var(--w); height: var(--h); overflow: hidden; background: var(--sw-night-surface); margin: 0 0 40px; color: #fff; }
+.shot .head { position: absolute; top: 6.2%; left: 8%; right: 8%; text-align: center; }
+.shot h2 { font-family: var(--sw-font-head); font-weight: 800; font-size: 7.6cqw; line-height: 1.08; letter-spacing: -0.01em; }
+.shot .head p { color: var(--sw-night-2); font-size: 3.7cqw; margin-top: 2.4cqw; }
+.shot .phone-box { position: absolute; left: calc((100% - var(--phone-w)) / 2); top: var(--phone-top); width: var(--phone-w); }
