@@ -32,16 +32,16 @@ public sealed class TranslationRowSeed(IServiceProvider services)
         await db.SaveChangesAsync();
     }
 
-    // Replaces the slide's translated lines: language, then slot path, then the line's text and the primary text it came from.
-    public async Task LinesAsync(Guid slideId, IReadOnlyDictionary<string, IReadOnlyDictionary<string, (string Text, string From)>> lines)
+    // Replaces the translated lines of the deck's live slide with this 1-based number: language, then slot path, then the line's text and the primary text it came from.
+    public async Task LinesAsync(string deckId, int slide, IReadOnlyDictionary<string, IReadOnlyDictionary<string, (string Text, string From)>> lines)
     {
         var shaped = lines.ToDictionary(
             language => language.Key,
             language => language.Value.ToDictionary(line => line.Key, line => new { text = line.Value.Text, from = line.Value.From }));
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var slide = await db.Slides.SingleAsync(s => s.Id == slideId);
-        slide.TranslationsJson = JsonSerializer.Serialize(shaped);
+        var row = await db.Slides.SingleAsync(s => s.DeckId == deckId && s.DeletedAt == null && s.Position == slide - 1);
+        row.TranslationsJson = JsonSerializer.Serialize(shaped);
         await db.SaveChangesAsync();
     }
 }

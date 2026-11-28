@@ -23,5 +23,5 @@ public class DeckTranslationSettingsRow
         LanguagesJson = JsonSerializer.Serialize(settings.Languages),
     };
 
-    public TranslationSettings ToSettings() => new(Enabled, Primary, JsonSerializer.Deserialize<string[]>(LanguagesJson) ?? []);
+    public TranslationSettings ToSettings() => new(Enabled, Primary, JsonSerializer.Deserialize<string[]>(LanguagesJson) ?? throw new InvalidOperationException($"Deck {DeckId} has a null LanguagesJson."));
 }
