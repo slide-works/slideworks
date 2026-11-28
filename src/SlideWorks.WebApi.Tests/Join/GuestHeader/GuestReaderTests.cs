@@ -44,10 +44,12 @@ public class GuestReaderTests
     {
         var api = Request("/api/join/482913/poll", query: HEADER_ID);
         var hub = Request("/hubs/deck", query: HEADER_ID);
+        var negotiate = Request("/hubs/deck/negotiate", query: HEADER_ID);
         var malformedOnHub = Request("/hubs/deck", query: "not-a-guest-id");
 
         GuestCookie.From(api).ShouldBeNull();
         GuestCookie.From(hub).ShouldBe(HEADER_ID);
+        GuestCookie.From(negotiate).ShouldBe(HEADER_ID);
         GuestCookie.From(malformedOnHub).ShouldBeNull();
     }
 
