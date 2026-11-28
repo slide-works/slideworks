@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/experimental-ct-react';
 import { AppRoutes } from './AppRoutes';
 import { GoTo } from './test-support/GoTo';
 import { LocationProbe } from './test-support/LocationProbe';
+import { DEVICE_SIGN_IN_TEST_IDS } from './pages/deviceSignIn/testIds';
 import {
   adminUsers,
   card as cardView,
@@ -281,4 +282,42 @@ test("a template's page renders without sign-in or the shell", async ({ mount, p
   await expect(page.getByTestId(TEMPLATES_TEST_IDS.publicPage)).toBeVisible();
   await expect(page.getByTestId('app-shell')).toHaveCount(0);
   await expect(page.getByTestId('location')).toHaveText('/t/tpl_Nw4kT8pQz2Lm');
+});
+
+const appSignIn =
+  '/app/sign-in?challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&state=Zm9vYmFyYmF6cXV4MTIz&device=Pixel';
+
+test('app sign-in sends signed-out people to sign in and back', async ({ mount, page }) => {
+  await stubApi(page, {
+    '/api/me': { status: 401, json: { error: 'Not signed in' } },
+    '/api/signin/options': { json: { google: true } },
+  });
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    { hooksConfig: { route: appSignIn } },
+  );
+  await expect(page.getByTestId('signin-page')).toBeVisible();
+  await expect(page.getByTestId('location')).toHaveText(
+    `/signin?returnTo=${encodeURIComponent(appSignIn)}`,
+  );
+  await expect(page.getByTestId('signin-google')).toHaveAttribute(
+    'href',
+    `/signin/google?returnTo=${encodeURIComponent(appSignIn)}`,
+  );
+});
+
+test('app sign-in lets pending people through', async ({ mount, page }) => {
+  await stubApi(page, { '/api/me': { json: { ...me, access: 'pending' } } });
+  await mount(
+    <LocationProbe>
+      <AppRoutes />
+    </LocationProbe>,
+    { hooksConfig: { route: appSignIn } },
+  );
+  await expect(page.getByTestId(DEVICE_SIGN_IN_TEST_IDS.continueButton)).toBeVisible();
+  await expect(page.getByTestId('pending-page')).toHaveCount(0);
+  await expect(page.getByTestId('app-shell')).toHaveCount(0);
+  await expect(page.getByTestId('location')).toHaveText(appSignIn);
 });
