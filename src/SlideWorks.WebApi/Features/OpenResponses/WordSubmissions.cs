@@ -22,7 +22,8 @@ public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenRe
 
     private const string WORD_CLOUD = "word-cloud";
 
-    public async Task<GuestResponseView> ViewAsync(string code, int slide, string? guestId, CancellationToken cancellationToken)
+    // TODO: the language is ignored and the prompt is the primary one; translating the guest's response view replaces this.
+    public async Task<GuestResponseView> ViewAsync(string code, int slide, string? guestId, string? language, CancellationToken cancellationToken)
     {
         var live = await LiveAsync(code);
         return await ReadAsync(live, slide, guestId, cancellationToken);

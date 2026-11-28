@@ -15,5 +15,5 @@ public class JoinController(GuestViews views) : ApiControllerBase
     [ProducesResponseType<GuestView>(StatusCodes.Status200OK)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status429TooManyRequests)]
-    public Task<GuestView> Get(string code) => views.GetAsync(code, HttpContext.Connection.RemoteIpAddress);
+    public Task<GuestView> Get(string code, [FromQuery] string? language) => views.GetAsync(code, language, HttpContext.Connection.RemoteIpAddress);
 }

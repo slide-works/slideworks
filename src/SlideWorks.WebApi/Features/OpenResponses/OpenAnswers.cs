@@ -38,7 +38,8 @@ public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenRespon
         return layout == LAYOUT;
     }
 
-    public async Task<GuestResponseView> ViewAsync(string code, int slide, string? guestId, CancellationToken cancellationToken)
+    // TODO: the language is ignored and the prompt is the primary one; translating the guest's response view replaces this.
+    public async Task<GuestResponseView> ViewAsync(string code, int slide, string? guestId, string? language, CancellationToken cancellationToken)
     {
         var seated = await LiveAsync(code);
         return ViewOf(await RoundAsync(seated, slide, cancellationToken), guestId);

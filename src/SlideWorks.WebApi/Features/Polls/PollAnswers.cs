@@ -19,7 +19,7 @@ public class PollAnswers(AppDbContext db, GuestPollViews views, PollRows rows, A
 {
     private const string OPTIONS_SLOT = "options";
 
-    public async Task<AnswerResult> SubmitAsync(string code, string guestId, AnswerRequest request)
+    public async Task<AnswerResult> SubmitAsync(string code, string guestId, AnswerRequest request, string? language)
     {
         var seat = await views.SeatAsync(code, guestId);
         if (seat is null)
@@ -28,7 +28,7 @@ public class PollAnswers(AppDbContext db, GuestPollViews views, PollRows rows, A
         }
         if (seat.SessionId is not { } sessionId)
         {
-            return await StaleAsync(seat, code, guestId);
+            return await StaleAsync(seat, code, guestId, language);
         }
         if (!limiter.TryAcquire(guestId))
         {
@@ -37,12 +37,12 @@ public class PollAnswers(AppDbContext db, GuestPollViews views, PollRows rows, A
         var round = await rows.OpenRoundAsync(sessionId);
         if (round?.OpenedAt is null || !Guid.TryParse(request.Round, out var asked) || asked != round.Id)
         {
-            return await StaleAsync(seat, code, guestId);
+            return await StaleAsync(seat, code, guestId, language);
         }
         var mine = await views.MineAsync(round.Id, guestId);
         if ((mine?.Revision ?? 0) != request.Revision)
         {
-            return await StaleAsync(seat, code, guestId);
+            return await StaleAsync(seat, code, guestId, language);
         }
         var settings = await rows.RoundSettingsAsync(round);
         var slide = await db.Slides.AsNoTracking()
@@ -73,16 +73,16 @@ public class PollAnswers(AppDbContext db, GuestPollViews views, PollRows rows, A
         var picks = open ? Array.Empty<int>() : request.Picks.Order().ToArray();
         if (await writer.ReplaceAsync(target, guestId, picks, request.Revision, text) is not RoundWrite.Written written)
         {
-            return await StaleAsync(seat, code, guestId);
+            return await StaleAsync(seat, code, guestId, language);
         }
 
         return new AnswerResult.Accepted(written.Picks, written.Revision, written.Text);
     }
 
-    public async Task<GuestPollView?> ViewAsync(string code, string guestId)
+    public async Task<GuestPollView?> ViewAsync(string code, string guestId, string? language)
     {
         var seat = await views.SeatAsync(code, guestId);
-        return seat is null ? null : await views.ViewAsync(seat, code, guestId);
+        return seat is null ? null : await views.ViewAsync(seat, code, guestId, language);
     }
 
     public Task<MyAnswer?> MineAsync(string roundId, string guestId)
@@ -102,8 +102,8 @@ public class PollAnswers(AppDbContext db, GuestPollViews views, PollRows rows, A
         return await views.MineAsync(round.Id, guestId) is null ? null : round.Id.ToString();
     }
 
-    private async Task<AnswerResult> StaleAsync(GuestSeat seat, string code, string guestId)
-        => new AnswerResult.Stale(await views.ViewAsync(seat, code, guestId));
+    private async Task<AnswerResult> StaleAsync(GuestSeat seat, string code, string guestId, string? language)
+        => new AnswerResult.Stale(await views.ViewAsync(seat, code, guestId, language));
 
     // The poll slide's option count, from its options slot (V1).
     private static int OptionCountOf(string slotsJson)
