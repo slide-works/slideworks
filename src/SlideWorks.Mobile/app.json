@@ -17,7 +17,9 @@
       },
       "associatedDomains": ["applinks:slideworks.app", "applinks:slideworks.live"],
       "infoPlist": {
-        "NSAppTransportSecurity": { "NSAllowsLocalNetworking": true },
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        },
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -35,12 +37,37 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "slideworks.app", "pathPrefix": "/j/" },
-            { "scheme": "https", "host": "slideworks.live", "pathPrefix": "/j/" },
-            { "scheme": "https", "host": "slideworks.live", "pathAdvancedPattern": "/[0-9]{6}" }
+            {
+              "scheme": "https",
+              "host": "slideworks.app",
+              "pathPrefix": "/j/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "slideworks.live",
+              "pathPrefix": "/j/"
+            },
+            {
+              "scheme": "https",
+              "host": "slideworks.live",
+              "pathAdvancedPattern": "/[0-9]{6}"
+            }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
+      ],
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.VIBRATE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "plugins": [
@@ -52,17 +79,39 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#f7f8fa",
-          "dark": { "image": "./assets/splash/splash-dark.png", "backgroundColor": "#0b1020" }
+          "dark": {
+            "image": "./assets/splash/splash-dark.png",
+            "backgroundColor": "#0b1020"
+          }
         }
       ],
       "expo-status-bar",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       "expo-sqlite",
       "expo-web-browser",
       "expo-system-ui",
-      ["expo-build-properties", { "android": { "extraProguardRules": "" } }],
-      ["@sentry/react-native/expo", { "useNativeInit": true }]
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": ""
+          }
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "useNativeInit": true
+        }
+      ]
     ],
-    "experiments": { "typedRoutes": true }
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
