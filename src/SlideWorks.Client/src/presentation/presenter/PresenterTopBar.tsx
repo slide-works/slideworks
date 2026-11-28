@@ -12,6 +12,8 @@ type Props = {
   onReopenAudience(): void;
   // A chip another feature puts at the start of the right-hand group (P10). Its wrapper renders only when given.
   liveChip?: ReactNode;
+  // The Reading in counter (SW-886 K11), drawn just before the live chip. Its wrapper renders only when given.
+  readingIn?: ReactNode;
 };
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
@@ -52,8 +54,8 @@ function Chip({ connection }: { connection: PresentationConnection }) {
   );
 }
 
-// The presenter window's top bar: the deck's title and current part on the left; on the right the live chip (when
-// given), the timer with its time left, the clock, the pause and reset buttons, and a chip per connected audience
+// The presenter window's top bar: the deck's title and current part on the left; on the right the Reading in counter
+// and the live chip (each when given), the timer with its time left, the clock, the pause and reset buttons, and a chip per connected audience
 // window and phone.
 export function PresenterTopBar({
   view,
@@ -63,6 +65,7 @@ export function PresenterTopBar({
   onTimer,
   onReopenAudience,
   liveChip,
+  readingIn,
 }: Props) {
   const running = state.timer.state === 'running';
   const partNumber = view.slides[state.slide - 1]?.part ?? null;
@@ -89,6 +92,12 @@ export function PresenterTopBar({
         </span>
       )}
       <div className="ml-auto flex flex-wrap items-center gap-3.5">
+        {/* ReadingIn draws nothing while translations are off: the empty wrapper then takes no place or gap in the row. */}
+        {isRenderable(readingIn) && (
+          <div data-testid="presenter-reading-in" className="empty:hidden">
+            {readingIn}
+          </div>
+        )}
         {isRenderable(liveChip) && <div data-testid="presenter-live-chip">{liveChip}</div>}
         <div className="flex items-center gap-2.5">
           <span
