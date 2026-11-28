@@ -44,7 +44,7 @@ test('GuestFollowing_WhenSlideIsChinese_ShouldPutThatScriptsNotoFaceFirst', asyn
     const slide = page.getByTestId(GUEST_TEST_IDS.slide).getByTestId('slide-3');
     return slide.evaluate((el) => ({
       lang: el.closest('[lang]')?.getAttribute('lang'),
-      stack: getComputedStyle(el).getPropertyValue('--sw-noto-stack'),
+      stack: getComputedStyle(el).getPropertyValue('--sw-noto-stack').replaceAll('"', "'"),
     }));
   };
   const hans = await stackOf('zh-Hans');
@@ -61,7 +61,7 @@ test('GuestFollowing_WhenSlideIsTraditionalChinese_ShouldPutNotoSansTcFirst', as
   await mount(<GuestFollowing view={view} state={state} status="live" />);
   const slide = page.getByTestId(GUEST_TEST_IDS.slide).getByTestId('slide-3');
   const stack = await slide.evaluate((el) =>
-    getComputedStyle(el).getPropertyValue('--sw-noto-stack'),
+    getComputedStyle(el).getPropertyValue('--sw-noto-stack').replaceAll('"', "'"),
   );
   expect(stack).toMatch(/^'Noto Sans Thai', 'Noto Sans TC', 'Noto Sans JP'/);
 });
