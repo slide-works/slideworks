@@ -15,6 +15,9 @@ public interface IAudienceRoster
     // session to count it in. The leave carries the session's joined count, which a leave never lowers.
     Task<RosterLeave?> LeaveAsync(string connectionId);
 
+    // The deck this connection joined the audience of, or null when it is on no roster (SW-883 K5: SetLanguage's not_joined).
+    Task<string?> DeckOfAsync(string connectionId);
+
     // The distinct guests connected now on the open session's deck, or 0 for a session that is not the deck's open one. A
     // poll's response rate divides by it.
     Task<int> CountAsync(string sessionId);

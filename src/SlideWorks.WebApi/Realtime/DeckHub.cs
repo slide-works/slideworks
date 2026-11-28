@@ -73,6 +73,9 @@ public sealed class DeckHub(
     // finds no such round. One refusal for both, so a caller learns nothing about a code it guessed.
     public const string NOT_ANSWERED = "not_answered";
 
+    // SetLanguage's refusal (SW-883 K5): this connection hasn't joined the code's audience with JoinAudience.
+    public const string NOT_JOINED = "not_joined";
+
     public static string GroupName(string deckId) => $"deck:{deckId}";
 
     // The group of a deck's presentation: its presenter and audience windows and phones (P2).
@@ -166,6 +169,32 @@ public sealed class DeckHub(
             await audienceEvents.PublishAsync(new JoinedCount(found.DeckId, count));
         }
         return state;
+    }
+
+    // The guest picked a language to read the slides in (SW-883 K5). The same checks as JoinAudience, in the same order,
+    // then not_joined when this connection isn't on the code's deck's roster. Returns the state composed in the language;
+    // a language the deck doesn't offer gives the primary state, with no error.
+    // TODO: the connection stays in audience:{deckId}; moving it to the language's slide-state group replaces this.
+    public async Task<AudienceState> SetLanguage(string code, string language)
+    {
+        _ = GuestCookie.IdOf(Context.GetHttpContext()) ?? throw new HubException(NO_GUEST);
+        var caller = CallerKey.For(Context.GetHttpContext()?.Connection.RemoteIpAddress);
+        if (!limiter.Allow(caller))
+        {
+            throw new HubException(TOO_MANY_ATTEMPTS);
+        }
+        var found = await sessions.FindAsync(code);
+        if (found == null)
+        {
+            limiter.Miss(caller);
+            throw new HubException(NO_SESSION);
+        }
+        limiter.Hit(caller);
+        if (await roster.DeckOfAsync(Context.ConnectionId) != found.DeckId)
+        {
+            throw new HubException(NOT_JOINED);
+        }
+        return await relay.CurrentAsync(found.DeckId, language) ?? throw new HubException(NO_SESSION);
     }
 
     // Stops the code's events and takes the connection off the roster. The roster leave happens even when the code no longer

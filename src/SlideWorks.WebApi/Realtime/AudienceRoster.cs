@@ -88,6 +88,14 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         return sessionId == null ? null : new RosterLeave(connection.DeckId, sessionId, joined);
     }
 
+    public Task<string?> DeckOfAsync(string connectionId)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_connections.TryGetValue(connectionId, out var connection) ? connection.DeckId : null);
+        }
+    }
+
     public Task<int> CountAsync(string sessionId)
     {
         lock (_gate)

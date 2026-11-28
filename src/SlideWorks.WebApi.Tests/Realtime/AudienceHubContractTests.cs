@@ -460,6 +460,14 @@ public class AudienceHubContractTests : ApiTestFixture
             }
         }
 
+        public Task<string?> DeckOfAsync(string connectionId)
+        {
+            lock (_gate)
+            {
+                return Task.FromResult(Decks.GetValueOrDefault(connectionId));
+            }
+        }
+
         // The count the next Leave answers for a deck (Join answers the number of joins so far).
         public void SetCount(string deck, int count)
         {
