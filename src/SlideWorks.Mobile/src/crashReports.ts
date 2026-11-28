@@ -51,11 +51,9 @@ function scrub(value: unknown): unknown {
 
 // No request, no user, and no query value in any string of the event (a URL in an error message or a stack frame).
 export function scrubEvent<T extends object>(event: T): T {
-  const {
-    request: _request,
-    user: _user,
-    ...rest
-  } = event as T & { request?: unknown; user?: unknown };
+  const rest: Record<string, unknown> = { ...event };
+  delete rest.request;
+  delete rest.user;
   return scrub(rest) as T;
 }
 
