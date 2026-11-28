@@ -106,7 +106,9 @@ class PushListingTests(unittest.TestCase):
         args = call["args"]
         self.assertEqual("internal", args[args.index("--track") + 1])
         self.assertEqual("production", args[args.index("--track_promote_to") + 1])
-        self.assertEqual("draft", args[args.index("--release_status") + 1])
+        # --release_status only picks which internal release to promote; the promoted status is its own flag.
+        self.assertEqual("completed", args[args.index("--release_status") + 1])
+        self.assertEqual("draft", args[args.index("--track_promote_release_status") + 1])
         self.assertNotIn("--metadata_path", args)
         self.assertEqual("true", args[args.index("--skip_upload_metadata") + 1])
         self.assertEqual("true", args[args.index("--skip_upload_images") + 1])

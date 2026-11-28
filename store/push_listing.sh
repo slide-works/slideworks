@@ -122,7 +122,7 @@ else
       ;;
     submit)
       bundle exec fastlane supply --json_key "$work/play_key.json" --package_name "$app_identifier" \
-        --track internal --track_promote_to "$play_track" --release_status "$play_status" \
+        --track internal --track_promote_to "$play_track" --release_status completed --track_promote_release_status "$play_status" \
         --skip_upload_metadata true --skip_upload_images true --skip_upload_screenshots true "${play_skips[@]}"
       ;;
   esac
