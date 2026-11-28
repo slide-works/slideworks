@@ -42,3 +42,11 @@ h1 { font-family: var(--sw-font-head); font-weight: 800; font-size: calc(var(--u
 .field em { font-style: normal; font-weight: 600; font-size: calc(var(--u) * 13); color: var(--sw-good); }
 .spacer { flex: 1; }
 .btn + .btn, .field + .btn { margin-top: calc(var(--u) * 14); }
+.code { height: calc(var(--u) * 62); border-radius: calc(var(--u) * 12); background: var(--card); border: calc(var(--u) * 1) solid var(--line); display: flex; align-items: center; padding: 0 calc(var(--u) * 14); font-size: calc(var(--u) * 28); letter-spacing: calc(var(--u) * 6); }
+.hint { color: var(--muted); font-size: calc(var(--u) * 16); margin-top: calc(var(--u) * 12); margin-bottom: calc(var(--u) * 12); }
+.live { font-size: calc(var(--u) * 20); font-weight: 600; margin-top: calc(var(--u) * 12); }
+.server { display: flex; align-items: center; gap: calc(var(--u) * 12); font-size: calc(var(--u) * 16); margin-bottom: calc(var(--u) * 12); }
+.server em { font-style: normal; color: var(--sw-accent); }
+.phone.android { border-radius: calc(var(--u) * 36); }
+.punch { position: absolute; top: calc(var(--u) * 14); left: 50%; width: calc(var(--u) * 20); height: calc(var(--u) * 20); margin-left: calc(var(--u) * -10); background: #000; border-radius: 50%; }
+.android .status { top: calc(var(--u) * 16); }

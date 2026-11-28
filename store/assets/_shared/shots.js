@@ -2,7 +2,7 @@
 const SHOTS = [
   ['1-home', 'home', false, 'Join a talk with a code', 'Type the six digits from the screen'],
   ['2-join', 'join', false, 'Follow the slide live', 'See the slide number the speaker is on'],
-  ['3-talks', 'talks', false, 'Your talks, one tap away', 'Sign in and open any of your decks'],
+  ['3-talks', 'talks', false, 'Open any of your talks', 'Sign in and open any of your decks'],
   ['4-talk', 'talk', true, 'Your deck, live on your phone', 'The current slide, updated as it changes'],
   ['5-sign-in', 'signin', false, 'Sign in through your browser', 'The hosted server, or your own'],
 ];
