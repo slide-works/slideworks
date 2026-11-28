@@ -16,7 +16,9 @@ public class TranslateSlidesWireTests : ApiTestFixture
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam, "Claude");
         var seed = await McpWireContext.SeedAsync(Factory, Client, agent);
 
-        var result = await seed.CallOnWireAsync("translate_slides", $$$"""{"deck":"{{{seed.Deck}}}","language":"th","slides":[{"slide":1,"revision":1,"lines":{"/quote":"Ship it","/attribution":null}}]}""");
+        await seed.SetUpAsync("set_translations", new { deck = seed.Deck, enabled = true, languages = new[] { "th" } });
+        var revision = await seed.RevisionOfSlideAsync(1);
+        var result = await seed.CallOnWireAsync("translate_slides", $$$"""{"deck":"{{{seed.Deck}}}","language":"th","slides":[{"slide":1,"revision":{{{revision}}},"lines":{"/quote":"Ship it","/attribution":null}}]}""");
 
         var raw = result.GetRawText();
         (result.TryGetProperty("isError", out var flag) && flag.GetBoolean()).ShouldBeFalse(raw);

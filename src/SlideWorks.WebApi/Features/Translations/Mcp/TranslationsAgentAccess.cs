@@ -11,7 +11,7 @@ namespace SlideWorks.WebApi.Features.Translations.Mcp;
 [RegisterPerRequest]
 public class TranslationsAgentAccess(IDeckAccess access, ICurrentActor actor)
 {
-    public const string NOT_BUILT = "translations are not built yet";
+    private const string NOT_BUILT = "translations are not built yet";
 
     // TODO: replace with the translations service, which changes the deck's settings and returns its coverage.
     public async Task<SetTranslationsResult> SetAsync(string deckId, SetTranslationsChange change)

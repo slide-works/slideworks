@@ -16,6 +16,7 @@ public class GetDeckLanguageWireTests : ApiTestFixture
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam, "Claude");
         var seed = await McpWireContext.SeedAsync(Factory, Client, agent);
 
+        await seed.SetUpAsync("set_translations", new { deck = seed.Deck, enabled = true, languages = new[] { "th" } });
         var result = await seed.CallOnWireAsync("get_deck", $$$"""{"deck":"{{{seed.Deck}}}","language":"th"}""");
 
         var raw = result.GetRawText();
