@@ -8,9 +8,7 @@ import { defineConfig } from 'vite';
 export const contractsDir = decodeURIComponent(new URL('../contracts', import.meta.url).pathname);
 // @slideworks/core, the workspace package the SPA imports its API layer from. It exports its .ts sources, so the dev
 // server reads them from that folder.
-export const coreDir = decodeURIComponent(
-  new URL('../SlideWorks.Core.Client', import.meta.url).pathname,
-);
+const coreDir = decodeURIComponent(new URL('../SlideWorks.Core.Client', import.meta.url).pathname);
 
 // Kestrel's port, from src/SlideWorks.WebApi/Properties/launchSettings.json.
 const API_PROXY = { target: 'http://localhost:5510', changeOrigin: true };

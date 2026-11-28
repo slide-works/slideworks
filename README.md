@@ -18,7 +18,7 @@ Two processes side by side; the Vite dev server proxies `/api`, the `/hubs` WebS
 
 ```bash
 dotnet run --project src/SlideWorks.WebApi   # Kestrel on :5510, settings from appsettings.Development.json
-(cd src && pnpm install)                      # once, and after the lockfile changes: the whole workspace
+(cd src && pnpm install --frozen-lockfile)                      # once, and after the lockfile changes: the whole workspace
 cd src/SlideWorks.Client && pnpm run dev      # Vite with HMR on :3000, proxies to :5510
 ```
 
@@ -48,7 +48,7 @@ pnpm --dir src/SlideWorks.Core.Client run check # @slideworks/core: format, lint
 `src/SlideWorks.AcceptanceTests` starts the real app on a Kestrel port (production `Program.cs`, temp database) and drives the SPA bundle in a browser. Build the client first, and install the browser once:
 
 ```bash
-(cd src && pnpm install) && pnpm --dir src/SlideWorks.Client run build   # emits the bundle into src/SlideWorks.WebApi/wwwroot
+(cd src && pnpm install --frozen-lockfile) && pnpm --dir src/SlideWorks.Client run build   # emits the bundle into src/SlideWorks.WebApi/wwwroot
 dotnet build src/SlideWorks.AcceptanceTests
 pwsh src/SlideWorks.AcceptanceTests/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
 dotnet test src/SlideWorks.AcceptanceTests
