@@ -14,6 +14,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-108-profile-sharing/`](sw-108-profile-sharing/) | SW-108 Profile page and sharing decks with people | Mockups reviewed 22 Nov; decisions D12 and D24–D32 settled, D33 open; not built |
 | [`sw-883-translations/`](sw-883-translations/) | SW-883 Slide translations, and the guest phone's full-screen landscape | Mockups reviewed 28 Nov; decisions D1–D9 settled; not built |
 | [`sw-884-live-speech/`](sw-884-live-speech/) | SW-884 Live speech V1: a speaker app with on-device subtitles, translated on the server for each guest's phone | Mockups reviewed 28 Nov; decisions D1–D24 settled; not built |
+| [`sw-943-translation-engine/`](sw-943-translation-engine/) | SW-943 Translation engine: self-hosted models, chosen per language pair in the admin panel | Mockups reviewed 28 Nov; decisions D1–D13 settled; not built |
 
 ## SW-1 Foundation
 
@@ -430,3 +431,48 @@ Proposed in the mockups for the plan to confirm:
 
 - **Hub messages.** The app sends `SendCaption` (seq, partial or final, lang, slide, heard time, speech-to-text time, model id, confidence). Guests get `Caption` in their language group, with `from` and `translated`. `CaptionsState` (live, paused, reconnecting or off, who paused, languages listened for, big screen on or off) reaches every group at once.
 - **Manifest.** `GET /api/speech/models`. `languages` is a list, so a future bilingual model is just another entry.
+
+## SW-943 Translation engine
+
+Open [`sw-943-translation-engine/sw-943-mockups.html`](sw-943-translation-engine/sw-943-mockups.html) in a browser. SW-943 is server side only. It is one translation engine that runs open models on the server's CPU, with no cloud model. Live subtitles (SW-884) and multilingual Q&A (SW-944) both call it. Which models exist is set in server config. A new admin page at `/admin/translations` picks the default model, overrides it per language pair, and has a Try it box for playing with the models.
+
+The admin page in the mockup works. You can change the default, change, add or remove a pair, and translate a sample in Try it, one model at a time or both side by side. Switches above the frame fake a model that is down, a pair whose model a deploy removed, and no overrides. Latency figures and translations are made up. The PNGs are screenshots of each section at 1300 px wide.
+
+| Screen | PNG |
+|---|---|
+| Scope: server config, the admin page, the engine and the two model containers | [01-scope](sw-943-translation-engine/png/sw-943-01-scope.png) |
+| `/admin/translations`, Models and pairs: model cards with health and last-hour latency, the default model, pair overrides and the every-pair map | [02-models](sw-943-translation-engine/png/sw-943-02-models.png) |
+| Try it: both models side by side, with time, tokens and what was sent | [03-try](sw-943-translation-engine/png/sw-943-03-try.png) |
+| The same page with TranslateGemma down and a pair whose model was removed by a deploy | [04-gone](sw-943-translation-engine/png/sw-943-04-gone.png) |
+| Other states: a model that can't do a pair, a duplicate pair, a default that misses a language, a timeout, not an admin, no models configured | [05-states](sw-943-translation-engine/png/sw-943-05-states.png) |
+| How the engine picks a model, with worked examples | [06-resolve](sw-943-translation-engine/png/sw-943-06-resolve.png) |
+| What runs on the host: the llama-server containers, the config and compose sketches, and each model's prompt | [07-server](sw-943-translation-engine/png/sw-943-07-server.png) |
+| The API, tables and metrics the page needs (proposed) | [08-contracts](sw-943-translation-engine/png/sw-943-08-contracts.png) |
+| The questions and the answers given | [09-questions](sw-943-translation-engine/png/sw-943-09-questions.png) |
+
+### Decisions (2026-11-28)
+
+Settled before the mockups:
+
+- **D1. Models:** Tencent Hy-MT2 1.8B (Apache 2.0) is the default. It covers all 15 catalogue languages plus Cantonese, about 1 GB at Q4. Google TranslateGemma 4B (Gemma terms) is the second. Only these two at first.
+- **D2. Pairs:** an override applies in both directions. One row "Thai ↔ English → model" covers th → en and en → th.
+- **D3. Running the models:** one llama-server (llama.cpp) container per model, internal network only, OpenAI-compatible API, both loaded at start (about 1.1 GB + 2.5 GB of RAM).
+- **D4. Where config lives:** server config (`Translation:Models`: id, display name, endpoint, adapter, languages, timeout, parallel) says which models exist. The database holds the default model and the pair overrides, which apply to the next sentence without a restart.
+- **D5. Glossary:** models that can't take a glossary are still used. The adapter leaves the glossary and context out for TranslateGemma, whose template takes only text and language codes. Hy-MT2 gets them.
+- **D6. Try it:** the admin page has a Try it box: type text, pick a pair and a model, and see the result and its time.
+
+From the mockup review:
+
+- **D7. Getting there:** an Admin sub-nav (People · Translations) at the top of every admin page. The top bar's Admin link keeps its badge and still opens People.
+- **D8. Saving:** each change saves at once, as on People, with a Saved note and a toast.
+- **D9. A model that is down or slow:** if the health check (every 30 s) says a model is down, its pairs go to the default, when the default is up and supports the pair. A single timeout gives "not translated" for that sentence, so a subtitle never waits on two models.
+- **D10. Cantonese:** `yue` (Cantonese, 粵語, traditional-chinese script) is added to `languages.json` in SW-943. Only Hy-MT2 supports it, so only Hy-MT2 can be picked for its pairs. It also becomes a slide translation language (SW-883).
+- **D11. Try it side by side:** Try it offers "As live" (the model a real sentence would get), each model on its own, or both side by side. Its calls are recorded in metrics with `source=try`.
+- **D12. A model removed by a deploy:** a pair override that still names it stays, flagged "no longer in the server config", and the default is used until the admin changes or removes the row.
+- **D13. Every-pair map:** a 16 × 16 map below the overrides table shows which model translates each pair after overrides and the default, and where nothing does.
+
+Proposed in the mockups for the plan to confirm:
+
+- **API.** `GET /api/admin/translations` returns the whole view (models with health and last-hour p50, p95 and calls; the default; the pairs). `PUT …/default`, `PUT …/pairs/{a}/{b}`, `DELETE …/pairs/{a}/{b}` and `POST …/try` each answer with the refreshed view or the result, the same pattern as `/api/admin/users`.
+- **Tables.** `TranslationSettings` (default model, seeded from `Translation:DefaultModel`) and `TranslationPairOverrides` (the pair sorted, model, changed at and by). A removed row is soft-deleted with `RemovedAt` and a partial unique index on the live pair.
+- **Metrics.** Every call records the model id, pair, tokens in and out, latency and outcome (translated, not supported, timed out, unreachable, not configured) to VictoriaMetrics, plus one Seq event.
