@@ -8,19 +8,17 @@ namespace SlideWorks.WebApi.Features.Translations;
 // count comes from TranslationCoverage over the merged slides, so emphasis lines are counted here (D24). It takes no
 // ICurrentActor.
 [RegisterPerRequest]
-public class TranslationsSummary(IDeckTranslations translations, TranslationMerge merge)
+public class TranslationsSummary(TranslationMerge merge)
 {
     // Null while translations are off.
     public async Task<TranslationsSettingsView?> ForDeckAsync(string deckId)
     {
-        var settings = await translations.ForDeckAsync(deckId);
-        if (!settings.Enabled)
+        // One snapshot for the settings and every language, so all the counts agree.
+        var snapshot = await merge.LoadAsync(deckId);
+        if (!snapshot.Settings.Enabled)
         {
             return null;
         }
-
-        // One snapshot for every language, so all the counts agree.
-        var snapshot = await merge.LoadAsync(deckId);
 
         var languages = new List<LanguageCoverageView>(snapshot.Settings.Languages.Count);
         foreach (var code in snapshot.Settings.Languages)

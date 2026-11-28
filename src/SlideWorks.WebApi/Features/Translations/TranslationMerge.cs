@@ -45,6 +45,3 @@ public class TranslationMerge(AppDbContext db, IDeckTranslations translations, I
     public static MergedDeck Merge(DeckSnapshot snapshot, string? language)
         => new([.. snapshot.Slides.Select(slide => (slide.Id, For(slide, snapshot.Template, snapshot.Settings, language)))]);
 }
-
-// What TranslationMerge loaded for a deck: its settings, its template and its live slides in position order.
-public sealed record DeckSnapshot(TranslationSettings Settings, ResolvedTemplate Template, IReadOnlyList<Slide> Slides);
