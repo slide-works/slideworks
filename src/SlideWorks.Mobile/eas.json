@@ -1,0 +1,31 @@
+{
+  "cli": {
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal",
+        // draft until Play's first review of the app: Play refuses any other status on a draft app outside internal
+        // testing. Change to "completed" once the first release has been reviewed.
+        "releaseStatus": "draft"
+      },
+      "ios": {
+        // TODO: the numeric App Store Connect app id of the app record (set by hand once, with the record).
+        "ascAppId": "0000000000"
+      }
+    }
+  }
+}
