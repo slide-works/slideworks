@@ -564,19 +564,38 @@ describe('useAudience language', () => {
     ]);
   });
 
-  it('lands on the join state and forgets the language when SetLanguage is refused', async () => {
-    await mountIn('th');
+  it('throws a SetLanguage refusal on join for the error boundary, like a JoinAudience refusal', async () => {
+    await act(async () => root.unmount());
+    start.current = 'th';
     fake.connection.invoke.mockReset();
     fake.connection.invoke.mockImplementation(async (method: string) => {
       if (method === 'SetLanguage') throw hubRefusal('not_joined');
       return english;
     });
-
-    await act(async () => fake.handlers.reconnected());
+    const errors: unknown[] = [];
+    class Catch extends Component<{ children: ReactNode }, { failed: boolean }> {
+      state = { failed: false };
+      static getDerivedStateFromError() {
+        return { failed: true };
+      }
+      componentDidCatch(error: unknown) {
+        errors.push(error);
+      }
+      render() {
+        return this.state.failed ? null : this.props.children;
+      }
+    }
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    root = createRoot(document.createElement('div'));
+    await act(async () =>
+      root.render(createElement(Catch, null, createElement(Probe, { report }))),
+    );
     await flush();
+    quiet.mockRestore();
 
-    expect(latest.status).toBe('live');
-    expect(latest.state.language?.code).toBe('en');
+    expect(errors).toHaveLength(1);
+    expect(String(errors[0])).toContain('not_joined');
+    expect(fake.connection.invoke).toHaveBeenCalledTimes(2);
   });
 
   it('setLanguage invokes SetLanguage, lands on the answer and carries the language on re-reads', async () => {

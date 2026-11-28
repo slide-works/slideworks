@@ -83,8 +83,6 @@ function handToEach<T>(listeners: Set<(value: T) => void>, value: T) {
 
 // The text the real hub's error completion ends with when JoinAudience throws HubException(message) (J4).
 const NO_GUEST = 'no_guest';
-// The refusals that mean the phone can't be in the room at all, as opposed to one language that couldn't be set.
-const FATAL_REFUSALS = [NO_SESSION, TOO_MANY_ATTEMPTS, NO_GUEST];
 
 // SignalR rejects an invoke for two kinds of reason. A server refusal is the hub's own completion, whose message carries
 // "HubException:". Anything else is the connection's own failure (an invoke cancelled because the connection closed, or
@@ -304,15 +302,8 @@ export function useAudience(
       const joined = await connection.invoke<AudienceState>('JoinAudience', code);
       const wanted = languageRef.current;
       if (!wanted || wanted === primaryRef.current) return land(joined);
-      try {
-        land(await connection.invoke<AudienceState>('SetLanguage', code, wanted));
-      } catch (error) {
-        if (!isHubException(error) || FATAL_REFUSALS.some((message) => hubRefusal(error, message)))
-          throw error;
-        // This one language couldn't be set: the phone stays in the primary, which is where the join put it.
-        languageRef.current = null;
-        land(joined);
-      }
+      // A refusal here goes through the join's own error path, like JoinAudience's: the pick is never dropped.
+      land(await connection.invoke<AudienceState>('SetLanguage', code, wanted));
     };
 
     const join = (): void => {

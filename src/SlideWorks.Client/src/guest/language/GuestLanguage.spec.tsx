@@ -5,6 +5,7 @@ import { audienceState, guestView, translationsOff } from '../../test-support/fi
 import { stubApi } from '../../test-support/stubApi';
 import { stubDeckHub } from '../../test-support/stubDeckHub';
 import { GUEST_TEST_IDS } from '../testIds';
+import { LanguageSheet } from './LanguageSheet';
 
 // The live sample deck offers en (primary), es, th and ja. The page starts in English with two lines still untranslated in
 // Thai, the state SetLanguage answers with.
@@ -156,8 +157,61 @@ test('GuestLanguage_WhenSideways_ShouldRenderOnlyOneLanguageChip', async ({ moun
   await expect(chip(page)).toHaveCount(1);
   await page.setViewportSize({ width: 844, height: 390 });
   await expect(chip(page)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Show slide controls' }).click();
+  await expect(chip(page)).toHaveCount(1);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(chip(page)).toHaveCount(1);
+});
+
+test('GuestLanguage_WhenSwitchFailsAndEscapePressedMeanwhile_ShouldKeepTheSheetAndMessage', async ({
+  mount,
+  page,
+}) => {
+  const translations = view.translations!;
+  await mount(
+    <LanguageSheet
+      translations={translations}
+      current="en"
+      onPick={() =>
+        new Promise<void>((_, reject) => setTimeout(() => reject(new Error('no')), 400))
+      }
+      onClose={() => undefined}
+    />,
+  );
+  await page.getByTestId(GUEST_TEST_IDS.languageOption).nth(2).click();
+  await page.keyboard.press('Escape');
+  await page.getByTestId(GUEST_TEST_IDS.languageSheet).waitFor();
+
+  await expect(page.getByTestId(GUEST_TEST_IDS.languageError)).toHaveText(
+    "Couldn't switch language. Try again.",
+  );
+});
+
+test.describe('phone in Thai, held and banner once', () => {
+  test.use({ locale: 'th-TH' });
+
+  test('GuestLanguage_WhenSetLanguageIsSlow_ShouldHoldTheFirstSlide', async ({ mount, page }) => {
+    const hub = await stubDeckHub(page, { audience: { state: view.state } });
+    hub.setLanguageReply(thai);
+    hub.holdLanguage();
+    await stubApi(page, { '/api/join/482913': { json: view } });
+    await mount(<AppRoutes />, { hooksConfig: { route: '/j/482913' } });
+    await expect.poll(() => hub.languageSets.length).toBe(1);
+    await page.waitForTimeout(2500);
+    await expect(page.getByTestId(GUEST_TEST_IDS.following)).toHaveCount(0);
+
+    hub.releaseLanguage();
+    await expect(page.getByTestId(GUEST_TEST_IDS.following)).toBeVisible();
+    await expect(chip(page)).toHaveText('ไทย');
+  });
+
+  test('GuestLanguage_WhenBannerShown_ShouldMarkItSeenForTheSession', async ({ mount, page }) => {
+    await mountGuest(mount, page);
+    await expect(page.getByTestId(GUEST_TEST_IDS.languageBanner)).toBeVisible();
+    expect(
+      await page.evaluate(() => sessionStorage.getItem('sw-guest-language-banner:482913')),
+    ).toBe('1');
+  });
 });
 
 test.describe('screenshots', () => {

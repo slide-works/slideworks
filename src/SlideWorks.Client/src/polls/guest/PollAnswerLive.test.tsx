@@ -2,6 +2,7 @@ import { act, createElement, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../api/client';
+import { GuestLanguageContext } from '../../guest/language/GuestLanguageContext';
 import type { AudiencePolls, AudienceStatus } from '../../guest/useAudience';
 import { guestPoll, pollActivity, pollTally } from '../../test-support/fixtures/pollStates';
 import type { AnswerRequest, GuestPollView, PollActivity, PollTally } from '../types';
@@ -108,16 +109,24 @@ const acceptEveryPut = () =>
     ),
   );
 
-const render = (activity: PollActivity, status: AudienceStatus = 'live') =>
+const render = (
+  activity: PollActivity,
+  status: AudienceStatus = 'live',
+  language: string | null = null,
+) =>
   act(async () =>
     root.render(
-      createElement(PollAnswerLive, {
-        code: CODE,
-        activity,
-        status,
-        polls: channel.polls,
-        children: createElement(Probe),
-      }),
+      createElement(
+        GuestLanguageContext,
+        { value: language },
+        createElement(PollAnswerLive, {
+          code: CODE,
+          activity,
+          status,
+          polls: channel.polls,
+          children: createElement(Probe),
+        }),
+      ),
     ),
   );
 
@@ -138,6 +147,15 @@ afterEach(async () => {
 });
 
 describe('PollAnswerLive reads', () => {
+  it('reads the poll and sends the answer in the phone language from the context', async () => {
+    await render(pickOne(), 'live', 'th');
+    expect(api.getGuestPoll).toHaveBeenCalledWith(CODE, 'th');
+
+    await act(async () => latest().toggle(2));
+
+    expect(api.putPollAnswer).toHaveBeenCalledWith(CODE, expect.anything(), 'th');
+  });
+
   it('is loading from mount until the first read lands, then holds its mine, tally and joinedLate', async () => {
     const read = deferred<GuestPollView>();
     api.getGuestPoll.mockReturnValueOnce(read.promise);

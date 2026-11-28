@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 
-// The language the phone's state is composed in, or null while the deck's translations are off. The guest's re-reads
+// The language the phone asked for (its start or its pick), or null while the deck's translations are off or it asked for
+// none. It doesn't depend on the audience state, whose language is null in the lobby and after the talk. The guest's re-reads
 // (poll, answer, open response) send it as ?language=.
 export const GuestLanguageContext = createContext<string | null>(null);
 

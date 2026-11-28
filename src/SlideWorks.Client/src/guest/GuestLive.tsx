@@ -21,7 +21,7 @@ function Screens({ code, view: initial, onRetry }: Props) {
   );
   const language = useGuestLanguage(code, view.translations, state.language, start, setLanguage);
   return (
-    <GuestLanguageContext value={state.language?.code ?? null}>
+    <GuestLanguageContext value={language?.wanted ?? null}>
       <AudiencePollsContext value={polls}>
         <AudienceQuestionsContext value={questions}>
           <AudienceOpenResponsesContext value={openResponses}>

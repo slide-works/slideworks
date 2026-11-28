@@ -33,6 +33,11 @@ export function LanguageSheet({
     };
   }, []);
 
+  // Every way out is inert while a switch is in flight, so its failure message can't be lost with the sheet.
+  const close = () => {
+    if (!busy) onClose();
+  };
+
   const pick = async (code: string) => {
     if (code === current) return onClose();
     setBusy(true);
@@ -49,7 +54,7 @@ export function LanguageSheet({
 
   // Tab stays inside the sheet.
   const keys = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') onClose();
+    if (event.key === 'Escape') close();
     if (event.key !== 'Tab') return;
     const items = [...(section.current?.querySelectorAll<HTMLElement>('button') ?? [])];
     if (items.length === 0) return;
@@ -61,7 +66,7 @@ export function LanguageSheet({
 
   return (
     <>
-      <div aria-hidden onClick={onClose} className="fixed inset-0 z-30 bg-black/50" />
+      <div aria-hidden onClick={close} className="fixed inset-0 z-30 bg-black/50" />
       <section
         ref={section}
         data-testid={GUEST_TEST_IDS.languageSheet}

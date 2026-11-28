@@ -47,11 +47,16 @@ export function GuestScreens({
   const needsCookies = !ended && status === 'needs_cookies';
   const following = !offline && !needsCookies && live && joinedDone;
 
+  // The first render of the slide waits for the hub's answer to the join (JoinAudience, then SetLanguage), so a slow
+  // SetLanguage never shows the primary slide first. The latch keeps later reconnects from going back to "You're in".
+  const [joinAnswered, setJoinAnswered] = useState(false);
+  if (status === 'live' && !joinAnswered) setJoinAnswered(true);
+
   useEffect(() => {
-    if (!live) return;
+    if (!live || !joinAnswered) return;
     const timer = setTimeout(() => setJoinedDone(true), JOINED_MS);
     return () => clearTimeout(timer);
-  }, [live]);
+  }, [live, joinAnswered]);
 
   let screen;
   if (ended) screen = <GuestEnded view={view} />;
