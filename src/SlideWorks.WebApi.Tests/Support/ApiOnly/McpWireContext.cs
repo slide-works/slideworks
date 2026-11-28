@@ -53,6 +53,10 @@ public sealed class McpWireContext
         return json;
     }
 
+    // Turns translations on in these languages with TranslationRowSeed, so a tool under test does not depend on set_translations.
+    public Task TranslationsOnAsync(params string[] languages)
+        => new TranslationRowSeed(_factory.Services).SettingsAsync(Deck, true, "en", languages);
+
     public async Task<long> RevisionOfSlideAsync(int slide)
     {
         var deck = await SetUpAsync("get_deck", new { deck = Deck });

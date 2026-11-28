@@ -20,13 +20,6 @@ public class TranslationsAgentAccess(IDeckAccess access, ICurrentActor actor)
         return new SetTranslationsResult(NOT_BUILT, new TranslationsSettingsView(false, change.Primary ?? "en", []));
     }
 
-    // TODO: replace with the translations service, which fit-checks and stores each language's lines.
-    public async Task<TranslateSlidesResult> TranslateAsync(string deckId, TranslateSlidesChange change)
-    {
-        await RequireEditorAsync(deckId);
-        return new TranslateSlidesResult(change.Language, 0, [], [NOT_BUILT]);
-    }
-
     private async Task RequireEditorAsync(string deckId)
     {
         if (!await access.CanEditAsync(deckId, actor))

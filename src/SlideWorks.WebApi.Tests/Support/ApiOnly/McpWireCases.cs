@@ -80,7 +80,7 @@ public static class McpWireCases
         ["set_translations"] = Plain(c => Json(new { deck = c.Deck, enabled = true, primary = "en", languages = new[] { "es", "th" } })),
         ["translate_slides"] = Plain(async c =>
         {
-            await c.SetUpAsync("set_translations", new { deck = c.Deck, enabled = true, languages = new[] { "th" } });
+            await c.TranslationsOnAsync("th");
             return $$$"""{"deck":"{{{c.Deck}}}","language":"th","slides":[{"slide":1,"revision":{{{await c.RevisionOfSlideAsync(1)}}},"lines":{"/quote":"Ship it","/attribution":null}}]}""";
         }),
 
