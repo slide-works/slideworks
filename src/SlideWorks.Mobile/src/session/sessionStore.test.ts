@@ -6,10 +6,11 @@ const origin = 'https://slideworks.app';
 const secret = 'swd_abc';
 
 // Storage that survives a "restart" (a new store over the same maps) and logs every write in order.
-function storage(options: { failSecureWrites?: boolean } = {}) {
+function storage(options: { failSecureWrites?: boolean; rejectDeletes?: boolean } = {}) {
   const secureValues = new Map<string, string>();
   const kvValues = new Map<string, string>();
   const writes: string[] = [];
+  const pendingDeletes: Array<() => void> = [];
   const secure: SyncSecureStore = {
     getItem: (key) => secureValues.get(key) ?? null,
     setItem: (key, value) => {
@@ -17,10 +18,17 @@ function storage(options: { failSecureWrites?: boolean } = {}) {
       writes.push(`secure ${key}`);
       secureValues.set(key, value);
     },
-    deleteItemAsync: async (key) => {
-      if (options.failSecureWrites) throw new Error('keychain locked');
-      secureValues.delete(key);
-    },
+    // Deferred like the real asynchronous delete: it lands only when a test calls finishDeletes().
+    deleteItemAsync: (key) =>
+      new Promise<void>((resolve, reject) => {
+        pendingDeletes.push(() => {
+          if (options.rejectDeletes) reject(new Error('keychain locked'));
+          else {
+            secureValues.delete(key);
+            resolve();
+          }
+        });
+      }),
   };
   const kv: KeyValueStore = {
     getItem: (key) => kvValues.get(key) ?? null,
@@ -30,7 +38,15 @@ function storage(options: { failSecureWrites?: boolean } = {}) {
     },
     removeItem: (key) => void kvValues.delete(key),
   };
-  return { secure, kv, writes, secureValues, restart: () => createSessionStore({ secure, kv }) };
+  const finishDeletes = () => pendingDeletes.splice(0).forEach((run) => run());
+  return {
+    secure,
+    kv,
+    writes,
+    secureValues,
+    finishDeletes,
+    restart: () => createSessionStore({ secure, kv }),
+  };
 }
 
 function signedIn(deps: ReturnType<typeof storage>, pending = false) {
@@ -97,13 +113,27 @@ describe('sessionStore', () => {
     });
     expect(store.secretFor(origin)).toBeNull();
     expect(notified).toBe(1);
-    expect(deps.secureValues.get(SESSION_KEY) ?? '').toBe('');
+    // The tombstone is synchronous: before the asynchronous delete lands the value is already empty.
+    expect(deps.secureValues.get(SESSION_KEY)).toBe('');
+    expect(store.snapshot().signedIn).toBe(false);
     expect(deps.restart().snapshot().signedIn).toBe(false);
+    deps.finishDeletes();
+    expect(deps.secureValues.has(SESSION_KEY)).toBe(false);
     expect([store.lastServer(), store.lastEmail()]).toEqual([origin, 'sam@example.com']);
 
     const broken = storage({ failSecureWrites: true });
     const brokenStore = createSessionStore({ secure: broken.secure, kv: broken.kv });
     expect(() => brokenStore.clearSecret()).not.toThrow();
+  });
+
+  it('clearSecret swallows a rejected delete', async () => {
+    const deps = storage({ rejectDeletes: true });
+    const store = signedIn(deps);
+    store.clearSecret();
+    expect(deps.secureValues.get(SESSION_KEY)).toBe('');
+    deps.finishDeletes();
+    await Promise.resolve();
+    expect(store.snapshot().signedIn).toBe(false);
   });
 
   it('pending survives a restart', () => {

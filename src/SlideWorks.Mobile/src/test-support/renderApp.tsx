@@ -1,6 +1,7 @@
 import { renderRouter } from 'expo-router/testing-library';
 import { resolve } from 'node:path';
 import type { Href } from 'expo-router';
+import { links } from '../links';
 import { guestKey } from '../guest/guestStore';
 import { LAST_EMAIL_KEY, LAST_SERVER_KEY, PENDING_KEY, SESSION_KEY } from '../session/sessionStore';
 import type { FakeApi } from './fakeApi';
@@ -17,7 +18,12 @@ export type RenderAppOptions = {
 
 const appDir = resolve(__dirname, '../../app');
 
-export async function renderApp({ url = '/', api, signedIn = false, guest }: RenderAppOptions) {
+export async function renderApp({
+  url = links.home(),
+  api,
+  signedIn = false,
+  guest,
+}: RenderAppOptions) {
   if (signedIn) {
     mockStorage.kv.set(LAST_SERVER_KEY, signedIn.origin);
     mockStorage.kv.set(LAST_EMAIL_KEY, signedIn.email);
