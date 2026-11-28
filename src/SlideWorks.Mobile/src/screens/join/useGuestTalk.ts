@@ -77,14 +77,22 @@ export function useGuestTalk(origin: string, code: string): GuestTalk {
       });
       stop = () => void connection.stop();
 
+      // Set when a push is applied while a JoinAudience call is in flight: the answer was read before it, so it is the
+      // older one (as useAudience.ts on the web does).
+      let pushedSinceJoin = false;
       const land = (next: AudienceStateSummary) => {
         held = next;
         joined(view, next);
         if (next.phase === 'ended') stop?.();
       };
       const join = async () => {
+        pushedSinceJoin = false;
         try {
-          land(await connection.invoke<AudienceStateSummary>('JoinAudience', code));
+          const answer = await connection.invoke<AudienceStateSummary>('JoinAudience', code);
+          // The answer is where the guest lands, whatever its seq (the server may have restarted), unless a state was
+          // pushed meanwhile that is at least as new.
+          if (pushedSinceJoin && answer.seq <= held.seq) return;
+          land(answer);
         } catch (error) {
           if (!active) return;
           const refusal = hubRefusal(error);
@@ -97,10 +105,13 @@ export function useGuestTalk(origin: string, code: string): GuestTalk {
 
       connection.on(AUDIENCE_EVENT, (event: AudienceEventSummary) => {
         if (!active) return;
-        if (event.type === 'audienceEnded') land({ ...held, phase: 'ended', current: null });
-        else if (isState(event)) {
+        if (event.type === 'audienceEnded') {
+          pushedSinceJoin = true;
+          land({ ...held, phase: 'ended', current: null });
+        } else if (isState(event)) {
           if (event.seq < held.seq || (event.seq === held.seq && event.phase === held.phase))
             return;
+          pushedSinceJoin = true;
           land(event);
         }
       });

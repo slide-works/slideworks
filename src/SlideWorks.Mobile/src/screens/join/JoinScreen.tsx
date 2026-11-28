@@ -10,12 +10,18 @@ import { useGuestTalk } from './useGuestTalk';
 export function JoinScreen({ code, server }: { code: string; server?: string }) {
   const theme = useTheme();
   const styles = stylesFor(theme);
-  const talk = useGuestTalk(server || HOSTED_SERVER, code);
+  const origin = server || HOSTED_SERVER;
+  const talk = useGuestTalk(origin, code);
 
   if (talk.status === 'failed') throw talk.error;
 
   return (
     <View testID={joinTestIds.root} style={styles.screen}>
+      {origin !== HOSTED_SERVER && (
+        <Text testID={joinTestIds.server} style={styles.muted}>
+          {hostOf(origin)}
+        </Text>
+      )}
       {talk.status === 'joining' && (
         <ActivityIndicator testID={joinTestIds.joining} color={theme.colors.accent} />
       )}
@@ -60,6 +66,9 @@ export function JoinScreen({ code, server }: { code: string; server?: string }) 
     </View>
   );
 }
+
+// The server a link named, so a person can see where it sent them (no URL parser: React Native's lacks host).
+const hostOf = (origin: string) => /^[a-z][a-z0-9+.-]*:\/\/([^/?#]*)/i.exec(origin)?.[1] ?? origin;
 
 function stylesFor({ colors, space }: Theme) {
   return StyleSheet.create({

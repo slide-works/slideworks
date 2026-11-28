@@ -1,6 +1,6 @@
 import { GUEST_HEADER } from '@slideworks/core/guest';
 import type { HubConnectionOptions } from '@slideworks/core/realtime/hub';
-import { act, screen } from 'expo-router/testing-library';
+import { act, screen, waitFor } from 'expo-router/testing-library';
 import { redirectSystemPath } from '../../../app/+native-intent';
 import { guestKey } from '../../guest/guestStore';
 import { HOSTED_SERVER, links } from '../../links';
@@ -100,6 +100,41 @@ describe('Join', () => {
     expect(hub.invokes.map((invoke) => invoke.method)).toEqual(['JoinAudience', 'JoinAudience']);
   });
 
+  it('keeps a newer pushed state over a late JoinAudience answer', async () => {
+    const hub = fakeHub();
+    let answer: (state: unknown) => void = () => undefined;
+    hub.respond('JoinAudience', () => new Promise((resolve) => (answer = resolve)));
+    await renderApp({ url: links.join(code), api: fakeApi({ [joinRoute]: joinAnswer(live(3)) }) });
+    await waitFor(() => expect(hub.invokes).toHaveLength(1));
+
+    // A newer state is pushed while the call is pending; the answer, read before it, arrives late.
+    await act(async () => hub.emit('audienceEvent', live(5)));
+    expect(screen.getByTestId(joinTestIds.slide)).toHaveTextContent(/\b5\b.*\b12\b/);
+    await act(async () => answer(live(4)));
+
+    expect(screen.getByTestId(joinTestIds.slide)).toHaveTextContent(/\b5\b.*\b12\b/);
+
+    // The next rejoin lands on its answer whatever its seq (the server may have restarted).
+    hub.respond('JoinAudience', live(2));
+    await act(async () => hub.drop());
+    await act(async () => hub.restore());
+    await waitFor(() =>
+      expect(screen.getByTestId(joinTestIds.slide)).toHaveTextContent(/\b2\b.*\b12\b/),
+    );
+  });
+
+  it('builds the guest hub with all three transports and the web back-off', async () => {
+    const hub = fakeHub();
+    hub.respond('JoinAudience', live(3));
+    await renderApp({ url: links.join(code), api: fakeApi({ [joinRoute]: joinAnswer() }) });
+    expect(await screen.findByTestId(joinTestIds.slide)).toBeOnTheScreen();
+
+    // HttpTransportType.WebSockets | ServerSentEvents | LongPolling.
+    expect(hub.options?.transport).toBe(1 | 2 | 4);
+    const delays = [0, 1, 2, 3, 4, 5].map((count) => hub.options?.nextRetryDelayMs(count));
+    expect(delays).toEqual([0, 2000, 5000, 10000, 30000, null]);
+  });
+
   it('lobby then live', async () => {
     const hub = fakeHub();
     hub.respond('JoinAudience', lobby);
@@ -192,6 +227,7 @@ describe('Join', () => {
     expect(authorization(join)).toBeUndefined();
     expect(hub.auth).toMatchObject({ kind: 'guest', origin: HOSTED_SERVER });
     expect(hub.auth?.kind === 'guest' && hub.auth.guestId()).toBe(heldId);
+    expect(screen.queryByTestId(joinTestIds.server)).toBeNull();
   });
 
   it('guest id only goes to its own origin', async () => {
@@ -241,5 +277,6 @@ describe('deep links', () => {
     expect(await screen.findByTestId(joinTestIds.slide)).toBeOnTheScreen();
     expect(api.callsTo(joinRoute)[0].origin).toBe(otherServer);
     expect(hub.auth).toMatchObject({ kind: 'guest', origin: otherServer });
+    expect(screen.getByTestId(joinTestIds.server)).toHaveTextContent('10.0.2.2:5510');
   });
 });
