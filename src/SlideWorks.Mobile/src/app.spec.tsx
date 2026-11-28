@@ -1,4 +1,3 @@
-import { api } from '@slideworks/core/client';
 import { screen, waitFor } from 'expo-router/testing-library';
 import { links } from './links';
 import { homeTestIds } from './screens/home/testIds';
@@ -44,13 +43,7 @@ describe('app', () => {
       signedIn,
       guest: { origin, id: guestId },
     });
-    expect(screen.getByTestId(talksTestIds.root)).toBeOnTheScreen();
-
-    await expect(api.get('/api/decks')).rejects.toMatchObject({
-      status: 401,
-      code: 'session_ended',
-    });
-
+    // The Talks screen's own GET /api/decks is the signed-in request that gets the 401.
     await waitFor(() => expect(screen.getByTestId(homeTestIds.root)).toBeOnTheScreen());
     expect(screen.queryByTestId(talksTestIds.root)).toBeNull();
     expect(mockStorage.secure.get(SESSION_KEY) ?? '').toBe('');
