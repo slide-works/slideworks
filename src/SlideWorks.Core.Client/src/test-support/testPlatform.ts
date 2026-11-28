@@ -1,10 +1,10 @@
 import { vi } from 'vitest';
-import { configurePlatform, platform, type Platform } from '../platform';
+import { configurePlatform, defaultPlatform, type Platform } from '../platform';
 
 // An app-like platform for the core's tests: a signed-in origin with a bearer, guest headers per origin, and spies on
 // the two handlers.
 export function configureTestPlatform(overrides: Partial<Platform> = {}) {
-  const defaults = platform();
+  const defaults = defaultPlatform();
   const onUnauthorized = vi.fn();
   const onPendingApproval = vi.fn();
   configurePlatform({

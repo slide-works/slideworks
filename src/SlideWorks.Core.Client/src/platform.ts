@@ -43,7 +43,7 @@ function memoryStore(): KeyValueStore {
   };
 }
 
-function defaultPlatform(): Platform {
+export function defaultPlatform(): Platform {
   const persistent = memoryStore();
   const session = memoryStore();
   return {

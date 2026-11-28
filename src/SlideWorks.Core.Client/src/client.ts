@@ -4,7 +4,8 @@ import { platform } from './platform';
 // who sent it come from the platform: a 'person' request goes to apiOrigin() with authHeaders() (the web's cookie rides
 // along on its own), a 'guest' request goes to the origin it names with guestHeaders(origin). It parses the API's
 // { error } body on failure, and keeps a refusal's message, path and errors on the ApiError. A 401 on a person request
-// mid-session goes to platform().onUnauthorized; a 403 { error: 'pending_approval' } goes to onPendingApproval.
+// mid-session goes to platform().onUnauthorized; a 403 { error: 'pending_approval' } goes to onPendingApproval. A guest
+// request's refusal reaches neither handler.
 
 // One entry of a refusal body's `errors`: the field it is about, its code and its text.
 export type ApiFieldError = { path: string; code: string; message: string };
@@ -38,9 +39,9 @@ export class ApiError extends Error {
   }
 }
 
-// Who a request is from. A person request goes to apiOrigin() unless it names another origin; a guest request always
-// names the origin it is a guest of (the web passes '', its own origin).
-export type RequestOptions = { as?: 'person'; origin?: string } | { as: 'guest'; origin: string };
+// Who a request is from. A person request always goes to apiOrigin(), so the bearer can never reach another origin; a
+// guest request names the origin it is a guest of (the web passes '', its own origin) and throws without one.
+export type RequestOptions = { as?: 'person' } | { as: 'guest'; origin: string };
 
 // A successful response: its parsed body (undefined for a 204) and its headers.
 export type ApiResponse<T> = { body: T; headers: Headers };
@@ -60,7 +61,16 @@ export async function requestWithHeaders<T>(
 ): Promise<ApiResponse<T>> {
   const host = platform();
   const guest = options.as === 'guest';
-  const origin = options.origin ?? host.apiOrigin();
+  let origin = host.apiOrigin();
+  if (options.as === 'guest') {
+    // The type requires it; this catches a cast or a JS caller.
+    if ((options.origin as string | undefined) === undefined) {
+      throw new Error(
+        "A guest request needs the origin it is a guest of: pass { as: 'guest', origin }.",
+      );
+    }
+    origin = options.origin;
+  }
   const response = await fetch(origin + path, {
     method,
     credentials: host.credentials(),
@@ -73,7 +83,9 @@ export async function requestWithHeaders<T>(
   if (!response.ok) {
     const error = await failure(response);
     if (path !== SESSION_CHECK_PATH) {
-      if (response.status === 401 && !guest) {
+      if (guest) {
+        // A guest proves no person: a refusal is just an ApiError.
+      } else if (response.status === 401) {
         host.onUnauthorized(error.code === SESSION_ENDED_ERROR ? 'session_ended' : 'unauthorized');
       } else if (response.status === 403 && error.code === PENDING_APPROVAL_ERROR) {
         host.onPendingApproval();

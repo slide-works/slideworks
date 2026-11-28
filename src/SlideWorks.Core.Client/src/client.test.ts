@@ -50,6 +50,37 @@ describe('client', () => {
     expect(onUnauthorized).not.toHaveBeenCalled();
   });
 
+  it('guest 403 pending_approval does not call onPendingApproval', async () => {
+    const { onPendingApproval } = configureTestPlatform();
+    stubFetch(403, { error: 'pending_approval' });
+
+    const error = await failureOf(
+      api.get('/api/guest/polls', { as: 'guest', origin: 'https://talk.example' }),
+    );
+
+    expect((error as ApiError).status).toBe(403);
+    expect(onPendingApproval).not.toHaveBeenCalled();
+  });
+
+  it('a guest request without an origin throws before fetching', async () => {
+    configureTestPlatform();
+    const fetchMock = stubFetch(200, {});
+
+    // @ts-expect-error a guest request must name its origin
+    await expect(api.get('/api/join/1', { as: 'guest' })).rejects.toThrow(/origin/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('a person request goes to apiOrigin even when an origin is passed', async () => {
+    configureTestPlatform();
+    const fetchMock = stubFetch(200, {});
+
+    // @ts-expect-error a person request cannot name an origin
+    await api.get('/api/decks', { origin: 'https://evil.example' });
+
+    expect(fetchMock.mock.calls[0][0]).toBe('https://signed-in.example/api/decks');
+  });
+
   it('pending 403 calls onPendingApproval', async () => {
     const { onPendingApproval, onUnauthorized } = configureTestPlatform();
     stubFetch(403, { error: 'pending_approval' });
