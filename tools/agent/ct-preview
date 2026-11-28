@@ -51,7 +51,7 @@ path="$(realpath "$path")"
 rel="${path#"$client"/}"
 agent_require pnpm flock timeout git
 agent_env
-[[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run pnpm install --frozen-lockfile there" missing=node_modules
+[[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run tools/agent/bootstrap (pnpm install --frozen-lockfile in src/)" missing=node_modules
 grep -q 'toHaveScreenshot' "$path" ||
   agent_die 2 "$rel has no screenshot tests (no toHaveScreenshot call)" reason=no-screenshot-tests
 

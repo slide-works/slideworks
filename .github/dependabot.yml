@@ -18,7 +18,8 @@ updates:
           - "*"
 
   - package-ecosystem: "npm"
-    directory: "/src/SlideWorks.Client"
+    # The pnpm workspace root: one lockfile (src/pnpm-lock.yaml) for every package in src/pnpm-workspace.yaml.
+    directory: "/src"
     schedule:
       interval: "weekly"
     ignore:

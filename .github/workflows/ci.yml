@@ -6,6 +6,51 @@ on:
   pull_request:
 
 jobs:
+  # Path filters (K13), computed once so a skipped job never takes a runner. Each output is 'true' or 'false', and
+  # always 'true' on a push to main. A gated job has `needs: changes` and
+  # `if: needs.changes.outputs.<name> == 'true'`; none of them is a required check (a required path-filtered check
+  # sits pending forever on a pull request that does not touch its paths).
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      core: ${{ github.event_name != 'pull_request' || steps.filter.outputs.core == 'true' }}
+      mobile: ${{ github.event_name != 'pull_request' || steps.filter.outputs.mobile == 'true' }}
+      native: ${{ github.event_name != 'pull_request' || steps.filter.outputs.native == 'true' }}
+      guests: ${{ github.event_name != 'pull_request' || steps.filter.outputs.guests == 'true' }}
+    steps:
+      # On a pull request the filter reads the changed files from the API, so no checkout is needed.
+      - id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            workspace: &workspace
+              - src/package.json
+              - src/pnpm-workspace.yaml
+              - src/pnpm-lock.yaml
+              - .github/workflows/ci.yml
+            core: &core
+              - *workspace
+              - src/SlideWorks.Core.Client/**
+            mobile:
+              - *core
+              - src/SlideWorks.Mobile/**
+              - src/SlideWorks.Client/src/theme/tokens.css
+            native:
+              - src/SlideWorks.Mobile/app.json
+              - src/SlideWorks.Mobile/package.json
+              - src/pnpm-lock.yaml
+              - src/SlideWorks.Mobile/assets/**
+              - src/SlideWorks.Mobile/plugins/**
+              - .github/actions/mobile-android-build/**
+            guests:
+              - src/SlideWorks.WebApi/**
+              - src/SlideWorks.WebApi.Tests/**
+              - .github/workflows/ci.yml
+
   backend:
     runs-on: ubuntu-latest
     steps:
@@ -25,15 +70,16 @@ jobs:
           dotnet-version: 10.0.x
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: src/SlideWorks.Client/package.json
+          package_json_file: src/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: src/SlideWorks.Client/pnpm-lock.yaml
-      # The tests serve the real bundle, so it is built first (into SlideWorks.WebApi/wwwroot).
-      - run: pnpm install --frozen-lockfile && pnpm run build
-        working-directory: src/SlideWorks.Client
+          cache-dependency-path: src/pnpm-lock.yaml
+      # The tests serve the real bundle, so it is built first (into SlideWorks.WebApi/wwwroot). One install at the
+      # workspace root (src/), filtered to the SPA and the workspace packages it depends on.
+      - run: pnpm install --frozen-lockfile --filter slide-works-client... && pnpm --dir SlideWorks.Client run build
+        working-directory: src
       - run: dotnet build src/SlideWorks.AcceptanceTests --configuration Release
       - run: pwsh src/SlideWorks.AcceptanceTests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       - run: dotnet test src/SlideWorks.AcceptanceTests --configuration Release --no-build
@@ -52,20 +98,43 @@ jobs:
         working-directory: src/SlideWorks.Client
     steps:
       - uses: actions/checkout@v4
-      # pnpm at the version package.json's packageManager pins; before setup-node, whose cache needs it.
+      # pnpm at the version the workspace root's packageManager pins; before setup-node, whose cache needs it.
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: src/SlideWorks.Client/package.json
+          package_json_file: src/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: src/SlideWorks.Client/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
+          cache-dependency-path: src/pnpm-lock.yaml
+      # One install at the workspace root (src/), filtered to the SPA and the workspace packages it depends on.
+      - run: pnpm install --frozen-lockfile --filter slide-works-client...
+        working-directory: src
       - run: pnpm run format:check
       - run: pnpm run lint
       - run: pnpm test
       - run: pnpm run build
+
+  # Lint, types and tests of @slideworks/core (the API layer the SPA and the app share). Gated on K13's core filter.
+  core-checks:
+    needs: changes
+    if: needs.changes.outputs.core == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: src/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: src/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile --filter @slideworks/core...
+      - run: pnpm --dir SlideWorks.Core.Client run check
 
   playwright:
     runs-on: ubuntu-latest
@@ -87,8 +156,9 @@ jobs:
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: src/SlideWorks.Client/package.json
-      - run: pnpm install --frozen-lockfile
+          package_json_file: src/package.json
+      - run: pnpm install --frozen-lockfile --filter slide-works-client...
+        working-directory: src
       # A screenshot spec with no committed baseline writes one here instead of failing; a baseline that exists but
       # differs still fails. Baselines are only ever made in this container, never on a laptop. Playwright writes a
       # missing baseline but still fails that test, so the first run may fail, and the second reruns only its failed

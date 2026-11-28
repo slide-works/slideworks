@@ -215,7 +215,7 @@ runner_name="$(basename "$runner_path")"
 client="$ROOT/src/SlideWorks.Client"
 if [[ "$runner_name" == test-vitest ]]; then
   agent_require pnpm timeout
-  [[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run pnpm install --frozen-lockfile there" missing=node_modules
+  [[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run tools/agent/bootstrap (pnpm install --frozen-lockfile in src/)" missing=node_modules
 fi
 
 # The files the mutation touches, relative to the repo root.
@@ -286,7 +286,7 @@ label=()
 # Vitest neither builds nor type-checks, so type-check the client before trusting a test-vitest run.
 if [[ "$runner_name" == test-vitest ]]; then
   tsc_out="$BACKUP_DIR/tsc.out"
-  # From the client folder: corepack picks the pnpm version from the package.json in the current folder.
+  # From the client folder: pnpm picks its version from the workspace root's packageManager (src/package.json).
   cd "$client"
   bite_run "$tsc_out" timeout -k 10 "${AGENT_BUILD_TIMEOUT:-900}" pnpm exec tsc --noEmit -p .
   cd "$ROOT"

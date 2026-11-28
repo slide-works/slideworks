@@ -10,3 +10,6 @@ SlideWorks.WebApi/wwwroot
 *.db-shm
 *.db-wal
 *:Zone.Identifier
+# The phone app is not part of the server image (the node stage installs only the SPA and what it depends on), and
+# its generated android/ and ios/ folders are large.
+SlideWorks.Mobile

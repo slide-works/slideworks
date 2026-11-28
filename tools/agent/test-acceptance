@@ -30,7 +30,7 @@ else
   [[ -z "$newer" ]] || stale="${newer#"$root"/}"
 fi
 if [[ -n "$stale" ]]; then
-  [[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run pnpm install --frozen-lockfile there" missing=node_modules
+  [[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run tools/agent/bootstrap (pnpm install --frozen-lockfile in src/)" missing=node_modules
   echo "bundle: rebuilding ($stale)"
   rc=0
   echo "== pnpm run build" >>"$AGENT_LOG"

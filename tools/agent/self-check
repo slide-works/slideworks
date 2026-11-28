@@ -28,7 +28,7 @@ git rev-parse --verify -q "$base^{commit}" >/dev/null || agent_die 2 "not a comm
 base="$(git rev-parse "$base^{commit}")"
 git merge-base --is-ancestor "$base" HEAD || agent_die 2 "$base is not an ancestor of HEAD" reason=base-not-ancestor
 
-config_re='(\.csproj|\.props|\.config\.ts|\.config\.js)$|(^|/)(\.editorconfig|package\.json|pnpm-lock\.yaml|BannedSymbols\.txt)$|^\.github/'
+config_re='(\.csproj|\.props|\.config\.ts|\.config\.js)$|(^|/)(\.editorconfig|package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|BannedSymbols\.txt)$|^\.github/'
 stray_re='(^|/)timeout$|\.tsbuildinfo$|\.log$|(^|/)test-results/|(^|/)playwright-report/'
 
 indent() {
