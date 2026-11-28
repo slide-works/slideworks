@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 
 export const OVERLAY_VISIBLE_MS = 3000;
 
 // The landscape overlay's visibility: a tap shows it for 3 seconds and a tap while it shows hides it. Timers are plain
-// setTimeout, so a test drives them with page.clock.
-export function useOverlayTimer(): { visible: boolean; toggle: () => void; keepAlive: () => void } {
+// setTimeout, so a test drives them with page.clock. The timer never hides the overlay while focus is inside heldBy
+// (the overlay element): the layer calls keepAlive when focus leaves, which re-arms it.
+export function useOverlayTimer(heldBy: RefObject<HTMLElement | null>): {
+  visible: boolean;
+  toggle: () => void;
+  hide: () => void;
+  keepAlive: () => void;
+} {
   const [visible, setVisible] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -19,21 +25,27 @@ export function useOverlayTimer(): { visible: boolean; toggle: () => void; keepA
     clear();
     timer.current = setTimeout(() => {
       timer.current = null;
+      const held = heldBy.current;
+      if (held !== null && held.contains(document.activeElement)) return;
       setVisible(false);
     }, OVERLAY_VISIBLE_MS);
+  }, [clear, heldBy]);
+
+  const hide = useCallback(() => {
+    clear();
+    setVisible(false);
   }, [clear]);
 
   const toggle = useCallback(() => {
     if (visible) {
-      clear();
-      setVisible(false);
+      hide();
     } else {
       setVisible(true);
       arm();
     }
-  }, [visible, arm, clear]);
+  }, [visible, arm, hide]);
 
   useEffect(() => clear, [clear]);
 
-  return { visible, toggle, keepAlive: arm };
+  return { visible, toggle, hide, keepAlive: arm };
 }

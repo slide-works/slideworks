@@ -1,8 +1,29 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { GUEST_TEST_IDS } from '../testIds';
 
 const STORAGE_KEY = 'sw.landscapeHint';
 const LANDSCAPE_QUERY = '(orientation: landscape)';
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+
+// Closing the hint removes the focused button, so focus goes to the next focusable element after the hint, or to the
+// hint's parent when nothing follows it.
+function moveFocusPast(hint: HTMLElement): void {
+  const next = Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE)).find(
+    (element) =>
+      !hint.contains(element) &&
+      (hint.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0 &&
+      element.getClientRects().length > 0,
+  );
+  if (next !== undefined) {
+    next.focus();
+    return;
+  }
+  const parent = hint.parentElement;
+  if (parent === null) return;
+  parent.setAttribute('tabindex', '-1');
+  parent.focus();
+}
 
 function alreadySeen(): boolean {
   try {
@@ -21,9 +42,10 @@ function remember(): void {
 }
 
 // The one-time "Turn sideways to read the slide full screen" hint above the slide in portrait (SW-883 D6). It goes away
-// with its close button or once the phone has been turned, and stays away: the choice is kept in localStorage.
+// with its close button or once the phone has been turned, and only on a phone in portrait, and stays away: the choice is kept in localStorage.
 export function PortraitHint(): ReactNode {
   const [dismissed, setDismissed] = useState(alreadySeen);
+  const hint = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const query = window.matchMedia(LANDSCAPE_QUERY);
@@ -42,8 +64,9 @@ export function PortraitHint(): ReactNode {
   if (dismissed) return null;
   return (
     <div
+      ref={hint}
       data-testid={GUEST_TEST_IDS.portraitHint}
-      className="flex items-center gap-2 rounded-[10px] bg-white/10 px-3 py-2 text-xs text-(--sw-night-2) [@media(orientation:landscape)]:hidden"
+      className="hidden items-center gap-2 rounded-[10px] bg-white/10 px-3 py-2 text-xs text-(--sw-night-2) [@media(orientation:portrait)_and_(max-width:500px)]:flex"
     >
       <p className="flex-1">Turn sideways to read the slide full screen</p>
       <button
@@ -51,6 +74,7 @@ export function PortraitHint(): ReactNode {
         aria-label="Close hint"
         data-testid={GUEST_TEST_IDS.portraitHintClose}
         onClick={() => {
+          if (hint.current !== null) moveFocusPast(hint.current);
           remember();
           setDismissed(true);
         }}

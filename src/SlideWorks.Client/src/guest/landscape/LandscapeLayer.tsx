@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode, type RefObject } from 'react';
 import { GUEST_TEST_IDS } from '../testIds';
 import { enterFullscreen, fullscreenSupported } from './fullscreen';
 import { useOverlayTimer } from './useOverlayTimer';
@@ -16,14 +16,51 @@ export function LandscapeLayer(props: {
   progress: number;
   languageChip: ReactNode | null;
 }): ReactNode {
-  const { visible, toggle, keepAlive } = useOverlayTimer();
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const tapRef = useRef<HTMLButtonElement | null>(null);
+  const { visible, toggle, hide, keepAlive } = useOverlayTimer(overlayRef);
+
+  // A tap that hides the overlay while focus is inside it leaves focus on the tap surface, not on the page body.
+  const hideFromTap = () => {
+    if (overlayRef.current?.contains(document.activeElement)) tapRef.current?.focus();
+    hide();
+  };
+
+  return (
+    <div className="hidden [@media(orientation:landscape)_and_(max-height:500px)]:block">
+      <button
+        ref={tapRef}
+        type="button"
+        aria-label="Show slide controls"
+        aria-expanded={visible}
+        onClick={visible ? hideFromTap : toggle}
+        className="fixed inset-0 z-10 cursor-default bg-transparent"
+      />
+      {visible && <Overlay {...props} overlayRef={overlayRef} keepAlive={keepAlive} />}
+    </div>
+  );
+}
+
+// Mounted only while the overlay shows, so a refusal message goes away with the overlay, timer hide included.
+function Overlay({
+  index,
+  count,
+  connected,
+  progress,
+  languageChip,
+  overlayRef,
+  keepAlive,
+}: {
+  index: number;
+  count: number;
+  connected: boolean;
+  progress: number;
+  languageChip: ReactNode | null;
+  overlayRef: RefObject<HTMLDivElement | null>;
+  keepAlive: () => void;
+}): ReactNode {
   const [refused, setRefused] = useState(false);
   const canFullscreen = fullscreenSupported();
-
-  const hide = () => {
-    setRefused(false);
-    toggle();
-  };
 
   const requestFullscreen = async () => {
     keepAlive();
@@ -31,57 +68,48 @@ export function LandscapeLayer(props: {
   };
 
   return (
-    <div className="hidden [@media(orientation:landscape)_and_(max-height:500px)]:block">
-      <button
-        type="button"
-        aria-label="Show slide controls"
-        aria-expanded={visible}
-        onClick={visible ? hide : toggle}
-        className="fixed inset-0 z-10 cursor-default bg-transparent"
-      />
-      {visible && (
-        <div
-          data-testid={GUEST_TEST_IDS.landscapeOverlay}
-          className="pointer-events-none fixed inset-0 z-20 flex flex-col justify-between text-(--sw-night-ink)"
+    <div
+      ref={overlayRef}
+      data-testid={GUEST_TEST_IDS.landscapeOverlay}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) keepAlive();
+      }}
+      className="pointer-events-none fixed inset-0 z-20 flex flex-col justify-between text-(--sw-night-ink)"
+    >
+      <div className="flex items-center gap-2 bg-black/60 px-4 py-2 text-xs">
+        <span>
+          {index} / {count}
+        </span>
+        <span className="rounded-full bg-white/15 px-2 py-0.5">
+          {connected ? 'Live' : 'Offline'}
+        </span>
+        {languageChip !== null && <span className="pointer-events-auto">{languageChip}</span>}
+        {canFullscreen && (
+          <button
+            type="button"
+            data-testid={GUEST_TEST_IDS.landscapeFullscreen}
+            onClick={requestFullscreen}
+            className="pointer-events-auto ml-auto rounded-full bg-white/15 px-3 py-1"
+          >
+            Full screen
+          </button>
+        )}
+      </div>
+      {refused && (
+        <p
+          role="alert"
+          data-testid={GUEST_TEST_IDS.landscapeFullscreenError}
+          className="mx-auto rounded-md bg-black/70 px-3 py-1 text-xs"
         >
-          <div className="flex items-center gap-2 bg-black/60 px-4 py-2 text-xs">
-            <span>
-              {props.index} / {props.count}
-            </span>
-            <span className="rounded-full bg-white/15 px-2 py-0.5">
-              {props.connected ? 'Live' : 'Offline'}
-            </span>
-            {props.languageChip !== null && (
-              <span className="pointer-events-auto">{props.languageChip}</span>
-            )}
-            {canFullscreen && (
-              <button
-                type="button"
-                data-testid={GUEST_TEST_IDS.landscapeFullscreen}
-                onClick={requestFullscreen}
-                className="pointer-events-auto ml-auto rounded-full bg-white/15 px-3 py-1"
-              >
-                Full screen
-              </button>
-            )}
-          </div>
-          {refused && (
-            <p
-              role="alert"
-              data-testid={GUEST_TEST_IDS.landscapeFullscreenError}
-              className="mx-auto rounded-md bg-black/70 px-3 py-1 text-xs"
-            >
-              Full screen isn&apos;t available here
-            </p>
-          )}
-          <div className="h-1 w-full bg-white/20">
-            <div
-              className="h-full bg-white"
-              style={{ width: `${Math.round(Math.min(1, Math.max(0, props.progress)) * 100)}%` }}
-            />
-          </div>
-        </div>
+          Full screen isn&apos;t available here
+        </p>
       )}
+      <div className="h-1 w-full bg-white/20">
+        <div
+          className="h-full bg-white"
+          style={{ width: `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%` }}
+        />
+      </div>
     </div>
   );
 }
