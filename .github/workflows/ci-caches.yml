@@ -5,7 +5,9 @@ name: CI caches
 # restores main's.
 on:
   push:
-    branches: [main]
+    # TODO: drop the feature branch. GitHub can only dispatch a workflow that exists on main, so until this merges the
+    # branch's cache runs are started by a push whose message contains [caches].
+    branches: [main, feature/sw-946-app-v0]
   workflow_dispatch:
 
 concurrency:
@@ -14,6 +16,7 @@ concurrency:
 
 jobs:
   android-caches:
+    if: github.ref_name == 'main' || github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[caches]')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
