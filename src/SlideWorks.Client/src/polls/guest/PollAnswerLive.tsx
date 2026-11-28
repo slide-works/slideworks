@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { ApiError } from '../../api/client';
+import { useGuestLanguageCode } from '../../guest/language/GuestLanguageContext';
 import type { AudiencePolls, AudienceStatus } from '../../guest/useAudience';
 import type { GuestPollView, MyAnswer, PollActivity, PollTally } from '../types';
 import { getGuestPoll, putPollAnswer } from './pollApi';
@@ -97,6 +98,12 @@ class AnswerSession {
   // a refused watch is tried again at the next accepted answer or reconnect.
   private watch: 'none' | 'pending' | 'watching' | 'refused' = 'none';
   private watches = 0;
+  // The language the phone reads in (SW-883): every read and send carries it. Set on each render.
+  private language: string | null = null;
+
+  readonly readIn = (language: string | null) => {
+    this.language = language;
+  };
 
   constructor(
     readonly code: string,
@@ -218,7 +225,7 @@ class AnswerSession {
     if (afterReconnect && this.out === null) this.set({ state: 'loading', error: null });
     const watched = afterReconnect ? this.watchIfAnswered(false) : Promise.resolve();
     void watched
-      .then(() => getGuestPoll(this.code))
+      .then(() => getGuestPoll(this.code, this.language))
       .then(
         (view) => {
           if (this.active && read === this.reads) this.landed(view);
@@ -282,7 +289,7 @@ class AnswerSession {
     const token = ++this.puts;
     this.out = token;
     this.set({ state: 'sending', error: null });
-    putPollAnswer(this.code, { round, picks, revision }).then(
+    putPollAnswer(this.code, { round, picks, revision }, this.language).then(
       (outcome) => {
         if (!this.active || this.out !== token) return;
         this.out = null;
@@ -379,6 +386,10 @@ export function PollAnswerLive({ code, activity, status, polls, children }: Poll
   if (session.code !== code || session.polls !== polls)
     setSession(new AnswerSession(code, polls, activity, status));
 
+  const language = useGuestLanguageCode();
+  useEffect(() => {
+    session.readIn(language);
+  }, [session, language]);
   useEffect(() => session.start(), [session]);
   useEffect(() => session.follow(activity, status), [session, activity, status]);
 

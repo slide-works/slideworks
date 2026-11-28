@@ -145,7 +145,7 @@ describe('PollAnswerLive reads', () => {
 
     await render(activity);
     expect(latest().state).toBe('loading');
-    expect(api.getGuestPoll).toHaveBeenCalledWith(CODE);
+    expect(api.getGuestPoll).toHaveBeenCalledWith(CODE, null);
 
     await act(async () =>
       read.resolve(

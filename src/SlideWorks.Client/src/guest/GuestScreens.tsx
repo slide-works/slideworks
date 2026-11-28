@@ -9,6 +9,7 @@ import { GuestNeedsCookies } from './GuestNeedsCookies';
 import { GuestOffline } from './GuestOffline';
 import { GuestShell } from './GuestShell';
 import type { GuestView } from './guestView';
+import type { GuestLanguageControl } from './language/useGuestLanguage';
 import type { Retry } from './useRetry';
 import { ReconnectingBanner } from './ReconnectingBanner';
 
@@ -23,11 +24,14 @@ export function GuestScreens({
   state,
   status,
   onRetry,
+  language = null,
 }: {
   view: GuestView;
   state: AudienceState;
   status: AudienceStatus;
   onRetry: Retry;
+  // The language choice, or null (the default) while the deck's translations are off.
+  language?: GuestLanguageControl | null;
 }) {
   const [joinedDone, setJoinedDone] = useState(false);
   const live = state.phase === 'live';
@@ -55,7 +59,7 @@ export function GuestScreens({
   else if (offline) screen = <GuestOffline onRetry={onRetry} />;
   else if (state.phase === 'lobby') screen = <GuestLobby view={view} />;
   else if (!joinedDone) screen = <GuestJoined view={view} />;
-  else screen = <GuestFollowing view={view} state={state} status={status} />;
+  else screen = <GuestFollowing view={view} state={state} status={status} language={language} />;
 
   return (
     <GuestShell fill={following}>

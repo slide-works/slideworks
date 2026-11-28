@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ApiError, api } from '../api/client';
+import { languageQuery, useGuestLanguageCode } from '../guest/language/GuestLanguageContext';
 import type { AudienceOpenResponses, AudienceStatus } from '../guest/useAudience';
 import { OPEN_RESPONSE_REREAD, openResponseErrorSentence } from './errors';
 import type {
@@ -76,6 +77,8 @@ function advance(view: GuestResponseView, event: RoomEvent): GuestResponseView {
 export function useOpenResponse(code: string, slide: number, status: AudienceStatus): OpenResponse {
   const audience = useContext(AudienceOpenResponsesContext);
   const key = `${code}:${slide}`;
+  // The language the phone reads in (SW-883): the view is read again in it when it changes.
+  const language = useGuestLanguageCode();
   const base = `/api/join/${encodeURIComponent(code)}/slides/${slide}`;
   const [view, setView] = useState<Held<GuestResponseView> | null>(null);
   const [room, setRoom] = useState<Held<RoomEvent> | null>(null);
@@ -114,7 +117,7 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
     };
     const stopWords = audience?.onWordCloud(take);
     const stopText = audience?.onOpenText(take);
-    api.get<GuestResponseView>(`${base}/response`).then(
+    api.get<GuestResponseView>(`${base}/response${languageQuery(language)}`).then(
       (value) => {
         if (gone) return;
         accept(pending ? advance(value, pending) : value);
@@ -132,7 +135,7 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
       stopWords?.();
       stopText?.();
     };
-  }, [live, audience, base, key, slide, accept]);
+  }, [live, audience, base, key, slide, accept, language]);
 
   const current = view?.key === key ? view.value : null;
 
@@ -162,7 +165,9 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
         setError({ key, value: sentenceOf(failure) });
         if (failure instanceof ApiError && OPEN_RESPONSE_REREAD.includes(failure.code ?? '')) {
           try {
-            const reread = await api.get<GuestResponseView>(`${base}/response`);
+            const reread = await api.get<GuestResponseView>(
+              `${base}/response${languageQuery(language)}`,
+            );
             if (ours()) accept(reread);
           } catch (reread) {
             if (ours()) setError({ key, value: sentenceOf(reread) });
@@ -173,7 +178,7 @@ export function useOpenResponse(code: string, slide: number, status: AudienceSta
         if (ours()) setSending(false);
       }
     },
-    [base, key, accept],
+    [base, key, accept, language],
   );
 
   const sendWords = useCallback(
