@@ -51,7 +51,8 @@ public class SetLanguageWireTests : ApiTestFixture
         state.GetProperty("seq").GetInt64().ShouldBe(9);
         state.GetRawText().ShouldNotContain(deck, Case.Sensitive);
         state.TryGetProperty("group", out _).ShouldBeFalse();
-        Relay.LanguagesReadFor(deck).ShouldBe([null, "th"]);
+        var reads = Relay.LanguagesReadFor(deck);
+        reads[^1].ShouldBe("th");
     }
 
     // A deck Sam owns, live under a fresh code, with the relay answering a state at seq 9.

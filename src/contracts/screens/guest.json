@@ -174,17 +174,24 @@
           "complete": 100
         },
         {
+          "code": "es",
+          "name": "Español",
+          "englishName": "Spanish",
+          "short": "ES",
+          "complete": 100
+        },
+        {
           "code": "th",
           "name": "ไทย",
           "englishName": "Thai",
-          "short": "TH",
+          "short": "ไทย",
           "complete": 83
         },
         {
           "code": "ja",
           "name": "日本語",
           "englishName": "Japanese",
-          "short": "JA",
+          "short": "日本語",
           "complete": 40
         }
       ]
