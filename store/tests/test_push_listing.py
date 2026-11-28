@@ -24,6 +24,7 @@ with open(os.environ["FAKE_BUNDLE_LOG"], "a") as log:
 """
 
 SECRETS = {
+    "APP_VERSION": "1.2.3",  # not a secret; iOS push requires it
     "ASC_API_KEY_ID": "KEYID",
     "ASC_API_KEY_ISSUER_ID": "ISSUER",
     "ASC_API_KEY_P8": "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----",
@@ -71,6 +72,7 @@ class PushListingTests(unittest.TestCase):
         # precheck cannot check in-app purchases with an API key and would fail the run after the upload.
         self.assertEqual("false", ios["args"][ios["args"].index("--precheck_include_in_app_purchases") + 1])
         self.assertEqual({"--metadata_path": True, "--screenshots_path": True}, ios["dirs"])
+        self.assertEqual("1.2.3", ios["args"][ios["args"].index("--app_version") + 1])
         self.assertEqual("KEYID", ios["api_key"]["key_id"])
         self.assertEqual(["supply"], android["args"][2:3])
         self.assertNotIn("--track_promote_to", android["args"])
@@ -142,6 +144,15 @@ class PushListingTests(unittest.TestCase):
                 result = self.run_script(platform, mode, **secrets)
                 self.assertEqual(1, result.returncode)
                 self.assertIn(f"Add the `{missing}` repository secret first", result.stderr)
+        self.assertEqual([], self.calls())
+
+    def test_ios_push_needs_app_version_before_anything_else(self):
+        env = {k: v for k, v in SECRETS.items() if k != "ASC_API_KEY_ID"}
+        env.pop("APP_VERSION")
+        result = self.run_script("ios", "push", **env)
+        self.assertEqual(1, result.returncode)
+        self.assertIn("Set APP_VERSION first", result.stderr)
+        self.assertNotIn("ASC_API_KEY_ID", result.stderr)
         self.assertEqual([], self.calls())
 
     def test_rejects_unknown_platform_or_mode(self):

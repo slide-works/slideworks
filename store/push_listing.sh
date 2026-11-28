@@ -13,7 +13,7 @@
 #           TestFlight build to the version on Prepare for Submission and submits it for review.
 #
 # Secrets come from the environment: ASC_API_KEY_ID, ASC_API_KEY_ISSUER_ID, ASC_API_KEY_P8 (iOS) and
-# GOOGLE_PLAY_SERVICE_ACCOUNT_JSON (Android). APP_IDENTIFIER defaults to the app's bundle id and package name.
+# GOOGLE_PLAY_SERVICE_ACCOUNT_JSON (Android). iOS push also needs APP_VERSION (not a secret). APP_IDENTIFIER defaults to the app's bundle id and package name.
 set -euo pipefail
 
 store_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -38,6 +38,11 @@ platform="$1"
 mode="$2"
 [[ "$platform" == ios || "$platform" == android ]] || usage
 [[ "$mode" == push || "$mode" == verify || "$mode" == submit ]] || usage
+
+# Not a secret: the version string deliver creates or renames the Prepare for Submission version to.
+if [[ "$platform $mode" == "ios push" ]]; then
+  [[ -n "${APP_VERSION:-}" ]] || fail "Set APP_VERSION first (the app version, as store/app_version.py --print gives it)"
+fi
 
 case "$platform" in
   ios)
@@ -94,6 +99,7 @@ if [[ "$platform" == ios ]]; then
         --metadata_path "$work/staged/ios/metadata" --screenshots_path "$work/staged/ios/screenshots" \
         --app_rating_config_path "$work/staged/ios/age_rating.json" \
         --skip_binary_upload true --automatic_release false --submit_for_review false \
+        --app_version "$APP_VERSION" \
         --overwrite_screenshots true --force true \
         --precheck_include_in_app_purchases false
       ;;
