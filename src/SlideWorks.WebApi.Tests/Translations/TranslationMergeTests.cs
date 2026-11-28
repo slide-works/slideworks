@@ -38,6 +38,16 @@ public class TranslationMergeTests
     }
 
     [Test]
+    public void For_WhenLanguageIsNull_ShouldReturnOwnSlots()
+    {
+        var merged = TranslationMerge.For(Quote(), Template(), _on, null);
+
+        QuoteOf(merged).ShouldBe("Hello");
+        merged.FallbackLines.ShouldBe(0);
+        merged.Lines.ShouldBeEmpty();
+    }
+
+    [Test]
     public void For_WhenLanguageIsPrimary_ShouldReturnOwnSlots()
     {
         var merged = TranslationMerge.For(Quote(), Template(), _on, "en");

@@ -28,18 +28,23 @@ public class TranslationMerge(AppDbContext db, IDeckTranslations translations, I
         return SlideTranslation.Merge(layout, slots, entries);
     }
 
-    // Every live slide of the deck merged in the language, found by slide.
+    // Every live slide of the deck merged in the language, in the deck's order.
     public async Task<MergedDeck> ForDeckAsync(string deckId, string? language)
-    {
-        var deck = await db.Decks.AsNoTracking().SingleOrDefaultAsync(d => d.Id == deckId);
-        if (deck is null)
-        {
-            return new MergedDeck(new Dictionary<Guid, MergedSlide>());
-        }
+        => Merge(await LoadAsync(deckId), language);
 
+    // Loads the deck, its settings, its template and its live slides once, so several languages merge from one snapshot.
+    internal async Task<DeckSnapshot> LoadAsync(string deckId)
+    {
+        var deck = await db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);
         var settings = await translations.ForDeckAsync(deckId);
         var template = await templates.ForDeckAsync(deck, CancellationToken.None);
         var slides = await db.Slides.AsNoTracking().Where(s => s.DeckId == deckId && s.DeletedAt == null).OrderBy(s => s.Position).ToListAsync();
-        return new MergedDeck(slides.ToDictionary(slide => slide.Id, slide => For(slide, template, settings, language)));
+        return new DeckSnapshot(settings, template, slides);
     }
+
+    internal static MergedDeck Merge(DeckSnapshot snapshot, string? language)
+        => new([.. snapshot.Slides.Select(slide => (slide.Id, For(slide, snapshot.Template, snapshot.Settings, language)))]);
 }
+
+// What TranslationMerge loaded for a deck: its settings, its template and its live slides in position order.
+internal sealed record DeckSnapshot(TranslationSettings Settings, ResolvedTemplate Template, IReadOnlyList<Slide> Slides);

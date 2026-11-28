@@ -43,6 +43,7 @@ public class TranslationsSummaryTests : ApiTestFixture
         summary.Primary.ShouldBe("en");
         var thai = summary.Languages.ShouldHaveSingleItem();
         thai.Code.ShouldBe("th");
+        thai.Name.ShouldBe("ไทย");
         thai.Stale.ShouldBe(1);
         thai.Current.ShouldBe(0);
         thai.Lines.ShouldBe(thai.Stale + thai.Missing);

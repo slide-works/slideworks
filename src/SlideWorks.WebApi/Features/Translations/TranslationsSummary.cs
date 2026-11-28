@@ -19,13 +19,16 @@ public class TranslationsSummary(IDeckTranslations translations, TranslationMerg
             return null;
         }
 
-        var languages = new List<LanguageCoverageView>(settings.Languages.Count);
-        foreach (var code in settings.Languages)
+        // One snapshot for every language, so all the counts agree.
+        var snapshot = await merge.LoadAsync(deckId);
+
+        var languages = new List<LanguageCoverageView>(snapshot.Settings.Languages.Count);
+        foreach (var code in snapshot.Settings.Languages)
         {
-            var coverage = TranslationCoverage.Of((await merge.ForDeckAsync(deckId, code)).Slides);
-            languages.Add(new LanguageCoverageView(code, LanguageCatalogue.Find(code)?.Name ?? code, coverage.Lines, coverage.Current, coverage.Stale, coverage.Missing));
+            var coverage = TranslationCoverage.Of(TranslationMerge.Merge(snapshot, code).Slides);
+            languages.Add(new LanguageCoverageView(code, (LanguageCatalogue.Find(code) ?? throw new InvalidOperationException($"Deck {deckId} offers {code}, which is not in the language catalogue.")).Name, coverage.Lines, coverage.Current, coverage.Stale, coverage.Missing));
         }
 
-        return new TranslationsSettingsView(true, settings.Primary, languages);
+        return new TranslationsSettingsView(true, snapshot.Settings.Primary, languages);
     }
 }
