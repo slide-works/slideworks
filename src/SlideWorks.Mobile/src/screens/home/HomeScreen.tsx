@@ -1,11 +1,13 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { AccessibilityInfo, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { links } from '../../links';
 import { useSession } from '../../platform/appRuntime';
 import { useTheme, type Theme } from '../../theme';
 import { isJoinCode } from './joinCode';
 import { homeTestIds } from './testIds';
+
+const INVALID_MESSAGE = 'Enter the six-digit code.';
 
 // Home: Join a talk by its six-digit code (on the hosted server; join links name their own), and Sign in, or Talks
 // once signed in. Joining never needs a session.
@@ -16,10 +18,15 @@ export function HomeScreen() {
   const [code, setCode] = useState('');
   const [invalid, setInvalid] = useState(false);
 
+  const input = useRef<TextInput>(null);
+
   const join = () => {
     const entered = code.trim();
     if (!isJoinCode(entered)) {
       setInvalid(true);
+      // Keyboard submit blurs the field: put the person back in it, and have a screen reader say what is wrong.
+      input.current?.focus();
+      AccessibilityInfo.announceForAccessibility(INVALID_MESSAGE);
       return;
     }
     setInvalid(false);
@@ -30,6 +37,7 @@ export function HomeScreen() {
     <View testID={homeTestIds.root} style={styles.screen}>
       <Text style={styles.heading}>Join a talk</Text>
       <TextInput
+        ref={input}
         testID={homeTestIds.codeInput}
         style={styles.input}
         value={code}
@@ -49,9 +57,11 @@ export function HomeScreen() {
       />
       <Text
         testID={invalid ? homeTestIds.codeInvalid : undefined}
+        accessibilityRole={invalid ? 'alert' : undefined}
+        accessibilityLiveRegion={invalid ? 'polite' : 'none'}
         style={[styles.hint, invalid && styles.hintInvalid]}
       >
-        Enter the six-digit code.
+        {INVALID_MESSAGE}
       </Text>
       <Pressable
         testID={homeTestIds.join}

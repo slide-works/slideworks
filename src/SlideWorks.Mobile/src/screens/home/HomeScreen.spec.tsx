@@ -1,3 +1,4 @@
+import { AccessibilityInfo, TextInput } from 'react-native';
 import { fireEvent, screen } from 'expo-router/testing-library';
 import { links } from '../../links';
 import { anAudienceState, aJoinSummary } from '../../test-support/builders';
@@ -48,6 +49,28 @@ describe('Home', () => {
 
     await fireEvent.changeText(screen.getByTestId(homeTestIds.codeInput), '1');
     expect(screen.queryByTestId(homeTestIds.codeInvalid)).toBeNull();
+  });
+
+  it('returns focus to the field and announces an invalid code', async () => {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    announce.mockClear();
+    await renderApp({ api: fakeApi() });
+    const field = screen.getByTestId(homeTestIds.codeInput);
+
+    await fireEvent.changeText(field, '12');
+    const focus = jest.spyOn(TextInput.prototype, 'focus');
+    await fireEvent(field, 'blur');
+    focus.mockClear();
+    announce.mockClear();
+    await fireEvent(field, 'submitEditing');
+
+    expect(focus).toHaveBeenCalled();
+    expect(announce).toHaveBeenCalledTimes(1);
+    const message = screen.getByTestId(homeTestIds.codeInvalid);
+    expect(message.props.accessibilityRole).toBe('alert');
+    expect(message.props.accessibilityLiveRegion).toBe('polite');
+    announce.mockRestore();
+    focus.mockRestore();
   });
 
   it('shows Sign in when signed out', async () => {
