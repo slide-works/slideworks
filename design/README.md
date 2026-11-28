@@ -13,6 +13,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-50-custom-templates/`](sw-50-custom-templates/) | SW-50 Custom templates, and the layout gaps a real deck found | Partly built: the template editor and the new layouts are on main; template bundles (upload and download) and custom layouts are not built yet. Decisions D4–D17 settled; D18–D48 recorded as recommended, not reviewed |
 | [`sw-108-profile-sharing/`](sw-108-profile-sharing/) | SW-108 Profile page and sharing decks with people | Mockups reviewed 22 Nov; decisions D12 and D24–D32 settled, D33 open; not built |
 | [`sw-883-translations/`](sw-883-translations/) | SW-883 Slide translations, and the guest phone's full-screen landscape | Mockups reviewed 28 Nov; decisions D1–D9 settled; not built |
+| [`sw-884-live-speech/`](sw-884-live-speech/) | SW-884 Live speech V1: a speaker app with on-device subtitles, translated on the server for each guest's phone | Mockups reviewed 28 Nov; decisions D1–D24 settled; not built |
 
 ## SW-1 Foundation
 
@@ -376,3 +377,56 @@ Proposed in the mockups for the plan to confirm:
 - **MCP.** New tools: `set_translations` (on or off, primary language, language list) and `translate_slides` (one language, many slides, each slide's revision; `null` removes a line). `get_deck` and `preview_deck` take a `language`. `check_deck` checks every language. `update_slide` warns about the lines it made stale.
 - **Realtime.** A guest calls `setLanguage` on `DeckHub` and joins `audience:{session}:{lang}`. On each move the hub sends each language group the current slide with its language already merged, so the guest renderer doesn't change. Polls count by option index, so every language adds to the same bars.
 - **Fonts.** Each language gets a Noto fallback (Noto Sans Thai, Noto Sans JP and so on), and the fit check measures with that font, using SW-50 D8's font widths.
+
+## SW-884 Live speech V1
+
+Open [`sw-884-live-speech/sw-884-mockups.html`](sw-884-live-speech/sw-884-mockups.html) in a browser. A native speaker app does everything speaker mode does on mobile web, and adds live subtitles. The phone turns the speaker's voice into text on the device. The server translates each finished line once for every language a guest is reading in (through SW-943's translation engine). Guests see two lines of subtitles under the slide in their SW-883 language.
+
+The live demo works. Sam's phone talks and the guest phone follows in English, ไทย or 日本語. You can pause subtitles, drop and restore Sam's connection, hide the guest's subtitles, and watch the per-line server log (model ids and latency). One Japanese line fails on purpose to show the "not translated" marker. Model sizes and latency figures are examples, not measurements. The PNGs are screenshots of each section at 1300 px wide.
+
+| Screen | PNG |
+|---|---|
+| Scope: V1, what V2 (SW-885) adds, and what is elsewhere | [01-scope](sw-884-live-speech/png/sw-884-01-scope.png) |
+| Live demo: the speaker app, a guest phone and the server's per-line log | [02-demo](sw-884-live-speech/png/sw-884-02-demo.png) |
+| Speaker app: sign-in, Presenting now, the Subtitles button and sheet, model download, mic permission, a mixed Thai and English talk, paused, offline, back after leaving the app | [03-app](sw-884-live-speech/png/sw-884-03-app.png) |
+| Guest phone: the subtitle strip in English, ไทย and 日本語, a failed translation, hidden, paused, reconnecting, landscape captions | [04-guest](sw-884-live-speech/png/sw-884-04-guest.png) |
+| The presenter window (CC chip, Captions next to Join bar, Phone pairing QR), big-screen captions and the admin Speech to text tab | [05-laptop](sw-884-live-speech/png/sw-884-05-laptop.png) |
+| How a line gets from the speaker to a guest, the hub messages and the model manifest | [06-flow](sw-884-live-speech/png/sw-884-06-flow.png) |
+| The decisions | [07-decisions](sw-884-live-speech/png/sw-884-07-decisions.png) |
+
+### Decisions (2026-11-28)
+
+Architecture, settled before the mockups:
+
+- **D1. Speech to text:** on the speaker's phone, streaming, behind a `SpeechEngine` seam. V1 engines run on sherpa-onnx: Parakeet TDT 0.6B for English and Typhoon ASR 115M (NeMo exported to ONNX) for Thai. A cloud engine is V2 (SW-885).
+- **D2. Translation:** on the SlideWorks server, self-hosted, through `ITranslator` (SW-943). The model is chosen per language pair in admin.
+- **D3. No spike:** V1 ships with swappable models, and models are compared in production with friends.
+- **D4. Privacy:** no audio is stored or uploaded. The transcript is kept with the deck's activity only when the speaker turns it on (off by default).
+- **D5. Connection drops:** speech to text keeps running on the phone and lines queue there. On reconnect only the last 30 seconds are sent.
+- **D6. Model swaps:** a server-side manifest (id, engine, languages, URL, size, sha256). The app downloads a model on first use, so a swap needs no app release.
+- **D7.** Withdrawn (moved to SW-943).
+- **D8. Partials:** words still being heard go only to guests reading the language the line was heard in. Everyone else gets each final line once it is translated.
+- **D9. Failed translation:** guests get the line as heard, marked "not translated".
+- **D10. Languages:** guests get subtitles in the deck's translation languages, picked with SW-883's language chip. There is no second picker.
+- **D11. Routing:** `IAudienceRoster.ReadingAsync` (SW-886) decides which languages to translate into, and subtitles go to SW-883's per-language slide-state groups.
+
+Screens, from the mockup review:
+
+- **D12. Speaker control:** a fifth button, Subtitles, at the end of speaker mode's action row. It shows the state (purple live, amber paused, orange offline) and opens the Subtitles sheet: the lines just heard, Listening for, the big-screen captions switch, who is reading, and Pause.
+- **D13. What the speaker sees:** the button state, the heard lines in the sheet, and a one-line ticker of the latest words above Next while subtitles are live.
+- **D14. Model download:** the first time subtitles start in a language, from a setup sheet, on Wi-Fi unless the speaker allows mobile data. A Speech models page in the app can get them ahead of time.
+- **D15. Mixed English and Thai:** both models listen at once, and each line goes to the one that is surer. Every line carries the language it was heard in, and is translated from that language.
+- **D16. Leaving the app:** leaving the app or locking the phone pauses subtitles and releases the mic. Guests see "paused", and the app offers Resume on return. The screen stays awake while speaker mode is open, as on web.
+- **D17. Guests:** subtitles are on whenever the speaker has them on, and Hide lasts for the session. In landscape, two caption lines sit over the bottom of the slide.
+- **D18. Big screen:** an optional captions bar above the join bar, with final lines in the language heard. Off by default for each deck, toggled with a Captions button next to Join bar.
+- **D19. Admin:** a Speech to text tab on SW-943's `/admin/translations` page. It holds the manifest, with one active model per language, and a latency table by model pair, built from each line's record.
+- **D20. Presenter window:** a CC chip next to "Reading in" shows live, paused, "left the app" or phone offline.
+- **D21. Sign-in:** the server address, then Sign in with Google in the system browser, or scan a pairing QR code from the laptop as a shortcut.
+- **D22. Which models run:** "Listening for" English and ไทย chips in the Subtitles sheet, both on by default when both models are on the phone. Turning one off runs a single model and saves battery.
+- **D23. Captions switch:** on the laptop, Captions sits next to Join bar in the live chip. On the phone, it is a switch in the Subtitles sheet, and the action row stays at five buttons.
+- **D24. Pairing QR code:** a Phone button in the presenter window's toolbar shows a QR code. It signs the app in on this server and opens the talk, and works once, for 2 minutes.
+
+Proposed in the mockups for the plan to confirm:
+
+- **Hub messages.** The app sends `SendCaption` (seq, partial or final, lang, slide, heard time, speech-to-text time, model id, confidence). Guests get `Caption` in their language group, with `from` and `translated`. `CaptionsState` (live, paused, reconnecting or off, who paused, languages listened for, big screen on or off) reaches every group at once.
+- **Manifest.** `GET /api/speech/models`. `languages` is a list, so a future bilingual model is just another entry.

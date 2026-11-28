@@ -1,0 +1,1194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-884 mockups: live speech subtitles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&family=Noto+Sans+Thai:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+
+/* =====================================================================
+   Review-page chrome: the same light ledger as the SW-5 / SW-9 mockups
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", "Noto Sans Thai", "Noto Sans JP", system-ui, sans-serif;
+  --head: "Plus Jakarta Sans", "Noto Sans Thai", "Noto Sans JP", "Inter", sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+
+  /* SlideWorks app tokens (src/SlideWorks.Client/src/theme/tokens.css) */
+  --sw-night: #0b1020; --sw-night-2: #cbd5e1; --sw-night-muted: #8c97ad; --sw-night-line: #334155;
+  --sw-accent: #2f5bea; --sw-accent-light: #e4eafd; --sw-accent-glow: #a5b8ff; --sw-accent-dark: #1e3a8a;
+  --sw-paper: #f7f8fa; --sw-card: #fff; --sw-ink: #111827; --sw-muted: #5b6474; --sw-grid: #e3e6ec;
+  --sw-good: #16a34a; --sw-warn: #ea580c; --sw-bad: #dc2626; --sw-stamp: #fcd34d;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 16px 80px; }
+h1, h2, h3 { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+:where(p, li, td, th, .pill) { overflow-wrap: anywhere; }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 22px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { margin: 0; color: var(--muted); max-width: 860px; font-size: 15px; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 10px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 900px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); font: 500 13px/1.2 var(--ui); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); }
+
+/* scope */
+.scope { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .scope { grid-template-columns: minmax(0, 1fr); } }
+.scope .card { padding: 16px 18px; }
+.scope h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.scope ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.scope li { position: relative; padding-left: 22px; }
+.scope li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.scope .later-list li::before { background: var(--later); opacity: .55; }
+.note-card { margin-top: 16px; padding: 12px 16px; border-color: #c7d3fb; background: #f6f8ff; }
+.note-card b { font-weight: 600; color: var(--accent-dark); }
+
+/* =====================================================================
+   Phone frame + the guest page (mobile web, SlideWorks tokens)
+   ===================================================================== */
+.phone { width: 292px; max-width: 100%; margin: 0 auto; border-radius: 40px; padding: 10px; background: #11151d; box-shadow: var(--raise), inset 0 0 0 2px #2a303b; }
+.ps { position: relative; border-radius: 31px; overflow: hidden; height: 600px; display: flex; flex-direction: column; color: #fff; font-family: var(--ui);
+  background: radial-gradient(420px 320px at 100% 105%, rgb(47 91 234 / .38), transparent 62%), radial-gradient(300px 260px at -10% -8%, rgb(47 91 234 / .12), transparent 60%), var(--sw-night); }
+.sbar { flex: none; height: 38px; padding: 12px 22px 0; display: flex; justify-content: space-between; font: 600 12.5px/1 var(--ui); }
+.sbar .ic { display: flex; gap: 5px; align-items: center; }
+.sbar .ic i { display: block; width: 15px; height: 9px; border-radius: 2px; border: 1.5px solid currentColor; opacity: .9; }
+.sbar .ic b { display: block; width: 4px; height: 9px; background: currentColor; border-radius: 1px; opacity: .9; }
+.island { position: absolute; top: 10px; left: 50%; translate: -50% 0; width: 84px; height: 22px; border-radius: 12px; background: #000; z-index: 5; }
+.pbody { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 16px 10px; gap: 12px; position: relative; }
+.urlbar { flex: none; margin: 0 14px 12px; padding: 8px 12px; border-radius: 13px; background: rgb(255 255 255 / .1); display: flex; gap: 6px; align-items: center; justify-content: center; font: 500 12px/1 var(--ui); color: rgb(255 255 255 / .82); }
+.urlbar svg { width: 10px; height: 10px; }
+
+.g-top { display: flex; align-items: center; gap: 8px; }
+.g-mark { width: 22px; height: 22px; border-radius: 6px; background: var(--sw-accent); display: grid; place-items: center; font: 800 11px/1 var(--head); color: #fff; flex: none; }
+.g-deck { min-width: 0; flex: 1; }
+.g-deck b { display: block; font: 700 13px/1.2 var(--head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-deck span { display: block; font-size: 11px; color: var(--sw-night-muted); }
+.live { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font: 600 10.5px/1 var(--ui); background: rgb(22 163 74 / .18); color: #86efac; white-space: nowrap; }
+.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
+
+/* NEW: the language chip in the guest header */
+.lang { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 3px 8px 3px 7px; border-radius: 999px; font: 600 11px/1 var(--ui); background: rgb(255 255 255 / .1); color: #fff; white-space: nowrap; cursor: pointer; outline: 1px solid rgb(165 184 255 / .35); }
+.lang:focus-visible { outline: 2px solid var(--sw-accent-glow); }
+.lang svg { width: 13px; height: 13px; color: var(--sw-accent-glow); flex: none; }
+.lang .car { font-size: 8px; opacity: .7; }
+.new-ring { box-shadow: 0 0 0 3px rgb(122 90 248 / .55); }
+
+.mirror { border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgb(0 0 0 / .35); outline: 1px solid rgb(255 255 255 / .08); flex: none; }
+.slidemeta { display: flex; justify-content: space-between; align-items: center; font: 500 11px/1 var(--ui); color: var(--sw-night-muted); margin-top: -4px; }
+.slidemeta .prog { flex: 1; height: 3px; margin: 0 10px; border-radius: 3px; background: rgb(255 255 255 / .12); overflow: hidden; }
+.slidemeta .prog i { display: block; height: 100%; background: var(--sw-accent-glow); }
+.fallnote { display: flex; gap: 6px; align-items: center; margin-top: -6px; font-size: 11px; color: #fcd9a8; }
+.fallnote i { width: 6px; height: 6px; border-radius: 50%; background: #fb923c; flex: none; }
+.hint { display: flex; gap: 8px; align-items: center; margin-top: -4px; padding: 8px 10px; border-radius: 10px; background: rgb(165 184 255 / .12); font-size: 11.5px; color: var(--sw-night-2); }
+.hint svg { width: 18px; height: 18px; color: var(--sw-accent-glow); flex: none; }
+.hint button { all: unset; margin-left: auto; color: var(--sw-night-muted); font-size: 11px; cursor: pointer; }
+
+.wait { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 8px; padding: 0 8px; border-radius: 14px; border: 1px dashed rgb(255 255 255 / .16); min-height: 0; }
+.wait .dots { display: flex; gap: 6px; }
+.wait .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--sw-accent-glow); opacity: .3; animation: blink 1.4s infinite; }
+.wait .dots i:nth-child(2) { animation-delay: .2s; } .wait .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 40% { opacity: 1; } }
+.wait b { font: 700 14px/1.3 var(--head); }
+.wait p { margin: 0; font-size: 12px; line-height: 1.45; color: var(--sw-night-2); }
+
+.activity { flex: 1; min-height: 0; border-radius: 14px; background: #fff; color: var(--sw-ink); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.activity .tag { align-self: flex-start; font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--later); background: var(--later-soft); padding: 4px 7px; border-radius: 5px; }
+.activity b { font: 700 14.5px/1.3 var(--head); }
+.activity .opt { padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--sw-grid); font-size: 13px; font-weight: 500; }
+.activity .opt.on { border-color: var(--sw-accent); background: var(--sw-accent-light); }
+.activity .note { margin-top: auto; font-size: 11px; color: var(--sw-muted); }
+.activity.poll { gap: 5px; padding: 9px 12px; overflow: hidden; }
+.activity.poll b { font-size: 13.5px; }
+.activity.poll .opt { padding: 5px 10px; font-size: 12.5px; }
+
+.tabs { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: rgb(255 255 255 / .09); }
+.tabs span { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border-radius: 10px; font: 600 13px/1 var(--ui); color: var(--sw-night-2); }
+.tabs span.on { background: #fff; color: var(--sw-ink); }
+.tabs .bdg { font: 700 10.5px/1 var(--ui); padding: 3px 6px; border-radius: 999px; background: var(--sw-accent); color: #fff; }
+.rx { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.rx span { display: grid; place-items: center; min-height: 40px; border-radius: 12px; background: rgb(255 255 255 / .09); font-size: 18px; line-height: 1; }
+
+.banner { position: absolute; left: 12px; right: 12px; top: 4px; z-index: 4; padding: 10px 12px; border-radius: 12px; font-size: 12px; line-height: 1.35; display: flex; gap: 8px; align-items: center; background: #1e2a55; color: #e4eafd; box-shadow: 0 8px 24px rgb(0 0 0 / .45); outline: 1px solid rgb(165 184 255 / .35); }
+.banner svg { width: 16px; height: 16px; color: var(--sw-accent-glow); flex: none; }
+.banner .act { all: unset; margin-left: auto; font-weight: 700; color: var(--sw-accent-glow); cursor: pointer; white-space: nowrap; }
+
+.sheet-dim { position: absolute; inset: 0; background: rgb(0 0 0 / .55); z-index: 6; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 7; background: #161c2c; border-radius: 20px 20px 0 0; padding: 10px 16px 20px; display: grid; gap: 10px; }
+.sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .25); margin: 0 auto 2px; }
+.sheet h4 { margin: 0; font: 700 16px/1.25 var(--head); }
+.sheet .sub { margin: -4px 0 0; font-size: 12px; color: var(--sw-night-muted); }
+.langlist { display: grid; gap: 6px; }
+.langlist button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) 20px; align-items: center; gap: 8px; min-height: 48px; padding: 8px 12px; border-radius: 12px; background: rgb(255 255 255 / .06); cursor: pointer; }
+.langlist button:focus-visible { outline: 2px solid var(--sw-accent-glow); }
+.langlist button.on { background: rgb(47 91 234 / .28); outline: 1.5px solid var(--sw-accent-glow); }
+.langlist b { display: block; font: 700 14px/1.2 var(--head); }
+.langlist small { display: block; font-size: 11px; color: var(--sw-night-muted); margin-top: 2px; }
+.langlist small.part { color: #fcd9a8; }
+.langlist .tickc { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid rgb(255 255 255 / .3); display: grid; place-items: center; font-size: 11px; }
+.langlist button.on .tickc { background: var(--sw-accent); border-color: var(--sw-accent); }
+.sheet .foot-note { font-size: 11.5px; color: var(--sw-night-2); line-height: 1.45; }
+
+/* landscape phone */
+.phone.land { width: 620px; border-radius: 34px; }
+.phone.land .ps { height: 280px; border-radius: 26px; align-items: center; justify-content: center; background: #000; }
+.phone.land .ps .mirror { width: 480px; border-radius: 0; box-shadow: none; outline: none; cursor: pointer; }
+.land-over { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.land-over.show { opacity: 1; }
+.land-over .bar { position: absolute; left: 70px; right: 70px; top: 0; padding: 10px 12px 18px; display: flex; align-items: center; gap: 8px; background: linear-gradient(rgb(0 0 0 / .72), transparent); font: 600 11px/1 var(--ui); color: #fff; pointer-events: auto; }
+.land-over .bar .sp { flex: 1; }
+.fsbtn { all: unset; display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 3px 9px; border-radius: 999px; background: rgb(255 255 255 / .14); font: 600 11px/1 var(--ui); color: #fff; cursor: pointer; pointer-events: auto; }
+.fsbtn svg { width: 12px; height: 12px; }
+.land-over .bar .lang { pointer-events: auto; }
+.land-over .bot { position: absolute; left: 70px; right: 70px; bottom: 0; height: 3px; background: rgb(255 255 255 / .15); }
+.land-over .bot i { display: block; height: 100%; background: var(--sw-accent-glow); }
+.phone.land .sheet { left: auto; top: 0; width: 250px; border-radius: 20px 0 0 20px; padding: 14px; align-content: start; overflow: auto; }
+.phone.land .sheet .grab { display: none; }
+.phone.land .langlist button { min-height: 40px; padding: 6px 10px; }
+.zoomed .mirror .frame > .sl { transform: scale(calc(var(--s) * 1.7)) translate(-6%, -10%); }
+
+.states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 18px; }
+@media (max-width: 1100px) { .states { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .states { grid-template-columns: minmax(0, 1fr); } }
+.states .wide { grid-column: span 2; }
+@media (max-width: 1100px) { .states .wide { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .phone.land { width: 100%; } .phone.land .ps .mirror { width: 78%; } }
+.st-cap { margin-top: 10px; display: grid; gap: 3px; }
+.st-cap b { font-weight: 600; }
+.st-cap span { color: var(--muted); font-size: 12.5px; }
+
+/* =====================================================================
+   Slides (drawn at 960x540, half the 1920x1080 canvas, scaled to fit)
+   ===================================================================== */
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sw-paper); }
+.frame > .sl { position: absolute; left: 0; top: 0; transform: scale(var(--s, .3)); transform-origin: 0 0; }
+.sl { width: 960px; height: 540px; padding: 75px 60px 60px; display: flex; flex-direction: column; background: var(--sw-paper); color: var(--sw-ink); font-family: var(--ui); position: relative; overflow: hidden; }
+.sl::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--sw-accent); }
+.sl.dark { color: #fff; background: radial-gradient(550px 350px at 88% 112%, rgb(47 91 234 / .45), transparent 62%), radial-gradient(450px 300px at -5% -10%, rgb(125 150 255 / .12), transparent 60%), var(--sw-night); }
+.sl .kick { font: 600 13px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--sw-accent); margin-bottom: 14px; }
+.sl.dark .kick { color: var(--sw-accent-glow); }
+.sl h2 { font: 800 50px/1.12 var(--head); letter-spacing: -.02em; margin: 0; }
+.sl h3 { font: 700 30px/1.2 var(--head); margin: 0 0 22px; letter-spacing: -.01em; }
+.sl .sub { margin-top: 18px; font-size: 19px; color: var(--sw-night-2); }
+.sl .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; }
+.sl .cards div { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 2px rgb(15 23 42 / .06), 0 14px 36px rgb(15 23 42 / .09); }
+.sl .cards b { display: block; font: 700 20px/1.25 var(--head); margin-bottom: 8px; }
+.sl .cards span { font-size: 15px; color: var(--sw-muted); line-height: 1.5; }
+.sl .cards .num { font: 800 36px/1 var(--head); color: var(--sw-accent); margin-bottom: 10px; }
+.sl .statement { flex: 1; display: flex; align-items: center; font: 800 52px/1.16 var(--head); letter-spacing: -.02em; max-width: 800px; }
+.sl .statement em { font-style: normal; color: var(--sw-accent); }
+.sl .pollopts { display: grid; gap: 12px; max-width: 640px; }
+.sl .pollopts div { display: flex; justify-content: space-between; padding: 14px 18px; border-radius: 10px; background: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .06); font-size: 18px; font-weight: 500; }
+.sl .pollopts div span { color: var(--sw-muted); font-size: 14px; }
+.sl .sprog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--sw-accent); }
+.sl .foot { position: absolute; left: 60px; right: 60px; bottom: 16px; display: flex; justify-content: space-between; font-size: 11px; color: var(--sw-muted); }
+.sl.dark .foot { color: var(--sw-night-muted); }
+.sl .fb { outline: 2px dashed #fb923c; outline-offset: 3px; border-radius: 3px; }
+.hide-fb .sl .fb { outline: none; }
+
+/* =====================================================================
+   Live demo: presenter laptop + guest phone
+   ===================================================================== */
+.demo { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; }
+.demo.is-land { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 980px) { .demo { grid-template-columns: minmax(0, 1fr); } }
+.laptop { background: #1a1f2b; border-radius: 14px 14px 4px 4px; padding: 10px 10px 0; box-shadow: var(--raise); }
+.laptop .scr { border-radius: 6px; overflow: hidden; background: #000; }
+.laptop .base { height: 14px; margin: 0 -26px; background: linear-gradient(#c9ced8, #a9b0bd); border-radius: 0 0 14px 14px; }
+@media (max-width: 680px) { .laptop .base { margin: 0 -10px; } }
+.ptool { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #0f1420; color: #cbd5e1; font: 500 12px/1 var(--ui); }
+.ptool .tb { border: 0; background: rgb(255 255 255 / .08); color: #fff; padding: 6px 9px; border-radius: 6px; font: 600 12px/1 var(--ui); cursor: pointer; }
+.ptool .tb:disabled { opacity: .35; cursor: default; }
+.ptool .count { font-family: var(--mono); color: #94a3b8; }
+.ptool .sp { flex: 1; }
+.ptool .livechip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 6px; background: rgb(22 163 74 / .18); color: #86efac; font: 600 12px/1 var(--ui); }
+.ptool .livechip b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.ptool .livechip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.ptool .langmix { display: inline-flex; gap: 8px; align-items: center; padding: 5px 9px; border-radius: 6px; background: rgb(122 90 248 / .2); color: #ddd6fe; font: 500 11.5px/1 var(--ui); }
+.ptool .langmix b { color: #fff; font-weight: 600; }
+.dctl { margin-top: 14px; padding: 12px 14px; display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center; }
+.dctl .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+.dctl label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
+.demo-notes { margin: 12px 0 0; padding: 0 0 0 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+
+/* compare: as built vs proposed */
+.cmp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 980px) { .cmp { grid-template-columns: minmax(0, 1fr); } }
+.cmp .card { padding: 14px; display: grid; gap: 12px; align-content: start; }
+.cmp h3 { font: 600 14px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.shot { border-radius: 22px; padding: 8px; background: #11151d; box-shadow: inset 0 0 0 2px #2a303b; }
+.shot img { display: block; width: 100%; border-radius: 15px; }
+.cmp .phone.land { width: 100%; }
+.cmp .phone.land .ps .mirror { width: 80%; }
+.demo.is-land > div:first-child { max-width: 880px; }
+.cmp ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+
+/* deck page card */
+.deckpage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 900px) { .deckpage { grid-template-columns: minmax(0, 1fr); } }
+.dp { padding: 0; overflow: hidden; }
+.dp .dphead { padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; font: 600 12px/1 var(--ui); color: var(--muted); background: var(--surface-2); }
+.dp .dpbody { padding: 16px; display: grid; gap: 12px; }
+.set { border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; }
+.set.new { border-color: #c4b5fd; box-shadow: 0 0 0 3px var(--later-soft); }
+.set.dimmed { opacity: .55; }
+.set .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.set h4 { margin: 0; font: 600 14px/1.3 var(--ui); flex: 1; }
+.set p { margin: 0; font-size: 13px; color: var(--muted); }
+.sw { width: 34px; height: 20px; border-radius: 999px; background: var(--line-2); position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+.sw.on { background: var(--accent); }
+.sw.on::after { left: 16px; }
+.field { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.field .lbl { color: var(--muted); min-width: 120px; }
+.sel { display: inline-flex; gap: 8px; align-items: center; padding: 5px 10px; border: 1px solid var(--line-2); border-radius: 6px; background: #fff; font-size: 13px; }
+.cov { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cov td { padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: middle; }
+.cov td.l b { font: 700 14px/1.2 var(--head); }
+.cov td.l span { display: block; font-size: 11.5px; color: var(--muted); }
+.cov .meter { width: 90px; height: 6px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.cov .meter i { display: block; height: 100%; background: var(--ok); }
+.cov .meter i.part { background: var(--warn); }
+.cov td.n { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* options + code */
+.opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1050px) { .opts { grid-template-columns: minmax(0, 1fr); } }
+.opt-card { padding: 16px; display: grid; gap: 10px; align-content: start; }
+.opt-card.rec { border-color: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.opt-card h3 { font: 600 15px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.opt-card .pc { display: grid; gap: 4px; font-size: 13px; }
+.opt-card .pc div { padding-left: 18px; position: relative; color: var(--muted); }
+.opt-card .pc .p::before { content: "+"; position: absolute; left: 2px; color: var(--ok); font-weight: 700; }
+.opt-card .pc .c::before { content: "−"; position: absolute; left: 2px; color: var(--bad); font-weight: 700; }
+pre.code { margin: 0; padding: 12px 14px; border-radius: 8px; background: #0f1420; color: #dbe4f3; font: 400 12px/1.55 var(--mono); overflow-x: auto; white-space: pre; }
+pre.code .k { color: #a5b8ff; } pre.code .s { color: #86efac; } pre.code .c { color: #8c97ad; } pre.code .w { color: #fdba74; }
+.mcp { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 1000px) { .mcp { grid-template-columns: minmax(0, 1fr); } }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 10px; border-bottom: 1px solid var(--line); }
+.tbl td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl td:first-child { font-family: var(--mono); font-size: 12.5px; color: var(--accent-dark); white-space: nowrap; }
+.tbl tr:last-child td { border-bottom: 0; }
+.diagram { padding: 18px; overflow: hidden; }
+.diagram svg { width: 100%; height: auto; display: block; font-family: var(--ui); }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px 18px; }
+.q h3 { font: 600 15px/1.35 var(--ui); margin-bottom: 4px; }
+.q .why { color: var(--muted); margin: 0 0 10px; }
+.q .choices { display: grid; gap: 6px; }
+.q label.choice { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.q label.choice:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.q label.choice input { margin: 3px 0 0; accent-color: var(--accent); }
+.q label.choice b { font-weight: 600; }
+.q label.choice span:not(.rec) { display: block; color: var(--muted); font-size: 12.5px; }
+.q .rec { display: inline-block; font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.q textarea { width: 100%; margin-top: 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.4 var(--ui); resize: vertical; }
+.q .qfoot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.q .state { font-size: 12.5px; color: var(--faint); }
+.q .state.queued { color: var(--ok); font-weight: 600; }
+.copyall { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.copyall textarea { width: 100%; }
+
+/* =====================================================================
+   SW-884 additions: speaker app (native), subtitle strips, admin, presenter chip
+   ===================================================================== */
+body.hide-fb .sl .fb { outline: none; }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1000px) { .three { grid-template-columns: minmax(0, 1fr); } }
+.three .card { padding: 16px 18px; }
+.three h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.three ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.three li { position: relative; padding-left: 22px; }
+.three li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.three .later-list li::before { background: var(--later); opacity: .55; }
+.three .grey-list li::before { background: var(--faint); opacity: .55; }
+
+/* ---------- native app frame: no URL bar, a home indicator, the mic dot ---------- */
+.ps.app { background: #0a0e16; color: #e2e8f0; }
+.ps.app .pbody { padding: 4px 14px 6px; gap: 8px; }
+.homebar { flex: none; height: 18px; display: grid; place-items: center; }
+.homebar i { display: block; width: 104px; height: 4px; border-radius: 3px; background: rgb(255 255 255 / .55); }
+.sbar .mic { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #fb923c; margin-left: 6px; vertical-align: 1px; box-shadow: 0 0 0 3px rgb(251 146 60 / .25); }
+
+/* speaker mode, as built (SpeakerPage.tsx), drawn smaller */
+.s-stat { display: flex; align-items: center; gap: 8px; font: 600 11px/1 var(--ui); }
+.s-stat .lv { display: inline-flex; gap: 6px; align-items: center; color: #4ade80; letter-spacing: .08em; }
+.s-stat .lv::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.s-stat .lv.off { color: #fbbf24; } .s-stat .lv.off::before { background: #fbbf24; }
+.s-stat .sp { flex: 1; }
+.s-stat .clock { font: 600 17px/1 var(--mono); color: #fff; }
+.s-stat .left { white-space: nowrap; font: 500 10.5px/1 var(--mono); color: #94a3b8; }
+.s-now { display: flex; justify-content: space-between; font: 600 9.5px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: #94a3b8; margin-bottom: -2px; }
+.ps.app .mirror { border-radius: 6px; outline: 2px solid #a5b8ff; outline-offset: 0; box-shadow: none; }
+.s-next { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 9px; align-items: center; }
+.s-next .mirror { outline: 1px solid #334155; border-radius: 4px; }
+.s-next small { display: block; font: 600 9px/1 var(--ui); letter-spacing: .12em; color: #94a3b8; }
+.s-next b { display: block; font: 600 12.5px/1.25 var(--ui); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-notes { flex: 1; min-height: 36px; overflow: hidden; border: 1px solid #1f2937; border-radius: 12px; background: #0f1520; padding: 8px 10px; font-size: 12px; line-height: 1.45; color: #e2e8f0; }
+.s-notes small { display: block; font: 600 9px/1 var(--ui); letter-spacing: .12em; color: #64748b; margin-bottom: 5px; }
+.s-nav { flex: none; display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; }
+.s-nav span { display: grid; place-items: center; height: 40px; border-radius: 12px; background: #1e2533; font: 700 14px/1 var(--ui); color: #fff; }
+.s-nav span.nx { background: #3b5bdb; }
+.s-acts { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.s-acts span { display: grid; place-items: center; gap: 3px; height: 38px; border-radius: 10px; background: #111827; font: 500 10px/1 var(--ui); color: #cbd5e1; }
+.s-acts span i { font-style: normal; font-size: 12px; opacity: .8; }
+
+/* NEW: the subtitles bar in speaker mode */
+.cc { flex: none; border-radius: 12px; padding: 7px 9px 8px; display: grid; gap: 5px; background: #121a2c; outline: 1.5px solid rgb(122 90 248 / .55); }
+.cc.off { outline: 1px dashed #334155; background: transparent; }
+.cc.paused { outline-color: #fbbf24; background: #1c1708; }
+.cc.offline { outline-color: #fb923c; background: #1f1208; }
+.cc .row { display: flex; align-items: center; gap: 7px; font: 600 10.5px/1 var(--ui); color: #cbd5e1; }
+.cc .row .sp { flex: 1; }
+.cc .ttl { letter-spacing: .02em; white-space: nowrap; }
+.cc .lng { white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; padding: 3px 6px; border-radius: 999px; background: rgb(255 255 255 / .1); color: #fff; font: 700 10px/1 var(--ui); cursor: pointer; border: 0; }
+.cc .lng .car { font-size: 7px; opacity: .7; }
+.cc .ctl { all: unset; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 999px; background: rgb(255 255 255 / .12); color: #fff; font: 700 10px/1 var(--ui); cursor: pointer; }
+.cc .ctl.go { background: #7a5af8; }
+.cc .ctl.warn { background: #fbbf24; color: #1c1708; }
+.cc .txt { font-size: 12px; line-height: 1.35; color: #fff; min-height: 32px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cc .txt .pt { color: #94a3b8; }
+.cc .txt.dim { color: #94a3b8; font-size: 11.5px; }
+.cc .meta { font: 500 9.5px/1 var(--ui); color: #8c97ad; display: flex; gap: 8px; }
+.cc .meta b { color: #c4b5fd; font-weight: 600; }
+.bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 11px; }
+.bars i { width: 2.5px; border-radius: 1px; background: #a78bfa; height: 30%; }
+.bars.live i { animation: lvl .9s infinite ease-in-out; }
+.bars.live i:nth-child(2) { animation-delay: .15s; } .bars.live i:nth-child(3) { animation-delay: .3s; } .bars.live i:nth-child(4) { animation-delay: .45s; }
+.bars.still i { background: #475569; }
+@keyframes lvl { 0%, 100% { height: 25%; } 50% { height: 100%; } }
+
+/* sign in, talk list, setup */
+.app-pad { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 10px 18px 14px; min-height: 0; }
+.app-logo { display: flex; align-items: center; gap: 9px; font: 800 17px/1 var(--head); }
+.app-logo .g-mark { width: 30px; height: 30px; border-radius: 8px; font-size: 15px; }
+.app-h { font: 700 18px/1.25 var(--head); margin: 0; }
+.app-p { margin: 0; font-size: 12px; line-height: 1.5; color: #94a3b8; }
+.inp { display: grid; gap: 5px; font-size: 11px; color: #94a3b8; }
+.inp span { display: block; padding: 10px 12px; border-radius: 10px; background: #111827; border: 1px solid #334155; color: #fff; font-size: 13px; }
+.bigbtn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border-radius: 12px; background: #3b5bdb; color: #fff; font: 700 14px/1 var(--ui); }
+.bigbtn.ghost { background: transparent; border: 1px solid #334155; color: #e2e8f0; font-weight: 600; }
+.bigbtn.violet { background: #7a5af8; }
+.bigbtn.white { background: #fff; color: #111827; }
+.talk { border-radius: 14px; border: 1px solid #1f2937; background: #111827; padding: 10px; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: center; }
+.talk .mirror { border-radius: 5px; outline: none; box-shadow: none; }
+.talk b { display: block; font: 700 13px/1.25 var(--head); }
+.talk small { display: block; font-size: 11px; color: #94a3b8; margin-top: 3px; }
+.talk .live { margin-top: 6px; }
+.tiny { font-size: 10.5px; color: #8c97ad; }
+.setrow { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgb(255 255 255 / .06); font-size: 12.5px; }
+.setrow .grow { flex: 1; min-width: 0; }
+.setrow b { display: block; font-weight: 600; }
+.setrow small { display: block; font-size: 10.5px; color: #94a3b8; margin-top: 2px; }
+.setrow small.okc { color: #86efac; }
+.setrow small.warnc { color: #fcd9a8; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: rgb(255 255 255 / .07); }
+.seg span { display: grid; place-items: center; min-height: 36px; border-radius: 9px; font: 700 13px/1 var(--head); color: #cbd5e1; }
+.seg span.on { background: #fff; color: #111827; }
+.tog { width: 34px; height: 20px; border-radius: 999px; background: #334155; position: relative; flex: none; }
+.tog::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+.tog.on { background: #7a5af8; } .tog.on::after { left: 16px; }
+.prog2 { height: 6px; border-radius: 6px; background: rgb(255 255 255 / .12); overflow: hidden; margin-top: 6px; }
+.prog2 i { display: block; height: 100%; background: #a78bfa; }
+.sysdlg { position: absolute; left: 26px; right: 26px; top: 170px; z-index: 8; border-radius: 16px; background: rgb(240 240 245 / .97); color: #111; text-align: center; overflow: hidden; }
+.sysdlg .b { padding: 16px 14px 12px; display: grid; gap: 6px; }
+.sysdlg b { font: 600 14px/1.3 -apple-system, var(--ui); }
+.sysdlg p { margin: 0; font-size: 11.5px; line-height: 1.4; color: #333; }
+.sysdlg .btns { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #c7c7cc; }
+.sysdlg .btns span { padding: 11px 0; font-size: 14px; color: #0a63d8; }
+.sysdlg .btns span + span { border-left: 1px solid #c7c7cc; font-weight: 600; }
+.lockscr { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 26px 12px 16px; gap: 4px; background: radial-gradient(400px 300px at 50% 0%, #1e2a55, transparent 70%), #05070d; }
+.lockscr .t { font: 300 58px/1 var(--ui); letter-spacing: -.02em; }
+.lockscr .d { font-size: 13px; color: #cbd5e1; margin-bottom: 18px; }
+.notif { width: 100%; border-radius: 16px; background: rgb(255 255 255 / .14); backdrop-filter: blur(8px); padding: 10px 12px; display: grid; gap: 4px; text-align: left; }
+.notif .h { display: flex; gap: 7px; align-items: center; font: 600 11px/1 var(--ui); color: #cbd5e1; }
+.notif .h .g-mark { width: 18px; height: 18px; border-radius: 5px; font-size: 9px; }
+.notif b { font-size: 13px; }
+.notif p { margin: 0; font-size: 12px; color: #e2e8f0; line-height: 1.35; }
+.notif .acts { display: flex; gap: 6px; margin-top: 4px; }
+.notif .acts span { padding: 5px 10px; border-radius: 999px; background: rgb(255 255 255 / .16); font: 600 11px/1 var(--ui); }
+
+/* ---------- guest subtitle strip (mobile web) ---------- */
+.subs { flex: none; position: relative; border-radius: 12px; padding: 8px 10px 9px; background: rgb(0 0 0 / .42); outline: 1px solid rgb(165 184 255 / .22); display: grid; gap: 4px; }
+.subs.new-ring { box-shadow: 0 0 0 3px rgb(122 90 248 / .55); }
+.subs .row { display: flex; align-items: center; gap: 6px; font: 600 9.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--sw-night-muted); }
+.subs .row .sp { flex: 1; }
+.subs .row .cc-ic { display: inline-grid; place-items: center; padding: 2px 4px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 8px/1 var(--ui); letter-spacing: 0; }
+.subs .row button { all: unset; cursor: pointer; color: var(--sw-accent-glow); font: 600 10.5px/1 var(--ui); letter-spacing: 0; text-transform: none; }
+.subs .ln { font: 500 13.5px/1.4 var(--ui); color: #fff; }
+.subs .ln.old { color: var(--sw-night-2); opacity: .75; font-size: 12.5px; }
+.subs .ln .pt { color: #94a3b8; }
+.subs .ln .nt { display: inline-block; margin-left: 5px; padding: 1px 5px; border-radius: 4px; background: rgb(251 146 60 / .18); color: #fcd9a8; font: 600 9.5px/1.4 var(--ui); vertical-align: 1px; white-space: nowrap; }
+.subs .state { display: flex; gap: 7px; align-items: center; font-size: 12px; color: var(--sw-night-2); min-height: 38px; }
+.subs .state i { width: 7px; height: 7px; border-radius: 50%; background: #fbbf24; flex: none; }
+.subs .state i.or { background: #fb923c; }
+.subs-show { all: unset; flex: none; align-self: flex-start; display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border-radius: 999px; background: rgb(255 255 255 / .1); font: 600 11.5px/1 var(--ui); color: #fff; cursor: pointer; }
+.subs-show .cc-ic { display: inline-grid; place-items: center; padding: 2px 4px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 8px/1 var(--ui); }
+.ps .wait.slim { flex: 1; min-height: 40px; }
+/* landscape captions over the slide */
+.land-cap { position: absolute; left: 70px; right: 70px; bottom: 16px; z-index: 2; display: grid; justify-items: center; gap: 2px; pointer-events: none; }
+.land-cap span { max-width: 92%; padding: 3px 9px; border-radius: 4px; background: rgb(0 0 0 / .78); color: #fff; font: 500 13px/1.35 var(--ui); text-align: center; }
+.land-cap span.old { color: #cbd5e1; font-size: 12px; }
+
+/* ---------- demo ---------- */
+.demo3 { display: grid; grid-template-columns: 292px 292px minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 1100px) { .demo3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .demo3 > .logcol { grid-column: 1 / -1; } }
+@media (max-width: 680px) { .demo3 { grid-template-columns: minmax(0, 1fr); } }
+.devlbl { text-align: center; font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+.logcol { display: grid; gap: 14px; }
+.logcard { padding: 0; overflow: hidden; }
+.logcard .lh { padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font: 600 12px/1 var(--ui); color: var(--muted); background: var(--surface-2); }
+.logcard .lh code { font-size: 11px; color: var(--accent-dark); }
+.logtbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.logtbl th { text-align: left; font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.logtbl td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.logtbl td.n { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.logtbl td.ok { color: var(--ok); font-family: var(--mono); font-size: 11.5px; white-space: nowrap; }
+.logtbl td.bad { color: var(--bad); font-size: 11.5px; white-space: nowrap; }
+.logtbl td.dropped { color: var(--faint); font-size: 11.5px; }
+.logtbl tr.pending td { color: var(--faint); }
+.logtbl td.txt { max-width: 240px; }
+.logtbl tr.fresh { animation: fresh 1.2s; }
+@keyframes fresh { from { background: var(--accent-soft); } }
+.logempty { padding: 16px 14px; color: var(--faint); font-size: 12.5px; }
+.ctlcard { padding: 12px 14px; display: grid; gap: 10px; }
+.ctlcard .r { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ctlcard .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); min-width: 92px; }
+.btn.warnb { border-color: #f3c58f; background: var(--warn-soft); color: var(--warn); }
+
+/* ---------- desktop pieces: presenter chip + admin ---------- */
+.ptool .ccchip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 6px; background: rgb(122 90 248 / .2); color: #ddd6fe; font: 600 11.5px/1 var(--ui); }
+.ptool .ccchip .cc-ic { display: inline-grid; place-items: center; padding: 2px 4px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 8px/1 var(--ui); }
+.ptool .ccchip.paused { background: rgb(251 191 36 / .18); color: #fde68a; }
+.ptool .ccchip.offline { background: rgb(251 146 60 / .2); color: #fed7aa; }
+.chips3 { display: grid; gap: 10px; }
+.adm { padding: 0; overflow: hidden; }
+.adm .top { display: flex; gap: 14px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.adm .top b { font: 700 15px/1 var(--ui); }
+.adm .tabsx { display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.adm .tabsx span { padding: 9px 12px; font: 500 13px/1 var(--ui); color: var(--muted); border-bottom: 2px solid transparent; }
+.adm .tabsx span.on { color: var(--text); border-color: var(--accent); font-weight: 600; }
+.adm .bd { padding: 14px 16px 16px; display: grid; gap: 14px; }
+.adm h4 { margin: 0; font: 600 13.5px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.adm .help { margin: -8px 0 0; font-size: 12.5px; color: var(--muted); }
+.atbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.atbl th { text-align: left; font: 600 10.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.atbl td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.atbl td.m { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.atbl td b { font-weight: 600; }
+.atbl small { display: block; color: var(--muted); font-size: 11.5px; }
+.radio { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--line-2); vertical-align: -2px; }
+.radio.on { border: 4px solid var(--accent); }
+.tblwrap { overflow-x: auto; }
+
+/* ---------- D12: the Subtitles action button + its sheet ---------- */
+.s-acts.five { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.s-acts.five > span, .s-acts.five > .ccb { height: 40px; font-size: 8.5px; line-height: 1.1; text-align: center; padding: 0 2px; }
+.ccb { all: unset; box-sizing: border-box; display: grid; place-items: center; align-content: center; gap: 3px; height: 40px; border-radius: 10px; background: #111827; font: 600 8.5px/1.1 var(--ui); color: #cbd5e1; cursor: pointer; outline: 1px dashed #475569; }
+.ccb .ccic { display: inline-grid; place-items: center; padding: 1px 3px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 7px/1 var(--ui); }
+.ccb.live { background: rgb(122 90 248 / .3); color: #fff; outline: 1.5px solid #a78bfa; }
+.ccb.paused { background: rgb(251 191 36 / .2); color: #fde68a; outline: 1.5px solid #fbbf24; }
+.ccb.offline { background: rgb(251 146 60 / .22); color: #fed7aa; outline: 1.5px solid #fb923c; }
+.ccb.offline .bars i { background: #fb923c; }
+.ccb:focus-visible { outline: 2px solid var(--sw-accent-glow); }
+.sheet.ccs { gap: 8px; }
+.ccs-h { display: flex; align-items: center; gap: 8px; }
+.ccs-h h4 { flex: 1; }
+.stp { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font: 700 10.5px/1 var(--ui); white-space: nowrap; }
+.stp::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.stp.live { background: rgb(122 90 248 / .25); color: #c4b5fd; }
+.stp.paused { background: rgb(251 191 36 / .18); color: #fde68a; }
+.stp.offline { background: rgb(251 146 60 / .2); color: #fed7aa; }
+.ccs-l { display: block; font: 600 9px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: #64748b; margin-bottom: -3px; }
+.heard { min-height: 44px; padding: 8px 10px; border-radius: 10px; background: rgb(255 255 255 / .06); font-size: 12.5px; line-height: 1.4; color: #fff; }
+.heard .pt { color: #94a3b8; }
+.heard.dim { color: #cbd5e1; font-size: 12px; }
+.ccs-m { font-size: 11px; color: #8c97ad; }
+.ccs-m b { color: #c4b5fd; font-weight: 600; }
+.sheet .bigbtn { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; border-radius: 12px; font: 700 13.5px/1 var(--ui); cursor: pointer; }
+.sheet .bigbtn.violet { background: #7a5af8; color: #fff; }
+.sheet .bigbtn.amber { background: rgb(251 191 36 / .16); color: #fde68a; outline: 1px solid rgb(251 191 36 / .5); }
+.s-acts .ccb > span { display: block; height: auto; background: none; border-radius: 0; font: inherit; color: inherit; place-items: initial; gap: 0; }
+.s-acts .ccb > .ccic { display: inline-grid; place-items: center; padding: 1px 3px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 7px/1 var(--ui); }
+.s-acts .ccb > .bars { display: inline-flex; height: 11px; align-items: flex-end; }
+
+/* ---------- round 2: D13 ticker, D15 listen chips, D16 toast, D18 big screen, D21/D24 pairing ---------- */
+.tick { flex: none; display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 9px; border-radius: 9px; background: rgb(122 90 248 / .16); outline: 1px solid rgb(167 139 250 / .4); font-size: 11.5px; color: #fff; min-width: 0; }
+.tick .tt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tick .pt { color: #94a3b8; }
+.tick.off { background: rgb(251 146 60 / .14); outline-color: rgb(251 146 60 / .45); color: #fed7aa; }
+.tick .ttag { font: 700 9px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; }
+.ltag { display: inline-block; margin-right: 6px; padding: 1px 5px; border-radius: 4px; background: rgb(255 255 255 / .12); color: #c4b5fd; font: 700 9px/1.5 var(--ui); vertical-align: 1px; white-space: nowrap; }
+.tick .ltag { margin: 0; }
+.heard p { margin: 0; }
+.heard p + p { margin-top: 3px; }
+.lchips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lchip { padding: 7px 11px; border-radius: 999px; border: 1px solid #334155; font: 700 12px/1 var(--head); color: #94a3b8; }
+.lchip.on { background: rgb(122 90 248 / .28); border-color: #a78bfa; color: #fff; }
+.lchips small { flex-basis: 100%; font-size: 10.5px; color: #8c97ad; }
+.setrow.sm { padding: 7px 10px; font-size: 12px; }
+.getb { padding: 6px 10px; border-radius: 999px; background: #7a5af8; color: #fff; font: 700 10.5px/1 var(--ui); white-space: nowrap; }
+.apptoast { position: absolute; left: 12px; right: 12px; top: 44px; z-index: 6; display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 12px; background: #2a2208; outline: 1px solid #fbbf24; color: #fde68a; font-size: 11.5px; line-height: 1.35; box-shadow: 0 8px 24px rgb(0 0 0 / .5); }
+.apptoast b { margin-left: auto; padding: 6px 10px; border-radius: 999px; background: #fbbf24; color: #1c1708; font: 700 11px/1 var(--ui); white-space: nowrap; }
+.ordiv { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #64748b; }
+.ordiv::before, .ordiv::after { content: ""; flex: 1; height: 1px; background: #334155; }
+.ptool { flex-wrap: wrap; }
+.ptool .tb.phoneb { background: rgb(165 184 255 / .16); color: #dbe4ff; }
+.ptool .lc { display: inline-flex; gap: 4px; align-items: center; }
+.ptool .lc-live { display: inline-flex; gap: 6px; align-items: center; padding: 5px 9px; border-radius: 6px; background: rgb(22 163 74 / .25); color: #86efac; font: 600 11.5px/1 var(--ui); }
+.ptool .lc-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #86efac; }
+.ptool .lc-live b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.ptool .tb.pressed { outline: 2px solid rgb(255 255 255 / .6); outline-offset: -2px; }
+.ptool .tb.new { background: rgb(122 90 248 / .35); box-shadow: 0 0 0 3px rgb(122 90 248 / .45); }
+.ptool .tb.end { background: rgb(220 38 38 / .3); color: #fecaca; }
+.bigwrap { position: relative; }
+.bigwrap .frame { display: block; }
+.bigcap { position: absolute; left: 8%; right: 8%; bottom: 13%; display: grid; justify-items: center; gap: 4px; }
+.bigcap span { max-width: 100%; padding: 4px 12px; border-radius: 5px; background: rgb(11 16 32 / .86); color: #fff; font: 500 clamp(11px, 1.7vw, 17px)/1.35 var(--ui); text-align: center; }
+.bigcap span.old { color: #cbd5e1; font-size: clamp(10px, 1.45vw, 15px); }
+.joinbar { position: absolute; left: 0; right: 0; bottom: 0; height: 9%; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--sw-night); color: #cbd5e1; font: 500 clamp(10px, 1.4vw, 14px)/1 var(--ui); }
+.joinbar b { color: #fff; font-family: var(--mono); font-weight: 500; }
+.lapgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+@media (max-width: 900px) { .lapgrid { grid-template-columns: minmax(0, 1fr); } }
+.qrpop { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: center; padding: 16px; border-radius: 12px; background: #0f1420; color: #e2e8f0; }
+@media (max-width: 520px) { .qrpop { grid-template-columns: minmax(0, 1fr); } }
+.qrpop .qr svg { width: 150px; height: 150px; display: block; border-radius: 8px; }
+.qrpop b { font: 700 15px/1.3 var(--head); }
+.qrpop p { margin: 6px 0 0; font-size: 12.5px; color: #cbd5e1; }
+.qrpop p.sm { font-size: 11.5px; color: #8c97ad; }
+
+</style>
+</head>
+<body class="hide-fb">
+<main>
+
+<header class="page-head">
+  <div class="eyebrow">SlideWorks · SW-884 · design mockups · 28 Nov 2026</div>
+  <h1>Live speech V1: the speaker talks, every guest reads it in their language</h1>
+  <p>A native speaker app does what speaker mode on mobile web does, plus one new button, <b>Subtitles</b>. The phone turns the speaker's voice into text on the device, the server translates each finished sentence once for every language a guest is reading in, and guests see two lines of subtitles under the slide. The speaker-mode layout is copied from <code>SpeakerPage.tsx</code>; the guest page and the language chip are SW-883's.</p>
+</header>
+
+<nav class="toc">
+  <a href="#scope">01 Scope</a><a href="#demo">02 Live demo</a><a href="#app">03 Speaker app</a><a href="#guest">04 Guest phone</a><a href="#laptop">05 Laptop and admin</a><a href="#flow">06 How it flows</a><a href="#questions">07 Decisions</a>
+</nav>
+
+<!-- 01 -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">01</span><h2>What V1 ships</h2><span class="pill grey">under the Translations epic SW-942</span></div>
+  <div class="three">
+    <div class="card">
+      <h3><span class="pill ok">V1 · SW-884</span> This Feature</h3>
+      <ul>
+        <li><b>A speaker app</b> (Expo, iOS and Android) with everything speaker mode does on mobile web: the talk list, slide moves, notes, the timer, Slides, Skip deep dives, Blackout and Join code.</li>
+        <li><b>A Subtitles button</b> in speaker mode's action row (D12), a one-line ticker of what was heard above Next (D13), and a sheet: start, pause ("off the record"), which languages to listen for, and the big-screen captions switch.</li>
+        <li><b>Speech to text on the phone</b>, English and Thai at once for mixed talks: each line goes to whichever model is surer (D15). Models come from a server manifest (D6) on first use (D14).</li>
+        <li><b>Server translation</b> of each final line through SW-943, once per language in use (D11).</li>
+        <li><b>A subtitle strip on the guest phone</b>, in the guest's SW-883 language, with Hide.</li>
+        <li><b>Optional captions on the big screen</b>, in the language heard, off by default per deck, toggled next to Join bar (D18).</li>
+        <li><b>Sign-in by address and Google, or a QR code</b> from the laptop (D21).</li>
+        <li><b>Model ids and latency on every line</b>, so models can be compared with friends in production.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="pill later">V2 · SW-885</span> Listening</h3>
+      <ul class="later-list">
+        <li>A Listen button on mobile web (the phone's own voices).</li>
+        <li>Audience mode in the app: audio with the screen locked, headphones, voice choice.</li>
+        <li>A cloud speech-to-text engine as a fallback.</li>
+        <li>The lapel-mic tip in the setup help.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="pill grey">elsewhere</span> Not in V1</h3>
+      <ul class="grey-list">
+        <li>Multilingual typed Q&amp;A: V3, SW-944.</li>
+        <li>The translation engine, its models and the per-pair admin: SW-943.</li>
+        <li>Audio is never stored or uploaded. The transcript is kept only when the speaker turns it on (D4).</li>
+        <li>Listening in the background: leaving the app or locking the phone pauses subtitles (D16).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 02 -->
+<section class="block" id="demo">
+  <div class="sec-head"><span class="n">02</span><h2>Live demo: Sam talks, a guest reads in Thai</h2><span class="pill ok">pause, drop the connection, switch the guest's language</span></div>
+  <p class="sec-sub">Left is Sam's phone in the speaker app. Middle is a guest on mobile web. Right is what the server logs for every line. Partial words reach only guests reading in Sam's language (D8). Everyone else gets each finished line once it is translated. One Japanese line fails on purpose to show D9.</p>
+  <div class="demo3">
+    <div><div class="devlbl">Speaker app · Sam</div><div class="phone"><div class="ps app" id="spPhone"></div></div></div>
+    <div><div class="devlbl">Guest · mobile web</div><div class="phone"><div class="ps" id="gPhone"></div></div></div>
+    <div class="logcol">
+      <div class="card ctlcard">
+        <div class="r"><span class="lbl">Sam</span><button class="btn" id="cTalk">❚❚ Stop talking</button><button class="btn" id="cPause">Pause subtitles</button><button class="btn warnb" id="cNet">Drop Sam's connection</button></div>
+        <div class="r"><span class="lbl">Guest reads</span><span id="cLangs" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span><button class="btn" id="cHide">Hide subtitles</button></div>
+      </div>
+      <div class="card logcard">
+        <div class="lh"><span>Server, per line</span><span class="sp" style="flex:1"></span><code>stt parakeet-tdt-0.6b-en@1</code><code>mt hy-mt2-1.8b-q4@1</code></div>
+        <div class="tblwrap"><table class="logtbl"><thead><tr><th>#</th><th>Slide</th><th>Heard (en)</th><th>→ th</th><th>→ ja</th><th>Final → on all phones</th></tr></thead><tbody id="logBody"></tbody></table></div>
+        <div class="logempty" id="logEmpty">Lines appear here as Sam finishes them.</div>
+      </div>
+      <ul class="demo-notes" style="margin:0">
+        <li>Drop the connection for a while, then bring it back: lines heard in the last 30 seconds are sent, older ones are dropped (D5).</li>
+        <li>The guest's language chip is SW-883's. Subtitles follow it (D10): there is no second picker.</li>
+        <li>Times in the log are the demo's, not measured. The real numbers come from these columns in production.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 03 -->
+<section class="block" id="app">
+  <div class="sec-head"><span class="n">03</span><h2>Speaker app: every screen</h2><span class="pill acc">native app</span></div>
+  <p class="sec-sub">Screens 1, 2 and 3 are the web speaker flow, in an app. The fifth action button, Subtitles (D12), and the one-line ticker above Next (D13) are the only new things in speaker mode. The orange dot in the status bar is the system's microphone indicator.</p>
+  <div class="states" id="appGrid"></div>
+</section>
+
+<!-- 04 -->
+<section class="block" id="guest">
+  <div class="sec-head"><span class="n">04</span><h2>Guest phone: the subtitle strip</h2><span class="pill acc">mobile web</span></div>
+  <p class="sec-sub">The strip sits between the slide and the activity card, and only appears while the speaker has subtitles on. It shows the last two lines. Grey words are still changing; they only reach guests reading in the speaker's language.</p>
+  <div class="states" id="guestGrid"></div>
+</section>
+
+<!-- 05 -->
+<section class="block" id="laptop">
+  <div class="sec-head"><span class="n">05</span><h2>The laptop, the big screen and the admin page</h2></div>
+  <p class="sec-sub">The presenter window gets the CC chip (D20), a Captions toggle next to Join bar (D18) and a Phone button with the pairing QR code (D21, D24). Captions show on the big screen above the join bar, in the language heard. The admin page gets a Speech tab beside SW-943's translation models (D19).</p>
+  <div class="chips3">
+    <div class="laptop" style="max-width:980px"><div class="scr">
+      <div class="ptool"><button class="tb">◀ Prev</button><button class="tb">Next ▶</button><span class="count">3 / 6</span><span class="sp"></span><button class="tb phoneb" title="D24: pair the speaker app">▯ Phone</button><span class="langmix"><span>Reading in</span><b>EN 31</b><b>ไทย 9</b><b>日本語 5</b></span><span class="ccchip"><span class="cc-ic">CC</span>Subtitles · EN + ไทย</span><span class="lc"><span class="lc-live">Live <b>482 913</b> · 45 joined</span><button class="tb">Join bar</button><button class="tb pressed new" title="D18">CC Captions</button><button class="tb end">End</button></span></div>
+      <div class="bigwrap"><div class="frame" data-i="2" data-lang="en"></div>
+        <div class="bigcap"><span class="old">Smaller changes get reviewed the same day.</span><span>And when something breaks, there is much less to roll back.</span></div>
+        <div class="joinbar">Join at <b>slideworks.live</b> · code <b>482 913</b></div>
+      </div>
+    </div><div class="base"></div></div>
+    <ul class="demo-notes" style="margin:4px 0 0">
+      <li>The captions bar is off by default for each deck (D18). It shows lines in the language they were heard, never translated, and only final lines, so it doesn't flicker.</li>
+      <li>On the phone the same switch is in the Subtitles sheet (D23, screen 8).</li>
+    </ul>
+
+    <div class="lapgrid">
+      <div class="card" style="padding:14px;display:grid;gap:10px;align-content:start">
+        <h3 style="font:600 14px/1.3 var(--ui)">The CC chip (D20)</h3>
+        <div class="laptop" style="padding-bottom:10px;border-radius:12px"><div class="scr" style="display:grid;gap:2px">
+          <div class="ptool"><span class="sp"></span><span class="ccchip"><span class="cc-ic">CC</span>Subtitles · EN + ไทย</span></div>
+          <div class="ptool"><span class="sp"></span><span class="ccchip paused"><span class="cc-ic">CC</span>Subtitles paused</span></div>
+          <div class="ptool"><span class="sp"></span><span class="ccchip paused"><span class="cc-ic">CC</span>Paused · Sam left the app</span></div>
+          <div class="ptool"><span class="sp"></span><span class="ccchip offline"><span class="cc-ic">CC</span>Phone offline · catching up</span></div>
+        </div></div>
+      </div>
+      <div class="card" style="padding:14px;display:grid;gap:10px;align-content:start">
+        <h3 style="font:600 14px/1.3 var(--ui)">Phone → pairing QR code (D21, D24)</h3>
+        <div class="qrpop"><div class="qr" id="qrBox"></div><div><b>Open this talk in the speaker app</b><p>Scan with the SlideWorks app. It signs in as Sam Rivera on slides.example.org and opens <i>Shipping smaller changes</i>.</p><p class="sm">Works once, for 2 minutes. No app yet? The code opens the store page.</p></div></div>
+      </div>
+    </div>
+
+    <div class="card adm" style="margin-top:14px">
+      <div class="top"><b>Admin</b><span style="color:var(--muted)">/admin/translations</span></div>
+      <div class="tabsx"><span>Translation models <small style="color:var(--faint)">SW-943</small></span><span class="on">Speech to text</span><span>Try it</span></div>
+      <div class="bd">
+        <h4>Speech models <span class="pill acc">the manifest phones download from</span></h4>
+        <p class="help">One active model per spoken language. Changing it takes effect the next time a speaker starts subtitles; phones download the new file then. Sizes below are examples.</p>
+        <div class="tblwrap"><table class="atbl">
+          <thead><tr><th>Active</th><th>Language</th><th>Model</th><th>Engine</th><th>Size</th><th>sha256</th><th>Lines, 7 days</th></tr></thead>
+          <tbody>
+            <tr><td><span class="radio on"></span></td><td><b>English</b></td><td><b>parakeet-tdt-0.6b-en@1</b><small>NVIDIA Parakeet TDT 0.6B, int8</small></td><td class="m">sherpa-onnx</td><td class="m">~480 MB</td><td class="m">9f1c…a02e</td><td class="m">1,284</td></tr>
+            <tr><td><span class="radio"></span></td><td>English</td><td>moonshine-base-en@1<small>Candidate: added, not active</small></td><td class="m">sherpa-onnx</td><td class="m">~60 MB</td><td class="m">27d4…be91</td><td class="m">0</td></tr>
+            <tr><td><span class="radio on"></span></td><td><b>ไทย Thai</b></td><td><b>typhoon-asr-115m-th@1</b><small>Typhoon ASR streaming 115M, NeMo → ONNX</small></td><td class="m">sherpa-onnx</td><td class="m">~130 MB</td><td class="m">4be0…71c3</td><td class="m">312</td></tr>
+          </tbody>
+        </table></div>
+        <h4>Latency by model pair <span class="pill grey">from each line's record, last 7 days</span></h4>
+        <div class="tblwrap"><table class="atbl">
+          <thead><tr><th>Spoken</th><th>Speech model</th><th>Into</th><th>Translation model</th><th>Lines</th><th>Translate p50 / p95</th><th>Final → on phones p50 / p95</th><th>Not translated</th></tr></thead>
+          <tbody>
+            <tr><td>en</td><td class="m">parakeet-tdt-0.6b-en@1</td><td>th</td><td class="m">hy-mt2-1.8b-q4@1</td><td class="m">1,180</td><td class="m">0.9 s / 1.6 s</td><td class="m">1.0 s / 1.8 s</td><td class="m">0.3%</td></tr>
+            <tr><td>en</td><td class="m">parakeet-tdt-0.6b-en@1</td><td>ja</td><td class="m">hy-mt2-1.8b-q4@1</td><td class="m">640</td><td class="m">1.1 s / 2.0 s</td><td class="m">1.2 s / 2.2 s</td><td class="m">0.6%</td></tr>
+            <tr><td>th</td><td class="m">typhoon-asr-115m-th@1</td><td>en</td><td class="m">translategemma-4b-q4@1</td><td class="m">312</td><td class="m">1.6 s / 2.9 s</td><td class="m">1.7 s / 3.1 s</td><td class="m">1.9%</td></tr>
+          </tbody>
+        </table></div>
+        <p class="help" style="margin:0">Numbers are made up for the mockup. Speech-to-text time (end of phrase → final line) is measured on the phone and sent with each line.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 -->
+<section class="block" id="flow">
+  <div class="sec-head"><span class="n">06</span><h2>How a line gets from Sam to a guest</h2></div>
+  <div class="card diagram">
+    <svg viewBox="0 0 1000 336" role="img" aria-label="Speaker phone to server to guest groups">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a93a3"/></marker></defs>
+      <g><rect x="10" y="40" width="230" height="250" rx="12" fill="#f6f8ff" stroke="#c7d3fb"/><text x="26" y="66" font-size="12" font-weight="700" fill="#1e3a8a" letter-spacing="1">SAM'S PHONE · APP</text>
+        <rect x="26" y="82" width="198" height="40" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="40" y="107" font-size="13" fill="#1b2230">Mic (audio stays here)</text>
+        <rect x="26" y="140" width="198" height="54" rx="8" fill="#fff" stroke="#7a5af8"/><text x="40" y="162" font-size="13" font-weight="600" fill="#1b2230">SpeechEngine</text><text x="40" y="180" font-size="11.5" fill="#5b6474">en + th at once, surer wins (D15)</text>
+        <rect x="26" y="212" width="198" height="56" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="40" y="234" font-size="13" font-weight="600" fill="#1b2230">Segments</text><text x="40" y="252" font-size="11.5" fill="#5b6474">partial / final · queue 30 s (D5)</text>
+        <path d="M125 122V138M125 194V210" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/></g>
+      <path d="M240 240C280 240 280 165 318 165" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/><text x="246" y="140" font-size="11.5" fill="#5b6474">SendCaption</text>
+      <g><rect x="320" y="40" width="330" height="250" rx="12" fill="#fff" stroke="#d3d8e0"/><text x="336" y="66" font-size="12" font-weight="700" fill="#5b6474" letter-spacing="1">SERVER · DECKHUB</text>
+        <rect x="336" y="82" width="298" height="44" rx="8" fill="#f0f2f5"/><text x="350" y="103" font-size="13" font-weight="600" fill="#1b2230">Partials → speaker's language only</text><text x="350" y="119" font-size="11.5" fill="#5b6474">guests reading the line's language (D8, D15)</text>
+        <rect x="336" y="138" width="298" height="72" rx="8" fill="#f3f0ff" stroke="#c4b5fd"/><text x="350" y="160" font-size="13" font-weight="600" fill="#1b2230">Finals → ITranslator (SW-943)</text><text x="350" y="178" font-size="11.5" fill="#5b6474">× each language in IAudienceRoster (D11)</text><text x="350" y="196" font-size="11.5" fill="#5b6474">context: slide lines, its SW-883 glossary, last 3 lines</text>
+        <rect x="336" y="222" width="298" height="52" rx="8" fill="#f0f2f5"/><text x="350" y="244" font-size="13" font-weight="600" fill="#1b2230">Line record</text><text x="350" y="262" font-size="11.5" fill="#5b6474">model ids + times; text only if "keep" is on (D4)</text></g>
+      <path d="M650 104C700 104 700 70 735 70" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+      <path d="M650 165C700 165 700 150 735 150" stroke="#7a5af8" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+      <path d="M650 185C700 185 700 230 735 230" stroke="#7a5af8" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+      <g><rect x="737" y="45" width="250" height="50" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="752" y="67" font-size="13" font-weight="600" fill="#1b2230">Guests · English</text><text x="752" y="85" font-size="12" fill="#5b6474">partials + finals, as heard</text></g>
+      <g><rect x="737" y="125" width="250" height="50" rx="8" fill="#fff" stroke="#7a5af8"/><text x="752" y="147" font-size="13" font-weight="600" fill="#1b2230">Guests · ไทย</text><text x="752" y="165" font-size="12" fill="#5b6474">translated finals</text></g>
+      <g><rect x="737" y="205" width="250" height="50" rx="8" fill="#fff" stroke="#7a5af8"/><text x="752" y="227" font-size="13" font-weight="600" fill="#1b2230">Guests · 日本語 …</text><text x="752" y="245" font-size="12" fill="#5b6474">SW-883's per-language groups (D11)</text></g>
+      <path d="M650 112C705 112 700 300 735 300" stroke="#8a93a3" stroke-width="1.5" stroke-dasharray="5 4" fill="none" marker-end="url(#ar)"/>
+      <g><rect x="737" y="276" width="250" height="48" rx="8" fill="#fff" stroke="#d3d8e0" stroke-dasharray="5 4"/><text x="752" y="297" font-size="13" font-weight="600" fill="#1b2230">Big screen captions</text><text x="752" y="314" font-size="12" fill="#5b6474">finals as heard, when on (D18)</text></g>
+    </svg>
+  </div>
+  <div class="mcp" style="margin-top:16px">
+    <div class="card" style="padding:14px;display:grid;gap:10px">
+      <h3 style="font:600 14px/1.3 var(--ui)">What the phone sends, and what a guest gets</h3>
+<pre class="code"><span class="c">// app → DeckHub, partial and final, both carry the same seq;</span>
+<span class="c">// lang is the model whose line was surer (D15)</span>
+<span class="k">SendCaption</span>({ seq: <span class="w">42</span>, kind: <span class="s">"final"</span>, lang: <span class="s">"en"</span>, slide: <span class="w">3</span>,
+  heardAt: <span class="s">"…:14.2Z"</span>, sttMs: <span class="w">640</span>,
+  text: <span class="s">"Smaller changes get reviewed the same day."</span>,
+  sttModel: <span class="s">"parakeet-tdt-0.6b-en@1"</span>, confidence: <span class="w">0.91</span> })
+
+<span class="c">// DeckHub → audience-slide:{deck}:th (SW-883's group)</span>
+<span class="k">Caption</span>({ seq: <span class="w">42</span>, kind: <span class="s">"final"</span>, lang: <span class="s">"th"</span>, from: <span class="s">"en"</span>,
+  text: <span class="s">"การเปลี่ยนแปลงที่เล็กลงได้รับการรีวิวภายในวันเดียวกัน"</span>,
+  translated: <span class="k">true</span> })
+
+<span class="c">// pause and resume reach every group at once</span>
+<span class="k">CaptionsState</span>({ state: <span class="s">"live"</span> | <span class="s">"paused"</span> | <span class="s">"reconnecting"</span> | <span class="s">"off"</span>,
+  pausedBy: <span class="s">"speaker"</span> | <span class="s">"left-app"</span>, listening: [<span class="s">"en"</span>, <span class="s">"th"</span>], bigScreen: <span class="k">false</span> })
+
+<span class="c">// a failed translation sends the heard line, marked (D9)</span>
+<span class="k">Caption</span>({ seq: <span class="w">43</span>, lang: <span class="s">"en"</span>, translated: <span class="k">false</span>, … })</pre>
+    </div>
+    <div class="card" style="padding:14px;display:grid;gap:10px">
+      <h3 style="font:600 14px/1.3 var(--ui)">The speech-model manifest (D6)</h3>
+<pre class="code"><span class="k">GET</span> /api/speech/models
+{ <span class="s">"models"</span>: [
+  { <span class="s">"id"</span>: <span class="s">"parakeet-tdt-0.6b-en@1"</span>,
+    <span class="s">"engine"</span>: <span class="s">"sherpa-onnx"</span>, <span class="s">"languages"</span>: [<span class="s">"en"</span>],
+    <span class="s">"url"</span>: <span class="s">"…/parakeet-tdt-0.6b-en-int8.tar.bz2"</span>,
+    <span class="s">"bytes"</span>: <span class="w">480000000</span>, <span class="s">"sha256"</span>: <span class="s">"9f1c…a02e"</span> },
+  { <span class="s">"id"</span>: <span class="s">"typhoon-asr-115m-th@1"</span>,
+    <span class="s">"engine"</span>: <span class="s">"sherpa-onnx"</span>, <span class="s">"languages"</span>: [<span class="s">"th"</span>],
+    … } ] }</pre>
+      <p style="margin:0;font-size:12.5px;color:var(--muted)"><code>languages</code> is a list so a future bilingual model (Thai with English mixed in) is just another entry; D15 runs two single-language models side by side until one exists.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 07 -->
+<section class="block" id="questions">
+  <div class="sec-head"><span class="n">07</span><h2>Decisions</h2></div>
+  <div class="card" data-lavish-revision="r2" style="padding:12px 16px;margin:0 0 14px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">All answered 28 Nov.</b> D1–D11 were settled before the mockups; Q1–Q13 here became D12–D24. The screens above follow them.</div>
+  <div class="card tblwrap" style="padding:4px 8px;margin-bottom:18px"><table class="atbl"><thead><tr><th>Q</th><th>Question</th><th>Answer</th><th>On SW-884</th></tr></thead><tbody><tr><td class="m">Q1</td><td>Where the speaker turns subtitles on</td><td>A fifth action-row button, Subtitles, that opens a sheet</td><td class="m">D12</td></tr><tr><td class="m">Q2</td><td>How much the speaker sees</td><td>Button state, the heard line in the sheet, and a one-line ticker above Next while live</td><td class="m">D13</td></tr><tr><td class="m">Q3</td><td>When a model downloads</td><td>The first time subtitles start in that language, Wi-Fi unless mobile data is confirmed; a Speech models page gets them early</td><td class="m">D14</td></tr><tr><td class="m">Q4</td><td>Mixed English and Thai</td><td>Both models at once; each line goes to the one that is surer</td><td class="m">D15</td></tr><tr><td class="m">Q5</td><td>Phone locked or app left</td><td>Subtitles stop; guests see "paused"</td><td class="m">D16</td></tr><tr><td class="m">Q6</td><td>Guest default and landscape</td><td>On whenever the speaker has them on, Hide per session; captions over the slide in landscape</td><td class="m">D17</td></tr><tr><td class="m">Q7</td><td>Big screen</td><td>An optional captions bar in the language heard, off by default per deck, toggled next to Join bar</td><td class="m">D18</td></tr><tr><td class="m">Q8</td><td>Where models are swapped</td><td>A Speech to text tab on /admin/translations with a latency table</td><td class="m">D19</td></tr><tr><td class="m">Q9</td><td>Presenter window state</td><td>A CC chip next to Reading in</td><td class="m">D20</td></tr><tr><td class="m">Q10</td><td>Sign-in</td><td>Server address plus Google, and a QR code from the laptop as a shortcut</td><td class="m">D21</td></tr><tr><td class="m">Q11</td><td>Which models run (after D15)</td><td>"Listening for" English and ไทย chips in the Subtitles sheet, both on by default; one off runs a single model</td><td class="m">D22</td></tr><tr><td class="m">Q12</td><td>The big-screen captions switch</td><td>Laptop: Captions next to Join bar. Phone: a switch in the Subtitles sheet; the action row stays at five</td><td class="m">D23</td></tr><tr><td class="m">Q13</td><td>Where the pairing QR code shows</td><td>A Phone button in the presenter window; the code works once, for 2 minutes, and opens this talk</td><td class="m">D24</td></tr></tbody></table></div>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const STILL = /[?&]still\b/.test(location.search);
+  const N = 6;
+  const EN = {
+    deck: 'Shipping smaller changes',
+    's1.kick': 'Engineering all-hands · Nov 2026',
+    's2.st': 'Small changes are *easier to review*, easier to ship, and easier to undo.',
+    's3.kick': 'Why it matters', 's3.h': 'Three things get better',
+    's3.c1t': 'Faster reviews', 's3.c1b': 'A 200-line change gets reviewed the same day.',
+    's3.c2t': 'Safer releases', 's3.c2b': 'Fewer changes at once, so less to roll back.',
+    's3.c3t': 'Quicker learning', 's3.c3b': 'Users see the work sooner and tell us sooner.',
+    's4.kick': 'Poll', 's4.h': 'How big was your last merge request?',
+    's4.o1': 'Under 100 lines', 's4.o2': '100 to 500 lines', 's4.o3': 'Over 500 lines',
+    's5.kick': 'Where to start', 's5.h': 'Three habits to try this sprint',
+    's5.n1': 'Slice by what a user can do', 's5.n2': 'Hide unfinished work behind a flag', 's5.n3': 'Merge to main every day',
+    's6.kick': 'Thank you', 's6.h': 'Questions?',
+  };
+  const TR = {
+    th: {
+      deck: 'ส่งมอบการเปลี่ยนแปลงที่เล็กลง',
+      's1.kick': 'ประชุมรวมทีมวิศวกรรม · พ.ย. 2026',
+      's2.st': 'การเปลี่ยนแปลงเล็กๆ *รีวิวง่ายกว่า* ส่งง่ายกว่า และย้อนกลับง่ายกว่า',
+      's3.kick': 'ทำไมจึงสำคัญ', 's3.h': 'สามสิ่งที่ดีขึ้น',
+      's3.c1t': 'รีวิวเร็วขึ้น', 's3.c1b': 'การเปลี่ยนแปลง 200 บรรทัดได้รับการรีวิวภายในวันเดียวกัน',
+      's3.c2t': 'ปล่อยงานปลอดภัยขึ้น', 's3.c2b': 'เปลี่ยนทีละน้อย จึงมีสิ่งที่ต้องย้อนกลับน้อยลง',
+      's3.c3t': 'เรียนรู้ได้เร็วขึ้น', 's3.c3b': 'ผู้ใช้เห็นงานเร็วขึ้น และบอกเราได้เร็วขึ้น',
+      's4.kick': 'โพล', 's4.h': 'Merge request ล่าสุดของคุณใหญ่แค่ไหน?',
+      's4.o1': 'น้อยกว่า 100 บรรทัด', 's4.o2': '100 ถึง 500 บรรทัด', 's4.o3': 'มากกว่า 500 บรรทัด',
+      's5.kick': 'เริ่มจากตรงไหน', 's5.h': 'สามนิสัยที่ลองได้ในสปรินต์นี้',
+      's5.n1': 'แบ่งงานตามสิ่งที่ผู้ใช้ทำได้', 's5.n2': 'ซ่อนงานที่ยังไม่เสร็จไว้หลัง feature flag', 's5.n3': 'Merge เข้า main ทุกวัน',
+      's6.kick': 'ขอบคุณ', 's6.h': 'มีคำถามไหม?',
+    },
+    ja: {
+      deck: '変更を小さく出荷する',
+      's1.kick': 'エンジニアリング全体会議 · 2026年11月',
+      's2.st': '小さな変更は*レビューしやすく*、出荷しやすく、元に戻しやすい。',
+      's3.kick': 'なぜ重要か', 's3.h': '3つのことが良くなる',
+      's3.c1t': 'レビューが速くなる', 's3.c1b': '200行の変更なら、その日のうちにレビューされます。',
+      's3.c2t': 'リリースが安全になる', 's3.c2b': '一度に変える量が少ないので、戻す量も少なくなります。',
+      's3.c3t': '学びが速くなる', 's3.c3b': 'ユーザーが早く成果を見て、早く反応をくれます。',
+      's4.kick': 'アンケート', 's4.h': '直近のマージリクエストの大きさは?',
+      's4.o1': '100行未満', 's4.o2': '100〜500行', 's4.o3': '500行超',
+      's5.kick': 'どこから始めるか', 's5.h': '今スプリントで試す3つの習慣',
+      's5.n1': 'ユーザーができることで分割する', 's5.n2': '未完成の作業はフラグで隠す', 's5.n3': '毎日 main にマージする',
+      's6.kick': 'ありがとうございました', 's6.h': '質問はありますか?',
+    },
+  };
+  const LANGS = [
+    { id: 'en', chip: 'EN', name: 'English', sub: "Sam's language" },
+    { id: 'th', chip: 'ไทย', name: 'ไทย', sub: 'Thai' },
+    { id: 'ja', chip: '日本語', name: '日本語', sub: 'Japanese' },
+  ];
+  const L = (id) => LANGS.find(l => l.id === id);
+  const TITLES = ['Title', 'Statement', 'Three things', 'Poll', 'Habits', 'Questions'];
+  const NOTES = [
+    'Welcome. Say who you are and why this talk.',
+    'Pause after this line. Let it land.',
+    'Ask: when did a big change last bite you? Then the three cards.',
+    'Wait for about 30 answers before showing the bars.',
+    'Pick one habit, not three. <b>Merge daily</b> is the easy win.',
+    'Take questions. Repeat each one for the room.',
+  ];
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const t = (lang) => (k) => {
+    const v = (lang !== 'en' && TR[lang] && TR[lang][k] != null) ? TR[lang][k] : EN[k];
+    return esc(v).replace(/\*(.+?)\*/g, '<em>$1</em>');
+  };
+  function slideHTML(i, lang) {
+    const T = t(lang);
+    const foot = '<div class="foot"><span>' + (i + 1) + ' / ' + N + ' · ' + T('deck') + ' · Sam Rivera</span><span></span></div><div class="sprog" style="width:' + ((i + 1) / N * 100) + '%"></div>';
+    switch (i) {
+      case 0: return '<div class="sl dark"><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div class="kick">' + T('s1.kick') + '</div><h2>' + T('deck') + '</h2><div class="sub">Sam Rivera</div></div>' + foot + '</div>';
+      case 1: return '<div class="sl"><div class="statement"><div>' + T('s2.st') + '</div></div>' + foot + '</div>';
+      case 2: return '<div class="sl"><div class="kick">' + T('s3.kick') + '</div><h3>' + T('s3.h') + '</h3><div class="cards">' + [1, 2, 3].map(n => '<div><b>' + T('s3.c' + n + 't') + '</b><span>' + T('s3.c' + n + 'b') + '</span></div>').join('') + '</div>' + foot + '</div>';
+      case 3: return '<div class="sl"><div class="kick">' + T('s4.kick') + '</div><h3>' + T('s4.h') + '</h3><div class="pollopts">' + [['o1', 18], ['o2', 21], ['o3', 8]].map(([k, v]) => '<div>' + T('s4.' + k) + '<span>' + v + '</span></div>').join('') + '</div>' + foot + '</div>';
+      case 4: return '<div class="sl"><div class="kick">' + T('s5.kick') + '</div><h3>' + T('s5.h') + '</h3><div class="cards">' + [1, 2, 3].map(n => '<div><div class="num">' + n + '</div><b>' + T('s5.n' + n) + '</b></div>').join('') + '</div>' + foot + '</div>';
+      default: return '<div class="sl dark"><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div class="kick">' + T('s6.kick') + '</div><h2>' + T('s6.h') + '</h2><div class="sub">slideworks.live/482913</div></div>' + foot + '</div>';
+    }
+  }
+  const ro = new ResizeObserver(es => es.forEach(e => { const sl = e.target.firstElementChild; if (sl) sl.style.setProperty('--s', e.contentRect.width / 960); }));
+  const frame = (i, lang, extra) => '<div class="mirror"' + (extra || '') + '><div class="frame" data-i="' + i + '" data-lang="' + lang + '"></div></div>';
+  function hydrate(root) { root.querySelectorAll('.frame[data-i]').forEach(f => { f.innerHTML = slideHTML(+f.dataset.i, f.dataset.lang); ro.observe(f); }); }
+
+  // ---------- shared phone bits ----------
+  const lock = '<svg viewBox="0 0 10 12" fill="currentColor"><path d="M2 5V3.5a3 3 0 0 1 6 0V5h.5A1.5 1.5 0 0 1 10 6.5v4A1.5 1.5 0 0 1 8.5 12h-7A1.5 1.5 0 0 1 0 10.5v-4A1.5 1.5 0 0 1 1.5 5zm1.3 0h3.4V3.5a1.7 1.7 0 0 0-3.4 0z"/></svg>';
+  const globe = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.3"/><path d="M1.8 8h12.4M8 1.7c1.8 1.9 2.6 4 2.6 6.3S9.8 12.4 8 14.3C6.2 12.4 5.4 10.3 5.4 8S6.2 3.6 8 1.7z"/></svg>';
+  const sbar = (mic, time) => '<div class="island"></div><div class="sbar"><span>' + (time || '9:41') + (mic ? '<span class="mic" title="Microphone in use"></span>' : '') + '</span><span class="ic"><b></b><i></i></span></div>';
+  const urlbar = '<div class="urlbar">' + lock + '<span>slideworks.live/482913</span></div>';
+  const homebar = '<div class="homebar"><i></i></div>';
+  const bars = (cls) => '<span class="bars ' + cls + '"><i></i><i></i><i></i><i></i></span>';
+
+  // ---------- speaker app ----------
+  // o: i, cc ('off'|'live'|'paused'|'offline'), spoken ('en'|'th'), final, partial, queued, meta, ccOpen, sheet, dialog
+  // D12: subtitles live behind a fifth action button that opens a sheet
+  function ccButton(o) {
+    const st = o.cc || 'off';
+    const lbl = { off: 'Subtitles', live: 'Live', paused: 'Paused', offline: 'Offline' }[st];
+    const ic = st === 'live' || st === 'offline' ? bars(o.partial || st === 'offline' ? 'live' : 'still') : '<span class="ccic">CC</span>';
+    return '<button type="button" class="ccb ' + st + '" data-cc="open" aria-label="Live subtitles: ' + lbl + '">' + ic + '<span>' + lbl + '</span></button>';
+  }
+  function heardLines(o) {
+    if (o.heard) return o.heard;
+    const out = [];
+    if (o.final) out.push({ l: o.spoken || 'en', t: o.final });
+    if (o.partial) out.push({ l: o.spoken || 'en', t: o.partial, pt: true });
+    return out;
+  }
+  const ltag = (l) => '<span class="ltag">' + (l === 'th' ? 'ไทย' : 'EN') + '</span>';
+  function ccSheet(o) {
+    const st = o.cc || 'live';
+    const listen = o.listen || ['en', 'th'];
+    const pill = { live: '<span class="stp live">Live</span>', paused: '<span class="stp paused">Paused</span>', offline: '<span class="stp offline">Offline</span>' }[st];
+    const hl = heardLines(o);
+    const heard = st === 'paused' ? '<div class="heard dim"><p>Nothing is heard or sent. Guests see "Sam paused subtitles".</p></div>'
+      : st === 'offline' ? '<div class="heard dim"><p>' + (o.queued || 0) + ' line' + (o.queued === 1 ? '' : 's') + ' waiting. When you\'re back, only the last 30 seconds are sent (D5).</p></div>'
+      : '<div class="heard">' + (hl.length ? hl.map(h => '<p>' + ltag(h.l) + (h.pt ? '<span class="pt">' + esc(h.t) + '</span>' : esc(h.t)) + '</p>').join('') : '<p><span class="pt">Listening…</span></p>') + '</div>';
+    const chips = '<div class="lchips">' + ['en', 'th'].map(l => '<span class="lchip' + (listen.includes(l) ? ' on' : '') + '">' + (listen.includes(l) ? '✓ ' : '') + L(l).name + '</span>').join('') + '<small>' + (listen.length > 1 ? 'Each line goes to the surer model' : 'One model: saves battery') + '</small></div>';
+    const big = '<div class="setrow sm"><div class="grow"><b>Captions on the big screen</b><small>' + (o.bigcap ? 'On: lines as heard, above the join bar' : 'Off for this deck') + '</small></div><span class="tog' + (o.bigcap ? ' on' : '') + '"></span></div>';
+    const btn = st === 'paused' ? '<button type="button" class="bigbtn violet" data-cc="resume">▶ Resume subtitles</button>' : '<button type="button" class="bigbtn amber" data-cc="pause">❚❚ Pause · off the record</button>';
+    return '<div class="sheet-dim" data-cc="close"></div><div class="sheet ccs" role="dialog" aria-label="Live subtitles"><div class="grab"></div><div class="ccs-h"><h4>Live subtitles</h4>' + pill + '</div>' +
+      '<small class="ccs-l">' + (st === 'live' ? 'Just heard' : 'Status') + '</small>' + heard +
+      '<small class="ccs-l">Listening for</small>' + chips + big +
+      (o.meta ? '<div class="ccs-m">' + o.meta + '</div>' : '') + btn + '</div>';
+  }
+  function ticker(o) {
+    if (o.cc === 'offline') return '<div class="tick off"><span class="ttag">Offline</span><span class="tt">' + (o.queued || 0) + ' lines waiting · still listening</span></div>';
+    if (o.cc !== 'live') return '';
+    const hl = heardLines(o);
+    let txt = hl.map(h => h.t).join(' ').trim();
+    if (txt.length > 46) txt = '…' + txt.slice(-46);
+    const last = hl[hl.length - 1];
+    return '<div class="tick">' + bars(o.partial ? 'live' : 'still') + '<span class="tt">' + (txt ? esc(txt) : '<span class="pt">Listening…</span>') + '</span>' + (last ? ltag(last.l) : '') + '</div>';
+  }
+  function speaker(o) {
+    const i = o.i || 0;
+    const live = o.cc === 'live' || o.cc === 'offline';
+    const nx = i + 1 < N ? 'slide ' + (i + 2) + ' · ' + TITLES[i + 1] : 'End of the deck';
+    const body = '<div class="pbody">' +
+      '<div class="s-stat"><span class="lv' + (o.cc === 'offline' ? ' off' : '') + '">' + (o.cc === 'offline' ? 'OFFLINE' : 'LIVE') + '</span><span class="sp"></span><span class="clock">12:40</span><span class="left">17:20 left</span></div>' +
+      '<div class="s-now"><span>Now ' + (i + 1) + ' / ' + N + '</span><span>' + TITLES[i] + '</span></div>' +
+      frame(i, 'en') +
+      '<div class="s-next">' + (i + 1 < N ? frame(i + 1, 'en') : '<span></span>') + '<div><small>NEXT</small><b>' + nx + '</b></div></div>' +
+      '<div class="s-notes"><small>NOTES</small>' + NOTES[i] + '</div>' +
+      ticker(o) +
+      '<div class="s-nav"><span>‹</span><span class="nx">Next</span></div>' +
+      '<div class="s-acts five"><span><i>▦</i>Slides</span><span><i>↦</i>Skip deep dives</span><span><i>■</i>Blackout</span><span><i>#</i>Join code</span>' + ccButton(o) + '</div>' +
+      '</div>';
+    return sbar(live && !o.noMic) + (o.toast || '') + body + homebar + (o.ccOpen ? ccSheet(o) : '') + (o.sheet || '') + (o.dialog || '');
+  }
+  function appScreen(inner, mic) { return sbar(mic) + inner + homebar; }
+
+  // ---------- guest (mobile web) ----------
+  const chip = (lang) => '<button type="button" class="lang" aria-label="Slide language: ' + L(lang).name + '. Change">' + globe + '<span>' + L(lang).chip + '</span><span class="car">▼</span></button>';
+  function gtop(lang) {
+    const title = lang === 'en' ? EN.deck : TR[lang].deck;
+    return '<div class="g-top"><div class="g-mark">S</div><div class="g-deck"><b>' + esc(title) + '</b><span>Sam Rivera</span></div>' + chip(lang) + '<span class="live">Live</span></div>';
+  }
+  const meta = (i) => '<div class="slidemeta"><span>Slide ' + (i + 1) + '</span><span class="prog"><i style="width:' + ((i + 1) / N * 100) + '%"></i></span><span>' + N + '</span></div>';
+  const waitCard = '<div class="wait slim"><div class="dots"><i></i><i></i><i></i></div><b>Nothing to answer yet</b></div>';
+  const rx = '<div class="rx"><span>👍</span><span>❤️</span><span>😂</span><span>😮</span><span>👏</span></div>';
+  const tabs = '<div class="tabs"><span class="on">Slide</span><span>Questions</span></div>';
+  // s: { state: 'live'|'paused'|'reconnecting'|'hidden'|'none', from, lines: [{ t, nt, pt }] , ring }
+  function subsStrip(lang, s) {
+    if (!s || s.state === 'none') return '';
+    if (s.state === 'hidden') return '<button type="button" class="subs-show" data-subs="show"><span class="cc-ic">CC</span>Show subtitles</button>';
+    const from = s.from || 'en';
+    const head = '<div class="row"><span class="cc-ic">CC</span><span>' + (lang === from ? 'Subtitles · live' : 'Subtitles · translated from ' + L(from).name) + '</span><span class="sp"></span><button type="button" data-subs="hide">Hide</button></div>';
+    if (s.state === 'paused') return '<div class="subs">' + head + '<div class="state"><i></i>Sam paused subtitles.</div></div>';
+    if (s.state === 'reconnecting') return '<div class="subs">' + head + '<div class="state"><i class="or"></i>Sam\'s phone is reconnecting. Subtitles will catch up.</div></div>';
+    const lines = (s.lines || []).slice(-2);
+    const body = lines.length ? lines.map((ln, k) => '<div class="ln' + (k < lines.length - 1 ? ' old' : '') + '">' + (ln.pt ? '<span class="pt">' + esc(ln.t) + '</span>' : esc(ln.t)) + (ln.nt ? '<span class="nt">not translated</span>' : '') + '</div>').join('') : '<div class="state"><i style="background:#a78bfa"></i>Waiting for Sam to speak…</div>';
+    return '<div class="subs' + (s.ring ? ' new-ring' : '') + '">' + head + body + '</div>';
+  }
+  function guest(o) {
+    const lang = o.lang || 'en', i = o.i || 0;
+    return sbar() + '<div class="pbody">' + gtop(lang) + frame(i, lang) + meta(i) + subsStrip(lang, o.subs) + waitCard + rx + tabs + '</div>' + urlbar;
+  }
+  function guestLand(o) {
+    const lang = o.lang || 'en', i = o.i || 0;
+    const cap = '<div class="land-cap">' + o.lines.map((l, k) => '<span' + (k < o.lines.length - 1 ? ' class="old"' : '') + '>' + esc(l) + '</span>').join('') + '</div>';
+    return frame(i, lang) + cap;
+  }
+
+  // ---------- live demo ----------
+  const SCRIPT = [
+    { s: 2, en: 'So why does any of this matter?', th: 'แล้วทำไมเรื่องนี้ถึงสำคัญ?', ja: 'では、なぜこれが重要なのでしょうか?' },
+    { s: 2, en: 'Smaller changes get reviewed the same day.', th: 'การเปลี่ยนแปลงที่เล็กลงได้รับการรีวิวภายในวันเดียวกัน', ja: '小さな変更はその日のうちにレビューされます。' },
+    { s: 2, en: 'And when something breaks, there is much less to roll back.', th: 'และเมื่อมีอะไรพัง ก็มีสิ่งที่ต้องย้อนกลับน้อยกว่ามาก', ja: '何かが壊れても、戻す量がずっと少なくて済みます。' },
+    { s: 2, en: 'Most of all, users see the work sooner and tell us sooner.', th: 'ที่สำคัญที่สุด ผู้ใช้ได้เห็นงานเร็วขึ้นและบอกเราได้เร็วขึ้น', ja: '何より、ユーザーが成果を早く見て、早く反応をくれます。', jaFail: true },
+    { s: 3, en: 'Get your phones out and tell me how big your last merge request was.', th: 'หยิบโทรศัพท์ขึ้นมา แล้วบอกกันหน่อยว่า merge request ล่าสุดของคุณใหญ่แค่ไหน', ja: 'スマホを出して、直近のマージリクエストの大きさを教えてください。' },
+    { s: 3, en: 'Under a hundred lines? Over five hundred? Be honest.', th: 'ต่ำกว่าร้อยบรรทัด? เกินห้าร้อย? ตอบตามจริงนะ', ja: '100行未満?500行超?正直にどうぞ。' },
+    { s: 4, en: 'Here are three habits to try this sprint.', th: 'นี่คือสามนิสัยที่ลองทำได้ในสปรินต์นี้', ja: '今スプリントで試せる3つの習慣です。' },
+    { s: 4, en: 'First, slice the work by what a user can do.', th: 'อย่างแรก แบ่งงานตามสิ่งที่ผู้ใช้ทำได้', ja: 'まず、ユーザーができることで作業を分割します。' },
+  ];
+  const D = { open: false, line: 0, word: 0, gap: 0, talking: true, paused: false, online: true, lang: 'th', hidden: false, seq: 41, finals: [], queue: [], offlineAt: 0 };
+  const spEl = document.getElementById('spPhone'), gEl = document.getElementById('gPhone');
+  const logBody = document.getElementById('logBody');
+  let spKey = '', gKey = '';
+  const curSlide = () => SCRIPT[D.line].s;
+  const partialText = () => D.word ? SCRIPT[D.line].en.split(' ').slice(0, D.word).join(' ') : '';
+  const sentFinals = () => D.finals.filter(f => f.sentAt && !f.dropped);
+  function guestLines(lang) {
+    const out = [];
+    if (lang === 'en') {
+      sentFinals().slice(-2).forEach(f => out.push({ t: f.en }));
+      if (D.online && !D.paused && D.word) out.push({ t: partialText(), pt: true });
+    } else {
+      sentFinals().filter(f => f.tr[lang]).slice(-2).forEach(f => out.push(f.tr[lang].ok ? { t: f[lang] } : { t: f.en, nt: true }));
+    }
+    return out.slice(-2);
+  }
+  function paintSpeaker() {
+    const cc = D.paused ? 'paused' : D.online ? 'live' : 'offline';
+    const last = D.finals[D.finals.length - 1];
+    const o = { i: curSlide(), cc, final: last ? last.en : '', partial: D.talking ? partialText() : '', queued: D.queue.length,
+      meta: '<span><b>Reading</b> EN 31 · ไทย 9 · 日本語 5</span>' };
+    if (o.final && last && last.s !== curSlide()) o.final = '';
+    o.ccOpen = D.open;
+    const key = o.i + '|' + cc + '|' + D.open;
+    if (key !== spKey) { spKey = key; spEl.innerHTML = speaker(o); hydrate(spEl); }
+    else {
+      const b = spEl.querySelector('.ccb'); if (b) b.outerHTML = ccButton(o);
+      const h = spEl.querySelector('.ccs .heard'); if (h) h.outerHTML = ccSheet(o).match(/<div class="heard[^]*?<\/div>/)[0];
+      const tk = spEl.querySelector('.tick'); if (tk) tk.outerHTML = ticker(o);
+    }
+  }
+  function paintGuest() {
+    const state = D.hidden ? 'hidden' : D.paused ? 'paused' : !D.online ? 'reconnecting' : 'live';
+    const key = curSlide() + '|' + D.lang + '|' + state;
+    const s = { state, from: 'en', lines: guestLines(D.lang) };
+    if (key !== gKey) { gKey = key; gEl.innerHTML = guest({ i: curSlide(), lang: D.lang, subs: s }); hydrate(gEl); }
+    else { const c = gEl.querySelector('.subs, .subs-show'); if (c) c.outerHTML = subsStrip(D.lang, s); }
+  }
+  const sec = (ms) => (ms / 1000).toFixed(1) + ' s';
+  function paintLog() {
+    const rows = D.finals.slice(-7).reverse();
+    document.getElementById('logEmpty').style.display = rows.length ? 'none' : '';
+    logBody.innerHTML = rows.map(f => {
+      const cell = (l) => f.dropped ? '<td class="dropped">—</td>' : !f.sentAt ? '<td class="n">queued</td>' : !f.tr[l] ? '<td class="n">…</td>' : f.tr[l].ok ? '<td class="ok">' + sec(f.tr[l].ms) + '</td>' : '<td class="bad">failed → sent en</td>';
+      const sent = f.dropped ? '<td class="dropped">dropped, older than 30 s</td>' : !f.sentAt ? '<td class="n">waiting</td>' : (f.tr.th && f.tr.ja) ? '<td class="n">' + sec(f.sentAt - f.at + Math.max(f.tr.th.ms, f.tr.ja.ms) + 40) + '</td>' : '<td class="n">…</td>';
+      return '<tr class="' + (f.fresh ? 'fresh' : '') + (f.sentAt ? '' : ' pending') + '"><td class="n">' + f.seq + '</td><td class="n">' + (f.s + 1) + '</td><td class="txt">' + esc(f.en) + '</td>' + cell('th') + cell('ja') + sent + '</tr>';
+    }).join('');
+    D.finals.forEach(f => { f.fresh = false; });
+  }
+  function paint() { paintSpeaker(); paintGuest(); paintLog(); }
+  function translate(f, instant) {
+    ['th', 'ja'].forEach((l, k) => {
+      const ms = 700 + Math.round(Math.random() * 700) + k * 150;
+      const done = () => { f.tr[l] = { ms, ok: !(l === 'ja' && f.jaFail) }; if (!STILL) paint(); };
+      if (instant) done(); else setTimeout(done, ms);
+    });
+  }
+  function send(f, instant) { f.sentAt = instant ? f.at : Date.now(); f.fresh = true; translate(f, instant); }
+  function finalize(instant) {
+    const c = SCRIPT[D.line];
+    const f = { seq: ++D.seq, s: c.s, en: c.en, th: c.th, ja: c.ja, jaFail: c.jaFail, at: Date.now(), tr: {} };
+    D.finals.push(f);
+    if (D.online) send(f, instant); else D.queue.push(f);
+    D.line = (D.line + 1) % SCRIPT.length; D.word = 0; D.gap = 5;
+  }
+  function tick() {
+    if (!D.talking || D.paused) return;
+    if (D.gap > 0) { D.gap--; return paint(); }
+    const words = SCRIPT[D.line].en.split(' ');
+    if (D.word < words.length) D.word++; else finalize(false);
+    paint();
+  }
+  // controls
+  const cTalk = document.getElementById('cTalk'), cPause = document.getElementById('cPause'), cNet = document.getElementById('cNet'), cHide = document.getElementById('cHide');
+  function paintCtl() {
+    cTalk.textContent = D.talking ? '❚❚ Stop talking' : '▶ Start talking';
+    cPause.textContent = D.paused ? '▶ Resume subtitles' : 'Pause subtitles';
+    cNet.textContent = D.online ? 'Drop Sam\'s connection' : 'Reconnect Sam\'s phone';
+    cHide.textContent = D.hidden ? 'Show subtitles' : 'Hide subtitles';
+    document.getElementById('cLangs').innerHTML = LANGS.map(l => '<button type="button" class="btn' + (l.id === D.lang ? ' on' : '') + '" data-l="' + l.id + '">' + l.name + '</button>').join('');
+  }
+  function setPaused(p) { D.paused = p; if (p) { D.word = 0; D.gap = 0; } paintCtl(); paint(); }
+  function setOnline(on) {
+    D.online = on;
+    if (on) {
+      const now = Date.now();
+      D.queue.forEach(f => { if (now - f.at <= 30000) send(f, false); else { f.dropped = true; f.fresh = true; } });
+      D.queue = [];
+    }
+    paintCtl(); paint();
+  }
+  cTalk.onclick = () => { D.talking = !D.talking; paintCtl(); paint(); };
+  cPause.onclick = () => setPaused(!D.paused);
+  cNet.onclick = () => setOnline(!D.online);
+  cHide.onclick = () => { D.hidden = !D.hidden; paintCtl(); paint(); };
+  document.getElementById('cLangs').onclick = (e) => { const b = e.target.closest('[data-l]'); if (b) { D.lang = b.dataset.l; paintCtl(); paint(); } };
+  spEl.addEventListener('click', (e) => { const b = e.target.closest('[data-cc]'); if (!b) return; const a = b.dataset.cc; if (a === 'open') { D.open = true; paint(); } if (a === 'close') { D.open = false; paint(); } if (a === 'pause') setPaused(true); if (a === 'resume' || a === 'start') setPaused(false); });
+  gEl.addEventListener('click', (e) => { const b = e.target.closest('[data-subs]'); if (!b) return; D.hidden = b.dataset.subs === 'hide'; paintCtl(); paint(); });
+  if (STILL) {
+    // a fixed moment for screenshots: two lines done and translated, the third half heard
+    finalize(true); D.gap = 0; finalize(true); D.gap = 0; D.word = 6;
+    D.finals.forEach((f, k) => { f.at -= 4000 - k * 1500; f.sentAt = f.at; f.tr.th.ms = 920 + k * 180; f.tr.ja.ms = 1080 + k * 140; f.fresh = false; });
+  } else {
+    setInterval(tick, 240);
+  }
+  paintCtl(); paint();
+
+  // ---------- speaker app gallery ----------
+  const SHEET = (h, sub, inner, foot) => '<div class="sheet-dim"></div><div class="sheet" role="dialog"><div class="grab"></div><h4>' + h + '</h4>' + (sub ? '<p class="sub">' + sub + '</p>' : '') + inner + (foot ? '<div class="foot-note">' + foot + '</div>' : '') + '</div>';
+  const setupSheet = (dl) => SHEET('Live subtitles', 'Guests read what you say, in their own language.',
+    '<small class="ccs-l">Listening for</small><div class="lchips"><span class="lchip on">✓ English</span><span class="lchip on">✓ ไทย</span><small>Both: each line goes to the surer model</small></div>' +
+    '<div class="setrow"><div class="grow"><b>English model</b><small class="okc">✓ Parakeet TDT 0.6B · on this phone</small></div></div>' +
+    (dl
+      ? '<div class="setrow"><div class="grow"><b>Thai model</b><small>Typhoon ASR 115M · 130 MB · on Wi-Fi</small><div class="prog2"><i style="width:62%"></i></div></div><span class="tiny">62%</span></div>'
+      : '<div class="setrow"><div class="grow"><b>Thai model</b><small class="warnc">Not on this phone · 130 MB</small></div><span class="getb">Get on Wi-Fi</span></div>') +
+    '<div class="setrow"><div class="grow"><b>Keep the transcript</b><small>Off: no text is kept after the talk (D4)</small></div><span class="tog"></span></div>' +
+    '<div class="bigbtn violet" style="' + (dl ? 'opacity:.45' : '') + '">' + (dl ? 'Downloading…' : '● Start subtitles') + '</div>',
+    '');
+  const micDialog = '<div class="sheet-dim" style="background:rgb(0 0 0 / .4)"></div><div class="sysdlg"><div class="b"><b>"SlideWorks" Would Like to Access the Microphone</b><p>Your speech is turned into subtitles on this phone. Audio is never uploaded or kept.</p></div><div class="btns"><span>Don\'t Allow</span><span>Allow</span></div></div>';
+  const signIn = '<div class="app-pad"><div class="app-logo"><span class="g-mark">S</span>SlideWorks</div><div style="flex:1"></div><h3 class="app-h">Present from your phone</h3><p class="app-p">Move your slides, read your notes, and turn what you say into live subtitles for the room.</p><div class="inp">SlideWorks address<span>slides.example.org</span></div><div class="bigbtn white"><b style="color:#4285f4;font:800 15px/1 var(--ui)">G</b>Sign in with Google</div><div class="ordiv"><span>or</span></div><div class="bigbtn ghost">▣ Scan the code on your laptop</div><p class="tiny" style="margin:0;text-align:center">The presenter window\'s Phone button shows it (D24).</p></div>';
+  const talks = '<div class="app-pad"><h3 class="app-h">Presenting now</h3><p class="app-p" style="margin-top:-8px">Signed in as Sam Rivera</p>' +
+    '<div class="talk">' + frame(0, 'en') + '<div><b>Shipping smaller changes</b><small>On your laptop · slide 1 · 47 guests</small><span class="live">Live</span></div></div>' +
+    '<div style="flex:1"></div><p class="tiny" style="margin:0">Open a deck\'s presenter view on your laptop and it shows up here.</p><div class="setrow"><div class="grow"><b>Speech models</b><small>English ready · ไทย not downloaded</small></div><span class="tiny">›</span></div></div>';
+  const toastLeft = '<div class="apptoast"><span>Subtitles stopped when you left SlideWorks.</span><b>Resume</b></div>';
+  const lockScreen0 = '<div class="lockscr"><div class="t">9:58</div><div class="d">Thursday 28 November</div><div class="notif"><div class="h"><span class="g-mark">S</span>SLIDEWORKS<span style="flex:1"></span>now</div><b>Live subtitles on · Shipping smaller changes</b><p>Still listening. Guests are reading in 3 languages.</p><div class="acts"><span>❚❚ Pause</span><span>Open</span></div></div></div>';
+  const APP = [
+    { h: appScreen(signIn), b: '1 · Sign in', s: 'Server address and Google in the system browser, or scan the QR code from the laptop (D21). Pending accounts see SW-54\'s waiting screen.' },
+    { h: appScreen(talks), b: '2 · Presenting now', s: 'The same list as /remote on web: talks live on the laptop. Speech models shows what is on the phone and gets models early (D14).' },
+    { h: speaker({ i: 2, cc: 'off' }), b: '3 · Speaker mode, subtitles off', s: 'Speaker mode as on web, with a fifth button, Subtitles, after Join code (D12). Nothing else changes.' },
+    { h: speaker({ i: 2, cc: 'off', sheet: setupSheet(false) }), b: '4 · First tap: the setup sheet', s: 'Listening for English and ไทย, both on (D22). A model not on the phone yet is fetched here, on Wi-Fi unless the speaker allows mobile data (D14).' },
+    { h: speaker({ i: 2, cc: 'off', sheet: setupSheet(true) }), b: '5 · Getting the Thai model', s: 'From the manifest (D6), checked against its sha256. Start waits until both chosen models are on the phone.' },
+    { h: speaker({ i: 2, cc: 'off', dialog: micDialog }), b: '6 · Microphone permission', s: 'Asked once, after Start subtitles. The reason says audio stays on the phone.' },
+    { h: speaker({ i: 2, cc: 'live', final: 'Smaller changes get reviewed the same day.', partial: 'And when something breaks' }), b: '7 · Subtitles live', s: 'The button turns purple and a one-line ticker above Next shows the latest words with the language they were heard in (D13).' },
+    { h: speaker({ i: 2, cc: 'live', ccOpen: true, bigcap: true, final: 'Smaller changes get reviewed the same day.', partial: 'And when something breaks', meta: '<b>Reading</b> EN 31 · ไทย 9 · 日本語 5' }), b: '8 · The Subtitles sheet', s: 'The last lines, Listening for (D22), the big-screen captions switch (D23), who is reading, and Pause.' },
+    { h: speaker({ i: 4, cc: 'live', ccOpen: true, heard: [{ l: 'th', t: 'เราจะ deploy ทุกวัน แต่เปิดให้ผู้ใช้เห็นทีละนิด' }, { l: 'en', t: 'Feature flags make that safe', pt: true }], meta: 'Each line is translated from the language it was heard in' }), b: '9 · A mixed Thai and English talk', s: 'Both models listen; each line goes to the surer one and carries its language (D15). English words inside a Thai sentence come out as the Thai model hears them.' },
+    { h: speaker({ i: 3, cc: 'paused' }), b: '10 · Paused, off the record', s: 'Pause in the sheet releases the mic at once; the button turns amber, the ticker goes. Guests get "Sam paused subtitles".' },
+    { h: speaker({ i: 3, cc: 'offline', queued: 3 }), b: '11 · Connection lost', s: 'The button turns orange and the ticker counts waiting lines. On reconnect only the last 30 s are sent (D5).' },
+    { h: speaker({ i: 3, cc: 'paused', toast: toastLeft }), b: '12 · Back after leaving the app', s: 'Leaving the app or locking the phone pauses subtitles and releases the mic (D16). Coming back shows this, one tap to resume. The laptop chip says "Sam left the app".' },
+  ];
+  const appGrid = document.getElementById('appGrid');
+  appGrid.innerHTML = APP.map((a, k) => '<div><div class="phone"><div class="ps app" data-app="' + k + '"></div></div><div class="st-cap"><b>' + a.b + '</b><span>' + a.s + '</span></div></div>').join('');
+  appGrid.querySelectorAll('[data-app]').forEach(el => { el.innerHTML = APP[+el.dataset.app].h; hydrate(el); });
+
+  // ---------- pairing QR (decorative) ----------
+  (function qr() {
+    const n = 25, box = document.getElementById('qrBox'); if (!box) return;
+    let seed = 884; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    const finder = (x, y) => [[0, 0], [n - 7, 0], [0, n - 7]].some(([fx, fy]) => x >= fx && x < fx + 7 && y >= fy && y < fy + 7);
+    const fon = (x, y) => { for (const [fx, fy] of [[0, 0], [n - 7, 0], [0, n - 7]]) { const dx = x - fx, dy = y - fy; if (dx >= 0 && dx < 7 && dy >= 0 && dy < 7) return dx === 0 || dy === 0 || dx === 6 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4); } return false; };
+    let r = '';
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const on = finder(x, y) ? fon(x, y) : rnd() > .52; if (on) r += '<rect x="' + x + '" y="' + y + '" width="1" height="1"/>'; }
+    box.innerHTML = '<svg viewBox="-2 -2 ' + (n + 4) + ' ' + (n + 4) + '" shape-rendering="crispEdges"><rect x="-2" y="-2" width="' + (n + 4) + '" height="' + (n + 4) + '" fill="#fff"/><g fill="#0b1020">' + r + '</g></svg>';
+  })();
+  hydrate(document.getElementById('laptop'));
+
+  // ---------- guest gallery ----------
+  const GUEST = [
+    { o: { i: 2, lang: 'en', subs: { state: 'live', ring: true, lines: [{ t: 'Smaller changes get reviewed the same day.' }, { t: 'And when something breaks, there is much', pt: true }] } }, b: '1 · Reading in English', s: 'Same language as Sam, so the words appear as they are heard, grey until the line is final (D8).' },
+    { o: { i: 2, lang: 'th', subs: { state: 'live', lines: [{ t: 'การเปลี่ยนแปลงที่เล็กลงได้รับการรีวิวภายในวันเดียวกัน' }, { t: 'และเมื่อมีอะไรพัง ก็มีสิ่งที่ต้องย้อนกลับน้อยกว่ามาก' }] } }, b: '2 · Reading in ไทย', s: 'Whole lines, about a second after Sam finishes each one. The header says what it was translated from.' },
+    { o: { i: 2, lang: 'ja', subs: { state: 'live', lines: [{ t: '何かが壊れても、戻す量がずっと少なくて済みます。' }, { t: 'Most of all, users see the work sooner and tell us sooner.', nt: true }] } }, b: '3 · A line that failed to translate', s: 'The English line, marked "not translated", so the talk keeps flowing (D9).' },
+    { o: { i: 2, lang: 'th', subs: { state: 'hidden' } }, b: '4 · Hidden', s: 'Hide leaves one small button. The choice lasts for the session (D17).' },
+    { o: { i: 3, lang: 'th', subs: { state: 'paused' } }, b: '5 · Speaker paused', s: 'Shown at once to every language group.' },
+    { o: { i: 3, lang: 'th', subs: { state: 'reconnecting' } }, b: '6 · Speaker\'s phone reconnecting', s: 'After 5 seconds without Sam\'s phone. The last lines stay until this shows.' },
+    { o: { i: 4, lang: 'en', subs: { state: 'live', from: 'th', lines: [{ t: 'First, split the work by what a user can do.' }, { t: 'We deploy every day, but show it to users a little at a time.' }] } }, b: '7 · Sam speaking Thai, guest in English', s: 'The same strip; the header now says "translated from ไทย". No partials, because the languages differ.' },
+  ];
+  const gGrid = document.getElementById('guestGrid');
+  gGrid.innerHTML = GUEST.map((g, k) => '<div><div class="phone"><div class="ps" data-g="' + k + '"></div></div><div class="st-cap"><b>' + g.b + '</b><span>' + g.s + '</span></div></div>').join('') +
+    '<div class="wide"><div class="phone land"><div class="ps" data-gl="1"></div></div><div class="st-cap"><b>8 · Landscape</b><span>Two caption lines over the bottom of the slide, like a film (D17). SW-883\'s tap overlay still works on top.</span></div></div>';
+  gGrid.querySelectorAll('[data-g]').forEach(el => { el.innerHTML = guest(GUEST[+el.dataset.g].o); hydrate(el); });
+  const gl = gGrid.querySelector('[data-gl]'); gl.innerHTML = guestLand({ i: 2, lang: 'th', lines: ['การเปลี่ยนแปลงที่เล็กลงได้รับการรีวิวภายในวันเดียวกัน', 'และเมื่อมีอะไรพัง ก็มีสิ่งที่ต้องย้อนกลับน้อยกว่ามาก'] }); hydrate(gl);
+
+})();
+</script>
+</body>
+</html>
