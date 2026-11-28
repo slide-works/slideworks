@@ -32,7 +32,7 @@ public class GuestPrivacyTests : JoinFixture
         await SharingApi.PutOkAsync(Client, deck, "named", VIEWER);
         Open(CODE, deck);
         // Open's live state, with the room a live deck carries.
-        Relay.Set(new AudienceState(deck, 1, AudiencePhase.Live, new AudienceSlide(1, 1, "title", Slots("""{"title":"Ship smaller"}"""), 0, 0, false), 0, null, RoomOf()));
+        Relay.Set(new AudienceState(deck, 1, AudiencePhase.Live, new AudienceSlide(1, 1, "title", Slots("""{"title":"Ship smaller"}"""), 0, 0, false), 0, null, RoomOf(), null));
         using var anonymous = ClientFor(TestUser.Anonymous);
 
         var raw = await anonymous.GetStringAsync($"/api/join/{CODE}");
@@ -40,8 +40,8 @@ public class GuestPrivacyTests : JoinFixture
         var body = JsonDocument.Parse(raw).RootElement;
         using var sample = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "guest.json")));
         JsonShape.AssertMatches(body, sample.RootElement.GetProperty("live"), "guest.json", ScreenShapes.Guest);
-        body.EnumerateObject().Select(p => p.Name).ShouldBe(["deckTitle", "presenterName", "look", "deckUrl", "state"], ignoreOrder: true);
-        body.GetProperty("state").EnumerateObject().Select(p => p.Name).ShouldBe(["type", "seq", "phase", "current", "revision", "activity", "room"], ignoreOrder: true);
+        body.EnumerateObject().Select(p => p.Name).ShouldBe(["deckTitle", "presenterName", "look", "deckUrl", "state", "translations"], ignoreOrder: true);
+        body.GetProperty("state").EnumerateObject().Select(p => p.Name).ShouldBe(["type", "seq", "phase", "current", "revision", "activity", "room", "language"], ignoreOrder: true);
         PollActivityKeys.Of(body.GetProperty("state").GetProperty("activity")).ShouldBeSubsetOf(PollActivityKeys.All);
         body.GetProperty("state").GetProperty("room").EnumerateObject().Select(p => p.Name).ShouldBe(_roomKeys, ignoreOrder: true);
         raw.ShouldNotContain(NOTES);

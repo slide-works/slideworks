@@ -33,6 +33,10 @@
       "names": true,
       "reactions": true,
       "listRevision": 57
+    },
+    "language": {
+      "code": "th",
+      "fallbackLines": 2
     }
   },
   "audienceEnded": {

@@ -157,7 +157,37 @@
         "names": true,
         "reactions": true,
         "listRevision": 57
+      },
+      "language": {
+        "code": "th",
+        "fallbackLines": 2
       }
+    },
+    "translations": {
+      "primary": "en",
+      "languages": [
+        {
+          "code": "en",
+          "name": "English",
+          "englishName": "English",
+          "short": "EN",
+          "complete": 100
+        },
+        {
+          "code": "th",
+          "name": "ไทย",
+          "englishName": "Thai",
+          "short": "TH",
+          "complete": 83
+        },
+        {
+          "code": "ja",
+          "name": "日本語",
+          "englishName": "Japanese",
+          "short": "JA",
+          "complete": 40
+        }
+      ]
     }
   },
   "lobby": {
@@ -291,8 +321,10 @@
       "current": null,
       "revision": 7,
       "activity": null,
-      "room": null
-    }
+      "room": null,
+      "language": null
+    },
+    "translations": null
   },
   "ended": {
     "deckTitle": "Ship smaller",
@@ -425,7 +457,9 @@
       "current": null,
       "revision": 7,
       "activity": null,
-      "room": null
-    }
+      "room": null,
+      "language": null
+    },
+    "translations": null
   }
 }

@@ -248,7 +248,7 @@ public sealed class AudienceFeed : IDisposable
     {
         if (found.Phase != AudiencePhase.Live)
         {
-            return new AudienceState(found.DeckId, seq, found.Phase, null, 0, null, null);
+            return new AudienceState(found.DeckId, seq, found.Phase, null, 0, null, null, null);
         }
         var presentation = await services.GetRequiredService<IPresentations>().GetAsync(found.DeckId);
         var db = services.GetRequiredService<AppDbContext>();
@@ -264,7 +264,9 @@ public sealed class AudienceFeed : IDisposable
             Project(slides, presentation),
             revision,
             await ActivityAsync(services, found.DeckId),
-            await RoomAsync(services, found.DeckId));
+            await RoomAsync(services, found.DeckId),
+            // TODO: null until the state is composed in the guest's language; then the language and its fallback lines.
+            null);
     }
 
     // What the room may do on the slide on screen (SW-9 Q1, Q3), in the scope the caller opened (the seam is per request).

@@ -362,7 +362,7 @@ public class AudienceHubContractTests : ApiTestFixture
     }
 
     private static AudienceState State(string deck, long seq, AudiencePhase phase)
-        => new(deck, seq, phase, phase == AudiencePhase.Live ? new AudienceSlide(1, 2, "title", JsonDocument.Parse("""{"title":"Hi"}""").RootElement.Clone(), 0, 0, false) : null, 0, null, null);
+        => new(deck, seq, phase, phase == AudiencePhase.Live ? new AudienceSlide(1, 2, "title", JsonDocument.Parse("""{"title":"Hi"}""").RootElement.Clone(), 0, 0, false) : null, 0, null, null, null);
 
     // A deck Sam owns, and a fresh code that finds it in the given phase (live by default) with the relay answering a state.
     private async Task<(string Deck, string Code)> LiveDeckAsync(AudiencePhase phase = AudiencePhase.Live)

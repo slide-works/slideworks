@@ -7,8 +7,14 @@ namespace SlideWorks.WebApi.Realtime;
 // JoinAudience and GET /api/join/{code} return. Seq only increases. Phase comes from IAudienceSessions; Current is null
 // unless the phase is live. Revision is the deck's change counter: a guest re-reads GET /api/join/{code} when it moves
 // (D10). Activity is the activity on screen (SW-6: a PollActivity), or null. Room is the QaRoom for the slide on screen (SW-9
-// Q1, Q3), null in every phase but live.
+// Q1, Q3), null in every phase but live. Language is the language the state is composed in (SW-883 K5), null while
+// translations are off. Group is the hub group the relay sends the state to; it never goes on the wire.
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(AudienceState), "audienceState")]
-public record AudienceState(string DeckId, long Seq, AudiencePhase Phase, AudienceSlide? Current, long Revision, JsonElement? Activity, JsonElement? Room)
-    : AudienceEvent(DeckId);
+public record AudienceState(string DeckId, long Seq, AudiencePhase Phase, AudienceSlide? Current, long Revision, JsonElement? Activity, JsonElement? Room, AudienceLanguage? Language)
+    : AudienceEvent(DeckId)
+{
+    // TODO: always null until the per-language slide-state groups land; the relay sends every state to audience:{deckId}.
+    [JsonIgnore]
+    public string? Group { get; init; }
+}

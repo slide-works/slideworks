@@ -78,7 +78,7 @@ public class JoinAudienceRaceTests : ApiTestFixture
         return (deck, relay);
     }
 
-    private static AudienceState StateAt(string deck, long seq) => new(deck, seq, AudiencePhase.Live, null, 0, null, null);
+    private static AudienceState StateAt(string deck, long seq) => new(deck, seq, AudiencePhase.Live, null, 0, null, null, null);
 
     // The fake sessions, plus a hook that runs once on the first ForDeckAsync (JoinAudience's existence check).
     private sealed class HookedSessions(FakeAudienceSessions inner) : IAudienceSessions

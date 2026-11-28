@@ -59,6 +59,8 @@ public class GuestViews(
             presenter,
             await looks.ForAsync(deck, CancellationToken.None),
             deck.Sharing == DeckSharing.Link ? publicUrls.Deck(deck.Id, deck.Slug) : null,
-            state);
+            state,
+            // TODO: null until the deck's translation settings are read here; then the primary and the deck's languages.
+            null);
     }
 }

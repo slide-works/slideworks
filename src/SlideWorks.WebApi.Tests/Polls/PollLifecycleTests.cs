@@ -231,7 +231,7 @@ public class PollLifecycleTests : PollTestFixture
     public async Task Close_WhenOpen_ShouldWriteFinalFromTheAnswerRowsAndTheJoinedCount()
     {
         var poll = await SeedPollAsync();
-        Relay.Set(new AudienceState(poll.DeckId, 1, AudiencePhase.Live, null, 0, null, null));
+        Relay.Set(new AudienceState(poll.DeckId, 1, AudiencePhase.Live, null, 0, null, null, null));
         await using var first = await GuestClient.ConnectAsync(Factory);
         await using var second = await GuestClient.ConnectAsync(Factory);
         await first.Connection.InvokeAsync<JsonElement>("JoinAudience", poll.Code);

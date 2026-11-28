@@ -6,14 +6,21 @@ import { REQUIRED_SLOT_KEYS } from './layoutSlots';
 import { audienceEnded, audienceState, guestView, joinedCount } from './guestStates';
 
 const keys = (value: object) => Object.keys(value).sort();
-const STATE_KEYS = ['activity', 'current', 'phase', 'revision', 'room', 'seq', 'type'];
+const STATE_KEYS = ['activity', 'current', 'language', 'phase', 'revision', 'room', 'seq', 'type'];
 
 describe('guest.json', () => {
   it.each(['live', 'lobby', 'ended'] as const)(
     'the %s sample has the guest page shape',
     (phase) => {
       const view = guestView(phase);
-      expect(keys(view)).toEqual(['deckTitle', 'deckUrl', 'look', 'presenterName', 'state']);
+      expect(keys(view)).toEqual([
+        'deckTitle',
+        'deckUrl',
+        'look',
+        'presenterName',
+        'state',
+        'translations',
+      ]);
       expect(keys(view.state)).toEqual(STATE_KEYS);
       expect(view.state.type).toBe('audienceState');
       expect(view.state.phase).toBe(phase);

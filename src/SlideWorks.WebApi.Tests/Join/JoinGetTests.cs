@@ -105,7 +105,7 @@ public class JoinGetTests : JoinFixture
         var deck = await DeckSeed.CreateDeckAsync(agent);
         Sessions.Set(CODE, deck, null, phase);
         // The relay is a fake here, so it is given the state the real one gives outside live: no slide, no room, no activity.
-        Relay.Set(new AudienceState(deck, 1, phase, null, 0, null, null));
+        Relay.Set(new AudienceState(deck, 1, phase, null, 0, null, null, null));
         using var anonymous = ClientFor(TestUser.Anonymous);
 
         using var response = await anonymous.GetAsync($"/api/join/{CODE}");
