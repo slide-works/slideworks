@@ -107,6 +107,16 @@ public sealed class PresenterPage(IPage page)
 
     public ILocator LiveChip => page.GetByTestId("presenter-live-chip");
 
+    // The Reading in counter's wrapper, just before the live chip (SW-886 K11); src/live/testIds.ts has the ids inside it:
+    // the group (named "Reading in: English 31, …"), one count per language drawn ("EN 31") and "+n" past the fourth.
+    public ILocator ReadingIn => page.GetByTestId("presenter-reading-in");
+
+    public ILocator ReadingInGroup => ReadingIn.GetByTestId("reading-in");
+
+    public ILocator ReadingInCounts => ReadingIn.GetByTestId("reading-in-count");
+
+    public ILocator ReadingInMore => ReadingIn.GetByTestId("reading-in-more");
+
     // The owner's live chip inside that wrapper (Go live, the code and joined count, the join bar toggle, End), the same
     // chip the plain player has.
     public LiveChip Live => new(page);

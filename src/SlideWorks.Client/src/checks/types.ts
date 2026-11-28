@@ -32,5 +32,8 @@ export function severityOf(rule: FindingRule): FindingSeverity {
   }
 }
 
+// A finding as a measured rule builds it: measureSlide adds the language (always null in the browser).
+export type MeasuredFinding = Omit<SlideFinding, 'language'>;
+
 // One measured rule: reads a rendered slide frame, returns its findings.
-export type MeasureRule = (frame: HTMLElement, slide: number, canvas: Canvas) => SlideFinding[];
+export type MeasureRule = (frame: HTMLElement, slide: number, canvas: Canvas) => MeasuredFinding[];

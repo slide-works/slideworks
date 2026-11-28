@@ -31,25 +31,29 @@ public class DeckReader(
     ITemplates templates,
     QaRows qa,
     IDeckTranslations translations,
-    TranslationsSummary translationsSummary)
+    TranslationsSummary translationsSummary,
+    TranslationMerge merge)
 {
     public const string NOT_FOUND = "Deck not found";
 
-    public async Task<DeckPlayView> GetPlayAsync(string deckId)
+    // The play view, in the language when one is given (K8): each slide's slots merged through TranslationMerge.For. A language
+    // that is unknown, not offered or the primary, or translations off, gives the primary slots with no error.
+    public async Task<DeckPlayView> GetPlayAsync(string deckId, string? language = null)
     {
         if (!await access.CanViewAsync(deckId, actor))
         {
             throw new NotFoundException(NOT_FOUND);
         }
-        return await PlayAsync(await LoadDeckAsync(deckId), await access.CanPresentAsync(deckId, actor));
+        return await PlayAsync(await LoadDeckAsync(deckId), await access.CanPresentAsync(deckId, actor), language);
     }
 
     // For the render API (behind a render token) and the card cache only (L9): the play view with the deck's revision
-    // and sharing, and no access check. An unknown deck is 404 "Deck not found".
-    public async Task<DeckForRender> ReadForRenderAsync(string deckId)
+    // and sharing, and no access check. An unknown deck is 404 "Deck not found". Only the render page passes a language (K9);
+    // the card, print and PDF stay on the primary.
+    public async Task<DeckForRender> ReadForRenderAsync(string deckId, string? language = null)
     {
         var deck = await db.Decks.AsNoTracking().SingleOrDefaultAsync(d => d.Id == deckId) ?? throw new NotFoundException(NOT_FOUND);
-        return new DeckForRender(await PlayAsync(deck, isOwner: false), deck.Subtitle, deck.Revision, deck.Sharing);
+        return new DeckForRender(await PlayAsync(deck, isOwner: false, language), deck.Subtitle, deck.Revision, deck.Sharing);
     }
 
     // The owner or a person with write (C5), or an agent acting for either: the slides carry notes and revisions. While
@@ -63,7 +67,7 @@ public class DeckReader(
         }
         var deck = await LoadDeckAsync(deckId);
         var translationSettings = await translations.ForDeckAsync(deckId);
-        var translated = TranslatedLanguage(translationSettings, language);
+        var translated = RequestedLanguage.For(translationSettings, language);
         var slides = await LiveSlidesAsync(deckId);
         var template = await templates.ForDeckAsync(deck, CancellationToken.None);
         var url = urls.Deck(deck.Id, deck.Slug);
@@ -75,24 +79,6 @@ public class DeckReader(
         return summary
             ? GetDeckSummary.From(deck, slides, template, url, settings, reactions, translationsView, LinesOf)
             : GetDeckResult.From(deck, slides, template, url, settings, reactions, translationsView, LinesOf);
-    }
-
-    // The language whose lines get_deck lists: null for no language or the primary, else one of the deck's languages while
-    // translations are on. Anything else is refused, naming the languages the deck has.
-    private static string? TranslatedLanguage(TranslationSettings settings, string? language)
-    {
-        if (language is null || string.Equals(language, settings.Primary, StringComparison.Ordinal))
-        {
-            return null;
-        }
-
-        var offered = settings.Enabled ? settings.Languages : [];
-        if (!offered.Contains(language, StringComparer.Ordinal))
-        {
-            throw new BadRequestException($"{language} is not one of this deck's languages ({string.Join(", ", offered.Prepend(settings.Primary))})");
-        }
-
-        return language;
     }
 
     // Each session's reaction totals per slide of this deck, newest session first. The totals are rows of the Q&A feature,
@@ -115,10 +101,17 @@ public class DeckReader(
         return new ReactionCounts(count(ReactionEmoji.ThumbsUp), count(ReactionEmoji.Heart), count(ReactionEmoji.Laugh), count(ReactionEmoji.Wow), count(ReactionEmoji.Clap));
     }
 
-    private async Task<DeckPlayView> PlayAsync(Deck deck, bool isOwner)
+    private async Task<DeckPlayView> PlayAsync(Deck deck, bool isOwner, string? language)
     {
-        var template = await templates.ForDeckAsync(deck, CancellationToken.None);
-        return DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), template, looks.Of(deck, template), await joinViews.ForAsync(deck), isOwner);
+        if (language is null)
+        {
+            var template = await templates.ForDeckAsync(deck, CancellationToken.None);
+            return DeckPlayView.From(deck, await LiveSlidesAsync(deck.Id), template, looks.Of(deck, template), await joinViews.ForAsync(deck), isOwner);
+        }
+
+        var snapshot = await merge.LoadAsync(deck.Id);
+        var slides = snapshot.Slides.Select(slide => DeckPlaySlide.From(slide, snapshot.Template, TranslationMerge.For(slide, snapshot.Template, snapshot.Settings, language).Slots));
+        return DeckPlayView.From(deck, slides, looks.Of(deck, snapshot.Template), await joinViews.ForAsync(deck), isOwner);
     }
 
     private Task<Deck> LoadDeckAsync(string deckId) => db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);

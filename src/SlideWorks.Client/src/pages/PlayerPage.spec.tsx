@@ -255,6 +255,7 @@ test('player page re-reads when a reconnect joins again', async ({ mount, page }
         live: false,
         joinedCount: 0,
         joinBar: false,
+        readingIn: null,
       },
     },
   });
@@ -421,6 +422,7 @@ test('player page mounts the live chip and re-reads the deck when liveChanged ar
         live: false,
         joinedCount: 0,
         joinBar: false,
+        readingIn: null,
       },
     },
   });

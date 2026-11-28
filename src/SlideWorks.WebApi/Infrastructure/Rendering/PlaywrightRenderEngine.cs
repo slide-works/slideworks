@@ -141,13 +141,13 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
     private const string SLIDE_TEST_ID = "render-slide";
     private const string SLIDE_SETTLED = "() => { const slide = document.querySelector('[data-testid=render-slide]'); return !!slide && (slide.dataset.ready === 'true' || slide.hasAttribute('data-error')); }";
 
-    // A slide of the deck, on the render route, with a Preview token. The card path is left as it is.
-    public async Task<RenderedSlide> RenderSlideAsync(string deckId, int slide, CancellationToken ct)
+    // A slide of the deck, on the render route, with a Preview token, in a language when one is given. The card path is left as it is.
+    public async Task<RenderedSlide> RenderSlideAsync(string deckId, int slide, string? language, CancellationToken ct)
     {
         var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
         deadline.CancelAfter(_options.Timeout);
         var deadlineToken = deadline.Token;
-        var render = RenderSlideInSlotAsync(deckId, slide, deadlineToken);
+        var render = RenderSlideInSlotAsync(deckId, slide, language, deadlineToken);
         _ = render.ContinueWith(_ => deadline.Dispose(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
         var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await using (deadlineToken.Register(() => stopped.TrySetResult()))
@@ -162,7 +162,7 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
         throw new System.TimeoutException(TIMED_OUT);
     }
 
-    private async Task<RenderedSlide> RenderSlideInSlotAsync(string deckId, int slide, CancellationToken ct)
+    private async Task<RenderedSlide> RenderSlideInSlotAsync(string deckId, int slide, string? language, CancellationToken ct)
     {
         await _pages.WaitAsync(ct);
         try
@@ -171,13 +171,13 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
             try
             {
                 ct.ThrowIfCancellationRequested();
-                return await RenderSlidePageAsync(chromium, deckId, slide, ct);
+                return await RenderSlidePageAsync(chromium, deckId, slide, language, ct);
             }
             catch (PlaywrightException) when (!chromium.IsConnected && !ct.IsCancellationRequested)
             {
                 var restarted = await browser.GetAsync(ct);
                 ct.ThrowIfCancellationRequested();
-                return await RenderSlidePageAsync(restarted, deckId, slide, ct);
+                return await RenderSlidePageAsync(restarted, deckId, slide, language, ct);
             }
         }
         catch (PlaywrightException)
@@ -191,11 +191,12 @@ public sealed class PlaywrightRenderEngine(RenderBrowser browser, IRenderTokens 
         }
     }
 
-    private async Task<RenderedSlide> RenderSlidePageAsync(IBrowser chromium, string deckId, int slide, CancellationToken ct)
+    private async Task<RenderedSlide> RenderSlidePageAsync(IBrowser chromium, string deckId, int slide, string? language, CancellationToken ct)
     {
         var origin = BaseUrl();
         var token = tokens.Issue(deckId, RenderPurpose.Preview);
-        var url = new Uri(origin, $"render/{Uri.EscapeDataString(deckId)}/{slide}#token={Uri.EscapeDataString(token)}");
+        var lang = language == null ? "" : $"&lang={Uri.EscapeDataString(language)}";
+        var url = new Uri(origin, $"render/{Uri.EscapeDataString(deckId)}/{slide}#token={Uri.EscapeDataString(token)}{lang}");
         await using var context = await chromium.NewContextAsync(new BrowserNewContextOptions
         {
             ViewportSize = new ViewportSize { Width = SLIDE_WIDTH, Height = SLIDE_HEIGHT },

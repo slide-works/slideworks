@@ -71,6 +71,19 @@ public class AudienceRecordShapeTests
         SameJson(json, example).ShouldBeTrue(Differs(json, example));
     }
 
+    [Test]
+    public void ReadingIn_ShouldMatchContract()
+    {
+        var example = Example().GetProperty("readingIn");
+        var counts = example.GetProperty("counts").EnumerateArray()
+            .Select(count => new ReadingInCount(count.GetProperty("code").GetString()!, count.GetProperty("count").GetInt32()))
+            .ToList();
+
+        var json = Serialise(new ReadingIn("7Kq2xYp9LmQa", counts));
+
+        SameJson(json, example).ShouldBeTrue(Differs(json, example));
+    }
+
     private static JsonElement Serialise(AudienceEvent audienceEvent) => JsonSerializer.SerializeToElement(audienceEvent, JsonSerializerOptions.Web);
 
     private static JsonElement Example() =>

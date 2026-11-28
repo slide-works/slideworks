@@ -36,6 +36,46 @@ test('without liveChip the wrapper is not rendered', async ({ mount, page }) => 
   await expect(page.getByTestId('presenter-live-chip')).toHaveCount(0);
 });
 
+test('PresenterTopBar: a passed readingIn renders just before the live chip', async ({
+  mount,
+  page,
+}) => {
+  await mount(
+    <PresenterTopBar
+      view={presenterView()}
+      state={presentationState()}
+      elapsedMs={0}
+      clockMinutes={0}
+      onTimer={() => {}}
+      onReopenAudience={() => {}}
+      readingIn={<span data-testid="probe-reading-in">Reading in EN 31</span>}
+      liveChip={<span data-testid="probe-live-chip">Live: 12 following</span>}
+    />,
+  );
+  const wrapper = page.getByTestId('presenter-reading-in');
+  await expect(wrapper.getByTestId('probe-reading-in')).toHaveText('Reading in EN 31');
+  const beforeLiveChip = await wrapper.evaluate(
+    (el) => el.nextElementSibling?.getAttribute('data-testid') === 'presenter-live-chip',
+  );
+  expect(beforeLiveChip).toBe(true);
+});
+
+test('PresenterTopBar: without readingIn its wrapper is not rendered', async ({ mount, page }) => {
+  await mount(
+    <PresenterTopBar
+      view={presenterView()}
+      state={presentationState()}
+      elapsedMs={0}
+      clockMinutes={0}
+      onTimer={() => {}}
+      onReopenAudience={() => {}}
+      liveChip={<span data-testid="probe-live-chip">Live: 12 following</span>}
+    />,
+  );
+  await expect(page.getByTestId('presenter-live-chip')).toBeVisible();
+  await expect(page.getByTestId('presenter-reading-in')).toHaveCount(0);
+});
+
 const MIN = 60000;
 
 function bar(

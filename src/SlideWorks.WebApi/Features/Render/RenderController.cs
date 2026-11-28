@@ -15,11 +15,12 @@ public class RenderController(RenderViews views, PrintViews prints) : ApiControl
 {
     public const string TOKEN_HEADER = "X-Render-Token";
 
-    // The deck-play shape, for the agent's per-slide render page (a Preview token).
+    // The deck-play shape, for the agent's per-slide render page (a Preview token), in ?language= when given (K9).
     [HttpGet("{id}")]
     [ProducesResponseType<DeckPlayView>(StatusCodes.Status200OK)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
-    public Task<DeckPlayView> Get(string id, [FromHeader(Name = TOKEN_HEADER)] string? token) => views.PlayAsync(id, token);
+    public Task<DeckPlayView> Get(string id, [FromHeader(Name = TOKEN_HEADER)] string? token, [FromQuery] string? language)
+        => views.PlayAsync(id, token, language);
 
     // card.json, for the server's share card page (a Card token).
     [HttpGet("{id}/card")]

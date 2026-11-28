@@ -3,6 +3,7 @@ import { ApiError, api } from '../api/client';
 import type { JoinView, LookChangeRequest } from '../api/types';
 import { AUDIENCE_EVENT_METHOD, isAudienceEvent } from '../guest/audienceEvents';
 import { useDeckConnection } from '../realtime/useDeckConnection';
+import type { ReadingInCount } from '../guest/audienceEvents';
 import type { LiveView } from './liveView';
 
 // The live session for one deck (SW-5 J6). liveView is null for anyone who is not the deck's owner: only the owner may
@@ -12,6 +13,8 @@ export interface LiveSession {
   live: boolean;
   liveView: LiveView | null;
   joinedCount: number;
+  // Guests connected now by the language they read (SW-886 K11); null while translations are off or the deck is not live.
+  readingIn: ReadingInCount[] | null;
   // The message for the last failed Go live, End, join bar change or read; null when nothing failed.
   error: string | null;
   goLive(): Promise<void>;
@@ -28,6 +31,7 @@ export const NO_LIVE_SESSION: LiveSession = {
   live: false,
   liveView: null,
   joinedCount: 0,
+  readingIn: null,
   error: null,
   goLive: () => Promise.resolve(),
   end: () => Promise.resolve(),
@@ -47,6 +51,7 @@ export function idleLiveView(join: JoinView): LiveView {
     live: join.live,
     joinedCount: 0,
     joinBar: false,
+    readingIn: null,
   };
 }
 
@@ -153,7 +158,10 @@ export function useLiveSession(deckId: string, initial: LiveView | null): LiveSe
       run(async () => {
         await api.del<void>(liveUrl(deckId));
         latest.current += 1;
-        setLiveView((view) => view && { ...view, sessionId: null, live: false, joinedCount: 0 });
+        setLiveView(
+          (view) =>
+            view && { ...view, sessionId: null, live: false, joinedCount: 0, readingIn: null },
+        );
       }, 'Could not end the live session.'),
     [deckId, run],
   );
@@ -177,6 +185,7 @@ export function useLiveSession(deckId: string, initial: LiveView | null): LiveSe
     live: liveView.live,
     liveView,
     joinedCount: liveView.joinedCount,
+    readingIn: liveView.readingIn,
     error,
     goLive,
     end,

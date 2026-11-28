@@ -277,7 +277,8 @@
       "severity": "warning",
       "source": "stored",
       "where": "image",
-      "message": "The image's alt text \"image\" doesn't say what it shows. Describe it in a few words."
+      "message": "The image's alt text \"image\" doesn't say what it shows. Describe it in a few words.",
+      "language": null
     }
   ]
 }

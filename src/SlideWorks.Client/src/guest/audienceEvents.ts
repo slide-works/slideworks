@@ -49,6 +49,12 @@ export type AudienceEnded = { type: 'audienceEnded' };
 // Owner only (audience-watch group): how many guests are joined.
 export type JoinedCount = { type: 'joinedCount'; count: number };
 
+// SW-886 K11: guests connected now who read the deck in one language.
+export type ReadingInCount = { code: string; count: number };
+
+// Owner only (audience-watch group): guests connected now, by language. counts is null when translations were turned off.
+export type ReadingIn = { type: 'readingIn'; counts: ReadingInCount[] | null };
+
 // SW-6 (V5): a round's tally, to guests and the big screen (counts null while hidden from the receiver), and the
 // presenter's poll view, to the presenter's screens only. Their shapes are in polls/types.ts.
 // SW-9 (Q5): the questions' votes, to guests and the big screen; the presenter's Q&A view and the reaction taps, to the
@@ -59,6 +65,7 @@ export type AudienceEvent =
   | AudienceState
   | AudienceEnded
   | JoinedCount
+  | ReadingIn
   | PollTally
   | PollControl
   | QuestionTally
@@ -74,6 +81,7 @@ export function isAudienceEvent(value: unknown): value is AudienceEvent {
     type === 'audienceState' ||
     type === 'audienceEnded' ||
     type === 'joinedCount' ||
+    type === 'readingIn' ||
     type === 'pollTally' ||
     type === 'pollControl' ||
     type === 'questionTally' ||

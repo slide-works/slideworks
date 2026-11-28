@@ -54,6 +54,7 @@ async function show(
         live: true,
         joinedCount: answers.length,
         joinBar: false,
+        readingIn: null,
       },
     }),
   );

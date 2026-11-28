@@ -33,6 +33,7 @@ function liveRoute(page: Page) {
         live,
         joinedCount: live ? 41 : 0,
         joinBar: false,
+        readingIn: null,
       },
     });
   });

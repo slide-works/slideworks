@@ -14,12 +14,13 @@ public sealed class PreviewDeckTool
     public async Task<CallToolResult> PreviewDeck(
         DeckPreviews previews,
         [Description("The deck's id.")] string deck,
-        [Description("The 1-based slide numbers to preview. Leave out for every slide.")] int[]? slides = null)
+        [Description("The 1-based slide numbers to preview. Leave out for every slide.")] int[]? slides = null,
+        [Description("A language code such as \"th\" to preview the slides in that language. Leave out for the primary language.")] string? language = null)
     {
         try
         {
             McpArgumentCheck.ArgumentsBound();
-            var outcome = await previews.PreviewAsync(deck, slides);
+            var outcome = await previews.PreviewAsync(deck, slides, language);
             return McpToolErrors.WithImages(outcome.Result, outcome.Images);
         }
         catch (Exception error) when (error is BadRequestException or NotFoundException or ConflictException)

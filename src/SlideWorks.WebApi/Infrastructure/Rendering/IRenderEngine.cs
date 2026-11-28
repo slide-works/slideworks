@@ -10,8 +10,9 @@ public interface IRenderEngine
 
     Task<byte[]> RenderGenericCardAsync(CancellationToken ct);
 
-    // One slide of a deck, at 1920x1080, from the render route, with the findings its page measured. The same failures as a card render.
-    Task<RenderedSlide> RenderSlideAsync(string deckId, int slide, CancellationToken ct);
+    // One slide of a deck, at 1920x1080, from the render route, with the findings its page measured. A language draws the
+    // slide in that language (the render page's &lang=); null draws the primary. The same failures as a card render.
+    Task<RenderedSlide> RenderSlideAsync(string deckId, int slide, string? language, CancellationToken ct);
 
     // The deck as a PDF, one page per slide, from the print page. The same failures as a card render.
     Task<byte[]> RenderPdfAsync(string deckId, CancellationToken ct);

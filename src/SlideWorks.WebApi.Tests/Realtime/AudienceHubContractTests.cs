@@ -286,6 +286,23 @@ public class AudienceHubContractTests : ApiTestFixture
     }
 
     [Test]
+    public async Task Publish_WhenReadingIn_ShouldReachTheOwnerOnly()
+    {
+        var (deck, code) = await LiveDeckAsync();
+        var guest = await JoinedGuestAsync(code);
+        var owner = await WatcherAsync(deck);
+
+        await Bus.PublishAsync(new ReadingIn(deck, [new ReadingInCount("en", 1)]));
+        await Bus.PublishAsync(State(deck, 6, AudiencePhase.Live));
+
+        var reading = await owner.NextAudienceAsync();
+        reading.GetProperty("type").GetString().ShouldBe("readingIn");
+        reading.GetProperty("counts")[0].GetProperty("code").GetString().ShouldBe("en");
+        // The guest's next frame is the state published after it: it never received Reading in.
+        (await guest.NextAudienceAsync()).GetProperty("seq").GetInt64().ShouldBe(6);
+    }
+
+    [Test]
     public async Task LeaveAudience_WhenCalled_ShouldStopTheEventsAndLeaveTheRoster()
     {
         var (deck, code) = await LiveDeckAsync();
@@ -511,6 +528,8 @@ public class AudienceHubContractTests : ApiTestFixture
         public Task<int> CountAsync(string sessionId) => Task.FromResult(0);
 
         public Task<int> JoinedAsync(string sessionId) => Task.FromResult(0);
+
+        public Task<IReadOnlyList<ReadingInCount>> ReadingAsync(string deckId) => Task.FromResult<IReadOnlyList<ReadingInCount>>([]);
 
         public Task OpenedAsync(string deckId, string sessionId) => Task.CompletedTask;
 

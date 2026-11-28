@@ -14,6 +14,7 @@ namespace SlideWorks.WebApi.Realtime;
 [JsonDerivedType(typeof(AudienceState), "audienceState")]
 [JsonDerivedType(typeof(AudienceEnded), "audienceEnded")]
 [JsonDerivedType(typeof(JoinedCount), "joinedCount")]
+[JsonDerivedType(typeof(ReadingIn), "readingIn")]
 [JsonDerivedType(typeof(PollTally), "pollTally")]
 [JsonDerivedType(typeof(PollControl), "pollControl")]
 [JsonDerivedType(typeof(QuestionTally), "questionTally")]

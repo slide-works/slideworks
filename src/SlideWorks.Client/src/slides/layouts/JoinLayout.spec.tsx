@@ -214,6 +214,7 @@ async function stubOwnerLive(page: Page, joinedCount: number) {
         live: true,
         joinedCount,
         joinBar: false,
+        readingIn: null,
       },
     }),
   );

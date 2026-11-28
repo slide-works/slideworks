@@ -32,7 +32,7 @@ const finding = (
   severity: SlideFinding['severity'],
   source: SlideFinding['source'],
   message = `${rule} message`,
-): SlideFinding => ({ slide, rule, severity, source, where: 'body', message });
+): SlideFinding => ({ slide, rule, severity, source, where: 'body', message, language: null });
 
 const withFindings = (findings: SlideFinding[], revision = deckPage.revision): DeckPageView => ({
   ...deckPage,

@@ -1,6 +1,6 @@
 import { contrastRatio, mixColours, ratioText } from '../templates/editor/contrast';
 import { isChrome, textRunsOf, type CanvasRect, type TextRun } from './canvas';
-import { severityOf, type MeasureRule, type SlideFinding } from './types';
+import { severityOf, type MeasureRule, type MeasuredFinding } from './types';
 
 const LARGE_TEXT_PX = 28;
 const SMALL_BAR = 4.5;
@@ -103,7 +103,7 @@ export const contrast: MeasureRule = (frame, slide, canvas) => {
   const images = Array.from(frame.querySelectorAll('img, video'))
     .filter((img) => !isChrome(img))
     .map((img) => ({ rect: canvas.toCanvas(img.getBoundingClientRect()) }));
-  const found: SlideFinding[] = [];
+  const found: MeasuredFinding[] = [];
   const seen = new Set<HTMLElement>();
   for (const run of textRunsOf(frame)) {
     if (run.rects.length === 0 || seen.has(run.element)) continue;

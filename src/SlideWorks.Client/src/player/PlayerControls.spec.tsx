@@ -238,6 +238,7 @@ test('player bar keeps every control inside a phone viewport while live', async 
         live: true,
         joinedCount: 3,
         joinBar: false,
+        readingIn: null,
       },
     }),
   );

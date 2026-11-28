@@ -46,6 +46,12 @@ public class AudienceDiscriminatorTests : ApiTestFixture
     }
 
     [Test]
+    public void ReadingIn_WhenDeclaredAsItsOwnType_ShouldCarryTheDiscriminator()
+    {
+        JsonSerializer.Serialize(new ReadingIn("7Kq2xYp9LmQa", [new ReadingInCount("en", 3)]), HubJson).ShouldContain("\"type\":\"readingIn\"");
+    }
+
+    [Test]
     public void QuestionTally_WhenDeclaredAsItsOwnType_ShouldCarryTheDiscriminator()
     {
         JsonSerializer.Serialize(new QuestionTally("7Kq2xYp9LmQa", "r1", 3, []), HubJson).ShouldContain("\"type\":\"questionTally\"");

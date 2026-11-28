@@ -10,7 +10,11 @@ namespace SlideWorks.WebApi.Features.Decks.Views;
 public sealed record DeckPlaySlide(int Number, string Layout, int? Part, bool DeepDive, string Surface, int Steps, JsonElement Slots)
 {
     public static DeckPlaySlide From(Slide slide, ResolvedTemplate template)
-        => new(slide.Position + 1, slide.Layout, slide.Part, slide.DeepDive, SurfaceOf(slide, template), slide.Steps, SlideJson.Slots(slide));
+        => From(slide, template, SlideJson.Slots(slide));
+
+    // The slide with slots already merged in a language (TranslationMerge.For); the rest of the slide is the same.
+    public static DeckPlaySlide From(Slide slide, ResolvedTemplate template, JsonElement slots)
+        => new(slide.Position + 1, slide.Layout, slide.Part, slide.DeepDive, SurfaceOf(slide, template), slide.Steps, slots);
 
     // The slide's resolved surface, for every slide view (K6): the one the slide stores, else its layout's own as the
     // deck's template finds the layout. A layout that takes either surface, or one the template does not know, is light.

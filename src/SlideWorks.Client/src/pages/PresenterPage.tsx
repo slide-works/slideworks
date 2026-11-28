@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import { Link, useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { LiveChip } from '../live/LiveChip';
+import { ReadingIn } from '../live/ReadingIn';
 import { getPresenterView } from '../api/presenter';
 import type { PresenterView } from '../api/types';
 import {
@@ -165,6 +166,7 @@ export function PresenterPage() {
           clockMinutes={clockMinutes}
           onTimer={controls.timer}
           onReopenAudience={reopenAudience}
+          readingIn={<ReadingIn />}
           liveChip={<LiveChip deckTitle={view.title} joinBar={view.look.joinBar} compact />}
         />
 

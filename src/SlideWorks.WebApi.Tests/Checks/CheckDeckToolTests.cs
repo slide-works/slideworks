@@ -149,11 +149,46 @@ public class CheckDeckToolTests : ApiTestFixture
 
         var structured = result.GetProperty("structuredContent");
         structured.ValueKind.ShouldBe(JsonValueKind.Object);
-        structured.EnumerateObject().Select(p => p.Name).ShouldBe(["deck", "slides", "findings", "measured", "error"]);
+        structured.EnumerateObject().Select(p => p.Name).ShouldBe(["deck", "slides", "languages", "findings", "measured", "error"]);
         var finding = structured.GetProperty("findings")[0];
         finding.GetProperty("rule").GetString().ShouldBe("imageLowResolution");
         finding.GetProperty("severity").GetString().ShouldBe("warning");
         finding.GetProperty("source").GetString().ShouldBe("measured");
+        finding.GetProperty("language").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    [Test]
+    public async Task CheckDeck_WhenLanguageIsGivenOnTheRawWire_ShouldAnswerAnObject()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await ThreeSlideDeckAsync(agent);
+
+        // The deck's primary language (en by default), which check_deck always accepts.
+        var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "check_deck", $$"""{"deck":"{{deck}}","language":"en"}""");
+
+        (result.TryGetProperty("isError", out var isError) && isError.GetBoolean()).ShouldBeFalse(result.GetRawText());
+        var structured = result.GetProperty("structuredContent");
+        structured.ValueKind.ShouldBe(JsonValueKind.Object);
+        structured.EnumerateObject().Select(p => p.Name).ShouldBe(["deck", "slides", "languages", "findings", "measured", "error"]);
+        structured.GetProperty("languages").ValueKind.ShouldBe(JsonValueKind.Array);
+    }
+
+    [Test]
+    public async Task CheckDeck_WhenTranslationsAreOff_ShouldLeaveEveryFindingLanguageNull()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await ThreeSlideDeckAsync(agent);
+        Stored.FindingsFor(2, Finding(2, FindingRule.GenericAlt, FindingSource.Stored));
+        Engine.FindingsFor(1, Finding(1, FindingRule.SmallText, FindingSource.Measured));
+        Engine.FailSlide(3, new RenderingFailedException("image not loaded"));
+
+        var (isError, json) = await agent.CallToolAsync("check_deck", new { deck });
+
+        isError.ShouldBeFalse(json.GetRawText());
+        json.GetProperty("languages").GetArrayLength().ShouldBe(0);
+        var findings = json.GetProperty("findings").EnumerateArray().ToList();
+        findings.Select(f => f.GetProperty("rule").GetString()).ShouldBe(["smallText", "genericAlt", "renderFailed"]);
+        findings.Select(f => f.GetProperty("language").ValueKind).ShouldAllBe(kind => kind == JsonValueKind.Null);
     }
 
     private static SlideFinding Finding(int slide, FindingRule rule, FindingSource source)

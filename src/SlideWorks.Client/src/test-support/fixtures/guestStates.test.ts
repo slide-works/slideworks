@@ -9,6 +9,7 @@ import {
   guestTranslations,
   guestView,
   joinedCount,
+  readingIn,
   translationsOff,
 } from './guestStates';
 
@@ -138,6 +139,7 @@ describe('audience-events.json', () => {
       'questionControl',
       'questionTally',
       'reactions',
+      'readingIn',
       'wordCloud',
     ]);
     for (const [name, sample] of Object.entries(audienceEventsJson)) expect(sample.type).toBe(name);
@@ -146,6 +148,10 @@ describe('audience-events.json', () => {
   it('has the shape of each event', () => {
     expect(keys(audienceState())).toEqual(STATE_KEYS);
     expect(keys(joinedCount())).toEqual(['count', 'type']);
+    expect(keys(readingIn())).toEqual(['counts', 'type']);
+    expect(readingIn().counts?.map((count) => keys(count))).toEqual(
+      Array(4).fill(['code', 'count']),
+    );
     expect(audienceEnded().type).toBe('audienceEnded');
   });
 
