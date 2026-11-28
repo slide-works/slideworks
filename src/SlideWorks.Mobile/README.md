@@ -18,3 +18,5 @@ From the repo root, after `pnpm install --frozen-lockfile` in `src/`:
 ## Expo project
 
 `app.json` has no `owner` and no `extra.eas.projectId` yet: the maintainer's `eas init` adds both.
+
+The React Native Perf Monitor overlay is unavailable in dev builds, because `app.json` blocks `SYSTEM_ALERT_WINDOW`.
