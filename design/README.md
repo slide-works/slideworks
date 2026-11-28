@@ -21,6 +21,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-884-live-speech/`](sw-884-live-speech/) | SW-884 Live speech V1: a speaker app with on-device subtitles, translated on the server for each guest's phone | Mockups reviewed 28 Nov; decisions D1–D24 settled; not built |
 | [`sw-885-listen/`](sw-885-listen/) | SW-885 Live speech V2: guests listen to the translated talk (a Listen button on mobile web, and an audience mode in the app) | Mockups reviewed 28 Nov, landscape added in round 2; decisions D1–D27 settled; not built |
 | [`sw-943-translation-engine/`](sw-943-translation-engine/) | SW-943 Translation engine: self-hosted models, chosen per language pair in the admin panel | Mockups reviewed 28 Nov; decisions D1–D13 settled; not built |
+| [`sw-982-slideworks-voice/`](sw-982-slideworks-voice/) | SW-982 The SlideWorks voice: a server-side voice for guests whose phone can't speak their language | Mockups reviewed 28 Nov; decisions D1–D8 settled; not built |
 
 ## SW-1 Foundation
 
@@ -543,3 +544,33 @@ Proposed in the mockups for the plan to confirm:
 - **API.** `GET /api/admin/translations` returns the whole view (models with health and last-hour p50, p95 and calls; the default; the pairs). `PUT …/default`, `PUT …/pairs/{a}/{b}`, `DELETE …/pairs/{a}/{b}` and `POST …/try` each answer with the refreshed view or the result, the same pattern as `/api/admin/users`.
 - **Tables.** `TranslationSettings` (default model, seeded from `Translation:DefaultModel`) and `TranslationPairOverrides` (the pair sorted, model, changed at and by). A removed row is soft-deleted with `RemovedAt` and a partial unique index on the live pair.
 - **Metrics.** Every call records the model id, pair, tokens in and out, latency and outcome (translated, not supported, timed out, unreachable, not configured) to VictoriaMetrics, plus one Seq event.
+
+## SW-982 The SlideWorks voice
+
+Open [`sw-982-slideworks-voice/sw-982-mockups.html`](sw-982-slideworks-voice/sw-982-mockups.html) in a browser. SW-885 lets a guest listen to the translated talk through the phone's own voice. When the phone has no voice for the language, Listen can't start (SW-885 D13). Android Chrome without a Thai voice pack is the common case. SW-982 adds a fallback voice that SlideWorks runs itself, the **SlideWorks voice**. The rest of SW-885 is unchanged: the Listen button, the strip, the D9 catch-up and the Wake Lock. Voice names, sizes, latencies and costs are illustrative or estimates; the page marks estimates with ~. The PNGs are screenshots of each section at 1300 px wide.
+
+| Screen | PNG |
+|---|---|
+| The gap: where phones have no voice, by platform | [01-gap](sw-982-slideworks-voice/png/sw-982-01-gap.png) |
+| Where the voice runs: the server, the browser or the app, compared | [02-where](sw-982-slideworks-voice/png/sw-982-02-where.png) |
+| Mobile web: no phone voice, both voices offered, listening, catching up, the voice drops mid-talk, neither voice | [03-web](sw-982-slideworks-voice/png/sw-982-03-web.png) |
+| The app's audience mode: the Listen sheet with no phone voice, listening, screen locked | [04-app](sw-982-slideworks-voice/png/sw-982-04-app.png) |
+| `/admin/translations` › Voices: voice engines, the voice per language, Try it | [05-admin](sw-982-slideworks-voice/png/sw-982-05-admin.png) |
+| How a line becomes audio, the proposed contracts and what to check during planning | [06-flow](sw-982-slideworks-voice/png/sw-982-06-flow.png) |
+| Open and cloud voices per language, and what was ruled out | [07-models](sw-982-slideworks-voice/png/sw-982-07-models.png) |
+| The decisions | [08-decisions](sw-982-slideworks-voice/png/sw-982-08-decisions.png) |
+
+### Decisions (2026-11-28)
+
+- **D1. Where it runs:** on the SlideWorks server, one synthesis per line per language. Guests fetch each line's audio, about 6–27 KB a line. A model in the browser would cost each guest ~60–110 MB per language before the first line; a model in the app leaves mobile web guests with nothing.
+- **D2. When it is offered:** it is picked for the guest when the phone has no voice for the language. Otherwise it is listed under the phone's voice as a second choice. The phone's voice stays the default (SW-885 D3).
+- **D3. Thai, Malay and Cantonese:** open voices where the licence is clean (vi, id, zh, ja, ko and the European languages). A cloud voice (Azure) behind the same seam reads th, ms and yue, because no open voice for them has a clean licence and stated training data. For self-hosters the cloud voice is optional config, as SW-981's cloud speech to text is. Open models with unclear provenance can be heard in admin Try it, but aren't used live until it is checked.
+- **D4. When the server synthesises:** only while a language has at least one guest listening with the SlideWorks voice, from the next line.
+- **D5. Delivery:** the caption arrives as text, as in V1. The guest GETs a line's audio when it is next to play, through one audio element unlocked by the Start tap, so skipped lines are never fetched.
+- **D6. Name:** "SlideWorks voice" in the Listen sheet.
+- **D7. Admin:** a read-mostly Voices tab on `/admin/translations` (SW-943's page): the voice engines from config with health and speed, the voice per language with a sample, and Try it. Which voice serves a language stays in server config.
+- **D8. Failure mid-talk:** skip that line. After 2 misses in a row the reserved skip row (SW-885 D21) says so, and listening carries on with the next line that has audio.
+
+Two findings affect SW-885. Android Chrome lists voices whose pack isn't installed and reads them in English without an error, so the D13 check can pass when it shouldn't. Developers also report iOS's built-in speech pausing when the screen locks, which puts SW-885 D17 at risk in the app; server audio played as media avoids it.
+
+[`sw-982-slideworks-voice/design-notes.md`](sw-982-slideworks-voice/design-notes.md) has the same decisions, the proposed contracts (`SetListening` gains `voice`, `GET /api/live/{code}/speech/{lang}/{seq}`, `Speech:Voices` config) and what to check during planning.
