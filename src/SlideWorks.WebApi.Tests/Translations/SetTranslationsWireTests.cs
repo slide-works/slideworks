@@ -20,6 +20,10 @@ public class SetTranslationsWireTests : ApiTestFixture
 
         var raw = result.GetRawText();
         (result.TryGetProperty("isError", out var flag) && flag.GetBoolean()).ShouldBeFalse(raw);
-        result.GetProperty("structuredContent").ValueKind.ShouldBe(System.Text.Json.JsonValueKind.Object, raw);
+        var content = result.GetProperty("structuredContent");
+        content.ValueKind.ShouldBe(System.Text.Json.JsonValueKind.Object, raw);
+        var translations = content.GetProperty("translations");
+        translations.GetProperty("enabled").GetBoolean().ShouldBeTrue(raw);
+        translations.GetProperty("languages")[0].GetProperty("code").GetString().ShouldBe("es", raw);
     }
 }
