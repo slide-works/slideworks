@@ -111,7 +111,6 @@ public class BearerRouteCoverageTests : ApiTestFixture
     }
 
     // POST /api/auth/device-sessions/codes: codes are minted with the cookie only, so a bearer gets 403 cookie_required.
-    // Red until SW-958 maps the codes endpoint (it answers the /api fallback's 404 until then).
     [Test]
     public async Task BearerRouteCoverage_WhenCodeMintedWithBearer_ShouldAnswerCookieRequired()
     {
