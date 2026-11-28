@@ -477,6 +477,12 @@ public class AudienceHubContractTests : ApiTestFixture
             }
         }
 
+        public Task ChooseAsync(string connectionId, string language) => Task.CompletedTask;
+
+        public Task<AudienceSeat?> PlaceAsync(string connectionId, string language) => Task.FromResult<AudienceSeat?>(null);
+
+        public Task<IReadOnlyList<AudienceSeat>> SeatsAsync(string deckId) => Task.FromResult<IReadOnlyList<AudienceSeat>>([]);
+
         public Task<int> CountAsync(string sessionId) => Task.FromResult(0);
 
         public Task<int> JoinedAsync(string sessionId) => Task.FromResult(0);

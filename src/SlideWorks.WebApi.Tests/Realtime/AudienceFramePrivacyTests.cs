@@ -41,7 +41,8 @@ public class AudienceFramePrivacyTests : ApiTestFixture
         var bus = Factory.Services.GetRequiredService<IAudienceEvents>();
 
         var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", "123456");
-        await bus.PublishAsync(state);
+        // To the primary's slide-state group, where JoinAudience put the guest (SW-883 D11).
+        await bus.PublishAsync(state with { Group = AudienceSlideGroups.Name(deck, "en") });
         await bus.PublishAsync(new AudienceEnded(deck));
         var count = await owner.NextAudienceAsync();
         var pushedState = await guest.NextAudienceAsync();
@@ -75,7 +76,8 @@ public class AudienceFramePrivacyTests : ApiTestFixture
         var bus = Factory.Services.GetRequiredService<IAudienceEvents>();
 
         var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", "123457");
-        await bus.PublishAsync(state);
+        // To the primary's slide-state group, where JoinAudience put the guest (SW-883 D11).
+        await bus.PublishAsync(state with { Group = AudienceSlideGroups.Name(deck, "en") });
         var pushed = await guest.NextAudienceAsync();
 
         foreach (var frame in new[] { joined, pushed })
