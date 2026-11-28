@@ -21,6 +21,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-884-live-speech/`](sw-884-live-speech/) | SW-884 Live speech V1: a speaker app with on-device subtitles, translated on the server for each guest's phone | Mockups reviewed 28 Nov; decisions D1–D24 settled; not built |
 | [`sw-885-listen/`](sw-885-listen/) | SW-885 Live speech V2: guests listen to the translated talk (a Listen button on mobile web, and an audience mode in the app) | Mockups reviewed 28 Nov, landscape added in round 2; decisions D1–D27 settled; not built |
 | [`sw-943-translation-engine/`](sw-943-translation-engine/) | SW-943 Translation engine: self-hosted models, chosen per language pair in the admin panel | Mockups reviewed 28 Nov; decisions D1–D13 settled; not built |
+| [`sw-944-multilingual-qa/`](sw-944-multilingual-qa/) | SW-944 Live speech V3: multilingual typed Q&A (guests ask in their own language; the speaker reads every question in theirs) | Mockups reviewed 28 Nov; decisions D1–D8 settled; not built |
 
 ## SW-1 Foundation
 
@@ -543,3 +544,45 @@ Proposed in the mockups for the plan to confirm:
 - **API.** `GET /api/admin/translations` returns the whole view (models with health and last-hour p50, p95 and calls; the default; the pairs). `PUT …/default`, `PUT …/pairs/{a}/{b}`, `DELETE …/pairs/{a}/{b}` and `POST …/try` each answer with the refreshed view or the result, the same pattern as `/api/admin/users`.
 - **Tables.** `TranslationSettings` (default model, seeded from `Translation:DefaultModel`) and `TranslationPairOverrides` (the pair sorted, model, changed at and by). A removed row is soft-deleted with `RemovedAt` and a partial unique index on the live pair.
 - **Metrics.** Every call records the model id, pair, tokens in and out, latency and outcome (translated, not supported, timed out, unreachable, not configured) to VictoriaMetrics, plus one Seq event.
+
+## SW-944 Live speech V3: multilingual typed Q&A
+
+Open [`sw-944-multilingual-qa/sw-944-mockups.html`](sw-944-multilingual-qa/sw-944-mockups.html) in a browser. A guest types a question in any catalogue language and taps Send. The server keeps what they wrote and translates it with the SW-943 engine. The guest's card then shows the sentence the speaker will read. The speaker's views (presenter window, phone remote, big screen, report, `get_questions`) only ever show the speaker's language. Other guests read each question in their own language, with Show original. Questions are typed: nobody talks into a phone. The phone's Questions tab, the presenter's Questions panel and the big-screen card are SW-9's as built; only the language parts are new.
+
+The live demo works. Noor asks in Thai, Kenji reads in Japanese, and Sam's presenter window shows English. Controls switch each person's language and Sam's language, offer sample questions in each language, make the next question's translations fail, and pause the room, which otherwise keeps asking and upvoting in four languages. A table under the demo shows every row the server stores: the original, each translation with its model and time, failures and withdrawals. Typed text that isn't a sample gets a pretend translation marked "demo". The PNGs are screenshots of each section at 1300 px wide.
+
+| Screen | PNG |
+|---|---|
+| Scope: what V3 ships and what it leaves out | [01-scope](sw-944-multilingual-qa/png/sw-944-01-scope.png) |
+| Live demo: two guest phones, the presenter window and the server's stored rows | [02-demo](sw-944-multilingual-qa/png/sw-944-02-demo.png) |
+| The guest's phone: asking, translating, sent to the speaker as, already in the speaker's language, translation failed, another guest reading Japanese with Show original, switching language mid-session, review first | [03-phone](sw-944-multilingual-qa/png/sw-944-03-phone.png) |
+| Speaker side: the Questions panel with language tiles and a question that couldn't be translated, the phone remote strip, the big screen, the report and MCP | [04-speaker](sw-944-multilingual-qa/png/sw-944-04-speaker.png) |
+| How a question flows from the asker to the speaker and other guests, and what is stored | [05-flow](sw-944-multilingual-qa/png/sw-944-05-flow.png) |
+| The contracts the change needs (proposed) | [06-contracts](sw-944-multilingual-qa/png/sw-944-06-contracts.png) |
+| The questions and the answers given | [07-questions](sw-944-multilingual-qa/png/sw-944-07-questions.png) |
+
+### Decisions (2026-11-28)
+
+Settled before the mockups:
+
+- **D1. Other guests:** read each question in their own language, with Show original. A question is translated once per language a guest in the room is reading, the same fan-out as subtitles.
+- **D2. The speaker's language:** the language set for the talk's live subtitles (SW-884); with subtitles off, the deck's primary language.
+- **D3. Editing:** a question can't be edited after sending, in V3.
+
+From the mockup review:
+
+- **D4. When a question arrives:** each reader gets a new question when their translation is stored, or after at most 5 s with the original and a Not translated marker; a translation that arrives later replaces it. This applies to the speaker as well as to guests. The asker sees their question at once, with "Translating for Sam…".
+- **D5. The speaker sees where a question came from:** a small tile in the presenter panel, a globe and the language code (TH), on questions asked in another language. Never the original text. Not on the phone remote strip or the big screen.
+- **D6. A question's language:** the guest's chosen language is only a hint. The engine reports the language it detected, and that is stored as the question's language, so an English question from a guest reading Thai reaches an English-speaking speaker untranslated. No language picker in the ask sheet. SW-943's translator has to return the detected source language.
+- **D7. Withdraw:** D3 assumed guests could delete a question; they can't today. SW-944 adds Withdraw on the asker's own question, under "Sent to Sam as". It is a soft delete (`WithdrawnAt`): gone from every view at once, its upvotes dropped, kept in the report as withdrawn. Not offered once the question is answered or on screen.
+- **D8. The speaker's language changes mid-session:** the open and waiting questions are translated into the new language in the background, showing their original with Translating… until each is back. Answered and hidden questions translate when their tab is opened. A guest switching language works the same way.
+
+Unchanged: `AskLimiter` rate limits, review first, hide, answered and show on screen, which act on the question rather than on one of its texts. Names are never translated.
+
+Proposed in the mockups for the plan to confirm:
+
+- **Ask.** `AskRequest` gets `Language`: the guest's chip language, checked against the catalogue, defaulting to the deck's primary language. The 201 comes back before any translation runs.
+- **Tables.** `PollOption` keeps the text as typed. `Question` gets `Language` (existing rows backfilled with the deck's primary language) and `WithdrawnAt`. A new `QuestionTranslation` holds one row per question and language: text, model id, milliseconds and outcome (ok or failed), unique on the round, position and language. A failed row has no text and stops retries for that language.
+- **Views.** Each view is built for one reader. `GuestQuestion.Text` is in the viewer's language, with `Translation` (none, translated, failed, pending) and `Original` when it isn't the original; the asker's own question adds `SentAs`. `QaQuestion.Text` is in the speaker's language, with `FromLanguage` and `NotTranslated`. `QuestionsReportQuestion` and `get_questions` return the speaker's-language text plus the original and its language.
+- **Realtime.** Room pushes go per language group, so a guest only receives their language. A stored translation is pushed to its group and, for the speaker's language, to presenters and the asker.
+- **Withdraw.** `DELETE /api/join/{code}/questions/{n}`, the asker only.
