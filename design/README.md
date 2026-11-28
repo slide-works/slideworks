@@ -491,6 +491,8 @@ From the landscape round (section 05). They build on SW-5's full-screen landscap
 - **D26. The app goes immersive when sideways:** only the guest screen unlocks rotation. Status and system bars are hidden, the home indicator auto-hides, and the screen stays awake. A swipe from the edge brings the bars back. The mini player folds into the rail.
 - **D27. A poll opening in landscape:** a chip over the top of the slide, "Poll open · turn upright to vote", until the guest turns upright or the poll closes.
 
+[`sw-885-listen/design-notes.md`](sw-885-listen/design-notes.md) has the same decisions plus the landscape implementation notes and what to check during planning (safe areas, black-bar width, caption contrast, iPad full screen, the poll chip's state).
+
 Proposed in the mockups for the plan to confirm:
 
 - **The guest's speech queue.** Only final lines translated into the guest's language are queued. Each is spoken with `lang`, `voice` and `rate` set, and the next one starts on `onend`. With more than 3 waiting, the older ones are dropped and the strip says how many.
