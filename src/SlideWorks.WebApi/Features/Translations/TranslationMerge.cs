@@ -33,7 +33,7 @@ public class TranslationMerge(AppDbContext db, IDeckTranslations translations, I
         => Merge(await LoadAsync(deckId), language);
 
     // Loads the deck, its settings, its template and its live slides once, so several languages merge from one snapshot.
-    internal async Task<DeckSnapshot> LoadAsync(string deckId)
+    public async Task<DeckSnapshot> LoadAsync(string deckId)
     {
         var deck = await db.Decks.AsNoTracking().SingleAsync(d => d.Id == deckId);
         var settings = await translations.ForDeckAsync(deckId);
@@ -42,9 +42,9 @@ public class TranslationMerge(AppDbContext db, IDeckTranslations translations, I
         return new DeckSnapshot(settings, template, slides);
     }
 
-    internal static MergedDeck Merge(DeckSnapshot snapshot, string? language)
+    public static MergedDeck Merge(DeckSnapshot snapshot, string? language)
         => new([.. snapshot.Slides.Select(slide => (slide.Id, For(slide, snapshot.Template, snapshot.Settings, language)))]);
 }
 
 // What TranslationMerge loaded for a deck: its settings, its template and its live slides in position order.
-internal sealed record DeckSnapshot(TranslationSettings Settings, ResolvedTemplate Template, IReadOnlyList<Slide> Slides);
+public sealed record DeckSnapshot(TranslationSettings Settings, ResolvedTemplate Template, IReadOnlyList<Slide> Slides);
