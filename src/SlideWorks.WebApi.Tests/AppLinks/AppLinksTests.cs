@@ -11,8 +11,8 @@ public class AppLinksTests : ApiTestFixture
 {
     private const string JOIN = "http://join.example";
     private const string APPLE_ID = "ABCDE12345.app.slideworks.mobile";
-    private const string FINGERPRINT_A = "14:6D:E9:83:C5:73:06:50:D8:EE:B9:95:2F:34:FC:64";
-    private const string FINGERPRINT_B = "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99";
+    private const string FINGERPRINT_A = "14:6D:E9:83:C5:73:06:50:D8:EE:B9:95:2F:34:FC:64:14:6D:E9:83:C5:73:06:50:D8:EE:B9:95:2F:34:FC:64";
+    private const string FINGERPRINT_B = "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99";
 
     protected override Dictionary<string, string?> ExtraConfig => new()
     {
@@ -40,7 +40,9 @@ public class AppLinksTests : ApiTestFixture
 
         var body = await client.GetFromJsonAsync<JsonElement>($"{JOIN}/.well-known/apple-app-site-association");
 
-        body.GetProperty("applinks").GetProperty("details")[0].GetProperty("appIDs").EnumerateArray().Select(id => id.GetString()).ShouldBe([APPLE_ID]);
+        var detail = body.GetProperty("applinks").GetProperty("details")[0];
+        detail.GetProperty("appIDs").EnumerateArray().Select(id => id.GetString()).ShouldBe([APPLE_ID]);
+        detail.GetProperty("components").EnumerateArray().Select(c => c.GetProperty("/").GetString()).ShouldBe(["/j/*", "/??????"]);
     }
 
     [Test]
@@ -88,12 +90,17 @@ public class AppLinksTests : ApiTestFixture
     {
         using var client = ClientFor(TestUser.Anonymous);
 
-        var oauth = await client.GetAsync($"{JOIN}/.well-known/oauth-authorization-server");
+        var oauthPaths = new[] { "oauth-authorization-server", "oauth-protected-resource", "oauth-protected-resource/mcp" };
+        var oauth = new List<HttpResponseMessage>();
+        foreach (var path in oauthPaths)
+        {
+            oauth.Add(await client.GetAsync($"{JOIN}/.well-known/{path}"));
+        }
         var aasa = await client.GetAsync($"{JOIN}/.well-known/apple-app-site-association");
         var assetLinks = await client.GetAsync($"{JOIN}/.well-known/assetlinks.json");
 
-        oauth.StatusCode.ShouldBe(HttpStatusCode.Redirect);
-        oauth.Headers.Location!.OriginalString.ShouldBe($"{PublicUrl}/.well-known/oauth-authorization-server");
+        oauth.Select(r => r.StatusCode).ShouldBe([HttpStatusCode.Redirect, HttpStatusCode.Redirect, HttpStatusCode.Redirect]);
+        oauth.Select(r => r.Headers.Location!.OriginalString).ShouldBe(oauthPaths.Select(path => $"{PublicUrl}/.well-known/{path}"));
         aasa.StatusCode.ShouldBe(HttpStatusCode.OK);
         assetLinks.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -118,5 +125,44 @@ public class AppLinksNotConfiguredTests : ApiTestFixture
         var response = await client.GetAsync($"{host}/.well-known/{file}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+}
+
+// One malformed fingerprint makes the whole setting count as not configured: assetlinks.json is 404, never a crash.
+[TestFixture]
+public class AppLinksInvalidFingerprintTests : ApiTestFixture
+{
+    private const string VALID = "14:6D:E9:83:C5:73:06:50:D8:EE:B9:95:2F:34:FC:64:14:6D:E9:83:C5:73:06:50:D8:EE:B9:95:2F:34:FC:64";
+    private const string SHORT = "14:6D:E9:83:C5:73:06:50:D8:EE:B9:95:2F:34:FC:64";
+
+    protected override Dictionary<string, string?> ExtraConfig => new() { ["SLIDEWORKS_ANDROID_CERT_SHA256"] = $"{VALID}, {SHORT}" };
+
+    [Test]
+    public async Task AssetLinks_WhenAFingerprintIsInvalid_ShouldReturn404()
+    {
+        using var client = ClientFor(TestUser.Anonymous);
+
+        var response = await client.GetAsync("/.well-known/assetlinks.json");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+}
+
+// Valid fingerprints are served upper-cased, in the order listed.
+[TestFixture]
+public class AppLinksFingerprintFormatTests : ApiTestFixture
+{
+    private const string LOWER = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99";
+
+    protected override Dictionary<string, string?> ExtraConfig => new() { ["SLIDEWORKS_ANDROID_CERT_SHA256"] = LOWER };
+
+    [Test]
+    public async Task AssetLinks_WhenFingerprintIsLowerCase_ShouldServeItUpperCase()
+    {
+        using var client = ClientFor(TestUser.Anonymous);
+
+        var body = await client.GetFromJsonAsync<JsonElement>("/.well-known/assetlinks.json");
+
+        body[0].GetProperty("target").GetProperty("sha256_cert_fingerprints").EnumerateArray().Select(f => f.GetString()).ShouldBe([LOWER.ToUpperInvariant()]);
     }
 }
