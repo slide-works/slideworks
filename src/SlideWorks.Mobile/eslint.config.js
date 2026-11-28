@@ -2,7 +2,7 @@ const eslint = require('@eslint/js');
 const tseslint = require('typescript-eslint');
 
 // The test harness (src/test-support/) is for tests only: production code never imports it.
-const testFiles = ['**/*.test.ts', '**/*.spec.tsx', 'src/test-support/**'];
+const testFiles = ['jest.setup.ts', '**/*.test.ts', '**/*.spec.tsx', 'src/test-support/**'];
 const testSupportImports = ['**/test-support', '**/test-support/**'];
 
 module.exports = tseslint.config(
