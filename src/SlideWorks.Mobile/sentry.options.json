@@ -1,0 +1,8 @@
+{
+  "dsn": "",
+  "sendDefaultPii": false,
+  "tracesSampleRate": 0,
+  "enableAutoSessionTracking": false,
+  "attachScreenshot": false,
+  "attachViewHierarchy": false
+}

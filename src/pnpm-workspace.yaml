@@ -3,7 +3,13 @@
 packages:
   - SlideWorks.Client
   - SlideWorks.Core.Client
+  - SlideWorks.Mobile
 
 # Dependencies whose install scripts may run. Every other dependency's install script stays off; add an entry here,
 # with the reason beside it, only when a package fails without its script.
-allowBuilds: {}
+allowBuilds:
+  # The app's crash-report SDK. Its install script only downloads sentry-cli when the platform package
+  # (@sentry/cli-<os>-<arch>, an optional dependency) is missing; that package is installed, so the script stays off.
+  '@sentry/cli': false
+  # Expo CLI's file watcher. Ships prebuilt binaries as optional dependencies; the script is a node-gyp fallback.
+  '@parcel/watcher': false

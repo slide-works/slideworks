@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "SlideWorks",
+    "slug": "slideworks",
+    "scheme": "slideworks",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "app.slideworks.mobile",
+      "supportsTablet": false,
+      "icon": {
+        "light": "./assets/ios/icon-light.png",
+        "dark": "./assets/ios/icon-dark.png",
+        "tinted": "./assets/ios/icon-tinted.png"
+      },
+      "associatedDomains": ["applinks:slideworks.app", "applinks:slideworks.live"],
+      "infoPlist": {
+        "NSAppTransportSecurity": { "NSAllowsLocalNetworking": true },
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "app.slideworks.mobile",
+      "allowBackup": false,
+      "permissions": [],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android/adaptive-foreground.png",
+        "backgroundImage": "./assets/android/adaptive-background.png",
+        "monochromeImage": "./assets/android/adaptive-monochrome.png"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "slideworks.app", "pathPrefix": "/j/" },
+            { "scheme": "https", "host": "slideworks.live", "pathPrefix": "/j/" },
+            { "scheme": "https", "host": "slideworks.live", "pathAdvancedPattern": "/[0-9]{6}" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash/splash-light.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#f7f8fa",
+          "dark": { "image": "./assets/splash/splash-dark.png", "backgroundColor": "#0b1020" }
+        }
+      ],
+      "expo-status-bar",
+      "expo-secure-store",
+      "expo-sqlite",
+      "expo-web-browser",
+      "expo-system-ui",
+      ["expo-build-properties", { "android": { "extraProguardRules": "" } }],
+      ["@sentry/react-native/expo", { "useNativeInit": true }]
+    ],
+    "experiments": { "typedRoutes": true }
+  }
+}
