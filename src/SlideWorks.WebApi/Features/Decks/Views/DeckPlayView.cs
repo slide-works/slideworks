@@ -20,5 +20,9 @@ public sealed record DeckPlayView(
     IReadOnlyList<DeckPlaySlide> Slides)
 {
     public static DeckPlayView From(Deck deck, IEnumerable<Slide> slides, ResolvedTemplate template, LookView look, JoinView join, bool isOwner)
-        => new(deck.Id, deck.Slug, deck.Title, deck.Author, DeckParts.Read(deck), look, join, isOwner, slides.Select(slide => DeckPlaySlide.From(slide, template)).ToList());
+        => From(deck, slides.Select(slide => DeckPlaySlide.From(slide, template)), look, join, isOwner);
+
+    // The view from slides already built, such as slides merged in a language.
+    public static DeckPlayView From(Deck deck, IEnumerable<DeckPlaySlide> slides, LookView look, JoinView join, bool isOwner)
+        => new(deck.Id, deck.Slug, deck.Title, deck.Author, DeckParts.Read(deck), look, join, isOwner, slides.ToList());
 }

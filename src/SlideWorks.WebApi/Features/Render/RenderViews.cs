@@ -19,10 +19,11 @@ namespace SlideWorks.WebApi.Features.Render;
 [RegisterPerRequest]
 public class RenderViews(DeckReader reader, IRenderTokens tokens, IDeckLooks looks, IPublicUrls urls, TimeProvider clock)
 {
-    public async Task<DeckPlayView> PlayAsync(string deckId, string? token)
+    // The play view in the language, or the primary for none (K9). The token is checked before anything is read.
+    public async Task<DeckPlayView> PlayAsync(string deckId, string? token, string? language)
     {
         Require(token, deckId, RenderPurpose.Preview);
-        return (await reader.ReadForRenderAsync(deckId)).Play;
+        return (await reader.ReadForRenderAsync(deckId, language)).Play;
     }
 
     // A deck whose sharing isn't link gets the generic card (D12): it names nothing about the deck.
