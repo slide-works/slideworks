@@ -26,7 +26,7 @@ stale=""
 if [[ ! -f "$index" ]]; then
   stale="missing"
 else
-  newer="$(find "$client/src" "$root/src/contracts" -type f -newer "$index" -print -quit)"
+  newer="$(find "$client/src" "$root/src/SlideWorks.Core.Client/src" "$root/src/contracts" "$root/src/pnpm-lock.yaml" -type f -newer "$index" -print -quit)"
   [[ -z "$newer" ]] || stale="${newer#"$root"/}"
 fi
 if [[ -n "$stale" ]]; then
