@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 STORE = Path(__file__).resolve().parent.parent
-FIXTURES = STORE / "tests" / "fixtures" / "release"
+FIXTURES = STORE / "tests" / "fixtures" / "mobile-release"
 sys.path.insert(0, str(STORE))
 
 import save_builds  # noqa: E402

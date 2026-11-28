@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 STORE = Path(__file__).resolve().parent.parent
-FIXTURE = STORE / "tests" / "fixtures" / "release" / "app.json"
+FIXTURE = STORE / "tests" / "fixtures" / "mobile-release" / "app.json"
 
 
 def run_script(mode, app_json, patch):
