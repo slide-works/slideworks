@@ -1,0 +1,148 @@
+name: Mobile release
+
+# Builds the app on EAS (and submits it to TestFlight and Play internal testing), and pushes the store listing.
+# Run from main: gh workflow run mobile-release.yml -R slide-works/slideworks --ref main
+# Needs the secrets listed in docs/mobile-release.md; each job checks its own first.
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Which platform to build and list
+        type: choice
+        options: [all, ios, android]
+        default: all
+      build:
+        description: Build the app on EAS (uses EAS build credits and takes the next version number)
+        type: boolean
+        default: true
+      submit:
+        description: Submit the build to TestFlight and Play internal testing (EAS --auto-submit)
+        type: boolean
+        default: true
+      listing:
+        description: Push the store listing
+        type: boolean
+        default: true
+
+# A second run waits for the first; a build in progress is never cancelled.
+concurrency:
+  group: mobile-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Something must be ticked
+        if: ${{ !inputs.build && !inputs.listing }}
+        run: |
+          echo "::error::Tick build, listing or both: with neither there is nothing to do."
+          exit 1
+
+  build:
+    needs: guard
+    if: ${{ inputs.build }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Check the Expo token
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Add the \`EXPO_TOKEN\` repository secret first (an Expo robot token)."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      # pnpm at the version the workspace root's packageManager pins; before setup-node, whose cache needs it.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: src/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: src/pnpm-lock.yaml
+      # eas-cli reads the app config and computes the fingerprint locally, so the app's dependencies are installed.
+      - run: pnpm install --frozen-lockfile --filter slide-works-mobile...
+        working-directory: src
+      - name: Write the version
+        env:
+          APP_VERSION_PATCH: ${{ github.run_number }}
+        run: |
+          version=$(python3 store/app_version.py --write)
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "### Version $version (run ${{ github.run_number }})" >> "$GITHUB_STEP_SUMMARY"
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      # The exit status is kept, not acted on, so the files of a build that did finish are still saved.
+      - name: Build on EAS
+        id: eas
+        working-directory: src/SlideWorks.Mobile
+        run: |
+          submit=""
+          if [ "${{ inputs.submit }}" = "true" ]; then submit="--auto-submit"; fi
+          set +e
+          eas build --platform "${{ inputs.platform }}" --profile production --non-interactive --wait --json $submit > "$GITHUB_WORKSPACE/builds.json"
+          status=$?
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "EAS exited with $status"
+      - name: Save the built files
+        if: ${{ !cancelled() }}
+        working-directory: src/SlideWorks.Mobile
+        run: python3 "$GITHUB_WORKSPACE/store/save_builds.py" --builds "$GITHUB_WORKSPACE/builds.json" --out "$GITHUB_WORKSPACE/app-builds"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: app-builds
+          path: app-builds
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Fail if EAS failed
+        if: ${{ steps.eas.outputs.status != '0' && steps.eas.outputs.status != '' }}
+        run: |
+          echo "::error::EAS build failed with exit status ${{ steps.eas.outputs.status }}; any file that did build is in the app-builds artifact."
+          exit 1
+
+  listing-ios:
+    needs: [guard, build]
+    if: ${{ !cancelled() && needs.guard.result == 'success' && inputs.listing && (inputs.platform == 'all' || inputs.platform == 'ios') && (needs.build.result == 'success' || needs.build.result == 'skipped') }}
+    runs-on: ${{ vars.STORE_IOS_RUNNER || 'ubuntu-latest' }}
+    env:
+      ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+      ASC_API_KEY_ISSUER_ID: ${{ secrets.ASC_API_KEY_ISSUER_ID }}
+      ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+    steps:
+      - name: Check the App Store Connect secrets
+        run: |
+          for name in ASC_API_KEY_ID ASC_API_KEY_ISSUER_ID ASC_API_KEY_P8; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Add the \`$name\` repository secret first."
+              exit 1
+            fi
+          done
+      - uses: actions/checkout@v4
+      - run: store/push_listing.sh ios push
+
+  listing-android:
+    needs: [guard, build]
+    if: ${{ !cancelled() && needs.guard.result == 'success' && inputs.listing && (inputs.platform == 'all' || inputs.platform == 'android') && (needs.build.result == 'success' || needs.build.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - name: Check the Play service account
+        run: |
+          if [ -z "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error::Add the \`GOOGLE_PLAY_SERVICE_ACCOUNT_JSON\` repository secret first."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - run: store/push_listing.sh android push
