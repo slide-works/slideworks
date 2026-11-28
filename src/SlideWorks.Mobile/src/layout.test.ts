@@ -1,4 +1,6 @@
 import { readdirSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 // expo-router makes every file under app/ a route, so a spec, helper or component there would become a screen.
@@ -26,9 +28,7 @@ describe('layout', () => {
   it('app holds only routes', () => {
     const files = readdirSync(appDir, { recursive: true, withFileTypes: true })
       .filter((entry) => entry.isFile())
-      .map((entry) =>
-        entry.parentPath.slice(appDir.pathname.length).concat(entry.name).replace(/^\/?/, ''),
-      );
+      .map((entry) => relative(fileURLToPath(appDir), join(entry.parentPath, entry.name)));
 
     expect(files.length).toBeGreaterThan(0);
     expect(files.flatMap(violations)).toEqual([]);
