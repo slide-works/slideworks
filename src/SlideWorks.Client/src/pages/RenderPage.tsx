@@ -24,14 +24,17 @@ async function errorOf(response: Response): Promise<string> {
 }
 
 // POST /api/render/{id}/session first, so <img> requests carry the sw_render
-// cookie, then GET /api/render/{id}. Both send the token as X-Render-Token;
-// neither goes through the signed-in API client, so a 401 never redirects.
-async function loadDeck(id: string, token: string): Promise<Load> {
+// cookie, then GET /api/render/{id}, with ?language= when the fragment names
+// one (K9). Both send the token as X-Render-Token; the session never carries
+// the language. Neither goes through the signed-in API client, so a 401 never
+// redirects.
+async function loadDeck(id: string, token: string, language: string | null): Promise<Load> {
   const headers = { [TOKEN_HEADER]: token };
   const path = `/api/render/${encodeURIComponent(id)}`;
   const session = await fetch(`${path}/session`, { method: 'POST', headers });
   if (!session.ok) return { state: 'failed', error: await errorOf(session) };
-  const response = await fetch(path, { headers });
+  const query = language ? `?language=${encodeURIComponent(language)}` : '';
+  const response = await fetch(path + query, { headers });
   if (!response.ok) return { state: 'failed', error: await errorOf(response) };
   return { state: 'loaded', view: (await response.json()) as DeckPlayView };
 }
@@ -71,14 +74,18 @@ function imagesLoaded(root: HTMLElement): Promise<void> {
 // no player UI, for an agent to screenshot (SW-2 L9, D21). Outside the sign-in
 // gate and with no realtime subscription. The render token comes only from the
 // fragment (#token=…), never the query string, and is removed from the address
-// bar at once. data-ready="true" is set once fonts and images have loaded, or
+// bar at once. The fragment's lang (#token=…&lang=th) asks for the slide in
+// that language (K9). data-ready="true" is set once fonts and images have loaded, or
 // data-checks (the measured findings as JSON) is written with it. A failed load
 // sets data-error with the reason, which is also drawn as text in the root so a
 // screenshot of a failed page shows why.
 export function RenderPage() {
   const { id = '', n } = useParams();
   const hash = useLocation().hash;
-  const [token] = useState(() => new URLSearchParams(hash.slice(1)).get('token'));
+  const [{ token, language }] = useState(() => {
+    const fragment = new URLSearchParams(hash.slice(1));
+    return { token: fragment.get('token'), language: fragment.get('lang') || null };
+  });
   const [load, setLoad] = useState<Load>(() =>
     token ? { state: 'loading' } : { state: 'failed', error: TOKEN_MISSING },
   );
@@ -100,14 +107,14 @@ export function RenderPage() {
   useEffect(() => {
     if (!token) return;
     let live = true;
-    loadDeck(id, token).then(
+    loadDeck(id, token, language).then(
       (result) => live && setLoad(result),
       () => live && setLoad({ state: 'failed', error: 'Network error' }),
     );
     return () => {
       live = false;
     };
-  }, [id, token]);
+  }, [id, token, language]);
 
   const view = load.state === 'loaded' ? load.view : null;
   const slide = view?.slides.find((s) => String(s.number) === n) ?? null;

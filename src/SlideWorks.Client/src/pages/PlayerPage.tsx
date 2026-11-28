@@ -22,12 +22,19 @@ type Load =
 
 // /d/:id/:slug (and /d/:id): the player, open to anonymous viewers, from one
 // GET /api/play/{id} (DeckPlayView). A missing or old slug is replaced by the
-// deck's own, keeping the query (?present) and the hash. It re-reads when the deck changes.
+// deck's own, keeping the query (?present, ?language) and the hash. It re-reads when the deck changes.
 export function PlayerPage() {
   const { id = '', slug } = useParams();
   const location = useLocation();
+  const search = new URLSearchParams(location.search);
   // ?present is the audience window (P8): it follows the presentation when the viewer owns the deck.
-  const audience = new URLSearchParams(location.search).has('present');
+  const audience = search.has('present');
+  // ?language= reads the slides in that language (K8). The audience window never sends one, so the big screen stays in the
+  // primary language (SW-886 D7). A language the deck doesn't offer comes back in the primary.
+  const language = audience ? null : search.get('language') || null;
+  const playPath =
+    `/api/play/${encodeURIComponent(id)}` +
+    (language ? `?language=${encodeURIComponent(language)}` : '');
   // Each read is stamped with its deck, so another deck's result never shows.
   const [result, setResult] = useState<{ id: string; load: Load } | null>(null);
   const load: Load = result?.id === id ? result.load : { kind: 'loading' };
@@ -43,7 +50,7 @@ export function PlayerPage() {
     const show = (next: Load) => {
       if (isLatest()) setResult({ id, load: next });
     };
-    return api.get<DeckPlayView>(`/api/play/${encodeURIComponent(id)}`).then(
+    return api.get<DeckPlayView>(playPath).then(
       (view) => show({ kind: 'loaded', view }),
       (error: unknown) => {
         if (!isLatest()) return;
@@ -69,7 +76,7 @@ export function PlayerPage() {
         }
       },
     );
-  }, [id]);
+  }, [id, playPath]);
 
   const reReadOnJoin = useReReadOnJoin(read, latest);
 
