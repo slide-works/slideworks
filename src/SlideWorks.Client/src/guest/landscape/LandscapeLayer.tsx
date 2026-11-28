@@ -27,7 +27,7 @@ export function LandscapeLayer(props: {
   };
 
   return (
-    <div className="hidden [@media(orientation:landscape)_and_(max-height:500px)]:block">
+    <div className="hidden [@media(orientation:landscape)_and_(max-height:500px)]:contents">
       <button
         ref={tapRef}
         type="button"
