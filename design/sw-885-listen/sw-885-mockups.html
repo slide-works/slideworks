@@ -755,6 +755,132 @@ body.hide-fb .sl .fb { outline: none; }
 .subs .ln.nextl { -webkit-line-clamp: 1; }
 .subs .skipn { height: 14px; }
 .subs .skipn.empty { visibility: hidden; }
+/* =====================================================================
+   SW-885 round 2: landscape. The slide full screen, translations over it.
+   ===================================================================== */
+.phone.land.l2 { width: 620px; }
+.phone.land.l2 .ps { height: auto; aspect-ratio: 2.17; display: block; background: #000; }  /* 852 x 393, an iPhone 15 on its side */
+.lz { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.lz > .lmid { position: relative; flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; container-type: size; }
+/* sized like GuestFollowing: min(100cqw, 100cqh*16/9), less the island's safe area */
+.lstage { --w: min(100cqw - 64px, 100cqh * 16 / 9); position: relative; flex: none; width: var(--w); }
+.lstage .lrail { left: calc(100% + (100cqw - var(--w)) / 4 - 17px); }
+.lstage .lrail.corner { left: auto; right: 8px; }
+.phone.land .ps .lstage .mirror { width: 100%; border-radius: 0; box-shadow: none; outline: none; cursor: pointer; }
+
+/* hardware: island on the left in landscape, Android punch hole */
+.lisl { position: absolute; left: 9px; top: 50%; translate: 0 -50%; width: 20px; height: 74px; border-radius: 11px; background: #000; outline: 1px solid #1a1d24; z-index: 9; }
+.lpunch { position: absolute; left: 12px; top: 50%; translate: 0 -50%; width: 9px; height: 9px; border-radius: 50%; background: #05070b; outline: 1.5px solid #1e222b; z-index: 9; }
+.lhome { position: absolute; bottom: 5px; left: 50%; translate: -50% 0; width: 110px; height: 4px; border-radius: 3px; background: rgb(255 255 255 / .55); z-index: 9; }
+.lhome.faint { background: rgb(255 255 255 / .16); }
+
+/* browser chrome */
+.lchrome { flex: none; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font: 500 10.5px/1 var(--ui); color: #e5e7eb; position: relative; z-index: 4; }
+.lchrome.ios { height: 24px; background: #1c1c1e; }
+.lchrome.ios .aa { position: absolute; left: 46px; font-weight: 700; color: #9ca3af; }
+.lchrome.ios .x { position: absolute; right: 22px; color: #9ca3af; }
+.lchrome.and { height: 30px; background: #202124; justify-content: flex-start; padding: 0 16px 0 40px; }
+.lchrome.and .url { flex: 1; display: flex; align-items: center; gap: 6px; height: 20px; padding: 0 10px; border-radius: 10px; background: #303134; }
+.lchrome svg { width: 9px; height: 10px; color: #9ca3af; }
+
+/* captions over the slide: newest at the bottom, nothing below moves */
+.lcap { position: absolute; left: 5%; right: 5%; bottom: 7%; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: none; }
+.lcap .c { max-width: 94%; padding: 3px 9px; border-radius: 4px; background: rgb(0 0 0 / .8); color: #fff; font: 500 var(--fs, 13px)/1.38 var(--ui); text-align: center; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.lcap .c.dim { color: #cbd5e1; font-size: calc(var(--fs, 13px) * .9); -webkit-line-clamp: 1; }
+.lcap .c.say { box-shadow: inset 3px 0 0 #a78bfa; padding-left: 11px; }
+.lcap .c.st { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #e2e8f0; }
+.lcap .c.st i { width: 7px; height: 7px; border-radius: 50%; background: #fbbf24; }
+.lz[data-size="s"] { --fs: 11.5px; --bh: 40px; }
+.lz[data-size="m"] { --fs: 13.5px; --bh: 50px; }
+.lz[data-size="l"] { --fs: 17px; --bh: 64px; }
+.lz[data-size="l"] .lcap .c { -webkit-line-clamp: 2; }
+
+/* captions below the slide: a fixed band, the slide shrinks to make room */
+.lband { flex: none; height: var(--bh, 50px); width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; padding: 0 70px; box-sizing: border-box; background: #000; }
+.lband .c { max-width: 100%; color: #fff; font: 500 var(--fs, 13px)/1.35 var(--ui); text-align: center; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.lband .c.dim { color: #94a3b8; font-size: calc(var(--fs, 13px) * .88); -webkit-line-clamp: 1; }
+.lband .c.say { color: #ede9fe; }
+.lband .c.say::before { content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 7px 2px 0; border-radius: 50%; background: #a78bfa; }
+
+/* the listening rail: lives in the black bar right of the slide, never on it */
+.lrail { position: absolute; top: 50%; translate: 0 -50%; z-index: 5; display: grid; justify-items: center; gap: 6px; width: 34px; padding: 8px 0; border-radius: 14px; background: rgb(122 90 248 / .18); outline: 1px solid rgb(167 139 250 / .45); color: #ede9fe; font: 700 9.5px/1 var(--ui); text-align: center; }
+.lrail .ico { width: 15px; height: 15px; color: #c4b5fd; }
+.lrail .bars { height: 11px; }
+.lrail .lg { font-size: 9.5px; color: #ddd6fe; }
+.lrail .sk { padding: 3px 5px; border-radius: 6px; background: rgb(251 191 36 / .16); color: #fde68a; font-size: 9px; }
+.lrail.paused { background: rgb(180 83 9 / .25); outline-color: #fbbf24; }
+.lrail.paused .ico { color: #fde68a; }
+.lrail.corner { top: 8px; translate: none; width: auto; display: flex; gap: 5px; padding: 4px 8px; border-radius: 999px; background: rgb(76 52 190 / .9); }
+
+/* the tap overlay (SW-883 D6) with listening and captions controls */
+.lover { position: absolute; left: 0; right: 0; top: 0; z-index: 6; display: flex; align-items: center; gap: 7px; padding: 9px 10px 22px; background: linear-gradient(rgb(0 0 0 / .78), transparent); font: 600 10.5px/1 var(--ui); color: #fff; }
+.lover .sp { flex: 1; }
+.lover .live { font: 700 9px/1 var(--ui); letter-spacing: .08em; padding: 3px 6px; border-radius: 5px; background: rgb(220 38 38 / .85); }
+.lover .ob { all: unset; display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 999px; background: rgb(255 255 255 / .14); font: 700 10px/1 var(--ui); white-space: nowrap; cursor: pointer; }
+.lover .ob.vio { background: #7a5af8; }
+.lover .ob.on { outline: 1.5px solid #a5b8ff; }
+.lover .ob .ico { width: 11px; height: 11px; }
+.lover .ob .cc-ic { font-size: 8px; padding: 1px 3px; }
+.lover .lang { padding: 4px 8px; font-size: 10.5px; }
+.lprog { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgb(255 255 255 / .15); z-index: 6; }
+.lprog i { display: block; height: 100%; background: var(--sw-accent-glow); }
+
+/* captions menu, from the overlay's CC button */
+.lmenu { position: absolute; right: 8px; top: 40px; z-index: 8; width: 210px; display: grid; gap: 8px; padding: 11px; border-radius: 14px; background: #161b2b; outline: 1px solid #334155; box-shadow: 0 12px 30px rgb(0 0 0 / .5); font-size: 11.5px; }
+.lmenu .hd { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.lmenu .hd .sp { flex: 1; }
+.lmenu small { font: 600 9px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: #64748b; }
+.lmenu .seg { padding: 3px; gap: 3px; border-radius: 9px; }
+.lmenu .seg span { min-height: 26px; font: 600 11px/1 var(--ui); border-radius: 7px; }
+.lmenu .seg.s3 { grid-template-columns: repeat(3, 1fr); }
+.lmenu .seg.s3 span:nth-child(1) { font-size: 10px; } .lmenu .seg.s3 span:nth-child(3) { font-size: 14px; }
+.lmenu .ft { font-size: 10px; color: #8c97ad; line-height: 1.35; }
+
+/* toasts and nudges */
+.ltoast { position: absolute; top: 10px; left: 50%; translate: -50% 0; z-index: 7; display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 999px; background: #2a2208; outline: 1px solid #fbbf24; color: #fde68a; font: 500 11px/1.2 var(--ui); white-space: nowrap; }
+.ltoast b { color: #fff; font-weight: 700; }
+.lnudge { position: absolute; top: 9px; left: 50%; translate: -50% 0; z-index: 5; display: flex; align-items: center; gap: 7px; padding: 6px 11px; border-radius: 999px; background: #fff; color: #111827; font: 600 11px/1.2 var(--ui); white-space: nowrap; box-shadow: 0 6px 18px rgb(0 0 0 / .4); }
+.lnudge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sw-accent); }
+.lnudge .ico { width: 14px; height: 14px; color: var(--sw-accent); }
+
+/* landscape side panel: wider than SW-883's language panel */
+.phone.land.l2 .sheet { width: 270px; gap: 8px; }
+.phone.land.l2 .sheet h4 { font-size: 15px; }
+.phone.land.l2 .sheet .vrow { padding: 7px 10px; }
+.phone.land.l2 .sheet .bigbtn { min-height: 36px; }
+
+/* annotation callouts beside the gallery phones */
+.lnote { position: absolute; z-index: 10; padding: 2px 6px; border-radius: 4px; background: #fde68a; color: #422006; font: 700 9.5px/1.3 var(--ui); white-space: nowrap; pointer-events: none; }
+.lnote::after { content: ""; position: absolute; width: 0; height: 0; }
+
+/* demo */
+.ldemo { display: grid; grid-template-columns: minmax(0, 640px) minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 1100px) { .ldemo { grid-template-columns: minmax(0, 1fr); } }
+.ldemo .ctlcard .btn { padding: 5px 10px; font-size: 12.5px; }
+.ldemo .tapnote { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
+.lgal { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 22px; }
+@media (max-width: 1100px) { .lgal { grid-template-columns: minmax(0, 1fr); } }
+.lgal .phone.land.l2 { width: 100%; max-width: 620px; }
+.lgal .st-cap .tag { display: inline-block; margin-right: 6px; }
+.ltech { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
+@media (max-width: 1000px) { .ltech { grid-template-columns: minmax(0, 1fr); } }
+.ltech .card { padding: 14px 16px; display: grid; gap: 8px; align-content: start; }
+.ltech h3 { font: 600 14px/1.3 var(--ui); margin: 0; }
+.ltech ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 13px; }
+.ltech code { font-size: 12px; }
+.qnew { border-left: 3px solid var(--accent); }
+
+@media (max-width: 700px) {
+  .phone.land.l2 { width: 100%; }
+  .lmenu { width: 180px; }
+  .phone.land.l2 .sheet { width: 62%; }
+}
+
+/* a 16:9 phone: no island, no black bar */
+.phone.land.l2.r169 { width: 500px; border-radius: 26px; }
+.phone.land.l2.r169 .ps { height: auto; aspect-ratio: 16 / 9; border-radius: 6px; }
+.lgal .phone.land.l2.r169 { width: 82%; }
+.lz.nosafe .lstage { --w: min(100cqw, 100cqh * 16 / 9); }
 
 </style>
 </head>
@@ -762,13 +888,13 @@ body.hide-fb .sl .fb { outline: none; }
 <main>
 
 <header class="page-head">
-  <div class="eyebrow">SlideWorks · SW-885 · design mockups · 28 Nov 2026</div>
+  <div class="eyebrow">SlideWorks · SW-885 · design mockups · 28 Nov 2026 · round 2 adds landscape</div>
   <h1>Live speech V2: guests listen to the talk in their own language</h1>
   <p>V1 (SW-884) puts translated subtitles on guests' phones. V2 lets a guest put headphones in and <b>hear</b> each translated line, read by the phone's own voice. Mobile web gets a <b>Listen</b> button. The SlideWorks app gets an <b>audience mode</b> that keeps playing with the screen locked. The speaker gets a microphone tip and a count of who is listening. The guest page, the subtitle strip and the speaker app are SW-884's mockups; only the listening parts are new.</p>
 </header>
 
 <nav class="toc">
-  <a href="#scope">01 Scope</a><a href="#demo">02 Live demo</a><a href="#web">03 Mobile web: Listen</a><a href="#app">04 App: audience mode</a><a href="#speaker">05 Speaker side</a><a href="#flow">06 How it flows</a><a href="#decisions">07 Decisions</a>
+  <a href="#scope">01 Scope</a><a href="#demo">02 Live demo</a><a href="#web">03 Mobile web: Listen</a><a href="#app">04 App: audience mode</a><a href="#landscape">05 Landscape</a><a href="#speaker">06 Speaker side</a><a href="#flow">07 How it flows</a><a href="#decisions">08 Decisions</a>
 </nav>
 
 <!-- 01 -->
@@ -785,6 +911,7 @@ body.hide-fb .sl .fb { outline: none; }
         <li><b>Audience mode in the app</b> (D4): join by code or QR without signing in, follow the slides, read, and listen with the screen locked, through headphones, from the lock screen.</li>
         <li><b>A better voice</b> prompt where the OS has one to download.</li>
         <li><b>Headphone counts</b> per language in the presenter's Reading in counter (D18).</li>
+        <li><b>Landscape</b>: the slide full screen, in the guest's language, with the translated lines over it, a listening rail and a captions menu (section 05).</li>
         <li><b>The microphone tip</b> the first time Live subtitles is turned on (D7, D19).</li>
       </ul>
     </div>
@@ -855,9 +982,66 @@ body.hide-fb .sl .fb { outline: none; }
   <div class="states" id="appGrid"></div>
 </section>
 
-<!-- 05 -->
+<!-- 05 · round 2 -->
+<section class="block" id="landscape">
+  <div class="sec-head"><span class="n">05</span><h2>Landscape: the slide full screen, the translation over it</h2><span class="pill ok">round 2 · D22–D27 decided 28 Nov</span></div>
+  <p class="sec-sub">A guest turns the phone sideways to see the slide as big as possible. SW-5 already makes the slide fill the screen, SW-883 translates it and adds a tap overlay (D6), and SW-884 puts two caption lines over it (D17). V2 has to make all of that work together while the guest listens: Sam's words, translated, over a slide that is also translated, with a way to listen, stop, resize and move the captions without turning the phone back. The status sits in the black bar beside the slide, so nothing covers the slide that doesn't have to.</p>
+
+  <div class="ldemo">
+    <div>
+      <div class="phone land l2"><div class="ps" id="lPhone"></div></div>
+      <p class="tapnote">Tap the phone to show the overlay, as a guest would. Tap CC in it for the captions menu.</p>
+    </div>
+    <div style="display:grid;gap:14px">
+      <div class="card ctlcard">
+        <div class="r"><span class="lbl">Phone</span><span id="lcPlat" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span></div>
+        <div class="r"><span class="lbl">Captions</span><span id="lcCap" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span></div>
+        <div class="r"><span class="lbl">Text size</span><span id="lcSize" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span></div>
+        <div class="r"><span class="lbl">Language</span><span id="lcLang" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span></div>
+        <div class="r"><span class="lbl">Guest</span><button class="btn" id="lcListen"></button><button class="btn" id="lcOver">Tap the slide</button></div>
+        <div class="r"><span class="lbl">Sam</span><button class="btn" id="lcFast"></button><button class="btn" id="lcPoll"></button></div>
+      </div>
+      <ul class="demo-notes" style="margin:0">
+        <li><b>The slide and the speech are both in the guest's language.</b> The slide comes from SW-883's translations, the captions from SW-884's stream, and the voice from V2's speech queue. All three follow the one language chip.</li>
+        <li><b>Over the slide</b> keeps the slide as big as it can be; the captions cover its bottom edge, like a film. <b>Below the slide</b> shrinks the slide about 18% so nothing is covered. Try it on slide 5, whose cards sit low.</li>
+        <li><b>The rail</b> right of the slide shows listening, the language and any skipped lines (D9). It's in the black bar that a 16:9 slide leaves on a modern phone, so it never covers the slide.</li>
+        <li>Captions over the slide are absolutely placed, so nothing on the page moves when a line arrives. Below the slide, the band has a fixed height for each text size (D21).</li>
+        <li>iPhone web keeps Safari's bar: iOS has no full screen for a page. Android web has SW-883's Full screen button. The app goes full screen by itself.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="font:600 16px/1.3 var(--head);margin:30px 0 4px">States</h3>
+  <p class="sec-sub" style="margin-bottom:16px">Each is a phone turned sideways, on Thai, with Sam on slide 3 unless the caption says otherwise.</p>
+  <div class="lgal" id="landGrid"></div>
+
+  <div class="ltech">
+    <div class="card"><h3>Mobile web</h3><ul>
+      <li>Extends <code>GuestFollowing</code>'s landscape branch (<code>orientation: landscape</code> and <code>max-height: 500px</code>). Captions, rail and overlay are siblings of the slide, absolutely placed.</li>
+      <li>Caption size and position are kept in <code>localStorage</code> on the phone, like the Cantonese or Mandarin choice.</li>
+      <li>Wake Lock is already held while listening (D12). In landscape it's also held while captions are showing, because people read without touching the screen.</li>
+      <li>Full screen on Android is <code>requestFullscreen()</code> on the guest shell (SW-883 D6). It's never offered on iPhone.</li>
+    </ul></div>
+    <div class="card"><h3>The app</h3><ul>
+      <li>The guest screen unlocks rotation (<code>expo-screen-orientation</code>); join, home and speaker screens stay upright.</li>
+      <li>Sideways means immersive: status bar hidden, Android system bars hidden (<code>expo-navigation-bar</code>), home indicator auto-hidden on iOS. A swipe from the edge brings them back.</li>
+      <li>The screen stays awake while following a talk (<code>expo-keep-awake</code>). Background audio and Now Playing are unchanged (D17).</li>
+      <li>The mini player folds into the rail. Tapping the rail opens the overlay, not the player.</li>
+    </ul></div>
+    <div class="card"><h3>To check during planning</h3><ul>
+      <li>Safe areas: the island or punch hole sits left or right depending on which way the phone turned. The rail goes on the side away from it.</li>
+      <li>Phones with a 16:9 screen (iPhone SE) have no black bar. The rail then becomes a corner pill over the slide (D24).</li>
+      <li>Caption contrast on light slides: the 80% black box behind each line passes 4.5:1 on any slide.</li>
+      <li>iPadOS Safari does support element full screen; the Android button could show there too.</li>
+    </ul></div>
+  </div>
+
+  <div class="card" style="padding:12px 16px;margin-top:22px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">Answered 28 Nov.</b> Q13–Q18 all went as recommended and are D22–D27 on SW-885: captions over the slide with Below as an option, the Captions menu, the rail in the black bar, captions off while listening, the app immersive when sideways, and the poll chip. See section 08.</div>
+</section>
+
+<!-- 06 -->
 <section class="block" id="speaker">
-  <div class="sec-head"><span class="n">05</span><h2>Speaker side: the microphone tip and who is listening</h2><span class="pill acc">speaker app · presenter window</span></div>
+  <div class="sec-head"><span class="n">06</span><h2>Speaker side: the microphone tip and who is listening</h2><span class="pill acc">speaker app · presenter window</span></div>
   <p class="sec-sub">The tip lands in SW-884's Subtitles setup sheet, once per phone, followed by a Microphone row (D19). Reading in, on the laptop and in the Subtitles sheet, gains a headphone count per language (D18). Cloud speech to text moved to SW-981 (D20).</p>
   <div class="states" id="spkGrid"></div>
 
@@ -874,9 +1058,9 @@ body.hide-fb .sl .fb { outline: none; }
   </div>
 </section>
 
-<!-- 06 -->
+<!-- 07 -->
 <section class="block" id="flow">
-  <div class="sec-head"><span class="n">06</span><h2>How a line gets from Sam to a guest's ears</h2></div>
+  <div class="sec-head"><span class="n">07</span><h2>How a line gets from Sam to a guest's ears</h2></div>
   <div class="card diagram">
     <svg viewBox="0 0 1000 330" role="img" aria-label="Speaker phone, server, guest phone speech queue, headphones">
       <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a93a3"/></marker>
@@ -936,11 +1120,11 @@ body.hide-fb .sl .fb { outline: none; }
   </div>
 </section>
 
-<!-- 07 -->
+<!-- 08 -->
 <section class="block" id="decisions">
-  <div class="sec-head"><span class="n">07</span><h2>Decisions</h2></div>
-  <div class="card" style="padding:12px 16px;margin:0 0 14px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">All answered 28 Nov.</b> D1–D9 were settled before the mockups. Q1–Q12 here became D10–D19 on SW-885, all as recommended. Cloud speech to text moved to SW-981 with Q9 and Q10 (D20), and a local TTS fallback is SW-982. The fixed-height strip is D21.</div>
-  <div class="card tblwrap" style="padding:4px 8px;margin-bottom:18px"><table class="atbl"><thead><tr><th>Q</th><th>Question</th><th>Answer</th><th>Recorded</th></tr></thead><tbody><tr><td class="m">Q1</td><td>Where Listen is on mobile web</td><td>A button in the subtitle strip, next to Hide; a sheet on first tap</td><td class="m">D10</td></tr><tr><td class="m">Q2</td><td>Which lines are read aloud</td><td>Only lines translated into the guest's language; no Listen for guests in the speaker's language</td><td class="m">D11</td></tr><tr><td class="m">Q3</td><td>Mobile web and the screen lock</td><td>Wake Lock while listening; Resume and one line about the app if it locks anyway</td><td class="m">D12</td></tr><tr><td class="m">Q4</td><td>No voice for the language</td><td>Say so, keep Start off, show how to add it, keep subtitles. A local TTS model is SW-982</td><td class="m">D13</td></tr><tr><td class="m">Q5</td><td>Audience and speaker in one app</td><td>One home: Join a talk first, no sign-in; Presenting now below once signed in</td><td class="m">D14</td></tr><tr><td class="m">Q6</td><td>Join links and QR codes</td><td>Open the app when installed; web mentions the app only in the Listen sheet</td><td class="m">D15</td></tr><tr><td class="m">Q7</td><td>Headphones out</td><td>The app pauses, one tap to play on the speaker; web reminds in the sheet</td><td class="m">D16</td></tr><tr><td class="m">Q8</td><td>Lock screen</td><td>Now Playing: slide artwork, deck and language, Pause, Jump to live</td><td class="m">D17</td></tr><tr><td class="m">Q9</td><td>Reaching the cloud engine</td><td>Temporary key per talk, phone streams direct. Moved with cloud STT</td><td class="m">SW-981 D1</td></tr><tr><td class="m">Q10</td><td>Cloud drops mid-talk</td><td>Fall back to the on-phone model, then back. Moved with cloud STT</td><td class="m">SW-981 D2</td></tr><tr><td class="m">Q11</td><td>Presenter sees who listens</td><td>A headphone count per language in Reading in</td><td class="m">D18</td></tr><tr><td class="m">Q12</td><td>When the mic tip shows</td><td>Once per phone, then a Microphone row naming the mic in use</td><td class="m">D19</td></tr><tr><td class="m">—</td><td>Cloud speech to text in V2</td><td>No: its own Feature, SW-981</td><td class="m">D20</td></tr><tr><td class="m">—</td><td>Subtitle strip height</td><td>Fixed; clamp the lines, reserve the skip row; grow only in extreme cases</td><td class="m">D21</td></tr></tbody></table></div>
+  <div class="sec-head"><span class="n">08</span><h2>Decisions</h2></div>
+  <div class="card" style="padding:12px 16px;margin:0 0 14px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">Round 1 answered 28 Nov.</b> D1–D9 were settled before the mockups. Q1–Q12 here became D10–D19 on SW-885, all as recommended. Cloud speech to text moved to SW-981 with Q9 and Q10 (D20), and a local TTS fallback is SW-982. The fixed-height strip is D21. Round 2, on landscape: Q13–Q18 became D22–D27, all as recommended.</div>
+  <div class="card tblwrap" style="padding:4px 8px;margin-bottom:18px"><table class="atbl"><thead><tr><th>Q</th><th>Question</th><th>Answer</th><th>Recorded</th></tr></thead><tbody><tr><td class="m">Q1</td><td>Where Listen is on mobile web</td><td>A button in the subtitle strip, next to Hide; a sheet on first tap</td><td class="m">D10</td></tr><tr><td class="m">Q2</td><td>Which lines are read aloud</td><td>Only lines translated into the guest's language; no Listen for guests in the speaker's language</td><td class="m">D11</td></tr><tr><td class="m">Q3</td><td>Mobile web and the screen lock</td><td>Wake Lock while listening; Resume and one line about the app if it locks anyway</td><td class="m">D12</td></tr><tr><td class="m">Q4</td><td>No voice for the language</td><td>Say so, keep Start off, show how to add it, keep subtitles. A local TTS model is SW-982</td><td class="m">D13</td></tr><tr><td class="m">Q5</td><td>Audience and speaker in one app</td><td>One home: Join a talk first, no sign-in; Presenting now below once signed in</td><td class="m">D14</td></tr><tr><td class="m">Q6</td><td>Join links and QR codes</td><td>Open the app when installed; web mentions the app only in the Listen sheet</td><td class="m">D15</td></tr><tr><td class="m">Q7</td><td>Headphones out</td><td>The app pauses, one tap to play on the speaker; web reminds in the sheet</td><td class="m">D16</td></tr><tr><td class="m">Q8</td><td>Lock screen</td><td>Now Playing: slide artwork, deck and language, Pause, Jump to live</td><td class="m">D17</td></tr><tr><td class="m">Q9</td><td>Reaching the cloud engine</td><td>Temporary key per talk, phone streams direct. Moved with cloud STT</td><td class="m">SW-981 D1</td></tr><tr><td class="m">Q10</td><td>Cloud drops mid-talk</td><td>Fall back to the on-phone model, then back. Moved with cloud STT</td><td class="m">SW-981 D2</td></tr><tr><td class="m">Q11</td><td>Presenter sees who listens</td><td>A headphone count per language in Reading in</td><td class="m">D18</td></tr><tr><td class="m">Q12</td><td>When the mic tip shows</td><td>Once per phone, then a Microphone row naming the mic in use</td><td class="m">D19</td></tr><tr><td class="m">—</td><td>Cloud speech to text in V2</td><td>No: its own Feature, SW-981</td><td class="m">D20</td></tr><tr><td class="m">—</td><td>Subtitle strip height</td><td>Fixed; clamp the lines, reserve the skip row; grow only in extreme cases</td><td class="m">D21</td></tr><tr><td class="m">Q13</td><td>Where translated lines go in landscape</td><td>Over the bottom of the slide, film style; Below the slide as an option</td><td class="m">D22</td></tr><tr><td class="m">Q14</td><td>What the guest can change in landscape</td><td>A Captions menu from CC: show or hide, S/M/L, over or below; remembered on the phone</td><td class="m">D23</td></tr><tr><td class="m">Q15</td><td>How a listening guest sees it is playing</td><td>A rail in the black bar beside the slide; a corner pill on 16:9 phones</td><td class="m">D24</td></tr><tr><td class="m">Q16</td><td>Hiding captions while listening</td><td>Yes: captions off, listening carries on</td><td class="m">D25</td></tr><tr><td class="m">Q17</td><td>The app when turned sideways</td><td>Immersive at once; a swipe from the edge brings the bars back</td><td class="m">D26</td></tr><tr><td class="m">Q18</td><td>A poll opens while sideways</td><td>A chip: Poll open · turn upright to vote</td><td class="m">D27</td></tr></tbody></table></div>
 </section>
 
 </main>
@@ -1226,12 +1410,8 @@ body.hide-fb .sl .fb { outline: none; }
     { o: { i: 3, lang: 'th', subs: { state: 'paused', listen: 'on', paused: true } }, b: '9 · Sam paused subtitles', s: 'Listening stays on and quiet. It picks up with the next line when Sam resumes.' },
   ];
   const webGrid = document.getElementById('webGrid');
-  webGrid.innerHTML = WEB.map((g, k) => '<div><div class="phone"><div class="ps" data-w="' + k + '"></div></div><div class="st-cap"><b>' + g.b + '</b><span>' + g.s + '</span></div></div>').join('') +
-    '<div class="wide"><div class="phone land"><div class="ps" data-wl="1"></div></div><div class="st-cap"><b>10 · Landscape</b><span>SW-884\'s film-style captions, with a small Listening pill. Tapping shows SW-883\'s overlay, where Stop sits next to the language chip.</span></div></div>';
+  webGrid.innerHTML = WEB.map((g, k) => '<div><div class="phone"><div class="ps" data-w="' + k + '"></div></div><div class="st-cap"><b>' + g.b + '</b><span>' + g.s + '</span></div></div>').join('');
   webGrid.querySelectorAll('[data-w]').forEach(el => { el.innerHTML = guestL(WEB[+el.dataset.w].o); hydrate(el); });
-  const wl = webGrid.querySelector('[data-wl]');
-  wl.innerHTML = guestLand({ i: 2, lang: 'th', lines: [TH[1], TH[2]] }) + '<span style="position:absolute;top:12px;right:16px;display:inline-flex;gap:5px;align-items:center;padding:4px 8px;border-radius:999px;background:rgb(122 90 248 / .85);font:700 10.5px/1 var(--ui)">' + HP + 'ไทย</span>';
-  hydrate(wl);
 
   // ---------- 04 app audience mode ----------
   const qrSvg = (seed0, n) => { let seed = seed0; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280; n = n || 21; let r = '';
@@ -1482,6 +1662,151 @@ body.hide-fb .sl .fb { outline: none; }
     setInterval(() => { if (D.fast && D.talking) tick(); }, 110);
     setInterval(() => { if (!D.fast) tick(); else paintQueue(); }, 240);
   }
+
+  // ================= 05 landscape (round 2) =================
+  const LKEY = { th: 'th', ja: 'ja', 'zh-Hant': 'zh', en: 'en' };
+  const FS_IC = '<svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4V1h3M8 1h3v3M11 8v3H8M4 11H1V8"/></svg>';
+  const ROT_IC = '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="1.5" width="6" height="13" rx="1.5"/><path d="M1.5 6.5a6.5 6.5 0 0 1 3-4.5M14.5 9.5a6.5 6.5 0 0 1-3 4.5"/></svg>';
+  // o: { plat: ios|and|andfs|app|se, i, lang, cap: over|below|off, size: s|m|l, lines:[{t,say,dim}], listen: on|off|paused|none,
+  //      skipped, paused (Sam paused), over (overlay shown), menu, panel, toast, nudge }
+  function LG(o) {
+    const lang = o.lang || 'th', i = o.i == null ? 2 : o.i, plat = o.plat || 'ios', cap = o.cap || 'over', size = o.size || 'm';
+    const listen = o.listen || 'off';
+    const chrome = plat === 'ios' ? '<div class="lchrome ios"><span class="aa">AA</span>' + lock + '<span>slideworks.live</span><span class="x">⋯</span></div>'
+      : plat === 'and' ? '<div class="lchrome and"><span class="url">' + lock + '<span>slideworks.live/482913</span></span><span>⋮</span></div>' : '';
+    const hw = (plat === 'ios' || plat === 'app') ? '<div class="lisl"></div>' : (plat === 'and' || plat === 'andfs') ? '<div class="lpunch"></div>' : '';
+    const home = plat === 'ios' || plat === 'and' ? '<div class="lhome"></div>' : plat === 'app' ? '<div class="lhome faint"></div>' : '';
+    const lines = o.lines || [];
+    const capLines = () => lines.map(l => '<div class="c' + (l.say ? ' say' : '') + (l.dim ? ' dim' : '') + '">' + esc(l.t) + '</div>').join('');
+    let capOver = '', band = '';
+    if (cap === 'over') capOver = o.paused ? '<div class="lcap"><div class="c st"><i></i>Sam paused subtitles</div></div>' : lines.length ? '<div class="lcap">' + capLines() + '</div>' : '';
+    if (cap === 'below') band = '<div class="lband">' + (o.paused ? '<div class="c dim">Sam paused subtitles</div>' : capLines()) + '</div>';
+    let rail = '';
+    if (listen === 'on' || listen === 'paused') rail = '<div class="lrail' + (listen === 'paused' ? ' paused' : '') + (plat === 'se' ? ' corner' : '') + '" data-lx="tap">' + HP +
+      (listen === 'paused' ? '<span>❚❚</span>' : bars(o.quiet ? 'still' : 'live')) + '<span class="lg">' + L(lang).chip + '</span>' + (o.skipped ? '<span class="sk">↷' + o.skipped + '</span>' : '') + '</div>';
+    let over = '';
+    if (o.over) {
+      const lb = listen === 'none' ? '' : listen === 'off' ? '<button type="button" class="ob vio" data-lx="listen">' + HP + 'Listen</button>' : '<button type="button" class="ob" data-lx="listen">■ Stop</button>';
+      const cc = '<button type="button" class="ob' + (o.menu ? ' on' : '') + '" data-lx="cc"><span class="cc-ic">CC</span>' + (cap === 'off' ? 'Off' : '') + ' ▾</button>';
+      const fs = plat === 'and' ? '<button type="button" class="ob" data-lx="fs">' + FS_IC + 'Full screen</button>' : '';
+      over = '<div class="lover"><span>' + (i + 1) + ' / ' + N + '</span><span class="live">LIVE</span><span class="sp"></span>' + lb + cc + fs + chip(lang).replace('<button ', '<button data-lx="lang" ') + '</div><div class="lprog"><i style="width:' + ((i + 1) / N * 100) + '%"></i></div>';
+    }
+    const segS = ['s', 'm', 'l'].map(z => '<span data-lx="size-' + z + '"' + (z === size ? ' class="on"' : '') + '>A</span>').join('');
+    const segP = [['over', 'Over the slide'], ['below', 'Below it']].map(([v, t]) => '<span data-lx="place-' + v + '"' + (v === cap || (cap === 'off' && v === (o.lastCap || 'over')) ? ' class="on"' : '') + '>' + t + '</span>').join('');
+    const menu = o.menu ? '<div class="lmenu"><div class="hd"><span class="cc-ic">CC</span>Captions<span class="sp"></span><span class="tog' + (cap === 'off' ? '' : ' on') + '" data-lx="capoff" role="switch" aria-checked="' + (cap !== 'off') + '"></span></div>' +
+      '<small>Text size</small><div class="seg s3">' + segS + '</div><small>Where</small><div class="seg s2">' + segP + '</div>' +
+      '<div class="ft">' + (listen === 'on' && cap === 'off' ? 'Listening carries on with captions off.' : 'Remembered on this phone. Upright, the strip comes back.') + '</div></div>' : '';
+    return '<div class="lz' + (plat === 'se' ? ' nosafe' : '') + '" data-size="' + size + '">' + chrome +
+      '<div class="lmid"><div class="lstage">' + frame(i, lang) + capOver + rail + (o.nudge || '') + (o.toast || '') + over + menu + '</div></div>' + band + '</div>' +
+      hw + home + (o.panel || '');
+  }
+  const pollNudge = '<div class="lnudge"><span class="dot"></span>Poll open<span style="color:#5b6474;font-weight:500">· turn upright to vote</span>' + ROT_IC + '</div>';
+  const hpToast = '<div class="ltoast">Paused: headphones disconnected<b>Play on speaker</b></div>';
+  const landSheet = SH('Listen in ไทย', '',
+    vrow(true, 'Kanya', 'ไทย · this phone\'s voice', '▶ Try') + speedSeg(1) +
+    '<button type="button" class="bigbtn violet">▶ Start listening</button><div class="linkrow" style="color:#8c97ad">' + HP + ' Use headphones: the room can hear your speaker.</div>');
+  const TH5 = [SCRIPT[6].th, SCRIPT[7].th];
+  const say2 = (a, b) => [{ t: a, say: true }, { t: b, dim: true }];
+  const read2 = (a, b) => [{ t: a, dim: true }, { t: b }];
+  const LAND = [
+    { o: { plat: 'ios', listen: 'on', lines: say2(TH[1], TH[2]) }, b: '1 · iPhone web, listening', s: 'The slide takes all the height Safari leaves (iOS has no full screen for a page). The line being read has a purple edge; the next one waits under it, dimmer. The rail beside the slide says it is playing.' },
+    { o: { plat: 'and', listen: 'on', over: true, lines: say2(TH[1], TH[2]) }, b: '2 · A tap: the overlay', s: 'SW-883\'s overlay gains Stop (or Listen) and a CC button. Full screen shows on Android only (D6). It hides after 3 seconds, like before.' },
+    { o: { plat: 'andfs', listen: 'on', lines: say2(TH[2], TH[3]) }, b: '3 · Android web, after Full screen', s: 'No browser bars. The screen is kept on while captions show (D12 extended), because nobody touches it while reading.' },
+    { o: { plat: 'andfs', listen: 'on', over: true, menu: true, lines: say2(TH[2], TH[3]) }, b: '4 · The captions menu (D23)', s: 'Show or hide, three sizes, over or below the slide. Remembered on the phone. Upright, the portrait strip comes back.' },
+    { o: { plat: 'andfs', i: 4, cap: 'below', listen: 'on', lines: say2(TH5[0], TH5[1]) }, b: '5 · Below the slide (D22)', s: 'Slide 5\'s cards sit low, so this guest moved the captions down. The slide shrinks about 18% to make room for a band of fixed height (D21): nothing is covered.' },
+    { o: { plat: 'app', size: 'l', listen: 'on', lines: [{ t: TH[3], say: true }] }, b: '6 · Large text', s: 'For reading from arm\'s length. Large shows only the line being read, up to 2 lines. The box grows upward, so the slide\'s bottom edge is all it covers.' },
+    { o: { plat: 'ios', listen: 'off', lines: read2(TH[1], TH[2]), panel: landSheet }, b: '7 · First Listen, sideways', s: 'The Listen sheet opens as a side panel, as SW-883\'s language list does. Start is still the tap iOS needs (D10).' },
+    { o: { plat: 'app', listen: 'on', skipped: 2, lines: say2(TH[3], SCRIPT[4].th) }, b: '8 · Falling behind', s: 'Sam ran ahead and 2 lines were skipped (D9). The count shows in the rail for 6 seconds, not over the slide. Skipped lines are still in the portrait strip\'s history.' },
+    { o: { plat: 'app', listen: 'on', lines: say2(TH[1], TH[2]) }, b: '9 · The app: immersive (D26)', s: 'Turning sideways goes full screen at once: no status bar, home indicator faded, screen kept awake. The mini player folds into the rail, and audio still survives the lock screen (D17).' },
+    { o: { plat: 'app', i: 3, listen: 'on', nudge: pollNudge, lines: say2(SCRIPT[4].th, SCRIPT[5].th) }, b: '10 · A poll opens (D27)', s: 'Landscape hides the activity card (SW-5). A chip says there is a poll to vote on, and goes when the guest turns upright or the poll closes.' },
+    { o: { plat: 'andfs', listen: 'on', cap: 'off', lines: say2(TH[1], TH[2]) }, b: '11 · Captions off, still listening (D25)', s: 'Only the slide and the voice. The rail is the only sign that listening carries on.' },
+    { o: { plat: 'se', listen: 'on', lines: say2(TH[1], TH[2]) }, b: '12 · A 16:9 phone (iPhone SE)', s: 'The slide fills the whole screen, so there is no black bar. The rail becomes a pill in the slide\'s top corner (D24).', se: true },
+    { o: { plat: 'app', listen: 'paused', toast: hpToast, lines: read2(TH[2], TH[3]) }, b: '13 · The app: headphones out', s: 'Paused at once (D16), the same toast as portrait, and the rail turns amber. Captions carry on.' },
+    { o: { plat: 'ios', lang: 'en', listen: 'none', lines: read2('Smaller changes get reviewed the same day.', 'And when something breaks, there is much less to roll back.') }, b: '14 · Reading in Sam\'s language', s: 'No listening and no rail (D11): plain film captions over an English slide, which is SW-884 D17 as it is.' },
+  ];
+  const landGrid = document.getElementById('landGrid');
+  landGrid.innerHTML = LAND.map((g, k) => '<div><div class="phone land l2' + (g.se ? ' r169' : '') + '"><div class="ps" data-land="' + k + '"></div></div><div class="st-cap"><b>' + g.b + '</b><span>' + g.s + '</span></div></div>').join('');
+  landGrid.querySelectorAll('[data-land]').forEach(el => { el.innerHTML = LG(Object.assign({ quiet: STILL }, LAND[+el.dataset.land].o)); hydrate(el); });
+
+  // ---- the landscape demo ----
+  const LD = { plat: 'app', cap: 'over', lastCap: 'over', size: 'm', lang: 'th', listen: true, fast: false, poll: false, over: false, menu: false, k: 1, arrived: [], q: [], skipped: 0, skipAt: 0, nextAt: 0 };
+  const lEl = document.getElementById('lPhone');
+  let lHtml = '', overT = 0;
+  function lArrive() {
+    const c = SCRIPT[LD.k]; LD.k = (LD.k + 1) % SCRIPT.length;
+    const text = c[LKEY[LD.lang]];
+    LD.arrived.push({ c, text });
+    if (LD.listen) {
+      LD.q.push({ text, state: 'wait' });
+      const w = LD.q.filter(x => x.state === 'wait');
+      if (w.length > 3) { w.slice(0, -1).forEach(x => { x.state = 'skip'; }); LD.skipped = w.length - 1; LD.skipAt = Date.now(); }
+    }
+  }
+  function lPump(now) {
+    const s = LD.q.find(x => x.state === 'say');
+    if (s && now >= s.end) s.state = 'done';
+    if (!LD.q.some(x => x.state === 'say')) { const nx = LD.q.find(x => x.state === 'wait'); if (nx) { nx.state = 'say'; nx.end = now + est(nx.text, LKEY[LD.lang]); } }
+    LD.q = LD.q.filter(x => x.state === 'say' || x.state === 'wait');
+  }
+  function lState() {
+    const last = LD.arrived[LD.arrived.length - 1], prev = LD.arrived[LD.arrived.length - 2];
+    const slide = last ? last.c.s : 2;
+    let lines = [];
+    const say = LD.q.find(x => x.state === 'say'), nw = LD.q.filter(x => x.state === 'wait').slice(-1)[0];
+    if (LD.listen && say) { lines = [{ t: say.text, say: true }]; if (nw && LD.size !== 'l') lines.push({ t: nw.text, dim: true }); }
+    else if (last) { lines = LD.size === 'l' ? [{ t: last.text }] : (prev ? [{ t: prev.text, dim: true }] : []).concat([{ t: last.text }]); }
+    return { plat: LD.plat, i: slide, lang: LD.lang, cap: LD.cap, lastCap: LD.lastCap, size: LD.size, lines, listen: LD.listen ? 'on' : 'off',
+      skipped: LD.skipped && Date.now() - LD.skipAt < 6000 ? LD.skipped : 0, over: LD.over || LD.menu, menu: LD.menu, nudge: LD.poll ? pollNudge : '' };
+  }
+  function lPaint() {
+    const h = LG(lState());
+    if (h !== lHtml) { lHtml = h; lEl.innerHTML = h; hydrate(lEl); }
+  }
+  function lTick() {
+    const now = Date.now();
+    if (now >= LD.nextAt) { lArrive(); LD.nextAt = now + (LD.fast ? 1100 : 3400 + Math.random() * 1200); }
+    lPump(now); lPaint();
+  }
+  const btnRow = (id, items, cur, key) => { $(id).innerHTML = items.map(([v, t]) => '<button type="button" class="btn' + (v === cur ? ' on' : '') + '" data-' + key + '="' + v + '">' + t + '</button>').join(''); };
+  function lCtl() {
+    btnRow('lcPlat', [['ios', 'iPhone web'], ['and', 'Android web'], ['andfs', 'Android, Full screen'], ['app', 'The app']], LD.plat, 'p');
+    btnRow('lcCap', [['over', 'Over the slide'], ['below', 'Below the slide'], ['off', 'Off']], LD.cap, 'c');
+    btnRow('lcSize', [['s', 'Small'], ['m', 'Medium'], ['l', 'Large']], LD.size, 'z');
+    btnRow('lcLang', [['th', 'ไทย'], ['ja', '日本語'], ['zh-Hant', '繁中']], LD.lang, 'g');
+    $('lcListen').textContent = LD.listen ? '■ Stop listening' : '🎧 Listen';
+    $('lcOver').classList.toggle('on', LD.over);
+    $('lcFast').textContent = LD.fast ? 'Talk normally' : '⏩ Talk fast';
+    $('lcFast').classList.toggle('on', LD.fast);
+    $('lcPoll').textContent = LD.poll ? 'Close the poll' : 'Open a poll';
+    $('lcPoll').classList.toggle('on', LD.poll);
+    lPaint();
+  }
+  const setCap = (c) => { if (c !== 'off') LD.lastCap = c; LD.cap = c; };
+  const showOver = () => { LD.over = true; clearTimeout(overT); overT = setTimeout(() => { if (!LD.menu) { LD.over = false; lCtl(); } }, 3000); };
+  const lReset = () => { LD.q = []; LD.skipped = 0; LD.arrived = LD.arrived.slice(-2).map(a => ({ c: a.c, text: a.c[LKEY[LD.lang]] })); };
+  $('lcPlat').onclick = e => { const b = e.target.closest('[data-p]'); if (b) { LD.plat = b.dataset.p; lCtl(); } };
+  $('lcCap').onclick = e => { const b = e.target.closest('[data-c]'); if (b) { setCap(b.dataset.c); lCtl(); } };
+  $('lcSize').onclick = e => { const b = e.target.closest('[data-z]'); if (b) { LD.size = b.dataset.z; lCtl(); } };
+  $('lcLang').onclick = e => { const b = e.target.closest('[data-g]'); if (b) { LD.lang = b.dataset.g; lReset(); lCtl(); } };
+  $('lcListen').onclick = () => { LD.listen = !LD.listen; LD.q = []; LD.skipped = 0; lCtl(); };
+  $('lcOver').onclick = () => { if (LD.over) { LD.over = false; LD.menu = false; } else showOver(); lCtl(); };
+  $('lcFast').onclick = () => { LD.fast = !LD.fast; LD.nextAt = 0; lCtl(); };
+  $('lcPoll').onclick = () => { LD.poll = !LD.poll; lCtl(); };
+  lEl.addEventListener('click', e => {
+    const a = e.target.closest('[data-lx]'); const x = a && a.dataset.lx;
+    if (!x || x === 'tap') { if (LD.menu) { LD.menu = false; LD.over = false; } else if (LD.over) LD.over = false; else showOver(); }
+    else if (x === 'listen') { LD.listen = !LD.listen; LD.q = []; LD.skipped = 0; showOver(); }
+    else if (x === 'cc') { LD.menu = !LD.menu; if (!LD.menu) showOver(); }
+    else if (x === 'capoff') setCap(LD.cap === 'off' ? LD.lastCap : 'off');
+    else if (x.startsWith('size-')) LD.size = x.slice(5);
+    else if (x.startsWith('place-')) setCap(x.slice(6));
+    else if (x === 'fs') { LD.plat = 'andfs'; LD.over = false; }
+    else if (x === 'lang') { const order = ['th', 'ja', 'zh-Hant']; LD.lang = order[(order.indexOf(LD.lang) + 1) % 3]; lReset(); showOver(); }
+    lCtl();
+  });
+  if (STILL) { lArrive(); lArrive(); lArrive(); LD.q = [{ text: LD.arrived[1].text, state: 'say', end: Infinity }, { text: LD.arrived[2].text, state: 'wait' }]; LD.nextAt = Infinity; lCtl(); }
+  else { lCtl(); setInterval(lTick, 200); }
+
 
 })();
 </script>

@@ -1,3 +1,8 @@
+| Landscape: the slide full screen with the translation over it; a demo (iPhone web, Android web, Android full screen, the app; captions over, below or off; three sizes) and 14 states | [05-landscape](sw-885-listen/png/sw-885-05-landscape.png) |
+| Speaker side: the microphone tip, the Microphone row, a lapel mic, headphone counts in the Subtitles sheet and the presenter window | [06-speaker](sw-885-listen/png/sw-885-06-speaker.png) |
+| How a line gets from the speaker to a guest's ears, the guest's speech queue and the hub messages | [07-flow](sw-885-listen/png/sw-885-07-flow.png) |
+| The decisions | [08-decisions](sw-885-listen/png/sw-885-08-decisions.png) |
+
 # Design
 
 Mockups and design decisions, with one folder per Feature.
@@ -14,7 +19,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-108-profile-sharing/`](sw-108-profile-sharing/) | SW-108 Profile page and sharing decks with people | Mockups reviewed 22 Nov; decisions D12 and D24–D32 settled, D33 open; not built |
 | [`sw-883-translations/`](sw-883-translations/) | SW-883 Slide translations, and the guest phone's full-screen landscape | Mockups reviewed 28 Nov; decisions D1–D9 settled; not built |
 | [`sw-884-live-speech/`](sw-884-live-speech/) | SW-884 Live speech V1: a speaker app with on-device subtitles, translated on the server for each guest's phone | Mockups reviewed 28 Nov; decisions D1–D24 settled; not built |
-| [`sw-885-listen/`](sw-885-listen/) | SW-885 Live speech V2: guests listen to the translated talk (a Listen button on mobile web, and an audience mode in the app) | Mockups reviewed 28 Nov; decisions D1–D21 settled; not built |
+| [`sw-885-listen/`](sw-885-listen/) | SW-885 Live speech V2: guests listen to the translated talk (a Listen button on mobile web, and an audience mode in the app) | Mockups reviewed 28 Nov, landscape added in round 2; decisions D1–D27 settled; not built |
 
 ## SW-1 Foundation
 
@@ -442,7 +447,7 @@ The live demo works. Sam talks in the speaker app, a guest listens on mobile web
 |---|---|
 | Scope: what V2 ships, what V1 already has, and what is elsewhere | [01-scope](sw-885-listen/png/sw-885-01-scope.png) |
 | Live demo: the speaker app, a listening guest and the guest's speech queue | [02-demo](sw-885-listen/png/sw-885-02-demo.png) |
-| Mobile web: the Listen button, the first-tap sheet, listening, catching up, no voice for the language, Cantonese or Mandarin, back after the screen locked, a guest in the speaker's language, paused, landscape | [03-web](sw-885-listen/png/sw-885-03-web.png) |
+| Mobile web: the Listen button, the first-tap sheet, listening, catching up, no voice for the language, Cantonese or Mandarin, back after the screen locked, a guest in the speaker's language, paused | [03-web](sw-885-listen/png/sw-885-03-web.png) |
 | The app's audience mode: first open, scan the code, following the talk, the Listen sheet, getting a better voice, the mini player, the lock screen, headphones out, signed in with both modes | [04-app](sw-885-listen/png/sw-885-04-app.png) |
 | Speaker side: the microphone tip, the Microphone row, a lapel mic, headphone counts in the Subtitles sheet and the presenter window | [05-speaker](sw-885-listen/png/sw-885-05-speaker.png) |
 | How a line gets from the speaker to a guest's ears, the guest's speech queue and the hub messages | [06-flow](sw-885-listen/png/sw-885-06-flow.png) |
@@ -476,6 +481,15 @@ From the mockup review:
 - **D19. Microphone tip:** once per phone, as the first screen of the Subtitles setup sheet. After that, a Microphone row in the sheet names the mic in use, orange for the phone's own, and links back to the tip.
 - **D20. Cloud speech to text:** not in V2. It is its own Feature, SW-981, which records how the phone reaches the provider and what happens when the connection drops.
 - **D21. The subtitle strip keeps a fixed height** while lines arrive and are read. The line being read is clamped to 3 lines, the next one to 1, and the skip note has a reserved row. It grows only in extreme cases, so the page doesn't jump.
+
+From the landscape round (section 05). They build on SW-5's full-screen landscape, SW-883's tap overlay and Android Full screen button (SW-883 D6), and SW-884's film captions (SW-884 D17):
+
+- **D22. Captions in landscape:** over the bottom of the slide, film style. The newest line is at the bottom; while listening, the line being read has a purple edge and the next one waits under it. The guest can move them into a fixed-height band below the slide, which shrinks the slide about 18%.
+- **D23. The Captions menu:** the overlay's CC button opens show or hide, size S/M/L, and over or below the slide. The choice is remembered on the phone; upright, the portrait strip comes back.
+- **D24. The listening rail:** in the black bar beside the 16:9 slide, on the side away from the island: headphones, level bars, the language, and the skipped count for 6 seconds. It turns amber when paused. A phone with a 16:9 screen has no bar, so it becomes a corner pill over the slide.
+- **D25. Captions off keeps listening on** in landscape.
+- **D26. The app goes immersive when sideways:** only the guest screen unlocks rotation. Status and system bars are hidden, the home indicator auto-hides, and the screen stays awake. A swipe from the edge brings the bars back. The mini player folds into the rail.
+- **D27. A poll opening in landscape:** a chip over the top of the slide, "Poll open · turn upright to vote", until the guest turns upright or the poll closes.
 
 Proposed in the mockups for the plan to confirm:
 
