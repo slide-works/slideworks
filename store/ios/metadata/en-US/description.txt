@@ -10,6 +10,6 @@ You stay in control
 Sign out from the app, or revoke the phone from the Signed-in devices list on the SlideWorks web profile page. The app asks for no camera, microphone or location permission, and sends crash reports only, with no tracking.
 
 Good to know
-This first version is intentionally small. Presenting, polls, questions and subtitles happen in the browser for now; the app will grow into them.
+This first version is intentionally small. Presenting, live polls and audience questions happen in the browser for now; the app will grow into them.
 
 SlideWorks is open source. Self-hosted servers work too.
