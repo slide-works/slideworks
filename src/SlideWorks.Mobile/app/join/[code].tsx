@@ -1,7 +1,7 @@
-import { View } from 'react-native';
-import { joinTestIds } from '../../src/screens/join/testIds';
+import { useLocalSearchParams } from 'expo-router';
+import { JoinScreen } from '../../src/screens/join/JoinScreen';
 
-// TODO: the Join (guest join and live slide number) screen replaces this stub and keeps its root test id.
 export default function Join() {
-  return <View testID={joinTestIds.root} />;
+  const { code, server } = useLocalSearchParams<{ code: string; server?: string }>();
+  return <JoinScreen code={code} server={server} />;
 }

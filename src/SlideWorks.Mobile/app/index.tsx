@@ -1,7 +1,3 @@
-import { View } from 'react-native';
-import { homeTestIds } from '../src/screens/home/testIds';
+import { HomeScreen } from '../src/screens/home/HomeScreen';
 
-// TODO: the Home (Join a talk, Sign in) screen replaces this stub and keeps its root test id.
-export default function Home() {
-  return <View testID={homeTestIds.root} />;
-}
+export default HomeScreen;
