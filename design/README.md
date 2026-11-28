@@ -1,3 +1,8 @@
+| Landscape: the slide full screen with the translation over it; a demo (iPhone web, Android web, Android full screen, the app; captions over, below or off; three sizes) and 14 states | [05-landscape](sw-885-listen/png/sw-885-05-landscape.png) |
+| Speaker side: the microphone tip, the Microphone row, a lapel mic, headphone counts in the Subtitles sheet and the presenter window | [06-speaker](sw-885-listen/png/sw-885-06-speaker.png) |
+| How a line gets from the speaker to a guest's ears, the guest's speech queue and the hub messages | [07-flow](sw-885-listen/png/sw-885-07-flow.png) |
+| The decisions | [08-decisions](sw-885-listen/png/sw-885-08-decisions.png) |
+
 # Design
 
 Mockups and design decisions, with one folder per Feature.
@@ -14,6 +19,7 @@ Mockups and design decisions, with one folder per Feature.
 | [`sw-108-profile-sharing/`](sw-108-profile-sharing/) | SW-108 Profile page and sharing decks with people | Mockups reviewed 22 Nov; decisions D12 and D24–D32 settled, D33 open; not built |
 | [`sw-883-translations/`](sw-883-translations/) | SW-883 Slide translations, and the guest phone's full-screen landscape | Mockups reviewed 28 Nov; decisions D1–D9 settled; not built |
 | [`sw-884-live-speech/`](sw-884-live-speech/) | SW-884 Live speech V1: a speaker app with on-device subtitles, translated on the server for each guest's phone | Mockups reviewed 28 Nov; decisions D1–D24 settled; not built |
+| [`sw-885-listen/`](sw-885-listen/) | SW-885 Live speech V2: guests listen to the translated talk (a Listen button on mobile web, and an audience mode in the app) | Mockups reviewed 28 Nov, landscape added in round 2; decisions D1–D27 settled; not built |
 | [`sw-943-translation-engine/`](sw-943-translation-engine/) | SW-943 Translation engine: self-hosted models, chosen per language pair in the admin panel | Mockups reviewed 28 Nov; decisions D1–D13 settled; not built |
 
 ## SW-1 Foundation
@@ -399,7 +405,7 @@ The live demo works. Sam's phone talks and the guest phone follows in English, �
 
 Architecture, settled before the mockups:
 
-- **D1. Speech to text:** on the speaker's phone, streaming, behind a `SpeechEngine` seam. V1 engines run on sherpa-onnx: Parakeet TDT 0.6B for English and Typhoon ASR 115M (NeMo exported to ONNX) for Thai. A cloud engine is V2 (SW-885).
+- **D1. Speech to text:** on the speaker's phone, streaming, behind a `SpeechEngine` seam. V1 engines run on sherpa-onnx: Parakeet TDT 0.6B for English and Typhoon ASR 115M (NeMo exported to ONNX) for Thai. A cloud engine was planned for V2 and is now its own Feature, SW-981.
 - **D2. Translation:** on the SlideWorks server, self-hosted, through `ITranslator` (SW-943). The model is chosen per language pair in admin.
 - **D3. No spike:** V1 ships with swappable models, and models are compared in production with friends.
 - **D4. Privacy:** no audio is stored or uploaded. The transcript is kept with the deck's activity only when the speaker turns it on (off by default).
@@ -431,6 +437,67 @@ Proposed in the mockups for the plan to confirm:
 
 - **Hub messages.** The app sends `SendCaption` (seq, partial or final, lang, slide, heard time, speech-to-text time, model id, confidence). Guests get `Caption` in their language group, with `from` and `translated`. `CaptionsState` (live, paused, reconnecting or off, who paused, languages listened for, big screen on or off) reaches every group at once.
 - **Manifest.** `GET /api/speech/models`. `languages` is a list, so a future bilingual model is just another entry.
+
+## SW-885 Live speech V2: listening
+
+Open [`sw-885-listen/sw-885-mockups.html`](sw-885-listen/sw-885-mockups.html) in a browser. V1 (SW-884) puts translated subtitles on guests' phones. V2 lets a guest put headphones in and hear each translated line, read by the phone's own voice. Mobile web gets a Listen button. The app gets an audience mode that keeps playing with the screen locked. The speaker gets a microphone tip and a count of who is listening. The guest page, the subtitle strip and the speaker app are SW-884's mockups; only the listening parts are new.
+
+The live demo works. Sam talks in the speaker app, a guest listens on mobile web in ไทย, 日本語, or Traditional Chinese read in Cantonese or Mandarin, and the guest's speech queue shows each line as waiting, reading, read or skipped. "Talk fast" makes Sam outrun the voice so the D9 catch-up shows. "Hear it in this browser" reads the lines with the browser's own `speechSynthesis` voice, and says when the browser has no voice for the language. Without it, durations are estimated from the text. The PNGs are screenshots of each section at 1300 px wide.
+
+| Screen | PNG |
+|---|---|
+| Scope: what V2 ships, what V1 already has, and what is elsewhere | [01-scope](sw-885-listen/png/sw-885-01-scope.png) |
+| Live demo: the speaker app, a listening guest and the guest's speech queue | [02-demo](sw-885-listen/png/sw-885-02-demo.png) |
+| Mobile web: the Listen button, the first-tap sheet, listening, catching up, no voice for the language, Cantonese or Mandarin, back after the screen locked, a guest in the speaker's language, paused | [03-web](sw-885-listen/png/sw-885-03-web.png) |
+| The app's audience mode: first open, scan the code, following the talk, the Listen sheet, getting a better voice, the mini player, the lock screen, headphones out, signed in with both modes | [04-app](sw-885-listen/png/sw-885-04-app.png) |
+| Speaker side: the microphone tip, the Microphone row, a lapel mic, headphone counts in the Subtitles sheet and the presenter window | [05-speaker](sw-885-listen/png/sw-885-05-speaker.png) |
+| How a line gets from the speaker to a guest's ears, the guest's speech queue and the hub messages | [06-flow](sw-885-listen/png/sw-885-06-flow.png) |
+| The decisions | [07-decisions](sw-885-listen/png/sw-885-07-decisions.png) |
+
+### Decisions (2026-11-28)
+
+Settled before the mockups:
+
+- **D1. Translation:** on the server, once per language (SW-884 D2), not on each guest's device.
+- **D2. Mobile web:** gets subtitles in V1 and a Listen button in V2. The app's reasons to exist are audio with the screen locked, headphones and voice choice.
+- **D3. Voice:** the device's system voice for the guest's language (`speechSynthesis`, `AVSpeechSynthesizer`, Android `TextToSpeech`), with an explicit locale. Server neural voices may come later as a premium.
+- **D4. One app:** a speaker mode and an audience mode in one app, with one store listing.
+- **D5. Languages:** the 15-language guest catalogue for subtitles and voice.
+- **D6.** Cloud speech to text was planned for V2; D20 moves it out.
+- **D7. Microphone:** a tip, not a test. A phone mic on a lectern is poor; a lapel mic is much better.
+- **D8. V3** is multilingual typed Q&A (SW-944). There are no spoken questions.
+- **D9. Falling behind:** with more than 3 lines waiting, finish the current line and jump to the newest.
+
+From the mockup review:
+
+- **D10. Listen on mobile web:** a Listen button in the subtitle strip's header, next to Hide. The first tap opens a sheet (voice, speed, a headphone reminder), and its Start button is the user gesture iOS needs before it will speak.
+- **D11. What is read:** only lines translated into the guest's language. A guest reading in the speaker's language gets no Listen button. In a mixed talk, lines spoken in the guest's language are skipped.
+- **D12. Screen lock on web:** the page holds the screen on with the Wake Lock API while listening. If it locks anyway, speech stops, and the page offers Resume and one line about the app.
+- **D13. No voice for the language:** the Listen sheet says so, keeps Start off, shows how to add the voice, and subtitles carry on. A local text-to-speech model for these languages is SW-982.
+- **D14. App home:** Join a talk comes first, by code or QR code, with no sign-in. Sign in to present sits below it; once signed in, Presenting now appears under Join.
+- **D15. Join links:** slideworks.live links and QR codes open the app when it is installed (app links). Mobile web mentions the app only inside the Listen sheet.
+- **D16. Headphones out:** the app pauses, like podcast apps, with one tap to play on the speaker. It is a switch in the app's Listen sheet. Mobile web can't tell, so its sheet asks for headphones.
+- **D17. Lock screen:** Now Playing with the slide as artwork, the deck and language as title, Pause, and Jump to live, which clears the queue.
+- **D18. Who is listening:** a headphone count per language in the Reading in counter, on the laptop and in the Subtitles sheet. Counts only, never who.
+- **D19. Microphone tip:** once per phone, as the first screen of the Subtitles setup sheet. After that, a Microphone row in the sheet names the mic in use, orange for the phone's own, and links back to the tip.
+- **D20. Cloud speech to text:** not in V2. It is its own Feature, SW-981, which records how the phone reaches the provider and what happens when the connection drops.
+- **D21. The subtitle strip keeps a fixed height** while lines arrive and are read. The line being read is clamped to 3 lines, the next one to 1, and the skip note has a reserved row. It grows only in extreme cases, so the page doesn't jump.
+
+From the landscape round (section 05). They build on SW-5's full-screen landscape, SW-883's tap overlay and Android Full screen button (SW-883 D6), and SW-884's film captions (SW-884 D17):
+
+- **D22. Captions in landscape:** over the bottom of the slide, film style. The newest line is at the bottom; while listening, the line being read has a purple edge and the next one waits under it. The guest can move them into a fixed-height band below the slide, which shrinks the slide about 18%.
+- **D23. The Captions menu:** the overlay's CC button opens show or hide, size S/M/L, and over or below the slide. The choice is remembered on the phone; upright, the portrait strip comes back.
+- **D24. The listening rail:** in the black bar beside the 16:9 slide, on the side away from the island: headphones, level bars, the language, and the skipped count for 6 seconds. It turns amber when paused. A phone with a 16:9 screen has no bar, so it becomes a corner pill over the slide.
+- **D25. Captions off keeps listening on** in landscape.
+- **D26. The app goes immersive when sideways:** only the guest screen unlocks rotation. Status and system bars are hidden, the home indicator auto-hides, and the screen stays awake. A swipe from the edge brings the bars back. The mini player folds into the rail.
+- **D27. A poll opening in landscape:** a chip over the top of the slide, "Poll open · turn upright to vote", until the guest turns upright or the poll closes.
+
+[`sw-885-listen/design-notes.md`](sw-885-listen/design-notes.md) has the same decisions plus the landscape implementation notes and what to check during planning (safe areas, black-bar width, caption contrast, iPad full screen, the poll chip's state).
+
+Proposed in the mockups for the plan to confirm:
+
+- **The guest's speech queue.** Only final lines translated into the guest's language are queued. Each is spoken with `lang`, `voice` and `rate` set, and the next one starts on `onend`. With more than 3 waiting, the older ones are dropped and the strip says how many.
+- **Hub messages.** The guest sends `SetListening({ listening })`. The presenter and speaker app get `AudienceRoster` with `reading` and `listening` counts per language. Captions, groups and translation are V1's.
 
 ## SW-943 Translation engine
 

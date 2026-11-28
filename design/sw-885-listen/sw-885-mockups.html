@@ -1,0 +1,1814 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-885 mockups: guests listen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&family=Noto+Sans+Thai:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+
+/* =====================================================================
+   Review-page chrome: the same light ledger as the SW-5 / SW-9 mockups
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", "Noto Sans Thai", "Noto Sans JP", system-ui, sans-serif;
+  --head: "Plus Jakarta Sans", "Noto Sans Thai", "Noto Sans JP", "Inter", sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+
+  /* SlideWorks app tokens (src/SlideWorks.Client/src/theme/tokens.css) */
+  --sw-night: #0b1020; --sw-night-2: #cbd5e1; --sw-night-muted: #8c97ad; --sw-night-line: #334155;
+  --sw-accent: #2f5bea; --sw-accent-light: #e4eafd; --sw-accent-glow: #a5b8ff; --sw-accent-dark: #1e3a8a;
+  --sw-paper: #f7f8fa; --sw-card: #fff; --sw-ink: #111827; --sw-muted: #5b6474; --sw-grid: #e3e6ec;
+  --sw-good: #16a34a; --sw-warn: #ea580c; --sw-bad: #dc2626; --sw-stamp: #fcd34d;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 16px 80px; }
+h1, h2, h3 { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+:where(p, li, td, th, .pill) { overflow-wrap: anywhere; }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 22px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { margin: 0; color: var(--muted); max-width: 860px; font-size: 15px; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 10px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 900px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); font: 500 13px/1.2 var(--ui); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); }
+
+/* scope */
+.scope { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .scope { grid-template-columns: minmax(0, 1fr); } }
+.scope .card { padding: 16px 18px; }
+.scope h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.scope ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.scope li { position: relative; padding-left: 22px; }
+.scope li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.scope .later-list li::before { background: var(--later); opacity: .55; }
+.note-card { margin-top: 16px; padding: 12px 16px; border-color: #c7d3fb; background: #f6f8ff; }
+.note-card b { font-weight: 600; color: var(--accent-dark); }
+
+/* =====================================================================
+   Phone frame + the guest page (mobile web, SlideWorks tokens)
+   ===================================================================== */
+.phone { width: 292px; max-width: 100%; margin: 0 auto; border-radius: 40px; padding: 10px; background: #11151d; box-shadow: var(--raise), inset 0 0 0 2px #2a303b; }
+.ps { position: relative; border-radius: 31px; overflow: hidden; height: 600px; display: flex; flex-direction: column; color: #fff; font-family: var(--ui);
+  background: radial-gradient(420px 320px at 100% 105%, rgb(47 91 234 / .38), transparent 62%), radial-gradient(300px 260px at -10% -8%, rgb(47 91 234 / .12), transparent 60%), var(--sw-night); }
+.sbar { flex: none; height: 38px; padding: 12px 22px 0; display: flex; justify-content: space-between; font: 600 12.5px/1 var(--ui); }
+.sbar .ic { display: flex; gap: 5px; align-items: center; }
+.sbar .ic i { display: block; width: 15px; height: 9px; border-radius: 2px; border: 1.5px solid currentColor; opacity: .9; }
+.sbar .ic b { display: block; width: 4px; height: 9px; background: currentColor; border-radius: 1px; opacity: .9; }
+.island { position: absolute; top: 10px; left: 50%; translate: -50% 0; width: 84px; height: 22px; border-radius: 12px; background: #000; z-index: 5; }
+.pbody { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 16px 10px; gap: 12px; position: relative; }
+.urlbar { flex: none; margin: 0 14px 12px; padding: 8px 12px; border-radius: 13px; background: rgb(255 255 255 / .1); display: flex; gap: 6px; align-items: center; justify-content: center; font: 500 12px/1 var(--ui); color: rgb(255 255 255 / .82); }
+.urlbar svg { width: 10px; height: 10px; }
+
+.g-top { display: flex; align-items: center; gap: 8px; }
+.g-mark { width: 22px; height: 22px; border-radius: 6px; background: var(--sw-accent); display: grid; place-items: center; font: 800 11px/1 var(--head); color: #fff; flex: none; }
+.g-deck { min-width: 0; flex: 1; }
+.g-deck b { display: block; font: 700 13px/1.2 var(--head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-deck span { display: block; font-size: 11px; color: var(--sw-night-muted); }
+.live { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font: 600 10.5px/1 var(--ui); background: rgb(22 163 74 / .18); color: #86efac; white-space: nowrap; }
+.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
+
+/* NEW: the language chip in the guest header */
+.lang { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 3px 8px 3px 7px; border-radius: 999px; font: 600 11px/1 var(--ui); background: rgb(255 255 255 / .1); color: #fff; white-space: nowrap; cursor: pointer; outline: 1px solid rgb(165 184 255 / .35); }
+.lang:focus-visible { outline: 2px solid var(--sw-accent-glow); }
+.lang svg { width: 13px; height: 13px; color: var(--sw-accent-glow); flex: none; }
+.lang .car { font-size: 8px; opacity: .7; }
+.new-ring { box-shadow: 0 0 0 3px rgb(122 90 248 / .55); }
+
+.mirror { border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgb(0 0 0 / .35); outline: 1px solid rgb(255 255 255 / .08); flex: none; }
+.slidemeta { display: flex; justify-content: space-between; align-items: center; font: 500 11px/1 var(--ui); color: var(--sw-night-muted); margin-top: -4px; }
+.slidemeta .prog { flex: 1; height: 3px; margin: 0 10px; border-radius: 3px; background: rgb(255 255 255 / .12); overflow: hidden; }
+.slidemeta .prog i { display: block; height: 100%; background: var(--sw-accent-glow); }
+.fallnote { display: flex; gap: 6px; align-items: center; margin-top: -6px; font-size: 11px; color: #fcd9a8; }
+.fallnote i { width: 6px; height: 6px; border-radius: 50%; background: #fb923c; flex: none; }
+.hint { display: flex; gap: 8px; align-items: center; margin-top: -4px; padding: 8px 10px; border-radius: 10px; background: rgb(165 184 255 / .12); font-size: 11.5px; color: var(--sw-night-2); }
+.hint svg { width: 18px; height: 18px; color: var(--sw-accent-glow); flex: none; }
+.hint button { all: unset; margin-left: auto; color: var(--sw-night-muted); font-size: 11px; cursor: pointer; }
+
+.wait { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 8px; padding: 0 8px; border-radius: 14px; border: 1px dashed rgb(255 255 255 / .16); min-height: 0; }
+.wait .dots { display: flex; gap: 6px; }
+.wait .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--sw-accent-glow); opacity: .3; animation: blink 1.4s infinite; }
+.wait .dots i:nth-child(2) { animation-delay: .2s; } .wait .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 40% { opacity: 1; } }
+.wait b { font: 700 14px/1.3 var(--head); }
+.wait p { margin: 0; font-size: 12px; line-height: 1.45; color: var(--sw-night-2); }
+
+.activity { flex: 1; min-height: 0; border-radius: 14px; background: #fff; color: var(--sw-ink); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.activity .tag { align-self: flex-start; font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--later); background: var(--later-soft); padding: 4px 7px; border-radius: 5px; }
+.activity b { font: 700 14.5px/1.3 var(--head); }
+.activity .opt { padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--sw-grid); font-size: 13px; font-weight: 500; }
+.activity .opt.on { border-color: var(--sw-accent); background: var(--sw-accent-light); }
+.activity .note { margin-top: auto; font-size: 11px; color: var(--sw-muted); }
+.activity.poll { gap: 5px; padding: 9px 12px; overflow: hidden; }
+.activity.poll b { font-size: 13.5px; }
+.activity.poll .opt { padding: 5px 10px; font-size: 12.5px; }
+
+.tabs { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: rgb(255 255 255 / .09); }
+.tabs span { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border-radius: 10px; font: 600 13px/1 var(--ui); color: var(--sw-night-2); }
+.tabs span.on { background: #fff; color: var(--sw-ink); }
+.tabs .bdg { font: 700 10.5px/1 var(--ui); padding: 3px 6px; border-radius: 999px; background: var(--sw-accent); color: #fff; }
+.rx { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.rx span { display: grid; place-items: center; min-height: 40px; border-radius: 12px; background: rgb(255 255 255 / .09); font-size: 18px; line-height: 1; }
+
+.banner { position: absolute; left: 12px; right: 12px; top: 4px; z-index: 4; padding: 10px 12px; border-radius: 12px; font-size: 12px; line-height: 1.35; display: flex; gap: 8px; align-items: center; background: #1e2a55; color: #e4eafd; box-shadow: 0 8px 24px rgb(0 0 0 / .45); outline: 1px solid rgb(165 184 255 / .35); }
+.banner svg { width: 16px; height: 16px; color: var(--sw-accent-glow); flex: none; }
+.banner .act { all: unset; margin-left: auto; font-weight: 700; color: var(--sw-accent-glow); cursor: pointer; white-space: nowrap; }
+
+.sheet-dim { position: absolute; inset: 0; background: rgb(0 0 0 / .55); z-index: 6; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 7; background: #161c2c; border-radius: 20px 20px 0 0; padding: 10px 16px 20px; display: grid; gap: 10px; }
+.sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .25); margin: 0 auto 2px; }
+.sheet h4 { margin: 0; font: 700 16px/1.25 var(--head); }
+.sheet .sub { margin: -4px 0 0; font-size: 12px; color: var(--sw-night-muted); }
+.langlist { display: grid; gap: 6px; }
+.langlist button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) 20px; align-items: center; gap: 8px; min-height: 48px; padding: 8px 12px; border-radius: 12px; background: rgb(255 255 255 / .06); cursor: pointer; }
+.langlist button:focus-visible { outline: 2px solid var(--sw-accent-glow); }
+.langlist button.on { background: rgb(47 91 234 / .28); outline: 1.5px solid var(--sw-accent-glow); }
+.langlist b { display: block; font: 700 14px/1.2 var(--head); }
+.langlist small { display: block; font-size: 11px; color: var(--sw-night-muted); margin-top: 2px; }
+.langlist small.part { color: #fcd9a8; }
+.langlist .tickc { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid rgb(255 255 255 / .3); display: grid; place-items: center; font-size: 11px; }
+.langlist button.on .tickc { background: var(--sw-accent); border-color: var(--sw-accent); }
+.sheet .foot-note { font-size: 11.5px; color: var(--sw-night-2); line-height: 1.45; }
+
+/* landscape phone */
+.phone.land { width: 620px; border-radius: 34px; }
+.phone.land .ps { height: 280px; border-radius: 26px; align-items: center; justify-content: center; background: #000; }
+.phone.land .ps .mirror { width: 480px; border-radius: 0; box-shadow: none; outline: none; cursor: pointer; }
+.land-over { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.land-over.show { opacity: 1; }
+.land-over .bar { position: absolute; left: 70px; right: 70px; top: 0; padding: 10px 12px 18px; display: flex; align-items: center; gap: 8px; background: linear-gradient(rgb(0 0 0 / .72), transparent); font: 600 11px/1 var(--ui); color: #fff; pointer-events: auto; }
+.land-over .bar .sp { flex: 1; }
+.fsbtn { all: unset; display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 3px 9px; border-radius: 999px; background: rgb(255 255 255 / .14); font: 600 11px/1 var(--ui); color: #fff; cursor: pointer; pointer-events: auto; }
+.fsbtn svg { width: 12px; height: 12px; }
+.land-over .bar .lang { pointer-events: auto; }
+.land-over .bot { position: absolute; left: 70px; right: 70px; bottom: 0; height: 3px; background: rgb(255 255 255 / .15); }
+.land-over .bot i { display: block; height: 100%; background: var(--sw-accent-glow); }
+.phone.land .sheet { left: auto; top: 0; width: 250px; border-radius: 20px 0 0 20px; padding: 14px; align-content: start; overflow: auto; }
+.phone.land .sheet .grab { display: none; }
+.phone.land .langlist button { min-height: 40px; padding: 6px 10px; }
+.zoomed .mirror .frame > .sl { transform: scale(calc(var(--s) * 1.7)) translate(-6%, -10%); }
+
+.states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 18px; }
+@media (max-width: 1100px) { .states { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .states { grid-template-columns: minmax(0, 1fr); } }
+.states .wide { grid-column: span 2; }
+@media (max-width: 1100px) { .states .wide { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .phone.land { width: 100%; } .phone.land .ps .mirror { width: 78%; } }
+.st-cap { margin-top: 10px; display: grid; gap: 3px; }
+.st-cap b { font-weight: 600; }
+.st-cap span { color: var(--muted); font-size: 12.5px; }
+
+/* =====================================================================
+   Slides (drawn at 960x540, half the 1920x1080 canvas, scaled to fit)
+   ===================================================================== */
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sw-paper); }
+.frame > .sl { position: absolute; left: 0; top: 0; transform: scale(var(--s, .3)); transform-origin: 0 0; }
+.sl { width: 960px; height: 540px; padding: 75px 60px 60px; display: flex; flex-direction: column; background: var(--sw-paper); color: var(--sw-ink); font-family: var(--ui); position: relative; overflow: hidden; }
+.sl::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--sw-accent); }
+.sl.dark { color: #fff; background: radial-gradient(550px 350px at 88% 112%, rgb(47 91 234 / .45), transparent 62%), radial-gradient(450px 300px at -5% -10%, rgb(125 150 255 / .12), transparent 60%), var(--sw-night); }
+.sl .kick { font: 600 13px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--sw-accent); margin-bottom: 14px; }
+.sl.dark .kick { color: var(--sw-accent-glow); }
+.sl h2 { font: 800 50px/1.12 var(--head); letter-spacing: -.02em; margin: 0; }
+.sl h3 { font: 700 30px/1.2 var(--head); margin: 0 0 22px; letter-spacing: -.01em; }
+.sl .sub { margin-top: 18px; font-size: 19px; color: var(--sw-night-2); }
+.sl .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; }
+.sl .cards div { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 2px rgb(15 23 42 / .06), 0 14px 36px rgb(15 23 42 / .09); }
+.sl .cards b { display: block; font: 700 20px/1.25 var(--head); margin-bottom: 8px; }
+.sl .cards span { font-size: 15px; color: var(--sw-muted); line-height: 1.5; }
+.sl .cards .num { font: 800 36px/1 var(--head); color: var(--sw-accent); margin-bottom: 10px; }
+.sl .statement { flex: 1; display: flex; align-items: center; font: 800 52px/1.16 var(--head); letter-spacing: -.02em; max-width: 800px; }
+.sl .statement em { font-style: normal; color: var(--sw-accent); }
+.sl .pollopts { display: grid; gap: 12px; max-width: 640px; }
+.sl .pollopts div { display: flex; justify-content: space-between; padding: 14px 18px; border-radius: 10px; background: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .06); font-size: 18px; font-weight: 500; }
+.sl .pollopts div span { color: var(--sw-muted); font-size: 14px; }
+.sl .sprog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--sw-accent); }
+.sl .foot { position: absolute; left: 60px; right: 60px; bottom: 16px; display: flex; justify-content: space-between; font-size: 11px; color: var(--sw-muted); }
+.sl.dark .foot { color: var(--sw-night-muted); }
+.sl .fb { outline: 2px dashed #fb923c; outline-offset: 3px; border-radius: 3px; }
+.hide-fb .sl .fb { outline: none; }
+
+/* =====================================================================
+   Live demo: presenter laptop + guest phone
+   ===================================================================== */
+.demo { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; }
+.demo.is-land { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 980px) { .demo { grid-template-columns: minmax(0, 1fr); } }
+.laptop { background: #1a1f2b; border-radius: 14px 14px 4px 4px; padding: 10px 10px 0; box-shadow: var(--raise); }
+.laptop .scr { border-radius: 6px; overflow: hidden; background: #000; }
+.laptop .base { height: 14px; margin: 0 -26px; background: linear-gradient(#c9ced8, #a9b0bd); border-radius: 0 0 14px 14px; }
+@media (max-width: 680px) { .laptop .base { margin: 0 -10px; } }
+.ptool { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #0f1420; color: #cbd5e1; font: 500 12px/1 var(--ui); }
+.ptool .tb { border: 0; background: rgb(255 255 255 / .08); color: #fff; padding: 6px 9px; border-radius: 6px; font: 600 12px/1 var(--ui); cursor: pointer; }
+.ptool .tb:disabled { opacity: .35; cursor: default; }
+.ptool .count { font-family: var(--mono); color: #94a3b8; }
+.ptool .sp { flex: 1; }
+.ptool .livechip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 6px; background: rgb(22 163 74 / .18); color: #86efac; font: 600 12px/1 var(--ui); }
+.ptool .livechip b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.ptool .livechip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.ptool .langmix { display: inline-flex; gap: 8px; align-items: center; padding: 5px 9px; border-radius: 6px; background: rgb(122 90 248 / .2); color: #ddd6fe; font: 500 11.5px/1 var(--ui); }
+.ptool .langmix b { color: #fff; font-weight: 600; }
+.dctl { margin-top: 14px; padding: 12px 14px; display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center; }
+.dctl .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+.dctl label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
+.demo-notes { margin: 12px 0 0; padding: 0 0 0 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+
+/* compare: as built vs proposed */
+.cmp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 980px) { .cmp { grid-template-columns: minmax(0, 1fr); } }
+.cmp .card { padding: 14px; display: grid; gap: 12px; align-content: start; }
+.cmp h3 { font: 600 14px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.shot { border-radius: 22px; padding: 8px; background: #11151d; box-shadow: inset 0 0 0 2px #2a303b; }
+.shot img { display: block; width: 100%; border-radius: 15px; }
+.cmp .phone.land { width: 100%; }
+.cmp .phone.land .ps .mirror { width: 80%; }
+.demo.is-land > div:first-child { max-width: 880px; }
+.cmp ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+
+/* deck page card */
+.deckpage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 900px) { .deckpage { grid-template-columns: minmax(0, 1fr); } }
+.dp { padding: 0; overflow: hidden; }
+.dp .dphead { padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; font: 600 12px/1 var(--ui); color: var(--muted); background: var(--surface-2); }
+.dp .dpbody { padding: 16px; display: grid; gap: 12px; }
+.set { border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; }
+.set.new { border-color: #c4b5fd; box-shadow: 0 0 0 3px var(--later-soft); }
+.set.dimmed { opacity: .55; }
+.set .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.set h4 { margin: 0; font: 600 14px/1.3 var(--ui); flex: 1; }
+.set p { margin: 0; font-size: 13px; color: var(--muted); }
+.sw { width: 34px; height: 20px; border-radius: 999px; background: var(--line-2); position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+.sw.on { background: var(--accent); }
+.sw.on::after { left: 16px; }
+.field { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.field .lbl { color: var(--muted); min-width: 120px; }
+.sel { display: inline-flex; gap: 8px; align-items: center; padding: 5px 10px; border: 1px solid var(--line-2); border-radius: 6px; background: #fff; font-size: 13px; }
+.cov { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cov td { padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: middle; }
+.cov td.l b { font: 700 14px/1.2 var(--head); }
+.cov td.l span { display: block; font-size: 11.5px; color: var(--muted); }
+.cov .meter { width: 90px; height: 6px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.cov .meter i { display: block; height: 100%; background: var(--ok); }
+.cov .meter i.part { background: var(--warn); }
+.cov td.n { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* options + code */
+.opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1050px) { .opts { grid-template-columns: minmax(0, 1fr); } }
+.opt-card { padding: 16px; display: grid; gap: 10px; align-content: start; }
+.opt-card.rec { border-color: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.opt-card h3 { font: 600 15px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.opt-card .pc { display: grid; gap: 4px; font-size: 13px; }
+.opt-card .pc div { padding-left: 18px; position: relative; color: var(--muted); }
+.opt-card .pc .p::before { content: "+"; position: absolute; left: 2px; color: var(--ok); font-weight: 700; }
+.opt-card .pc .c::before { content: "−"; position: absolute; left: 2px; color: var(--bad); font-weight: 700; }
+pre.code { margin: 0; padding: 12px 14px; border-radius: 8px; background: #0f1420; color: #dbe4f3; font: 400 12px/1.55 var(--mono); overflow-x: auto; white-space: pre; }
+pre.code .k { color: #a5b8ff; } pre.code .s { color: #86efac; } pre.code .c { color: #8c97ad; } pre.code .w { color: #fdba74; }
+.mcp { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 1000px) { .mcp { grid-template-columns: minmax(0, 1fr); } }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 10px; border-bottom: 1px solid var(--line); }
+.tbl td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl td:first-child { font-family: var(--mono); font-size: 12.5px; color: var(--accent-dark); white-space: nowrap; }
+.tbl tr:last-child td { border-bottom: 0; }
+.diagram { padding: 18px; overflow: hidden; }
+.diagram svg { width: 100%; height: auto; display: block; font-family: var(--ui); }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px 18px; }
+.q h3 { font: 600 15px/1.35 var(--ui); margin-bottom: 4px; }
+.q .why { color: var(--muted); margin: 0 0 10px; }
+.q .choices { display: grid; gap: 6px; }
+.q label.choice { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.q label.choice:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.q label.choice input { margin: 3px 0 0; accent-color: var(--accent); }
+.q label.choice b { font-weight: 600; }
+.q label.choice span:not(.rec) { display: block; color: var(--muted); font-size: 12.5px; }
+.q .rec { display: inline-block; font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.q textarea { width: 100%; margin-top: 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.4 var(--ui); resize: vertical; }
+.q .qfoot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.q .state { font-size: 12.5px; color: var(--faint); }
+.q .state.queued { color: var(--ok); font-weight: 600; }
+.copyall { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.copyall textarea { width: 100%; }
+/* =====================================================================
+   SW-884 additions: speaker app (native), subtitle strips, admin, presenter chip
+   ===================================================================== */
+body.hide-fb .sl .fb { outline: none; }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1000px) { .three { grid-template-columns: minmax(0, 1fr); } }
+.three .card { padding: 16px 18px; }
+.three h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.three ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.three li { position: relative; padding-left: 22px; }
+.three li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.three .later-list li::before { background: var(--later); opacity: .55; }
+.three .grey-list li::before { background: var(--faint); opacity: .55; }
+
+/* ---------- native app frame: no URL bar, a home indicator, the mic dot ---------- */
+.ps.app { background: #0a0e16; color: #e2e8f0; }
+.ps.app .pbody { padding: 4px 14px 6px; gap: 8px; }
+.homebar { flex: none; height: 18px; display: grid; place-items: center; }
+.homebar i { display: block; width: 104px; height: 4px; border-radius: 3px; background: rgb(255 255 255 / .55); }
+.sbar .mic { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #fb923c; margin-left: 6px; vertical-align: 1px; box-shadow: 0 0 0 3px rgb(251 146 60 / .25); }
+
+/* speaker mode, as built (SpeakerPage.tsx), drawn smaller */
+.s-stat { display: flex; align-items: center; gap: 8px; font: 600 11px/1 var(--ui); }
+.s-stat .lv { display: inline-flex; gap: 6px; align-items: center; color: #4ade80; letter-spacing: .08em; }
+.s-stat .lv::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.s-stat .lv.off { color: #fbbf24; } .s-stat .lv.off::before { background: #fbbf24; }
+.s-stat .sp { flex: 1; }
+.s-stat .clock { font: 600 17px/1 var(--mono); color: #fff; }
+.s-stat .left { white-space: nowrap; font: 500 10.5px/1 var(--mono); color: #94a3b8; }
+.s-now { display: flex; justify-content: space-between; font: 600 9.5px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: #94a3b8; margin-bottom: -2px; }
+.ps.app .mirror { border-radius: 6px; outline: 2px solid #a5b8ff; outline-offset: 0; box-shadow: none; }
+.s-next { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 9px; align-items: center; }
+.s-next .mirror { outline: 1px solid #334155; border-radius: 4px; }
+.s-next small { display: block; font: 600 9px/1 var(--ui); letter-spacing: .12em; color: #94a3b8; }
+.s-next b { display: block; font: 600 12.5px/1.25 var(--ui); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-notes { flex: 1; min-height: 36px; overflow: hidden; border: 1px solid #1f2937; border-radius: 12px; background: #0f1520; padding: 8px 10px; font-size: 12px; line-height: 1.45; color: #e2e8f0; }
+.s-notes small { display: block; font: 600 9px/1 var(--ui); letter-spacing: .12em; color: #64748b; margin-bottom: 5px; }
+.s-nav { flex: none; display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; }
+.s-nav span { display: grid; place-items: center; height: 40px; border-radius: 12px; background: #1e2533; font: 700 14px/1 var(--ui); color: #fff; }
+.s-nav span.nx { background: #3b5bdb; }
+.s-acts { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.s-acts span { display: grid; place-items: center; gap: 3px; height: 38px; border-radius: 10px; background: #111827; font: 500 10px/1 var(--ui); color: #cbd5e1; }
+.s-acts span i { font-style: normal; font-size: 12px; opacity: .8; }
+
+/* NEW: the subtitles bar in speaker mode */
+.cc { flex: none; border-radius: 12px; padding: 7px 9px 8px; display: grid; gap: 5px; background: #121a2c; outline: 1.5px solid rgb(122 90 248 / .55); }
+.cc.off { outline: 1px dashed #334155; background: transparent; }
+.cc.paused { outline-color: #fbbf24; background: #1c1708; }
+.cc.offline { outline-color: #fb923c; background: #1f1208; }
+.cc .row { display: flex; align-items: center; gap: 7px; font: 600 10.5px/1 var(--ui); color: #cbd5e1; }
+.cc .row .sp { flex: 1; }
+.cc .ttl { letter-spacing: .02em; white-space: nowrap; }
+.cc .lng { white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; padding: 3px 6px; border-radius: 999px; background: rgb(255 255 255 / .1); color: #fff; font: 700 10px/1 var(--ui); cursor: pointer; border: 0; }
+.cc .lng .car { font-size: 7px; opacity: .7; }
+.cc .ctl { all: unset; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 999px; background: rgb(255 255 255 / .12); color: #fff; font: 700 10px/1 var(--ui); cursor: pointer; }
+.cc .ctl.go { background: #7a5af8; }
+.cc .ctl.warn { background: #fbbf24; color: #1c1708; }
+.cc .txt { font-size: 12px; line-height: 1.35; color: #fff; min-height: 32px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cc .txt .pt { color: #94a3b8; }
+.cc .txt.dim { color: #94a3b8; font-size: 11.5px; }
+.cc .meta { font: 500 9.5px/1 var(--ui); color: #8c97ad; display: flex; gap: 8px; }
+.cc .meta b { color: #c4b5fd; font-weight: 600; }
+.bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 11px; }
+.bars i { width: 2.5px; border-radius: 1px; background: #a78bfa; height: 30%; }
+.bars.live i { animation: lvl .9s infinite ease-in-out; }
+.bars.live i:nth-child(2) { animation-delay: .15s; } .bars.live i:nth-child(3) { animation-delay: .3s; } .bars.live i:nth-child(4) { animation-delay: .45s; }
+.bars.still i { background: #475569; }
+@keyframes lvl { 0%, 100% { height: 25%; } 50% { height: 100%; } }
+
+/* sign in, talk list, setup */
+.app-pad { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 10px 18px 14px; min-height: 0; }
+.app-logo { display: flex; align-items: center; gap: 9px; font: 800 17px/1 var(--head); }
+.app-logo .g-mark { width: 30px; height: 30px; border-radius: 8px; font-size: 15px; }
+.app-h { font: 700 18px/1.25 var(--head); margin: 0; }
+.app-p { margin: 0; font-size: 12px; line-height: 1.5; color: #94a3b8; }
+.inp { display: grid; gap: 5px; font-size: 11px; color: #94a3b8; }
+.inp span { display: block; padding: 10px 12px; border-radius: 10px; background: #111827; border: 1px solid #334155; color: #fff; font-size: 13px; }
+.bigbtn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border-radius: 12px; background: #3b5bdb; color: #fff; font: 700 14px/1 var(--ui); }
+.bigbtn.ghost { background: transparent; border: 1px solid #334155; color: #e2e8f0; font-weight: 600; }
+.bigbtn.violet { background: #7a5af8; }
+.bigbtn.white { background: #fff; color: #111827; }
+.talk { border-radius: 14px; border: 1px solid #1f2937; background: #111827; padding: 10px; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: center; }
+.talk .mirror { border-radius: 5px; outline: none; box-shadow: none; }
+.talk b { display: block; font: 700 13px/1.25 var(--head); }
+.talk small { display: block; font-size: 11px; color: #94a3b8; margin-top: 3px; }
+.talk .live { margin-top: 6px; }
+.tiny { font-size: 10.5px; color: #8c97ad; }
+.setrow { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgb(255 255 255 / .06); font-size: 12.5px; }
+.setrow .grow { flex: 1; min-width: 0; }
+.setrow b { display: block; font-weight: 600; }
+.setrow small { display: block; font-size: 10.5px; color: #94a3b8; margin-top: 2px; }
+.setrow small.okc { color: #86efac; }
+.setrow small.warnc { color: #fcd9a8; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: rgb(255 255 255 / .07); }
+.seg span { display: grid; place-items: center; min-height: 36px; border-radius: 9px; font: 700 13px/1 var(--head); color: #cbd5e1; }
+.seg span.on { background: #fff; color: #111827; }
+.tog { width: 34px; height: 20px; border-radius: 999px; background: #334155; position: relative; flex: none; }
+.tog::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+.tog.on { background: #7a5af8; } .tog.on::after { left: 16px; }
+.prog2 { height: 6px; border-radius: 6px; background: rgb(255 255 255 / .12); overflow: hidden; margin-top: 6px; }
+.prog2 i { display: block; height: 100%; background: #a78bfa; }
+.sysdlg { position: absolute; left: 26px; right: 26px; top: 170px; z-index: 8; border-radius: 16px; background: rgb(240 240 245 / .97); color: #111; text-align: center; overflow: hidden; }
+.sysdlg .b { padding: 16px 14px 12px; display: grid; gap: 6px; }
+.sysdlg b { font: 600 14px/1.3 -apple-system, var(--ui); }
+.sysdlg p { margin: 0; font-size: 11.5px; line-height: 1.4; color: #333; }
+.sysdlg .btns { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #c7c7cc; }
+.sysdlg .btns span { padding: 11px 0; font-size: 14px; color: #0a63d8; }
+.sysdlg .btns span + span { border-left: 1px solid #c7c7cc; font-weight: 600; }
+.lockscr { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 26px 12px 16px; gap: 4px; background: radial-gradient(400px 300px at 50% 0%, #1e2a55, transparent 70%), #05070d; }
+.lockscr .t { font: 300 58px/1 var(--ui); letter-spacing: -.02em; }
+.lockscr .d { font-size: 13px; color: #cbd5e1; margin-bottom: 18px; }
+.notif { width: 100%; border-radius: 16px; background: rgb(255 255 255 / .14); backdrop-filter: blur(8px); padding: 10px 12px; display: grid; gap: 4px; text-align: left; }
+.notif .h { display: flex; gap: 7px; align-items: center; font: 600 11px/1 var(--ui); color: #cbd5e1; }
+.notif .h .g-mark { width: 18px; height: 18px; border-radius: 5px; font-size: 9px; }
+.notif b { font-size: 13px; }
+.notif p { margin: 0; font-size: 12px; color: #e2e8f0; line-height: 1.35; }
+.notif .acts { display: flex; gap: 6px; margin-top: 4px; }
+.notif .acts span { padding: 5px 10px; border-radius: 999px; background: rgb(255 255 255 / .16); font: 600 11px/1 var(--ui); }
+
+/* ---------- guest subtitle strip (mobile web) ---------- */
+.subs { flex: none; position: relative; border-radius: 12px; padding: 8px 10px 9px; background: rgb(0 0 0 / .42); outline: 1px solid rgb(165 184 255 / .22); display: grid; gap: 4px; }
+.subs.new-ring { box-shadow: 0 0 0 3px rgb(122 90 248 / .55); }
+.subs .row { display: flex; align-items: center; gap: 6px; font: 600 9.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--sw-night-muted); }
+.subs .row .sp { flex: 1; }
+.subs .row .cc-ic { display: inline-grid; place-items: center; padding: 2px 4px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 8px/1 var(--ui); letter-spacing: 0; }
+.subs .row button { all: unset; cursor: pointer; color: var(--sw-accent-glow); font: 600 10.5px/1 var(--ui); letter-spacing: 0; text-transform: none; }
+.subs .ln { font: 500 13.5px/1.4 var(--ui); color: #fff; }
+.subs .ln.old { color: var(--sw-night-2); opacity: .75; font-size: 12.5px; }
+.subs .ln .pt { color: #94a3b8; }
+.subs .ln .nt { display: inline-block; margin-left: 5px; padding: 1px 5px; border-radius: 4px; background: rgb(251 146 60 / .18); color: #fcd9a8; font: 600 9.5px/1.4 var(--ui); vertical-align: 1px; white-space: nowrap; }
+.subs .state { display: flex; gap: 7px; align-items: center; font-size: 12px; color: var(--sw-night-2); min-height: 38px; }
+.subs .state i { width: 7px; height: 7px; border-radius: 50%; background: #fbbf24; flex: none; }
+.subs .state i.or { background: #fb923c; }
+.subs-show { all: unset; flex: none; align-self: flex-start; display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border-radius: 999px; background: rgb(255 255 255 / .1); font: 600 11.5px/1 var(--ui); color: #fff; cursor: pointer; }
+.subs-show .cc-ic { display: inline-grid; place-items: center; padding: 2px 4px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 8px/1 var(--ui); }
+.ps .wait.slim { flex: 1; min-height: 40px; }
+/* landscape captions over the slide */
+.land-cap { position: absolute; left: 70px; right: 70px; bottom: 16px; z-index: 2; display: grid; justify-items: center; gap: 2px; pointer-events: none; }
+.land-cap span { max-width: 92%; padding: 3px 9px; border-radius: 4px; background: rgb(0 0 0 / .78); color: #fff; font: 500 13px/1.35 var(--ui); text-align: center; }
+.land-cap span.old { color: #cbd5e1; font-size: 12px; }
+
+/* ---------- demo ---------- */
+.demo3 { display: grid; grid-template-columns: 292px 292px minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 1100px) { .demo3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .demo3 > .logcol { grid-column: 1 / -1; } }
+@media (max-width: 680px) { .demo3 { grid-template-columns: minmax(0, 1fr); } }
+.devlbl { text-align: center; font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+.logcol { display: grid; gap: 14px; }
+.logcard { padding: 0; overflow: hidden; }
+.logcard .lh { padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font: 600 12px/1 var(--ui); color: var(--muted); background: var(--surface-2); }
+.logcard .lh code { font-size: 11px; color: var(--accent-dark); }
+.logtbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.logtbl th { text-align: left; font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.logtbl td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.logtbl td.n { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.logtbl td.ok { color: var(--ok); font-family: var(--mono); font-size: 11.5px; white-space: nowrap; }
+.logtbl td.bad { color: var(--bad); font-size: 11.5px; white-space: nowrap; }
+.logtbl td.dropped { color: var(--faint); font-size: 11.5px; }
+.logtbl tr.pending td { color: var(--faint); }
+.logtbl td.txt { max-width: 240px; }
+.logtbl tr.fresh { animation: fresh 1.2s; }
+@keyframes fresh { from { background: var(--accent-soft); } }
+.logempty { padding: 16px 14px; color: var(--faint); font-size: 12.5px; }
+.ctlcard { padding: 12px 14px; display: grid; gap: 10px; }
+.ctlcard .r { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ctlcard .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); min-width: 92px; }
+.btn.warnb { border-color: #f3c58f; background: var(--warn-soft); color: var(--warn); }
+
+/* ---------- desktop pieces: presenter chip + admin ---------- */
+.ptool .ccchip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 6px; background: rgb(122 90 248 / .2); color: #ddd6fe; font: 600 11.5px/1 var(--ui); }
+.ptool .ccchip .cc-ic { display: inline-grid; place-items: center; padding: 2px 4px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 8px/1 var(--ui); }
+.ptool .ccchip.paused { background: rgb(251 191 36 / .18); color: #fde68a; }
+.ptool .ccchip.offline { background: rgb(251 146 60 / .2); color: #fed7aa; }
+.chips3 { display: grid; gap: 10px; }
+.adm { padding: 0; overflow: hidden; }
+.adm .top { display: flex; gap: 14px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.adm .top b { font: 700 15px/1 var(--ui); }
+.adm .tabsx { display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.adm .tabsx span { padding: 9px 12px; font: 500 13px/1 var(--ui); color: var(--muted); border-bottom: 2px solid transparent; }
+.adm .tabsx span.on { color: var(--text); border-color: var(--accent); font-weight: 600; }
+.adm .bd { padding: 14px 16px 16px; display: grid; gap: 14px; }
+.adm h4 { margin: 0; font: 600 13.5px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.adm .help { margin: -8px 0 0; font-size: 12.5px; color: var(--muted); }
+.atbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.atbl th { text-align: left; font: 600 10.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.atbl td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.atbl td.m { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.atbl td b { font-weight: 600; }
+.atbl small { display: block; color: var(--muted); font-size: 11.5px; }
+.radio { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--line-2); vertical-align: -2px; }
+.radio.on { border: 4px solid var(--accent); }
+.tblwrap { overflow-x: auto; }
+
+/* ---------- D12: the Subtitles action button + its sheet ---------- */
+.s-acts.five { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.s-acts.five > span, .s-acts.five > .ccb { height: 40px; font-size: 8.5px; line-height: 1.1; text-align: center; padding: 0 2px; }
+.ccb { all: unset; box-sizing: border-box; display: grid; place-items: center; align-content: center; gap: 3px; height: 40px; border-radius: 10px; background: #111827; font: 600 8.5px/1.1 var(--ui); color: #cbd5e1; cursor: pointer; outline: 1px dashed #475569; }
+.ccb .ccic { display: inline-grid; place-items: center; padding: 1px 3px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 7px/1 var(--ui); }
+.ccb.live { background: rgb(122 90 248 / .3); color: #fff; outline: 1.5px solid #a78bfa; }
+.ccb.paused { background: rgb(251 191 36 / .2); color: #fde68a; outline: 1.5px solid #fbbf24; }
+.ccb.offline { background: rgb(251 146 60 / .22); color: #fed7aa; outline: 1.5px solid #fb923c; }
+.ccb.offline .bars i { background: #fb923c; }
+.ccb:focus-visible { outline: 2px solid var(--sw-accent-glow); }
+.sheet.ccs { gap: 8px; }
+.ccs-h { display: flex; align-items: center; gap: 8px; }
+.ccs-h h4 { flex: 1; }
+.stp { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font: 700 10.5px/1 var(--ui); white-space: nowrap; }
+.stp::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.stp.live { background: rgb(122 90 248 / .25); color: #c4b5fd; }
+.stp.paused { background: rgb(251 191 36 / .18); color: #fde68a; }
+.stp.offline { background: rgb(251 146 60 / .2); color: #fed7aa; }
+.ccs-l { display: block; font: 600 9px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: #64748b; margin-bottom: -3px; }
+.heard { min-height: 44px; padding: 8px 10px; border-radius: 10px; background: rgb(255 255 255 / .06); font-size: 12.5px; line-height: 1.4; color: #fff; }
+.heard .pt { color: #94a3b8; }
+.heard.dim { color: #cbd5e1; font-size: 12px; }
+.ccs-m { font-size: 11px; color: #8c97ad; }
+.ccs-m b { color: #c4b5fd; font-weight: 600; }
+.sheet .bigbtn { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; border-radius: 12px; font: 700 13.5px/1 var(--ui); cursor: pointer; }
+.sheet .bigbtn.violet { background: #7a5af8; color: #fff; }
+.sheet .bigbtn.amber { background: rgb(251 191 36 / .16); color: #fde68a; outline: 1px solid rgb(251 191 36 / .5); }
+.s-acts .ccb > span { display: block; height: auto; background: none; border-radius: 0; font: inherit; color: inherit; place-items: initial; gap: 0; }
+.s-acts .ccb > .ccic { display: inline-grid; place-items: center; padding: 1px 3px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 7px/1 var(--ui); }
+.s-acts .ccb > .bars { display: inline-flex; height: 11px; align-items: flex-end; }
+
+/* ---------- round 2: D13 ticker, D15 listen chips, D16 toast, D18 big screen, D21/D24 pairing ---------- */
+.tick { flex: none; display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 9px; border-radius: 9px; background: rgb(122 90 248 / .16); outline: 1px solid rgb(167 139 250 / .4); font-size: 11.5px; color: #fff; min-width: 0; }
+.tick .tt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tick .pt { color: #94a3b8; }
+.tick.off { background: rgb(251 146 60 / .14); outline-color: rgb(251 146 60 / .45); color: #fed7aa; }
+.tick .ttag { font: 700 9px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; }
+.ltag { display: inline-block; margin-right: 6px; padding: 1px 5px; border-radius: 4px; background: rgb(255 255 255 / .12); color: #c4b5fd; font: 700 9px/1.5 var(--ui); vertical-align: 1px; white-space: nowrap; }
+.tick .ltag { margin: 0; }
+.heard p { margin: 0; }
+.heard p + p { margin-top: 3px; }
+.lchips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lchip { padding: 7px 11px; border-radius: 999px; border: 1px solid #334155; font: 700 12px/1 var(--head); color: #94a3b8; }
+.lchip.on { background: rgb(122 90 248 / .28); border-color: #a78bfa; color: #fff; }
+.lchips small { flex-basis: 100%; font-size: 10.5px; color: #8c97ad; }
+.setrow.sm { padding: 7px 10px; font-size: 12px; }
+.getb { padding: 6px 10px; border-radius: 999px; background: #7a5af8; color: #fff; font: 700 10.5px/1 var(--ui); white-space: nowrap; }
+.apptoast { position: absolute; left: 12px; right: 12px; top: 44px; z-index: 6; display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 12px; background: #2a2208; outline: 1px solid #fbbf24; color: #fde68a; font-size: 11.5px; line-height: 1.35; box-shadow: 0 8px 24px rgb(0 0 0 / .5); }
+.apptoast b { margin-left: auto; padding: 6px 10px; border-radius: 999px; background: #fbbf24; color: #1c1708; font: 700 11px/1 var(--ui); white-space: nowrap; }
+.ordiv { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #64748b; }
+.ordiv::before, .ordiv::after { content: ""; flex: 1; height: 1px; background: #334155; }
+.ptool { flex-wrap: wrap; }
+.ptool .tb.phoneb { background: rgb(165 184 255 / .16); color: #dbe4ff; }
+.ptool .lc { display: inline-flex; gap: 4px; align-items: center; }
+.ptool .lc-live { display: inline-flex; gap: 6px; align-items: center; padding: 5px 9px; border-radius: 6px; background: rgb(22 163 74 / .25); color: #86efac; font: 600 11.5px/1 var(--ui); }
+.ptool .lc-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #86efac; }
+.ptool .lc-live b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.ptool .tb.pressed { outline: 2px solid rgb(255 255 255 / .6); outline-offset: -2px; }
+.ptool .tb.new { background: rgb(122 90 248 / .35); box-shadow: 0 0 0 3px rgb(122 90 248 / .45); }
+.ptool .tb.end { background: rgb(220 38 38 / .3); color: #fecaca; }
+.bigwrap { position: relative; }
+.bigwrap .frame { display: block; }
+.bigcap { position: absolute; left: 8%; right: 8%; bottom: 13%; display: grid; justify-items: center; gap: 4px; }
+.bigcap span { max-width: 100%; padding: 4px 12px; border-radius: 5px; background: rgb(11 16 32 / .86); color: #fff; font: 500 clamp(11px, 1.7vw, 17px)/1.35 var(--ui); text-align: center; }
+.bigcap span.old { color: #cbd5e1; font-size: clamp(10px, 1.45vw, 15px); }
+.joinbar { position: absolute; left: 0; right: 0; bottom: 0; height: 9%; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--sw-night); color: #cbd5e1; font: 500 clamp(10px, 1.4vw, 14px)/1 var(--ui); }
+.joinbar b { color: #fff; font-family: var(--mono); font-weight: 500; }
+.lapgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+@media (max-width: 900px) { .lapgrid { grid-template-columns: minmax(0, 1fr); } }
+.qrpop { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: center; padding: 16px; border-radius: 12px; background: #0f1420; color: #e2e8f0; }
+@media (max-width: 520px) { .qrpop { grid-template-columns: minmax(0, 1fr); } }
+.qrpop .qr svg { width: 150px; height: 150px; display: block; border-radius: 8px; }
+.qrpop b { font: 700 15px/1.3 var(--head); }
+.qrpop p { margin: 6px 0 0; font-size: 12.5px; color: #cbd5e1; }
+.qrpop p.sm { font-size: 11.5px; color: #8c97ad; }
+/* =====================================================================
+   SW-885: listening. Builds on SW-884's parts (base.css + sw884.css).
+   ===================================================================== */
+.ico { display: inline-block; width: 13px; height: 13px; flex: none; vertical-align: -2px; }
+
+/* ---- the subtitle strip with Listen ---- */
+.subs .row .lsn { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 999px; background: #7a5af8; color: #fff; font: 700 10.5px/1 var(--ui); letter-spacing: 0; text-transform: none; }
+.subs .row .lsn .ico { width: 11px; height: 11px; }
+.subs .row .lsn.stop { background: rgb(255 255 255 / .12); color: #e2e8f0; }
+.subs.listening { outline: 1.5px solid #a78bfa; background: rgb(24 16 60 / .62); }
+.subs .row .lstat { display: inline-flex; align-items: center; gap: 5px; color: #c4b5fd; }
+.subs .row .lstat .bars { height: 10px; }
+.subs .ln.say { position: relative; padding-left: 9px; }
+.subs .ln.say::before { content: ""; position: absolute; left: 0; top: 3px; bottom: 3px; width: 3px; border-radius: 2px; background: #a78bfa; }
+.subs .ln.nextl { color: var(--sw-night-2); opacity: .7; font-size: 12.5px; }
+.subs .skipn { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: #fde68a; }
+.subs .skipn i { font-style: normal; font-weight: 700; }
+.subs .hp { font-size: 10.5px; color: var(--sw-night-muted); }
+
+/* ---- listen sheet ---- */
+.seg.s4 { grid-template-columns: repeat(4, 1fr); }
+.seg.s4 span { min-height: 30px; font-size: 12px; }
+.seg.s2 span { min-height: 34px; font-size: 12px; font-family: var(--ui); }
+.seg.s2 span .ico { margin-right: 5px; }
+.vrow { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; background: rgb(255 255 255 / .06); font-size: 12.5px; }
+.vrow.on { background: rgb(122 90 248 / .22); outline: 1.5px solid #a78bfa; }
+.vrow .grow { flex: 1; min-width: 0; }
+.vrow b { display: block; font-weight: 600; }
+.vrow small { display: block; font-size: 10.5px; color: #94a3b8; margin-top: 2px; }
+.vrow .rd { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid rgb(255 255 255 / .35); flex: none; }
+.vrow.on .rd { border: 5px solid #a78bfa; }
+.vrow .play { font-size: 10px; padding: 5px 8px; border-radius: 999px; background: rgb(255 255 255 / .1); color: #e2e8f0; white-space: nowrap; }
+.warnbox { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: rgb(251 146 60 / .14); outline: 1px solid rgb(251 146 60 / .45); color: #fed7aa; font-size: 12px; line-height: 1.4; }
+.warnbox b { color: #ffedd5; }
+.infobox { display: flex; gap: 8px; align-items: flex-start; padding: 9px 11px; border-radius: 12px; background: rgb(165 184 255 / .1); color: #cbd5e1; font-size: 11.5px; line-height: 1.4; }
+.infobox .ico { margin-top: 1px; color: #a5b8ff; }
+.linkrow { font-size: 11.5px; color: #a5b8ff; text-align: center; }
+.sheet .bigbtn.dis { background: #334155; color: #94a3b8; }
+.sheet .bigbtn.ghost { background: transparent; outline: 1px solid #334155; color: #e2e8f0; font-weight: 600; }
+
+/* ---- app audience mode ---- */
+.ps.app .g-top .lang { background: rgb(255 255 255 / .08); }
+.joincard { display: grid; gap: 10px; padding: 14px; border-radius: 16px; background: rgb(122 90 248 / .14); outline: 1px solid rgb(167 139 250 / .4); }
+.joincard h3 { margin: 0; font: 700 17px/1.2 var(--head); }
+.joincard p { margin: 0; font-size: 11.5px; color: #cbd5e1; }
+.codebox { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.codebox span { display: grid; place-items: center; height: 40px; border-radius: 9px; background: #111827; border: 1px solid #334155; font: 700 18px/1 var(--mono); color: #fff; }
+.codebox span.cur { border-color: #a78bfa; box-shadow: 0 0 0 2px rgb(167 139 250 / .35); }
+.codebox span:nth-child(3) { margin-right: 6px; }
+.sect-l { font: 600 9.5px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: #64748b; margin: 4px 0 -4px; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: auto; }
+.keypad span { display: grid; place-items: center; height: 38px; border-radius: 10px; background: rgb(255 255 255 / .07); font: 500 17px/1 var(--ui); }
+.camview { position: relative; flex: 1; border-radius: 16px; overflow: hidden; background: radial-gradient(240px 200px at 50% 40%, #2b3245, #0b0f18); display: grid; place-items: center; }
+.camview .tgt { width: 150px; height: 150px; border-radius: 18px; border: 3px solid rgb(255 255 255 / .85); box-shadow: 0 0 0 999px rgb(0 0 0 / .35); }
+.camview .qrmini { position: absolute; width: 110px; height: 110px; }
+.camview small { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; font-size: 11.5px; color: #e2e8f0; }
+
+.mini { flex: none; display: flex; align-items: center; gap: 9px; margin: 0 10px 4px; padding: 8px 10px; border-radius: 14px; background: #1c1640; outline: 1px solid rgb(167 139 250 / .45); }
+.mini .ic2 { width: 30px; height: 30px; border-radius: 9px; background: #7a5af8; display: grid; place-items: center; flex: none; }
+.mini .ic2 .ico { width: 16px; height: 16px; color: #fff; }
+.mini .grow { flex: 1; min-width: 0; }
+.mini b { display: block; font: 600 11.5px/1.2 var(--ui); }
+.mini small { display: block; font-size: 10.5px; color: #c4b5fd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.mini .pp { width: 30px; height: 30px; border-radius: 50%; background: #fff; color: #111827; display: grid; place-items: center; font-size: 11px; font-weight: 800; flex: none; }
+.mini .lv { font: 700 9px/1 var(--ui); letter-spacing: .08em; color: #fca5a5; padding: 4px 6px; border-radius: 5px; background: rgb(220 38 38 / .18); }
+.mini.paused { background: #2a2208; outline-color: #fbbf24; }
+.mini.paused .ic2 { background: #b45309; }
+.mini.paused small { color: #fde68a; }
+
+.np { width: 100%; border-radius: 18px; background: rgb(255 255 255 / .14); backdrop-filter: blur(8px); padding: 12px; display: grid; gap: 9px; text-align: left; }
+.np .top { display: flex; gap: 10px; align-items: center; }
+.np .top .mirror { width: 74px; border-radius: 6px; }
+.np .top .grow { flex: 1; min-width: 0; }
+.np .top b { display: block; font-size: 12.5px; line-height: 1.3; }
+.np .top small { display: block; font-size: 11px; color: #cbd5e1; margin-top: 2px; }
+.np .route { width: 22px; height: 22px; color: #e2e8f0; flex: none; align-self: flex-start; }
+.np .scrub { display: flex; align-items: center; gap: 7px; font: 600 9.5px/1 var(--ui); color: #cbd5e1; }
+.np .scrub i { flex: 1; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .85); }
+.np .scrub .lv { color: #fca5a5; letter-spacing: .08em; }
+.np .ctr { display: flex; justify-content: center; align-items: center; gap: 34px; font-size: 22px; }
+.np .ctr span { display: grid; place-items: center; }
+.np .ctr small { display: block; font-size: 9px; font-weight: 700; letter-spacing: .06em; margin-top: -2px; }
+
+/* ---- speaker: engine choice, cloud, mic tip ---- */
+.ltag.cloud, .tick .ctag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 5px; border-radius: 4px; background: rgb(56 189 248 / .18); color: #bae6fd; font: 700 9px/1.2 var(--ui); letter-spacing: .04em; white-space: nowrap; }
+.tick .ctag .ico { width: 10px; height: 10px; }
+.ccb.cloud { position: relative; }
+.ccb.cloud::after { content: ""; position: absolute; top: 5px; right: 7px; width: 7px; height: 7px; border-radius: 50%; background: #38bdf8; }
+.engrow { display: grid; gap: 6px; }
+.engrow .seg span { flex-direction: row; gap: 5px; display: flex; align-items: center; justify-content: center; }
+.costline { font-size: 10.5px; color: #8c97ad; }
+.micart { border-radius: 12px; background: #0f1424; padding: 8px; }
+.micart svg { display: block; width: 100%; height: auto; }
+.tips { margin: 0; padding: 0 0 0 16px; display: grid; gap: 4px; font-size: 11.5px; color: #cbd5e1; line-height: 1.4; }
+.tips b { color: #fff; }
+.chk { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #cbd5e1; }
+.chk i { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid #64748b; }
+.inrow { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 10px; background: rgb(255 255 255 / .06); font-size: 11.5px; }
+.inrow .grow { flex: 1; min-width: 0; }
+.inrow small { color: #94a3b8; font-size: 10.5px; }
+.inrow .tipl { color: #a5b8ff; font-size: 11px; white-space: nowrap; }
+.inrow.warn { background: rgb(251 146 60 / .12); }
+.inrow.warn small { color: #fcd9a8; }
+
+/* ---- laptop bits ---- */
+.ptool .langmix .hp { display: inline-flex; align-items: center; gap: 2px; margin-left: 3px; color: #c4b5fd; font-weight: 600; }
+.ptool .langmix .hp .ico { width: 11px; height: 11px; }
+.ptool .ccchip.cloud .cc-ic { border-color: #38bdf8; color: #38bdf8; }
+
+/* ---- demo ---- */
+.qtbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.qtbl th { text-align: left; font: 600 10.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 7px 8px; border-bottom: 1px solid var(--line); }
+.qtbl td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.qtbl td.n { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.qtbl td.txt { min-width: 0; }
+.qtbl tr.r-say td { background: var(--later-soft); }
+.qtbl tr.r-skip td.txt { color: var(--faint); text-decoration: line-through; }
+.qtbl tr.r-done td.txt { color: var(--muted); }
+.qst { display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px; border-radius: 999px; font: 600 11px/1.4 var(--ui); white-space: nowrap; }
+.qst.say { background: var(--later); color: #fff; }
+.qst.wait { background: var(--surface-2); color: var(--muted); }
+.qst.done { background: var(--ok-soft); color: var(--ok); }
+.qst.skip { background: var(--warn-soft); color: var(--warn); }
+.qst.own { background: var(--surface-2); color: var(--faint); }
+.qbar { height: 3px; border-radius: 2px; background: var(--line); margin-top: 5px; overflow: hidden; }
+.qbar i { display: block; height: 100%; background: var(--later); }
+.behind { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
+.behind .cells { display: flex; gap: 3px; }
+.behind .cells i { width: 18px; height: 10px; border-radius: 3px; background: var(--line); }
+.behind .cells i.f { background: var(--later); }
+.behind .cells i.over { background: var(--warn); }
+.vstat { font-size: 12.5px; color: var(--muted); }
+.vstat b { color: var(--text); font-weight: 600; }
+.vstat.miss b { color: var(--warn); }
+.lag { display: inline-flex; gap: 6px; align-items: baseline; font-size: 12.5px; color: var(--muted); }
+.lag b { font: 600 13px/1 var(--mono); color: var(--text); }
+
+/* ---- admin ---- */
+.adm .engcard { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.adm .engcard b { font-weight: 600; }
+.adm .engcard small { display: block; color: var(--muted); font-size: 12px; }
+.adm .sw { flex: none; }
+.adm .kv { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 6px 14px; font-size: 13px; }
+.adm .kv span:nth-child(odd) { color: var(--muted); }
+
+@media (max-width: 1100px) {
+  .demo3 { grid-template-columns: 292px 292px; }
+  .demo3 .logcol { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .demo3 { grid-template-columns: minmax(0, 1fr); }
+  .adm .kv { grid-template-columns: minmax(0, 1fr); }
+}
+.seg.s2 span { display: flex; align-items: center; justify-content: center; gap: 5px; }
+.seg.s2 span .ico { margin: 0; }
+
+/* ---- D21: a fixed-height strip, so reading doesn't jump ---- */
+.subs .lnbox { height: 80px; overflow: hidden; display: grid; align-content: start; gap: 4px; }
+.subs .lnbox .state { min-height: 0; height: 100%; }
+.subs .ln { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.subs .ln.say { -webkit-line-clamp: 3; }
+.subs .ln.nextl { -webkit-line-clamp: 1; }
+.subs .skipn { height: 14px; }
+.subs .skipn.empty { visibility: hidden; }
+/* =====================================================================
+   SW-885 round 2: landscape. The slide full screen, translations over it.
+   ===================================================================== */
+.phone.land.l2 { width: 620px; }
+.phone.land.l2 .ps { height: auto; aspect-ratio: 2.17; display: block; background: #000; }  /* 852 x 393, an iPhone 15 on its side */
+.lz { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.lz > .lmid { position: relative; flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; container-type: size; }
+/* sized like GuestFollowing: min(100cqw, 100cqh*16/9), less the island's safe area */
+.lstage { --w: min(100cqw - 64px, 100cqh * 16 / 9); position: relative; flex: none; width: var(--w); }
+.lstage .lrail { left: calc(100% + (100cqw - var(--w)) / 4 - 17px); }
+.lstage .lrail.corner { left: auto; right: 8px; }
+.phone.land .ps .lstage .mirror { width: 100%; border-radius: 0; box-shadow: none; outline: none; cursor: pointer; }
+
+/* hardware: island on the left in landscape, Android punch hole */
+.lisl { position: absolute; left: 9px; top: 50%; translate: 0 -50%; width: 20px; height: 74px; border-radius: 11px; background: #000; outline: 1px solid #1a1d24; z-index: 9; }
+.lpunch { position: absolute; left: 12px; top: 50%; translate: 0 -50%; width: 9px; height: 9px; border-radius: 50%; background: #05070b; outline: 1.5px solid #1e222b; z-index: 9; }
+.lhome { position: absolute; bottom: 5px; left: 50%; translate: -50% 0; width: 110px; height: 4px; border-radius: 3px; background: rgb(255 255 255 / .55); z-index: 9; }
+.lhome.faint { background: rgb(255 255 255 / .16); }
+
+/* browser chrome */
+.lchrome { flex: none; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font: 500 10.5px/1 var(--ui); color: #e5e7eb; position: relative; z-index: 4; }
+.lchrome.ios { height: 24px; background: #1c1c1e; }
+.lchrome.ios .aa { position: absolute; left: 46px; font-weight: 700; color: #9ca3af; }
+.lchrome.ios .x { position: absolute; right: 22px; color: #9ca3af; }
+.lchrome.and { height: 30px; background: #202124; justify-content: flex-start; padding: 0 16px 0 40px; }
+.lchrome.and .url { flex: 1; display: flex; align-items: center; gap: 6px; height: 20px; padding: 0 10px; border-radius: 10px; background: #303134; }
+.lchrome svg { width: 9px; height: 10px; color: #9ca3af; }
+
+/* captions over the slide: newest at the bottom, nothing below moves */
+.lcap { position: absolute; left: 5%; right: 5%; bottom: 7%; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: none; }
+.lcap .c { max-width: 94%; padding: 3px 9px; border-radius: 4px; background: rgb(0 0 0 / .8); color: #fff; font: 500 var(--fs, 13px)/1.38 var(--ui); text-align: center; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.lcap .c.dim { color: #cbd5e1; font-size: calc(var(--fs, 13px) * .9); -webkit-line-clamp: 1; }
+.lcap .c.say { box-shadow: inset 3px 0 0 #a78bfa; padding-left: 11px; }
+.lcap .c.st { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #e2e8f0; }
+.lcap .c.st i { width: 7px; height: 7px; border-radius: 50%; background: #fbbf24; }
+.lz[data-size="s"] { --fs: 11.5px; --bh: 40px; }
+.lz[data-size="m"] { --fs: 13.5px; --bh: 50px; }
+.lz[data-size="l"] { --fs: 17px; --bh: 64px; }
+.lz[data-size="l"] .lcap .c { -webkit-line-clamp: 2; }
+
+/* captions below the slide: a fixed band, the slide shrinks to make room */
+.lband { flex: none; height: var(--bh, 50px); width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; padding: 0 70px; box-sizing: border-box; background: #000; }
+.lband .c { max-width: 100%; color: #fff; font: 500 var(--fs, 13px)/1.35 var(--ui); text-align: center; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.lband .c.dim { color: #94a3b8; font-size: calc(var(--fs, 13px) * .88); -webkit-line-clamp: 1; }
+.lband .c.say { color: #ede9fe; }
+.lband .c.say::before { content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 7px 2px 0; border-radius: 50%; background: #a78bfa; }
+
+/* the listening rail: lives in the black bar right of the slide, never on it */
+.lrail { position: absolute; top: 50%; translate: 0 -50%; z-index: 5; display: grid; justify-items: center; gap: 6px; width: 34px; padding: 8px 0; border-radius: 14px; background: rgb(122 90 248 / .18); outline: 1px solid rgb(167 139 250 / .45); color: #ede9fe; font: 700 9.5px/1 var(--ui); text-align: center; }
+.lrail .ico { width: 15px; height: 15px; color: #c4b5fd; }
+.lrail .bars { height: 11px; }
+.lrail .lg { font-size: 9.5px; color: #ddd6fe; }
+.lrail .sk { padding: 3px 5px; border-radius: 6px; background: rgb(251 191 36 / .16); color: #fde68a; font-size: 9px; }
+.lrail.paused { background: rgb(180 83 9 / .25); outline-color: #fbbf24; }
+.lrail.paused .ico { color: #fde68a; }
+.lrail.corner { top: 8px; translate: none; width: auto; display: flex; gap: 5px; padding: 4px 8px; border-radius: 999px; background: rgb(76 52 190 / .9); }
+
+/* the tap overlay (SW-883 D6) with listening and captions controls */
+.lover { position: absolute; left: 0; right: 0; top: 0; z-index: 6; display: flex; align-items: center; gap: 7px; padding: 9px 10px 22px; background: linear-gradient(rgb(0 0 0 / .78), transparent); font: 600 10.5px/1 var(--ui); color: #fff; }
+.lover .sp { flex: 1; }
+.lover .live { font: 700 9px/1 var(--ui); letter-spacing: .08em; padding: 3px 6px; border-radius: 5px; background: rgb(220 38 38 / .85); }
+.lover .ob { all: unset; display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 999px; background: rgb(255 255 255 / .14); font: 700 10px/1 var(--ui); white-space: nowrap; cursor: pointer; }
+.lover .ob.vio { background: #7a5af8; }
+.lover .ob.on { outline: 1.5px solid #a5b8ff; }
+.lover .ob .ico { width: 11px; height: 11px; }
+.lover .ob .cc-ic { font-size: 8px; padding: 1px 3px; }
+.lover .lang { padding: 4px 8px; font-size: 10.5px; }
+.lprog { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgb(255 255 255 / .15); z-index: 6; }
+.lprog i { display: block; height: 100%; background: var(--sw-accent-glow); }
+
+/* captions menu, from the overlay's CC button */
+.lmenu { position: absolute; right: 8px; top: 40px; z-index: 8; width: 210px; display: grid; gap: 8px; padding: 11px; border-radius: 14px; background: #161b2b; outline: 1px solid #334155; box-shadow: 0 12px 30px rgb(0 0 0 / .5); font-size: 11.5px; }
+.lmenu .hd { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.lmenu .hd .sp { flex: 1; }
+.lmenu small { font: 600 9px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: #64748b; }
+.lmenu .seg { padding: 3px; gap: 3px; border-radius: 9px; }
+.lmenu .seg span { min-height: 26px; font: 600 11px/1 var(--ui); border-radius: 7px; }
+.lmenu .seg.s3 { grid-template-columns: repeat(3, 1fr); }
+.lmenu .seg.s3 span:nth-child(1) { font-size: 10px; } .lmenu .seg.s3 span:nth-child(3) { font-size: 14px; }
+.lmenu .ft { font-size: 10px; color: #8c97ad; line-height: 1.35; }
+
+/* toasts and nudges */
+.ltoast { position: absolute; top: 10px; left: 50%; translate: -50% 0; z-index: 7; display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 999px; background: #2a2208; outline: 1px solid #fbbf24; color: #fde68a; font: 500 11px/1.2 var(--ui); white-space: nowrap; }
+.ltoast b { color: #fff; font-weight: 700; }
+.lnudge { position: absolute; top: 9px; left: 50%; translate: -50% 0; z-index: 5; display: flex; align-items: center; gap: 7px; padding: 6px 11px; border-radius: 999px; background: #fff; color: #111827; font: 600 11px/1.2 var(--ui); white-space: nowrap; box-shadow: 0 6px 18px rgb(0 0 0 / .4); }
+.lnudge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sw-accent); }
+.lnudge .ico { width: 14px; height: 14px; color: var(--sw-accent); }
+
+/* landscape side panel: wider than SW-883's language panel */
+.phone.land.l2 .sheet { width: 270px; gap: 8px; }
+.phone.land.l2 .sheet h4 { font-size: 15px; }
+.phone.land.l2 .sheet .vrow { padding: 7px 10px; }
+.phone.land.l2 .sheet .bigbtn { min-height: 36px; }
+
+/* annotation callouts beside the gallery phones */
+.lnote { position: absolute; z-index: 10; padding: 2px 6px; border-radius: 4px; background: #fde68a; color: #422006; font: 700 9.5px/1.3 var(--ui); white-space: nowrap; pointer-events: none; }
+.lnote::after { content: ""; position: absolute; width: 0; height: 0; }
+
+/* demo */
+.ldemo { display: grid; grid-template-columns: minmax(0, 640px) minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 1100px) { .ldemo { grid-template-columns: minmax(0, 1fr); } }
+.ldemo .ctlcard .btn { padding: 5px 10px; font-size: 12.5px; }
+.ldemo .tapnote { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
+.lgal { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 22px; }
+@media (max-width: 1100px) { .lgal { grid-template-columns: minmax(0, 1fr); } }
+.lgal .phone.land.l2 { width: 100%; max-width: 620px; }
+.lgal .st-cap .tag { display: inline-block; margin-right: 6px; }
+.ltech { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
+@media (max-width: 1000px) { .ltech { grid-template-columns: minmax(0, 1fr); } }
+.ltech .card { padding: 14px 16px; display: grid; gap: 8px; align-content: start; }
+.ltech h3 { font: 600 14px/1.3 var(--ui); margin: 0; }
+.ltech ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 13px; }
+.ltech code { font-size: 12px; }
+.qnew { border-left: 3px solid var(--accent); }
+
+@media (max-width: 700px) {
+  .phone.land.l2 { width: 100%; }
+  .lmenu { width: 180px; }
+  .phone.land.l2 .sheet { width: 62%; }
+}
+
+/* a 16:9 phone: no island, no black bar */
+.phone.land.l2.r169 { width: 500px; border-radius: 26px; }
+.phone.land.l2.r169 .ps { height: auto; aspect-ratio: 16 / 9; border-radius: 6px; }
+.lgal .phone.land.l2.r169 { width: 82%; }
+.lz.nosafe .lstage { --w: min(100cqw, 100cqh * 16 / 9); }
+
+</style>
+</head>
+<body class="hide-fb">
+<main>
+
+<header class="page-head">
+  <div class="eyebrow">SlideWorks · SW-885 · design mockups · 28 Nov 2026 · round 2 adds landscape</div>
+  <h1>Live speech V2: guests listen to the talk in their own language</h1>
+  <p>V1 (SW-884) puts translated subtitles on guests' phones. V2 lets a guest put headphones in and <b>hear</b> each translated line, read by the phone's own voice. Mobile web gets a <b>Listen</b> button. The SlideWorks app gets an <b>audience mode</b> that keeps playing with the screen locked. The speaker gets a microphone tip and a count of who is listening. The guest page, the subtitle strip and the speaker app are SW-884's mockups; only the listening parts are new.</p>
+</header>
+
+<nav class="toc">
+  <a href="#scope">01 Scope</a><a href="#demo">02 Live demo</a><a href="#web">03 Mobile web: Listen</a><a href="#app">04 App: audience mode</a><a href="#landscape">05 Landscape</a><a href="#speaker">06 Speaker side</a><a href="#flow">07 How it flows</a><a href="#decisions">08 Decisions</a>
+</nav>
+
+<!-- 01 -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">01</span><h2>What V2 ships</h2><span class="pill grey">under the Translations epic SW-942 · after SW-884</span></div>
+  <div class="three">
+    <div class="card">
+      <h3><span class="pill ok">V2 · SW-885</span> This Feature</h3>
+      <ul>
+        <li><b>Listen on mobile web.</b> A button in the subtitle strip. The tap that starts it is the gesture iOS needs before it will speak.</li>
+        <li><b>The phone's own voice</b>, picked by an explicit locale with <code>utterance.lang</code> set (D3). If the language has no voice, the guest is told, and Listen stays off (D13).</li>
+        <li><b>Voice and speed.</b> Traditional Chinese readers pick Cantonese (zh-HK) or Mandarin (zh-TW).</li>
+        <li><b>Stays near live.</b> More than 3 lines waiting skips to the latest (D9).</li>
+        <li><b>Audience mode in the app</b> (D4): join by code or QR without signing in, follow the slides, read, and listen with the screen locked, through headphones, from the lock screen.</li>
+        <li><b>A better voice</b> prompt where the OS has one to download.</li>
+        <li><b>Headphone counts</b> per language in the presenter's Reading in counter (D18).</li>
+        <li><b>Landscape</b>: the slide full screen, in the guest's language, with the translated lines over it, a listening rail and a captions menu (section 05).</li>
+        <li><b>The microphone tip</b> the first time Live subtitles is turned on (D7, D19).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="pill acc">V1 · SW-884</span> Already there</h3>
+      <ul class="later-list">
+        <li>The speaker app and its Subtitles sheet.</li>
+        <li>On-device speech to text, English and Thai.</li>
+        <li>Server translation per language through SW-943.</li>
+        <li>The subtitle strip on the guest page, and SW-883's language chip, which V2's voice follows.</li>
+        <li>The CC chip and Reading in counter in the presenter window.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="pill grey">elsewhere</span> Not in V2</h3>
+      <ul class="grey-list">
+        <li>Cloud speech to text (Soniox): its own Feature, SW-981 (D20).</li>
+        <li>A local text-to-speech model for languages the phone has no voice for: SW-982.</li>
+        <li>Multilingual typed Q&amp;A: V3, SW-944.</li>
+        <li>Server neural voices streamed as audio: later, as a premium (D3).</li>
+        <li>Spoken questions from guests (D8).</li>
+        <li>Testing microphones (D7). The tip is advice only.</li>
+        <li>Reading the slides aloud. Only what Sam says is spoken.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 02 -->
+<section class="block" id="demo">
+  <div class="sec-head"><span class="n">02</span><h2>Live demo: Sam talks, a guest listens in Thai</h2><span class="pill ok">talk fast to see the catch-up, switch the voice, hear it</span></div>
+  <p class="sec-sub">Left is Sam's phone in the speaker app (SW-884). Middle is a guest on mobile web who tapped Listen. Right is the speech queue on that guest's phone. Each translated line is read once it arrives. When Sam talks faster than the voice can read, more than 3 lines wait and the queue jumps to the newest (D9). The strip keeps one height throughout (D21). Durations are estimated from the text unless you turn on <b>Hear it in this browser</b>.</p>
+  <div class="demo3">
+    <div><div class="devlbl">Speaker app · Sam</div><div class="phone"><div class="ps app" id="spPhone"></div></div></div>
+    <div><div class="devlbl">Guest · mobile web</div><div class="phone"><div class="ps" id="gPhone"></div></div></div>
+    <div class="logcol">
+      <div class="card ctlcard">
+        <div class="r"><span class="lbl">Sam</span><button class="btn" id="cTalk">❚❚ Stop talking</button><button class="btn" id="cFast">Talk fast</button></div>
+        <div class="r"><span class="lbl">Guest</span><span id="cLangs" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span></div>
+        <div class="r"><span class="lbl">Voice</span><button class="btn" id="cListen">Stop listening</button><span id="cRates" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span></div>
+        <div class="r"><span class="lbl">This browser</span><button class="btn" id="cAudio">🔈 Hear it in this browser</button><span class="vstat" id="vStat"></span></div>
+      </div>
+      <div class="card logcard">
+        <div class="lh"><span>Speech queue on the guest's phone</span><span class="sp" style="flex:1"></span><span class="behind"><span id="behindTxt">0 waiting</span><span class="cells" id="behindCells"></span></span></div>
+        <div class="tblwrap"><table class="qtbl"><thead><tr><th>#</th><th>Line, as the guest hears it</th><th>State</th><th>Behind Sam</th></tr></thead><tbody id="qBody"></tbody></table></div>
+        <div class="logempty" id="qEmpty">Lines appear here as their translation arrives.</div>
+      </div>
+      <ul class="demo-notes" style="margin:0">
+        <li>A line is read once it is final and translated, so listening runs about 2 to 4 seconds behind Sam. The <b>Behind Sam</b> column is from the moment Sam finished the line.</li>
+        <li>The skip keeps the line being read and drops the older waiting ones. Their text stays in the subtitles, so nothing is lost for a guest who is also reading.</li>
+        <li>A guest reading in English gets no Listen button: they can hear Sam (D11).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 03 -->
+<section class="block" id="web">
+  <div class="sec-head"><span class="n">03</span><h2>Mobile web: the Listen button</h2><span class="pill acc">mobile web</span></div>
+  <p class="sec-sub">Listen lives in the subtitle strip's header, next to Hide (D10). The first tap opens a short sheet; its Start button is the user gesture iOS needs before <code>speechSynthesis</code> will speak. Mobile web can't keep speaking with the screen locked, so the page holds the screen on while listening and points to the app for screen-off listening (D12).</p>
+  <div class="states" id="webGrid"></div>
+</section>
+
+<!-- 04 -->
+<section class="block" id="app">
+  <div class="sec-head"><span class="n">04</span><h2>The app's audience mode</h2><span class="pill acc">native app · same app as the speaker's</span></div>
+  <p class="sec-sub">One app, one store listing (D4). Joining needs no account, the same as mobile web; signing in is only for presenting (D14). The guest page is the web one without the address bar. While listening, a mini player sits at the bottom, and the lock screen gets Now Playing controls (D17).</p>
+  <div class="states" id="appGrid"></div>
+</section>
+
+<!-- 05 · round 2 -->
+<section class="block" id="landscape">
+  <div class="sec-head"><span class="n">05</span><h2>Landscape: the slide full screen, the translation over it</h2><span class="pill ok">round 2 · D22–D27 decided 28 Nov</span></div>
+  <p class="sec-sub">A guest turns the phone sideways to see the slide as big as possible. SW-5 already makes the slide fill the screen, SW-883 translates it and adds a tap overlay (D6), and SW-884 puts two caption lines over it (D17). V2 has to make all of that work together while the guest listens: Sam's words, translated, over a slide that is also translated, with a way to listen, stop, resize and move the captions without turning the phone back. The status sits in the black bar beside the slide, so nothing covers the slide that doesn't have to.</p>
+
+  <div class="ldemo">
+    <div>
+      <div class="phone land l2"><div class="ps" id="lPhone"></div></div>
+      <p class="tapnote">Tap the phone to show the overlay, as a guest would. Tap CC in it for the captions menu.</p>
+    </div>
+    <div style="display:grid;gap:14px">
+      <div class="card ctlcard">
+        <div class="r"><span class="lbl">Phone</span><span id="lcPlat" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span></div>
+        <div class="r"><span class="lbl">Captions</span><span id="lcCap" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span></div>
+        <div class="r"><span class="lbl">Text size</span><span id="lcSize" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span></div>
+        <div class="r"><span class="lbl">Language</span><span id="lcLang" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span></div>
+        <div class="r"><span class="lbl">Guest</span><button class="btn" id="lcListen"></button><button class="btn" id="lcOver">Tap the slide</button></div>
+        <div class="r"><span class="lbl">Sam</span><button class="btn" id="lcFast"></button><button class="btn" id="lcPoll"></button></div>
+      </div>
+      <ul class="demo-notes" style="margin:0">
+        <li><b>The slide and the speech are both in the guest's language.</b> The slide comes from SW-883's translations, the captions from SW-884's stream, and the voice from V2's speech queue. All three follow the one language chip.</li>
+        <li><b>Over the slide</b> keeps the slide as big as it can be; the captions cover its bottom edge, like a film. <b>Below the slide</b> shrinks the slide about 18% so nothing is covered. Try it on slide 5, whose cards sit low.</li>
+        <li><b>The rail</b> right of the slide shows listening, the language and any skipped lines (D9). It's in the black bar that a 16:9 slide leaves on a modern phone, so it never covers the slide.</li>
+        <li>Captions over the slide are absolutely placed, so nothing on the page moves when a line arrives. Below the slide, the band has a fixed height for each text size (D21).</li>
+        <li>iPhone web keeps Safari's bar: iOS has no full screen for a page. Android web has SW-883's Full screen button. The app goes full screen by itself.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="font:600 16px/1.3 var(--head);margin:30px 0 4px">States</h3>
+  <p class="sec-sub" style="margin-bottom:16px">Each is a phone turned sideways, on Thai, with Sam on slide 3 unless the caption says otherwise.</p>
+  <div class="lgal" id="landGrid"></div>
+
+  <div class="ltech">
+    <div class="card"><h3>Mobile web</h3><ul>
+      <li>Extends <code>GuestFollowing</code>'s landscape branch (<code>orientation: landscape</code> and <code>max-height: 500px</code>). Captions, rail and overlay are siblings of the slide, absolutely placed.</li>
+      <li>Caption size and position are kept in <code>localStorage</code> on the phone, like the Cantonese or Mandarin choice.</li>
+      <li>Wake Lock is already held while listening (D12). In landscape it's also held while captions are showing, because people read without touching the screen.</li>
+      <li>Full screen on Android is <code>requestFullscreen()</code> on the guest shell (SW-883 D6). It's never offered on iPhone.</li>
+    </ul></div>
+    <div class="card"><h3>The app</h3><ul>
+      <li>The guest screen unlocks rotation (<code>expo-screen-orientation</code>); join, home and speaker screens stay upright.</li>
+      <li>Sideways means immersive: status bar hidden, Android system bars hidden (<code>expo-navigation-bar</code>), home indicator auto-hidden on iOS. A swipe from the edge brings them back.</li>
+      <li>The screen stays awake while following a talk (<code>expo-keep-awake</code>). Background audio and Now Playing are unchanged (D17).</li>
+      <li>The mini player folds into the rail. Tapping the rail opens the overlay, not the player.</li>
+    </ul></div>
+    <div class="card"><h3>To check during planning</h3><ul>
+      <li>Safe areas: the island or punch hole sits left or right depending on which way the phone turned. The rail goes on the side away from it.</li>
+      <li>Phones with a 16:9 screen (iPhone SE) have no black bar. The rail then becomes a corner pill over the slide (D24).</li>
+      <li>Caption contrast on light slides: the 80% black box behind each line passes 4.5:1 on any slide.</li>
+      <li>iPadOS Safari does support element full screen; the Android button could show there too.</li>
+    </ul></div>
+  </div>
+
+  <div class="card" style="padding:12px 16px;margin-top:22px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">Answered 28 Nov.</b> Q13–Q18 all went as recommended and are D22–D27 on SW-885: captions over the slide with Below as an option, the Captions menu, the rail in the black bar, captions off while listening, the app immersive when sideways, and the poll chip. See section 08.</div>
+</section>
+
+<!-- 06 -->
+<section class="block" id="speaker">
+  <div class="sec-head"><span class="n">06</span><h2>Speaker side: the microphone tip and who is listening</h2><span class="pill acc">speaker app · presenter window</span></div>
+  <p class="sec-sub">The tip lands in SW-884's Subtitles setup sheet, once per phone, followed by a Microphone row (D19). Reading in, on the laptop and in the Subtitles sheet, gains a headphone count per language (D18). Cloud speech to text moved to SW-981 (D20).</p>
+  <div class="states" id="spkGrid"></div>
+
+  <div class="chips3" style="margin-top:26px">
+    <div class="laptop" style="max-width:860px"><div class="scr">
+      <div class="ptool"><button class="tb">◀ Prev</button><button class="tb">Next ▶</button><span class="count">3 / 6</span><span class="sp"></span><span class="langmix"><span>Reading in</span><b>EN 31</b><b>ไทย 9<span class="hp" id="hp1"></span></b><b>日本語 5<span class="hp" id="hp2"></span></b></span><span class="ccchip"><span class="cc-ic">CC</span>Subtitles · EN + ไทย</span><span class="lc"><span class="lc-live">Live <b>482 913</b> · 45 joined</span><button class="tb">Join bar</button><button class="tb end">End</button></span></div>
+      <div class="bigwrap"><div class="frame" data-i="2" data-lang="en"></div>
+        <div class="joinbar">Join at <b>slideworks.live</b> · code <b>482 913</b></div>
+      </div>
+    </div><div class="base"></div></div>
+    <ul class="demo-notes" style="margin:4px 0 0">
+      <li>4 of the 9 Thai readers are listening (D18). Listening lags reading, so this tells Sam when to slow down. Counts only, never who.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 07 -->
+<section class="block" id="flow">
+  <div class="sec-head"><span class="n">07</span><h2>How a line gets from Sam to a guest's ears</h2></div>
+  <div class="card diagram">
+    <svg viewBox="0 0 1000 330" role="img" aria-label="Speaker phone, server, guest phone speech queue, headphones">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a93a3"/></marker>
+        <marker id="arv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7a5af8"/></marker>
+        <marker id="arb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0284c7"/></marker></defs>
+      <g><rect x="10" y="30" width="220" height="230" rx="12" fill="#f6f8ff" stroke="#c7d3fb"/><text x="26" y="56" font-size="12" font-weight="700" fill="#1e3a8a" letter-spacing="1">SAM'S PHONE · APP</text>
+        <rect x="26" y="72" width="188" height="36" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="40" y="95" font-size="13" fill="#1b2230">Mic</text>
+        <rect x="26" y="124" width="188" height="48" rx="8" fill="#fff" stroke="#7a5af8"/><text x="40" y="144" font-size="13" font-weight="600" fill="#1b2230">Speech to text</text><text x="40" y="161" font-size="11.5" fill="#5b6474">SW-884's on-phone models</text>
+        <rect x="26" y="186" width="188" height="56" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="40" y="207" font-size="13" font-weight="600" fill="#1b2230">Reading in</text><text x="40" y="225" font-size="11.5" fill="#5b6474">+ headphone counts (D18)</text>
+        <path d="M120 108V122" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/></g>
+      <path d="M230 148C270 148 280 120 318 120" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/><text x="236" y="112" font-size="11.5" fill="#5b6474">SendCaption</text>
+      <g><rect x="320" y="30" width="260" height="170" rx="12" fill="#fff" stroke="#d3d8e0"/><text x="336" y="56" font-size="12" font-weight="700" fill="#5b6474" letter-spacing="1">SERVER · DECKHUB (V1)</text>
+        <rect x="336" y="70" width="228" height="54" rx="8" fill="#f3f0ff" stroke="#c4b5fd"/><text x="350" y="92" font-size="13" font-weight="600" fill="#1b2230">Finals → ITranslator</text><text x="350" y="110" font-size="11.5" fill="#5b6474">once per language in use</text>
+        <rect x="336" y="134" width="228" height="52" rx="8" fill="#f0f2f5"/><text x="350" y="156" font-size="13" font-weight="600" fill="#1b2230">Group per deck + language</text><text x="350" y="173" font-size="11.5" fill="#5b6474">nothing new for listening</text></g>
+      <path d="M580 120C620 120 620 120 650 120" stroke="#7a5af8" stroke-width="1.5" fill="none" marker-end="url(#arv)"/>
+      <g><rect x="652" y="30" width="338" height="290" rx="12" fill="#f6f3ff" stroke="#c4b5fd"/><text x="668" y="56" font-size="12" font-weight="700" fill="#5b21b6" letter-spacing="1">GUEST PHONE · WEB OR APP</text>
+        <rect x="668" y="70" width="306" height="44" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="682" y="90" font-size="13" font-weight="600" fill="#1b2230">Subtitle strip (V1)</text><text x="682" y="106" font-size="11.5" fill="#5b6474">every line, translated or not</text>
+        <rect x="668" y="126" width="306" height="62" rx="8" fill="#fff" stroke="#7a5af8"/><text x="682" y="147" font-size="13" font-weight="600" fill="#1b2230">Speech queue</text><text x="682" y="164" font-size="11.5" fill="#5b6474">translated finals, not in the guest's language (D11)</text><text x="682" y="179" font-size="11.5" fill="#5b6474">more than 3 waiting → skip to the newest (D9)</text>
+        <rect x="668" y="200" width="306" height="58" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="682" y="221" font-size="13" font-weight="600" fill="#1b2230">System voice</text><text x="682" y="238" font-size="11.5" fill="#5b6474">web: speechSynthesis · app: iOS / Android TTS</text><text x="682" y="252" font-size="11.5" fill="#5b6474">lang, voice and rate always set</text>
+        <rect x="668" y="270" width="306" height="38" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="682" y="294" font-size="13" fill="#1b2230">Headphones · app: screen locked too</text>
+        <path d="M820 114V124M820 188V198M820 258V268" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/></g>
+    </svg>
+  </div>
+  <div class="mcp" style="margin-top:16px">
+    <div class="card" style="padding:14px;display:grid;gap:10px">
+      <h3 style="font:600 14px/1.3 var(--ui)">The speech queue on the guest's phone (web)</h3>
+<pre class="code"><span class="c">// only finals translated into my language (D11)</span>
+<span class="k">onCaption</span>(c) {
+  <span class="k">if</span> (!listening || c.kind !== <span class="s">"final"</span> || c.from === myLang) <span class="k">return</span>;
+  waiting.push(c);
+  <span class="k">if</span> (waiting.length > <span class="w">3</span>) {                 <span class="c">// D9</span>
+    skipped += waiting.length - <span class="w">1</span>;
+    waiting = [waiting.at(-<span class="w">1</span>)];
+  }
+  pump();
+}
+<span class="k">pump</span>() {
+  <span class="k">if</span> (speechSynthesis.speaking || !waiting.length) <span class="k">return</span>;
+  <span class="k">const</span> u = <span class="k">new</span> SpeechSynthesisUtterance(waiting.shift().text);
+  u.lang = voice.lang;   <span class="c">// "th-TH", "zh-HK": never left to the browser</span>
+  u.voice = voice; u.rate = rate; u.onend = pump;
+  speechSynthesis.speak(u);
+}</pre>
+    </div>
+    <div class="card" style="padding:14px;display:grid;gap:10px">
+      <h3 style="font:600 14px/1.3 var(--ui)">What changes on the wire</h3>
+<pre class="code"><span class="c">// guest → DeckHub, so Reading in can count headphones (D18)</span>
+<span class="k">SetListening</span>({ listening: <span class="k">true</span> })
+
+<span class="c">// DeckHub → presenter and speaker app, with SW-884's roster</span>
+<span class="k">AudienceRoster</span>({ reading: { en: <span class="w">31</span>, th: <span class="w">9</span>, ja: <span class="w">5</span> },
+  listening: { th: <span class="w">4</span>, ja: <span class="w">1</span> } })
+
+<span class="c">// nothing else: captions, groups and translation are V1's</span></pre>
+      <p style="margin:0;font-size:12.5px;color:var(--muted)">No audio goes through SlideWorks: the voices are on the guest's phone. The server only learns who is listening, as counts.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section class="block" id="decisions">
+  <div class="sec-head"><span class="n">08</span><h2>Decisions</h2></div>
+  <div class="card" style="padding:12px 16px;margin:0 0 14px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">Round 1 answered 28 Nov.</b> D1–D9 were settled before the mockups. Q1–Q12 here became D10–D19 on SW-885, all as recommended. Cloud speech to text moved to SW-981 with Q9 and Q10 (D20), and a local TTS fallback is SW-982. The fixed-height strip is D21. Round 2, on landscape: Q13–Q18 became D22–D27, all as recommended.</div>
+  <div class="card tblwrap" style="padding:4px 8px;margin-bottom:18px"><table class="atbl"><thead><tr><th>Q</th><th>Question</th><th>Answer</th><th>Recorded</th></tr></thead><tbody><tr><td class="m">Q1</td><td>Where Listen is on mobile web</td><td>A button in the subtitle strip, next to Hide; a sheet on first tap</td><td class="m">D10</td></tr><tr><td class="m">Q2</td><td>Which lines are read aloud</td><td>Only lines translated into the guest's language; no Listen for guests in the speaker's language</td><td class="m">D11</td></tr><tr><td class="m">Q3</td><td>Mobile web and the screen lock</td><td>Wake Lock while listening; Resume and one line about the app if it locks anyway</td><td class="m">D12</td></tr><tr><td class="m">Q4</td><td>No voice for the language</td><td>Say so, keep Start off, show how to add it, keep subtitles. A local TTS model is SW-982</td><td class="m">D13</td></tr><tr><td class="m">Q5</td><td>Audience and speaker in one app</td><td>One home: Join a talk first, no sign-in; Presenting now below once signed in</td><td class="m">D14</td></tr><tr><td class="m">Q6</td><td>Join links and QR codes</td><td>Open the app when installed; web mentions the app only in the Listen sheet</td><td class="m">D15</td></tr><tr><td class="m">Q7</td><td>Headphones out</td><td>The app pauses, one tap to play on the speaker; web reminds in the sheet</td><td class="m">D16</td></tr><tr><td class="m">Q8</td><td>Lock screen</td><td>Now Playing: slide artwork, deck and language, Pause, Jump to live</td><td class="m">D17</td></tr><tr><td class="m">Q9</td><td>Reaching the cloud engine</td><td>Temporary key per talk, phone streams direct. Moved with cloud STT</td><td class="m">SW-981 D1</td></tr><tr><td class="m">Q10</td><td>Cloud drops mid-talk</td><td>Fall back to the on-phone model, then back. Moved with cloud STT</td><td class="m">SW-981 D2</td></tr><tr><td class="m">Q11</td><td>Presenter sees who listens</td><td>A headphone count per language in Reading in</td><td class="m">D18</td></tr><tr><td class="m">Q12</td><td>When the mic tip shows</td><td>Once per phone, then a Microphone row naming the mic in use</td><td class="m">D19</td></tr><tr><td class="m">—</td><td>Cloud speech to text in V2</td><td>No: its own Feature, SW-981</td><td class="m">D20</td></tr><tr><td class="m">—</td><td>Subtitle strip height</td><td>Fixed; clamp the lines, reserve the skip row; grow only in extreme cases</td><td class="m">D21</td></tr><tr><td class="m">Q13</td><td>Where translated lines go in landscape</td><td>Over the bottom of the slide, film style; Below the slide as an option</td><td class="m">D22</td></tr><tr><td class="m">Q14</td><td>What the guest can change in landscape</td><td>A Captions menu from CC: show or hide, S/M/L, over or below; remembered on the phone</td><td class="m">D23</td></tr><tr><td class="m">Q15</td><td>How a listening guest sees it is playing</td><td>A rail in the black bar beside the slide; a corner pill on 16:9 phones</td><td class="m">D24</td></tr><tr><td class="m">Q16</td><td>Hiding captions while listening</td><td>Yes: captions off, listening carries on</td><td class="m">D25</td></tr><tr><td class="m">Q17</td><td>The app when turned sideways</td><td>Immersive at once; a swipe from the edge brings the bars back</td><td class="m">D26</td></tr><tr><td class="m">Q18</td><td>A poll opens while sideways</td><td>A chip: Poll open · turn upright to vote</td><td class="m">D27</td></tr></tbody></table></div>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const STILL = /[?&]still\b/.test(location.search);
+  const N = 6;
+  const EN = {
+    deck: 'Shipping smaller changes',
+    's1.kick': 'Engineering all-hands · Nov 2026',
+    's2.st': 'Small changes are *easier to review*, easier to ship, and easier to undo.',
+    's3.kick': 'Why it matters', 's3.h': 'Three things get better',
+    's3.c1t': 'Faster reviews', 's3.c1b': 'A 200-line change gets reviewed the same day.',
+    's3.c2t': 'Safer releases', 's3.c2b': 'Fewer changes at once, so less to roll back.',
+    's3.c3t': 'Quicker learning', 's3.c3b': 'Users see the work sooner and tell us sooner.',
+    's4.kick': 'Poll', 's4.h': 'How big was your last merge request?',
+    's4.o1': 'Under 100 lines', 's4.o2': '100 to 500 lines', 's4.o3': 'Over 500 lines',
+    's5.kick': 'Where to start', 's5.h': 'Three habits to try this sprint',
+    's5.n1': 'Slice by what a user can do', 's5.n2': 'Hide unfinished work behind a flag', 's5.n3': 'Merge to main every day',
+    's6.kick': 'Thank you', 's6.h': 'Questions?',
+  };
+  const TR = {
+    th: {
+      deck: 'ส่งมอบการเปลี่ยนแปลงที่เล็กลง',
+      's1.kick': 'ประชุมรวมทีมวิศวกรรม · พ.ย. 2026',
+      's2.st': 'การเปลี่ยนแปลงเล็กๆ *รีวิวง่ายกว่า* ส่งง่ายกว่า และย้อนกลับง่ายกว่า',
+      's3.kick': 'ทำไมจึงสำคัญ', 's3.h': 'สามสิ่งที่ดีขึ้น',
+      's3.c1t': 'รีวิวเร็วขึ้น', 's3.c1b': 'การเปลี่ยนแปลง 200 บรรทัดได้รับการรีวิวภายในวันเดียวกัน',
+      's3.c2t': 'ปล่อยงานปลอดภัยขึ้น', 's3.c2b': 'เปลี่ยนทีละน้อย จึงมีสิ่งที่ต้องย้อนกลับน้อยลง',
+      's3.c3t': 'เรียนรู้ได้เร็วขึ้น', 's3.c3b': 'ผู้ใช้เห็นงานเร็วขึ้น และบอกเราได้เร็วขึ้น',
+      's4.kick': 'โพล', 's4.h': 'Merge request ล่าสุดของคุณใหญ่แค่ไหน?',
+      's4.o1': 'น้อยกว่า 100 บรรทัด', 's4.o2': '100 ถึง 500 บรรทัด', 's4.o3': 'มากกว่า 500 บรรทัด',
+      's5.kick': 'เริ่มจากตรงไหน', 's5.h': 'สามนิสัยที่ลองได้ในสปรินต์นี้',
+      's5.n1': 'แบ่งงานตามสิ่งที่ผู้ใช้ทำได้', 's5.n2': 'ซ่อนงานที่ยังไม่เสร็จไว้หลัง feature flag', 's5.n3': 'Merge เข้า main ทุกวัน',
+      's6.kick': 'ขอบคุณ', 's6.h': 'มีคำถามไหม?',
+    },
+    ja: {
+      deck: '変更を小さく出荷する',
+      's1.kick': 'エンジニアリング全体会議 · 2026年11月',
+      's2.st': '小さな変更は*レビューしやすく*、出荷しやすく、元に戻しやすい。',
+      's3.kick': 'なぜ重要か', 's3.h': '3つのことが良くなる',
+      's3.c1t': 'レビューが速くなる', 's3.c1b': '200行の変更なら、その日のうちにレビューされます。',
+      's3.c2t': 'リリースが安全になる', 's3.c2b': '一度に変える量が少ないので、戻す量も少なくなります。',
+      's3.c3t': '学びが速くなる', 's3.c3b': 'ユーザーが早く成果を見て、早く反応をくれます。',
+      's4.kick': 'アンケート', 's4.h': '直近のマージリクエストの大きさは?',
+      's4.o1': '100行未満', 's4.o2': '100〜500行', 's4.o3': '500行超',
+      's5.kick': 'どこから始めるか', 's5.h': '今スプリントで試す3つの習慣',
+      's5.n1': 'ユーザーができることで分割する', 's5.n2': '未完成の作業はフラグで隠す', 's5.n3': '毎日 main にマージする',
+      's6.kick': 'ありがとうございました', 's6.h': '質問はありますか?',
+    },
+  };
+  TR['zh-Hant'] = {
+    deck: '把變更做小再發佈',
+    's1.kick': '工程全體大會 · 2026年11月',
+    's2.st': '小的變更*更容易審查*、更容易發佈，也更容易撤回。',
+    's3.kick': '為什麼重要', 's3.h': '三件事會變好',
+    's3.c1t': '審查更快', 's3.c1b': '200 行的變更當天就能審查完。',
+    's3.c2t': '發佈更安全', 's3.c2b': '一次改得少，要撤回的也少。',
+    's3.c3t': '學得更快', 's3.c3b': '使用者更早看到成果，也更早回饋。',
+    's4.kick': '投票', 's4.h': '你最近一次合併請求有多大？',
+    's4.o1': '少於 100 行', 's4.o2': '100 到 500 行', 's4.o3': '超過 500 行',
+    's5.kick': '從哪裡開始', 's5.h': '這個衝刺可以試的三個習慣',
+    's5.n1': '依使用者能做的事切分工作', 's5.n2': '用功能旗標隱藏未完成的工作', 's5.n3': '每天合併到 main',
+    's6.kick': '謝謝', 's6.h': '有問題嗎？',
+  };
+  const LANGS = [
+    { id: 'en', chip: 'EN', name: 'English', sub: "Sam's language" },
+    { id: 'th', chip: 'ไทย', name: 'ไทย', sub: 'Thai' },
+    { id: 'ja', chip: '日本語', name: '日本語', sub: 'Japanese' },
+    { id: 'zh-Hant', chip: '繁中', name: '繁體中文', sub: 'Traditional Chinese' },
+  ];
+  const L = (id) => LANGS.find(l => l.id === id);
+  const TITLES = ['Title', 'Statement', 'Three things', 'Poll', 'Habits', 'Questions'];
+  const NOTES = [
+    'Welcome. Say who you are and why this talk.',
+    'Pause after this line. Let it land.',
+    'Ask: when did a big change last bite you? Then the three cards.',
+    'Wait for about 30 answers before showing the bars.',
+    'Pick one habit, not three. <b>Merge daily</b> is the easy win.',
+    'Take questions. Repeat each one for the room.',
+  ];
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const t = (lang) => (k) => {
+    const v = (lang !== 'en' && TR[lang] && TR[lang][k] != null) ? TR[lang][k] : EN[k];
+    return esc(v).replace(/\*(.+?)\*/g, '<em>$1</em>');
+  };
+  function slideHTML(i, lang) {
+    const T = t(lang);
+    const foot = '<div class="foot"><span>' + (i + 1) + ' / ' + N + ' · ' + T('deck') + ' · Sam Rivera</span><span></span></div><div class="sprog" style="width:' + ((i + 1) / N * 100) + '%"></div>';
+    switch (i) {
+      case 0: return '<div class="sl dark"><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div class="kick">' + T('s1.kick') + '</div><h2>' + T('deck') + '</h2><div class="sub">Sam Rivera</div></div>' + foot + '</div>';
+      case 1: return '<div class="sl"><div class="statement"><div>' + T('s2.st') + '</div></div>' + foot + '</div>';
+      case 2: return '<div class="sl"><div class="kick">' + T('s3.kick') + '</div><h3>' + T('s3.h') + '</h3><div class="cards">' + [1, 2, 3].map(n => '<div><b>' + T('s3.c' + n + 't') + '</b><span>' + T('s3.c' + n + 'b') + '</span></div>').join('') + '</div>' + foot + '</div>';
+      case 3: return '<div class="sl"><div class="kick">' + T('s4.kick') + '</div><h3>' + T('s4.h') + '</h3><div class="pollopts">' + [['o1', 18], ['o2', 21], ['o3', 8]].map(([k, v]) => '<div>' + T('s4.' + k) + '<span>' + v + '</span></div>').join('') + '</div>' + foot + '</div>';
+      case 4: return '<div class="sl"><div class="kick">' + T('s5.kick') + '</div><h3>' + T('s5.h') + '</h3><div class="cards">' + [1, 2, 3].map(n => '<div><div class="num">' + n + '</div><b>' + T('s5.n' + n) + '</b></div>').join('') + '</div>' + foot + '</div>';
+      default: return '<div class="sl dark"><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div class="kick">' + T('s6.kick') + '</div><h2>' + T('s6.h') + '</h2><div class="sub">slideworks.live/482913</div></div>' + foot + '</div>';
+    }
+  }
+  const ro = new ResizeObserver(es => es.forEach(e => { const sl = e.target.firstElementChild; if (sl) sl.style.setProperty('--s', e.contentRect.width / 960); }));
+  const frame = (i, lang, extra) => '<div class="mirror"' + (extra || '') + '><div class="frame" data-i="' + i + '" data-lang="' + lang + '"></div></div>';
+  function hydrate(root) { root.querySelectorAll('.frame[data-i]').forEach(f => { f.innerHTML = slideHTML(+f.dataset.i, f.dataset.lang); ro.observe(f); }); }
+
+  // ---------- shared phone bits ----------
+  const lock = '<svg viewBox="0 0 10 12" fill="currentColor"><path d="M2 5V3.5a3 3 0 0 1 6 0V5h.5A1.5 1.5 0 0 1 10 6.5v4A1.5 1.5 0 0 1 8.5 12h-7A1.5 1.5 0 0 1 0 10.5v-4A1.5 1.5 0 0 1 1.5 5zm1.3 0h3.4V3.5a1.7 1.7 0 0 0-3.4 0z"/></svg>';
+  const globe = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.3"/><path d="M1.8 8h12.4M8 1.7c1.8 1.9 2.6 4 2.6 6.3S9.8 12.4 8 14.3C6.2 12.4 5.4 10.3 5.4 8S6.2 3.6 8 1.7z"/></svg>';
+  const sbar = (mic, time) => '<div class="island"></div><div class="sbar"><span>' + (time || '9:41') + (mic ? '<span class="mic" title="Microphone in use"></span>' : '') + '</span><span class="ic"><b></b><i></i></span></div>';
+  const urlbar = '<div class="urlbar">' + lock + '<span>slideworks.live/482913</span></div>';
+  const homebar = '<div class="homebar"><i></i></div>';
+  const bars = (cls) => '<span class="bars ' + cls + '"><i></i><i></i><i></i><i></i></span>';
+
+  // ---------- speaker app ----------
+  // o: i, cc ('off'|'live'|'paused'|'offline'), spoken ('en'|'th'), final, partial, queued, meta, ccOpen, sheet, dialog
+  // D12: subtitles live behind a fifth action button that opens a sheet
+  function ccButton(o) {
+    const st = o.cc || 'off';
+    const lbl = { off: 'Subtitles', live: 'Live', paused: 'Paused', offline: 'Offline' }[st];
+    const ic = st === 'live' || st === 'offline' ? bars(o.partial || st === 'offline' ? 'live' : 'still') : '<span class="ccic">CC</span>';
+    return '<button type="button" class="ccb ' + st + '" data-cc="open" aria-label="Live subtitles: ' + lbl + '">' + ic + '<span>' + lbl + '</span></button>';
+  }
+  function heardLines(o) {
+    if (o.heard) return o.heard;
+    const out = [];
+    if (o.final) out.push({ l: o.spoken || 'en', t: o.final });
+    if (o.partial) out.push({ l: o.spoken || 'en', t: o.partial, pt: true });
+    return out;
+  }
+  const ltag = (l) => '<span class="ltag">' + (l === 'th' ? 'ไทย' : 'EN') + '</span>';
+  function ccSheet(o) {
+    const st = o.cc || 'live';
+    const listen = o.listen || ['en', 'th'];
+    const pill = { live: '<span class="stp live">Live</span>', paused: '<span class="stp paused">Paused</span>', offline: '<span class="stp offline">Offline</span>' }[st];
+    const hl = heardLines(o);
+    const heard = st === 'paused' ? '<div class="heard dim"><p>Nothing is heard or sent. Guests see "Sam paused subtitles".</p></div>'
+      : st === 'offline' ? '<div class="heard dim"><p>' + (o.queued || 0) + ' line' + (o.queued === 1 ? '' : 's') + ' waiting. When you\'re back, only the last 30 seconds are sent (D5).</p></div>'
+      : '<div class="heard">' + (hl.length ? hl.map(h => '<p>' + ltag(h.l) + (h.pt ? '<span class="pt">' + esc(h.t) + '</span>' : esc(h.t)) + '</p>').join('') : '<p><span class="pt">Listening…</span></p>') + '</div>';
+    const chips = '<div class="lchips">' + ['en', 'th'].map(l => '<span class="lchip' + (listen.includes(l) ? ' on' : '') + '">' + (listen.includes(l) ? '✓ ' : '') + L(l).name + '</span>').join('') + '<small>' + (listen.length > 1 ? 'Each line goes to the surer model' : 'One model: saves battery') + '</small></div>';
+    const big = '<div class="setrow sm"><div class="grow"><b>Captions on the big screen</b><small>' + (o.bigcap ? 'On: lines as heard, above the join bar' : 'Off for this deck') + '</small></div><span class="tog' + (o.bigcap ? ' on' : '') + '"></span></div>';
+    const btn = st === 'paused' ? '<button type="button" class="bigbtn violet" data-cc="resume">▶ Resume subtitles</button>' : '<button type="button" class="bigbtn amber" data-cc="pause">❚❚ Pause · off the record</button>';
+    return '<div class="sheet-dim" data-cc="close"></div><div class="sheet ccs" role="dialog" aria-label="Live subtitles"><div class="grab"></div><div class="ccs-h"><h4>Live subtitles</h4>' + pill + '</div>' +
+      '<small class="ccs-l">' + (st === 'live' ? 'Just heard' : 'Status') + '</small>' + heard +
+      '<small class="ccs-l">Listening for</small>' + chips + big +
+      (o.meta ? '<div class="ccs-m">' + o.meta + '</div>' : '') + btn + '</div>';
+  }
+  function ticker(o) {
+    if (o.cc === 'offline') return '<div class="tick off"><span class="ttag">Offline</span><span class="tt">' + (o.queued || 0) + ' lines waiting · still listening</span></div>';
+    if (o.cc !== 'live') return '';
+    const hl = heardLines(o);
+    let txt = hl.map(h => h.t).join(' ').trim();
+    if (txt.length > 46) txt = '…' + txt.slice(-46);
+    const last = hl[hl.length - 1];
+    return '<div class="tick">' + bars(o.partial ? 'live' : 'still') + '<span class="tt">' + (txt ? esc(txt) : '<span class="pt">Listening…</span>') + '</span>' + (last ? ltag(last.l) : '') + '</div>';
+  }
+  function speaker(o) {
+    const i = o.i || 0;
+    const live = o.cc === 'live' || o.cc === 'offline';
+    const nx = i + 1 < N ? 'slide ' + (i + 2) + ' · ' + TITLES[i + 1] : 'End of the deck';
+    const body = '<div class="pbody">' +
+      '<div class="s-stat"><span class="lv' + (o.cc === 'offline' ? ' off' : '') + '">' + (o.cc === 'offline' ? 'OFFLINE' : 'LIVE') + '</span><span class="sp"></span><span class="clock">12:40</span><span class="left">17:20 left</span></div>' +
+      '<div class="s-now"><span>Now ' + (i + 1) + ' / ' + N + '</span><span>' + TITLES[i] + '</span></div>' +
+      frame(i, 'en') +
+      '<div class="s-next">' + (i + 1 < N ? frame(i + 1, 'en') : '<span></span>') + '<div><small>NEXT</small><b>' + nx + '</b></div></div>' +
+      '<div class="s-notes"><small>NOTES</small>' + NOTES[i] + '</div>' +
+      ticker(o) +
+      '<div class="s-nav"><span>‹</span><span class="nx">Next</span></div>' +
+      '<div class="s-acts five"><span><i>▦</i>Slides</span><span><i>↦</i>Skip deep dives</span><span><i>■</i>Blackout</span><span><i>#</i>Join code</span>' + ccButton(o) + '</div>' +
+      '</div>';
+    return sbar(live && !o.noMic) + (o.toast || '') + body + homebar + (o.ccOpen ? ccSheet(o) : '') + (o.sheet || '') + (o.dialog || '');
+  }
+  function appScreen(inner, mic) { return sbar(mic) + inner + homebar; }
+
+  // ---------- guest (mobile web) ----------
+  const chip = (lang) => '<button type="button" class="lang" aria-label="Slide language: ' + L(lang).name + '. Change">' + globe + '<span>' + L(lang).chip + '</span><span class="car">▼</span></button>';
+  function gtop(lang) {
+    const title = lang === 'en' ? EN.deck : TR[lang].deck;
+    return '<div class="g-top"><div class="g-mark">S</div><div class="g-deck"><b>' + esc(title) + '</b><span>Sam Rivera</span></div>' + chip(lang) + '<span class="live">Live</span></div>';
+  }
+  const meta = (i) => '<div class="slidemeta"><span>Slide ' + (i + 1) + '</span><span class="prog"><i style="width:' + ((i + 1) / N * 100) + '%"></i></span><span>' + N + '</span></div>';
+  const waitCard = '<div class="wait slim"><div class="dots"><i></i><i></i><i></i></div><b>Nothing to answer yet</b></div>';
+  const rx = '<div class="rx"><span>👍</span><span>❤️</span><span>😂</span><span>😮</span><span>👏</span></div>';
+  const tabs = '<div class="tabs"><span class="on">Slide</span><span>Questions</span></div>';
+  // s: { state: 'live'|'paused'|'reconnecting'|'hidden'|'none', from, lines: [{ t, nt, pt }] , ring }
+  function subsStrip(lang, s) {
+    if (!s || s.state === 'none') return '';
+    if (s.state === 'hidden') return '<button type="button" class="subs-show" data-subs="show"><span class="cc-ic">CC</span>Show subtitles</button>';
+    const from = s.from || 'en';
+    const head = '<div class="row"><span class="cc-ic">CC</span><span>' + (lang === from ? 'Subtitles · live' : 'Subtitles · translated from ' + L(from).name) + '</span><span class="sp"></span><button type="button" data-subs="hide">Hide</button></div>';
+    if (s.state === 'paused') return '<div class="subs">' + head + '<div class="state"><i></i>Sam paused subtitles.</div></div>';
+    if (s.state === 'reconnecting') return '<div class="subs">' + head + '<div class="state"><i class="or"></i>Sam\'s phone is reconnecting. Subtitles will catch up.</div></div>';
+    const lines = (s.lines || []).slice(-2);
+    const body = lines.length ? lines.map((ln, k) => '<div class="ln' + (k < lines.length - 1 ? ' old' : '') + '">' + (ln.pt ? '<span class="pt">' + esc(ln.t) + '</span>' : esc(ln.t)) + (ln.nt ? '<span class="nt">not translated</span>' : '') + '</div>').join('') : '<div class="state"><i style="background:#a78bfa"></i>Waiting for Sam to speak…</div>';
+    return '<div class="subs' + (s.ring ? ' new-ring' : '') + '">' + head + body + '</div>';
+  }
+  function guest(o) {
+    const lang = o.lang || 'en', i = o.i || 0;
+    return sbar() + '<div class="pbody">' + gtop(lang) + frame(i, lang) + meta(i) + subsStrip(lang, o.subs) + waitCard + rx + tabs + '</div>' + urlbar;
+  }
+  function guestLand(o) {
+    const lang = o.lang || 'en', i = o.i || 0;
+    const cap = '<div class="land-cap">' + o.lines.map((l, k) => '<span' + (k < o.lines.length - 1 ? ' class="old"' : '') + '>' + esc(l) + '</span>').join('') + '</div>';
+    return frame(i, lang) + cap;
+  }
+
+
+  // ================= SW-885 =================
+  const HP = '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 10V8a5.5 5.5 0 0 1 11 0v2"/><rect x="1.8" y="9.3" width="3.2" height="4.8" rx="1.2"/><rect x="11" y="9.3" width="3.2" height="4.8" rx="1.2"/></svg>';
+  const CLOUD = '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 12.5h7a3 3 0 0 0 .4-6 4 4 0 0 0-7.7 1A2.5 2.5 0 0 0 4.5 12.5z"/></svg>';
+  const PHONE = '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="1.5" width="8" height="13" rx="2"/><path d="M7 12.2h2"/></svg>';
+  const INFO = '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6.3"/><path d="M8 7.2v4M8 4.8v.1"/></svg>';
+  const SUN = '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>';
+  document.getElementById('hp1').innerHTML = HP + '4';
+  document.getElementById('hp2').innerHTML = HP + '1';
+
+  const VOICES = {
+    th: { name: 'Kanya', loc: 'th-TH' }, ja: { name: 'Kyoko', loc: 'ja-JP' },
+    yue: { name: 'Sin-ji', loc: 'zh-HK' }, cmn: { name: 'Mei-Jia', loc: 'zh-TW' }, en: { name: 'Samantha', loc: 'en-US' },
+  };
+  const LNAME = { th: 'ไทย', ja: '日本語', 'zh-Hant': '繁中', en: 'English' };
+
+  // ---------- the subtitle strip, with Listen ----------
+  // s: { state: live|paused|hidden|none, from, lines:[{t, pt, nt, say, next}], listen: off|on|none|resume, skipped, voice, rate }
+  function subsL(lang, s) {
+    if (!s || s.state === 'none') return '';
+    if (s.state === 'hidden') return '<button type="button" class="subs-show"><span class="cc-ic">CC</span>Show subtitles</button>';
+    const from = s.from || 'en';
+    const on = s.listen === 'on';
+    let btn = '';
+    if (s.listen === 'off') btn = '<button type="button" class="lsn" data-lsn="start">' + HP + 'Listen</button>';
+    if (s.listen === 'resume') btn = '<button type="button" class="lsn" data-lsn="start">' + HP + 'Resume</button>';
+    if (on) btn = '<button type="button" class="lsn stop" data-lsn="stop">Stop</button>';
+    const title = on ? '<span class="lstat">' + bars(s.paused ? 'still' : 'live') + 'Listening · ' + LNAME[lang] + (s.rate && s.rate !== 1 ? ' · ' + s.rate + '×' : '') + '</span>'
+      : '<span>' + (lang === from ? 'Subtitles · live' : s.listen === 'none' ? 'Subtitles · from ' + L(from).name : 'Subtitles') + '</span>';
+    const head = '<div class="row"><span class="cc-ic">CC</span>' + title + '<span class="sp"></span>' + btn + (on ? '' : '<button type="button">Hide</button>') + '</div>';
+    const skipRow = on ? '<div class="skipn' + (s.skipped ? '' : ' empty') + '"><i>↷</i>' + (s.skipped ? 'Skipped ' + s.skipped + ' line' + (s.skipped > 1 ? 's' : '') + ' to stay live' : '&nbsp;') + '</div>' : '';
+    if (s.state === 'paused') return '<div class="subs' + (on ? ' listening' : '') + '">' + head + '<div class="lnbox"><div class="state"><i></i>Sam paused subtitles.' + (on ? ' Listening picks up when they\'re back.' : '') + '</div></div>' + skipRow + '</div>';
+    const lines = s.lines || [];
+    const body = lines.length ? lines.map((ln, k) => {
+      const cls = ln.say ? ' say' : ln.next ? ' nextl' : (k < lines.length - 1 ? ' old' : '');
+      return '<div class="ln' + cls + '">' + (ln.pt ? '<span class="pt">' + esc(ln.t) + '</span>' : esc(ln.t)) + (ln.nt ? '<span class="nt">not translated</span>' : '') + '</div>';
+    }).join('') : '<div class="state"><i style="background:#a78bfa"></i>Waiting for Sam to speak…</div>';
+    const note = s.hpnote ? '<div class="hp">' + s.hpnote + '</div>' : '';
+    return '<div class="subs' + (on ? ' listening' : '') + (s.ring ? ' new-ring' : '') + '">' + head + '<div class="lnbox">' + body + '</div>' + skipRow + note + '</div>';
+  }
+  function gtopApp(lang) { return gtop(lang).replace('<span class="live">Live</span>', '<span class="live">Live</span>'); }
+  // o: { i, lang, subs, app, mini, over, compact }
+  function guestL(o) {
+    const lang = o.lang || 'th', i = o.i || 0;
+    const body = '<div class="pbody">' + gtop(lang) + frame(i, lang) + meta(i) + subsL(lang, o.subs) + (o.compact ? '' : waitCard) + rx + tabs + '</div>';
+    return sbar(false, o.time) + (o.banner || '') + body + (o.app ? (o.mini || '') + homebar : urlbar) + (o.over || '');
+  }
+  const SH = (h, sub, inner) => '<div class="sheet-dim"></div><div class="sheet" role="dialog"><div class="grab"></div><h4>' + h + '</h4>' + (sub ? '<p class="sub">' + sub + '</p>' : '') + inner + '</div>';
+  const speedSeg = (r) => '<small class="ccs-l">Speed</small><div class="seg s4">' + [0.8, 1, 1.25, 1.5].map(v => '<span' + (v === (r || 1) ? ' class="on"' : '') + '>' + v + '×</span>').join('') + '</div>';
+  const vrow = (on, b, sm, play) => '<div class="vrow' + (on ? ' on' : '') + '"><span class="rd"></span><div class="grow"><b>' + b + '</b><small>' + sm + '</small></div>' + (play ? '<span class="play">' + play + '</span>' : '') + '</div>';
+
+  const TH = ['แล้วทำไมเรื่องนี้ถึงสำคัญ?', 'การเปลี่ยนแปลงที่เล็กลงได้รับการรีวิวภายในวันเดียวกัน', 'และเมื่อมีอะไรพัง ก็มีสิ่งที่ต้องย้อนกลับน้อยกว่ามาก', 'ที่สำคัญที่สุด ผู้ใช้ได้เห็นงานเร็วขึ้นและบอกเราได้เร็วขึ้น'];
+  const ZH = ['那為什麼這很重要？', '小的變更當天就能審查完。', '出了問題時，要撤回的東西少得多。', '最重要的是，使用者更早看到成果，也更早回饋。'];
+
+  // ---------- 03 mobile web gallery ----------
+  const webSheet = SH('Listen in ไทย', 'Your phone reads each translated line aloud, about 2 seconds after Sam says it.',
+    '<small class="ccs-l">Voice</small>' + vrow(true, 'Kanya', 'ไทย · this phone\'s voice', '▶ Try') + speedSeg(1) +
+    '<div class="infobox">' + HP + '<span>Use headphones. The room can hear your phone\'s speaker.</span></div>' +
+    '<div class="infobox">' + SUN + '<span>Your screen stays on while you listen.</span></div>' +
+    '<button type="button" class="bigbtn violet">▶ Start listening</button><div class="linkrow">Listen with the screen off: get the SlideWorks app</div>');
+  const noVoiceSheet = SH('Listen in ไทย', '',
+    '<div class="warnbox"><b>This phone has no ไทย voice.</b>Chrome would read the Thai lines with an English voice, so Listen is off.</div>' +
+    '<div class="infobox">' + INFO + '<span>Add one: Settings › Text-to-speech › Preferred engine › Install voice data › ไทย. Then reopen this sheet.</span></div>' +
+    '<button type="button" class="bigbtn dis">▶ Start listening</button><button type="button" class="bigbtn ghost">Keep reading subtitles</button>');
+  const zhSheet = SH('Listen in 繁體中文', 'Traditional Chinese can be read in two spoken languages.',
+    '<small class="ccs-l">Spoken as</small>' + vrow(true, '粵語 Cantonese', 'Sin-ji · zh-HK', '▶ Try') + vrow(false, '國語 Mandarin', 'Mei-Jia · zh-TW', '▶ Try') + speedSeg(1) +
+    '<div class="infobox">' + INFO + '<span>Remembered on this phone for next time.</span></div>' +
+    '<button type="button" class="bigbtn violet">▶ Start listening</button>');
+  const lockBanner = '<div class="banner" style="top:42px">' + HP + '<span>Listening stopped when your screen locked.</span><span class="act">Resume</span></div>';
+  const thLines = (k) => [{ t: TH[k], say: true }, { t: TH[k + 1], next: true }];
+  const WEB = [
+    { o: { i: 2, lang: 'th', subs: { state: 'live', listen: 'off', ring: true, lines: [{ t: TH[1] }, { t: TH[2] }] } }, b: '1 · Listen appears', s: 'Only while Sam has subtitles on, and only for guests whose language is not the one Sam speaks (D11).' },
+    { o: { i: 2, lang: 'th', subs: { state: 'live', listen: 'off', lines: [{ t: TH[1] }, { t: TH[2] }] }, over: webSheet }, b: '2 · First tap: the Listen sheet', s: 'Voice, speed and a headphone reminder. Start is the tap iOS needs. The app is mentioned here only (D15).' },
+    { o: { i: 2, lang: 'th', subs: { state: 'live', listen: 'on', lines: thLines(1) } }, b: '3 · Listening', s: 'The strip turns purple. The line being read is marked; the next one waits under it. Stop is where Listen was.' },
+    { o: { i: 2, lang: 'th', subs: { state: 'live', listen: 'on', skipped: 2, lines: thLines(2) } }, b: '4 · Catching up', s: 'Sam ran ahead: more than 3 lines were waiting, so it jumped to the newest (D9). Skipped lines stay readable in the strip history.' },
+    { o: { i: 2, lang: 'th', subs: { state: 'live', listen: 'off', lines: [{ t: TH[1] }, { t: TH[2] }] }, over: noVoiceSheet }, b: '5 · No voice for ไทย', s: 'Android Chrome without a Thai voice pack. Start stays off and the guest is shown where to add one (D13).' },
+    { o: { i: 2, lang: 'zh-Hant', subs: { state: 'live', listen: 'off', lines: [{ t: ZH[1] }, { t: ZH[2] }] }, over: zhSheet }, b: '6 · 繁中: Cantonese or Mandarin', s: 'Traditional Chinese is a script, not a voice. The guest picks; the locale is set explicitly so iOS doesn\'t pick for them.' },
+    { o: { i: 2, lang: 'th', compact: true, banner: lockBanner, subs: { state: 'live', listen: 'resume', hpnote: 'The SlideWorks app keeps playing with the screen off.', lines: [{ t: TH[2] }, { t: TH[3] }] } }, b: '7 · Back after the screen locked', s: 'The page kept the screen on, but the guest locked it anyway. Speech stopped; one tap resumes from the newest line (D12).' },
+    { o: { i: 2, lang: 'en', subs: { state: 'live', listen: 'none', lines: [{ t: 'Smaller changes get reviewed the same day.' }, { t: 'And when something breaks, there is much', pt: true }] } }, b: '8 · Reading in Sam\'s language', s: 'No Listen button: the guest can hear Sam. In a Thai part of a mixed talk, Listen appears for the translated lines (D11).' },
+    { o: { i: 3, lang: 'th', subs: { state: 'paused', listen: 'on', paused: true } }, b: '9 · Sam paused subtitles', s: 'Listening stays on and quiet. It picks up with the next line when Sam resumes.' },
+  ];
+  const webGrid = document.getElementById('webGrid');
+  webGrid.innerHTML = WEB.map((g, k) => '<div><div class="phone"><div class="ps" data-w="' + k + '"></div></div><div class="st-cap"><b>' + g.b + '</b><span>' + g.s + '</span></div></div>').join('');
+  webGrid.querySelectorAll('[data-w]').forEach(el => { el.innerHTML = guestL(WEB[+el.dataset.w].o); hydrate(el); });
+
+  // ---------- 04 app audience mode ----------
+  const qrSvg = (seed0, n) => { let seed = seed0; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280; n = n || 21; let r = '';
+    const fon = (x, y) => { for (const [fx, fy] of [[0, 0], [n - 7, 0], [0, n - 7]]) { const dx = x - fx, dy = y - fy; if (dx >= 0 && dx < 7 && dy >= 0 && dy < 7) return { on: dx === 0 || dy === 0 || dx === 6 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4) }; } return null; };
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const f = fon(x, y); if (f ? f.on : rnd() > .52) r += '<rect x="' + x + '" y="' + y + '" width="1" height="1"/>'; }
+    return '<svg viewBox="-2 -2 ' + (n + 4) + ' ' + (n + 4) + '" shape-rendering="crispEdges"><rect x="-2" y="-2" width="' + (n + 4) + '" height="' + (n + 4) + '" fill="#fff"/><g fill="#0b1020">' + r + '</g></svg>'; };
+  const codebox = (s) => '<div class="codebox">' + [0, 1, 2, 3, 4, 5].map(k => '<span' + (k === s.length ? ' class="cur"' : '') + '>' + (s[k] || '') + '</span>').join('') + '</div>';
+  const keypad = '<div class="keypad">' + ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map(k => '<span' + (k ? '' : ' style="background:none"') + '>' + k + '</span>').join('') + '</div>';
+  const homeOut = '<div class="app-pad"><div class="app-logo"><span class="g-mark">S</span>SlideWorks</div>' +
+    '<div class="joincard"><h3>Join a talk</h3><p>Type the code on the big screen, or scan its QR code. No account needed.</p>' + codebox('482') + '<div class="bigbtn ghost" style="min-height:38px">▣ Scan the code</div></div>' +
+    keypad + '<div class="setrow sm"><div class="grow"><b>Presenting?</b><small>Sign in to run your own talks from this phone</small></div><span class="tiny">›</span></div></div>';
+  const scan = '<div class="app-pad"><div style="display:flex;align-items:center;gap:8px"><span class="tiny" style="font-size:16px">‹</span><b style="font:700 15px/1 var(--head)">Scan the code</b></div>' +
+    '<div class="camview"><div class="qrmini">' + qrSvg(885) + '</div><div class="tgt"></div><small>Point at the QR code on the big screen</small></div>' +
+    '<p class="app-p" style="text-align:center">The code opens <b style="color:#fff">Shipping smaller changes</b> by Sam Rivera.</p></div>';
+  const appSheet = SH('Listen in ไทย', 'Keeps playing with the screen locked, through your headphones.',
+    '<small class="ccs-l">Voice</small>' + vrow(true, 'Kanya', 'Compact · on this phone', '▶ Try') + vrow(false, 'Kanya (Enhanced)', 'Sounds more natural · a free download', 'Get') + speedSeg(1) +
+    '<div class="setrow sm"><div class="grow"><b>Pause when headphones come out</b><small>So the room doesn\'t hear it (D16)</small></div><span class="tog on"></span></div>' +
+    '<button type="button" class="bigbtn violet">▶ Start listening</button>');
+  const voiceSheet = SH('Get the Enhanced ไทย voice', 'iOS doesn\'t let apps download voices, so this opens Settings.',
+    '<ol class="tips" style="padding-left:18px"><li>Settings › <b>Accessibility</b></li><li><b>Spoken Content</b> › <b>Voices</b></li><li><b>ไทย</b> › <b>Kanya (Enhanced)</b> › Download</li><li>Come back: SlideWorks picks it up.</li></ol>' +
+    '<div class="infobox">' + INFO + '<span>On Android this button opens the voice installer directly.</span></div>' +
+    '<button type="button" class="bigbtn violet">Open Settings</button><button type="button" class="bigbtn ghost">Not now</button>');
+  const mini = (txt, paused) => '<div class="mini' + (paused ? ' paused' : '') + '"><span class="ic2">' + HP + '</span><div class="grow"><b>' + (paused ? 'Paused: headphones out' : 'Listening in ไทย · Kanya') + '</b><small>' + esc(txt) + '</small></div>' + (paused ? '' : '<span class="lv">LIVE</span>') + '<span class="pp">' + (paused ? '▶' : '❚❚') + '</span></div>';
+  const npLock = '<div class="lockscr"><div class="t">10:04</div><div class="d">Thursday 28 November</div><div class="np"><div class="top">' + frame(2, 'th') + '<div class="grow"><b>Shipping smaller changes</b><small>Sam Rivera · ไทย · LIVE</small></div><span class="route">' + HP.replace('class="ico"', 'class="ico" style="width:20px;height:20px"') + '</span></div>' +
+    '<div class="scrub"><span class="lv">● LIVE</span><i></i><span>2 s behind</span></div><div class="ctr"><span>❚❚</span><span>⏭<small>LIVE</small></span></div></div></div>';
+  const toastHp = '<div class="apptoast"><span>Paused: your headphones disconnected.</span><b>Play on speaker</b></div>';
+  const homeIn = '<div class="app-pad"><div class="app-logo"><span class="g-mark">S</span>SlideWorks<span style="flex:1"></span><span class="tiny">Sam Rivera</span></div>' +
+    '<div class="joincard" style="gap:8px"><h3 style="font-size:15px">Join a talk</h3>' + codebox('') + '<div class="bigbtn ghost" style="min-height:36px">▣ Scan the code</div></div>' +
+    '<div class="sect-l">Presenting now</div><div class="talk">' + frame(0, 'en') + '<div><b>Shipping smaller changes</b><small>On your laptop · slide 1 · 47 guests</small><span class="live">Live</span></div></div>' +
+    '<div style="flex:1"></div><div class="setrow sm"><div class="grow"><b>Speech models</b><small>English ready · ไทย ready</small></div><span class="tiny">›</span></div></div>';
+  const appWrap = (inner) => sbar(false) + inner + homebar;
+  const APP = [
+    { h: appWrap(homeOut), b: '1 · First open', s: 'Join a talk comes first, with no sign-in (D14). Presenting is one row at the bottom.' },
+    { h: appWrap(scan), b: '2 · Scan the code', s: 'The same QR code as the big screen. With app links, the phone\'s camera opens the app straight into the talk (D15).' },
+    { h: guestL({ app: true, i: 2, lang: 'th', subs: { state: 'live', listen: 'off', lines: [{ t: TH[1] }, { t: TH[2] }] } }), b: '3 · Following the talk', s: 'The web guest page, without the address bar: slide, subtitles, activity, reactions, Questions.' },
+    { h: guestL({ app: true, i: 2, lang: 'th', subs: { state: 'live', listen: 'off', lines: [{ t: TH[1] }, { t: TH[2] }] }, over: appSheet }), b: '4 · Listen sheet in the app', s: 'Voices the phone has, the Enhanced one to get, speed, and the headphone switch (D16). No screen-on note: the app doesn\'t need it.' },
+    { h: guestL({ app: true, i: 2, lang: 'th', subs: { state: 'live', listen: 'off', lines: [{ t: TH[1] }, { t: TH[2] }] }, over: voiceSheet }), b: '5 · Get a better voice', s: 'iOS: the steps, then Settings. Android: the system voice installer. The voice list refreshes when the app comes back.' },
+    { h: guestL({ app: true, i: 2, lang: 'th', subs: { state: 'live', listen: 'on', lines: thLines(1) }, mini: mini(TH[1]) }), b: '6 · Listening', s: 'A mini player at the bottom, like a podcast app: voice, LIVE, pause. It stays while the guest scrolls Questions.' },
+    { h: sbar(false, '10:04') + npLock + homebar, b: '7 · Screen locked', s: 'Audio keeps playing. Now Playing shows the slide, Pause and Jump to live, which drops anything queued (D17).' },
+    { h: guestL({ app: true, i: 2, lang: 'th', banner: toastHp, subs: { state: 'live', listen: 'on', paused: true, lines: [{ t: TH[2] }, { t: TH[3] }] }, mini: mini(TH[2], true) }), b: '8 · Headphones out', s: 'Paused at once (D16). Play on speaker is one tap for a guest who really wants it.' },
+    { h: appWrap(homeIn), b: '9 · Signed in: both modes', s: 'A speaker sees Join a talk above Presenting now. Nothing to switch.' },
+  ];
+  const appGrid = document.getElementById('appGrid');
+  appGrid.innerHTML = APP.map((a, k) => '<div><div class="phone"><div class="ps app" data-app="' + k + '"></div></div><div class="st-cap"><b>' + a.b + '</b><span>' + a.s + '</span></div></div>').join('');
+  appGrid.querySelectorAll('[data-app]').forEach(el => { el.innerHTML = APP[+el.dataset.app].h; hydrate(el); });
+
+  // ---------- 05 speaker side ----------
+  const micArt = '<div class="micart"><svg viewBox="0 0 260 96" font-family="Inter, sans-serif">' +
+    '<g><circle cx="44" cy="20" r="9" fill="#475569"/><path d="M28 62c0-14 7-24 16-24s16 10 16 24z" fill="#475569"/><path d="M14 66h60l-6 26H20z" fill="#1e293b" stroke="#334155"/><rect x="34" y="60" width="18" height="6" rx="1.5" fill="#94a3b8"/>' +
+    '<path d="M50 30 Q60 44 46 58" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="3 3" fill="none"/><text x="44" y="94" font-size="0">.</text></g>' +
+    '<text x="90" y="34" font-size="11" font-weight="700" fill="#fdba74">Phone on the lectern</text><text x="90" y="50" font-size="10" fill="#cbd5e1">far from you, hears</text><text x="90" y="62" font-size="10" fill="#cbd5e1">the room and the PA</text>' +
+    '<line x1="0" y1="0" x2="0" y2="0"/></svg>' +
+    '<svg viewBox="0 0 260 96" font-family="Inter, sans-serif" style="margin-top:6px"><g><circle cx="44" cy="20" r="9" fill="#475569"/><path d="M28 70c0-18 7-32 16-32s16 14 16 32z" fill="#475569"/><circle cx="46" cy="46" r="3" fill="#a78bfa"/><path d="M46 49 Q50 70 58 84" stroke="#a78bfa" stroke-width="1.2" fill="none"/><rect x="54" y="80" width="10" height="14" rx="2" fill="#94a3b8"/></g>' +
+    '<text x="90" y="34" font-size="11" font-weight="700" fill="#86efac">Lapel mic on your collar</text><text x="90" y="50" font-size="10" fill="#cbd5e1">a hand-width below your chin,</text><text x="90" y="62" font-size="10" fill="#cbd5e1">phone in your pocket: much better</text></svg></div>';
+  const micSheet = SH('First, the microphone', 'Subtitles are only as good as what the phone hears.', micArt +
+    '<ul class="tips"><li>Any lapel mic the phone sees works: wired (USB-C, Lightning) or wireless.</li><li>No mic? Hold the phone, or keep it close and facing you.</li></ul>' +
+    '<button type="button" class="bigbtn violet">Got it</button><div class="linkrow" style="color:#8c97ad">Shown once. The Microphone row links back here.</div>');
+  const setupSheet2 = SH('Live subtitles', 'Guests read what you say, in their own language.',
+    '<small class="ccs-l">Listening for</small><div class="lchips"><span class="lchip on">✓ English</span><span class="lchip on">✓ ไทย</span><small>Both: each line goes to the surer model</small></div>' +
+    '<div class="inrow warn"><div class="grow">Microphone: <b>iPhone microphone</b><br><small>The phone\'s own mic. A lapel mic is much better.</small></div><span class="tipl">Tips ›</span></div>' +
+    '<div class="setrow sm"><div class="grow"><b>Keep the transcript</b><small>Off: no text is kept after the talk (D4)</small></div><span class="tog"></span></div>' +
+    '<button type="button" class="bigbtn violet">● Start subtitles</button>');
+  const setupSheetLapel = SH('Live subtitles', 'Guests read what you say, in their own language.',
+    '<small class="ccs-l">Listening for</small><div class="lchips"><span class="lchip on">✓ English</span><span class="lchip on">✓ ไทย</span><small>Both: each line goes to the surer model</small></div>' +
+    '<div class="inrow"><div class="grow">Microphone: <b>USB-C lapel mic</b><br><small style="color:#86efac">✓ An external mic</small></div><span class="tipl">Tips ›</span></div>' +
+    '<div class="setrow sm"><div class="grow"><b>Keep the transcript</b><small>Off: no text is kept after the talk (D4)</small></div><span class="tog"></span></div>' +
+    '<button type="button" class="bigbtn violet">● Start subtitles</button>');
+  const sheetMeta = '<b>Reading</b> EN 31 · ไทย 9 (' + HP + '4) · 日本語 5 (' + HP + '1)';
+  const SPK = [
+    { h: speaker({ i: 2, cc: 'off', sheet: micSheet }), b: '1 · First time: the microphone tip', s: 'The first screen of the setup sheet, once per phone (D7, D19). Advice only, no test.' },
+    { h: speaker({ i: 2, cc: 'off', sheet: setupSheet2 }), b: '2 · After that: the Microphone row', s: 'SW-884\'s setup sheet names the mic in use. Orange when it is the phone\'s own; Tips opens screen 1 again (D19).' },
+    { h: speaker({ i: 2, cc: 'off', sheet: setupSheetLapel }), b: '3 · With a lapel mic', s: 'The row goes quiet when the phone sees an external microphone.' },
+    { h: speaker({ i: 2, cc: 'live', ccOpen: true, final: 'Smaller changes get reviewed the same day.', partial: 'And when something breaks', meta: sheetMeta }), b: '4 · Who is listening', s: 'The Subtitles sheet\'s Reading line adds a headphone count per language, as on the laptop (D18).' },
+  ];
+  const spkGrid = document.getElementById('spkGrid');
+  spkGrid.innerHTML = SPK.map((a, k) => '<div><div class="phone"><div class="ps app" data-spk="' + k + '"></div></div><div class="st-cap"><b>' + a.b + '</b><span>' + a.s + '</span></div></div>').join('');
+  spkGrid.querySelectorAll('[data-spk]').forEach(el => { el.innerHTML = SPK[+el.dataset.spk].h; hydrate(el); });
+  hydrate(document.getElementById('speaker').querySelector('.laptop'));
+
+  // ---------- 02 live demo ----------
+  const SCRIPT = [
+    { s: 2, en: 'So why does any of this matter?', th: TH[0], ja: 'では、なぜこれが重要なのでしょうか?', zh: ZH[0] },
+    { s: 2, en: 'Smaller changes get reviewed the same day.', th: TH[1], ja: '小さな変更はその日のうちにレビューされます。', zh: ZH[1] },
+    { s: 2, en: 'And when something breaks, there is much less to roll back.', th: TH[2], ja: '何かが壊れても、戻す量がずっと少なくて済みます。', zh: ZH[2] },
+    { s: 2, en: 'Most of all, users see the work sooner and tell us sooner.', th: TH[3], ja: '何より、ユーザーが成果を早く見て、早く反応をくれます。', zh: ZH[3] },
+    { s: 3, en: 'Get your phones out and tell me how big your last merge request was.', th: 'หยิบโทรศัพท์ขึ้นมา แล้วบอกกันหน่อยว่า merge request ล่าสุดของคุณใหญ่แค่ไหน', ja: 'スマホを出して、直近のマージリクエストの大きさを教えてください。', zh: '拿出手機，告訴我你最近一次合併請求有多大。' },
+    { s: 3, en: 'Under a hundred lines? Over five hundred? Be honest.', th: 'ต่ำกว่าร้อยบรรทัด? เกินห้าร้อย? ตอบตามจริงนะ', ja: '100行未満?500行超?正直にどうぞ。', zh: '少於一百行？超過五百行？老實說。' },
+    { s: 4, en: 'Here are three habits to try this sprint.', th: 'นี่คือสามนิสัยที่ลองทำได้ในสปรินต์นี้', ja: '今スプリントで試せる3つの習慣です。', zh: '這裡有三個這個衝刺可以試的習慣。' },
+    { s: 4, en: 'First, slice the work by what a user can do.', th: 'อย่างแรก แบ่งงานตามสิ่งที่ผู้ใช้ทำได้', ja: 'まず、ユーザーができることで作業を分割します。', zh: '第一，依使用者能做的事來切分工作。' },
+  ];
+  const GL = [
+    { id: 'th', label: 'ไทย', lang: 'th', key: 'th', v: 'th' },
+    { id: 'ja', label: '日本語', lang: 'ja', key: 'ja', v: 'ja' },
+    { id: 'yue', label: '繁中 · 粵語', lang: 'zh-Hant', key: 'zh', v: 'yue' },
+    { id: 'cmn', label: '繁中 · 國語', lang: 'zh-Hant', key: 'zh', v: 'cmn' },
+    { id: 'en', label: 'English', lang: 'en', key: 'en', v: 'en' },
+  ];
+  const D = { line: 0, word: 0, gap: 0, talking: true, fast: false, g: 'th', listen: true, rate: 1, audio: false, seq: 41, finals: [], q: [], skipped: 0, skipAt: 0 };
+  const G = () => GL.find(x => x.id === D.g);
+  const spEl = document.getElementById('spPhone'), gEl = document.getElementById('gPhone');
+  let spKey = '', gKey = '';
+  const partial = () => D.word ? SCRIPT[D.line].en.split(' ').slice(0, D.word).join(' ') : '';
+  const curSlide = () => SCRIPT[D.line].s;
+  // estimated reading time at rate 1, ms
+  const est = (txt, key) => key === 'en' ? txt.split(' ').length * 360 : key === 'th' ? txt.length * 72 : txt.length * 165;
+  let synthVoice = null;
+  function pickVoice() {
+    synthVoice = null;
+    if (!('speechSynthesis' in window)) return;
+    const want = VOICES[G().v].loc.toLowerCase();
+    const vs = speechSynthesis.getVoices();
+    synthVoice = vs.find(v => v.lang.replace('_', '-').toLowerCase() === want) || vs.find(v => v.lang.replace('_', '-').toLowerCase().startsWith(want.split('-')[0] + (G().v === 'yue' || G().v === 'cmn' ? '-' + want.split('-')[1] : ''))) || null;
+  }
+  function paintVStat() {
+    const el = document.getElementById('vStat');
+    if (!('speechSynthesis' in window)) { el.className = 'vstat miss'; el.innerHTML = '<b>No speechSynthesis here.</b>'; return; }
+    pickVoice();
+    const loc = VOICES[G().v].loc;
+    if (G().id === 'en') { el.className = 'vstat'; el.textContent = 'English guests get no Listen (D11).'; return; }
+    el.className = 'vstat' + (synthVoice ? '' : ' miss');
+    el.innerHTML = synthVoice ? 'Will use <b>' + esc(synthVoice.name) + '</b> (' + esc(synthVoice.lang) + ')' : '<b>No ' + loc + ' voice in this browser</b>: a phone would show screen 5 of section 03.';
+  }
+  if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = paintVStat;
+
+  function finalize(instant) {
+    const c = SCRIPT[D.line];
+    const f = { seq: ++D.seq, s: c.s, c, at: Date.now(), tr: false };
+    D.finals.push(f);
+    const ms = instant ? 0 : 700 + Math.round(Math.random() * 600);
+    const arrive = () => { f.tr = true; f.trAt = f.at + ms; onCaption(f); if (!STILL) paint(); };
+    if (instant) arrive(); else setTimeout(arrive, ms);
+    D.line = (D.line + 1) % SCRIPT.length; D.word = 0; D.gap = D.fast ? 1 : 5;
+  }
+  // ---- the guest's speech queue (the code in section 06) ----
+  function onCaption(f) {
+    if (!D.listen || G().id === 'en') return;
+    const item = { f, text: f.c[G().key], state: 'wait', arr: Date.now() };
+    D.q.push(item);
+    const waiting = D.q.filter(x => x.state === 'wait');
+    if (waiting.length > 3) { waiting.slice(0, -1).forEach(x => { x.state = 'skip'; }); D.skipped = waiting.length - 1; D.skipAt = Date.now(); }
+    pump();
+  }
+  let sayTimer = 0;
+  function pump() {
+    if (D.q.some(x => x.state === 'say')) return;
+    const nx = D.q.find(x => x.state === 'wait'); if (!nx) return;
+    nx.state = 'say'; nx.start = Date.now(); nx.dur = est(nx.text, G().key) / D.rate; nx.lag = nx.start - nx.f.at;
+    const done = () => { if (nx.state !== 'say') return; nx.state = 'done'; nx.end = Date.now(); pump(); paint(); };
+    if (D.audio && synthVoice) {
+      const u = new SpeechSynthesisUtterance(nx.text); u.voice = synthVoice; u.lang = synthVoice.lang; u.rate = D.rate;
+      u.onend = done; u.onerror = done; speechSynthesis.speak(u);
+    } else { clearTimeout(sayTimer); sayTimer = setTimeout(done, nx.dur); }
+  }
+  function resetQueue() { D.q = []; D.skipped = 0; clearTimeout(sayTimer); if ('speechSynthesis' in window) speechSynthesis.cancel(); }
+
+  function paintSpeaker() {
+    const last = D.finals[D.finals.length - 1];
+    const o = { i: curSlide(), cc: 'live', final: last && last.s === curSlide() ? last.c.en : '', partial: D.talking ? partial() : '' };
+    const key = String(o.i);
+    if (key !== spKey) { spKey = key; spEl.innerHTML = speaker(o); hydrate(spEl); }
+    else { const tk = spEl.querySelector('.tick'); if (tk) tk.outerHTML = ticker(o); const b = spEl.querySelector('.ccb'); if (b) b.outerHTML = ccButton(o); }
+  }
+  function guestState() {
+    const g = G();
+    const arrived = D.finals.filter(f => f.tr);
+    const s = { state: 'live', from: 'en', listen: g.id === 'en' ? 'none' : D.listen ? 'on' : 'off', rate: D.rate };
+    if (g.id === 'en') {
+      s.lines = arrived.slice(-2).map(f => ({ t: f.c.en }));
+      if (D.word) s.lines.push({ t: partial(), pt: true });
+      s.lines = s.lines.slice(-2);
+      return s;
+    }
+    if (!D.listen) { s.lines = arrived.slice(-2).map(f => ({ t: f.c[g.key] })); return s; }
+    const say = D.q.find(x => x.state === 'say');
+    const nextW = D.q.filter(x => x.state === 'wait').slice(-1)[0];
+    if (say) { s.lines = [{ t: say.text, say: true }]; if (nextW) s.lines.push({ t: nextW.text, next: true }); }
+    else s.lines = arrived.slice(-2).map(f => ({ t: f.c[g.key] }));
+    if (D.skipped && Date.now() - D.skipAt < 6000) s.skipped = D.skipped;
+    if (STILL) s.skipped = D.skipped;
+    return s;
+  }
+  function paintGuest() {
+    const g = G();
+    const key = curSlide() + '|' + g.lang;
+    const s = guestState();
+    if (key !== gKey) { gKey = key; gEl.innerHTML = guestL({ i: curSlide(), lang: g.lang, subs: s }); hydrate(gEl); }
+    else { const c = gEl.querySelector('.subs'); if (c) c.outerHTML = subsL(g.lang, s); }
+  }
+  const sec = (ms) => (ms / 1000).toFixed(1) + ' s';
+  function paintQueue() {
+    const rows = D.q.slice(-8).reverse();
+    document.getElementById('qEmpty').style.display = rows.length ? 'none' : '';
+    document.getElementById('qEmpty').textContent = G().id === 'en' ? 'English guests get no Listen: they can hear Sam (D11).' : !D.listen ? 'Listening is off.' : 'Lines appear here as their translation arrives.';
+    const now = Date.now();
+    document.getElementById('qBody').innerHTML = rows.map(x => {
+      const st = { say: 'reading', wait: 'waiting', done: 'read', skip: 'skipped (D9)' }[x.state];
+      const pct = x.state === 'say' ? Math.min(100, (now - x.start) / x.dur * 100) : 0;
+      const lag = x.state === 'say' || x.state === 'done' ? sec(x.lag) : x.state === 'wait' ? sec(now - x.f.at) + '…' : '—';
+      return '<tr class="r-' + x.state + '"><td class="n">' + x.f.seq + '</td><td class="txt">' + esc(x.text) + (x.state === 'say' ? '<div class="qbar"><i style="width:' + pct.toFixed(0) + '%"></i></div>' : '') + '</td><td><span class="qst ' + x.state + '">' + st + '</span></td><td class="n">' + lag + '</td></tr>';
+    }).join('');
+    const w = D.q.filter(x => x.state === 'wait').length;
+    document.getElementById('behindTxt').textContent = w + ' waiting';
+    document.getElementById('behindCells').innerHTML = [1, 2, 3, 4].map(k => '<i class="' + (k <= w ? (k > 3 ? 'over' : 'f') : '') + '" title="' + (k === 4 ? 'a 4th line triggers the skip' : '') + '"></i>').join('');
+  }
+  function paint() { paintSpeaker(); paintGuest(); paintQueue(); }
+  function tick() {
+    if (!D.talking) return paint();
+    if (D.gap > 0) { D.gap--; return paint(); }
+    const words = SCRIPT[D.line].en.split(' ');
+    if (D.word < words.length) D.word++; else finalize(false);
+    paint();
+  }
+  // controls
+  const $ = (id) => document.getElementById(id);
+  function paintCtl() {
+    $('cTalk').textContent = D.talking ? '❚❚ Stop talking' : '▶ Start talking';
+    $('cFast').textContent = D.fast ? 'Talk normally' : '⏩ Talk fast';
+    $('cFast').classList.toggle('on', D.fast);
+    $('cListen').textContent = D.listen ? 'Stop listening' : '🎧 Listen';
+    $('cListen').disabled = G().id === 'en';
+    $('cAudio').textContent = D.audio ? '🔊 Hearing it in this browser' : '🔈 Hear it in this browser';
+    $('cAudio').classList.toggle('on', D.audio);
+    $('cLangs').innerHTML = GL.map(l => '<button type="button" class="btn' + (l.id === D.g ? ' on' : '') + '" data-l="' + l.id + '">' + l.label + '</button>').join('');
+    $('cRates').innerHTML = [0.8, 1, 1.25, 1.5].map(r => '<button type="button" class="btn' + (r === D.rate ? ' on' : '') + '" data-r="' + r + '">' + r + '×</button>').join('');
+    paintVStat();
+  }
+  $('cTalk').onclick = () => { D.talking = !D.talking; paintCtl(); paint(); };
+  $('cFast').onclick = () => { D.fast = !D.fast; paintCtl(); };
+  $('cListen').onclick = () => { D.listen = !D.listen; resetQueue(); paintCtl(); paint(); };
+  $('cAudio').onclick = () => { D.audio = !D.audio; resetQueue(); if (D.audio && 'speechSynthesis' in window) { pickVoice(); const u = new SpeechSynthesisUtterance(''); speechSynthesis.speak(u); } paintCtl(); paint(); };
+  $('cLangs').onclick = (e) => { const b = e.target.closest('[data-l]'); if (!b) return; D.g = b.dataset.l; resetQueue(); gKey = ''; paintCtl(); paint(); };
+  $('cRates').onclick = (e) => { const b = e.target.closest('[data-r]'); if (!b) return; D.rate = +b.dataset.r; paintCtl(); };
+  gEl.addEventListener('click', (e) => { const b = e.target.closest('[data-lsn]'); if (!b) return; D.listen = b.dataset.lsn === 'start'; resetQueue(); paintCtl(); paint(); });
+
+  if (STILL) {
+    // a fixed moment: Sam ran ahead, two lines were skipped, one is being read, one waits
+    for (let k = 0; k < 4; k++) { D.gap = 0; finalize(true); }
+    const now = Date.now();
+    D.q = [];
+    const mk = (k, state, lag) => ({ f: D.finals[k], text: D.finals[k].c.th, state, arr: now, start: now - 1400, dur: 3200, lag });
+    D.q.push(mk(0, 'done', 1900), mk(1, 'skip'), mk(2, 'say', 3100));
+    D.finals.forEach((f, k) => { f.at = now - (4 - k) * 1600; });
+    D.q.push({ f: D.finals[3], text: D.finals[3].c.th, state: 'wait', arr: now });
+    D.skipped = 1; D.skipAt = now; D.word = 5;
+    paintCtl(); paint();
+  } else {
+    paintCtl(); paint();
+    setInterval(() => { if (D.fast && D.talking) tick(); }, 110);
+    setInterval(() => { if (!D.fast) tick(); else paintQueue(); }, 240);
+  }
+
+  // ================= 05 landscape (round 2) =================
+  const LKEY = { th: 'th', ja: 'ja', 'zh-Hant': 'zh', en: 'en' };
+  const FS_IC = '<svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4V1h3M8 1h3v3M11 8v3H8M4 11H1V8"/></svg>';
+  const ROT_IC = '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="1.5" width="6" height="13" rx="1.5"/><path d="M1.5 6.5a6.5 6.5 0 0 1 3-4.5M14.5 9.5a6.5 6.5 0 0 1-3 4.5"/></svg>';
+  // o: { plat: ios|and|andfs|app|se, i, lang, cap: over|below|off, size: s|m|l, lines:[{t,say,dim}], listen: on|off|paused|none,
+  //      skipped, paused (Sam paused), over (overlay shown), menu, panel, toast, nudge }
+  function LG(o) {
+    const lang = o.lang || 'th', i = o.i == null ? 2 : o.i, plat = o.plat || 'ios', cap = o.cap || 'over', size = o.size || 'm';
+    const listen = o.listen || 'off';
+    const chrome = plat === 'ios' ? '<div class="lchrome ios"><span class="aa">AA</span>' + lock + '<span>slideworks.live</span><span class="x">⋯</span></div>'
+      : plat === 'and' ? '<div class="lchrome and"><span class="url">' + lock + '<span>slideworks.live/482913</span></span><span>⋮</span></div>' : '';
+    const hw = (plat === 'ios' || plat === 'app') ? '<div class="lisl"></div>' : (plat === 'and' || plat === 'andfs') ? '<div class="lpunch"></div>' : '';
+    const home = plat === 'ios' || plat === 'and' ? '<div class="lhome"></div>' : plat === 'app' ? '<div class="lhome faint"></div>' : '';
+    const lines = o.lines || [];
+    const capLines = () => lines.map(l => '<div class="c' + (l.say ? ' say' : '') + (l.dim ? ' dim' : '') + '">' + esc(l.t) + '</div>').join('');
+    let capOver = '', band = '';
+    if (cap === 'over') capOver = o.paused ? '<div class="lcap"><div class="c st"><i></i>Sam paused subtitles</div></div>' : lines.length ? '<div class="lcap">' + capLines() + '</div>' : '';
+    if (cap === 'below') band = '<div class="lband">' + (o.paused ? '<div class="c dim">Sam paused subtitles</div>' : capLines()) + '</div>';
+    let rail = '';
+    if (listen === 'on' || listen === 'paused') rail = '<div class="lrail' + (listen === 'paused' ? ' paused' : '') + (plat === 'se' ? ' corner' : '') + '" data-lx="tap">' + HP +
+      (listen === 'paused' ? '<span>❚❚</span>' : bars(o.quiet ? 'still' : 'live')) + '<span class="lg">' + L(lang).chip + '</span>' + (o.skipped ? '<span class="sk">↷' + o.skipped + '</span>' : '') + '</div>';
+    let over = '';
+    if (o.over) {
+      const lb = listen === 'none' ? '' : listen === 'off' ? '<button type="button" class="ob vio" data-lx="listen">' + HP + 'Listen</button>' : '<button type="button" class="ob" data-lx="listen">■ Stop</button>';
+      const cc = '<button type="button" class="ob' + (o.menu ? ' on' : '') + '" data-lx="cc"><span class="cc-ic">CC</span>' + (cap === 'off' ? 'Off' : '') + ' ▾</button>';
+      const fs = plat === 'and' ? '<button type="button" class="ob" data-lx="fs">' + FS_IC + 'Full screen</button>' : '';
+      over = '<div class="lover"><span>' + (i + 1) + ' / ' + N + '</span><span class="live">LIVE</span><span class="sp"></span>' + lb + cc + fs + chip(lang).replace('<button ', '<button data-lx="lang" ') + '</div><div class="lprog"><i style="width:' + ((i + 1) / N * 100) + '%"></i></div>';
+    }
+    const segS = ['s', 'm', 'l'].map(z => '<span data-lx="size-' + z + '"' + (z === size ? ' class="on"' : '') + '>A</span>').join('');
+    const segP = [['over', 'Over the slide'], ['below', 'Below it']].map(([v, t]) => '<span data-lx="place-' + v + '"' + (v === cap || (cap === 'off' && v === (o.lastCap || 'over')) ? ' class="on"' : '') + '>' + t + '</span>').join('');
+    const menu = o.menu ? '<div class="lmenu"><div class="hd"><span class="cc-ic">CC</span>Captions<span class="sp"></span><span class="tog' + (cap === 'off' ? '' : ' on') + '" data-lx="capoff" role="switch" aria-checked="' + (cap !== 'off') + '"></span></div>' +
+      '<small>Text size</small><div class="seg s3">' + segS + '</div><small>Where</small><div class="seg s2">' + segP + '</div>' +
+      '<div class="ft">' + (listen === 'on' && cap === 'off' ? 'Listening carries on with captions off.' : 'Remembered on this phone. Upright, the strip comes back.') + '</div></div>' : '';
+    return '<div class="lz' + (plat === 'se' ? ' nosafe' : '') + '" data-size="' + size + '">' + chrome +
+      '<div class="lmid"><div class="lstage">' + frame(i, lang) + capOver + rail + (o.nudge || '') + (o.toast || '') + over + menu + '</div></div>' + band + '</div>' +
+      hw + home + (o.panel || '');
+  }
+  const pollNudge = '<div class="lnudge"><span class="dot"></span>Poll open<span style="color:#5b6474;font-weight:500">· turn upright to vote</span>' + ROT_IC + '</div>';
+  const hpToast = '<div class="ltoast">Paused: headphones disconnected<b>Play on speaker</b></div>';
+  const landSheet = SH('Listen in ไทย', '',
+    vrow(true, 'Kanya', 'ไทย · this phone\'s voice', '▶ Try') + speedSeg(1) +
+    '<button type="button" class="bigbtn violet">▶ Start listening</button><div class="linkrow" style="color:#8c97ad">' + HP + ' Use headphones: the room can hear your speaker.</div>');
+  const TH5 = [SCRIPT[6].th, SCRIPT[7].th];
+  const say2 = (a, b) => [{ t: a, say: true }, { t: b, dim: true }];
+  const read2 = (a, b) => [{ t: a, dim: true }, { t: b }];
+  const LAND = [
+    { o: { plat: 'ios', listen: 'on', lines: say2(TH[1], TH[2]) }, b: '1 · iPhone web, listening', s: 'The slide takes all the height Safari leaves (iOS has no full screen for a page). The line being read has a purple edge; the next one waits under it, dimmer. The rail beside the slide says it is playing.' },
+    { o: { plat: 'and', listen: 'on', over: true, lines: say2(TH[1], TH[2]) }, b: '2 · A tap: the overlay', s: 'SW-883\'s overlay gains Stop (or Listen) and a CC button. Full screen shows on Android only (D6). It hides after 3 seconds, like before.' },
+    { o: { plat: 'andfs', listen: 'on', lines: say2(TH[2], TH[3]) }, b: '3 · Android web, after Full screen', s: 'No browser bars. The screen is kept on while captions show (D12 extended), because nobody touches it while reading.' },
+    { o: { plat: 'andfs', listen: 'on', over: true, menu: true, lines: say2(TH[2], TH[3]) }, b: '4 · The captions menu (D23)', s: 'Show or hide, three sizes, over or below the slide. Remembered on the phone. Upright, the portrait strip comes back.' },
+    { o: { plat: 'andfs', i: 4, cap: 'below', listen: 'on', lines: say2(TH5[0], TH5[1]) }, b: '5 · Below the slide (D22)', s: 'Slide 5\'s cards sit low, so this guest moved the captions down. The slide shrinks about 18% to make room for a band of fixed height (D21): nothing is covered.' },
+    { o: { plat: 'app', size: 'l', listen: 'on', lines: [{ t: TH[3], say: true }] }, b: '6 · Large text', s: 'For reading from arm\'s length. Large shows only the line being read, up to 2 lines. The box grows upward, so the slide\'s bottom edge is all it covers.' },
+    { o: { plat: 'ios', listen: 'off', lines: read2(TH[1], TH[2]), panel: landSheet }, b: '7 · First Listen, sideways', s: 'The Listen sheet opens as a side panel, as SW-883\'s language list does. Start is still the tap iOS needs (D10).' },
+    { o: { plat: 'app', listen: 'on', skipped: 2, lines: say2(TH[3], SCRIPT[4].th) }, b: '8 · Falling behind', s: 'Sam ran ahead and 2 lines were skipped (D9). The count shows in the rail for 6 seconds, not over the slide. Skipped lines are still in the portrait strip\'s history.' },
+    { o: { plat: 'app', listen: 'on', lines: say2(TH[1], TH[2]) }, b: '9 · The app: immersive (D26)', s: 'Turning sideways goes full screen at once: no status bar, home indicator faded, screen kept awake. The mini player folds into the rail, and audio still survives the lock screen (D17).' },
+    { o: { plat: 'app', i: 3, listen: 'on', nudge: pollNudge, lines: say2(SCRIPT[4].th, SCRIPT[5].th) }, b: '10 · A poll opens (D27)', s: 'Landscape hides the activity card (SW-5). A chip says there is a poll to vote on, and goes when the guest turns upright or the poll closes.' },
+    { o: { plat: 'andfs', listen: 'on', cap: 'off', lines: say2(TH[1], TH[2]) }, b: '11 · Captions off, still listening (D25)', s: 'Only the slide and the voice. The rail is the only sign that listening carries on.' },
+    { o: { plat: 'se', listen: 'on', lines: say2(TH[1], TH[2]) }, b: '12 · A 16:9 phone (iPhone SE)', s: 'The slide fills the whole screen, so there is no black bar. The rail becomes a pill in the slide\'s top corner (D24).', se: true },
+    { o: { plat: 'app', listen: 'paused', toast: hpToast, lines: read2(TH[2], TH[3]) }, b: '13 · The app: headphones out', s: 'Paused at once (D16), the same toast as portrait, and the rail turns amber. Captions carry on.' },
+    { o: { plat: 'ios', lang: 'en', listen: 'none', lines: read2('Smaller changes get reviewed the same day.', 'And when something breaks, there is much less to roll back.') }, b: '14 · Reading in Sam\'s language', s: 'No listening and no rail (D11): plain film captions over an English slide, which is SW-884 D17 as it is.' },
+  ];
+  const landGrid = document.getElementById('landGrid');
+  landGrid.innerHTML = LAND.map((g, k) => '<div><div class="phone land l2' + (g.se ? ' r169' : '') + '"><div class="ps" data-land="' + k + '"></div></div><div class="st-cap"><b>' + g.b + '</b><span>' + g.s + '</span></div></div>').join('');
+  landGrid.querySelectorAll('[data-land]').forEach(el => { el.innerHTML = LG(Object.assign({ quiet: STILL }, LAND[+el.dataset.land].o)); hydrate(el); });
+
+  // ---- the landscape demo ----
+  const LD = { plat: 'app', cap: 'over', lastCap: 'over', size: 'm', lang: 'th', listen: true, fast: false, poll: false, over: false, menu: false, k: 1, arrived: [], q: [], skipped: 0, skipAt: 0, nextAt: 0 };
+  const lEl = document.getElementById('lPhone');
+  let lHtml = '', overT = 0;
+  function lArrive() {
+    const c = SCRIPT[LD.k]; LD.k = (LD.k + 1) % SCRIPT.length;
+    const text = c[LKEY[LD.lang]];
+    LD.arrived.push({ c, text });
+    if (LD.listen) {
+      LD.q.push({ text, state: 'wait' });
+      const w = LD.q.filter(x => x.state === 'wait');
+      if (w.length > 3) { w.slice(0, -1).forEach(x => { x.state = 'skip'; }); LD.skipped = w.length - 1; LD.skipAt = Date.now(); }
+    }
+  }
+  function lPump(now) {
+    const s = LD.q.find(x => x.state === 'say');
+    if (s && now >= s.end) s.state = 'done';
+    if (!LD.q.some(x => x.state === 'say')) { const nx = LD.q.find(x => x.state === 'wait'); if (nx) { nx.state = 'say'; nx.end = now + est(nx.text, LKEY[LD.lang]); } }
+    LD.q = LD.q.filter(x => x.state === 'say' || x.state === 'wait');
+  }
+  function lState() {
+    const last = LD.arrived[LD.arrived.length - 1], prev = LD.arrived[LD.arrived.length - 2];
+    const slide = last ? last.c.s : 2;
+    let lines = [];
+    const say = LD.q.find(x => x.state === 'say'), nw = LD.q.filter(x => x.state === 'wait').slice(-1)[0];
+    if (LD.listen && say) { lines = [{ t: say.text, say: true }]; if (nw && LD.size !== 'l') lines.push({ t: nw.text, dim: true }); }
+    else if (last) { lines = LD.size === 'l' ? [{ t: last.text }] : (prev ? [{ t: prev.text, dim: true }] : []).concat([{ t: last.text }]); }
+    return { plat: LD.plat, i: slide, lang: LD.lang, cap: LD.cap, lastCap: LD.lastCap, size: LD.size, lines, listen: LD.listen ? 'on' : 'off',
+      skipped: LD.skipped && Date.now() - LD.skipAt < 6000 ? LD.skipped : 0, over: LD.over || LD.menu, menu: LD.menu, nudge: LD.poll ? pollNudge : '' };
+  }
+  function lPaint() {
+    const h = LG(lState());
+    if (h !== lHtml) { lHtml = h; lEl.innerHTML = h; hydrate(lEl); }
+  }
+  function lTick() {
+    const now = Date.now();
+    if (now >= LD.nextAt) { lArrive(); LD.nextAt = now + (LD.fast ? 1100 : 3400 + Math.random() * 1200); }
+    lPump(now); lPaint();
+  }
+  const btnRow = (id, items, cur, key) => { $(id).innerHTML = items.map(([v, t]) => '<button type="button" class="btn' + (v === cur ? ' on' : '') + '" data-' + key + '="' + v + '">' + t + '</button>').join(''); };
+  function lCtl() {
+    btnRow('lcPlat', [['ios', 'iPhone web'], ['and', 'Android web'], ['andfs', 'Android, Full screen'], ['app', 'The app']], LD.plat, 'p');
+    btnRow('lcCap', [['over', 'Over the slide'], ['below', 'Below the slide'], ['off', 'Off']], LD.cap, 'c');
+    btnRow('lcSize', [['s', 'Small'], ['m', 'Medium'], ['l', 'Large']], LD.size, 'z');
+    btnRow('lcLang', [['th', 'ไทย'], ['ja', '日本語'], ['zh-Hant', '繁中']], LD.lang, 'g');
+    $('lcListen').textContent = LD.listen ? '■ Stop listening' : '🎧 Listen';
+    $('lcOver').classList.toggle('on', LD.over);
+    $('lcFast').textContent = LD.fast ? 'Talk normally' : '⏩ Talk fast';
+    $('lcFast').classList.toggle('on', LD.fast);
+    $('lcPoll').textContent = LD.poll ? 'Close the poll' : 'Open a poll';
+    $('lcPoll').classList.toggle('on', LD.poll);
+    lPaint();
+  }
+  const setCap = (c) => { if (c !== 'off') LD.lastCap = c; LD.cap = c; };
+  const showOver = () => { LD.over = true; clearTimeout(overT); overT = setTimeout(() => { if (!LD.menu) { LD.over = false; lCtl(); } }, 3000); };
+  const lReset = () => { LD.q = []; LD.skipped = 0; LD.arrived = LD.arrived.slice(-2).map(a => ({ c: a.c, text: a.c[LKEY[LD.lang]] })); };
+  $('lcPlat').onclick = e => { const b = e.target.closest('[data-p]'); if (b) { LD.plat = b.dataset.p; lCtl(); } };
+  $('lcCap').onclick = e => { const b = e.target.closest('[data-c]'); if (b) { setCap(b.dataset.c); lCtl(); } };
+  $('lcSize').onclick = e => { const b = e.target.closest('[data-z]'); if (b) { LD.size = b.dataset.z; lCtl(); } };
+  $('lcLang').onclick = e => { const b = e.target.closest('[data-g]'); if (b) { LD.lang = b.dataset.g; lReset(); lCtl(); } };
+  $('lcListen').onclick = () => { LD.listen = !LD.listen; LD.q = []; LD.skipped = 0; lCtl(); };
+  $('lcOver').onclick = () => { if (LD.over) { LD.over = false; LD.menu = false; } else showOver(); lCtl(); };
+  $('lcFast').onclick = () => { LD.fast = !LD.fast; LD.nextAt = 0; lCtl(); };
+  $('lcPoll').onclick = () => { LD.poll = !LD.poll; lCtl(); };
+  lEl.addEventListener('click', e => {
+    const a = e.target.closest('[data-lx]'); const x = a && a.dataset.lx;
+    if (!x || x === 'tap') { if (LD.menu) { LD.menu = false; LD.over = false; } else if (LD.over) LD.over = false; else showOver(); }
+    else if (x === 'listen') { LD.listen = !LD.listen; LD.q = []; LD.skipped = 0; showOver(); }
+    else if (x === 'cc') { LD.menu = !LD.menu; if (!LD.menu) showOver(); }
+    else if (x === 'capoff') setCap(LD.cap === 'off' ? LD.lastCap : 'off');
+    else if (x.startsWith('size-')) LD.size = x.slice(5);
+    else if (x.startsWith('place-')) setCap(x.slice(6));
+    else if (x === 'fs') { LD.plat = 'andfs'; LD.over = false; }
+    else if (x === 'lang') { const order = ['th', 'ja', 'zh-Hant']; LD.lang = order[(order.indexOf(LD.lang) + 1) % 3]; lReset(); showOver(); }
+    lCtl();
+  });
+  if (STILL) { lArrive(); lArrive(); lArrive(); LD.q = [{ text: LD.arrived[1].text, state: 'say', end: Infinity }, { text: LD.arrived[2].text, state: 'wait' }]; LD.nextAt = Infinity; lCtl(); }
+  else { lCtl(); setInterval(lTick, 200); }
+
+
+})();
+</script>
+</body>
+</html>
