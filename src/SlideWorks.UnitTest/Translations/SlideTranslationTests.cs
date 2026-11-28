@@ -22,7 +22,7 @@ public class SlideTranslationTests
         merged.Slots.GetProperty("items")[1].GetProperty("text").GetString().ShouldBe("A menudo.");
         merged.Slots.GetProperty("items")[1].GetProperty("lead").GetString().ShouldBe("Merge.");
         merged.Slots.GetProperty("headline").GetString().ShouldBe("Small steps win");
-        merged.FallbackLines.ShouldBe(3);
+        merged.FallbackLines.ShouldBe(2);
         merged.Lines.Single(line => line.Path == "/items/0").ShouldBe(new LineView("/items/0", "Ship daily", "Publica cada día", LineState.Current));
     }
 
@@ -32,7 +32,7 @@ public class SlideTranslationTests
         var merged = Merge(BULLETS, new() { ["/items/0"] = new("Publica cada semana", "Ship weekly") });
 
         merged.Slots.GetProperty("items")[0].GetString().ShouldBe("Ship daily");
-        merged.FallbackLines.ShouldBe(5);
+        merged.FallbackLines.ShouldBe(4);
         merged.Lines.Single(line => line.Path == "/items/0").ShouldBe(new LineView("/items/0", "Ship daily", "Publica cada semana", LineState.Stale));
     }
 
@@ -43,7 +43,7 @@ public class SlideTranslationTests
 
         var merged = SlideTranslation.Merge(BulletsLayout.Definition, document.RootElement, null);
 
-        merged.FallbackLines.ShouldBe(5);
+        merged.FallbackLines.ShouldBe(4);
         merged.Lines.Select(line => line.State).ShouldAllBe(state => state == LineState.Missing);
         merged.Lines.Select(line => line.Translation).ShouldAllBe(translation => translation == null);
         merged.Slots.GetRawText().ShouldBe(document.RootElement.GetRawText());
@@ -57,6 +57,17 @@ public class SlideTranslationTests
         merged.Slots.TryGetProperty("emphasis", out _).ShouldBeFalse();
         merged.Slots.GetProperty("headline").GetString().ShouldBe("Los pasos pequeños ganan");
         merged.Lines.Single(line => line.Path == "/emphasis/0/text").State.ShouldBe(LineState.Missing);
+    }
+
+    [Test]
+    public void Merge_WhenEmphasisMissing_ShouldNotCountFallback()
+    {
+        var merged = Merge(BULLETS, new() { ["/headline"] = new("Los pasos pequeños ganan", "Small steps win") });
+
+        merged.Lines.Single(line => line.Path == "/emphasis/0/text").State.ShouldBe(LineState.Missing);
+        merged.Lines.Count.ShouldBe(5);
+        merged.FallbackLines.ShouldBe(3);
+        TranslationCoverage.Of([merged]).ShouldBe(new LanguageCoverage(5, 1, 0, 4, 20));
     }
 
     [Test]
@@ -96,7 +107,7 @@ public class SlideTranslationTests
 
         merged.Slots.GetProperty("style").GetString().ShouldBe("numbered");
         merged.Slots.GetProperty("emphasis")[0].GetProperty("tone").GetString().ShouldBe("accent");
-        merged.FallbackLines.ShouldBe(5);
+        merged.FallbackLines.ShouldBe(4);
         merged.Lines.Count.ShouldBe(5);
     }
 

@@ -10,7 +10,10 @@ public static class LanguageCatalogue
 
     private static readonly Lazy<LanguageFile> _file = new(Read);
 
-    public static IReadOnlyList<Language> All => _file.Value.Languages;
+    private static readonly Lazy<IReadOnlyList<Language>> _all = new(() => Array.AsReadOnly(_file.Value.Languages.ToArray()));
+
+    // A read-only copy, so a caller cannot cast the list back and change the catalogue.
+    public static IReadOnlyList<Language> All => _all.Value;
 
     // The language with this code, compared case-sensitively, or null when it is not supported.
     public static Language? Find(string code) =>

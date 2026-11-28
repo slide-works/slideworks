@@ -22,6 +22,7 @@ public static class SlideTranslation
         var merged = JsonNode.Parse(slots.GetRawText())!;
         var changed = false;
         var fallback = 0;
+        var emphasisPrefix = layout.Slots.Fields.FirstOrDefault(f => f.Type is EmphasisSlot) is { } emphasis ? "/" + emphasis.Name + "/" : null;
         foreach (var line in lines)
         {
             TranslationEntry? entry = null;
@@ -32,8 +33,9 @@ public static class SlideTranslation
                 SlotPointer.Replace(merged, line.Path, entry!.Text);
                 changed = true;
             }
-            else
+            else if (emphasisPrefix is null || !line.Path.StartsWith(emphasisPrefix, StringComparison.Ordinal))
             {
+                // D24: an unmatched emphasis is dropped and shows no English, so it is not a fallback line.
                 fallback++;
             }
 

@@ -27,6 +27,9 @@ public class SlideTranslationsJsonTests
         read["th"]["/title"].ShouldBe(new TranslationEntry("ส่งให้เล็กลง", "Ship smaller"));
         read["zh-Hans"]["/items/0/text"].ShouldBe(new TranslationEntry("风险来得晚", "Risk shows up late."));
         read["zh-Hans"].Count.ShouldBe(2);
+        json.ShouldContain("ส่งให้เล็กลง");
+        json.ShouldContain("小步交付");
+        json.ShouldNotContain("\\u");
         JsonDocument.Parse(json).RootElement.GetProperty("th").GetProperty("/title").GetProperty("from").GetString().ShouldBe("Ship smaller");
     }
 
@@ -41,5 +44,27 @@ public class SlideTranslationsJsonTests
     public void Write_WhenNoLanguages_ShouldBeNull()
     {
         SlideTranslationsJson.Write(new Dictionary<string, IReadOnlyDictionary<string, TranslationEntry>>()).ShouldBeNull();
+    }
+
+    [Test]
+    public void Read_WhenLanguageIsNull_ShouldHaveNoEntriesForIt()
+    {
+        var read = SlideTranslationsJson.Read("""{ "th": null, "fr": { "/title": { "text": "Petit", "from": "Small" } } }""");
+
+        read["th"].ShouldBeEmpty();
+        read["fr"]["/title"].ShouldBe(new TranslationEntry("Petit", "Small"));
+    }
+
+    [Test]
+    public void Write_WhenLanguageHasNoEntries_ShouldDropIt()
+    {
+        var translations = new Dictionary<string, IReadOnlyDictionary<string, TranslationEntry>>(StringComparer.Ordinal)
+        {
+            ["th"] = new Dictionary<string, TranslationEntry>(),
+            ["fr"] = new Dictionary<string, TranslationEntry> { ["/title"] = new("Petit", "Small") },
+        };
+
+        SlideTranslationsJson.Write(translations)!.ShouldNotContain("\"th\"");
+        SlideTranslationsJson.Write(new Dictionary<string, IReadOnlyDictionary<string, TranslationEntry>> { ["th"] = new Dictionary<string, TranslationEntry>() }).ShouldBeNull();
     }
 }
