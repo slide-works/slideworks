@@ -11,19 +11,22 @@ const layer = (
   <LandscapeLayer index={3} count={12} connected progress={0.25} languageChip={<span>ไทย</span>} />
 );
 
-// Fullscreen support is read at render, so the stand-in goes in before the page loads. noRequest is a browser that
-// reports fullscreenEnabled but has no requestFullscreen.
+// Fullscreen support is read when the overlay renders, which is on the tap, so the stand-in goes in after the mount
+// and before the tap. page.evaluate applies to the page as it is; an init script waits for the next load, and the
+// component harness doesn't always reload between tests. noRequest is a browser that reports fullscreenEnabled but
+// has no requestFullscreen.
 async function stubFullscreen(page: Page, mode: 'supported' | 'unsupported' | 'noRequest') {
-  const request = {
-    supported: '() => Promise.resolve()',
-    unsupported: 'undefined',
-    noRequest: 'undefined',
-  }[mode];
-  // A script string: a function passed to addInitScript goes through the bundler first.
-  await page.addInitScript(`
-    Object.defineProperty(document, 'fullscreenEnabled', { value: ${mode !== 'unsupported'}, configurable: true });
-    Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', { value: ${request}, configurable: true, writable: true });
-  `);
+  await page.evaluate((m) => {
+    Object.defineProperty(document, 'fullscreenEnabled', {
+      value: m !== 'unsupported',
+      configurable: true,
+    });
+    Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
+      value: m === 'supported' ? () => Promise.resolve() : undefined,
+      configurable: true,
+      writable: true,
+    });
+  }, mode);
 }
 
 const tapSurface = (page: Page) => page.getByRole('button', { name: 'Show slide controls' });
@@ -60,26 +63,26 @@ test('Landscape_WhenTappedTwice_ShouldHide', async ({ mount, page }) => {
 });
 
 test('Landscape_WhenFullscreenSupported_ShouldShowButton', async ({ mount, page }) => {
-  await stubFullscreen(page, 'supported');
   await page.setViewportSize(LANDSCAPE);
   await mount(layer);
+  await stubFullscreen(page, 'supported');
   await tapSurface(page).click();
   await expect(page.getByRole('button', { name: 'Full screen' })).toBeVisible();
 });
 
 test('Landscape_WhenFullscreenUnsupported_ShouldHideButton', async ({ mount, page }) => {
-  await stubFullscreen(page, 'unsupported');
   await page.setViewportSize(LANDSCAPE);
   await mount(layer);
+  await stubFullscreen(page, 'unsupported');
   await tapSurface(page).click();
   await expect(page.getByTestId(GUEST_TEST_IDS.landscapeOverlay)).toBeVisible();
   await expect(page.getByTestId(GUEST_TEST_IDS.landscapeFullscreen)).toHaveCount(0);
 });
 
 test('Landscape_WhenFullscreenRefused_ShouldShowMessage', async ({ mount, page }) => {
-  await stubFullscreen(page, 'supported');
   await page.setViewportSize(LANDSCAPE);
   await mount(layer);
+  await stubFullscreen(page, 'supported');
   // The request is read when the button is pressed, so the refusal can go in after the mount.
   await page.evaluate(() => {
     document.documentElement.requestFullscreen = () => Promise.reject(new Error('refused'));
@@ -92,9 +95,9 @@ test('Landscape_WhenFullscreenRefused_ShouldShowMessage', async ({ mount, page }
 });
 
 test('Landscape_WhenRequestFullscreenMissing_ShouldHideButton', async ({ mount, page }) => {
-  await stubFullscreen(page, 'noRequest');
   await page.setViewportSize(LANDSCAPE);
   await mount(layer);
+  await stubFullscreen(page, 'noRequest');
   await tapSurface(page).click();
   await expect(page.getByTestId(GUEST_TEST_IDS.landscapeOverlay)).toBeVisible();
   await expect(page.getByTestId(GUEST_TEST_IDS.landscapeFullscreen)).toHaveCount(0);
@@ -103,9 +106,9 @@ test('Landscape_WhenRequestFullscreenMissing_ShouldHideButton', async ({ mount, 
 test('Landscape_WhenOverlayReopenedAfterRefusal_ShouldNotShowMessage', async ({ mount, page }) => {
   await page.clock.install({ time: 0 });
   await page.clock.pauseAt(1000);
-  await stubFullscreen(page, 'supported');
   await page.setViewportSize(LANDSCAPE);
   await mount(layer);
+  await stubFullscreen(page, 'supported');
   await page.evaluate(() => {
     document.documentElement.requestFullscreen = () => Promise.reject(new Error('refused'));
   });
@@ -123,9 +126,9 @@ test('Landscape_WhenOverlayReopenedAfterRefusal_ShouldNotShowMessage', async ({ 
 test('Landscape_WhenFocusInsideOverlay_ShouldStayUntilFocusLeaves', async ({ mount, page }) => {
   await page.clock.install({ time: 0 });
   await page.clock.pauseAt(1000);
-  await stubFullscreen(page, 'supported');
   await page.setViewportSize(LANDSCAPE);
   await mount(layer);
+  await stubFullscreen(page, 'supported');
   const overlay = page.getByTestId(GUEST_TEST_IDS.landscapeOverlay);
   const button = page.getByTestId(GUEST_TEST_IDS.landscapeFullscreen);
   await tapSurface(page).click();
@@ -146,9 +149,9 @@ test('Landscape_WhenFullscreenPressedWithPointer_ShouldHideAfterThreeSeconds', a
 }) => {
   await page.clock.install({ time: 0 });
   await page.clock.pauseAt(1000);
-  await stubFullscreen(page, 'supported');
   await page.setViewportSize(LANDSCAPE);
   await mount(layer);
+  await stubFullscreen(page, 'supported');
   await tapSurface(page).click();
   await page.getByTestId(GUEST_TEST_IDS.landscapeFullscreen).click();
   await page.clock.runFor(3100);
@@ -158,9 +161,9 @@ test('Landscape_WhenFullscreenPressedWithPointer_ShouldHideAfterThreeSeconds', a
 test('Landscape_WhenHiddenByTapWithFocusInside_ShouldFocusTapSurface', async ({ mount, page }) => {
   await page.clock.install({ time: 0 });
   await page.clock.pauseAt(1000);
-  await stubFullscreen(page, 'supported');
   await page.setViewportSize(LANDSCAPE);
   await mount(layer);
+  await stubFullscreen(page, 'supported');
   await tapSurface(page).click();
   await page.getByTestId(GUEST_TEST_IDS.landscapeFullscreen).focus();
   await tapSurface(page).click({ position: { x: 400, y: 200 } });
@@ -176,9 +179,9 @@ test('Landscape_WhenPortrait_ShouldShowNoLayer', async ({ mount, page }) => {
 });
 
 test('Landscape_WhenOverlayShown_ShouldMatchScreenshot', async ({ mount, page }) => {
-  await stubFullscreen(page, 'supported');
   await page.setViewportSize(LANDSCAPE);
   await mount(layer);
+  await stubFullscreen(page, 'supported');
   await tapSurface(page).click();
   await expect(page.getByTestId(GUEST_TEST_IDS.landscapeOverlay)).toBeVisible();
   await expect(page).toHaveScreenshot('landscape-overlay.png', { maxDiffPixels: 100 });
