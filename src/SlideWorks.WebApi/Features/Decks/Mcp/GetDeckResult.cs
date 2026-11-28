@@ -1,7 +1,9 @@
 using System.Text.Json.Serialization;
 using SlideWorks.Core.Qa;
+using SlideWorks.Core.Translations;
 using SlideWorks.WebApi.Features.Slides;
 using SlideWorks.WebApi.Features.Templates;
+using SlideWorks.WebApi.Features.Translations.Mcp;
 
 namespace SlideWorks.WebApi.Features.Decks.Mcp;
 
@@ -21,9 +23,10 @@ public sealed record GetDeckResult(
     [property: JsonPropertyName("talk_minutes")] int? TalkMinutes,
     IReadOnlyList<GetDeckSlide> Slides,
     QaSettings Qa,
-    IReadOnlyList<GetDeckReactionSession> Reactions)
+    IReadOnlyList<GetDeckReactionSession> Reactions,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TranslationsSettingsView? Translations = null)
 {
-    public static GetDeckResult From(Deck deck, IEnumerable<Slide> slides, ResolvedTemplate template, string url, QaSettings qa, IReadOnlyList<GetDeckReactionSession> reactions)
+    public static GetDeckResult From(Deck deck, IEnumerable<Slide> slides, ResolvedTemplate template, string url, QaSettings qa, IReadOnlyList<GetDeckReactionSession> reactions, TranslationsSettingsView? translations, Func<Slide, IReadOnlyList<LineView>?> linesOf)
         => new(
             deck.Id,
             deck.Slug,
@@ -35,7 +38,8 @@ public sealed record GetDeckResult(
             url,
             GetDeckLook.From(deck, template),
             deck.TalkMinutes,
-            slides.Select(slide => GetDeckSlide.From(slide, template)).ToList(),
+            slides.Select(slide => GetDeckSlide.From(slide, template, linesOf(slide))).ToList(),
             qa,
-            reactions);
+            reactions,
+            translations);
 }
