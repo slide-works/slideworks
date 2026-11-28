@@ -76,9 +76,10 @@ public static class SlideChecks
             : (definition, new SlideValidationResult(missing, result.ImageIds) { Regions = result.Regions });
     }
 
-    // The surface a slide is stored with. The audience feed has no template lookup: it reads the stored surface, else the
-    // built-in catalogue's, so a slide on a custom layout that is dark by its own definition stores "dark" when none was
-    // asked. Anything else stores what was asked, as before.
+    // The surface a slide is stored with. A slide on a custom layout that is dark by its own definition stores "dark" when
+    // none was asked, so the stored data says so on its own: slides saved before every view resolved the surface through
+    // the template (DeckPlaySlide.SurfaceOf) carry it, and a reader of the row needs no template lookup. Anything else
+    // stores what was asked, as before.
     public static string? SurfaceToStore(ResolvedTemplate template, string layout, string? asked)
         => asked is null && template.IsCustomLayout(layout) && template.FindLayout(layout)?.Surface == LayoutSurface.Dark
             ? SlideSurface.DARK

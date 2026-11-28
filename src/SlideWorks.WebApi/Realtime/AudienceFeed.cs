@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SlideWorks.Core.Slides;
 using SlideWorks.Core.Slides.Layouts;
 using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Features.Decks.Views;
 using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Qa;
 using SlideWorks.WebApi.Features.Slides;
@@ -378,7 +379,7 @@ public sealed class AudienceFeed : IDisposable
         var step = Math.Clamp(presentation.Step, 0, slide.Steps);
         // The surface is the slide's stored one, else the layout's own, found through the deck's template (a custom layout
         // is not in the built-in catalogue).
-        var surface = slide.Surface ?? (snapshot.Template.FindLayout(slide.Layout)?.Dark == true ? SlideSurface.DARK : SlideSurface.LIGHT);
+        var surface = DeckPlaySlide.SurfaceOf(slide, snapshot.Template);
         var merged = TranslationMerge.For(slide, snapshot.Template, snapshot.Settings, language);
         return (new AudienceSlide(index, slides.Count, slide.Layout, merged.Slots, slide.Steps, step, presentation.Black, surface), merged.FallbackLines);
     }
