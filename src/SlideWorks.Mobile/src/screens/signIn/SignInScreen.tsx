@@ -10,6 +10,7 @@ import { useAppRuntime } from '../../platform/appRuntime';
 import { signedInKey } from '../../queries/queryClient';
 import {
   challengeFor,
+  httpRefused,
   newState,
   newVerifier,
   normaliseOrigin,
@@ -24,6 +25,8 @@ import { signInTestIds } from './testIds';
 
 // Typing settles before the server check runs.
 const CHECK_DELAY_MS = 300;
+
+const GENERIC_ERROR = "Couldn't sign in. Try again.";
 
 type Check = { origin: string; reachable: boolean | null };
 
@@ -59,13 +62,20 @@ export function SignInScreen() {
   async function signIn(server: string) {
     setBusy(true);
     setError(null);
+    // True from beginSignIn until commit: a failure in between must leave the session signed out.
+    let begun = false;
     try {
       const verifier = newVerifier(randomBytes);
       const state = newState(randomBytes);
       const challenge = await challengeFor(verifier, sha256Base64);
       const url = signInUrl(server, { challenge, state, deviceName: deviceName() });
       const result = await WebBrowser.openAuthSessionAsync(url, SIGN_IN_REDIRECT);
-      if (result.type !== 'success') return;
+      // Only a person closing the browser is a quiet return; anything else (such as 'locked') is a failure.
+      if (result.type === 'cancel' || result.type === 'dismiss') return;
+      if (result.type !== 'success') {
+        setError(GENERIC_ERROR);
+        return;
+      }
 
       const redirect = parseRedirect(result.url, { state, origin: server });
       if (redirect.kind === 'cancelled') return;
@@ -74,30 +84,33 @@ export function SignInScreen() {
         return;
       }
       if (redirect.kind === 'incomplete') {
-        setError("Couldn't sign in. Try again.");
+        setError(GENERIC_ERROR);
         return;
       }
 
       // From here every request goes to the typed server, which apiOrigin() now names.
       session.beginSignIn(server);
+      begun = true;
       let me: MeView;
       try {
         const exchanged = await exchangeDeviceSessionCode({ code: redirect.code, verifier });
         session.setPendingSecret(exchanged.secret);
         me = exchanged.me;
         session.commit(me.email, me.access === 'pending');
+        begun = false;
       } catch (failure) {
         session.abandon();
-        setError(
-          failure instanceof ApiError && failure.detail
-            ? failure.detail
-            : "Couldn't sign in. Try again.",
-        );
+        begun = false;
+        setError(failure instanceof ApiError && failure.detail ? failure.detail : GENERIC_ERROR);
         return;
       }
       queryClient.setQueryData(signedInKey('me'), me);
       // A pending person waits on Account, which says so, until the server approves them.
       router.replace(me.access === 'pending' ? links.account() : links.talks());
+    } catch {
+      // The crypto helpers or the browser session threw.
+      if (begun) session.abandon();
+      setError(GENERIC_ERROR);
     } finally {
       setBusy(false);
     }
@@ -115,6 +128,7 @@ export function SignInScreen() {
       {editing ? (
         <TextInput
           testID={signInTestIds.serverInput}
+          accessibilityLabel="Server address"
           value={typed}
           onChangeText={setTyped}
           autoCapitalize="none"
@@ -151,6 +165,11 @@ export function SignInScreen() {
       {origin !== null && reachable === false ? (
         <Text testID={signInTestIds.unreachable} style={{ color: colors.bad }}>
           Can&apos;t reach {origin}.
+        </Text>
+      ) : null}
+      {httpRefused(typed) ? (
+        <Text testID={signInTestIds.httpRefused} style={{ color: colors.bad }}>
+          Use an https address. Plain http works only for servers on your own computer or network.
         </Text>
       ) : null}
       <Pressable

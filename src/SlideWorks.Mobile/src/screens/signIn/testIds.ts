@@ -5,6 +5,7 @@ export const signInTestIds = {
   useAnotherServer: 'sign-in-use-another-server',
   serverInput: 'sign-in-server-input',
   unreachable: 'sign-in-unreachable',
+  httpRefused: 'sign-in-http-refused',
   signIn: 'sign-in-google',
   error: 'sign-in-error',
 } as const;
