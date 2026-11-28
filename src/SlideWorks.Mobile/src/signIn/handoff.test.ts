@@ -6,6 +6,7 @@ import {
   deviceNameFrom,
   newState,
   newVerifier,
+  httpRefused,
   normaliseOrigin,
   parseRedirect,
   signInUrl,
@@ -108,6 +109,49 @@ describe('handoff', () => {
         origin: 'https://slideworks.example/',
       }),
     ).toEqual({ kind: 'code', code: 'c0de' });
+  });
+
+  it('allows plain http only to local development hosts', () => {
+    for (const host of [
+      'localhost:5510',
+      '127.0.0.1:5510',
+      '[::1]:5510',
+      '10.0.2.2:5510',
+      '10.1.2.3',
+      '172.16.0.1',
+      '172.31.255.255',
+      '192.168.1.20:8080',
+      'my-mac.local:5510',
+    ]) {
+      expect(normaliseOrigin(`http://${host}`)).toBe(`http://${host}`);
+      expect(httpRefused(`http://${host}`)).toBe(false);
+    }
+  });
+
+  it('refuses plain http to any other host', () => {
+    for (const address of [
+      'http://example.com',
+      'http://8.8.8.8',
+      'http://172.32.0.1',
+      'http://172.15.0.1',
+      'http://192.169.0.1',
+      'http://11.0.0.1',
+      'http://localhost.example.com',
+      'http://evil.local.example.com',
+    ]) {
+      expect(normaliseOrigin(address)).toBeNull();
+      expect(httpRefused(address)).toBe(true);
+    }
+    // https is fine anywhere; a malformed address isn't an http refusal.
+    expect(normaliseOrigin('https://example.com')).toBe('https://example.com');
+    expect(httpRefused('https://example.com')).toBe(false);
+    expect(httpRefused('ftp://example.com')).toBe(false);
+    expect(
+      parseRedirect(redirect({ code: 'c0de', state, iss: 'http://example.com' }), {
+        state,
+        origin: 'http://example.com',
+      }),
+    ).toEqual({ kind: 'foreign' });
   });
 
   it('reads error=cancelled', () => {

@@ -57,19 +57,46 @@ export function deviceNameFrom(names: DeviceNames): string {
   return 'Phone';
 }
 
-// Lower-case scheme and host, no path or trailing slash, default port dropped. An address typed without a scheme is
-// https. Anything that isn't an http(s) address with a host is null.
-export function normaliseOrigin(input: string): string | null {
+// Hosts plain http may reach (SW-946 D18): local development only, so the swd_ secret never crosses a network in clear
+// text. localhost, loopback, the Android emulator's host, private LAN ranges and *.local names.
+export function isLocalDevHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (host === 'localhost' || host === '[::1]' || host === '10.0.2.2' || host.endsWith('.local')) {
+    return true;
+  }
+  const octets = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (!octets) return false;
+  const [a, b] = [Number(octets[1]), Number(octets[2])];
+  return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+}
+
+function parseTyped(input: string): URL | null {
   const typed = input.trim();
   if (!typed) return null;
   const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(typed) ? typed : `https://${typed}`;
   try {
     const url = new URL(withScheme);
     if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname) return null;
-    return url.origin.toLowerCase();
+    return url;
   } catch {
     return null;
   }
+}
+
+// True when the address is a well-formed http address to a host D18 doesn't allow: the screen asks for https.
+export function httpRefused(input: string): boolean {
+  const url = parseTyped(input);
+  return url !== null && url.protocol === 'http:' && !isLocalDevHost(url.hostname);
+}
+
+// Lower-case scheme and host, no path or trailing slash, default port dropped. An address typed without a scheme is
+// https. Anything that isn't an https address, or an http address to a local development host (D18), with a host is
+// null.
+export function normaliseOrigin(input: string): string | null {
+  const url = parseTyped(input);
+  if (!url) return null;
+  if (url.protocol === 'http:' && !isLocalDevHost(url.hostname)) return null;
+  return url.origin.toLowerCase();
 }
 
 export type SignInRequest = { challenge: string; state: string; deviceName: string };
