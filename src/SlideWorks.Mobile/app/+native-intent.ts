@@ -5,7 +5,7 @@ import { HOSTED_SERVER, links } from '../src/links';
 // because on Android the sign-in redirect also arrives as an ordinary deep link, which would show Unmatched route.
 const hostedJoin = /^https:\/\/(?:slideworks\.app|slideworks\.live)\/j\/([^/?#]+)\/?(?:[?#].*)?$/i;
 const joinHostCode = /^https:\/\/slideworks\.live\/(\d{6})\/?(?:[?#].*)?$/i;
-const schemeJoin = /^slideworks:\/\/join\/([^/?#]+)\/?(?:\?([^#]*))?/i;
+const schemeJoin = /^slideworks:\/\/join\/([^/?#]+)\/?(?:\?([^#]*))?(?:#.*)?$/i;
 const schemeSignedIn = /^slideworks:\/\/signed-in(?:[/?#].*)?$/i;
 
 export function redirectSystemPath({
@@ -18,6 +18,7 @@ export function redirectSystemPath({
   if (path === null) return path;
   if (schemeSignedIn.test(path)) {
     // The browser session already delivered it; stay where the app is (Home when it is just starting).
+    // null is "do nothing": expo-router 58 (build/link/linking.js, subscribe callback) only calls the listener `if (href)`.
     return initial ? String(links.home()) : null;
   }
   const hosted = hostedJoin.exec(path) ?? joinHostCode.exec(path);
