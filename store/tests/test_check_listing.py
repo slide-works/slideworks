@@ -45,6 +45,27 @@ class CheckListingTests(unittest.TestCase):
         (self.android / "full_description.txt").write_text("f" * 4000)
         self.assertEqual([], self.problems())
 
+    def test_every_limit_is_the_specs(self):
+        self.assertEqual({"name": 30, "subtitle": 30, "keywords": 100, "promotional_text": 170,
+                          "description": 4000}, check_listing.IOS_LIMITS)
+        self.assertEqual({"title": 30, "short_description": 80, "full_description": 4000},
+                         {k: v for k, v in check_listing.ANDROID_LIMITS.items() if k != "changelogs/default"})
+
+    def test_each_field_fails_one_over_its_limit(self):
+        cases = [(self.ios, name, limit) for name, limit in check_listing.IOS_LIMITS.items()]
+        cases += [(self.android, name, limit) for name, limit in check_listing.ANDROID_LIMITS.items()
+                  if name != "changelogs/default"]
+        for folder, name, limit in cases:
+            with self.subTest(field=name):
+                path = folder / f"{name}.txt"
+                original = path.read_text()
+                path.write_text("x" * limit)
+                self.assertEqual([], self.problems())
+                path.write_text("x" * (limit + 1))
+                (problem,) = self.problems()
+                self.assertIn(f"{name}.txt: {limit + 1} characters, limit {limit}", problem)
+                path.write_text(original)
+
     def test_wrong_screenshot_count_fails(self):
         (self.android / "images" / "phoneScreenshots" / "5-screen5.png").unlink()
         self.assertEqual(["android/metadata/en-US/images/phoneScreenshots: expected 5 screenshots, found 4"],

@@ -41,6 +41,11 @@ class StageImagesTests(unittest.TestCase):
         with self.assertRaisesRegex(stage_images.StagingError, "de-DE is mirrored"):
             stage_images.stage(self.store, self.out, ["de-DE"])
 
+    def test_refuses_committed_mirrored_locale_on_ios_path(self):
+        (self.store / "ios" / "metadata" / "de-DE").mkdir()
+        with self.assertRaisesRegex(stage_images.StagingError, "de-DE is mirrored"):
+            stage_images.stage(self.store, self.out, ["de-DE"])
+
     def test_refuses_badly_named_image(self):
         (self.store / "assets" / "export" / "ios-6.9" / "shot.png").write_bytes(b"")
         with self.assertRaisesRegex(stage_images.StagingError, r"<n>-<screen>\.png"):
