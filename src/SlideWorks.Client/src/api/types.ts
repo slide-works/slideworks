@@ -2,6 +2,7 @@
 // are src/contracts/screens/*.json at the repo's src/ level. Dates arrive
 // pre-formatted (`updatedLabel`, `atLabel`), never as ISO strings for the browser
 // to parse — see .claude/skills/no-browser-datetime.
+import type { AvatarView } from '@slideworks/core/me';
 import type { CustomLayoutView } from '../slides/custom/layoutTree';
 import type { LayoutName, Slots } from '../slides/slots';
 import type { LookArt, LookExtra, LookFont, LookLogos, LookOrnament, TopBar } from './look';
@@ -11,26 +12,8 @@ export type ActorKind = 'agent' | 'person';
 export type Via = 'mcp' | 'web';
 export type SharingLevel = 'private' | 'link' | 'named';
 
-// How a person is shown everywhere. pictureUrl is the uploaded photo, else the
-// Google picture, else null.
-export type AvatarView = {
-  initials: string;
-  colour: string;
-  pictureUrl: string | null;
-};
-
-// GET /api/me
-export type MeView = {
-  email: string;
-  name: string;
-  pictureUrl: string | null;
-  avatar: AvatarView;
-  timeZone: string | null;
-  access: 'pending' | 'approved';
-  isAdmin: boolean;
-  pendingRequests: number;
-  adminMissing: boolean;
-};
+// How a person is shown everywhere (AvatarView) and GET /api/me (MeView) live in the core, which the app shares.
+export type { AvatarView, MeView } from '@slideworks/core/me';
 
 // GET /api/signin/options: what the sign-in page offers. google is false while
 // sign-in isn't set up on the server.

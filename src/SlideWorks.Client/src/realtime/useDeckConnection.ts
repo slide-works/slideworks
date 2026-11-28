@@ -1,13 +1,9 @@
-import {
-  HttpTransportType,
-  HubConnectionBuilder,
-  LogLevel,
-  type HubConnection,
-} from '@microsoft/signalr';
+import { HttpTransportType, type HubConnection } from '@microsoft/signalr';
+import { createHubConnection, DECK_HUB_PATH } from '@slideworks/core/realtime/hub';
 import { useEffect, useState } from 'react';
 
-// The server side is src/SlideWorks.WebApi/Realtime/DeckHub.cs.
-export const DECK_HUB_PATH = '/hubs/deck';
+// The server side is src/SlideWorks.WebApi/Realtime/DeckHub.cs; the path and the connection factory live in the core.
+export { DECK_HUB_PATH };
 
 // The slice of HubConnection the shared connection uses, so a test can pass a fake.
 export type RealtimeConnection = Pick<
@@ -22,14 +18,12 @@ export const RETRY_DELAYS_MS: readonly number[] = [0, 2000, 5000, 10000, 30000];
 // WebSockets only: the hub offers no other transport. The browser sends the session cookie on the negotiate request and
 // on the same-origin WebSocket upgrade, so there is no token to pass. Anyone may connect; each Join call decides.
 export function createDeckConnection(): RealtimeConnection {
-  return new HubConnectionBuilder()
-    .withUrl(DECK_HUB_PATH, { transport: HttpTransportType.WebSockets })
-    .withAutomaticReconnect({
-      nextRetryDelayInMilliseconds: ({ previousRetryCount }) =>
-        RETRY_DELAYS_MS[Math.min(previousRetryCount, RETRY_DELAYS_MS.length - 1)],
-    })
-    .configureLogging(LogLevel.None)
-    .build();
+  return createHubConnection({
+    auth: { kind: 'ambient' },
+    transport: HttpTransportType.WebSockets,
+    nextRetryDelayMs: (previousRetryCount) =>
+      RETRY_DELAYS_MS[Math.min(previousRetryCount, RETRY_DELAYS_MS.length - 1)],
+  });
 }
 
 // One lease on the page's shared deck hub connection. Everything that talks to DeckHub in a page (deck events through
