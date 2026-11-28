@@ -247,6 +247,15 @@ public static class ScreenShapes
     // The presenter's open-response control view (open-response-control.json): no nulls.
     public static readonly JsonShapeOptions OpenResponseControl = new();
 
+    // GET /api/auth/device-sessions (device-sessions.json, K4): no nulls.
+    public static readonly JsonShapeOptions DeviceSessions = new();
+
+    // POST /api/auth/device-sessions/codes (device-session-code.json, K4): no nulls.
+    public static readonly JsonShapeOptions DeviceSessionCode = new();
+
+    // POST /api/auth/device-sessions/exchange (device-session-exchange.json, K4): only me's nulls, as GET /api/me has them.
+    public static readonly JsonShapeOptions DeviceSessionExchange = new() { NullablePaths = ["me.pictureUrl", "me.avatar.pictureUrl", "me.timeZone"] };
+
     private static readonly JsonShapeOptions _qaRoomFile = new() { NullablePaths = ["off.round"] };
 
     private static readonly JsonShapeOptions _guestQuestionsFile = new()

@@ -22,4 +22,7 @@ public static class SlideWorksClaims
 
     // "true" for an admin, and absent otherwise.
     public const string IS_ADMIN = "slideworks:is_admin";
+
+    // The id of the device session a phone's bearer secret names (K5). Absent for a cookie session and an agent.
+    public const string DEVICE_SESSION_ID = "slideworks:device_session";
 }
