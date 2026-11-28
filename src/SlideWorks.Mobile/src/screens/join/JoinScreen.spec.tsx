@@ -123,6 +123,21 @@ describe('Join', () => {
     );
   });
 
+  it('stays ended when a late JoinAudience answer is live at a higher seq', async () => {
+    const hub = fakeHub();
+    let answer: (state: unknown) => void = () => undefined;
+    hub.respond('JoinAudience', () => new Promise((resolve) => (answer = resolve)));
+    await renderApp({ url: links.join(code), api: fakeApi({ [joinRoute]: joinAnswer(live(3)) }) });
+    await waitFor(() => expect(hub.invokes).toHaveLength(1));
+
+    await act(async () => hub.emit('audienceEvent', { type: 'audienceEnded' }));
+    expect(screen.getByTestId(joinTestIds.ended)).toBeOnTheScreen();
+    await act(async () => answer(live(9)));
+
+    expect(screen.getByTestId(joinTestIds.ended)).toBeOnTheScreen();
+    expect(screen.queryByTestId(joinTestIds.slide)).toBeNull();
+  });
+
   it('builds the guest hub with all three transports and the web back-off', async () => {
     const hub = fakeHub();
     hub.respond('JoinAudience', live(3));

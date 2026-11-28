@@ -91,6 +91,8 @@ export function useGuestTalk(origin: string, code: string): GuestTalk {
           const answer = await connection.invoke<AudienceStateSummary>('JoinAudience', code);
           // The answer is where the guest lands, whatever its seq (the server may have restarted), unless a state was
           // pushed meanwhile that is at least as new.
+          // Ended is terminal for this join: an answer read before it must not show the talk live again.
+          if (held.phase === 'ended') return;
           if (pushedSinceJoin && answer.seq <= held.seq) return;
           land(answer);
         } catch (error) {
