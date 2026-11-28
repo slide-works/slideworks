@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { api } from '@slideworks/core/client';
 import { act, fireEvent, screen, waitFor } from 'expo-router/testing-library';
 import { HOSTED_SERVER, links } from '../../links';
@@ -10,6 +11,9 @@ import { accountTestIds } from '../account/testIds';
 import { talksTestIds } from '../talks/testIds';
 import { signInTestIds } from './testIds';
 
+// Lets a test make the SHA-256 call throw. Names starting with "mock" may be used inside a jest.mock factory.
+const mockCrypto = { failDigest: false };
+
 // expo-crypto has no Jest mock in jest-expo; Node's crypto gives the same bytes and digests.
 jest.mock('expo-crypto', () => {
   // jest.mock factories are hoisted above the imports, so they load modules with require().
@@ -19,23 +23,55 @@ jest.mock('expo-crypto', () => {
     CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
     CryptoEncoding: { BASE64: 'base64', HEX: 'hex' },
     getRandomBytes: (count: number) => new Uint8Array(crypto.randomBytes(count)),
-    digestStringAsync: async (_algorithm: string, data: string) =>
-      crypto.createHash('sha256').update(data).digest('base64'),
+    digestStringAsync: async (_algorithm: string, data: string) => {
+      if (mockCrypto.failDigest) throw new Error('digest failed');
+      return crypto.createHash('sha256').update(data).digest('base64');
+    },
   };
 });
 
 const SECRET = 'swd_abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG';
 const health = { 'GET /health': { status: 200, body: { status: 'ok' } } };
 
+// base64url(SHA-256(verifier)) with no padding: what the confirm page's challenge must be.
+const challengeOf = (verifier: string) =>
+  createHash('sha256').update(verifier).digest('base64url').replace(/=+$/, '');
+
+// The server's exchange: it answers 201 only when the verifier it is sent hashes to the challenge in the URL the
+// browser was opened with, and that URL carries a device name and a state; otherwise sign_in_expired.
+function exchangeThatChecksPkce(me = aMe()) {
+  return (request: { body: unknown }) => {
+    const { code, verifier } = request.body as { code: string; verifier: string };
+    const opened = webBrowser.opened.at(-1);
+    const params = opened ? new URL(opened.url).searchParams : new URLSearchParams();
+    const challenge = params.get('challenge');
+    const valid =
+      code === 'c0de' &&
+      typeof verifier === 'string' &&
+      challenge !== null &&
+      challenge === challengeOf(verifier) &&
+      !challenge.includes('=') &&
+      params.get('device') !== null &&
+      (params.get('state') ?? '').length > 0;
+    return valid
+      ? { status: 201, body: aDeviceSessionExchange({ secret: SECRET, me }) }
+      : { status: 400, body: { error: 'sign_in_expired', message: 'Sign-in expired.' } };
+  };
+}
+
 function serverWith(overrides = {}) {
   return signedInApi({
     ...health,
-    'POST /api/auth/device-sessions/exchange': {
-      status: 201,
-      body: aDeviceSessionExchange({ secret: SECRET }),
-    },
+    'POST /api/auth/device-sessions/exchange': exchangeThatChecksPkce(),
     ...overrides,
   });
+}
+
+function snapshotStorage() {
+  return {
+    secure: [...mockStorage.secure.entries()].sort(),
+    kv: [...mockStorage.kv.entries()].sort(),
+  };
 }
 
 async function tapSignIn() {
@@ -52,6 +88,10 @@ async function redirectBack(query: Record<string, string>) {
 }
 
 describe('SignIn', () => {
+  beforeEach(() => {
+    mockCrypto.failDigest = false;
+  });
+
   it('prefills the hosted server', async () => {
     const server = serverWith();
     await renderApp({ url: links.signIn(), api: server });
@@ -81,7 +121,7 @@ describe('SignIn', () => {
 
     server.set(health);
     await fireEvent.press(screen.getByTestId(signInTestIds.useAnotherServer));
-    await fireEvent.changeText(screen.getByTestId(signInTestIds.serverInput), 'other.example');
+    await fireEvent.changeText(screen.getByLabelText('Server address'), 'other.example');
     await waitFor(() => expect(screen.getByTestId(signInTestIds.signIn)).toBeEnabled());
     expect(screen.queryByTestId(signInTestIds.unreachable)).toBeNull();
   });
@@ -99,6 +139,9 @@ describe('SignIn', () => {
     await waitFor(() => expect(screen.getByTestId(talksTestIds.root)).toBeOnTheScreen());
     const [exchange] = server.callsTo('POST /api/auth/device-sessions/exchange');
     expect(exchange.body).toMatchObject({ code: 'c0de' });
+    expect(opened.searchParams.get('challenge')).toBe(
+      challengeOf((exchange.body as { verifier: string }).verifier),
+    );
     expect(exchange.headers.Authorization).toBeUndefined();
     expect(JSON.parse(mockStorage.secure.get(SESSION_KEY) ?? '{}')).toEqual({
       origin: HOSTED_SERVER,
@@ -137,31 +180,29 @@ describe('SignIn', () => {
   });
 
   it("shows the server's refusal message", async () => {
-    const message = 'Sign-in expired. Try again.';
+    const message = 'message-from-the-server-0f3a';
     const server = serverWith({
       'POST /api/auth/device-sessions/exchange': {
         status: 400,
-        body: { error: 'sign_in_expired', message },
+        body: { error: 'identity_proxy', message },
       },
     });
     await renderApp({ url: links.signIn(), api: server });
+    const before = snapshotStorage();
 
     const state = (await tapSignIn()).searchParams.get('state') ?? '';
     await redirectBack({ code: 'c0de', state, iss: HOSTED_SERVER });
 
     expect(await screen.findByTestId(signInTestIds.error)).toHaveTextContent(message);
     expect(screen.getByTestId(signInTestIds.root)).toBeOnTheScreen();
-    expect(mockStorage.secure.get(SESSION_KEY)).toBeUndefined();
+    expect(snapshotStorage()).toEqual(before);
   });
 
   it('pending person sees the waiting message', async () => {
     const me = aMe({ access: 'pending' });
     const server = serverWith({
       'GET /api/me': me,
-      'POST /api/auth/device-sessions/exchange': {
-        status: 201,
-        body: aDeviceSessionExchange({ secret: SECRET, me }),
-      },
+      'POST /api/auth/device-sessions/exchange': exchangeThatChecksPkce(me),
     });
     await renderApp({ url: links.signIn(), api: server });
 
@@ -173,13 +214,72 @@ describe('SignIn', () => {
     expect(JSON.parse(mockStorage.secure.get(SESSION_KEY) ?? '{}').secret).toBe(SECRET);
   });
 
+  it('a crypto failure shows the generic error and stays signed out', async () => {
+    const server = serverWith();
+    await renderApp({ url: links.signIn(), api: server });
+    const before = snapshotStorage();
+    mockCrypto.failDigest = true;
+
+    await waitFor(() => expect(screen.getByTestId(signInTestIds.signIn)).toBeEnabled());
+    await fireEvent.press(screen.getByTestId(signInTestIds.signIn));
+
+    expect(await screen.findByTestId(signInTestIds.error)).toBeOnTheScreen();
+    expect(webBrowser.opened).toHaveLength(0);
+    expect(snapshotStorage()).toEqual(before);
+    await waitFor(() => expect(screen.getByTestId(signInTestIds.signIn)).toBeEnabled());
+  });
+
+  it('a failed browser session shows the generic error and stays signed out', async () => {
+    const server = serverWith();
+    await renderApp({ url: links.signIn(), api: server });
+    const before = snapshotStorage();
+
+    await tapSignIn();
+    await act(async () => webBrowser.failAuthSession(new Error('no browser')));
+
+    expect(await screen.findByTestId(signInTestIds.error)).toBeOnTheScreen();
+    expect(snapshotStorage()).toEqual(before);
+    expect(server.callsTo('POST /api/auth/device-sessions/exchange')).toHaveLength(0);
+    await waitFor(() => expect(screen.getByTestId(signInTestIds.signIn)).toBeEnabled());
+  });
+
+  it('a locked browser session is an error, a dismissed one is quiet', async () => {
+    const server = serverWith();
+    await renderApp({ url: links.signIn(), api: server });
+
+    await tapSignIn();
+    await act(async () => webBrowser.endAuthSession('locked'));
+    expect(await screen.findByTestId(signInTestIds.error)).toBeOnTheScreen();
+
+    await waitFor(() => expect(screen.getByTestId(signInTestIds.signIn)).toBeEnabled());
+    await fireEvent.press(screen.getByTestId(signInTestIds.signIn));
+    await waitFor(() => expect(webBrowser.opened).toHaveLength(2));
+    await act(async () => webBrowser.endAuthSession('dismiss'));
+    await waitFor(() => expect(screen.getByTestId(signInTestIds.signIn)).toBeEnabled());
+    expect(screen.queryByTestId(signInTestIds.error)).toBeNull();
+  });
+
+  it('plain http to a public host is refused and cannot sign in', async () => {
+    const server = serverWith();
+    await renderApp({ url: links.signIn(), api: server });
+
+    await fireEvent.press(screen.getByTestId(signInTestIds.useAnotherServer));
+    await fireEvent.changeText(screen.getByLabelText('Server address'), 'http://example.com');
+
+    expect(await screen.findByTestId(signInTestIds.httpRefused)).toBeOnTheScreen();
+    expect(screen.getByTestId(signInTestIds.signIn)).toBeDisabled();
+    expect(server.callsTo('GET /health').map((call) => call.origin)).not.toContain(
+      'http://example.com',
+    );
+  });
+
   it('exchange and later calls go only to the typed origin', async () => {
     const typed = 'http://10.0.2.2:5510';
     const server = serverWith();
     await renderApp({ url: links.signIn(), api: server });
 
     await fireEvent.press(screen.getByTestId(signInTestIds.useAnotherServer));
-    await fireEvent.changeText(screen.getByTestId(signInTestIds.serverInput), `${typed}/`);
+    await fireEvent.changeText(screen.getByLabelText('Server address'), `${typed}/`);
     const opened = await tapSignIn();
     expect(opened.origin).toBe(typed);
     await redirectBack({ code: 'c0de', state: opened.searchParams.get('state') ?? '', iss: typed });

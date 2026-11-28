@@ -36,8 +36,10 @@ const kvStorage = {
 };
 export const kvStoreModule = { __esModule: true, default: kvStorage, Storage: kvStorage };
 
-type AuthSessionResult = { type: 'success'; url: string } | { type: 'cancel' };
+type AuthSessionResult =
+  { type: 'success'; url: string } | { type: 'cancel' | 'dismiss' | 'locked' };
 let settle: ((result: AuthSessionResult) => void) | null = null;
+let fail: ((error: Error) => void) | null = null;
 const opened: { url: string; redirectUrl: string | null | undefined }[] = [];
 
 // Drives expo-web-browser's openAuthSessionAsync: the promise a screen awaits settles only when a test completes or
@@ -49,6 +51,19 @@ export const webBrowser = {
     settle({ type: 'success', url });
     settle = null;
   },
+  // Ends the session with a non-success result: 'dismiss' and 'cancel' are the person closing the browser.
+  endAuthSession(type: 'cancel' | 'dismiss' | 'locked') {
+    if (!settle) throw new Error('No auth session is open.');
+    settle({ type });
+    settle = null;
+  },
+  // Makes the openAuthSessionAsync promise reject, as a native failure would.
+  failAuthSession(error: Error) {
+    if (!fail) throw new Error('No auth session is open.');
+    fail(error);
+    fail = null;
+    settle = null;
+  },
   cancelAuthSession() {
     if (!settle) throw new Error('No auth session is open.');
     settle({ type: 'cancel' });
@@ -57,14 +72,16 @@ export const webBrowser = {
   reset() {
     opened.length = 0;
     settle = null;
+    fail = null;
   },
 };
 
 export const webBrowserModule = {
   openAuthSessionAsync: (url: string, redirectUrl?: string | null) => {
     opened.push({ url, redirectUrl });
-    return new Promise<AuthSessionResult>((resolve) => {
+    return new Promise<AuthSessionResult>((resolve, reject) => {
       settle = resolve;
+      fail = reject;
     });
   },
   openBrowserAsync: async () => ({ type: 'opened' }),
