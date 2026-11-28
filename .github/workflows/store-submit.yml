@@ -1,0 +1,56 @@
+name: Store submit
+
+# Sends the build already in testers' hands to review. Never pushes the listing (Mobile release does that).
+#   Play: promotes the internal track's rolled-out release to the chosen track as a full release.
+#   App Store: attaches the newest processed TestFlight build to the version on Prepare for Submission and submits
+#   it. Release after approval is manual.
+# Run from main: gh workflow run store-submit.yml -R slide-works/slideworks --ref main -f platform=android
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Which store to submit to
+        type: choice
+        options: [all, ios, android]
+        default: all
+      play_track:
+        description: Play track to promote the internal release to
+        type: choice
+        options: [alpha, production]
+        default: alpha
+      play_release_status:
+        description: Play release status (use draft until the app's first review, then send it for review in Play Console)
+        type: choice
+        options: [completed, draft]
+        default: completed
+
+concurrency:
+  group: store-submit
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  submit-android:
+    if: ${{ github.ref == 'refs/heads/main' && (inputs.platform == 'all' || inputs.platform == 'android') }}
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+      PLAY_TRACK: ${{ inputs.play_track }}
+      PLAY_RELEASE_STATUS: ${{ inputs.play_release_status }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: store/push_listing.sh android submit
+
+  submit-ios:
+    if: ${{ github.ref == 'refs/heads/main' && (inputs.platform == 'all' || inputs.platform == 'ios') }}
+    runs-on: ${{ vars.STORE_IOS_RUNNER || 'ubuntu-latest' }}
+    env:
+      ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+      ASC_API_KEY_ISSUER_ID: ${{ secrets.ASC_API_KEY_ISSUER_ID }}
+      ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: store/push_listing.sh ios submit

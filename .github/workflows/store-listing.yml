@@ -1,0 +1,68 @@
+name: Store listing
+
+# The pull-request check for store/. Path-filtered, so it is NOT a required check: a required path-filtered check
+# sits pending forever on a pull request that does not touch its paths.
+# Runs the store/ unit tests, stages the listing, checks the stores' limits and images, and dry-runs both stores
+# without writing. On a fork pull request (no secrets) the dry runs end green with one notice.
+
+on:
+  pull_request:
+    paths:
+      - "store/**"
+      - ".github/workflows/store-listing.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: store-listing-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests
+        run: python3 -I -m unittest discover -s store/tests
+      - name: Shellcheck
+        run: shellcheck store/push_listing.sh
+      - name: Stage the listing
+        run: python3 -I store/stage_images.py --out "$RUNNER_TEMP/staged"
+      - name: Check limits and images
+        run: python3 -I store/check_listing.py "$RUNNER_TEMP/staged"
+
+  dry-run-android:
+    needs: check
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - name: Skipped on a fork
+        if: ${{ github.event.pull_request.head.repo.fork }}
+        run: echo "::notice::Fork pull request, no secrets, so the store dry runs are skipped."
+      - uses: actions/checkout@v4
+        if: ${{ !github.event.pull_request.head.repo.fork }}
+      # Play validates the whole edit (text and images) and discards it.
+      - name: Validate the listing on Google Play
+        if: ${{ !github.event.pull_request.head.repo.fork }}
+        run: store/push_listing.sh android verify
+
+  dry-run-ios:
+    needs: check
+    runs-on: ${{ vars.STORE_IOS_RUNNER || 'ubuntu-latest' }}
+    env:
+      ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+      ASC_API_KEY_ISSUER_ID: ${{ secrets.ASC_API_KEY_ISSUER_ID }}
+      ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+    steps:
+      - name: Skipped on a fork
+        if: ${{ github.event.pull_request.head.repo.fork }}
+        run: echo "::notice::Fork pull request, no secrets, so the store dry runs are skipped."
+      - uses: actions/checkout@v4
+        if: ${{ !github.event.pull_request.head.repo.fork }}
+      # deliver has no validate-only mode: this only downloads the current listing, so it proves the key, the app
+      # record and the runner, not the text or screenshots.
+      - name: Download the current App Store listing
+        if: ${{ !github.event.pull_request.head.repo.fork }}
+        run: store/push_listing.sh ios verify
