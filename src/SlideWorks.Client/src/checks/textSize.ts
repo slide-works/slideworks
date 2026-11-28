@@ -1,5 +1,5 @@
 import { textRunsOf } from './canvas';
-import { severityOf, type MeasureRule, type SlideFinding } from './types';
+import { severityOf, type MeasureRule, type MeasuredFinding } from './types';
 
 const MIN_PX = 20;
 const WHERE_LENGTH = 40;
@@ -16,7 +16,7 @@ function designedFloor(element: HTMLElement): number | null {
 // Elements marked data-check-size="designed" are small on purpose and skipped. "designed:18" is designed at 18 px:
 // skipped at or above 18 canvas px, and still warned below it. Chrome is skipped by textRunsOf.
 export const textSize: MeasureRule = (frame, slide) => {
-  const found: SlideFinding[] = [];
+  const found: MeasuredFinding[] = [];
   const seen = new Set<HTMLElement>();
   for (const run of textRunsOf(frame)) {
     // Text with no box is not drawn (an SVG <title> or <desc>).

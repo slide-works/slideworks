@@ -16,8 +16,10 @@ namespace SlideWorks.WebApi.Features.Checks;
 [RegisterPerRequest]
 public class DeckChecks(AppDbContext db, ICurrentActor actor, IDeckAccess access, IRenderEngine engine, IStoredSlideChecks stored, ILogger<DeckChecks> logger)
 {
-    public async Task<DeckChecksResult> CheckAsync(string deckId, IReadOnlyList<int>? slides, bool measure)
+    public async Task<DeckChecksResult> CheckAsync(string deckId, IReadOnlyList<int>? slides, bool measure, string? language = null)
     {
+        // TODO: resolve the language and check the primary and each translation language in turn; for now it is accepted and ignored.
+        _ = language;
         var result = await RunAsync(deckId, slides, measure);
 
         // One line per call is the Measure (problems per deck, first call against last): counts only, never a token.
@@ -51,7 +53,7 @@ public class DeckChecks(AppDbContext db, ICurrentActor actor, IDeckAccess access
         var findings = new List<SlideFinding>(await stored.CheckAsync(deckId, numbers, CancellationToken.None));
         if (!measure)
         {
-            return new DeckChecksResult(deckId, numbers, SlideFinding.Sorted(findings), false, null);
+            return new DeckChecksResult(deckId, numbers, NO_LANGUAGES, SlideFinding.Sorted(findings), false, null);
         }
 
         for (var i = 0; i < numbers.Count; i++)
@@ -59,7 +61,7 @@ public class DeckChecks(AppDbContext db, ICurrentActor actor, IDeckAccess access
             var number = numbers[i];
             try
             {
-                findings.AddRange((await engine.RenderSlideAsync(deckId, number, CancellationToken.None)).Findings);
+                findings.AddRange((await engine.RenderSlideAsync(deckId, number, null, CancellationToken.None)).Findings);
             }
             catch (RenderingFailedException error)
             {
@@ -74,12 +76,15 @@ public class DeckChecks(AppDbContext db, ICurrentActor actor, IDeckAccess access
             catch (Exception error) when (error is RendererUnavailableException or TimeoutException)
             {
                 var stoppedAt = $"Rendering stopped at slide {number}, so {Unmeasured(numbers.Skip(i).ToList())} the stored checks.";
-                return new DeckChecksResult(deckId, numbers, SlideFinding.Sorted(findings), false, stoppedAt);
+                return new DeckChecksResult(deckId, numbers, NO_LANGUAGES, SlideFinding.Sorted(findings), false, stoppedAt);
             }
         }
 
-        return new DeckChecksResult(deckId, numbers, SlideFinding.Sorted(findings), true, null);
+        return new DeckChecksResult(deckId, numbers, NO_LANGUAGES, SlideFinding.Sorted(findings), true, null);
     }
+
+    // TODO: the languages actually checked, once check_deck renders in each language; until then none are named.
+    private static readonly IReadOnlyList<string> NO_LANGUAGES = [];
 
     // "slide 5 has only", "slides 4, 5 and 9 have only", or "slides 4–12 have only" for a run of three or more.
     private static string Unmeasured(IReadOnlyList<int> left)

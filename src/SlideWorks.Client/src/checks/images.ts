@@ -1,5 +1,5 @@
 import { isChrome } from './canvas';
-import { severityOf, type MeasureRule, type SlideFinding } from './types';
+import { severityOf, type MeasureRule, type MeasuredFinding } from './types';
 
 // Drawn wider or taller than this many times its natural size looks blurry.
 const MAX_STRETCH = 1.5;
@@ -11,7 +11,7 @@ const whole = (value: number) => Math.round(value);
 // smaller than its box).
 // Images that failed to load, or are drawn much larger than their pixels.
 export const images: MeasureRule = (frame, slide, canvas) => {
-  const found: SlideFinding[] = [];
+  const found: MeasuredFinding[] = [];
   const add = (rule: 'imageNotLoaded' | 'imageLowResolution', message: string) =>
     found.push({
       slide,

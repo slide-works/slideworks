@@ -26,8 +26,10 @@ public class DeckPreviews(
     IStoredSlideChecks stored,
     PreviewInstructions instructions)
 {
-    public async Task<PreviewDeckOutcome> PreviewAsync(string deckId, IReadOnlyList<int>? slides)
+    public async Task<PreviewDeckOutcome> PreviewAsync(string deckId, IReadOnlyList<int>? slides, string? language = null)
     {
+        // TODO: resolve the language and render, link and stamp the findings in it; for now it is accepted and ignored.
+        _ = language;
         if (!await access.CanEditAsync(deckId, actor))
         {
             throw new NotFoundException(DeckReader.NOT_FOUND);
@@ -51,7 +53,7 @@ public class DeckPreviews(
         {
             try
             {
-                var rendered = await engine.RenderSlideAsync(deck.Id, number, CancellationToken.None);
+                var rendered = await engine.RenderSlideAsync(deck.Id, number, null, CancellationToken.None);
                 images.Add(rendered.Png);
                 findings.AddRange(rendered.Findings);
             }

@@ -516,11 +516,16 @@ export type SlideFinding = {
   source: 'measured' | 'stored';
   where: string;
   message: string;
+  // The language the slide was checked in; null while the deck's translations are off, and always null on the deck page.
+  // The browser never sets it: the server stamps it.
+  language: string | null;
 };
 
 export type DeckChecksView = {
   deck: string;
   slides: number[];
+  // The language codes checked, in the order checked; empty while translations are off.
+  languages: string[];
   findings: SlideFinding[];
   measured: boolean;
   error: string | null;

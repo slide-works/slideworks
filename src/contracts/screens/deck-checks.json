@@ -1,6 +1,7 @@
 {
   "deck": "dk_sample",
   "slides": [1, 2, 3],
+  "languages": [],
   "findings": [
     {
       "slide": 1,
@@ -8,7 +9,8 @@
       "severity": "error",
       "source": "stored",
       "where": "items",
-      "message": "items: too much text to fit on the slide (about 664 px of 620 px); use fewer or shorter items. It fitted when it was added; the deck's look has changed since. Shorten it, or check it with validate_slide."
+      "message": "items: too much text to fit on the slide (about 664 px of 620 px); use fewer or shorter items. It fitted when it was added; the deck's look has changed since. Shorten it, or check it with validate_slide.",
+      "language": null
     },
     {
       "slide": 2,
@@ -16,7 +18,8 @@
       "severity": "error",
       "source": "measured",
       "where": "text \"WWW MMM WWW MMM WWW MMM WWW MMM WWW\"",
-      "message": "Text runs below the footer (y 1031–1098; the footer starts at y 1023). Shorten it or split the slide."
+      "message": "Text runs below the footer (y 1031–1098; the footer starts at y 1023). Shorten it or split the slide.",
+      "language": null
     },
     {
       "slide": 3,
@@ -24,7 +27,8 @@
       "severity": "note",
       "source": "measured",
       "where": "text \"Our team at the summit\"",
-      "message": "Text \"Our team at the summit\" sits on an image or gradient, so its contrast can't be checked. Look at it in preview_deck."
+      "message": "Text \"Our team at the summit\" sits on an image or gradient, so its contrast can't be checked. Look at it in preview_deck.",
+      "language": null
     }
   ],
   "measured": true,

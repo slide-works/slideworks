@@ -6,9 +6,11 @@ test('the shared sample parses as DeckChecksView', () => {
     'deck',
     'error',
     'findings',
+    'languages',
     'measured',
     'slides',
   ]);
+  expect(deckChecksSample.languages).toEqual([]);
   expect(deckChecksSample.error).toBeNull();
   expect(deckChecksSample.findings.map((f) => [f.slide, f.rule, f.severity, f.source])).toEqual([
     [1, 'fit', 'error', 'stored'],
@@ -16,7 +18,9 @@ test('the shared sample parses as DeckChecksView', () => {
     [3, 'textOnImage', 'note', 'measured'],
   ]);
   for (const finding of deckChecksSample.findings) {
+    expect(finding.language).toBeNull();
     expect(Object.keys(finding).sort()).toEqual([
+      'language',
       'message',
       'rule',
       'severity',

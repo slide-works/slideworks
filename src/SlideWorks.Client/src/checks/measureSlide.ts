@@ -5,7 +5,7 @@ import { overflow } from './overflow';
 import { textSize } from './textSize';
 import type { SlideFinding } from './types';
 
-// All measured findings for one slide frame, in rule order.
+// All measured findings for one slide frame, in rule order. The browser never names a language (the server stamps it).
 export function measureSlide(frame: HTMLElement, slide: number): SlideFinding[] {
   const canvas = canvasOf(frame);
   // A thumbnail on the deck page has no width until it is scaled; every box would divide by a zero scale.
@@ -15,5 +15,5 @@ export function measureSlide(frame: HTMLElement, slide: number): SlideFinding[] 
     ...images(frame, slide, canvas),
     ...contrast(frame, slide, canvas),
     ...textSize(frame, slide, canvas),
-  ];
+  ].map((finding) => ({ ...finding, language: null }));
 }

@@ -30,6 +30,7 @@ test('runs the four rules in order and concatenates their findings', () => {
     'lowContrast',
     'smallText',
   ]);
+  expect(found.map((f) => f.language)).toEqual([null, null, null, null]);
 });
 
 test('measures nothing while the frame has no width', () => {

@@ -108,6 +108,7 @@ public class PreviewDeckToolTests : ApiTestFixture
         findings.ValueKind.ShouldBe(JsonValueKind.Array);
         findings[0].GetProperty("rule").GetString().ShouldBe("lowContrast");
         findings[0].GetProperty("severity").GetString().ShouldBe("warning");
+        findings[0].GetProperty("language").ValueKind.ShouldBe(JsonValueKind.Null);
     }
 
     [Test]
@@ -213,6 +214,23 @@ public class PreviewDeckToolTests : ApiTestFixture
         structured.GetProperty("render_url").ValueKind.ShouldBe(JsonValueKind.String);
         structured.GetProperty("slides").ValueKind.ShouldBe(JsonValueKind.Array);
         structured.GetProperty("slides").EnumerateArray().Select(n => n.ValueKind).ShouldBe([JsonValueKind.Number, JsonValueKind.Number, JsonValueKind.Number]);
+    }
+
+    [Test]
+    public async Task PreviewDeck_WhenLanguageIsGivenOnTheRawWire_ShouldAnswerAnObject()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await ThreeSlideDeckAsync(agent);
+
+        // The deck's primary language (en by default), which preview_deck always accepts.
+        var result = await McpWire.CallToolAsync(Factory, agent.Tokens.AccessToken, "preview_deck", $$"""{"deck":"{{deck}}","language":"en"}""");
+
+        (result.TryGetProperty("isError", out var isError) && isError.GetBoolean()).ShouldBeFalse(result.GetRawText());
+        var structured = result.GetProperty("structuredContent");
+        structured.ValueKind.ShouldBe(JsonValueKind.Object);
+        structured.EnumerateObject().Select(p => p.Name).ShouldBe(
+            ["render_url", "slides", "viewport", "wait_for", "expires_in_seconds", "player_url", "share_card_url", "instructions", "images_included", "findings"]);
+        structured.GetProperty("render_url").GetString().ShouldStartWith($"{TestAppFactory.PUBLIC_URL}/render/{deck}/{{slide}}#token=");
     }
 
     [Test]

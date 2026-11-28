@@ -14,6 +14,7 @@ const finding = (
   source,
   where: 'body',
   message: `${rule} on ${slide}`,
+  language: null,
 });
 
 describe('mergeFindings', () => {

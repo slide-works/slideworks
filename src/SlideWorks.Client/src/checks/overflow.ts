@@ -1,6 +1,6 @@
 import { CANVAS_HEIGHT, CANVAS_WIDTH, footerTop, isChrome, textRunsOf } from './canvas';
 import type { CanvasRect } from './canvas';
-import { severityOf, type MeasureRule, type SlideFinding } from './types';
+import { severityOf, type MeasureRule, type MeasuredFinding } from './types';
 
 const TOLERANCE = 0.5;
 const WHERE_LENGTH = 40;
@@ -41,7 +41,7 @@ const isEmpty = (rect: CanvasRect) => rect.right === rect.left && rect.bottom ==
 // Text, images and top-level SVGs drawn outside the canvas or below the footer. One finding per element.
 export const overflow: MeasureRule = (frame, slide, canvas) => {
   const floor = Math.min(footerTop(frame), CANVAS_HEIGHT);
-  const found: SlideFinding[] = [];
+  const found: MeasuredFinding[] = [];
   const add = (where: string, message: string) =>
     found.push({
       slide,

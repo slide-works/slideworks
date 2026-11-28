@@ -6,7 +6,8 @@ using SlideWorks.WebApi.Infrastructure.Rendering;
 namespace SlideWorks.WebApi.Tests.Support;
 
 // The test double for IRenderEngine (L9), swapped in on every test host by TestAppFactory. It returns a fixed 1200x630
-// PNG (or the PDF bytes), records every call (a deck id, "pdf:<deck>" for a PDF, or GENERIC for the generic card), can
+// PNG (or the PDF bytes), records every call (a deck id, "pdf:<deck>" for a PDF, "slide:<deck>:<slide>" for a slide,
+// "slide:<deck>:<slide>:<language>" for a slide in a language, or GENERIC for the generic card), can
 // hold PDF renders at a gate, and throws on demand.
 public sealed class FakeRenderEngine : IRenderEngine
 {
@@ -100,11 +101,14 @@ public sealed class FakeRenderEngine : IRenderEngine
 
     public Task<byte[]> RenderGenericCardAsync(CancellationToken ct) => Render(GENERIC);
 
-    private readonly ConcurrentDictionary<int, IReadOnlyList<SlideFinding>> _findings = new();
+    private readonly ConcurrentDictionary<(int Slide, string? Language), IReadOnlyList<SlideFinding>> _findings = new();
     private readonly ConcurrentDictionary<int, Exception> _failures = new();
 
-    // The findings every render of this slide number carries (in any deck).
-    public void FindingsFor(int slide, params SlideFinding[] findings) => _findings[slide] = findings;
+    // The findings every render of this slide number carries (in any deck) in the primary language (language null).
+    public void FindingsFor(int slide, params SlideFinding[] findings) => FindingsFor(slide, null, findings);
+
+    // The findings every render of this slide number carries (in any deck) in this language; null is the primary.
+    public void FindingsFor(int slide, string? language, params SlideFinding[] findings) => _findings[(slide, language)] = findings;
 
     // Back to rendering every slide cleanly with no findings, for the next test of a shared fixture.
     public void Reset()
@@ -121,16 +125,16 @@ public sealed class FakeRenderEngine : IRenderEngine
     // Makes every render of this slide number throw error. ThrowOnRender, when set, still wins for all slides.
     public void FailSlide(int slide, Exception error) => _failures[slide] = error;
 
-    public async Task<RenderedSlide> RenderSlideAsync(string deckId, int slide, CancellationToken ct)
+    public async Task<RenderedSlide> RenderSlideAsync(string deckId, int slide, string? language, CancellationToken ct)
     {
-        var call = $"slide:{deckId}:{slide}";
+        var call = language == null ? $"slide:{deckId}:{slide}" : $"slide:{deckId}:{slide}:{language}";
         if (_failures.TryGetValue(slide, out var failure) && ThrowOnRender == null)
         {
             _calls.Enqueue(call);
             throw failure;
         }
 
-        return new RenderedSlide(await Render(call), _findings.GetValueOrDefault(slide, []));
+        return new RenderedSlide(await Render(call), _findings.GetValueOrDefault((slide, language), []));
     }
 
     private Task<byte[]> Render(string call)
