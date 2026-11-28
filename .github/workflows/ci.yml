@@ -232,3 +232,62 @@ jobs:
           docker logs smoke | tail -20
           test "$code" = "200 image/png"
           python3 -c "import struct;d=open('card.png','rb').read(24);assert d[:8]==b'\x89PNG\r\n\x1a\n';assert struct.unpack('>II',d[16:24])==(1200,630),d[16:24]"
+
+  # K7 (D7): every test class that acts as a guest through GuestClient runs again as the app would: the guest id in the
+  # X-SlideWorks-Guest header (the guest query on the hub) and no cookie. The classes are named here, not found, so a
+  # new class that uses GuestClient joins by being added to the list. Gated on K13 `guests`; not a required check.
+  guest-header-mode:
+    needs: changes
+    if: needs.changes.outputs.guests == 'true'
+    runs-on: ubuntu-latest
+    env:
+      SLIDEWORKS_TEST_GUEST_MODE: header
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Guest tests in header mode
+        run: |
+          classes="
+            Join.JoinLimitFollowingTests
+            Join.JoinLookupLimitTests
+            Live.MeasuresSqlTests
+            OpenResponses.FirstSentOrderTests
+            OpenResponses.OpenTextTests
+            Polls.GuestPollViewTests
+            Polls.JoinPollRoutesTests
+            Polls.PollAnswerTests
+            Polls.PollFramePrivacyTests
+            Polls.PollLifecycleTests
+            Qa.GuestQuestionsViewTests
+            Qa.JoinQuestionsRoutesTests
+            Qa.JoinReactionsRoutesTests
+            Qa.QaFramePrivacyTests
+            Qa.QaRoundsTests
+            Qa.QuestionAskTests
+            Qa.QuestionBodyPrivacyTests
+            Qa.QuestionPumpWiringTests
+            Qa.QuestionVoteTests
+            Qa.ReactionFlushTests
+            Qa.ReactionTests
+            Realtime.AudienceFramePrivacyTests
+            Realtime.AudienceHubContractTests
+            Realtime.AudienceJoinCacheTests
+            Realtime.AudienceLanguageTests
+            Realtime.AudienceLoadTests
+            Realtime.AudienceRefreshTests
+            Realtime.AudienceRelayTests
+            Realtime.AudienceRosterTests
+            Realtime.AudienceSurfaceTests
+            Realtime.JoinAudienceRaceTests
+            Realtime.OpenResponseHubTests
+            Realtime.PollRoutingTests
+            Realtime.QaRoutingTests
+            Realtime.SetLanguageWireTests
+            Templates.CustomLayoutUseTests
+            Translations.GuestQuestionLanguageTests
+          "
+          filter=""
+          for class in $classes; do filter="${filter}FullyQualifiedName~SlideWorks.WebApi.Tests.${class}.|"; done
+          dotnet test src/SlideWorks.WebApi.Tests --configuration Release --filter "${filter%|}"
