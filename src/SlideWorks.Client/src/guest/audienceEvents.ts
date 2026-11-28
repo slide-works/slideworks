@@ -24,9 +24,14 @@ export type AudienceCurrent = {
   };
 }[LayoutName];
 
+// The language a guest's state is composed in (SW-883 K5). fallbackLines is the slide on screen's missing plus stale
+// lines, which the phone shows in the primary language; untranslated emphasis entries are not counted (D24).
+export type AudienceLanguage = { code: string; fallbackLines: number };
+
 // The guest's view of the talk: a position, not content. seq only increases; current is null unless phase is "live";
 // activity is the poll on screen (SW-6 V5), and null on a slide with no poll and in every phase but "live". room is
 // what the room may do with questions and reactions on the slide on screen (SW-9 Q1), null in every phase but "live".
+// language is the language the state is composed in (SW-883 K5), null while the deck's translations are off.
 export type AudienceState = {
   type: 'audienceState';
   seq: number;
@@ -35,6 +40,7 @@ export type AudienceState = {
   revision: number;
   activity: PollActivity | null;
   room: QaRoom | null;
+  language: AudienceLanguage | null;
 };
 
 // The session ended: the page shows the thank-you state.

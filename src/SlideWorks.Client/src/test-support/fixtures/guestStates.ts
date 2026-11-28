@@ -3,7 +3,7 @@
 import audienceEventsJson from '@contracts/screens/audience-events.json' with { type: 'json' };
 import guestJson from '@contracts/screens/guest.json' with { type: 'json' };
 import type { AudienceEnded, AudienceState, JoinedCount } from '../../guest/audienceEvents';
-import type { GuestView } from '../../guest/guestView';
+import type { GuestTranslations, GuestView } from '../../guest/guestView';
 import type { Widen } from './widen';
 
 // tsc can't tie a JSON slide's slots to its layout (see JsonView in widen.ts), so the slots are opaque here and the test
@@ -22,13 +22,26 @@ const EVENTS = audienceEventsJson satisfies {
 };
 
 // GET /api/join/{code} in each phase: live (on slide 3 of the sample deck), lobby and ended. The live sample's state
-// carries room (questions open); pass { room: null } for a live page with no Q&A.
+// carries room (questions open) and is in Thai with 2 fallback lines, and the live view offers en, es, th and ja
+// (SW-883 K5); lobby and ended have translations off. Pass { room: null } for a live page with no Q&A, and
+// { language: null } with translationsOff() for a live page with translations off.
 export function guestView(
   phase: GuestPhaseName = 'live',
-  overrides: Partial<Pick<AudienceState, 'room'>> = {},
+  overrides: Partial<Pick<AudienceState, 'room' | 'language'>> = {},
 ): GuestView {
   const view = structuredClone(GUESTS[phase]) as unknown as GuestView;
   return { ...view, state: { ...view.state, ...overrides } };
+}
+
+// The live view with translations off (SW-883 K5): no translations and a state with no language, as the server sends
+// for a deck that never turned them on.
+export function translationsOff(view: GuestView = guestView('live')): GuestView {
+  return { ...view, translations: null, state: { ...view.state, language: null } };
+}
+
+// The live sample's translations: en (the primary, 100), es (100), th (83) and ja (40).
+export function guestTranslations(): GuestTranslations {
+  return structuredClone(GUESTS.live.translations) as GuestTranslations;
 }
 
 // One audienceEvent of each type, as it arrives on the hub.
