@@ -60,6 +60,9 @@ fi
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 export BUNDLE_GEMFILE="$store_dir/Gemfile"
+# A runner's system gem folder may not be writable, so fastlane installs under a folder of ours.
+export BUNDLE_PATH="${RUNNER_TEMP:-$work}/store-bundle"
+bundle install --quiet
 
 stage_and_check() {
   python3 -I "$store_dir/stage_images.py" --store "$store_dir" --out "$work/staged"
