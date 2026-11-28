@@ -1,7 +1,9 @@
+using System.Text.Json.Nodes;
 using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.Core.Translations;
 using SlideWorks.WebApi.Data;
+using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Slides;
 using SlideWorks.WebApi.Features.Templates;
 
@@ -14,29 +16,29 @@ public class GuestSlideLanguage(AppDbContext db, IDeckTranslations translations,
 {
     // The slide with the language applied, or its own slots when the deck does not offer the language (null included).
     public async Task<MergedSlide> MergeAsync(Slide slide, string? language)
+        => await MergeAsync(slide, language, await translations.ForDeckAsync(slide.DeckId));
+
+    // The same with the deck's settings already read. Settings come first so a language that is not effective costs no deck or
+    // template load.
+    public async Task<MergedSlide> MergeAsync(Slide slide, string? language, TranslationSettings settings)
     {
-        if (language is null)
+        if (!settings.Enabled || language is null || !settings.Languages.Contains(language, StringComparer.Ordinal))
         {
             return new MergedSlide(SlideJson.Slots(slide), 0, []);
         }
 
         var deck = await db.Decks.AsNoTracking().SingleAsync(d => d.Id == slide.DeckId);
-        var settings = await translations.ForDeckAsync(slide.DeckId);
         return TranslationMerge.For(slide, await templates.ForDeckAsync(deck, CancellationToken.None), settings, language);
     }
 
-    // A closed round's option texts as the round ran with them. An option is translated only when its entry's From equals the
-    // snapshot text (D17); otherwise it shows the primary (snapshot) text.
-    public async Task<IReadOnlyList<string>> SnapshotOptionsAsync(Slide slide, string? language, IReadOnlyList<string> snapshot)
+    // A closed round's option texts as the round ran with them (D17). The slide's slots are built with the options replaced by
+    // the snapshot texts and merged by TranslationMerge.For, which marks a line Current only when its entry's From equals the
+    // line text; so a snapshot option is translated only when it still matches, and otherwise shows the snapshot text.
+    public async Task<IReadOnlyList<string>> SnapshotOptionsAsync(Slide slide, string? language, IReadOnlyList<string> snapshot, TranslationSettings settings)
     {
-        var settings = await translations.ForDeckAsync(slide.DeckId);
-        if (!settings.Enabled || language is null || !settings.Languages.Contains(language, StringComparer.Ordinal)
-            || !SlideTranslationsJson.Read(slide.TranslationsJson).TryGetValue(language, out var entries))
-        {
-            return snapshot;
-        }
-
-        return [.. snapshot.Select((text, index) =>
-            entries.TryGetValue($"/options/{index}", out var entry) && string.Equals(entry.From, text, StringComparison.Ordinal) ? entry.Text : text)];
+        var slots = JsonNode.Parse(slide.SlotsJson)!.AsObject();
+        slots["options"] = new JsonArray([.. snapshot.Select(text => (JsonNode?)JsonValue.Create(text))]);
+        var merged = await MergeAsync(new Slide { DeckId = slide.DeckId, Layout = slide.Layout, SlotsJson = slots.ToJsonString(), TranslationsJson = slide.TranslationsJson }, language, settings);
+        return PollReader.SlotsOf(merged.Slots.GetRawText()).Options;
     }
 }

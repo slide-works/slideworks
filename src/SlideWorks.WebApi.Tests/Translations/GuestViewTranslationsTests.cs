@@ -34,7 +34,8 @@ public class GuestViewTranslationsTests : PollTestFixture
         languages[1].GetProperty("englishName").GetString().ShouldBe("Spanish");
         languages[1].GetProperty("complete").GetInt32().ShouldBe(0);
         languages[2].GetProperty("name").GetString().ShouldBe("ไทย");
-        languages[2].GetProperty("complete").GetInt32().ShouldBeInRange(1, 99);
+        // One translated line (the question) of the six translatable lines in the seeded deck: 1 * 100 / 6.
+        languages[2].GetProperty("complete").GetInt32().ShouldBe(16);
 
         using var sample = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "guest.json")));
         JsonShape.AssertMatches(translations, sample.RootElement.GetProperty("live").GetProperty("translations"), "guest.json live translations");

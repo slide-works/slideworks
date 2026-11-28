@@ -7,18 +7,19 @@ namespace SlideWorks.WebApi.Features.Translations;
 // GuestView.translations (SW-883 K5): the primary first, then the deck's languages, each with its completeness from
 // TranslationCoverage. The deck is loaded once and every language merges from that snapshot. It takes no ICurrentActor.
 [RegisterPerRequest]
-public class GuestTranslationsBuilder(TranslationMerge merge)
+public class GuestTranslationsBuilder(TranslationMerge merge, IDeckTranslations translations)
 {
     // Null while translations are off.
     public async Task<GuestTranslations?> ForDeckAsync(string deckId)
     {
-        var snapshot = await merge.LoadAsync(deckId);
-        if (!snapshot.Settings.Enabled)
+        if (!(await translations.ForDeckAsync(deckId)).Enabled)
         {
             return null;
         }
 
-        var languages = new List<GuestLanguage>(snapshot.Settings.Languages.Count + 1) { Of(deckId, snapshot.Settings.Primary, 100) };
+        var snapshot = await merge.LoadAsync(deckId);
+
+        var languages = new List<GuestLanguage>(snapshot.Settings.Languages.Count + 1) { Of(deckId, snapshot.Settings.Primary, TranslationCoverage.Of(TranslationMerge.Merge(snapshot, snapshot.Settings.Primary).Slides).Complete) };
         foreach (var code in snapshot.Settings.Languages)
         {
             languages.Add(Of(deckId, code, TranslationCoverage.Of(TranslationMerge.Merge(snapshot, code).Slides).Complete));

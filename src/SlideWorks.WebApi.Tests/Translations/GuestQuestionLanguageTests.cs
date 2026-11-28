@@ -1,11 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using SlideWorks.Core.OpenResponses;
-using SlideWorks.WebApi.Data;
-using SlideWorks.WebApi.Features.OpenResponses.Data;
 using SlideWorks.WebApi.Features.Polls.Contracts;
 using SlideWorks.WebApi.Tests.Decks;
 using SlideWorks.WebApi.Tests.Mcp;
@@ -77,6 +72,7 @@ public class GuestQuestionLanguageTests : PollTestFixture
         await using var thai = await JoinAsync(poll.Code);
         await using var english = await JoinAsync(poll.Code);
 
+        Options(await ReadAsync(thai.GetPollAsync(poll.Code, "th"))).ShouldBe(_thaiOptions);
         (await thai.AnswerAsync(poll.Code, new AnswerRequest(round.Id.ToString(), [1], 0), "th")).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await english.AnswerAsync(poll.Code, new AnswerRequest(round.Id.ToString(), [1], 0))).StatusCode.ShouldBe(HttpStatusCode.OK);
         await Rows.CloseAsync(round.Id, joinedAtClose: 2);
@@ -133,7 +129,7 @@ public class GuestQuestionLanguageTests : PollTestFixture
     [Test]
     public async Task WordCloud_WhenGuestReadsJapanese_ShouldShowJapaneseQuestion()
     {
-        var room = await OpenResponseRoomAsync("word-cloud", OpenResponseKind.WordCloud, "One word for how this sprint felt?");
+        var room = await OpenResponseRoomAsync("word-cloud", "One word for how this sprint felt?");
         await Translations.SettingsAsync(room.DeckId, true, "en", "ja");
         await Translations.LinesAsync(room.DeckId, room.Slide, Lines("ja", ("/question", "このスプリントを一言で言うと?", "One word for how this sprint felt?")));
         await using var guest = await JoinAsync(room.Code);
@@ -148,7 +144,7 @@ public class GuestQuestionLanguageTests : PollTestFixture
     [Test]
     public async Task OpenText_WhenLanguageUnknown_ShouldShowPrimary()
     {
-        var room = await OpenResponseRoomAsync("open-text", OpenResponseKind.OpenText, "What would help?");
+        var room = await OpenResponseRoomAsync("open-text", "What would help?");
         await Translations.SettingsAsync(room.DeckId, true, "en", "th");
         await Translations.LinesAsync(room.DeckId, room.Slide, Lines("th", ("/question", "อะไรจะช่วยได้", "What would help?")));
         await using var guest = await JoinAsync(room.Code);
@@ -189,22 +185,16 @@ public class GuestQuestionLanguageTests : PollTestFixture
         return guest;
     }
 
-    private async Task<OpenRoom> OpenResponseRoomAsync(string layout, OpenResponseKind kind, string question)
+    private async Task<OpenRoom> OpenResponseRoomAsync(string layout, string question)
     {
         await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
         var deck = await DeckSeed.CreateDeckAsync(agent);
         await DeckSeed.AddSlideAsync(agent, deck, layout, JsonSerializer.Serialize(new { question }));
         using var live = await Client.PostAsync($"/api/decks/{deck}/live", null);
         using var liveBody = JsonDocument.Parse(await live.Content.ReadAsStringAsync());
-        var sessionId = Guid.Parse(liveBody.RootElement.GetProperty("sessionId").GetString()!);
-        await using var scope = Factory.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var slide = await db.Slides.SingleAsync(s => s.DeckId == deck && s.Layout == layout && s.DeletedAt == null);
-        var response = new OpenResponse { Id = Guid.NewGuid(), DeckId = deck, SlideId = slide.Id, Kind = kind };
-        db.OpenResponses.Add(response);
-        db.OpenRounds.Add(new OpenRound { Id = Guid.NewGuid(), OpenResponseId = response.Id, SessionId = sessionId, Number = 1, Revision = 0, OpenedAt = Clock.GetUtcNow(), RevealedAt = Clock.GetUtcNow() });
-        await db.SaveChangesAsync();
-        return new OpenRoom(deck, liveBody.RootElement.GetProperty("code").GetString()!, slide.Position + 1);
+        using var opened = await Client.PostAsync($"/api/decks/{deck}/slides/1/response/open", null);
+        opened.EnsureSuccessStatusCode();
+        return new OpenRoom(deck, liveBody.RootElement.GetProperty("code").GetString()!, 1);
     }
 
     private static async Task<JsonElement> ReadAsync(Task<HttpResponseMessage> request, HttpStatusCode expected = HttpStatusCode.OK)
