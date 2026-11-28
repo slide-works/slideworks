@@ -5,12 +5,14 @@ using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using SlideWorks.WebApi.Features.OAuth.Stores;
 using SlideWorks.WebApi.Infrastructure.Identity;
+using SlideWorks.WebApi.Infrastructure.Identity.Device;
 
 namespace SlideWorks.WebApi.Infrastructure.Mcp;
 
 // The AgentBearer scheme: an OAuth access token in the Authorization header, issued for the resource {public}/mcp. The
 // token is checked on every request and never logged. A missing or bad token gets 401 with the resource metadata URL,
-// so a client can discover the authorization server and connect with only the /mcp URL.
+// so a client can discover the authorization server and connect with only the /mcp URL. A phone's swd_ device secret is
+// refused without a lookup (K5): it is never an access token.
 public class AgentBearerHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
     ILoggerFactory logger,
@@ -30,7 +32,7 @@ public class AgentBearerHandler(
         {
             return AuthenticateResult.NoResult();
         }
-        var agent = await tokens.ValidateAsync(token, urls.Mcp);
+        var agent = DeviceBearer.IsDeviceSecret(token) ? null : await tokens.ValidateAsync(token, urls.Mcp);
         if (agent == null)
         {
             _tokenRefused = true;

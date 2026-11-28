@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.DataProtection.Repositories;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Infrastructure.Identity;
+using SlideWorks.WebApi.Infrastructure.Identity.Device;
 using SlideWorks.WebApi.Infrastructure.Identity.Gate;
 using SlideWorks.WebApi.Infrastructure.Identity.Google;
 
@@ -15,16 +16,29 @@ namespace SlideWorks.WebApi.Infrastructure.Setup;
 // How people and the browser sign in (K1): Program.cs calls these two hooks, and everything about authentication lives
 // here. A person has a cookie session; every endpoint needs an approved person unless it is marked AllowAnonymous or
 // names another policy (S3): SignedIn admits a pending person too, and Admin only an admin. Agents on /mcp use their own
-// bearer scheme and policy, which McpSetup registers.
+// bearer scheme and policy, which McpSetup registers. A phone signs in with a device session (K5): its swd_ secret is a
+// bearer on /api and /hubs, and the default scheme is a selector that sends such a request to the device scheme and every
+// other one to the cookie, so every policy and endpoint treats a phone exactly as the same person's cookie.
 public static class AuthSetup
 {
     public const string NOT_SIGNED_IN = "Not signed in";
+
+    public const string NOT_ALLOWED = "Not allowed";
 
     private static readonly TimeSpan SESSION_LIFETIME = TimeSpan.FromDays(14);
 
     public static IServiceCollection AddSlideWorksAuth(this IServiceCollection services)
     {
-        services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+        services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = DeviceBearer.SELECTOR_SCHEME;
+                // Google's sign-in and POST /api/signout act on the cookie, whatever the request carries.
+                options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultSignOutScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            })
+            .AddPolicyScheme(DeviceBearer.SELECTOR_SCHEME, DeviceBearer.SELECTOR_SCHEME, options => options.ForwardDefaultSelector = context =>
+                DeviceBearer.SecretOf(context.Request) == null ? CookieAuthenticationDefaults.AuthenticationScheme : DeviceBearer.SCHEME)
+            .AddScheme<AuthenticationSchemeOptions, DeviceBearerHandler>(DeviceBearer.SCHEME, _ => { })
             .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
             {
                 options.Cookie.Name = "sw-session";
@@ -38,7 +52,7 @@ public static class AuthSetup
                 // The SPA owns the sign-in page, so the API never redirects: signed out is a 401 and the client sends the
                 // person to /signin.
                 options.Events.OnRedirectToLogin = context => WriteErrorAsync(context.Response, StatusCodes.Status401Unauthorized, NOT_SIGNED_IN);
-                options.Events.OnRedirectToAccessDenied = context => WriteErrorAsync(context.Response, StatusCodes.Status403Forbidden, "Not allowed");
+                options.Events.OnRedirectToAccessDenied = context => WriteErrorAsync(context.Response, StatusCodes.Status403Forbidden, NOT_ALLOWED);
                 options.Events.OnValidatePrincipal = FollowCurrentAccessAsync;
             });
         services.AddGoogleSignIn();
@@ -68,12 +82,14 @@ public static class AuthSetup
     // Authentication and authorization run after static files and routing, so endpoint metadata such as AllowAnonymous
     // applies. PublicOriginMiddleware comes first, then JoinHostRouting (the join host serves only the join paths), so every cookie, the write guard and any sign-in callback URL see the
     // public URL's scheme and host. The write guard sits between authentication and authorization: it needs to know
-    // whether the caller is signed in, and it must refuse a cross-site write before any endpoint runs.
+    // whether the caller is signed in, and it must refuse a cross-site write before any endpoint runs. DeviceBearerGate
+    // comes straight after authentication: a refused device secret answers 401 on every /api and /hubs endpoint.
     public static WebApplication UseSlideWorksAuth(this WebApplication app)
     {
         app.UseMiddleware<PublicOriginMiddleware>();
         app.UseMiddleware<JoinHostRouting>();
         app.UseAuthentication();
+        app.UseMiddleware<DeviceBearerGate>();
         app.UseMiddleware<CrossSiteWriteGuard>();
         app.UseAuthorization();
         return app;

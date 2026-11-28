@@ -18,6 +18,9 @@ namespace SlideWorks.WebApi.Infrastructure.Identity;
 // browser's Origin is compared with, and a forged Host header changes nothing. With no public URL (Development only),
 // it is the address the request was made to.
 //
+// A request signed in by a device bearer (K5) is never refused: it carries the phone's secret in a header or a hub
+// query, not a cookie, so another site can't forge it.
+//
 // One write passes whatever its Origin: a write under /api/render that carries the X-Render-Token header. The server's
 // headless renderer (check_deck) opens the render page at its own address (SLIDEWORKS_RENDER_URL, or Kestrel's loopback),
 // which is not the public URL, so the page's POST /api/render/{id}/session carries an Origin the guard would call foreign.
@@ -36,9 +39,9 @@ public class CrossSiteWriteGuard(RequestDelegate next)
 #pragma warning restore AG0003
     {
         var request = context.Request;
-        var refused = IsGuardedWrite(request)
+        var refused = !context.User.HasClaim(c => c.Type == SlideWorksClaims.DEVICE_SESSION_ID) && (IsGuardedWrite(request)
             ? !IsSameSite(request, context.User.Identity?.IsAuthenticated == true) && !IsRenderTokenWrite(request)
-            : request.Path.StartsWithSegments(HUBS_PREFIX) && HasForeignOrigin(request);
+            : request.Path.StartsWithSegments(HUBS_PREFIX) && HasForeignOrigin(request));
         if (refused)
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
