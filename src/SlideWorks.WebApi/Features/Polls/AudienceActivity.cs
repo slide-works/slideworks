@@ -4,6 +4,7 @@ using SlideWorks.Core.Polls;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Polls.Contracts;
 using SlideWorks.WebApi.Features.Polls.Data;
+using SlideWorks.WebApi.Features.Translations;
 using SlideWorks.WebApi.Realtime;
 using SlideWorks.WebApi.Realtime.Presenting;
 
@@ -19,21 +20,19 @@ namespace SlideWorks.WebApi.Features.Polls;
 // The feed calls it under its per-deck gate on every compose, so it only reads, with indexed reads, and never publishes.
 // Per request, because it uses the database.
 [RegisterPerRequest(For = typeof(IAudienceActivity))]
-public class AudienceActivity(AppDbContext db, IAudienceSessions sessions, IPresentations presentations, PollReader reader) : IAudienceActivity
+public class AudienceActivity(AppDbContext db, IAudienceSessions sessions, IPresentations presentations, PollReader reader, GuestSlideLanguage languages) : IAudienceActivity
 {
-    // TODO: the language is ignored here and in ForCodeAsync, so every activity is the primary one; translating the
-    // activity replaces this.
     public async Task<PollActivity?> ForDeckAsync(string deckId, string? language)
         => await sessions.ForDeckAsync(deckId) is { Phase: AudiencePhase.Live, SessionId: { } session }
-            ? await BuildAsync(deckId, Guid.Parse(session))
+            ? await BuildAsync(deckId, Guid.Parse(session), language)
             : null;
 
     public async Task<PollActivity?> ForCodeAsync(string code, string? language)
         => await sessions.FindAsync(code) is { Phase: AudiencePhase.Live, SessionId: { } session } found
-            ? await BuildAsync(found.DeckId, Guid.Parse(session))
+            ? await BuildAsync(found.DeckId, Guid.Parse(session), language)
             : null;
 
-    private async Task<PollActivity?> BuildAsync(string deckId, Guid session)
+    private async Task<PollActivity?> BuildAsync(string deckId, Guid session, string? language)
     {
         if (await presentations.GetAsync(deckId) is not { } presentation || await ShownAsync(deckId, presentation.Slide) is not { } shown
             || await reader.SlideAsync(deckId, shown) is not { } found)
@@ -41,7 +40,7 @@ public class AudienceActivity(AppDbContext db, IAudienceSessions sessions, IPres
             return null;
         }
         var (slide, settings) = found;
-        var (question, options) = PollReader.SlotsOf(slide.SlotsJson);
+        var (question, options) = PollReader.SlotsOf((await languages.MergeAsync(slide, language)).Slots.GetRawText());
         var rounds = await reader.RoundsAsync(slide.Id, session, tracked: false);
 
         if (rounds.SingleOrDefault(r => r.ClosedAt == null) is { } unclosed)
@@ -53,7 +52,7 @@ public class AudienceActivity(AppDbContext db, IAudienceSessions sessions, IPres
         if (rounds.LastOrDefault(PollReader.IsClosed) is { } last)
         {
             var correct = last.AnswerShownAt == null ? null : settings.Correct;
-            return Activity(last, PollPhase.Closed, question, last.Final!.Options, settings, correct);
+            return Activity(last, PollPhase.Closed, question, await languages.SnapshotOptionsAsync(slide, language, last.Final!.Options), settings, correct);
         }
         return Draft(PollReader.NextNumber(rounds), question, options, settings);
     }

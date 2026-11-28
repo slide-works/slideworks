@@ -6,6 +6,7 @@ using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Join;
 using SlideWorks.WebApi.Features.OpenResponses.Contracts;
 using SlideWorks.WebApi.Features.OpenResponses.Data;
+using SlideWorks.WebApi.Features.Translations;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Realtime;
 
@@ -18,7 +19,7 @@ namespace SlideWorks.WebApi.Features.OpenResponses;
 // phone saw, and refused by OpenTextRules, before anything is written. One row per guest, at position 0. Its wall number
 // is 1-based in arrival order (OpenEntry.Arrival, which an update leaves alone), so sending again keeps the number.
 [RegisterPerRequest]
-public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenResponseLimiter limiter, IOpenTextPublisher publisher)
+public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenResponseLimiter limiter, IOpenTextPublisher publisher, GuestSlideLanguage languages)
 {
     private const string LAYOUT = "open-text";
 
@@ -38,18 +39,17 @@ public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenRespon
         return layout == LAYOUT;
     }
 
-    // TODO: the language is ignored and the prompt is the primary one; translating the guest's response view replaces this.
     public async Task<GuestResponseView> ViewAsync(string code, int slide, string? guestId, string? language, CancellationToken cancellationToken)
     {
         var seated = await LiveAsync(code);
-        return ViewOf(await RoundAsync(seated, slide, cancellationToken), guestId);
+        return ViewOf(await RoundAsync(seated, slide, language, cancellationToken), guestId);
     }
 
     public async Task<StoredText> SubmitAsync(string code, int slide, string guestId, TextRequest request, CancellationToken cancellationToken)
     {
         var seated = await SeatAsync(code, guestId, cancellationToken);
         limiter.Take(guestId, code, slide);
-        var round = await RoundAsync(seated, slide, cancellationToken);
+        var round = await RoundAsync(seated, slide, null, cancellationToken);
         OpenRoundChecks.RequireCurrent(ViewOf(round, guestId), request.Round, request.Revision);
         OpenRoundChecks.RequireValid(OpenTextRules.Check(request.Text));
         var text = OpenTextRules.Collapse(request.Text);
@@ -80,7 +80,7 @@ public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenRespon
         {
             return null;
         }
-        var round = await RoundAsync(new Seat(deckId, Guid.Parse(found.SessionId)), slide, cancellationToken);
+        var round = await RoundAsync(new Seat(deckId, Guid.Parse(found.SessionId)), slide, null, cancellationToken);
         var answers = AnswersOf(round);
         WallAnswer[] audience = [.. answers.Where(answer => !answer.Hidden).Select(answer => answer with { Hidden = false })];
         return (Tally(deckId, slide, round, OpenResponseTarget.Audience, audience), Tally(deckId, slide, round, OpenResponseTarget.Presenter, answers));
@@ -107,17 +107,16 @@ public class OpenAnswers(AppDbContext db, IAudienceSessions sessions, OpenRespon
         return seated;
     }
 
-    private async Task<LoadedRound> RoundAsync(Seat seated, int slide, CancellationToken cancellationToken)
+    private async Task<LoadedRound> RoundAsync(Seat seated, int slide, string? language, CancellationToken cancellationToken)
     {
         var row = await db.Slides.AsNoTracking()
             .Where(s => s.DeckId == seated.DeckId && s.DeletedAt == null && s.Position == slide - 1)
-            .Select(s => new { s.Id, s.Layout, s.SlotsJson })
             .SingleOrDefaultAsync(cancellationToken);
         if (row is null || row.Layout != LAYOUT)
         {
             throw new ConflictException(OpenRoundChecks.WRONG_PHASE);
         }
-        var question = QuestionOf(row.SlotsJson);
+        var question = QuestionOf((await languages.MergeAsync(row, language)).Slots.GetRawText());
         var responseId = await db.OpenResponses.AsNoTracking()
             .Where(r => r.SlideId == row.Id && r.Kind == OpenResponseKind.OpenText)
             .Select(r => (Guid?)r.Id)
