@@ -1,0 +1,1677 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-982 design: SlideWorks voice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&family=Noto+Sans+Thai:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+
+/* =====================================================================
+   Review-page chrome: the same light ledger as the SW-5 / SW-9 mockups
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", "Noto Sans Thai", "Noto Sans JP", system-ui, sans-serif;
+  --head: "Plus Jakarta Sans", "Noto Sans Thai", "Noto Sans JP", "Inter", sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+
+  /* SlideWorks app tokens (src/SlideWorks.Client/src/theme/tokens.css) */
+  --sw-night: #0b1020; --sw-night-2: #cbd5e1; --sw-night-muted: #8c97ad; --sw-night-line: #334155;
+  --sw-accent: #2f5bea; --sw-accent-light: #e4eafd; --sw-accent-glow: #a5b8ff; --sw-accent-dark: #1e3a8a;
+  --sw-paper: #f7f8fa; --sw-card: #fff; --sw-ink: #111827; --sw-muted: #5b6474; --sw-grid: #e3e6ec;
+  --sw-good: #16a34a; --sw-warn: #ea580c; --sw-bad: #dc2626; --sw-stamp: #fcd34d;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 16px 80px; }
+h1, h2, h3 { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+:where(p, li, td, th, .pill) { overflow-wrap: anywhere; }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 22px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { margin: 0; color: var(--muted); max-width: 860px; font-size: 15px; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 10px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 900px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); font: 500 13px/1.2 var(--ui); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); }
+
+/* scope */
+.scope { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .scope { grid-template-columns: minmax(0, 1fr); } }
+.scope .card { padding: 16px 18px; }
+.scope h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.scope ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.scope li { position: relative; padding-left: 22px; }
+.scope li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.scope .later-list li::before { background: var(--later); opacity: .55; }
+.note-card { margin-top: 16px; padding: 12px 16px; border-color: #c7d3fb; background: #f6f8ff; }
+.note-card b { font-weight: 600; color: var(--accent-dark); }
+
+/* =====================================================================
+   Phone frame + the guest page (mobile web, SlideWorks tokens)
+   ===================================================================== */
+.phone { width: 292px; max-width: 100%; margin: 0 auto; border-radius: 40px; padding: 10px; background: #11151d; box-shadow: var(--raise), inset 0 0 0 2px #2a303b; }
+.ps { position: relative; border-radius: 31px; overflow: hidden; height: 600px; display: flex; flex-direction: column; color: #fff; font-family: var(--ui);
+  background: radial-gradient(420px 320px at 100% 105%, rgb(47 91 234 / .38), transparent 62%), radial-gradient(300px 260px at -10% -8%, rgb(47 91 234 / .12), transparent 60%), var(--sw-night); }
+.sbar { flex: none; height: 38px; padding: 12px 22px 0; display: flex; justify-content: space-between; font: 600 12.5px/1 var(--ui); }
+.sbar .ic { display: flex; gap: 5px; align-items: center; }
+.sbar .ic i { display: block; width: 15px; height: 9px; border-radius: 2px; border: 1.5px solid currentColor; opacity: .9; }
+.sbar .ic b { display: block; width: 4px; height: 9px; background: currentColor; border-radius: 1px; opacity: .9; }
+.island { position: absolute; top: 10px; left: 50%; translate: -50% 0; width: 84px; height: 22px; border-radius: 12px; background: #000; z-index: 5; }
+.pbody { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 16px 10px; gap: 12px; position: relative; }
+.urlbar { flex: none; margin: 0 14px 12px; padding: 8px 12px; border-radius: 13px; background: rgb(255 255 255 / .1); display: flex; gap: 6px; align-items: center; justify-content: center; font: 500 12px/1 var(--ui); color: rgb(255 255 255 / .82); }
+.urlbar svg { width: 10px; height: 10px; }
+
+.g-top { display: flex; align-items: center; gap: 8px; }
+.g-mark { width: 22px; height: 22px; border-radius: 6px; background: var(--sw-accent); display: grid; place-items: center; font: 800 11px/1 var(--head); color: #fff; flex: none; }
+.g-deck { min-width: 0; flex: 1; }
+.g-deck b { display: block; font: 700 13px/1.2 var(--head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-deck span { display: block; font-size: 11px; color: var(--sw-night-muted); }
+.live { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font: 600 10.5px/1 var(--ui); background: rgb(22 163 74 / .18); color: #86efac; white-space: nowrap; }
+.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
+
+/* NEW: the language chip in the guest header */
+.lang { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 3px 8px 3px 7px; border-radius: 999px; font: 600 11px/1 var(--ui); background: rgb(255 255 255 / .1); color: #fff; white-space: nowrap; cursor: pointer; outline: 1px solid rgb(165 184 255 / .35); }
+.lang:focus-visible { outline: 2px solid var(--sw-accent-glow); }
+.lang svg { width: 13px; height: 13px; color: var(--sw-accent-glow); flex: none; }
+.lang .car { font-size: 8px; opacity: .7; }
+.new-ring { box-shadow: 0 0 0 3px rgb(122 90 248 / .55); }
+
+.mirror { border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgb(0 0 0 / .35); outline: 1px solid rgb(255 255 255 / .08); flex: none; }
+.slidemeta { display: flex; justify-content: space-between; align-items: center; font: 500 11px/1 var(--ui); color: var(--sw-night-muted); margin-top: -4px; }
+.slidemeta .prog { flex: 1; height: 3px; margin: 0 10px; border-radius: 3px; background: rgb(255 255 255 / .12); overflow: hidden; }
+.slidemeta .prog i { display: block; height: 100%; background: var(--sw-accent-glow); }
+.fallnote { display: flex; gap: 6px; align-items: center; margin-top: -6px; font-size: 11px; color: #fcd9a8; }
+.fallnote i { width: 6px; height: 6px; border-radius: 50%; background: #fb923c; flex: none; }
+.hint { display: flex; gap: 8px; align-items: center; margin-top: -4px; padding: 8px 10px; border-radius: 10px; background: rgb(165 184 255 / .12); font-size: 11.5px; color: var(--sw-night-2); }
+.hint svg { width: 18px; height: 18px; color: var(--sw-accent-glow); flex: none; }
+.hint button { all: unset; margin-left: auto; color: var(--sw-night-muted); font-size: 11px; cursor: pointer; }
+
+.wait { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 8px; padding: 0 8px; border-radius: 14px; border: 1px dashed rgb(255 255 255 / .16); min-height: 0; }
+.wait .dots { display: flex; gap: 6px; }
+.wait .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--sw-accent-glow); opacity: .3; animation: blink 1.4s infinite; }
+.wait .dots i:nth-child(2) { animation-delay: .2s; } .wait .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 40% { opacity: 1; } }
+.wait b { font: 700 14px/1.3 var(--head); }
+.wait p { margin: 0; font-size: 12px; line-height: 1.45; color: var(--sw-night-2); }
+
+.activity { flex: 1; min-height: 0; border-radius: 14px; background: #fff; color: var(--sw-ink); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.activity .tag { align-self: flex-start; font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--later); background: var(--later-soft); padding: 4px 7px; border-radius: 5px; }
+.activity b { font: 700 14.5px/1.3 var(--head); }
+.activity .opt { padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--sw-grid); font-size: 13px; font-weight: 500; }
+.activity .opt.on { border-color: var(--sw-accent); background: var(--sw-accent-light); }
+.activity .note { margin-top: auto; font-size: 11px; color: var(--sw-muted); }
+.activity.poll { gap: 5px; padding: 9px 12px; overflow: hidden; }
+.activity.poll b { font-size: 13.5px; }
+.activity.poll .opt { padding: 5px 10px; font-size: 12.5px; }
+
+.tabs { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: rgb(255 255 255 / .09); }
+.tabs span { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border-radius: 10px; font: 600 13px/1 var(--ui); color: var(--sw-night-2); }
+.tabs span.on { background: #fff; color: var(--sw-ink); }
+.tabs .bdg { font: 700 10.5px/1 var(--ui); padding: 3px 6px; border-radius: 999px; background: var(--sw-accent); color: #fff; }
+.rx { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.rx span { display: grid; place-items: center; min-height: 40px; border-radius: 12px; background: rgb(255 255 255 / .09); font-size: 18px; line-height: 1; }
+
+.banner { position: absolute; left: 12px; right: 12px; top: 4px; z-index: 4; padding: 10px 12px; border-radius: 12px; font-size: 12px; line-height: 1.35; display: flex; gap: 8px; align-items: center; background: #1e2a55; color: #e4eafd; box-shadow: 0 8px 24px rgb(0 0 0 / .45); outline: 1px solid rgb(165 184 255 / .35); }
+.banner svg { width: 16px; height: 16px; color: var(--sw-accent-glow); flex: none; }
+.banner .act { all: unset; margin-left: auto; font-weight: 700; color: var(--sw-accent-glow); cursor: pointer; white-space: nowrap; }
+
+.sheet-dim { position: absolute; inset: 0; background: rgb(0 0 0 / .55); z-index: 6; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 7; background: #161c2c; border-radius: 20px 20px 0 0; padding: 10px 16px 20px; display: grid; gap: 10px; }
+.sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .25); margin: 0 auto 2px; }
+.sheet h4 { margin: 0; font: 700 16px/1.25 var(--head); }
+.sheet .sub { margin: -4px 0 0; font-size: 12px; color: var(--sw-night-muted); }
+.langlist { display: grid; gap: 6px; }
+.langlist button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) 20px; align-items: center; gap: 8px; min-height: 48px; padding: 8px 12px; border-radius: 12px; background: rgb(255 255 255 / .06); cursor: pointer; }
+.langlist button:focus-visible { outline: 2px solid var(--sw-accent-glow); }
+.langlist button.on { background: rgb(47 91 234 / .28); outline: 1.5px solid var(--sw-accent-glow); }
+.langlist b { display: block; font: 700 14px/1.2 var(--head); }
+.langlist small { display: block; font-size: 11px; color: var(--sw-night-muted); margin-top: 2px; }
+.langlist small.part { color: #fcd9a8; }
+.langlist .tickc { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid rgb(255 255 255 / .3); display: grid; place-items: center; font-size: 11px; }
+.langlist button.on .tickc { background: var(--sw-accent); border-color: var(--sw-accent); }
+.sheet .foot-note { font-size: 11.5px; color: var(--sw-night-2); line-height: 1.45; }
+
+/* landscape phone */
+.phone.land { width: 620px; border-radius: 34px; }
+.phone.land .ps { height: 280px; border-radius: 26px; align-items: center; justify-content: center; background: #000; }
+.phone.land .ps .mirror { width: 480px; border-radius: 0; box-shadow: none; outline: none; cursor: pointer; }
+.land-over { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.land-over.show { opacity: 1; }
+.land-over .bar { position: absolute; left: 70px; right: 70px; top: 0; padding: 10px 12px 18px; display: flex; align-items: center; gap: 8px; background: linear-gradient(rgb(0 0 0 / .72), transparent); font: 600 11px/1 var(--ui); color: #fff; pointer-events: auto; }
+.land-over .bar .sp { flex: 1; }
+.fsbtn { all: unset; display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 3px 9px; border-radius: 999px; background: rgb(255 255 255 / .14); font: 600 11px/1 var(--ui); color: #fff; cursor: pointer; pointer-events: auto; }
+.fsbtn svg { width: 12px; height: 12px; }
+.land-over .bar .lang { pointer-events: auto; }
+.land-over .bot { position: absolute; left: 70px; right: 70px; bottom: 0; height: 3px; background: rgb(255 255 255 / .15); }
+.land-over .bot i { display: block; height: 100%; background: var(--sw-accent-glow); }
+.phone.land .sheet { left: auto; top: 0; width: 250px; border-radius: 20px 0 0 20px; padding: 14px; align-content: start; overflow: auto; }
+.phone.land .sheet .grab { display: none; }
+.phone.land .langlist button { min-height: 40px; padding: 6px 10px; }
+.zoomed .mirror .frame > .sl { transform: scale(calc(var(--s) * 1.7)) translate(-6%, -10%); }
+
+.states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 18px; }
+@media (max-width: 1100px) { .states { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .states { grid-template-columns: minmax(0, 1fr); } }
+.states .wide { grid-column: span 2; }
+@media (max-width: 1100px) { .states .wide { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .phone.land { width: 100%; } .phone.land .ps .mirror { width: 78%; } }
+.st-cap { margin-top: 10px; display: grid; gap: 3px; }
+.st-cap b { font-weight: 600; }
+.st-cap span { color: var(--muted); font-size: 12.5px; }
+
+/* =====================================================================
+   Slides (drawn at 960x540, half the 1920x1080 canvas, scaled to fit)
+   ===================================================================== */
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sw-paper); }
+.frame > .sl { position: absolute; left: 0; top: 0; transform: scale(var(--s, .3)); transform-origin: 0 0; }
+.sl { width: 960px; height: 540px; padding: 75px 60px 60px; display: flex; flex-direction: column; background: var(--sw-paper); color: var(--sw-ink); font-family: var(--ui); position: relative; overflow: hidden; }
+.sl::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--sw-accent); }
+.sl.dark { color: #fff; background: radial-gradient(550px 350px at 88% 112%, rgb(47 91 234 / .45), transparent 62%), radial-gradient(450px 300px at -5% -10%, rgb(125 150 255 / .12), transparent 60%), var(--sw-night); }
+.sl .kick { font: 600 13px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--sw-accent); margin-bottom: 14px; }
+.sl.dark .kick { color: var(--sw-accent-glow); }
+.sl h2 { font: 800 50px/1.12 var(--head); letter-spacing: -.02em; margin: 0; }
+.sl h3 { font: 700 30px/1.2 var(--head); margin: 0 0 22px; letter-spacing: -.01em; }
+.sl .sub { margin-top: 18px; font-size: 19px; color: var(--sw-night-2); }
+.sl .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; }
+.sl .cards div { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 2px rgb(15 23 42 / .06), 0 14px 36px rgb(15 23 42 / .09); }
+.sl .cards b { display: block; font: 700 20px/1.25 var(--head); margin-bottom: 8px; }
+.sl .cards span { font-size: 15px; color: var(--sw-muted); line-height: 1.5; }
+.sl .cards .num { font: 800 36px/1 var(--head); color: var(--sw-accent); margin-bottom: 10px; }
+.sl .statement { flex: 1; display: flex; align-items: center; font: 800 52px/1.16 var(--head); letter-spacing: -.02em; max-width: 800px; }
+.sl .statement em { font-style: normal; color: var(--sw-accent); }
+.sl .pollopts { display: grid; gap: 12px; max-width: 640px; }
+.sl .pollopts div { display: flex; justify-content: space-between; padding: 14px 18px; border-radius: 10px; background: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .06); font-size: 18px; font-weight: 500; }
+.sl .pollopts div span { color: var(--sw-muted); font-size: 14px; }
+.sl .sprog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--sw-accent); }
+.sl .foot { position: absolute; left: 60px; right: 60px; bottom: 16px; display: flex; justify-content: space-between; font-size: 11px; color: var(--sw-muted); }
+.sl.dark .foot { color: var(--sw-night-muted); }
+.sl .fb { outline: 2px dashed #fb923c; outline-offset: 3px; border-radius: 3px; }
+.hide-fb .sl .fb { outline: none; }
+
+/* =====================================================================
+   Live demo: presenter laptop + guest phone
+   ===================================================================== */
+.demo { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; }
+.demo.is-land { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 980px) { .demo { grid-template-columns: minmax(0, 1fr); } }
+.laptop { background: #1a1f2b; border-radius: 14px 14px 4px 4px; padding: 10px 10px 0; box-shadow: var(--raise); }
+.laptop .scr { border-radius: 6px; overflow: hidden; background: #000; }
+.laptop .base { height: 14px; margin: 0 -26px; background: linear-gradient(#c9ced8, #a9b0bd); border-radius: 0 0 14px 14px; }
+@media (max-width: 680px) { .laptop .base { margin: 0 -10px; } }
+.ptool { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #0f1420; color: #cbd5e1; font: 500 12px/1 var(--ui); }
+.ptool .tb { border: 0; background: rgb(255 255 255 / .08); color: #fff; padding: 6px 9px; border-radius: 6px; font: 600 12px/1 var(--ui); cursor: pointer; }
+.ptool .tb:disabled { opacity: .35; cursor: default; }
+.ptool .count { font-family: var(--mono); color: #94a3b8; }
+.ptool .sp { flex: 1; }
+.ptool .livechip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 6px; background: rgb(22 163 74 / .18); color: #86efac; font: 600 12px/1 var(--ui); }
+.ptool .livechip b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.ptool .livechip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.ptool .langmix { display: inline-flex; gap: 8px; align-items: center; padding: 5px 9px; border-radius: 6px; background: rgb(122 90 248 / .2); color: #ddd6fe; font: 500 11.5px/1 var(--ui); }
+.ptool .langmix b { color: #fff; font-weight: 600; }
+.dctl { margin-top: 14px; padding: 12px 14px; display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center; }
+.dctl .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+.dctl label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
+.demo-notes { margin: 12px 0 0; padding: 0 0 0 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+
+/* compare: as built vs proposed */
+.cmp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 980px) { .cmp { grid-template-columns: minmax(0, 1fr); } }
+.cmp .card { padding: 14px; display: grid; gap: 12px; align-content: start; }
+.cmp h3 { font: 600 14px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.shot { border-radius: 22px; padding: 8px; background: #11151d; box-shadow: inset 0 0 0 2px #2a303b; }
+.shot img { display: block; width: 100%; border-radius: 15px; }
+.cmp .phone.land { width: 100%; }
+.cmp .phone.land .ps .mirror { width: 80%; }
+.demo.is-land > div:first-child { max-width: 880px; }
+.cmp ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+
+/* deck page card */
+.deckpage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 900px) { .deckpage { grid-template-columns: minmax(0, 1fr); } }
+.dp { padding: 0; overflow: hidden; }
+.dp .dphead { padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; font: 600 12px/1 var(--ui); color: var(--muted); background: var(--surface-2); }
+.dp .dpbody { padding: 16px; display: grid; gap: 12px; }
+.set { border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; }
+.set.new { border-color: #c4b5fd; box-shadow: 0 0 0 3px var(--later-soft); }
+.set.dimmed { opacity: .55; }
+.set .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.set h4 { margin: 0; font: 600 14px/1.3 var(--ui); flex: 1; }
+.set p { margin: 0; font-size: 13px; color: var(--muted); }
+.sw { width: 34px; height: 20px; border-radius: 999px; background: var(--line-2); position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+.sw.on { background: var(--accent); }
+.sw.on::after { left: 16px; }
+.field { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.field .lbl { color: var(--muted); min-width: 120px; }
+.sel { display: inline-flex; gap: 8px; align-items: center; padding: 5px 10px; border: 1px solid var(--line-2); border-radius: 6px; background: #fff; font-size: 13px; }
+.cov { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cov td { padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: middle; }
+.cov td.l b { font: 700 14px/1.2 var(--head); }
+.cov td.l span { display: block; font-size: 11.5px; color: var(--muted); }
+.cov .meter { width: 90px; height: 6px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.cov .meter i { display: block; height: 100%; background: var(--ok); }
+.cov .meter i.part { background: var(--warn); }
+.cov td.n { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* options + code */
+.opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1050px) { .opts { grid-template-columns: minmax(0, 1fr); } }
+.opt-card { padding: 16px; display: grid; gap: 10px; align-content: start; }
+.opt-card.rec { border-color: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.opt-card h3 { font: 600 15px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.opt-card .pc { display: grid; gap: 4px; font-size: 13px; }
+.opt-card .pc div { padding-left: 18px; position: relative; color: var(--muted); }
+.opt-card .pc .p::before { content: "+"; position: absolute; left: 2px; color: var(--ok); font-weight: 700; }
+.opt-card .pc .c::before { content: "−"; position: absolute; left: 2px; color: var(--bad); font-weight: 700; }
+pre.code { margin: 0; padding: 12px 14px; border-radius: 8px; background: #0f1420; color: #dbe4f3; font: 400 12px/1.55 var(--mono); overflow-x: auto; white-space: pre; }
+pre.code .k { color: #a5b8ff; } pre.code .s { color: #86efac; } pre.code .c { color: #8c97ad; } pre.code .w { color: #fdba74; }
+.mcp { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 1000px) { .mcp { grid-template-columns: minmax(0, 1fr); } }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 10px; border-bottom: 1px solid var(--line); }
+.tbl td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl td:first-child { font-family: var(--mono); font-size: 12.5px; color: var(--accent-dark); white-space: nowrap; }
+.tbl tr:last-child td { border-bottom: 0; }
+.diagram { padding: 18px; overflow: hidden; }
+.diagram svg { width: 100%; height: auto; display: block; font-family: var(--ui); }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px 18px; }
+.q h3 { font: 600 15px/1.35 var(--ui); margin-bottom: 4px; }
+.q .why { color: var(--muted); margin: 0 0 10px; }
+.q .choices { display: grid; gap: 6px; }
+.q label.choice { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.q label.choice:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.q label.choice input { margin: 3px 0 0; accent-color: var(--accent); }
+.q label.choice b { font-weight: 600; }
+.q label.choice span:not(.rec) { display: block; color: var(--muted); font-size: 12.5px; }
+.q .rec { display: inline-block; font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.q textarea { width: 100%; margin-top: 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.4 var(--ui); resize: vertical; }
+.q .qfoot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.q .state { font-size: 12.5px; color: var(--faint); }
+.q .state.queued { color: var(--ok); font-weight: 600; }
+.copyall { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.copyall textarea { width: 100%; }
+/* =====================================================================
+   SW-884 additions: speaker app (native), subtitle strips, admin, presenter chip
+   ===================================================================== */
+body.hide-fb .sl .fb { outline: none; }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1000px) { .three { grid-template-columns: minmax(0, 1fr); } }
+.three .card { padding: 16px 18px; }
+.three h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.three ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.three li { position: relative; padding-left: 22px; }
+.three li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.three .later-list li::before { background: var(--later); opacity: .55; }
+.three .grey-list li::before { background: var(--faint); opacity: .55; }
+
+/* ---------- native app frame: no URL bar, a home indicator, the mic dot ---------- */
+.ps.app { background: #0a0e16; color: #e2e8f0; }
+.ps.app .pbody { padding: 4px 14px 6px; gap: 8px; }
+.homebar { flex: none; height: 18px; display: grid; place-items: center; }
+.homebar i { display: block; width: 104px; height: 4px; border-radius: 3px; background: rgb(255 255 255 / .55); }
+.sbar .mic { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #fb923c; margin-left: 6px; vertical-align: 1px; box-shadow: 0 0 0 3px rgb(251 146 60 / .25); }
+
+/* speaker mode, as built (SpeakerPage.tsx), drawn smaller */
+.s-stat { display: flex; align-items: center; gap: 8px; font: 600 11px/1 var(--ui); }
+.s-stat .lv { display: inline-flex; gap: 6px; align-items: center; color: #4ade80; letter-spacing: .08em; }
+.s-stat .lv::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.s-stat .lv.off { color: #fbbf24; } .s-stat .lv.off::before { background: #fbbf24; }
+.s-stat .sp { flex: 1; }
+.s-stat .clock { font: 600 17px/1 var(--mono); color: #fff; }
+.s-stat .left { white-space: nowrap; font: 500 10.5px/1 var(--mono); color: #94a3b8; }
+.s-now { display: flex; justify-content: space-between; font: 600 9.5px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: #94a3b8; margin-bottom: -2px; }
+.ps.app .mirror { border-radius: 6px; outline: 2px solid #a5b8ff; outline-offset: 0; box-shadow: none; }
+.s-next { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 9px; align-items: center; }
+.s-next .mirror { outline: 1px solid #334155; border-radius: 4px; }
+.s-next small { display: block; font: 600 9px/1 var(--ui); letter-spacing: .12em; color: #94a3b8; }
+.s-next b { display: block; font: 600 12.5px/1.25 var(--ui); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-notes { flex: 1; min-height: 36px; overflow: hidden; border: 1px solid #1f2937; border-radius: 12px; background: #0f1520; padding: 8px 10px; font-size: 12px; line-height: 1.45; color: #e2e8f0; }
+.s-notes small { display: block; font: 600 9px/1 var(--ui); letter-spacing: .12em; color: #64748b; margin-bottom: 5px; }
+.s-nav { flex: none; display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; }
+.s-nav span { display: grid; place-items: center; height: 40px; border-radius: 12px; background: #1e2533; font: 700 14px/1 var(--ui); color: #fff; }
+.s-nav span.nx { background: #3b5bdb; }
+.s-acts { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.s-acts span { display: grid; place-items: center; gap: 3px; height: 38px; border-radius: 10px; background: #111827; font: 500 10px/1 var(--ui); color: #cbd5e1; }
+.s-acts span i { font-style: normal; font-size: 12px; opacity: .8; }
+
+/* NEW: the subtitles bar in speaker mode */
+.cc { flex: none; border-radius: 12px; padding: 7px 9px 8px; display: grid; gap: 5px; background: #121a2c; outline: 1.5px solid rgb(122 90 248 / .55); }
+.cc.off { outline: 1px dashed #334155; background: transparent; }
+.cc.paused { outline-color: #fbbf24; background: #1c1708; }
+.cc.offline { outline-color: #fb923c; background: #1f1208; }
+.cc .row { display: flex; align-items: center; gap: 7px; font: 600 10.5px/1 var(--ui); color: #cbd5e1; }
+.cc .row .sp { flex: 1; }
+.cc .ttl { letter-spacing: .02em; white-space: nowrap; }
+.cc .lng { white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; padding: 3px 6px; border-radius: 999px; background: rgb(255 255 255 / .1); color: #fff; font: 700 10px/1 var(--ui); cursor: pointer; border: 0; }
+.cc .lng .car { font-size: 7px; opacity: .7; }
+.cc .ctl { all: unset; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 999px; background: rgb(255 255 255 / .12); color: #fff; font: 700 10px/1 var(--ui); cursor: pointer; }
+.cc .ctl.go { background: #7a5af8; }
+.cc .ctl.warn { background: #fbbf24; color: #1c1708; }
+.cc .txt { font-size: 12px; line-height: 1.35; color: #fff; min-height: 32px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cc .txt .pt { color: #94a3b8; }
+.cc .txt.dim { color: #94a3b8; font-size: 11.5px; }
+.cc .meta { font: 500 9.5px/1 var(--ui); color: #8c97ad; display: flex; gap: 8px; }
+.cc .meta b { color: #c4b5fd; font-weight: 600; }
+.bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 11px; }
+.bars i { width: 2.5px; border-radius: 1px; background: #a78bfa; height: 30%; }
+.bars.live i { animation: lvl .9s infinite ease-in-out; }
+.bars.live i:nth-child(2) { animation-delay: .15s; } .bars.live i:nth-child(3) { animation-delay: .3s; } .bars.live i:nth-child(4) { animation-delay: .45s; }
+.bars.still i { background: #475569; }
+@keyframes lvl { 0%, 100% { height: 25%; } 50% { height: 100%; } }
+
+/* sign in, talk list, setup */
+.app-pad { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 10px 18px 14px; min-height: 0; }
+.app-logo { display: flex; align-items: center; gap: 9px; font: 800 17px/1 var(--head); }
+.app-logo .g-mark { width: 30px; height: 30px; border-radius: 8px; font-size: 15px; }
+.app-h { font: 700 18px/1.25 var(--head); margin: 0; }
+.app-p { margin: 0; font-size: 12px; line-height: 1.5; color: #94a3b8; }
+.inp { display: grid; gap: 5px; font-size: 11px; color: #94a3b8; }
+.inp span { display: block; padding: 10px 12px; border-radius: 10px; background: #111827; border: 1px solid #334155; color: #fff; font-size: 13px; }
+.bigbtn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border-radius: 12px; background: #3b5bdb; color: #fff; font: 700 14px/1 var(--ui); }
+.bigbtn.ghost { background: transparent; border: 1px solid #334155; color: #e2e8f0; font-weight: 600; }
+.bigbtn.violet { background: #7a5af8; }
+.bigbtn.white { background: #fff; color: #111827; }
+.talk { border-radius: 14px; border: 1px solid #1f2937; background: #111827; padding: 10px; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: center; }
+.talk .mirror { border-radius: 5px; outline: none; box-shadow: none; }
+.talk b { display: block; font: 700 13px/1.25 var(--head); }
+.talk small { display: block; font-size: 11px; color: #94a3b8; margin-top: 3px; }
+.talk .live { margin-top: 6px; }
+.tiny { font-size: 10.5px; color: #8c97ad; }
+.setrow { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgb(255 255 255 / .06); font-size: 12.5px; }
+.setrow .grow { flex: 1; min-width: 0; }
+.setrow b { display: block; font-weight: 600; }
+.setrow small { display: block; font-size: 10.5px; color: #94a3b8; margin-top: 2px; }
+.setrow small.okc { color: #86efac; }
+.setrow small.warnc { color: #fcd9a8; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: rgb(255 255 255 / .07); }
+.seg span { display: grid; place-items: center; min-height: 36px; border-radius: 9px; font: 700 13px/1 var(--head); color: #cbd5e1; }
+.seg span.on { background: #fff; color: #111827; }
+.tog { width: 34px; height: 20px; border-radius: 999px; background: #334155; position: relative; flex: none; }
+.tog::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+.tog.on { background: #7a5af8; } .tog.on::after { left: 16px; }
+.prog2 { height: 6px; border-radius: 6px; background: rgb(255 255 255 / .12); overflow: hidden; margin-top: 6px; }
+.prog2 i { display: block; height: 100%; background: #a78bfa; }
+.sysdlg { position: absolute; left: 26px; right: 26px; top: 170px; z-index: 8; border-radius: 16px; background: rgb(240 240 245 / .97); color: #111; text-align: center; overflow: hidden; }
+.sysdlg .b { padding: 16px 14px 12px; display: grid; gap: 6px; }
+.sysdlg b { font: 600 14px/1.3 -apple-system, var(--ui); }
+.sysdlg p { margin: 0; font-size: 11.5px; line-height: 1.4; color: #333; }
+.sysdlg .btns { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #c7c7cc; }
+.sysdlg .btns span { padding: 11px 0; font-size: 14px; color: #0a63d8; }
+.sysdlg .btns span + span { border-left: 1px solid #c7c7cc; font-weight: 600; }
+.lockscr { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 26px 12px 16px; gap: 4px; background: radial-gradient(400px 300px at 50% 0%, #1e2a55, transparent 70%), #05070d; }
+.lockscr .t { font: 300 58px/1 var(--ui); letter-spacing: -.02em; }
+.lockscr .d { font-size: 13px; color: #cbd5e1; margin-bottom: 18px; }
+.notif { width: 100%; border-radius: 16px; background: rgb(255 255 255 / .14); backdrop-filter: blur(8px); padding: 10px 12px; display: grid; gap: 4px; text-align: left; }
+.notif .h { display: flex; gap: 7px; align-items: center; font: 600 11px/1 var(--ui); color: #cbd5e1; }
+.notif .h .g-mark { width: 18px; height: 18px; border-radius: 5px; font-size: 9px; }
+.notif b { font-size: 13px; }
+.notif p { margin: 0; font-size: 12px; color: #e2e8f0; line-height: 1.35; }
+.notif .acts { display: flex; gap: 6px; margin-top: 4px; }
+.notif .acts span { padding: 5px 10px; border-radius: 999px; background: rgb(255 255 255 / .16); font: 600 11px/1 var(--ui); }
+
+/* ---------- guest subtitle strip (mobile web) ---------- */
+.subs { flex: none; position: relative; border-radius: 12px; padding: 8px 10px 9px; background: rgb(0 0 0 / .42); outline: 1px solid rgb(165 184 255 / .22); display: grid; gap: 4px; }
+.subs.new-ring { box-shadow: 0 0 0 3px rgb(122 90 248 / .55); }
+.subs .row { display: flex; align-items: center; gap: 6px; font: 600 9.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--sw-night-muted); }
+.subs .row .sp { flex: 1; }
+.subs .row .cc-ic { display: inline-grid; place-items: center; padding: 2px 4px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 8px/1 var(--ui); letter-spacing: 0; }
+.subs .row button { all: unset; cursor: pointer; color: var(--sw-accent-glow); font: 600 10.5px/1 var(--ui); letter-spacing: 0; text-transform: none; }
+.subs .ln { font: 500 13.5px/1.4 var(--ui); color: #fff; }
+.subs .ln.old { color: var(--sw-night-2); opacity: .75; font-size: 12.5px; }
+.subs .ln .pt { color: #94a3b8; }
+.subs .ln .nt { display: inline-block; margin-left: 5px; padding: 1px 5px; border-radius: 4px; background: rgb(251 146 60 / .18); color: #fcd9a8; font: 600 9.5px/1.4 var(--ui); vertical-align: 1px; white-space: nowrap; }
+.subs .state { display: flex; gap: 7px; align-items: center; font-size: 12px; color: var(--sw-night-2); min-height: 38px; }
+.subs .state i { width: 7px; height: 7px; border-radius: 50%; background: #fbbf24; flex: none; }
+.subs .state i.or { background: #fb923c; }
+.subs-show { all: unset; flex: none; align-self: flex-start; display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border-radius: 999px; background: rgb(255 255 255 / .1); font: 600 11.5px/1 var(--ui); color: #fff; cursor: pointer; }
+.subs-show .cc-ic { display: inline-grid; place-items: center; padding: 2px 4px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 8px/1 var(--ui); }
+.ps .wait.slim { flex: 1; min-height: 40px; }
+/* landscape captions over the slide */
+.land-cap { position: absolute; left: 70px; right: 70px; bottom: 16px; z-index: 2; display: grid; justify-items: center; gap: 2px; pointer-events: none; }
+.land-cap span { max-width: 92%; padding: 3px 9px; border-radius: 4px; background: rgb(0 0 0 / .78); color: #fff; font: 500 13px/1.35 var(--ui); text-align: center; }
+.land-cap span.old { color: #cbd5e1; font-size: 12px; }
+
+/* ---------- demo ---------- */
+.demo3 { display: grid; grid-template-columns: 292px 292px minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 1100px) { .demo3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .demo3 > .logcol { grid-column: 1 / -1; } }
+@media (max-width: 680px) { .demo3 { grid-template-columns: minmax(0, 1fr); } }
+.devlbl { text-align: center; font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+.logcol { display: grid; gap: 14px; }
+.logcard { padding: 0; overflow: hidden; }
+.logcard .lh { padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font: 600 12px/1 var(--ui); color: var(--muted); background: var(--surface-2); }
+.logcard .lh code { font-size: 11px; color: var(--accent-dark); }
+.logtbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.logtbl th { text-align: left; font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.logtbl td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.logtbl td.n { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.logtbl td.ok { color: var(--ok); font-family: var(--mono); font-size: 11.5px; white-space: nowrap; }
+.logtbl td.bad { color: var(--bad); font-size: 11.5px; white-space: nowrap; }
+.logtbl td.dropped { color: var(--faint); font-size: 11.5px; }
+.logtbl tr.pending td { color: var(--faint); }
+.logtbl td.txt { max-width: 240px; }
+.logtbl tr.fresh { animation: fresh 1.2s; }
+@keyframes fresh { from { background: var(--accent-soft); } }
+.logempty { padding: 16px 14px; color: var(--faint); font-size: 12.5px; }
+.ctlcard { padding: 12px 14px; display: grid; gap: 10px; }
+.ctlcard .r { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ctlcard .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); min-width: 92px; }
+.btn.warnb { border-color: #f3c58f; background: var(--warn-soft); color: var(--warn); }
+
+/* ---------- desktop pieces: presenter chip + admin ---------- */
+.ptool .ccchip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 6px; background: rgb(122 90 248 / .2); color: #ddd6fe; font: 600 11.5px/1 var(--ui); }
+.ptool .ccchip .cc-ic { display: inline-grid; place-items: center; padding: 2px 4px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 8px/1 var(--ui); }
+.ptool .ccchip.paused { background: rgb(251 191 36 / .18); color: #fde68a; }
+.ptool .ccchip.offline { background: rgb(251 146 60 / .2); color: #fed7aa; }
+.chips3 { display: grid; gap: 10px; }
+.adm { padding: 0; overflow: hidden; }
+.adm .top { display: flex; gap: 14px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.adm .top b { font: 700 15px/1 var(--ui); }
+.adm .tabsx { display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.adm .tabsx span { padding: 9px 12px; font: 500 13px/1 var(--ui); color: var(--muted); border-bottom: 2px solid transparent; }
+.adm .tabsx span.on { color: var(--text); border-color: var(--accent); font-weight: 600; }
+.adm .bd { padding: 14px 16px 16px; display: grid; gap: 14px; }
+.adm h4 { margin: 0; font: 600 13.5px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.adm .help { margin: -8px 0 0; font-size: 12.5px; color: var(--muted); }
+.atbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.atbl th { text-align: left; font: 600 10.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.atbl td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.atbl td.m { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.atbl td b { font-weight: 600; }
+.atbl small { display: block; color: var(--muted); font-size: 11.5px; }
+.radio { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--line-2); vertical-align: -2px; }
+.radio.on { border: 4px solid var(--accent); }
+.tblwrap { overflow-x: auto; }
+
+/* ---------- D12: the Subtitles action button + its sheet ---------- */
+.s-acts.five { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.s-acts.five > span, .s-acts.five > .ccb { height: 40px; font-size: 8.5px; line-height: 1.1; text-align: center; padding: 0 2px; }
+.ccb { all: unset; box-sizing: border-box; display: grid; place-items: center; align-content: center; gap: 3px; height: 40px; border-radius: 10px; background: #111827; font: 600 8.5px/1.1 var(--ui); color: #cbd5e1; cursor: pointer; outline: 1px dashed #475569; }
+.ccb .ccic { display: inline-grid; place-items: center; padding: 1px 3px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 7px/1 var(--ui); }
+.ccb.live { background: rgb(122 90 248 / .3); color: #fff; outline: 1.5px solid #a78bfa; }
+.ccb.paused { background: rgb(251 191 36 / .2); color: #fde68a; outline: 1.5px solid #fbbf24; }
+.ccb.offline { background: rgb(251 146 60 / .22); color: #fed7aa; outline: 1.5px solid #fb923c; }
+.ccb.offline .bars i { background: #fb923c; }
+.ccb:focus-visible { outline: 2px solid var(--sw-accent-glow); }
+.sheet.ccs { gap: 8px; }
+.ccs-h { display: flex; align-items: center; gap: 8px; }
+.ccs-h h4 { flex: 1; }
+.stp { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font: 700 10.5px/1 var(--ui); white-space: nowrap; }
+.stp::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.stp.live { background: rgb(122 90 248 / .25); color: #c4b5fd; }
+.stp.paused { background: rgb(251 191 36 / .18); color: #fde68a; }
+.stp.offline { background: rgb(251 146 60 / .2); color: #fed7aa; }
+.ccs-l { display: block; font: 600 9px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: #64748b; margin-bottom: -3px; }
+.heard { min-height: 44px; padding: 8px 10px; border-radius: 10px; background: rgb(255 255 255 / .06); font-size: 12.5px; line-height: 1.4; color: #fff; }
+.heard .pt { color: #94a3b8; }
+.heard.dim { color: #cbd5e1; font-size: 12px; }
+.ccs-m { font-size: 11px; color: #8c97ad; }
+.ccs-m b { color: #c4b5fd; font-weight: 600; }
+.sheet .bigbtn { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; border-radius: 12px; font: 700 13.5px/1 var(--ui); cursor: pointer; }
+.sheet .bigbtn.violet { background: #7a5af8; color: #fff; }
+.sheet .bigbtn.amber { background: rgb(251 191 36 / .16); color: #fde68a; outline: 1px solid rgb(251 191 36 / .5); }
+.s-acts .ccb > span { display: block; height: auto; background: none; border-radius: 0; font: inherit; color: inherit; place-items: initial; gap: 0; }
+.s-acts .ccb > .ccic { display: inline-grid; place-items: center; padding: 1px 3px; border-radius: 3px; border: 1.3px solid currentColor; font: 800 7px/1 var(--ui); }
+.s-acts .ccb > .bars { display: inline-flex; height: 11px; align-items: flex-end; }
+
+/* ---------- round 2: D13 ticker, D15 listen chips, D16 toast, D18 big screen, D21/D24 pairing ---------- */
+.tick { flex: none; display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 9px; border-radius: 9px; background: rgb(122 90 248 / .16); outline: 1px solid rgb(167 139 250 / .4); font-size: 11.5px; color: #fff; min-width: 0; }
+.tick .tt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tick .pt { color: #94a3b8; }
+.tick.off { background: rgb(251 146 60 / .14); outline-color: rgb(251 146 60 / .45); color: #fed7aa; }
+.tick .ttag { font: 700 9px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; }
+.ltag { display: inline-block; margin-right: 6px; padding: 1px 5px; border-radius: 4px; background: rgb(255 255 255 / .12); color: #c4b5fd; font: 700 9px/1.5 var(--ui); vertical-align: 1px; white-space: nowrap; }
+.tick .ltag { margin: 0; }
+.heard p { margin: 0; }
+.heard p + p { margin-top: 3px; }
+.lchips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lchip { padding: 7px 11px; border-radius: 999px; border: 1px solid #334155; font: 700 12px/1 var(--head); color: #94a3b8; }
+.lchip.on { background: rgb(122 90 248 / .28); border-color: #a78bfa; color: #fff; }
+.lchips small { flex-basis: 100%; font-size: 10.5px; color: #8c97ad; }
+.setrow.sm { padding: 7px 10px; font-size: 12px; }
+.getb { padding: 6px 10px; border-radius: 999px; background: #7a5af8; color: #fff; font: 700 10.5px/1 var(--ui); white-space: nowrap; }
+.apptoast { position: absolute; left: 12px; right: 12px; top: 44px; z-index: 6; display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 12px; background: #2a2208; outline: 1px solid #fbbf24; color: #fde68a; font-size: 11.5px; line-height: 1.35; box-shadow: 0 8px 24px rgb(0 0 0 / .5); }
+.apptoast b { margin-left: auto; padding: 6px 10px; border-radius: 999px; background: #fbbf24; color: #1c1708; font: 700 11px/1 var(--ui); white-space: nowrap; }
+.ordiv { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #64748b; }
+.ordiv::before, .ordiv::after { content: ""; flex: 1; height: 1px; background: #334155; }
+.ptool { flex-wrap: wrap; }
+.ptool .tb.phoneb { background: rgb(165 184 255 / .16); color: #dbe4ff; }
+.ptool .lc { display: inline-flex; gap: 4px; align-items: center; }
+.ptool .lc-live { display: inline-flex; gap: 6px; align-items: center; padding: 5px 9px; border-radius: 6px; background: rgb(22 163 74 / .25); color: #86efac; font: 600 11.5px/1 var(--ui); }
+.ptool .lc-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #86efac; }
+.ptool .lc-live b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.ptool .tb.pressed { outline: 2px solid rgb(255 255 255 / .6); outline-offset: -2px; }
+.ptool .tb.new { background: rgb(122 90 248 / .35); box-shadow: 0 0 0 3px rgb(122 90 248 / .45); }
+.ptool .tb.end { background: rgb(220 38 38 / .3); color: #fecaca; }
+.bigwrap { position: relative; }
+.bigwrap .frame { display: block; }
+.bigcap { position: absolute; left: 8%; right: 8%; bottom: 13%; display: grid; justify-items: center; gap: 4px; }
+.bigcap span { max-width: 100%; padding: 4px 12px; border-radius: 5px; background: rgb(11 16 32 / .86); color: #fff; font: 500 clamp(11px, 1.7vw, 17px)/1.35 var(--ui); text-align: center; }
+.bigcap span.old { color: #cbd5e1; font-size: clamp(10px, 1.45vw, 15px); }
+.joinbar { position: absolute; left: 0; right: 0; bottom: 0; height: 9%; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--sw-night); color: #cbd5e1; font: 500 clamp(10px, 1.4vw, 14px)/1 var(--ui); }
+.joinbar b { color: #fff; font-family: var(--mono); font-weight: 500; }
+.lapgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+@media (max-width: 900px) { .lapgrid { grid-template-columns: minmax(0, 1fr); } }
+.qrpop { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: center; padding: 16px; border-radius: 12px; background: #0f1420; color: #e2e8f0; }
+@media (max-width: 520px) { .qrpop { grid-template-columns: minmax(0, 1fr); } }
+.qrpop .qr svg { width: 150px; height: 150px; display: block; border-radius: 8px; }
+.qrpop b { font: 700 15px/1.3 var(--head); }
+.qrpop p { margin: 6px 0 0; font-size: 12.5px; color: #cbd5e1; }
+.qrpop p.sm { font-size: 11.5px; color: #8c97ad; }
+/* =====================================================================
+   SW-885: listening. Builds on SW-884's parts (base.css + sw884.css).
+   ===================================================================== */
+.ico { display: inline-block; width: 13px; height: 13px; flex: none; vertical-align: -2px; }
+
+/* ---- the subtitle strip with Listen ---- */
+.subs .row .lsn { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 999px; background: #7a5af8; color: #fff; font: 700 10.5px/1 var(--ui); letter-spacing: 0; text-transform: none; }
+.subs .row .lsn .ico { width: 11px; height: 11px; }
+.subs .row .lsn.stop { background: rgb(255 255 255 / .12); color: #e2e8f0; }
+.subs.listening { outline: 1.5px solid #a78bfa; background: rgb(24 16 60 / .62); }
+.subs .row .lstat { display: inline-flex; align-items: center; gap: 5px; color: #c4b5fd; }
+.subs .row .lstat .bars { height: 10px; }
+.subs .ln.say { position: relative; padding-left: 9px; }
+.subs .ln.say::before { content: ""; position: absolute; left: 0; top: 3px; bottom: 3px; width: 3px; border-radius: 2px; background: #a78bfa; }
+.subs .ln.nextl { color: var(--sw-night-2); opacity: .7; font-size: 12.5px; }
+.subs .skipn { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: #fde68a; }
+.subs .skipn i { font-style: normal; font-weight: 700; }
+.subs .hp { font-size: 10.5px; color: var(--sw-night-muted); }
+
+/* ---- listen sheet ---- */
+.seg.s4 { grid-template-columns: repeat(4, 1fr); }
+.seg.s4 span { min-height: 30px; font-size: 12px; }
+.seg.s2 span { min-height: 34px; font-size: 12px; font-family: var(--ui); }
+.seg.s2 span .ico { margin-right: 5px; }
+.vrow { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; background: rgb(255 255 255 / .06); font-size: 12.5px; }
+.vrow.on { background: rgb(122 90 248 / .22); outline: 1.5px solid #a78bfa; }
+.vrow .grow { flex: 1; min-width: 0; }
+.vrow b { display: block; font-weight: 600; }
+.vrow small { display: block; font-size: 10.5px; color: #94a3b8; margin-top: 2px; }
+.vrow .rd { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid rgb(255 255 255 / .35); flex: none; }
+.vrow.on .rd { border: 5px solid #a78bfa; }
+.vrow .play { font-size: 10px; padding: 5px 8px; border-radius: 999px; background: rgb(255 255 255 / .1); color: #e2e8f0; white-space: nowrap; }
+.warnbox { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: rgb(251 146 60 / .14); outline: 1px solid rgb(251 146 60 / .45); color: #fed7aa; font-size: 12px; line-height: 1.4; }
+.warnbox b { color: #ffedd5; }
+.infobox { display: flex; gap: 8px; align-items: flex-start; padding: 9px 11px; border-radius: 12px; background: rgb(165 184 255 / .1); color: #cbd5e1; font-size: 11.5px; line-height: 1.4; }
+.infobox .ico { margin-top: 1px; color: #a5b8ff; }
+.linkrow { font-size: 11.5px; color: #a5b8ff; text-align: center; }
+.sheet .bigbtn.dis { background: #334155; color: #94a3b8; }
+.sheet .bigbtn.ghost { background: transparent; outline: 1px solid #334155; color: #e2e8f0; font-weight: 600; }
+
+/* ---- app audience mode ---- */
+.ps.app .g-top .lang { background: rgb(255 255 255 / .08); }
+.joincard { display: grid; gap: 10px; padding: 14px; border-radius: 16px; background: rgb(122 90 248 / .14); outline: 1px solid rgb(167 139 250 / .4); }
+.joincard h3 { margin: 0; font: 700 17px/1.2 var(--head); }
+.joincard p { margin: 0; font-size: 11.5px; color: #cbd5e1; }
+.codebox { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.codebox span { display: grid; place-items: center; height: 40px; border-radius: 9px; background: #111827; border: 1px solid #334155; font: 700 18px/1 var(--mono); color: #fff; }
+.codebox span.cur { border-color: #a78bfa; box-shadow: 0 0 0 2px rgb(167 139 250 / .35); }
+.codebox span:nth-child(3) { margin-right: 6px; }
+.sect-l { font: 600 9.5px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: #64748b; margin: 4px 0 -4px; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: auto; }
+.keypad span { display: grid; place-items: center; height: 38px; border-radius: 10px; background: rgb(255 255 255 / .07); font: 500 17px/1 var(--ui); }
+.camview { position: relative; flex: 1; border-radius: 16px; overflow: hidden; background: radial-gradient(240px 200px at 50% 40%, #2b3245, #0b0f18); display: grid; place-items: center; }
+.camview .tgt { width: 150px; height: 150px; border-radius: 18px; border: 3px solid rgb(255 255 255 / .85); box-shadow: 0 0 0 999px rgb(0 0 0 / .35); }
+.camview .qrmini { position: absolute; width: 110px; height: 110px; }
+.camview small { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; font-size: 11.5px; color: #e2e8f0; }
+
+.mini { flex: none; display: flex; align-items: center; gap: 9px; margin: 0 10px 4px; padding: 8px 10px; border-radius: 14px; background: #1c1640; outline: 1px solid rgb(167 139 250 / .45); }
+.mini .ic2 { width: 30px; height: 30px; border-radius: 9px; background: #7a5af8; display: grid; place-items: center; flex: none; }
+.mini .ic2 .ico { width: 16px; height: 16px; color: #fff; }
+.mini .grow { flex: 1; min-width: 0; }
+.mini b { display: block; font: 600 11.5px/1.2 var(--ui); }
+.mini small { display: block; font-size: 10.5px; color: #c4b5fd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.mini .pp { width: 30px; height: 30px; border-radius: 50%; background: #fff; color: #111827; display: grid; place-items: center; font-size: 11px; font-weight: 800; flex: none; }
+.mini .lv { font: 700 9px/1 var(--ui); letter-spacing: .08em; color: #fca5a5; padding: 4px 6px; border-radius: 5px; background: rgb(220 38 38 / .18); }
+.mini.paused { background: #2a2208; outline-color: #fbbf24; }
+.mini.paused .ic2 { background: #b45309; }
+.mini.paused small { color: #fde68a; }
+
+.np { width: 100%; border-radius: 18px; background: rgb(255 255 255 / .14); backdrop-filter: blur(8px); padding: 12px; display: grid; gap: 9px; text-align: left; }
+.np .top { display: flex; gap: 10px; align-items: center; }
+.np .top .mirror { width: 74px; border-radius: 6px; }
+.np .top .grow { flex: 1; min-width: 0; }
+.np .top b { display: block; font-size: 12.5px; line-height: 1.3; }
+.np .top small { display: block; font-size: 11px; color: #cbd5e1; margin-top: 2px; }
+.np .route { width: 22px; height: 22px; color: #e2e8f0; flex: none; align-self: flex-start; }
+.np .scrub { display: flex; align-items: center; gap: 7px; font: 600 9.5px/1 var(--ui); color: #cbd5e1; }
+.np .scrub i { flex: 1; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .85); }
+.np .scrub .lv { color: #fca5a5; letter-spacing: .08em; }
+.np .ctr { display: flex; justify-content: center; align-items: center; gap: 34px; font-size: 22px; }
+.np .ctr span { display: grid; place-items: center; }
+.np .ctr small { display: block; font-size: 9px; font-weight: 700; letter-spacing: .06em; margin-top: -2px; }
+
+/* ---- speaker: engine choice, cloud, mic tip ---- */
+.ltag.cloud, .tick .ctag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 5px; border-radius: 4px; background: rgb(56 189 248 / .18); color: #bae6fd; font: 700 9px/1.2 var(--ui); letter-spacing: .04em; white-space: nowrap; }
+.tick .ctag .ico { width: 10px; height: 10px; }
+.ccb.cloud { position: relative; }
+.ccb.cloud::after { content: ""; position: absolute; top: 5px; right: 7px; width: 7px; height: 7px; border-radius: 50%; background: #38bdf8; }
+.engrow { display: grid; gap: 6px; }
+.engrow .seg span { flex-direction: row; gap: 5px; display: flex; align-items: center; justify-content: center; }
+.costline { font-size: 10.5px; color: #8c97ad; }
+.micart { border-radius: 12px; background: #0f1424; padding: 8px; }
+.micart svg { display: block; width: 100%; height: auto; }
+.tips { margin: 0; padding: 0 0 0 16px; display: grid; gap: 4px; font-size: 11.5px; color: #cbd5e1; line-height: 1.4; }
+.tips b { color: #fff; }
+.chk { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #cbd5e1; }
+.chk i { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid #64748b; }
+.inrow { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 10px; background: rgb(255 255 255 / .06); font-size: 11.5px; }
+.inrow .grow { flex: 1; min-width: 0; }
+.inrow small { color: #94a3b8; font-size: 10.5px; }
+.inrow .tipl { color: #a5b8ff; font-size: 11px; white-space: nowrap; }
+.inrow.warn { background: rgb(251 146 60 / .12); }
+.inrow.warn small { color: #fcd9a8; }
+
+/* ---- laptop bits ---- */
+.ptool .langmix .hp { display: inline-flex; align-items: center; gap: 2px; margin-left: 3px; color: #c4b5fd; font-weight: 600; }
+.ptool .langmix .hp .ico { width: 11px; height: 11px; }
+.ptool .ccchip.cloud .cc-ic { border-color: #38bdf8; color: #38bdf8; }
+
+/* ---- demo ---- */
+.qtbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.qtbl th { text-align: left; font: 600 10.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 7px 8px; border-bottom: 1px solid var(--line); }
+.qtbl td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.qtbl td.n { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.qtbl td.txt { min-width: 0; }
+.qtbl tr.r-say td { background: var(--later-soft); }
+.qtbl tr.r-skip td.txt { color: var(--faint); text-decoration: line-through; }
+.qtbl tr.r-done td.txt { color: var(--muted); }
+.qst { display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px; border-radius: 999px; font: 600 11px/1.4 var(--ui); white-space: nowrap; }
+.qst.say { background: var(--later); color: #fff; }
+.qst.wait { background: var(--surface-2); color: var(--muted); }
+.qst.done { background: var(--ok-soft); color: var(--ok); }
+.qst.skip { background: var(--warn-soft); color: var(--warn); }
+.qst.own { background: var(--surface-2); color: var(--faint); }
+.qbar { height: 3px; border-radius: 2px; background: var(--line); margin-top: 5px; overflow: hidden; }
+.qbar i { display: block; height: 100%; background: var(--later); }
+.behind { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
+.behind .cells { display: flex; gap: 3px; }
+.behind .cells i { width: 18px; height: 10px; border-radius: 3px; background: var(--line); }
+.behind .cells i.f { background: var(--later); }
+.behind .cells i.over { background: var(--warn); }
+.vstat { font-size: 12.5px; color: var(--muted); }
+.vstat b { color: var(--text); font-weight: 600; }
+.vstat.miss b { color: var(--warn); }
+.lag { display: inline-flex; gap: 6px; align-items: baseline; font-size: 12.5px; color: var(--muted); }
+.lag b { font: 600 13px/1 var(--mono); color: var(--text); }
+
+/* ---- admin ---- */
+.adm .engcard { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.adm .engcard b { font-weight: 600; }
+.adm .engcard small { display: block; color: var(--muted); font-size: 12px; }
+.adm .sw { flex: none; }
+.adm .kv { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 6px 14px; font-size: 13px; }
+.adm .kv span:nth-child(odd) { color: var(--muted); }
+
+@media (max-width: 1100px) {
+  .demo3 { grid-template-columns: 292px 292px; }
+  .demo3 .logcol { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .demo3 { grid-template-columns: minmax(0, 1fr); }
+  .adm .kv { grid-template-columns: minmax(0, 1fr); }
+}
+.seg.s2 span { display: flex; align-items: center; justify-content: center; gap: 5px; }
+.seg.s2 span .ico { margin: 0; }
+
+/* ---- D21: a fixed-height strip, so reading doesn't jump ---- */
+.subs .lnbox { height: 80px; overflow: hidden; display: grid; align-content: start; gap: 4px; }
+.subs .lnbox .state { min-height: 0; height: 100%; }
+.subs .ln { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.subs .ln.say { -webkit-line-clamp: 3; }
+.subs .ln.nextl { -webkit-line-clamp: 1; }
+.subs .skipn { height: 14px; }
+.subs .skipn.empty { visibility: hidden; }
+/* SW-943 admin frame, scoped under .adm */
+.adm .simbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 10px; font-size: 13px; color: var(--muted); }
+.adm .simbar b { color: var(--text); font-weight: 600; }
+.adm .simbar label { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border: 1px dashed var(--line-2); border-radius: 999px; background: var(--surface); cursor: pointer; }
+.adm .simbar button { font: 500 12.5px/1 var(--ui); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); color: var(--muted); cursor: pointer; }
+.adm .browser { overflow: hidden; overflow-x: auto; }
+.adm .browser .app,.adm .browser .chrome { min-width: 900px; }
+.adm .chrome { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #e9ecf1; border-bottom: 1px solid var(--line); }
+.adm .chrome .dots { display: flex; gap: 6px; }
+.adm .chrome .dots i { width: 10px; height: 10px; border-radius: 50%; background: #cfd4dc; display: block; }
+.adm .chrome .url { flex: 1; min-width: 0; background: #fff; border-radius: 6px; padding: 4px 10px; font: 400 12px/1.4 var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm .app { background: var(--bg); min-height: 560px; }
+.adm .topbar { background: var(--surface); border-bottom: 1px solid var(--line); }
+.adm .topbar .in { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 16px; padding: 12px 20px; }
+.adm .brand { display: flex; align-items: center; gap: 8px; font: 700 14px/1 var(--ui); letter-spacing: -.01em; }
+.adm .brand i { width: 20px; height: 16px; border-radius: 2px; background: var(--accent); display: block; }
+.adm .nav { display: flex; gap: 4px; }
+.adm .nav span { padding: 4px 10px; border-radius: 6px; font: 500 13px/1.45 var(--ui); color: var(--muted); }
+.adm .nav span.on { background: var(--surface-2); color: var(--text); }
+.adm .nav .badge { margin-left: 6px; border-radius: 999px; background: var(--accent); padding: 0 6px; font: 400 11px/16px var(--mono); color: #fff; }
+.adm .avatar { margin-left: auto; width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(180deg, var(--accent) 50%, #dbe4fd 50%); }
+.adm .appmain { max-width: 1100px; margin: 0 auto; padding: 22px 20px 30px; display: grid; gap: 16px; }
+
+.adm .subnav { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.adm .subnav .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-right: 6px; }
+.adm .subnav span.tab { padding: 5px 11px; border-radius: 6px; font: 500 13px/1.4 var(--ui); color: var(--muted); border: 1px solid transparent; }
+.adm .subnav span.tab.on { background: var(--surface); border-color: var(--line); color: var(--text); font-weight: 600; }
+.adm .subnav .cnt { margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); font: 400 11px/16px var(--mono); }
+.adm .ptitle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.adm .ptitle h3 { font: 700 18px/1.2 var(--ui); letter-spacing: -.01em; }
+.adm .ptitle .sub { color: var(--muted); font-size: 13px; }
+.adm .utabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.adm .utabs button { all: unset; cursor: pointer; padding: 8px 12px; font: 500 13px/1.2 var(--ui); color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.adm .utabs button.on { color: var(--text); border-color: var(--accent); font-weight: 600; }
+.adm .utabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.adm .utabs button.later { color: var(--faint); }
+.adm .utabs small { font: 500 10.5px/1 var(--mono); color: var(--faint); margin-left: 4px; }
+
+.adm .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.adm .ph { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 12px 16px 0; }
+.adm .ph h4 { font: 600 14px/1.3 var(--ui); }
+.adm .ph .help { color: var(--muted); font-size: 12.5px; }
+.adm .pb { padding: 12px 16px 16px; }
+
+/* model cards */
+.adm .models { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; }
+.adm .model { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 10px; background: var(--surface); position: relative; }
+.adm .model::before { content: ""; position: absolute; left: -1px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--mc); }
+.adm .model.down { background: #fffafa; border-color: #f3cfcb; }
+.adm .mh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.adm .mh b { font: 600 14.5px/1.2 var(--ui); }
+.adm .mh .id { font: 400 11.5px/1 var(--mono); color: var(--faint); }
+.adm .mh .st { margin-left: auto; }
+.adm .mstats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.adm .mstat { background: var(--surface-2); border-radius: 6px; padding: 7px 9px; }
+.adm .mstat .l { font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.adm .mstat .v { font: 500 15px/1.4 var(--mono); margin-top: 3px; }
+.adm .mstat .v small { font-size: 11px; color: var(--muted); }
+.adm .mfacts { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12.5px; }
+.adm .mfacts dt { color: var(--faint); }
+.adm .mfacts dd { margin: 0; color: var(--muted); }
+.adm .mfacts dd code { font-size: 11.5px; }
+.adm .fromcfg { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--faint); margin-top: 10px; }
+.adm .fromcfg code { font-size: 11.5px; }
+
+/* default picker */
+.adm .defrow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.adm .sel { font: 400 13px/1.4 var(--ui); color: var(--text); background: var(--surface); border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 10px; max-width: 100%; }
+.adm .sel:focus { outline: none; box-shadow: 0 0 0 1px var(--accent); border-color: var(--accent); }
+.adm .note { font-size: 12.5px; color: var(--muted); }
+.adm .note.warn { color: var(--warn); }
+.adm .note.bad { color: var(--bad); }
+.adm .saved { font: 500 12px/1 var(--ui); color: var(--ok); opacity: 0; transition: opacity .3s; }
+.adm .saved.show { opacity: 1; }
+
+/* ledger table */
+.adm .ledger { width: 100%; border-collapse: collapse; font-size: 13px; }
+.adm .ledger th { border-bottom: 1px solid var(--line); background: var(--surface-2); padding: 8px 12px; text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.adm .ledger td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.adm .ledger tr:last-child td { border-bottom: 0; }
+.adm .ledger td.when { font: 400 12px/1.4 var(--mono); color: var(--muted); white-space: nowrap; }
+.adm .ledger tr.flash td { animation: flash 1.6s ease; }
+@keyframes flash { 0% { background: var(--accent-soft); } 100% { background: transparent; } }
+.adm .pair { display: flex; align-items: baseline; gap: 6px; font-weight: 600; white-space: nowrap; }
+.adm .pair .ar { color: var(--faint); font-weight: 400; }
+.adm .pair .nat { font-weight: 400; color: var(--faint); font-size: 12px; }
+.adm .tabwrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+.adm .btn { font: 500 13px/1 var(--ui); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); color: var(--muted); cursor: pointer; white-space: nowrap; }
+.adm .btn:hover { color: var(--text); border-color: var(--faint); }
+.adm .btn.pri { background: var(--accent); border-color: var(--accent); color: #fff; }
+.adm .btn.pri:hover { background: #4a70ee; }
+.adm .btn:disabled { opacity: .5; cursor: not-allowed; }
+.adm .btn.sm { padding: 5px 10px; font-size: 12.5px; }
+.adm .mchip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.adm .mchip i { width: 8px; height: 8px; border-radius: 2px; background: var(--mc); display: block; }
+.adm .ledger td .note { display: block; margin-top: 4px; font-size: 12px; }
+.adm .rowwarn { display: block; margin-top: 4px; font-size: 12px; color: var(--warn); }
+.adm .rowbad { display: block; margin-top: 4px; font-size: 12px; color: var(--bad); }
+.adm .addrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px; border-top: 1px dashed var(--line-2); background: #fafbfc; }
+.adm .addrow .arw { color: var(--faint); }
+.adm .adderr { width: 100%; font-size: 12.5px; color: var(--bad); }
+.adm .empty { padding: 18px 12px; text-align: center; color: var(--faint); font-size: 13px; }
+
+/* pair map */
+.adm .mapwrap { overflow-x: auto; }
+.adm .pmap { border-collapse: separate; border-spacing: 2px; font-size: 11px; }
+.adm .pmap th { font: 500 10.5px/1.1 var(--ui); color: var(--muted); padding: 2px 4px; white-space: nowrap; }
+.adm .pmap thead th { height: 34px; vertical-align: bottom; }
+.adm .pmap th.rh { text-align: right; }
+.adm .pmap td { width: 26px; height: 22px; border-radius: 3px; text-align: center; font: 600 9.5px/22px var(--mono); }
+.adm .pmap td.self { background: transparent; }
+.adm .pmap td.d1 { background: #dfe7fc; }
+.adm .pmap td.d2 { background: #e8e1fd; }
+.adm .pmap td.o1 { background: var(--accent); color: #fff; }
+.adm .pmap td.o2 { background: var(--violet); color: #fff; }
+.adm .pmap td.na { background: repeating-linear-gradient(45deg, var(--bad-soft) 0 4px, #fff 4px 7px); color: var(--bad); }
+.adm .pmap td.fb { outline: 2px solid var(--warn); outline-offset: -2px; }
+.adm .legend { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.adm .legend span { display: inline-flex; gap: 6px; align-items: center; }
+.adm .legend i { width: 14px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* try it */
+.adm .try { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.adm .tin { display: grid; gap: 10px; align-content: start; }
+.adm .tin .langs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.adm .swap { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; color: var(--muted); font-size: 15px; }
+.adm textarea.field { width: 100%; min-height: 110px; resize: vertical; font: 400 14px/1.5 var(--ui); color: var(--text); border: 1px solid var(--line-2); border-radius: 8px; padding: 9px 11px; }
+.adm textarea.field:focus { outline: none; box-shadow: 0 0 0 1px var(--accent); border-color: var(--accent); }
+.adm .samples { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--faint); }
+.adm .samples button { all: unset; cursor: pointer; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 12px; }
+.adm .samples button:hover { color: var(--text); }
+.adm .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.adm .seg label { display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border: 1px solid var(--line-2); border-radius: 8px; font-size: 12.5px; cursor: pointer; background: var(--surface); }
+.adm .seg label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
+.adm .seg label:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+.adm .seg input { accent-color: var(--accent); margin: 0; }
+.adm .tout { display: grid; gap: 10px; align-content: start; }
+.adm .res { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 8px; position: relative; background: var(--surface); }
+.adm .res::before { content: ""; position: absolute; left: -1px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--mc); }
+.adm .res .rh { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12.5px; }
+.adm .res .rh b { font-weight: 600; font-size: 13px; }
+.adm .res .txt { font-size: 16px; line-height: 1.55; }
+.adm .res .rm { display: flex; gap: 6px 14px; flex-wrap: wrap; font: 400 11.5px/1.4 var(--mono); color: var(--muted); }
+.adm .res .rm b { color: var(--text); font-weight: 500; }
+.adm .res.err { background: #fffafa; border-color: #f3cfcb; }
+.adm .res.err .txt { font-size: 13.5px; color: var(--bad); }
+.adm .res.wait .txt { color: var(--faint); font-size: 13.5px; }
+.adm .res.wait .txt::after { content: ""; display: inline-block; width: 12px; height: 12px; margin-left: 8px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--accent); animation: spin .8s linear infinite; vertical-align: -2px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.adm .hist { font-size: 12.5px; }
+.adm .hist td { padding: 6px 10px; }
+.adm .placeholder { border: 1px dashed var(--line-2); border-radius: 8px; padding: 26px; text-align: center; color: var(--muted); background: var(--surface); }
+
+.adm .toast { position: absolute; right: 18px; bottom: 18px; background: #1b2230; color: #fff; padding: 9px 14px; border-radius: 8px; font-size: 13px; box-shadow: var(--raise); opacity: 0; transform: translateY(6px); transition: all .25s; pointer-events: none; }
+/* SW-982 additions */
+.vrow .src { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; font: 600 9.5px/14px var(--ui); letter-spacing: .02em; vertical-align: 1px; }
+.vrow .src.ph { background: rgb(255 255 255 / .1); color: #cbd5e1; }
+.vrow .src.sw { background: rgb(165 184 255 / .18); color: #c7d2fe; }
+.vrow.off { opacity: .5; }
+.dlbar { display: grid; gap: 5px; padding: 10px 12px; border-radius: 12px; background: rgb(255 255 255 / .06); font-size: 11.5px; color: #cbd5e1; }
+.dlbar .tr { height: 6px; border-radius: 99px; background: rgb(255 255 255 / .12); overflow: hidden; }
+.dlbar .tr i { display: block; height: 100%; background: #a78bfa; border-radius: 99px; }
+.dlbar .r { display: flex; justify-content: space-between; gap: 8px; }
+.subs .vnote { display: flex; align-items: center; gap: 6px; padding: 5px 10px 0; font-size: 10.5px; color: #fcd34d; }
+.subs .vnote i { width: 6px; height: 6px; border-radius: 50%; background: #f59e0b; flex: none; }
+
+.gapgrid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 22px; align-items: start; }
+.gapgrid .phone { margin: 0; }
+.ltbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ltbl th, .ltbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ltbl th { font: 600 11px/1.3 var(--ui); letter-spacing: .04em; text-transform: uppercase; color: var(--faint); background: var(--surface-2); }
+.ltbl td.c { text-align: center; white-space: nowrap; }
+.ltbl .y { color: var(--ok); font-weight: 600; }
+.ltbl .n { color: var(--bad); font-weight: 600; }
+.ltbl .m { color: var(--warn); font-weight: 600; }
+.ltbl .s { color: var(--faint); }
+.ltbl tr.gap td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+.ltbl code { font-size: 11.5px; }
+.tblscroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+
+.opts3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.opt { padding: 16px 18px; display: grid; gap: 10px; align-content: start; }
+.opt.rec { border-color: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.opt h3 { font: 650 15px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.opt .facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; font-size: 12.5px; margin: 0; }
+.opt .facts dt { color: var(--faint); }
+.opt .facts dd { margin: 0; }
+.opt .pro, .opt .con { margin: 0; padding-left: 18px; font-size: 12.5px; display: grid; gap: 3px; }
+.opt .pro li::marker { content: "+  "; color: var(--ok); font-weight: 700; }
+.opt .con li::marker { content: "–  "; color: var(--bad); font-weight: 700; }
+.verdict { font-size: 12.5px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); }
+.opt.rec .verdict { background: var(--ok-soft); color: var(--ok); font-weight: 600; }
+
+.figgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+.fig { padding: 16px; display: grid; gap: 8px; align-content: start; }
+.fig h3 { font: 600 14px/1.3 var(--ui); }
+.fig .figcap { font-size: 12.5px; color: var(--muted); }
+.fig svg { width: 100%; height: auto; display: block; }
+.fig svg text { font-family: var(--ui); }
+
+.mcp2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.mcp2 .card { padding: 14px; display: grid; gap: 10px; align-content: start; }
+.mcp2 h3 { font: 600 14px/1.3 var(--ui); }
+.mcp2 p { font-size: 13px; color: var(--muted); }
+
+.checks { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.checks li { font-size: 13px; }
+
+.adm .vlang { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; white-space: nowrap; }
+.adm .playbtn { font: 500 12px/1 var(--ui); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; color: var(--text); }
+.adm .wave { display: inline-flex; gap: 2px; align-items: center; height: 18px; vertical-align: middle; }
+.adm .wave i { width: 3px; border-radius: 2px; background: var(--violet, #7a5af8); display: block; }
+
+@media (max-width: 1000px) {
+  .gapgrid, .opts3, .figgrid, .mcp2 { grid-template-columns: minmax(0, 1fr); }
+  .gapgrid .phone { margin: 0 auto; }
+}
+.page-head .meta { display: flex; gap: 8px; flex-wrap: wrap; } .page-head .meta .pill { white-space: normal; }
+
+</style>
+</head>
+<body class="hide-fb">
+<main>
+
+<header class="page-head">
+  <div class="eyebrow">SlideWorks · SW-982 · design · 28 Nov 2026 · under Translations SW-942 · after SW-885</div>
+  <h1>A SlideWorks voice for languages the phone can't speak</h1>
+  <p>SW-885 lets a guest <b>listen</b> to the translated talk through the phone's own voice. When the phone has no voice for the language, for example Android Chrome without a Thai voice pack, Listen can't start (SW-885 D13). SW-982 adds a fallback voice that SlideWorks runs itself: an open text-to-speech model where one exists. This page compares where that model could run, shows the guest screens and the admin tab, and ends with the decisions.</p>
+  <div class="meta"><span class="pill ok">Decided (D1–D8): the SlideWorks server reads each line once per language</span><span class="pill warn">No clean open voice for Thai, Malay or Cantonese: a cloud voice reads those (D3)</span><span class="pill grey">Figures marked ~ are estimates</span></div>
+</header>
+
+<nav class="toc">
+  <a href="#gap">01 The gap</a><a href="#where">02 Where the voice runs</a><a href="#web">03 Mobile web</a><a href="#app">04 The app</a><a href="#admin">05 Admin › Voices</a><a href="#flow">06 How it flows</a><a href="#models">07 Models</a><a href="#questions">08 Decisions</a>
+</nav>
+
+<!-- 01 -->
+<section class="block" id="gap">
+  <div class="sec-head"><span class="n">01</span><h2>The gap: who gets "no voice" today</h2><span class="pill warn">SW-885 D13</span></div>
+  <p class="sec-sub">With SW-885 as designed, a guest whose phone can't speak their language sees the screen on the left. Subtitles still work, but Listen stays off.</p>
+  <div class="gapgrid">
+    <div><div class="phone"><div class="ps" id="gapPhone"></div></div><div class="st-cap"><b>Today (SW-885 D13)</b><span>Start stays off and the guest is told how to add a voice to the phone.</span></div></div>
+    <div style="display:grid;gap:14px">
+            <div class="card" style="padding:14px 16px;display:grid;gap:10px">
+        <h3 style="font:600 14px/1.3 var(--ui)">Where phones have no voice (research, 28 Nov)</h3>
+        <div class="tblscroll"><table class="ltbl">
+          <thead><tr><th>Platform</th><th>What happens</th><th>Languages at risk</th></tr></thead>
+          <tbody>
+            <tr class="gap"><td><b>Android Chrome</b> (Google TTS)</td><td>Only the system language and a few popular ones are preloaded. <code>getVoices()</code> lists languages whose pack <b>isn't downloaded</b>, and speaking them falls back to an English voice without an error. The first line can take up to a minute.</td><td>th, ms, vi, id, yue: any pack not installed</td></tr>
+            <tr class="gap"><td><b>Huawei</b> (no Google services)</td><td>Huawei's on-device TTS covers zh-Hans, en, fr, es, de and it only.</td><td>Everything else</td></tr>
+            <tr class="gap"><td><b>Budget Android</b></td><td>A Mozilla cohort shows <b>12.65% of Android clients with no voices at all</b> (method and date not stated, so treat as indicative).</td><td>All 15</td></tr>
+            <tr><td><b>Samsung</b> TTS</td><td>Thai, Vietnamese and Indonesian packs exist; only installed languages are offered. Some regional phones list only two languages.</td><td>ms, yue not confirmed</td></tr>
+            <tr><td><b>iPhone Safari</b></td><td><code>getVoices()</code> lists only the preinstalled voices; voices the user downloads aren't listed, and upgrading one can hide the language.</td><td>Low, but upgraded voices</td></tr>
+            <tr><td><b>iPhone app</b></td><td>All 15 languages ship with iOS. Apps can't download voices; only the user can.</td><td>Low</td></tr>
+          </tbody>
+        </table></div>
+        <p class="note" style="font-size:12.5px;color:var(--muted)">Sources: WebKit 290497, Readium's Web Speech notes, Apple forums 764438 and 679401, Mozilla bug 2043396, Huawei ML Kit docs, Samsung support. No public data on how often Android Chrome has no pack for a language: we'd need our own count (07).</p>
+      </div>
+      <div class="three" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+        <div class="card"><h3><span class="pill warn">finding</span> D13 can't always tell</h3><p style="font-size:13px;color:var(--muted)">On Android Chrome a listed voice may not be installed, so SW-885's no-voice check passes and the guest hears Thai lines read by an English voice. The sheet's <b>Try</b> is how a guest finds out. SW-982 gives them somewhere to go: the SlideWorks voice is one tap away in the same list (03, state 2).</p></div>
+        <div class="card"><h3><span class="pill warn">finding</span> The gap is the Asian languages</h3><p style="font-size:13px;color:var(--muted)">Thai, Malay, Vietnamese, Indonesian and Cantonese are the likely gaps, and Thai is a first speaker-and-guest language. These are also the languages with the fewest open voice models (07).</p></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- 02 -->
+<section class="block" id="where">
+  <div class="sec-head"><span class="n">02</span><h2>Where the voice runs</h2><span class="pill ok">D1: A, the server</span></div>
+    <p class="sec-sub">SW-982's goal named two places: the guest's device, or the SlideWorks server. The app can also run a model natively, so there are three. Numbers are from the research; ~ marks my estimates.</p>
+  <div class="opts3">
+    <div class="card opt rec" id="opt-a">
+      <h3><span class="pill ok">A</span> On the SlideWorks server</h3>
+      <dl class="facts">
+        <dt>How</dt><dd>One synthesis per line per language, in a voice container next to SW-943's translation containers. Guests fetch each line's audio.</dd>
+        <dt>Guest download</dt><dd>~6–27 KB a line (Opus at 24 kb/s) or a bit more as MP3. Nothing up front.</dd>
+        <dt>Server CPU</dt><dd>Piper-class voices use ~0.15–0.35 of a core to keep up with speech, per language with a listener.</dd>
+        <dt>Added delay</dt><dd>~0.3–1.5 s synthesis + one fetch.</dd>
+      </dl>
+      <ul class="pro"><li>Any phone, web or app, even with no voices at all.</li><li>300 guests in Thai cost one synthesis, as with translation.</li><li>One voice for everyone; easy to swap models in config.</li><li>In the app, plain media audio fits the lock screen better than system TTS (see 06).</li><li>GPL voice code stays in its own container, out of the MIT app.</li></ul>
+      <ul class="con"><li>Server CPU, and a container self-hosters may skip.</li><li>Needs the network for every line.</li></ul>
+      <div class="verdict">Recommended.</div>
+    </div>
+    <div class="card opt" id="opt-b">
+      <h3><span class="pill grey">B</span> In the guest's browser</h3>
+      <dl class="facts">
+        <dt>How</dt><dd>A WASM build (piper-tts-web or sherpa-onnx WASM) and a voice model, downloaded on first use and cached.</dd>
+        <dt>Guest download</dt><dd>~60–110 MB per language (sherpa-onnx's English demo is 12 MB of WASM + 97 MB of data).</dd>
+        <dt>Phone CPU</dt><dd>Piper runs at RTF 0.36–0.77 on a Raspberry Pi 4; a budget phone is in that range.</dd>
+        <dt>Added delay</dt><dd>The whole download before the first line, then ~0.5–2 s a line on a cheap phone.</dd>
+      </dl>
+      <ul class="pro"><li>No server cost; works on a self-hosted server with no extra container.</li></ul>
+      <ul class="con"><li>40 Thai guests pull ~2.4 GB through venue Wi-Fi as the talk starts.</li><li>The phones that need it most are the slowest.</li><li>iOS kills WASM pages under memory pressure, and an open WebKit bug (304810) grows WASM memory until iOS 26 kills the page.</li><li>Piper's pronunciation step is GPL espeak-ng, shipped inside our MIT web bundle.</li></ul>
+      <div class="verdict">Not recommended.</div>
+    </div>
+    <div class="card opt" id="opt-c">
+      <h3><span class="pill grey">C</span> Native in the app</h3>
+      <dl class="facts">
+        <dt>How</dt><dd>react-native-sherpa-onnx (MIT, Expo config plugin) with a VITS/Piper model per language.</dd>
+        <dt>Guest download</dt><dd>~60–75 MB per language, ideally before the talk.</dd>
+        <dt>Phone CPU</dt><dd>Native ONNX, faster than WASM; battery over an hour not measured.</dd>
+        <dt>Added delay</dt><dd>~0.3–1 s a line (~).</dd>
+      </dl>
+      <ul class="pro"><li>Works offline once downloaded.</li><li>No server cost.</li></ul>
+      <ul class="con"><li>App only: mobile web guests, the most common, still get nothing.</li><li>A second engine to build and test beside A or instead of it.</li><li>Needs an Expo development build (the app already needs one for SW-884).</li></ul>
+      <div class="verdict">Not now. Revisit if guests need offline listening.</div>
+    </div>
+  </div>
+  <div class="card" style="padding:14px 16px;margin-top:16px;border-left:3px solid var(--warn)">
+    <h3 style="font:600 14px/1.3 var(--ui);margin-bottom:6px">Whichever place: the models don't cover the gap languages cleanly</h3>
+    <p style="font-size:13px;color:var(--muted)">I found no open voice with a clear commercial licence for <b>Malay</b>. <b>Thai</b> and <b>Cantonese</b> each have a candidate tagged MIT or Apache, but their training data is not stated. Vietnamese, Chinese, Japanese, Korean and the European languages are fine (07). So "a local model" alone can't close the Thai gap that started this Feature. Option A can, because its seam can also call a cloud voice for those languages: Azure covers all 15 plus Cantonese at about $15 per million characters, roughly <b>$0.70 per language for an hour's talk</b> (~). That is D3.</p>
+  </div>
+
+</section>
+
+<!-- 03 -->
+<section class="block" id="web">
+  <div class="sec-head"><span class="n">03</span><h2>Mobile web: the Listen sheet gains a voice</h2><span class="pill acc">mobile web</span></div>
+  <p class="sec-sub">Everything else in SW-885 stays the same: the Listen button, the strip, the D9 catch-up, the Wake Lock. The changes are in the voice list and in two new failure states. "SlideWorks voice" is the name (D6).</p>
+  <div class="states" id="webGrid"></div>
+</section>
+
+<!-- 04 -->
+<section class="block" id="app">
+  <div class="sec-head"><span class="n">04</span><h2>The app's audience mode</h2><span class="pill acc">native app</span></div>
+  <p class="sec-sub">The app has the same gap: Android's TextToSpeech has no voice until its voice data is installed, and some phones ship an engine with no Thai at all. The app offers the same SlideWorks voice. Server audio is plain media, so it fits the background audio and Now Playing that SW-885 already needs.</p>
+  <div class="states" id="appGrid"></div>
+</section>
+
+<!-- 05 -->
+<section class="block" id="admin">
+  <div class="sec-head"><span class="n">05</span><h2>/admin/translations › Voices</h2><span class="pill acc">admin</span><span class="pill grey">SW-943's page, a new tab</span></div>
+  <p class="sec-sub">SW-943 put translation models on <code>/admin/translations</code>, with a placeholder tab for SW-884's speech models. Voices goes beside them. As with translation, which voice models exist is server config, and the page shows their health and lets an admin hear them. Tabs and numbers are illustrative.</p>
+  <div class="adm">
+  <div class="card browser appwrap">
+    <div class="chrome"><div class="dots"><i></i><i></i><i></i></div><div class="url">slides.example.org/admin/translations?tab=voices</div></div>
+    <div class="app">
+      <div class="topbar"><div class="in">
+        <span class="brand"><i></i>SlideWorks</span>
+        <div class="nav"><span>Decks</span><span>Templates</span><span class="on">Admin</span></div>
+        <span class="avatar" title="Joel"></span>
+      </div></div>
+      <div class="appmain" id="admMain">
+        <div class="subnav"><span class="lbl">Admin</span><span class="tab">People</span><span class="tab on">Translations</span></div>
+        <div class="ptitle"><h3>Translations</h3><span class="sub">Which models translate and read the talk aloud.</span></div>
+        <div class="utabs" role="tablist">
+          <button role="tab">Models and pairs</button><button role="tab">Try it</button><button role="tab">Speech to text<small>SW-884</small></button><button role="tab" class="on">Voices<small>SW-982</small></button>
+        </div>
+                <div class="panel">
+          <div class="ph"><h4>Voice engines</h4><span class="help">Set on the server. Adding or removing one is a deploy, not a setting here.</span></div>
+          <div class="pb">
+            <div class="models">
+              <div class="model" style="--mc:#7a5af8">
+                <div class="mh"><b>Open voices</b><span class="id">local</span><span class="st"><span class="pill ok"><span class="dot"></span>Reachable</span></span></div>
+                <div class="mstats">
+                  <div class="mstat"><div class="l">p50 · 1 h</div><div class="v">0.42<small> s</small></div></div>
+                  <div class="mstat"><div class="l">p95 · 1 h</div><div class="v">1.10<small> s</small></div></div>
+                  <div class="mstat"><div class="l">Lines · 1 h</div><div class="v">214</div></div>
+                  <div class="mstat"><div class="l">Listening now</div><div class="v">3</div></div>
+                </div>
+                <dl class="mfacts"><dt>Languages</dt><dd>vi, id, zh, ja, ko, en, es, fr, de, it, pt, nl</dd><dt>Runs at</dt><dd><code>http://voices:8080</code> · sherpa-onnx · ~1.2 GB RAM · timeout 2,000 ms</dd><dt>Licence</dt><dd>Per voice, listed below</dd></dl>
+              </div>
+              <div class="model" style="--mc:#0284c7">
+                <div class="mh"><b>Azure Speech</b><span class="id">cloud</span><span class="st"><span class="pill ok"><span class="dot"></span>Reachable</span></span></div>
+                <div class="mstats">
+                  <div class="mstat"><div class="l">p50 · 1 h</div><div class="v">0.38<small> s</small></div></div>
+                  <div class="mstat"><div class="l">p95 · 1 h</div><div class="v">0.90<small> s</small></div></div>
+                  <div class="mstat"><div class="l">Lines · 1 h</div><div class="v">688</div></div>
+                  <div class="mstat"><div class="l">Chars · month</div><div class="v">1.9<small> M</small></div></div>
+                </div>
+                <dl class="mfacts"><dt>Languages</dt><dd>th, ms, yue (only where no open voice is set)</dd><dt>Runs at</dt><dd>southeastasia · key from <code>SLIDEWORKS_AZURE_SPEECH_KEY</code></dd><dt>Cost</dt><dd>~$28 this month at $15 per million characters</dd></dl>
+              </div>
+            </div>
+            <div class="fromcfg">From <code>Speech:Voices</code> · health checked every 30 s · figures cover the last hour · numbers are made up</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h4>Voice per language</h4><span class="help">Used when a guest's phone has no voice, or the guest picks the SlideWorks voice.</span></div>
+          <div class="pb">
+            <div class="tabwrap"><table class="ledger">
+              <thead><tr><th>Language</th><th>Voice</th><th>Engine</th><th>Licence</th><th>Listening now</th><th style="text-align:right">Sample</th></tr></thead>
+              <tbody>
+                <tr><td><span class="vlang">ไทย Thai</span></td><td>th-TH-PremwadeeNeural</td><td><span class="pill acc">Azure</span></td><td>cloud service</td><td>2</td><td style="text-align:right"><button class="playbtn">▶ Play</button></td></tr>
+                <tr><td><span class="vlang">Bahasa Melayu</span></td><td>ms-MY-YasminNeural</td><td><span class="pill acc">Azure</span></td><td>cloud service</td><td>0</td><td style="text-align:right"><button class="playbtn">▶ Play</button></td></tr>
+                <tr><td><span class="vlang">粵語 Cantonese</span></td><td>zh-HK-HiuMaanNeural</td><td><span class="pill acc">Azure</span></td><td>cloud service</td><td>1</td><td style="text-align:right"><button class="playbtn">▶ Play</button></td></tr>
+                <tr><td><span class="vlang">Tiếng Việt</span></td><td>vi_VN-vais1000-medium</td><td><span class="pill later">open</span></td><td>Piper commercial list · CC BY 4.0 data</td><td>3</td><td style="text-align:right"><button class="playbtn">▶ Play</button></td></tr>
+                <tr><td><span class="vlang">Bahasa Indonesia</span></td><td>Supertonic 3</td><td><span class="pill later">open</span></td><td>OpenRAIL-M</td><td>0</td><td style="text-align:right"><button class="playbtn">▶ Play</button></td></tr>
+                <tr><td><span class="vlang">中文 · 日本語 · 한국어 · 7 more</span></td><td>Piper / MeloTTS voices</td><td><span class="pill later">open</span></td><td>MIT / Piper commercial list</td><td>0</td><td style="text-align:right"><button class="playbtn">Show 10</button></td></tr>
+              </tbody>
+            </table></div>
+            <p class="note" style="margin-top:8px">The sample is one fixed sentence per language, synthesised when the page opens. Rows come from config; a language with no row has no SlideWorks voice and guests see SW-885 D13.</p>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h4>Try it</h4><span class="help">Hear any configured voice, including ones not used live.</span></div>
+          <div class="pb" style="display:grid;gap:10px">
+            <div class="defrow"><select class="sel" aria-label="Language"><option>ไทย Thai</option></select><select class="sel" aria-label="Voice"><option>VachanaTTS (open, not live: provenance unchecked)</option><option>th-TH-PremwadeeNeural (Azure, live)</option></select></div>
+            <textarea class="sel" rows="2" style="width:100%">การเปลี่ยนแปลงที่เล็กลงได้รับการรีวิวภายในวันเดียวกัน</textarea>
+            <div class="defrow"><button class="playbtn">▶ Synthesise and play</button><span class="wave"><i style="height:6px"></i><i style="height:12px"></i><i style="height:16px"></i><i style="height:9px"></i><i style="height:14px"></i><i style="height:7px"></i><i style="height:11px"></i><i style="height:15px"></i><i style="height:8px"></i></span><span class="note">0.61 s to synthesise · 3.4 s of audio · 14 KB</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  </div>
+</section>
+
+<!-- 06 -->
+<section class="block" id="flow">
+  <div class="sec-head"><span class="n">06</span><h2>How a line becomes audio</h2></div>
+    <p class="sec-sub">Translation already happens once per line per language on the server (SW-943). The voice is the same idea: one synthesis per line per language, and only for languages where at least one guest is listening with the SlideWorks voice. Guests whose phone has a voice are unaffected.</p>
+  <div class="card diagram">
+    <svg viewBox="0 -16 1000 376" role="img" aria-label="Speaker phone to server translation, then a voice container, an audio cache, and guest phones that fetch each line's audio">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a93a3"/></marker>
+        <marker id="arv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7a5af8"/></marker></defs>
+      <g id="f-speaker"><title>Sam's phone, SW-884</title><rect x="10" y="40" width="170" height="110" rx="12" fill="#f6f8ff" stroke="#c7d3fb"/><text x="24" y="64" font-size="11.5" font-weight="700" fill="#1e3a8a" letter-spacing="1">SAM'S PHONE</text>
+        <text x="24" y="90" font-size="13" font-weight="600" fill="#1b2230">Speech to text</text><text x="24" y="108" font-size="11.5" fill="#5b6474">SW-884, on the phone</text><text x="24" y="132" font-size="11.5" fill="#5b6474">sends text, not audio</text></g>
+      <path d="M180 95H226" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/>
+      <g id="f-server"><title>SlideWorks server</title><rect x="228" y="14" width="452" height="332" rx="12" fill="#fff" stroke="#d3d8e0"/><text x="244" y="38" font-size="11.5" font-weight="700" fill="#5b6474" letter-spacing="1">SLIDEWORKS SERVER (DOCKER COMPOSE)</text>
+        <rect x="244" y="54" width="200" height="66" rx="8" fill="#f3f0ff" stroke="#c4b5fd"/><text x="258" y="78" font-size="13" font-weight="600" fill="#1b2230">DeckHub + ITranslator</text><text x="258" y="96" font-size="11.5" fill="#5b6474">SW-884 / SW-943, as built</text><text x="258" y="111" font-size="11.5" fill="#5b6474">one translation per language</text>
+        <rect x="244" y="150" width="200" height="82" rx="8" fill="#fff" stroke="#7a5af8" stroke-width="1.5"/><text x="258" y="174" font-size="13" font-weight="600" fill="#1b2230">ISpeechVoice (new)</text><text x="258" y="192" font-size="11.5" fill="#5b6474">only languages with a</text><text x="258" y="207" font-size="11.5" fill="#5b6474">SlideWorks-voice listener</text><text x="258" y="222" font-size="11.5" fill="#5b6474">single-flight per line</text>
+        <rect x="244" y="262" width="200" height="66" rx="8" fill="#f0f2f5"/><text x="258" y="286" font-size="13" font-weight="600" fill="#1b2230">Audio cache</text><text x="258" y="304" font-size="11.5" fill="#5b6474">per talk, last ~2 min</text><text x="258" y="319" font-size="11.5" fill="#5b6474">memory only, never stored</text>
+        <path d="M344 120V148M344 232V260" stroke="#7a5af8" stroke-width="1.5" marker-end="url(#arv)"/>
+        <rect x="476" y="140" width="188" height="66" rx="8" fill="#fbfaff" stroke="#c4b5fd" stroke-dasharray="4 3"/><text x="490" y="162" font-size="13" font-weight="600" fill="#1b2230">voices container</text><text x="490" y="180" font-size="11.5" fill="#5b6474">sherpa-onnx, open voices, CPU</text><text x="490" y="195" font-size="11.5" fill="#5b6474">internal only, optional</text><rect x="476" y="214" width="188" height="40" rx="8" fill="#f0f9ff" stroke="#7dd3fc" stroke-dasharray="4 3"/><text x="490" y="232" font-size="12" font-weight="600" fill="#1b2230">cloud voice (D3)</text><text x="490" y="247" font-size="11" fill="#5b6474">th, ms, yue · optional key</text>
+        <path d="M444 176H474" stroke="#7a5af8" stroke-width="1.5" marker-end="url(#arv)"/><path d="M444 218C458 218 460 232 474 232" stroke="#0284c7" stroke-width="1.5" fill="none" marker-end="url(#arv)"/>
+        <rect x="476" y="54" width="188" height="66" rx="8" fill="#fbfaff" stroke="#d3d8e0" stroke-dasharray="4 3"/><text x="490" y="78" font-size="13" font-weight="600" fill="#1b2230">llama-server ×2</text><text x="490" y="96" font-size="11.5" fill="#5b6474">SW-943 translation models</text><text x="490" y="111" font-size="11.5" fill="#5b6474">unchanged</text>
+        <path d="M444 87H474" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/></g>
+      <g id="f-phone-voice"><title>Guest with a phone voice</title><rect x="740" y="30" width="250" height="110" rx="12" fill="#f6f8ff" stroke="#c7d3fb"/><text x="754" y="54" font-size="11.5" font-weight="700" fill="#1e3a8a" letter-spacing="1">GUEST · PHONE HAS A VOICE</text>
+        <text x="754" y="80" font-size="13" font-weight="600" fill="#1b2230">SW-885 as designed</text><text x="754" y="98" font-size="11.5" fill="#5b6474">text in, speechSynthesis or</text><text x="754" y="113" font-size="11.5" fill="#5b6474">native TTS reads it</text><text x="754" y="130" font-size="11.5" fill="#5b6474">no audio from the server</text></g>
+      <path d="M444 62C470 62 470 -4 520 -4H690C716 -4 716 76 738 76" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/><text x="540" y="-8" font-size="11" fill="#5b6474">caption (text), as SW-884</text>
+      <g id="f-sw-voice"><title>Guest using the SlideWorks voice</title><rect x="740" y="190" width="250" height="140" rx="12" fill="#f6f3ff" stroke="#c4b5fd"/><text x="754" y="214" font-size="11.5" font-weight="700" fill="#5b21b6" letter-spacing="1">GUEST · SLIDEWORKS VOICE</text>
+        <text x="754" y="240" font-size="13" font-weight="600" fill="#1b2230">Same speech queue (D9)</text><text x="754" y="258" font-size="11.5" fill="#5b6474">caption arrives as text,</text><text x="754" y="273" font-size="11.5" fill="#5b6474">then GET its audio and play</text><text x="754" y="288" font-size="11.5" fill="#5b6474">skipped lines are never fetched</text><text x="754" y="314" font-size="11.5" fill="#5b6474">web: one reused &lt;audio&gt; element</text></g>
+      <path d="M444 296C620 300 680 280 738 272" stroke="#7a5af8" stroke-width="1.5" fill="none" marker-end="url(#arv)"/><text x="466" y="318" font-size="11" fill="#5b21b6">GET …/speech/th/42</text><text x="466" y="333" font-size="11" fill="#5b21b6">~6–27 KB a line</text>
+    </svg>
+  </div>
+  <div class="figgrid">
+    <div class="card fig">
+      <h3>Time behind Sam, per line (~)</h3>
+      <svg viewBox="0 0 520 170" role="img" aria-label="Latency: phone voice versus SlideWorks voice">
+        <g font-size="11" fill="#5b6474">
+          <text x="0" y="30" font-weight="600" fill="#1b2230">Phone voice</text>
+          <text x="0" y="90" font-weight="600" fill="#1b2230">SlideWorks voice</text>
+        </g>
+        <g id="lt-phone"><title>Phone voice: STT final plus translation</title>
+          <rect x="120" y="16" width="100" height="22" rx="4" fill="#c7d3fb"/><text x="126" y="31" font-size="10.5" fill="#1e3a8a">STT final 0.5–1.5 s</text>
+          <rect x="222" y="16" width="100" height="22" rx="4" fill="#ddd6fe"/><text x="228" y="31" font-size="10.5" fill="#4c1d95">translate 0.5–1.5 s</text>
+          <rect x="324" y="16" width="20" height="22" rx="4" fill="#bbf7d0"/><text x="350" y="31" font-size="10.5" fill="#166534">speaks: ~1.5–3 s behind</text></g>
+        <g id="lt-sw"><title>SlideWorks voice adds synthesis and fetch</title>
+          <rect x="120" y="76" width="100" height="22" rx="4" fill="#c7d3fb"/><text x="126" y="91" font-size="10.5" fill="#1e3a8a">STT final 0.5–1.5 s</text>
+          <rect x="222" y="76" width="100" height="22" rx="4" fill="#ddd6fe"/><text x="228" y="91" font-size="10.5" fill="#4c1d95">translate 0.5–1.5 s</text>
+          <rect x="324" y="76" width="60" height="22" rx="4" fill="#fde68a"/><text x="326" y="91" font-size="10" fill="#92400e">synth</text>
+          <rect x="386" y="76" width="18" height="22" rx="4" fill="#fed7aa"/>
+          <rect x="406" y="76" width="20" height="22" rx="4" fill="#bbf7d0"/><text x="330" y="118" font-size="10.5" fill="#92400e">+ synth ~0.3–1.5 s, fetch ~0.1–0.3 s</text><text x="330" y="134" font-size="10.5" fill="#166534">plays: ~2–4.5 s behind</text></g>
+        <line x1="120" y1="150" x2="500" y2="150" stroke="#d3d8e0"/><text x="120" y="166" font-size="10" fill="#8a93a3">Sam finishes the phrase</text>
+      </svg>
+      <p class="figcap">Within the D9 budget: a line still plays well before the next one is usually final. If Sam talks fast, D9's skip applies as it does today. Synthesis is Piper-class at RTF 0.15–0.35 on one core for a 2–9 s line, less with threads; starting it the moment translation lands (not when the guest asks) hides most of it.</p>
+    </div>
+    <div class="card fig">
+      <h3>Venue Wi-Fi for 40 guests listening in Thai (~)</h3>
+      <svg viewBox="0 0 520 170" role="img" aria-label="Bandwidth: server audio versus on-device model download">
+        <g id="bw-a"><title>Option A, server audio</title><text x="0" y="34" font-size="11" font-weight="600" fill="#1b2230">A · server audio</text>
+          <rect x="150" y="20" width="6" height="22" rx="2" fill="#16a34a"/><text x="164" y="35" font-size="10.5" fill="#166534">~15 KB × 40 guests ≈ 0.6 MB a line, ~0.15 MB/s</text></g>
+        <g id="bw-b"><title>Option B, on-device model</title><text x="0" y="84" font-size="11" font-weight="600" fill="#1b2230">B · model download</text>
+          <rect x="150" y="70" width="360" height="22" rx="2" fill="#dc2626" opacity=".85"/><text x="158" y="85" font-size="10.5" fill="#fff">~60 MB × 40 guests ≈ 2.4 GB, mostly in the first minutes</text></g>
+        <text x="0" y="126" font-size="10.5" fill="#5b6474">An hour-long talk with a line every ~4 s is ~900 lines: A sends</text>
+        <text x="0" y="142" font-size="10.5" fill="#5b6474">~14 MB to each listener over the hour, spread evenly. B front-loads</text>
+        <text x="0" y="158" font-size="10.5" fill="#5b6474">~60 MB each, exactly when the talk starts and everyone joins.</text>
+      </svg>
+      <p class="figcap">A Piper "medium" voice is 61–75 MB. Audio: a 2–9 s line is ~6–27 KB as Opus at 24 kb/s (Xiph), a little more as MP3.</p>
+    </div>
+  </div>
+  <div class="mcp2">
+    <div class="card">
+      <h3>Contracts (proposed, for the plan to confirm)</h3>
+<pre class="code"><span class="c">// guest → hub: SW-885's message gains the voice</span>
+SetListening({ listening: <span class="k">true</span>, voice: <span class="s">"server"</span> })   <span class="c">// or "phone"</span>
+
+<span class="c">// guest → server, per line it is about to play</span>
+GET /api/live/{code}/speech/{lang}/{seq}
+  200 audio/mpeg   <span class="c">// ready, or synthesised now (single-flight)</span>
+  404              <span class="c">// no voice for {lang}: skip the line</span>
+  504              <span class="c">// slower than Speech:Timeout: skip the line</span>
+
+<span class="c">// server config, like SW-943's Translation:Models</span>
+Speech:Voices: [
+  { id: "open",  adapter: "sherpa", endpoint: "http://voices:8080",
+    languages: { vi: "vi_VN-vais1000-medium", id: "supertonic-3", … } },
+  { id: "azure", adapter: "azure", region: "southeastasia",
+    languages: { th: "th-TH-PremwadeeNeural", ms: "ms-MY-YasminNeural", yue: "zh-HK-HiuMaanNeural" } } ]</pre>
+      <p>The server starts synthesising a language's lines as soon as they are translated, but only while that language has a guest with <code>voice: "server"</code>. With nobody on it, nothing runs. A GET for a line not yet done waits on the same job rather than starting another.</p>
+    </div>
+    <div class="card">
+      <h3>Things to check during planning</h3>
+      <ul class="checks">
+        <li><b>Playback on web:</b> play every line through <b>one reused <code>&lt;audio&gt;</code> element</b> started by the Start tap. Safari suspends Web Audio in the background, but an <code>&lt;audio&gt;</code> element keeps playing (WebKit 261554, 198277). Whether JS may <b>start a new line</b> while an iPhone is locked is unknown: test on a device before promising screen-off listening on web. D12's Wake Lock stays.</li>
+        <li><b>Re-arming:</b> iOS can leave audio "interrupted" after a call or a focus change (WebKit 273511, 276016). Watch for it and show Resume, as D12 does.</li>
+        <li><b>Format:</b> MP3 or AAC plays everywhere. Opus is smaller; check Safari before choosing it.</li>
+        <li><b>App, and a risk for SW-885:</b> developers report AVSpeechSynthesizer pausing when the screen locks (Apple forum 849627). SW-885's locked-screen listening (D17) may need server-style audio played as media anyway. Check before SW-885 is planned.</li>
+        <li><b>Android voice check:</b> treat a listed voice as unconfirmed. Count, per language and platform, how often guests switch from the phone voice to the SlideWorks voice after Try. That's the gap data nobody publishes.</li>
+        <li><b>Self-hosting:</b> both engines are optional. With neither, SW-885 D13 is unchanged. docs/self-hosting.md gets a section.</li>
+        <li><b>Metrics:</b> per call, engine, voice, language, characters, synthesis ms and outcome to VictoriaMetrics, as SW-943 does.</li>
+      </ul>
+    </div>
+  </div>
+
+</section>
+
+<!-- 07 -->
+<section class="block" id="models">
+  <div class="sec-head"><span class="n">07</span><h2>Which models, for which languages</h2></div>
+    <p class="sec-sub">Per language: the open voice I'd start with, candidates whose licence or data isn't clear, and the cloud fallback. "Clean" means the code and weights licences allow commercial use and the training data is stated. Every model card should be re-read before it ships.</p>
+  <div class="tblscroll"><table class="ltbl">
+    <thead><tr><th>Language</th><th>Gap risk</th><th>Open voice, clean</th><th>Open, unclear provenance</th><th>Cloud (Azure / Google)</th></tr></thead>
+    <tbody>
+      <tr class="gap"><td><b>ไทย Thai</b></td><td class="m">high</td><td class="n">none found</td><td>VachanaTTS (Piper ONNX, MIT tag, base model and data not stated) · KhanomTan v1.1 (Apache, Coqui, TSync data licence unknown, no ONNX)</td><td class="y">both</td></tr>
+      <tr class="gap"><td><b>Bahasa Melayu</b></td><td class="m">high</td><td class="n">none found</td><td>MMS <code>zlm</code> is non-commercial · mesolitica VITS has no licence</td><td class="y">Azure neural; Google Standard/WaveNet only</td></tr>
+      <tr class="gap"><td><b>粵語 Cantonese</b></td><td class="m">high on Android</td><td class="n">none found</td><td>canto-tts-nano (Apache, 0.1B, ONNX, CPU-first; training data private) · bert-vits2-cantonese (MIT tag, data unknown)</td><td class="y">both (zh-HK / yue-HK)</td></tr>
+      <tr class="gap"><td><b>Tiếng Việt</b></td><td class="m">medium</td><td class="y">Piper vi_VN-vais1000 (on Piper's commercial-use list; data CC BY 4.0)</td><td>KorvaTTS (Apache, 256 MB)</td><td class="y">both</td></tr>
+      <tr class="gap"><td><b>Bahasa Indonesia</b></td><td class="m">medium</td><td>Supertonic 3 (MIT code, OpenRAIL-M weights; repo archived)</td><td>Piper id voice, not on the commercial-use list</td><td class="y">both</td></tr>
+      <tr><td><b>中文 Mandarin</b> (zh-Hans; zh-TW voice for 繁中)</td><td class="s">low</td><td class="y">Piper zh_CN-chaowen · MeloTTS (MIT)</td><td>—</td><td class="y">both</td></tr>
+      <tr><td><b>日本語</b></td><td class="s">low</td><td class="y">MeloTTS (MIT) · Supertonic 3</td><td>Kokoro ja (Apache, graded C+)</td><td class="y">both</td></tr>
+      <tr><td><b>한국어</b></td><td class="s">low</td><td class="y">MeloTTS (MIT) · Supertonic 3</td><td>—</td><td class="y">both</td></tr>
+      <tr><td><b>en es fr de it pt nl</b></td><td class="s">low</td><td class="y">Piper voices on its commercial-use list (de, es, fr, it, nl, pt) · MeloTTS / Kokoro for en</td><td>Voices fine-tuned from lessac carry its Blizzard data licence</td><td class="y">both</td></tr>
+    </tbody>
+  </table></div>
+  <div class="mcp2">
+    <div class="card">
+      <h3>Ruled out</h3>
+      <ul class="checks">
+        <li><b>Meta MMS-TTS:</b> covers th, vi, id, ms, ko, but the weights are CC-BY-NC.</li>
+        <li><b>XTTS-v2, F5-TTS:</b> non-commercial weights. Coqui has shut down.</li>
+        <li><b>Kokoro-82M</b> as a main voice: Apache, but no th/ms/vi/id/ko, and RTF 2.8–7.6 on a Pi 4.</li>
+        <li><b>Chatterbox multilingual</b> (has ms): 500M, weights licence not stated, unmaintained.</li>
+        <li><b>Qwen3-TTS 0.6B:</b> Apache, but no th/ms/vi/id/yue and GPU-class.</li>
+        <li><b>AWS Polly:</b> no th, ms, vi or id.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Running them</h3>
+      <p><b>sherpa-onnx</b> (Apache-2.0) runs VITS/Piper, Supertonic, Kokoro and Matcha voices on CPU in one process, which suits one voice container. Piper's own runtime is now GPL-3.0 (OHF-Voice/piper1-gpl) and its pronunciation step uses GPL espeak-ng; in a separate container reached over HTTP, that stays out of SlideWorks' MIT code. Piper's Thai step (TLTK, Python) and MeloTTS need checking for whether they fit the same container.</p>
+      <p><b>Cost on CPU:</b> Piper needs ~0.35 of a Ryzen 7 5700X core to keep up with speech (Picovoice), RTF ~0.15 on an i7-1255U. A 2–9 s line is ~0.3–3 s of one core before threading; the host's numbers decide the real figure.</p>
+    </div>
+  </div>
+
+</section>
+
+<!-- 08 -->
+<section class="block" id="questions">
+  <div class="sec-head"><span class="n">08</span><h2>Decisions</h2></div>
+  <p class="sec-sub">All eight answered on 28 Nov 2026, each as recommended, and recorded on SW-982 as D1–D8. The screens above already follow them.</p>
+  <div class="card tblwrap" style="padding:4px 8px;margin-bottom:18px"><table class="atbl"><thead><tr><th>Q</th><th>Question</th><th>Answer</th><th>On SW-982</th></tr></thead><tbody><tr><td class="m">Q1</td><td>Where the fallback voice runs</td><td>On the SlideWorks server: one synthesis per line per language; guests fetch each line&#x27;s audio</td><td class="m">D1</td></tr><tr><td class="m">Q2</td><td>When it is offered</td><td>Picked for the guest when the phone has no voice; otherwise a second choice under the phone&#x27;s voice</td><td class="m">D2</td></tr><tr><td class="m">Q3</td><td>Thai, Malay and Cantonese</td><td>Open voices where the licence is clean (vi, id, zh, ja, ko, European); a cloud voice (Azure) behind the same seam for th, ms and yue, optional config for self-hosters; unclear open models only in admin Try it until their provenance is checked</td><td class="m">D3</td></tr><tr><td class="m">Q4</td><td>When the server synthesises</td><td>Only while a language has at least one guest on the SlideWorks voice, from the next line</td><td class="m">D4</td></tr><tr><td class="m">Q5</td><td>How audio reaches the guest</td><td>The caption arrives as text; the guest GETs that line&#x27;s audio when it is next to play, through one audio context unlocked by Start</td><td class="m">D5</td></tr><tr><td class="m">Q6</td><td>Name in the Listen sheet</td><td>&quot;SlideWorks voice&quot;</td><td class="m">D6</td></tr><tr><td class="m">Q7</td><td>Admin page</td><td>A read-mostly Voices tab on /admin/translations: models from config, health and speed, a sample per language, Try it</td><td class="m">D7</td></tr><tr><td class="m">Q8</td><td>Failure mid-talk</td><td>Skip that line; after 2 misses in a row, say so in the reserved skip row; carry on with the next line that has audio</td><td class="m">D8</td></tr></tbody></table></div>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const STILL = /[?&]still\b/.test(location.search);
+  const N = 6;
+  const EN = {
+    deck: 'Shipping smaller changes',
+    's1.kick': 'Engineering all-hands · Nov 2026',
+    's2.st': 'Small changes are *easier to review*, easier to ship, and easier to undo.',
+    's3.kick': 'Why it matters', 's3.h': 'Three things get better',
+    's3.c1t': 'Faster reviews', 's3.c1b': 'A 200-line change gets reviewed the same day.',
+    's3.c2t': 'Safer releases', 's3.c2b': 'Fewer changes at once, so less to roll back.',
+    's3.c3t': 'Quicker learning', 's3.c3b': 'Users see the work sooner and tell us sooner.',
+    's4.kick': 'Poll', 's4.h': 'How big was your last merge request?',
+    's4.o1': 'Under 100 lines', 's4.o2': '100 to 500 lines', 's4.o3': 'Over 500 lines',
+    's5.kick': 'Where to start', 's5.h': 'Three habits to try this sprint',
+    's5.n1': 'Slice by what a user can do', 's5.n2': 'Hide unfinished work behind a flag', 's5.n3': 'Merge to main every day',
+    's6.kick': 'Thank you', 's6.h': 'Questions?',
+  };
+  const TR = {
+    th: {
+      deck: 'ส่งมอบการเปลี่ยนแปลงที่เล็กลง',
+      's1.kick': 'ประชุมรวมทีมวิศวกรรม · พ.ย. 2026',
+      's2.st': 'การเปลี่ยนแปลงเล็กๆ *รีวิวง่ายกว่า* ส่งง่ายกว่า และย้อนกลับง่ายกว่า',
+      's3.kick': 'ทำไมจึงสำคัญ', 's3.h': 'สามสิ่งที่ดีขึ้น',
+      's3.c1t': 'รีวิวเร็วขึ้น', 's3.c1b': 'การเปลี่ยนแปลง 200 บรรทัดได้รับการรีวิวภายในวันเดียวกัน',
+      's3.c2t': 'ปล่อยงานปลอดภัยขึ้น', 's3.c2b': 'เปลี่ยนทีละน้อย จึงมีสิ่งที่ต้องย้อนกลับน้อยลง',
+      's3.c3t': 'เรียนรู้ได้เร็วขึ้น', 's3.c3b': 'ผู้ใช้เห็นงานเร็วขึ้น และบอกเราได้เร็วขึ้น',
+      's4.kick': 'โพล', 's4.h': 'Merge request ล่าสุดของคุณใหญ่แค่ไหน?',
+      's4.o1': 'น้อยกว่า 100 บรรทัด', 's4.o2': '100 ถึง 500 บรรทัด', 's4.o3': 'มากกว่า 500 บรรทัด',
+      's5.kick': 'เริ่มจากตรงไหน', 's5.h': 'สามนิสัยที่ลองได้ในสปรินต์นี้',
+      's5.n1': 'แบ่งงานตามสิ่งที่ผู้ใช้ทำได้', 's5.n2': 'ซ่อนงานที่ยังไม่เสร็จไว้หลัง feature flag', 's5.n3': 'Merge เข้า main ทุกวัน',
+      's6.kick': 'ขอบคุณ', 's6.h': 'มีคำถามไหม?',
+    },
+    ja: {
+      deck: '変更を小さく出荷する',
+      's1.kick': 'エンジニアリング全体会議 · 2026年11月',
+      's2.st': '小さな変更は*レビューしやすく*、出荷しやすく、元に戻しやすい。',
+      's3.kick': 'なぜ重要か', 's3.h': '3つのことが良くなる',
+      's3.c1t': 'レビューが速くなる', 's3.c1b': '200行の変更なら、その日のうちにレビューされます。',
+      's3.c2t': 'リリースが安全になる', 's3.c2b': '一度に変える量が少ないので、戻す量も少なくなります。',
+      's3.c3t': '学びが速くなる', 's3.c3b': 'ユーザーが早く成果を見て、早く反応をくれます。',
+      's4.kick': 'アンケート', 's4.h': '直近のマージリクエストの大きさは?',
+      's4.o1': '100行未満', 's4.o2': '100〜500行', 's4.o3': '500行超',
+      's5.kick': 'どこから始めるか', 's5.h': '今スプリントで試す3つの習慣',
+      's5.n1': 'ユーザーができることで分割する', 's5.n2': '未完成の作業はフラグで隠す', 's5.n3': '毎日 main にマージする',
+      's6.kick': 'ありがとうございました', 's6.h': '質問はありますか?',
+    },
+  };
+  TR['zh-Hant'] = {
+    deck: '把變更做小再發佈',
+    's1.kick': '工程全體大會 · 2026年11月',
+    's2.st': '小的變更*更容易審查*、更容易發佈，也更容易撤回。',
+    's3.kick': '為什麼重要', 's3.h': '三件事會變好',
+    's3.c1t': '審查更快', 's3.c1b': '200 行的變更當天就能審查完。',
+    's3.c2t': '發佈更安全', 's3.c2b': '一次改得少，要撤回的也少。',
+    's3.c3t': '學得更快', 's3.c3b': '使用者更早看到成果，也更早回饋。',
+    's4.kick': '投票', 's4.h': '你最近一次合併請求有多大？',
+    's4.o1': '少於 100 行', 's4.o2': '100 到 500 行', 's4.o3': '超過 500 行',
+    's5.kick': '從哪裡開始', 's5.h': '這個衝刺可以試的三個習慣',
+    's5.n1': '依使用者能做的事切分工作', 's5.n2': '用功能旗標隱藏未完成的工作', 's5.n3': '每天合併到 main',
+    's6.kick': '謝謝', 's6.h': '有問題嗎？',
+  };
+  const LANGS = [
+    { id: 'en', chip: 'EN', name: 'English', sub: "Sam's language" },
+    { id: 'th', chip: 'ไทย', name: 'ไทย', sub: 'Thai' },
+    { id: 'ja', chip: '日本語', name: '日本語', sub: 'Japanese' },
+    { id: 'zh-Hant', chip: '繁中', name: '繁體中文', sub: 'Traditional Chinese' },
+  ];
+  const L = (id) => LANGS.find(l => l.id === id);
+  const TITLES = ['Title', 'Statement', 'Three things', 'Poll', 'Habits', 'Questions'];
+  const NOTES = [
+    'Welcome. Say who you are and why this talk.',
+    'Pause after this line. Let it land.',
+    'Ask: when did a big change last bite you? Then the three cards.',
+    'Wait for about 30 answers before showing the bars.',
+    'Pick one habit, not three. <b>Merge daily</b> is the easy win.',
+    'Take questions. Repeat each one for the room.',
+  ];
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const t = (lang) => (k) => {
+    const v = (lang !== 'en' && TR[lang] && TR[lang][k] != null) ? TR[lang][k] : EN[k];
+    return esc(v).replace(/\*(.+?)\*/g, '<em>$1</em>');
+  };
+  function slideHTML(i, lang) {
+    const T = t(lang);
+    const foot = '<div class="foot"><span>' + (i + 1) + ' / ' + N + ' · ' + T('deck') + ' · Sam Rivera</span><span></span></div><div class="sprog" style="width:' + ((i + 1) / N * 100) + '%"></div>';
+    switch (i) {
+      case 0: return '<div class="sl dark"><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div class="kick">' + T('s1.kick') + '</div><h2>' + T('deck') + '</h2><div class="sub">Sam Rivera</div></div>' + foot + '</div>';
+      case 1: return '<div class="sl"><div class="statement"><div>' + T('s2.st') + '</div></div>' + foot + '</div>';
+      case 2: return '<div class="sl"><div class="kick">' + T('s3.kick') + '</div><h3>' + T('s3.h') + '</h3><div class="cards">' + [1, 2, 3].map(n => '<div><b>' + T('s3.c' + n + 't') + '</b><span>' + T('s3.c' + n + 'b') + '</span></div>').join('') + '</div>' + foot + '</div>';
+      case 3: return '<div class="sl"><div class="kick">' + T('s4.kick') + '</div><h3>' + T('s4.h') + '</h3><div class="pollopts">' + [['o1', 18], ['o2', 21], ['o3', 8]].map(([k, v]) => '<div>' + T('s4.' + k) + '<span>' + v + '</span></div>').join('') + '</div>' + foot + '</div>';
+      case 4: return '<div class="sl"><div class="kick">' + T('s5.kick') + '</div><h3>' + T('s5.h') + '</h3><div class="cards">' + [1, 2, 3].map(n => '<div><div class="num">' + n + '</div><b>' + T('s5.n' + n) + '</b></div>').join('') + '</div>' + foot + '</div>';
+      default: return '<div class="sl dark"><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div class="kick">' + T('s6.kick') + '</div><h2>' + T('s6.h') + '</h2><div class="sub">slideworks.live/482913</div></div>' + foot + '</div>';
+    }
+  }
+  const ro = new ResizeObserver(es => es.forEach(e => { const sl = e.target.firstElementChild; if (sl) sl.style.setProperty('--s', e.contentRect.width / 960); }));
+  const frame = (i, lang, extra) => '<div class="mirror"' + (extra || '') + '><div class="frame" data-i="' + i + '" data-lang="' + lang + '"></div></div>';
+  function hydrate(root) { root.querySelectorAll('.frame[data-i]').forEach(f => { f.innerHTML = slideHTML(+f.dataset.i, f.dataset.lang); ro.observe(f); }); }
+
+  // ---------- shared phone bits ----------
+  const lock = '<svg viewBox="0 0 10 12" fill="currentColor"><path d="M2 5V3.5a3 3 0 0 1 6 0V5h.5A1.5 1.5 0 0 1 10 6.5v4A1.5 1.5 0 0 1 8.5 12h-7A1.5 1.5 0 0 1 0 10.5v-4A1.5 1.5 0 0 1 1.5 5zm1.3 0h3.4V3.5a1.7 1.7 0 0 0-3.4 0z"/></svg>';
+  const globe = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.3"/><path d="M1.8 8h12.4M8 1.7c1.8 1.9 2.6 4 2.6 6.3S9.8 12.4 8 14.3C6.2 12.4 5.4 10.3 5.4 8S6.2 3.6 8 1.7z"/></svg>';
+  const sbar = (mic, time) => '<div class="island"></div><div class="sbar"><span>' + (time || '9:41') + (mic ? '<span class="mic" title="Microphone in use"></span>' : '') + '</span><span class="ic"><b></b><i></i></span></div>';
+  const urlbar = '<div class="urlbar">' + lock + '<span>slideworks.live/482913</span></div>';
+  const homebar = '<div class="homebar"><i></i></div>';
+  const bars = (cls) => '<span class="bars ' + cls + '"><i></i><i></i><i></i><i></i></span>';
+
+  // ---------- speaker app ----------
+  // o: i, cc ('off'|'live'|'paused'|'offline'), spoken ('en'|'th'), final, partial, queued, meta, ccOpen, sheet, dialog
+  // D12: subtitles live behind a fifth action button that opens a sheet
+  function ccButton(o) {
+    const st = o.cc || 'off';
+    const lbl = { off: 'Subtitles', live: 'Live', paused: 'Paused', offline: 'Offline' }[st];
+    const ic = st === 'live' || st === 'offline' ? bars(o.partial || st === 'offline' ? 'live' : 'still') : '<span class="ccic">CC</span>';
+    return '<button type="button" class="ccb ' + st + '" data-cc="open" aria-label="Live subtitles: ' + lbl + '">' + ic + '<span>' + lbl + '</span></button>';
+  }
+  function heardLines(o) {
+    if (o.heard) return o.heard;
+    const out = [];
+    if (o.final) out.push({ l: o.spoken || 'en', t: o.final });
+    if (o.partial) out.push({ l: o.spoken || 'en', t: o.partial, pt: true });
+    return out;
+  }
+  const ltag = (l) => '<span class="ltag">' + (l === 'th' ? 'ไทย' : 'EN') + '</span>';
+  function ccSheet(o) {
+    const st = o.cc || 'live';
+    const listen = o.listen || ['en', 'th'];
+    const pill = { live: '<span class="stp live">Live</span>', paused: '<span class="stp paused">Paused</span>', offline: '<span class="stp offline">Offline</span>' }[st];
+    const hl = heardLines(o);
+    const heard = st === 'paused' ? '<div class="heard dim"><p>Nothing is heard or sent. Guests see "Sam paused subtitles".</p></div>'
+      : st === 'offline' ? '<div class="heard dim"><p>' + (o.queued || 0) + ' line' + (o.queued === 1 ? '' : 's') + ' waiting. When you\'re back, only the last 30 seconds are sent (D5).</p></div>'
+      : '<div class="heard">' + (hl.length ? hl.map(h => '<p>' + ltag(h.l) + (h.pt ? '<span class="pt">' + esc(h.t) + '</span>' : esc(h.t)) + '</p>').join('') : '<p><span class="pt">Listening…</span></p>') + '</div>';
+    const chips = '<div class="lchips">' + ['en', 'th'].map(l => '<span class="lchip' + (listen.includes(l) ? ' on' : '') + '">' + (listen.includes(l) ? '✓ ' : '') + L(l).name + '</span>').join('') + '<small>' + (listen.length > 1 ? 'Each line goes to the surer model' : 'One model: saves battery') + '</small></div>';
+    const big = '<div class="setrow sm"><div class="grow"><b>Captions on the big screen</b><small>' + (o.bigcap ? 'On: lines as heard, above the join bar' : 'Off for this deck') + '</small></div><span class="tog' + (o.bigcap ? ' on' : '') + '"></span></div>';
+    const btn = st === 'paused' ? '<button type="button" class="bigbtn violet" data-cc="resume">▶ Resume subtitles</button>' : '<button type="button" class="bigbtn amber" data-cc="pause">❚❚ Pause · off the record</button>';
+    return '<div class="sheet-dim" data-cc="close"></div><div class="sheet ccs" role="dialog" aria-label="Live subtitles"><div class="grab"></div><div class="ccs-h"><h4>Live subtitles</h4>' + pill + '</div>' +
+      '<small class="ccs-l">' + (st === 'live' ? 'Just heard' : 'Status') + '</small>' + heard +
+      '<small class="ccs-l">Listening for</small>' + chips + big +
+      (o.meta ? '<div class="ccs-m">' + o.meta + '</div>' : '') + btn + '</div>';
+  }
+  function ticker(o) {
+    if (o.cc === 'offline') return '<div class="tick off"><span class="ttag">Offline</span><span class="tt">' + (o.queued || 0) + ' lines waiting · still listening</span></div>';
+    if (o.cc !== 'live') return '';
+    const hl = heardLines(o);
+    let txt = hl.map(h => h.t).join(' ').trim();
+    if (txt.length > 46) txt = '…' + txt.slice(-46);
+    const last = hl[hl.length - 1];
+    return '<div class="tick">' + bars(o.partial ? 'live' : 'still') + '<span class="tt">' + (txt ? esc(txt) : '<span class="pt">Listening…</span>') + '</span>' + (last ? ltag(last.l) : '') + '</div>';
+  }
+  function speaker(o) {
+    const i = o.i || 0;
+    const live = o.cc === 'live' || o.cc === 'offline';
+    const nx = i + 1 < N ? 'slide ' + (i + 2) + ' · ' + TITLES[i + 1] : 'End of the deck';
+    const body = '<div class="pbody">' +
+      '<div class="s-stat"><span class="lv' + (o.cc === 'offline' ? ' off' : '') + '">' + (o.cc === 'offline' ? 'OFFLINE' : 'LIVE') + '</span><span class="sp"></span><span class="clock">12:40</span><span class="left">17:20 left</span></div>' +
+      '<div class="s-now"><span>Now ' + (i + 1) + ' / ' + N + '</span><span>' + TITLES[i] + '</span></div>' +
+      frame(i, 'en') +
+      '<div class="s-next">' + (i + 1 < N ? frame(i + 1, 'en') : '<span></span>') + '<div><small>NEXT</small><b>' + nx + '</b></div></div>' +
+      '<div class="s-notes"><small>NOTES</small>' + NOTES[i] + '</div>' +
+      ticker(o) +
+      '<div class="s-nav"><span>‹</span><span class="nx">Next</span></div>' +
+      '<div class="s-acts five"><span><i>▦</i>Slides</span><span><i>↦</i>Skip deep dives</span><span><i>■</i>Blackout</span><span><i>#</i>Join code</span>' + ccButton(o) + '</div>' +
+      '</div>';
+    return sbar(live && !o.noMic) + (o.toast || '') + body + homebar + (o.ccOpen ? ccSheet(o) : '') + (o.sheet || '') + (o.dialog || '');
+  }
+  function appScreen(inner, mic) { return sbar(mic) + inner + homebar; }
+
+  // ---------- guest (mobile web) ----------
+  const chip = (lang) => '<button type="button" class="lang" aria-label="Slide language: ' + L(lang).name + '. Change">' + globe + '<span>' + L(lang).chip + '</span><span class="car">▼</span></button>';
+  function gtop(lang) {
+    const title = lang === 'en' ? EN.deck : TR[lang].deck;
+    return '<div class="g-top"><div class="g-mark">S</div><div class="g-deck"><b>' + esc(title) + '</b><span>Sam Rivera</span></div>' + chip(lang) + '<span class="live">Live</span></div>';
+  }
+  const meta = (i) => '<div class="slidemeta"><span>Slide ' + (i + 1) + '</span><span class="prog"><i style="width:' + ((i + 1) / N * 100) + '%"></i></span><span>' + N + '</span></div>';
+  const waitCard = '<div class="wait slim"><div class="dots"><i></i><i></i><i></i></div><b>Nothing to answer yet</b></div>';
+  const rx = '<div class="rx"><span>👍</span><span>❤️</span><span>😂</span><span>😮</span><span>👏</span></div>';
+  const tabs = '<div class="tabs"><span class="on">Slide</span><span>Questions</span></div>';
+  // s: { state: 'live'|'paused'|'reconnecting'|'hidden'|'none', from, lines: [{ t, nt, pt }] , ring }
+  function subsStrip(lang, s) {
+    if (!s || s.state === 'none') return '';
+    if (s.state === 'hidden') return '<button type="button" class="subs-show" data-subs="show"><span class="cc-ic">CC</span>Show subtitles</button>';
+    const from = s.from || 'en';
+    const head = '<div class="row"><span class="cc-ic">CC</span><span>' + (lang === from ? 'Subtitles · live' : 'Subtitles · translated from ' + L(from).name) + '</span><span class="sp"></span><button type="button" data-subs="hide">Hide</button></div>';
+    if (s.state === 'paused') return '<div class="subs">' + head + '<div class="state"><i></i>Sam paused subtitles.</div></div>';
+    if (s.state === 'reconnecting') return '<div class="subs">' + head + '<div class="state"><i class="or"></i>Sam\'s phone is reconnecting. Subtitles will catch up.</div></div>';
+    const lines = (s.lines || []).slice(-2);
+    const body = lines.length ? lines.map((ln, k) => '<div class="ln' + (k < lines.length - 1 ? ' old' : '') + '">' + (ln.pt ? '<span class="pt">' + esc(ln.t) + '</span>' : esc(ln.t)) + (ln.nt ? '<span class="nt">not translated</span>' : '') + '</div>').join('') : '<div class="state"><i style="background:#a78bfa"></i>Waiting for Sam to speak…</div>';
+    return '<div class="subs' + (s.ring ? ' new-ring' : '') + '">' + head + body + '</div>';
+  }
+  function guest(o) {
+    const lang = o.lang || 'en', i = o.i || 0;
+    return sbar() + '<div class="pbody">' + gtop(lang) + frame(i, lang) + meta(i) + subsStrip(lang, o.subs) + waitCard + rx + tabs + '</div>' + urlbar;
+  }
+  function guestLand(o) {
+    const lang = o.lang || 'en', i = o.i || 0;
+    const cap = '<div class="land-cap">' + o.lines.map((l, k) => '<span' + (k < o.lines.length - 1 ? ' class="old"' : '') + '>' + esc(l) + '</span>').join('') + '</div>';
+    return frame(i, lang) + cap;
+  }
+  // ================= SW-885 =================
+  const HP = '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 10V8a5.5 5.5 0 0 1 11 0v2"/><rect x="1.8" y="9.3" width="3.2" height="4.8" rx="1.2"/><rect x="11" y="9.3" width="3.2" height="4.8" rx="1.2"/></svg>';
+  const CLOUD = '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 12.5h7a3 3 0 0 0 .4-6 4 4 0 0 0-7.7 1A2.5 2.5 0 0 0 4.5 12.5z"/></svg>';
+  const PHONE = '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="1.5" width="8" height="13" rx="2"/><path d="M7 12.2h2"/></svg>';
+  const INFO = '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6.3"/><path d="M8 7.2v4M8 4.8v.1"/></svg>';
+  const SUN = '<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>';
+
+  const VOICES = {
+    th: { name: 'Kanya', loc: 'th-TH' }, ja: { name: 'Kyoko', loc: 'ja-JP' },
+    yue: { name: 'Sin-ji', loc: 'zh-HK' }, cmn: { name: 'Mei-Jia', loc: 'zh-TW' }, en: { name: 'Samantha', loc: 'en-US' },
+  };
+  const LNAME = { th: 'ไทย', ja: '日本語', 'zh-Hant': '繁中', en: 'English' };
+
+  // ---------- the subtitle strip, with Listen ----------
+  // s: { state: live|paused|hidden|none, from, lines:[{t, pt, nt, say, next}], listen: off|on|none|resume, skipped, voice, rate }
+  function subsL(lang, s) {
+    if (!s || s.state === 'none') return '';
+    if (s.state === 'hidden') return '<button type="button" class="subs-show"><span class="cc-ic">CC</span>Show subtitles</button>';
+    const from = s.from || 'en';
+    const on = s.listen === 'on';
+    let btn = '';
+    if (s.listen === 'off') btn = '<button type="button" class="lsn" data-lsn="start">' + HP + 'Listen</button>';
+    if (s.listen === 'resume') btn = '<button type="button" class="lsn" data-lsn="start">' + HP + 'Resume</button>';
+    if (on) btn = '<button type="button" class="lsn stop" data-lsn="stop">Stop</button>';
+    const title = on ? '<span class="lstat">' + bars(s.paused ? 'still' : 'live') + 'Listening · ' + LNAME[lang] + (s.rate && s.rate !== 1 ? ' · ' + s.rate + '×' : '') + '</span>'
+      : '<span>' + (lang === from ? 'Subtitles · live' : s.listen === 'none' ? 'Subtitles · from ' + L(from).name : 'Subtitles') + '</span>';
+    const head = '<div class="row"><span class="cc-ic">CC</span>' + title + '<span class="sp"></span>' + btn + (on ? '' : '<button type="button">Hide</button>') + '</div>';
+    const skipRow = on ? '<div class="skipn' + (s.skipped ? '' : ' empty') + '"><i>↷</i>' + (s.skipped ? 'Skipped ' + s.skipped + ' line' + (s.skipped > 1 ? 's' : '') + ' to stay live' : '&nbsp;') + '</div>' : '';
+    if (s.state === 'paused') return '<div class="subs' + (on ? ' listening' : '') + '">' + head + '<div class="lnbox"><div class="state"><i></i>Sam paused subtitles.' + (on ? ' Listening picks up when they\'re back.' : '') + '</div></div>' + skipRow + '</div>';
+    const lines = s.lines || [];
+    const body = lines.length ? lines.map((ln, k) => {
+      const cls = ln.say ? ' say' : ln.next ? ' nextl' : (k < lines.length - 1 ? ' old' : '');
+      return '<div class="ln' + cls + '">' + (ln.pt ? '<span class="pt">' + esc(ln.t) + '</span>' : esc(ln.t)) + (ln.nt ? '<span class="nt">not translated</span>' : '') + '</div>';
+    }).join('') : '<div class="state"><i style="background:#a78bfa"></i>Waiting for Sam to speak…</div>';
+    const note = s.hpnote ? '<div class="hp">' + s.hpnote + '</div>' : '';
+    return '<div class="subs' + (on ? ' listening' : '') + (s.ring ? ' new-ring' : '') + '">' + head + '<div class="lnbox">' + body + '</div>' + skipRow + note + '</div>';
+  }
+  function gtopApp(lang) { return gtop(lang).replace('<span class="live">Live</span>', '<span class="live">Live</span>'); }
+  // o: { i, lang, subs, app, mini, over, compact }
+  function guestL(o) {
+    const lang = o.lang || 'th', i = o.i || 0;
+    const body = '<div class="pbody">' + gtop(lang) + frame(i, lang) + meta(i) + subsL(lang, o.subs) + (o.compact ? '' : waitCard) + rx + tabs + '</div>';
+    return sbar(false, o.time) + (o.banner || '') + body + (o.app ? (o.mini || '') + homebar : urlbar) + (o.over || '');
+  }
+  const SH = (h, sub, inner) => '<div class="sheet-dim"></div><div class="sheet" role="dialog"><div class="grab"></div><h4>' + h + '</h4>' + (sub ? '<p class="sub">' + sub + '</p>' : '') + inner + '</div>';
+  const speedSeg = (r) => '<small class="ccs-l">Speed</small><div class="seg s4">' + [0.8, 1, 1.25, 1.5].map(v => '<span' + (v === (r || 1) ? ' class="on"' : '') + '>' + v + '×</span>').join('') + '</div>';
+  const vrow = (on, b, sm, play) => '<div class="vrow' + (on ? ' on' : '') + '"><span class="rd"></span><div class="grow"><b>' + b + '</b><small>' + sm + '</small></div>' + (play ? '<span class="play">' + play + '</span>' : '') + '</div>';
+
+  const TH = ['แล้วทำไมเรื่องนี้ถึงสำคัญ?', 'การเปลี่ยนแปลงที่เล็กลงได้รับการรีวิวภายในวันเดียวกัน', 'และเมื่อมีอะไรพัง ก็มีสิ่งที่ต้องย้อนกลับน้อยกว่ามาก', 'ที่สำคัญที่สุด ผู้ใช้ได้เห็นงานเร็วขึ้นและบอกเราได้เร็วขึ้น'];
+  const ZH = ['那為什麼這很重要？', '小的變更當天就能審查完。', '出了問題時，要撤回的東西少得多。', '最重要的是，使用者更早看到成果，也更早回饋。'];
+
+  // ---------- 03 mobile web gallery ----------
+  const webSheet = SH('Listen in ไทย', 'Your phone reads each translated line aloud, about 2 seconds after Sam says it.',
+    '<small class="ccs-l">Voice</small>' + vrow(true, 'Kanya', 'ไทย · this phone\'s voice', '▶ Try') + speedSeg(1) +
+    '<div class="infobox">' + HP + '<span>Use headphones. The room can hear your phone\'s speaker.</span></div>' +
+    '<div class="infobox">' + SUN + '<span>Your screen stays on while you listen.</span></div>' +
+    '<button type="button" class="bigbtn violet">▶ Start listening</button><div class="linkrow">Listen with the screen off: get the SlideWorks app</div>');
+  const noVoiceSheet = SH('Listen in ไทย', '',
+    '<div class="warnbox"><b>This phone has no ไทย voice.</b>Chrome would read the Thai lines with an English voice, so Listen is off.</div>' +
+    '<div class="infobox">' + INFO + '<span>Add one: Settings › Text-to-speech › Preferred engine › Install voice data › ไทย. Then reopen this sheet.</span></div>' +
+    '<button type="button" class="bigbtn dis">▶ Start listening</button><button type="button" class="bigbtn ghost">Keep reading subtitles</button>');
+  const zhSheet = SH('Listen in 繁體中文', 'Traditional Chinese can be read in two spoken languages.',
+    '<small class="ccs-l">Spoken as</small>' + vrow(true, '粵語 Cantonese', 'Sin-ji · zh-HK', '▶ Try') + vrow(false, '國語 Mandarin', 'Mei-Jia · zh-TW', '▶ Try') + speedSeg(1) +
+    '<div class="infobox">' + INFO + '<span>Remembered on this phone for next time.</span></div>' +
+    '<button type="button" class="bigbtn violet">▶ Start listening</button>');
+  const lockBanner = '<div class="banner" style="top:42px">' + HP + '<span>Listening stopped when your screen locked.</span><span class="act">Resume</span></div>';
+  const thLines = (k) => [{ t: TH[k], say: true }, { t: TH[k + 1], next: true }];
+  const qrSvg = (seed0, n) => { let seed = seed0; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280; n = n || 21; let r = '';
+    const fon = (x, y) => { for (const [fx, fy] of [[0, 0], [n - 7, 0], [0, n - 7]]) { const dx = x - fx, dy = y - fy; if (dx >= 0 && dx < 7 && dy >= 0 && dy < 7) return { on: dx === 0 || dy === 0 || dx === 6 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4) }; } return null; };
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const f = fon(x, y); if (f ? f.on : rnd() > .52) r += '<rect x="' + x + '" y="' + y + '" width="1" height="1"/>'; }
+    return '<svg viewBox="-2 -2 ' + (n + 4) + ' ' + (n + 4) + '" shape-rendering="crispEdges"><rect x="-2" y="-2" width="' + (n + 4) + '" height="' + (n + 4) + '" fill="#fff"/><g fill="#0b1020">' + r + '</g></svg>'; };
+  const codebox = (s) => '<div class="codebox">' + [0, 1, 2, 3, 4, 5].map(k => '<span' + (k === s.length ? ' class="cur"' : '') + '>' + (s[k] || '') + '</span>').join('') + '</div>';
+  const keypad = '<div class="keypad">' + ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map(k => '<span' + (k ? '' : ' style="background:none"') + '>' + k + '</span>').join('') + '</div>';
+  const homeOut = '<div class="app-pad"><div class="app-logo"><span class="g-mark">S</span>SlideWorks</div>' +
+    '<div class="joincard"><h3>Join a talk</h3><p>Type the code on the big screen, or scan its QR code. No account needed.</p>' + codebox('482') + '<div class="bigbtn ghost" style="min-height:38px">▣ Scan the code</div></div>' +
+    keypad + '<div class="setrow sm"><div class="grow"><b>Presenting?</b><small>Sign in to run your own talks from this phone</small></div><span class="tiny">›</span></div></div>';
+  const scan = '<div class="app-pad"><div style="display:flex;align-items:center;gap:8px"><span class="tiny" style="font-size:16px">‹</span><b style="font:700 15px/1 var(--head)">Scan the code</b></div>' +
+    '<div class="camview"><div class="qrmini">' + qrSvg(885) + '</div><div class="tgt"></div><small>Point at the QR code on the big screen</small></div>' +
+    '<p class="app-p" style="text-align:center">The code opens <b style="color:#fff">Shipping smaller changes</b> by Sam Rivera.</p></div>';
+  const appSheet = SH('Listen in ไทย', 'Keeps playing with the screen locked, through your headphones.',
+    '<small class="ccs-l">Voice</small>' + vrow(true, 'Kanya', 'Compact · on this phone', '▶ Try') + vrow(false, 'Kanya (Enhanced)', 'Sounds more natural · a free download', 'Get') + speedSeg(1) +
+    '<div class="setrow sm"><div class="grow"><b>Pause when headphones come out</b><small>So the room doesn\'t hear it (D16)</small></div><span class="tog on"></span></div>' +
+    '<button type="button" class="bigbtn violet">▶ Start listening</button>');
+  const voiceSheet = SH('Get the Enhanced ไทย voice', 'iOS doesn\'t let apps download voices, so this opens Settings.',
+    '<ol class="tips" style="padding-left:18px"><li>Settings › <b>Accessibility</b></li><li><b>Spoken Content</b> › <b>Voices</b></li><li><b>ไทย</b> › <b>Kanya (Enhanced)</b> › Download</li><li>Come back: SlideWorks picks it up.</li></ol>' +
+    '<div class="infobox">' + INFO + '<span>On Android this button opens the voice installer directly.</span></div>' +
+    '<button type="button" class="bigbtn violet">Open Settings</button><button type="button" class="bigbtn ghost">Not now</button>');
+  const mini = (txt, paused) => '<div class="mini' + (paused ? ' paused' : '') + '"><span class="ic2">' + HP + '</span><div class="grow"><b>' + (paused ? 'Paused: headphones out' : 'Listening in ไทย · Kanya') + '</b><small>' + esc(txt) + '</small></div>' + (paused ? '' : '<span class="lv">LIVE</span>') + '<span class="pp">' + (paused ? '▶' : '❚❚') + '</span></div>';
+  const npLock = '<div class="lockscr"><div class="t">10:04</div><div class="d">Thursday 28 November</div><div class="np"><div class="top">' + frame(2, 'th') + '<div class="grow"><b>Shipping smaller changes</b><small>Sam Rivera · ไทย · LIVE</small></div><span class="route">' + HP.replace('class="ico"', 'class="ico" style="width:20px;height:20px"') + '</span></div>' +
+    '<div class="scrub"><span class="lv">● LIVE</span><i></i><span>2 s behind</span></div><div class="ctr"><span>❚❚</span><span>⏭<small>LIVE</small></span></div></div></div>';
+  const toastHp = '<div class="apptoast"><span>Paused: your headphones disconnected.</span><b>Play on speaker</b></div>';
+  const homeIn = '<div class="app-pad"><div class="app-logo"><span class="g-mark">S</span>SlideWorks<span style="flex:1"></span><span class="tiny">Sam Rivera</span></div>' +
+    '<div class="joincard" style="gap:8px"><h3 style="font-size:15px">Join a talk</h3>' + codebox('') + '<div class="bigbtn ghost" style="min-height:36px">▣ Scan the code</div></div>' +
+    '<div class="sect-l">Presenting now</div><div class="talk">' + frame(0, 'en') + '<div><b>Shipping smaller changes</b><small>On your laptop · slide 1 · 47 guests</small><span class="live">Live</span></div></div>' +
+    '<div style="flex:1"></div><div class="setrow sm"><div class="grow"><b>Speech models</b><small>English ready · ไทย ready</small></div><span class="tiny">›</span></div></div>';
+  const appWrap = (inner) => sbar(false) + inner + homebar;
+
+  // ================= SW-982 screens =================
+  const SWV = '';
+  const PHV = '';
+  const swRow = (on, play) => vrow(on, 'SlideWorks voice' + SWV, 'ไทย · from the SlideWorks server', play === undefined ? '▶ Try' : play);
+  const emptySkip = '<div class="skipn empty"><i>↷</i>&nbsp;</div>';
+  const withNote = (html, note) => html.replace(emptySkip, '<div class="skipn" style="color:#fcd34d"><i style="color:#f59e0b">!</i>' + note + '</div>');
+
+  // --- mobile web ---
+  const swSheet = SH('Listen in ไทย', 'Each translated line is read aloud, about 2 seconds after Sam says it.',
+    '<div class="infobox">' + INFO + '<span>This phone has no ไทย voice, so SlideWorks reads the lines for you.</span></div>' +
+    '<small class="ccs-l">Voice</small>' + swRow(true) +
+    vrow(false, 'A voice on this phone' + PHV, 'None for ไทย yet · how to add one ›', '').replace('class="vrow"', 'class="vrow off"') +
+    speedSeg(1) +
+    '<div class="infobox">' + HP + '<span>Use headphones. The room can hear your phone\'s speaker.</span></div>' +
+    '<button type="button" class="bigbtn violet">▶ Start listening</button><div class="linkrow">Listen with the screen off: get the SlideWorks app</div>');
+  const bothSheet = SH('Listen in ไทย', 'Each translated line is read aloud, about 2 seconds after Sam says it.',
+    '<small class="ccs-l">Voice</small>' + vrow(true, 'Kanya', 'ไทย · this phone\'s voice, compact', '▶ Try') + swRow(false) + speedSeg(1) +
+    '<div class="infobox">' + SUN + '<span>Your screen stays on while you listen.</span></div>' +
+    '<button type="button" class="bigbtn violet">▶ Start listening</button>');
+  const goneSheet = SH('Listen in ไทย', '',
+    '<div class="warnbox"><b>This phone has no ไทย voice, and SlideWorks can\'t read ไทย right now.</b>Subtitles carry on. Listen comes back on its own when the SlideWorks voice does.</div>' +
+    '<div class="infobox">' + INFO + '<span>Or add a voice to this phone: Settings › Text-to-speech › Install voice data › ไทย. Then reopen this sheet.</span></div>' +
+    '<button type="button" class="bigbtn dis">▶ Start listening</button><button type="button" class="bigbtn ghost">Keep reading subtitles</button>');
+  const dlSheet = SH('Listen in ไทย', 'This phone has no ไทย voice. SlideWorks can download one to this browser.',
+    '<small class="ccs-l">Voice</small>' + vrow(true, 'SlideWorks ไทย voice', 'Downloads once to this browser · 63 MB', '') +
+    '<div class="dlbar"><div class="r"><span>Downloading over the venue Wi-Fi…</span><b>41 of 63 MB</b></div><div class="tr"><i style="width:65%"></i></div><div class="r"><span>Then about 0.5 s of this phone\'s time per line</span><span>~40 s left</span></div></div>' +
+    '<button type="button" class="bigbtn dis">Preparing the voice…</button><button type="button" class="bigbtn ghost">Read subtitles meanwhile</button>');
+
+  const thSubs = (extra) => Object.assign({ state: 'live', listen: 'off', lines: [{ t: TH[1] }, { t: TH[2] }] }, extra || {});
+  const WEB2 = [
+    { o: { i: 2, lang: 'th', subs: thSubs(), over: swSheet }, b: '1 · No phone voice: the SlideWorks voice', s: 'Android Chrome with no Thai voice pack. SW-885 D13 turned Start off here. Now the SlideWorks voice is picked for the guest and Start works. Try plays a short sample from the server.' },
+    { o: { i: 2, lang: 'th', subs: thSubs(), over: bothSheet }, b: '2 · Phone has a voice: both are offered', s: 'iPhone with the compact Kanya voice. The phone\'s voice stays first and picked (D3). The SlideWorks voice is one tap away. On Android, a listed voice may not be installed, so if Try reads Thai in English, this is where the guest switches (Q2).' },
+    { o: { i: 2, lang: 'th', subs: { state: 'live', listen: 'on', lines: thLines(1) } }, b: '3 · Listening with the SlideWorks voice', s: 'The strip is the same as SW-885 state 3. The line is marked as read when its audio starts, not when its text arrives.' },
+    { o: { i: 2, lang: 'th', subs: { state: 'live', listen: 'on', skipped: 2, lines: thLines(2) } }, b: '4 · Catching up', s: 'Same rule as D9: more than 3 lines waiting skips to the newest. Audio for skipped lines is never fetched.' },
+    { o: { i: 2, lang: 'th', subs: { state: 'live', listen: 'on', lines: [{ t: TH[2] }, { t: TH[3] }] } }, note: 'SlideWorks voice unavailable · subtitles carry on', b: '5 · The voice drops mid-talk', s: 'Audio for 2 lines in a row failed or came too late. Listening stays on and the reserved skip row says so (D21). It picks up with the next line that has audio.' },
+    { o: { i: 2, lang: 'th', subs: thSubs(), over: goneSheet }, b: '6 · Neither voice', s: 'No phone voice, and the server has no voice for the language (or it is down). SW-885 D13 as before, plus a line saying Listen comes back by itself.' },
+    { o: { i: 2, lang: 'th', subs: thSubs(), over: dlSheet }, alt: true, b: 'Option B only · first use downloads the model', s: 'What option B costs a guest: a one-off download over the venue Wi-Fi before the first line, then work on the phone for every line. Not recommended (section 02).' },
+  ];
+  const web2 = document.getElementById('webGrid');
+  web2.innerHTML = WEB2.map((g, k) => '<div' + (g.alt ? ' style="opacity:.92"' : '') + '><div class="phone"><div class="ps" data-w="' + k + '"></div></div><div class="st-cap"><b>' + (g.alt ? '<span class="pill grey" style="margin-right:6px">not recommended</span>' : '') + g.b + '</b><span>' + g.s + '</span></div></div>').join('');
+  web2.querySelectorAll('[data-w]').forEach(el => { const g = WEB2[+el.dataset.w]; let h = guestL(g.o); if (g.note) h = withNote(h, g.note); el.innerHTML = h; hydrate(el); });
+
+  // --- the app ---
+  const appSwSheet = SH('Listen in ไทย', 'Keeps playing with the screen locked, through your headphones.',
+    '<small class="ccs-l">Voice</small>' + swRow(true) +
+    vrow(false, 'A voice on this phone' + PHV, 'None for ไทย · install one', 'Get') +
+    speedSeg(1) +
+    '<div class="setrow sm"><div class="grow"><b>Pause when headphones come out</b><small>So the room doesn\'t hear it (D16)</small></div><span class="tog on"></span></div>' +
+    '<button type="button" class="bigbtn violet">▶ Start listening</button>');
+  const miniSw = (txt) => '<div class="mini"><span class="ic2">' + HP + '</span><div class="grow"><b>Listening in ไทย · SlideWorks voice</b><small>' + esc(txt) + '</small></div><span class="lv">LIVE</span><span class="pp">❚❚</span></div>';
+  const npLockSw = npLock.replace('Sam Rivera · ไทย · LIVE', 'Sam Rivera · ไทย · SlideWorks voice');
+  const APP2 = [
+    { h: guestL({ app: true, i: 2, lang: 'th', subs: thSubs(), over: appSwSheet }), b: '1 · Listen sheet, no phone voice', s: 'Android app on a phone with no Thai voice data. The SlideWorks voice is picked. Get opens the system voice installer, as in SW-885 app state 5.' },
+    { h: guestL({ app: true, i: 2, lang: 'th', subs: { state: 'live', listen: 'on', lines: thLines(1) }, mini: miniSw(TH[1]) }), b: '2 · Listening', s: 'The mini player names the voice. Nothing else changes.' },
+    { h: sbar(false, '10:04') + npLockSw + homebar, b: '3 · Screen locked', s: 'Server audio is plain media, so it plays through the same background-audio session and Now Playing controls as SW-885 (D17).' },
+  ];
+  const app2 = document.getElementById('appGrid');
+  app2.innerHTML = APP2.map((a, k) => '<div><div class="phone"><div class="ps app" data-app="' + k + '"></div></div><div class="st-cap"><b>' + a.b + '</b><span>' + a.s + '</span></div></div>').join('');
+  app2.querySelectorAll('[data-app]').forEach(el => { el.innerHTML = APP2[+el.dataset.app].h; hydrate(el); });
+
+  // --- the gap: today's D13 screen ---
+  const gapEl = document.getElementById('gapPhone');
+  gapEl.innerHTML = guestL({ i: 2, lang: 'th', subs: thSubs(), over: noVoiceSheet }); hydrate(gapEl);
+
+
+})();
+</script>
+</body>
+</html>
