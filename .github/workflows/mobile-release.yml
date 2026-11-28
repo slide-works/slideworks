@@ -76,7 +76,7 @@ jobs:
         run: |
           version=$(python3 store/app_version.py --write)
           echo "VERSION=$version" >> "$GITHUB_ENV"
-          echo "### Version $version (run ${{ github.run_number }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Version $version (run $APP_VERSION_PATCH)" >> "$GITHUB_STEP_SUMMARY"
       - uses: expo/expo-github-action@v8
         with:
           eas-version: latest
@@ -85,11 +85,14 @@ jobs:
       - name: Build on EAS
         id: eas
         working-directory: src/SlideWorks.Mobile
+        env:
+          PLATFORM: ${{ inputs.platform }}
+          SUBMIT: ${{ inputs.submit }}
         run: |
           submit=""
-          if [ "${{ inputs.submit }}" = "true" ]; then submit="--auto-submit"; fi
+          if [ "$SUBMIT" = "true" ]; then submit="--auto-submit"; fi
           set +e
-          eas build --platform "${{ inputs.platform }}" --profile production --non-interactive --wait --json $submit > "$GITHUB_WORKSPACE/builds.json"
+          eas build --platform "$PLATFORM" --profile production --non-interactive --wait --json $submit > "$GITHUB_WORKSPACE/builds.json"
           status=$?
           set -e
           echo "status=$status" >> "$GITHUB_OUTPUT"
@@ -107,8 +110,10 @@ jobs:
           if-no-files-found: warn
       - name: Fail if EAS failed
         if: ${{ steps.eas.outputs.status != '0' && steps.eas.outputs.status != '' }}
+        env:
+          EAS_STATUS: ${{ steps.eas.outputs.status }}
         run: |
-          echo "::error::EAS build failed with exit status ${{ steps.eas.outputs.status }}; any file that did build is in the app-builds artifact."
+          echo "::error::EAS build failed with exit status $EAS_STATUS; any file that did build is in the app-builds artifact."
           exit 1
 
   listing-ios:
