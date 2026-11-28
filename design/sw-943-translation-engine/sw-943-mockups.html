@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-943 mockups: translation engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&family=Noto+Sans+Thai:wght@400;600&family=Noto+Sans+JP:wght@400;600&family=Noto+Sans+SC:wght@400;600&family=Noto+Sans+TC:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Review-page chrome: the same light ledger as the SW-5 / SW-9 / SW-884 mockups.
+   App colours are SlideWorks' own tokens (src/SlideWorks.Client/src/index.css @theme). */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --violet: #7a5af8; --violet-soft: #efeafe; --violet-dark: #4c2fc4;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", "Noto Sans Thai", "Noto Sans JP", "Noto Sans SC", "Noto Sans TC", system-ui, sans-serif;
+  --head: "Plus Jakarta Sans", "Inter", sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 16px 80px; }
+h1, h2, h3, h4 { margin: 0; }
+p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+:where(p, li, td, th, .pill, dd) { overflow-wrap: anywhere; }
+:where(.grid, .flex, .cols, .row) > * { min-width: 0; }
+svg { max-width: 100%; height: auto; }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 22px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { color: var(--muted); max-width: 900px; font-size: 15px; }
+.page-head .meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.page-head .meta .pill { white-space: normal; }
+.topbar .in { flex-wrap: wrap; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 10px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 920px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--raise); }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.vio { background: var(--violet-soft); color: var(--violet-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; }
+
+.cols { display: grid; gap: 14px; }
+.cols.c4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.cols.c2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); }
+.scope { padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.scope h3 { font: 600 14px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; }
+.scope ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; display: grid; gap: 3px; }
+.scope .k { font: 500 11px/1 var(--mono); color: var(--faint); }
+.out { margin-top: 14px; padding: 12px 16px; display: flex; gap: 10px 22px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.out b { color: var(--text); font-weight: 600; }
+
+/* ============ The app frame (desktop browser) ============ */
+.simbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 10px; font-size: 13px; color: var(--muted); }
+.simbar b { color: var(--text); font-weight: 600; }
+.simbar label { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border: 1px dashed var(--line-2); border-radius: 999px; background: var(--surface); cursor: pointer; }
+.simbar button { font: 500 12.5px/1 var(--ui); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); color: var(--muted); cursor: pointer; }
+.browser { overflow: hidden; overflow-x: auto; }
+.browser .app, .browser .chrome { min-width: 900px; }
+.chrome { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #e9ecf1; border-bottom: 1px solid var(--line); }
+.chrome .dots { display: flex; gap: 6px; }
+.chrome .dots i { width: 10px; height: 10px; border-radius: 50%; background: #cfd4dc; display: block; }
+.chrome .url { flex: 1; min-width: 0; background: #fff; border-radius: 6px; padding: 4px 10px; font: 400 12px/1.4 var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app { background: var(--bg); min-height: 560px; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--line); }
+.topbar .in { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 16px; padding: 12px 20px; }
+.brand { display: flex; align-items: center; gap: 8px; font: 700 14px/1 var(--ui); letter-spacing: -.01em; }
+.brand i { width: 20px; height: 16px; border-radius: 2px; background: var(--accent); display: block; }
+.nav { display: flex; gap: 4px; }
+.nav span { padding: 4px 10px; border-radius: 6px; font: 500 13px/1.45 var(--ui); color: var(--muted); }
+.nav span.on { background: var(--surface-2); color: var(--text); }
+.nav .badge { margin-left: 6px; border-radius: 999px; background: var(--accent); padding: 0 6px; font: 400 11px/16px var(--mono); color: #fff; }
+.avatar { margin-left: auto; width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(180deg, var(--accent) 50%, #dbe4fd 50%); }
+.appmain { max-width: 1100px; margin: 0 auto; padding: 22px 20px 30px; display: grid; gap: 16px; }
+
+.subnav { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.subnav .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-right: 6px; }
+.subnav span.tab { padding: 5px 11px; border-radius: 6px; font: 500 13px/1.4 var(--ui); color: var(--muted); border: 1px solid transparent; }
+.subnav span.tab.on { background: var(--surface); border-color: var(--line); color: var(--text); font-weight: 600; }
+.subnav .cnt { margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); font: 400 11px/16px var(--mono); }
+.ptitle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ptitle h3 { font: 700 18px/1.2 var(--ui); letter-spacing: -.01em; }
+.ptitle .sub { color: var(--muted); font-size: 13px; }
+.utabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.utabs button { all: unset; cursor: pointer; padding: 8px 12px; font: 500 13px/1.2 var(--ui); color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.utabs button.on { color: var(--text); border-color: var(--accent); font-weight: 600; }
+.utabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.utabs button.later { color: var(--faint); }
+.utabs small { font: 500 10.5px/1 var(--mono); color: var(--faint); margin-left: 4px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.ph { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 12px 16px 0; }
+.ph h4 { font: 600 14px/1.3 var(--ui); }
+.ph .help { color: var(--muted); font-size: 12.5px; }
+.pb { padding: 12px 16px 16px; }
+
+/* model cards */
+.models { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; }
+.model { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 10px; background: var(--surface); position: relative; }
+.model::before { content: ""; position: absolute; left: -1px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--mc); }
+.model.down { background: #fffafa; border-color: #f3cfcb; }
+.mh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mh b { font: 600 14.5px/1.2 var(--ui); }
+.mh .id { font: 400 11.5px/1 var(--mono); color: var(--faint); }
+.mh .st { margin-left: auto; }
+.mstats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.mstat { background: var(--surface-2); border-radius: 6px; padding: 7px 9px; }
+.mstat .l { font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.mstat .v { font: 500 15px/1.4 var(--mono); margin-top: 3px; }
+.mstat .v small { font-size: 11px; color: var(--muted); }
+.mfacts { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12.5px; }
+.mfacts dt { color: var(--faint); }
+.mfacts dd { margin: 0; color: var(--muted); }
+.mfacts dd code { font-size: 11.5px; }
+.fromcfg { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--faint); margin-top: 10px; }
+.fromcfg code { font-size: 11.5px; }
+
+/* default picker */
+.defrow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.sel { font: 400 13px/1.4 var(--ui); color: var(--text); background: var(--surface); border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 10px; max-width: 100%; }
+.sel:focus { outline: none; box-shadow: 0 0 0 1px var(--accent); border-color: var(--accent); }
+.note { font-size: 12.5px; color: var(--muted); }
+.note.warn { color: var(--warn); }
+.note.bad { color: var(--bad); }
+.saved { font: 500 12px/1 var(--ui); color: var(--ok); opacity: 0; transition: opacity .3s; }
+.saved.show { opacity: 1; }
+
+/* ledger table */
+.ledger { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ledger th { border-bottom: 1px solid var(--line); background: var(--surface-2); padding: 8px 12px; text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.ledger td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.ledger tr:last-child td { border-bottom: 0; }
+.ledger td.when { font: 400 12px/1.4 var(--mono); color: var(--muted); white-space: nowrap; }
+.ledger tr.flash td { animation: flash 1.6s ease; }
+@keyframes flash { 0% { background: var(--accent-soft); } 100% { background: transparent; } }
+.pair { display: flex; align-items: baseline; gap: 6px; font-weight: 600; white-space: nowrap; }
+.pair .ar { color: var(--faint); font-weight: 400; }
+.pair .nat { font-weight: 400; color: var(--faint); font-size: 12px; }
+.tabwrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+.btn { font: 500 13px/1 var(--ui); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); color: var(--muted); cursor: pointer; white-space: nowrap; }
+.btn:hover { color: var(--text); border-color: var(--faint); }
+.btn.pri { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.pri:hover { background: #4a70ee; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.sm { padding: 5px 10px; font-size: 12.5px; }
+.mchip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.mchip i { width: 8px; height: 8px; border-radius: 2px; background: var(--mc); display: block; }
+.ledger td .note { display: block; margin-top: 4px; font-size: 12px; }
+.rowwarn { display: block; margin-top: 4px; font-size: 12px; color: var(--warn); }
+.rowbad { display: block; margin-top: 4px; font-size: 12px; color: var(--bad); }
+.addrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px; border-top: 1px dashed var(--line-2); background: #fafbfc; }
+.addrow .arw { color: var(--faint); }
+.adderr { width: 100%; font-size: 12.5px; color: var(--bad); }
+.empty { padding: 18px 12px; text-align: center; color: var(--faint); font-size: 13px; }
+
+/* pair map */
+.mapwrap { overflow-x: auto; }
+.pmap { border-collapse: separate; border-spacing: 2px; font-size: 11px; }
+.pmap th { font: 500 10.5px/1.1 var(--ui); color: var(--muted); padding: 2px 4px; white-space: nowrap; }
+.pmap thead th { height: 34px; vertical-align: bottom; }
+.pmap th.rh { text-align: right; }
+.pmap td { width: 26px; height: 22px; border-radius: 3px; text-align: center; font: 600 9.5px/22px var(--mono); }
+.pmap td.self { background: transparent; }
+.pmap td.d1 { background: #dfe7fc; }
+.pmap td.d2 { background: #e8e1fd; }
+.pmap td.o1 { background: var(--accent); color: #fff; }
+.pmap td.o2 { background: var(--violet); color: #fff; }
+.pmap td.na { background: repeating-linear-gradient(45deg, var(--bad-soft) 0 4px, #fff 4px 7px); color: var(--bad); }
+.pmap td.fb { outline: 2px solid var(--warn); outline-offset: -2px; }
+.legend { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.legend i { width: 14px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* try it */
+.try { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.tin { display: grid; gap: 10px; align-content: start; }
+.tin .langs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.swap { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; color: var(--muted); font-size: 15px; }
+textarea.field { width: 100%; min-height: 110px; resize: vertical; font: 400 14px/1.5 var(--ui); color: var(--text); border: 1px solid var(--line-2); border-radius: 8px; padding: 9px 11px; }
+textarea.field:focus { outline: none; box-shadow: 0 0 0 1px var(--accent); border-color: var(--accent); }
+.samples { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--faint); }
+.samples button { all: unset; cursor: pointer; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 12px; }
+.samples button:hover { color: var(--text); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg label { display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border: 1px solid var(--line-2); border-radius: 8px; font-size: 12.5px; cursor: pointer; background: var(--surface); }
+.seg label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
+.seg label:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+.seg input { accent-color: var(--accent); margin: 0; }
+.tout { display: grid; gap: 10px; align-content: start; }
+.res { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 8px; position: relative; background: var(--surface); }
+.res::before { content: ""; position: absolute; left: -1px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--mc); }
+.res .rh { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12.5px; }
+.res .rh b { font-weight: 600; font-size: 13px; }
+.res .txt { font-size: 16px; line-height: 1.55; }
+.res .rm { display: flex; gap: 6px 14px; flex-wrap: wrap; font: 400 11.5px/1.4 var(--mono); color: var(--muted); }
+.res .rm b { color: var(--text); font-weight: 500; }
+.res.err { background: #fffafa; border-color: #f3cfcb; }
+.res.err .txt { font-size: 13.5px; color: var(--bad); }
+.res.wait .txt { color: var(--faint); font-size: 13.5px; }
+.res.wait .txt::after { content: ""; display: inline-block; width: 12px; height: 12px; margin-left: 8px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--accent); animation: spin .8s linear infinite; vertical-align: -2px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hist { font-size: 12.5px; }
+.hist td { padding: 6px 10px; }
+.placeholder { border: 1px dashed var(--line-2); border-radius: 8px; padding: 26px; text-align: center; color: var(--muted); background: var(--surface); }
+
+.toast { position: absolute; right: 18px; bottom: 18px; background: #1b2230; color: #fff; padding: 9px 14px; border-radius: 8px; font-size: 13px; box-shadow: var(--raise); opacity: 0; transform: translateY(6px); transition: all .25s; pointer-events: none; }
+.toast.show { opacity: 1; transform: none; }
+.appwrap { position: relative; }
+
+/* static state panels */
+.states { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 14px; }
+.state { padding: 14px; display: grid; gap: 10px; align-content: start; }
+.state h3 { font: 600 14px/1.3 var(--ui); }
+.state > p { color: var(--muted); font-size: 13px; }
+.mini { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 10px; display: grid; gap: 8px; }
+
+/* diagrams + code */
+.diagram { padding: 14px; }
+.diagram svg { width: 100%; display: block; }
+.diagram svg text { font-family: var(--ui); }
+.figcap { margin-top: 10px; font-size: 13px; color: var(--muted); }
+.code { background: #0f1424; color: #d7deea; border-radius: 8px; padding: 12px 14px; overflow-x: auto; font: 400 12px/1.6 var(--mono); margin: 0; white-space: pre; }
+.code .c { color: #7d8aa5; }
+.code .k { color: #a5b8ff; }
+.code .s { color: #f5c88a; }
+.codecard { padding: 14px; display: grid; gap: 8px; align-content: start; }
+.codecard h3 { font: 600 14px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.codecard > p { font-size: 13px; color: var(--muted); }
+.ex { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ex th { text-align: left; font: 600 10.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ex td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ex tr:last-child td { border-bottom: 0; }
+.ex td:first-child { white-space: nowrap; }
+.ex td.m { font: 400 12px/1.5 var(--mono); color: var(--muted); }
+.mchip { white-space: nowrap; }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px; display: grid; gap: 10px; }
+.q .qh { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.q .qh .qn { font: 600 12px/1 var(--mono); color: var(--accent); }
+.q .qh h3 { font: 600 15px/1.35 var(--ui); }
+.q > p { color: var(--muted); font-size: 13px; max-width: 900px; }
+.opts { display: grid; gap: 6px; }
+.opt { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.opt input { margin-top: 3px; accent-color: var(--accent); }
+.opt b { font-weight: 600; font-size: 13.5px; }
+.opt .rec { font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); margin-left: 6px; }
+.opt small { grid-column: 2; color: var(--muted); font-size: 12.5px; }
+.qf { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.qf input[type=text] { flex: 1; min-width: 200px; font: 400 13px/1.4 var(--ui); border: 1px solid var(--line-2); border-radius: 8px; padding: 7px 10px; }
+.qf .qst { font-size: 12.5px; color: var(--ok); }
+.copyall { margin-top: 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+
+@media (max-width: 820px) {
+  .try { grid-template-columns: minmax(0, 1fr); }
+  .mstats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .topbar .in, .appmain { padding-left: 12px; padding-right: 12px; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<header class="page-head">
+  <div class="eyebrow">SW-943 · design mockups · 28 Nov 2026</div>
+  <h1>Translation engine: the admin page and the server</h1>
+  <p>The server side of SW-943: a new admin page at <code>/admin/translations</code> where an admin sets the default model and per-pair overrides and tries the models out, plus how the engine picks a model and what runs on the prod host. The speaker app, guest phones and big screen are SW-884 and SW-883, and are not in this page.</p>
+  <div class="meta">
+    <span class="pill acc">D1–D6 settled on SW-943</span>
+    <span class="pill grey">Design source: SlideWorks' light ledger tokens and the existing /admin/users page</span>
+    <span class="pill ok">Q1–Q7 answered by Joel 28 Nov → D7–D13</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#scope">01 Scope</a><a href="#admin">02 Admin page</a><a href="#states">03 States</a><a href="#resolve">04 Picking a model</a><a href="#server">05 On the server</a><a href="#contracts">06 Contracts</a><a href="#questions">07 Questions</a>
+</nav>
+
+<!-- 01 -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">01</span><h2>What SW-943 ships</h2></div>
+  <p class="sec-sub">Four pieces, all on the server. Live subtitles (SW-884) and multilingual Q&amp;A (SW-944) call the engine; they don't change here.</p>
+  <div class="cols c4">
+    <div class="card scope"><span class="k">server config · deploy</span><h3>Which models exist</h3><ul><li><code>Translation:Models</code> in appsettings / env</li><li>Id, name, endpoint, adapter, languages, timeout, parallel</li><li>Added or removed only by a deploy</li></ul></div>
+    <div class="card scope"><span class="k">admin page · database</span><h3>Which model translates what</h3><ul><li>Default model and pair overrides</li><li>Model health and latency, last hour</li><li>Try it, to play with the models</li><li>Applies to the next sentence, no restart</li></ul></div>
+    <div class="card scope"><span class="k">engine · ITranslator</span><h3>One call for every feature</h3><ul><li>Override → default → "not translated"</li><li>Adapters: HyMt2 (glossary + context), TranslateGemma (text only)</li><li>Every call → metrics</li></ul></div>
+    <div class="card scope"><span class="k">infra · host compose</span><h3>Two llama-server containers</h3><ul><li>Hy-MT2 1.8B Q4 (~1.1 GB RAM)</li><li>TranslateGemma 4B Q4 (~2.5 GB RAM)</li><li>CPU only, internal network, GGUF volume</li></ul></div>
+  </div>
+  <div class="card out"><b>Not in SW-943:</b><span>Cloud models</span><span>Server-side slide translation (SW-886)</span><span>The Speech to text tab (SW-884 D19 adds it to this page)</span><span>Phone or guest screens</span></div>
+</section>
+
+<!-- 02 -->
+<section class="block" id="admin">
+  <div class="sec-head"><span class="n">02</span><h2>/admin/translations, working mockup</h2></div>
+  <p class="sec-sub">Everything below works: change the default, change or remove a pair, add one, flip to Try it and translate a sample. The switches above the frame fake the server states. Numbers and translations are made up, and everything resets on reload.</p>
+
+  <div class="simbar">
+    <b>Fake the server:</b>
+    <label><input type="checkbox" id="simDown"> TranslateGemma unreachable</label>
+    <label><input type="checkbox" id="simGone"> A pair points at a model a deploy removed</label>
+    <label><input type="checkbox" id="simEmpty"> No overrides yet</label>
+    <button type="button" id="simReset">Reset</button>
+  </div>
+
+  <div class="card browser appwrap">
+    <div class="chrome"><div class="dots"><i></i><i></i><i></i></div><div class="url">slides.example.org/admin/translations</div></div>
+    <div class="app">
+      <div class="topbar"><div class="in">
+        <span class="brand"><i></i>SlideWorks</span>
+        <div class="nav"><span>Decks</span><span>Templates</span><span class="on">Admin<span class="badge">1</span></span></div>
+        <span class="avatar" title="Joel"></span>
+      </div></div>
+      <div class="appmain" id="appMain"></div>
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
+</section>
+
+<!-- 03 -->
+<section class="block" id="states">
+  <div class="sec-head"><span class="n">03</span><h2>States worth a look</h2></div>
+  <p class="sec-sub">The states that are hard to reach in the demo, shown on their own.</p>
+  <div class="states">
+    <div class="card state">
+      <h3>Adding a pair: a model that can't do it is greyed out</h3>
+      <p>Cantonese ↔ English. TranslateGemma's <code>Languages</code> have no Cantonese, so it can't be picked, and the option says why. That's the "never used for a pair it doesn't support" rule at the point of entry.</p>
+      <div class="mini">
+        <div class="addrow" style="border:0;background:none;padding:0">
+          <select class="sel"><option>Cantonese 粵語</option></select><span class="arw">↔</span>
+          <select class="sel"><option>English</option></select><span class="arw">→</span>
+          <select class="sel" size="2" style="padding:2px 4px"><option selected>Hy-MT2 1.8B</option><option disabled>TranslateGemma 4B: no Cantonese</option></select>
+          <button class="btn pri sm">Add pair</button>
+        </div>
+      </div>
+    </div>
+    <div class="card state">
+      <h3>Adding a pair that already has a row</h3>
+      <p>One row per pair, both directions (D2). English ↔ Thai is the same pair as Thai ↔ English, so Add is refused and points at the existing row.</p>
+      <div class="mini">
+        <div class="addrow" style="border:0;background:none;padding:0">
+          <select class="sel"><option>English</option></select><span class="arw">↔</span>
+          <select class="sel"><option>Thai ไทย</option></select><span class="arw">→</span>
+          <select class="sel"><option>Hy-MT2 1.8B</option></select>
+          <button class="btn pri sm" disabled>Add pair</button>
+          <div class="adderr">Thai ↔ English already has a row. Change its model in the table.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card state">
+      <h3>Default set to a model that misses a language</h3>
+      <p>Allowed, with a warning that names what falls through. Pairs with an override still work; the rest get "not translated".</p>
+      <div class="mini">
+        <div class="defrow"><select class="sel"><option>TranslateGemma 4B</option></select><span class="saved show">Saved</span></div>
+        <p class="note warn">TranslateGemma 4B has no Cantonese. Cantonese pairs without an override won't be translated (1 of 15 languages).</p>
+      </div>
+    </div>
+    <div class="card state">
+      <h3>Try it: the model times out</h3>
+      <p>The same limit live sentences get (<code>TimeoutMs</code>). The card says which limit was hit, so <code>llama-bench</code> numbers can be checked against it.</p>
+      <div class="mini">
+        <div class="res err" style="--mc:var(--violet)"><div class="rh"><b>TranslateGemma 4B</b><span class="pill bad">timed out</span></div><div class="txt">No answer within 6,000 ms (TimeoutMs). Both slots were busy for 2.1 s first.</div><div class="rm"><span>waited <b>6,000 ms</b></span><span>slots <b>1 of 1</b></span></div></div>
+      </div>
+    </div>
+    <div class="card state">
+      <h3>Not an admin</h3>
+      <p>Same as /admin/users today: the API answers 403 and the page shows "Admins only". The Admin link isn't in the top bar for them anyway.</p>
+      <div class="mini"><b style="font-size:16px">Admins only</b><p class="panel" style="padding:10px 12px;color:var(--bad);font-size:13px">Admins only</p></div>
+    </div>
+    <div class="card state">
+      <h3>No models configured</h3>
+      <p>A dev box without the containers. The page still loads, explains where models come from, and every feature that asks gets "not translated".</p>
+      <div class="mini"><div class="placeholder" style="padding:16px">No translation models are set up on this server.<br><span class="note">Add them under <code>Translation:Models</code> in the server config. Until then nothing is translated.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section class="block" id="resolve">
+  <div class="sec-head"><span class="n">04</span><h2>How the engine picks a model</h2></div>
+  <p class="sec-sub"><code>TranslateAsync(text, from, to, context)</code> reads the admin settings for every sentence (cached, cleared on save), so a change applies to the next one. A model is never sent a pair outside its <code>Languages</code>.</p>
+  <div class="card diagram">
+    <svg viewBox="0 0 1000 430" role="img" aria-label="How a model is picked for a translation request">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a93a3"/></marker>
+        <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#b4580b"/></marker>
+      </defs>
+      <g id="r-req"><title>The request</title><rect x="10" y="40" width="190" height="72" rx="10" fill="#fff" stroke="#d3d8e0"/><text x="26" y="66" font-size="13" font-weight="600" fill="#1b2230">Request</text><text x="26" y="86" font-size="11.5" fill="#5b6474">text · th → en</text><text x="26" y="102" font-size="11.5" fill="#5b6474">context: slide + glossary</text></g>
+      <path d="M200 76 H246" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/>
+      <g id="r-ovr"><title>Is there an override for the pair, in either direction?</title><rect x="250" y="40" width="200" height="72" rx="10" fill="#f6f8ff" stroke="#c7d3fb"/><text x="266" y="66" font-size="13" font-weight="600" fill="#1b2230">Override for th ↔ en?</text><text x="266" y="86" font-size="11.5" fill="#5b6474">one row covers both</text><text x="266" y="102" font-size="11.5" fill="#5b6474">directions (D2)</text></g>
+      <path d="M450 60 C 475 60, 480 34, 506 34" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/><text x="462" y="40" font-size="11" fill="#18794e" font-weight="600">yes</text>
+      <path d="M450 94 C 475 94, 480 124, 506 124" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/><text x="466" y="122" font-size="11" fill="#c0362c" font-weight="600">no</text>
+      <g id="r-om"><title>Use the override's model</title><rect x="510" y="12" width="190" height="44" rx="10" fill="#fff" stroke="#d3d8e0"/><text x="526" y="39" font-size="13" fill="#1b2230">the override's model</text></g>
+      <g id="r-dm"><title>Use the default model</title><rect x="510" y="102" width="190" height="44" rx="10" fill="#fff" stroke="#d3d8e0"/><text x="526" y="129" font-size="13" fill="#1b2230">the default model</text></g>
+      <path d="M700 34 C 730 34, 730 60, 756 62" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+      <path d="M700 124 C 730 124, 730 96, 756 92" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+      <g id="r-sup"><title>Is the model still configured, and do its Languages include both sides?</title><rect x="760" y="40" width="230" height="72" rx="10" fill="#f6f8ff" stroke="#c7d3fb"/><text x="776" y="66" font-size="13" font-weight="600" fill="#1b2230">Configured, and supports</text><text x="776" y="84" font-size="13" font-weight="600" fill="#1b2230">both languages?</text><text x="776" y="102" font-size="11.5" fill="#5b6474">from Translation:Models</text></g>
+      <path d="M875 112 V 176" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/><text x="882" y="150" font-size="11" fill="#18794e" font-weight="600">yes</text>
+      <path d="M760 100 C 720 120, 720 180, 706 196" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar)"/><text x="714" y="160" font-size="11" fill="#c0362c" font-weight="600">no</text>
+      <g id="r-wasdef"><title>Was that already the default model?</title><rect x="510" y="178" width="190" height="60" rx="10" fill="#f6f8ff" stroke="#c7d3fb"/><text x="526" y="203" font-size="13" font-weight="600" fill="#1b2230">Was it the default?</text><text x="526" y="222" font-size="11.5" fill="#5b6474">no → try the default</text></g>
+      <path d="M560 178 V 150" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/><text x="530" y="168" font-size="11" fill="#c0362c" font-weight="600">no</text>
+      <path d="M605 238 V 300" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/><text x="612" y="272" font-size="11" fill="#18794e" font-weight="600">yes</text>
+      <g id="r-nt"><title>Not translated, with a clear reason</title><rect x="490" y="304" width="230" height="62" rx="10" fill="#fbe7e5" stroke="#f0b8b2"/><text x="506" y="329" font-size="13" font-weight="600" fill="#c0362c">Not translated</text><text x="506" y="348" font-size="11.5" fill="#c0362c">"no model for th ↔ en"</text></g>
+      <g id="r-adapt"><title>The adapter builds the model's prompt</title><rect x="760" y="180" width="230" height="58" rx="10" fill="#fff" stroke="#d3d8e0"/><text x="776" y="204" font-size="13" font-weight="600" fill="#1b2230">Adapter builds the prompt</text><text x="776" y="223" font-size="11.5" fill="#5b6474">HyMt2: + glossary, context</text></g>
+      <path d="M875 238 V 270" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/>
+      <g id="r-llm"><title>llama-server, one slot of Parallel, waits at most TimeoutMs</title><rect x="760" y="274" width="230" height="58" rx="10" fill="#fff" stroke="#d3d8e0"/><text x="776" y="298" font-size="13" font-weight="600" fill="#1b2230">llama-server (CPU)</text><text x="776" y="317" font-size="11.5" fill="#5b6474">a free slot, ≤ TimeoutMs</text></g>
+      <path d="M875 332 V 362" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar)"/>
+      <g id="r-res"><title>The result</title><rect x="760" y="366" width="230" height="52" rx="10" fill="#e3f4ea" stroke="#a7dcbf"/><text x="776" y="389" font-size="13" font-weight="600" fill="#18794e">Translation</text><text x="776" y="407" font-size="11.5" fill="#18794e">+ model id + latency</text></g>
+      <path d="M760 318 C 742 326, 740 340, 724 342" stroke="#b4580b" stroke-width="1.5" stroke-dasharray="5 4" fill="none" marker-end="url(#arw)"/>
+      <text x="605" y="386" font-size="11" fill="#b4580b" font-weight="600" text-anchor="middle">timed out: straight here (D9)</text>
+      <g id="r-met"><title>Every call is recorded</title><rect x="10" y="330" width="420" height="88" rx="10" fill="#fff" stroke="#d3d8e0" stroke-dasharray="4 4"/><text x="26" y="356" font-size="13" font-weight="600" fill="#1b2230">Every call → metrics + Seq</text><text x="26" y="376" font-size="11.5" fill="#5b6474">model id · pair · tokens in / out · latency</text><text x="26" y="394" font-size="11.5" fill="#5b6474">outcome: translated · not-supported · timed-out ·</text><text x="26" y="410" font-size="11.5" fill="#5b6474">unreachable · not-configured</text></g>
+    </svg>
+    <div class="figcap">The orange dashed edge is D9: a single timeout goes straight to "not translated". A model the health check marks down hands its pairs to the default instead, before this flow runs.</div>
+  </div>
+
+  <div class="card" style="margin-top:14px;padding:6px 8px;overflow-x:auto">
+    <table class="ex">
+      <thead><tr><th>Request</th><th>Settings</th><th>Model used</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td class="m">th → en</td><td>Thai ↔ English → TranslateGemma</td><td><span class="mchip" style="--mc:var(--violet)"><i></i>TranslateGemma 4B</span></td><td>The override, used for en → th too. No glossary or context is sent (D5).</td></tr>
+        <tr><td class="m">en → ja</td><td>No row; default Hy-MT2</td><td><span class="mchip" style="--mc:var(--accent)"><i></i>Hy-MT2 1.8B</span></td><td>The default, with the slide's SW-883 translations as a glossary and the last 2–3 sentences.</td></tr>
+        <tr><td class="m">yue → en</td><td>Default TranslateGemma, no row</td><td><span class="pill bad">not translated</span></td><td>The default has no Cantonese, and there is nothing to fall back to. Cantonese is added by D10.</td></tr>
+        <tr><td class="m">yue → en</td><td>Cantonese ↔ English → Hy-MT2; default TranslateGemma</td><td><span class="mchip" style="--mc:var(--accent)"><i></i>Hy-MT2 1.8B</span></td><td>The override is what makes the pair work.</td></tr>
+        <tr><td class="m">th → en</td><td>Thai ↔ English → typhoon-translate (removed by a deploy)</td><td><span class="mchip" style="--mc:var(--accent)"><i></i>Hy-MT2 1.8B</span></td><td>The row's model is no longer configured, so the default is used. The admin page flags the row (D12).</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 05 -->
+<section class="block" id="server">
+  <div class="sec-head"><span class="n">05</span><h2>What runs on the prod host</h2></div>
+  <p class="sec-sub">D3 and D4: one llama-server container per model, internal network only, both loaded at start. Which models exist is in config, so adding a third is a compose change and a deploy, with no code change unless it needs a new adapter.</p>
+  <div class="card diagram">
+    <svg viewBox="0 0 1000 340" role="img" aria-label="Callers, the SlideWorks server and the two llama-server containers">
+      <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a93a3"/></marker></defs>
+      <text x="14" y="26" font-size="11" font-weight="700" fill="#8a93a3" letter-spacing="1">CALLERS</text>
+      <g id="s-c1"><title>SW-884 live subtitles</title><rect x="10" y="40" width="180" height="46" rx="9" fill="#fff" stroke="#d3d8e0"/><text x="24" y="60" font-size="12.5" font-weight="600" fill="#1b2230">Live subtitles</text><text x="24" y="77" font-size="11" fill="#5b6474">SW-884, each final line</text></g>
+      <g id="s-c2"><title>SW-944 multilingual Q&amp;A</title><rect x="10" y="98" width="180" height="46" rx="9" fill="#fff" stroke="#d3d8e0"/><text x="24" y="118" font-size="12.5" font-weight="600" fill="#1b2230">Multilingual Q&amp;A</text><text x="24" y="135" font-size="11" fill="#5b6474">SW-944</text></g>
+      <g id="s-c3"><title>The admin page's Try it</title><rect x="10" y="156" width="180" height="46" rx="9" fill="#fff" stroke="#d3d8e0"/><text x="24" y="176" font-size="12.5" font-weight="600" fill="#1b2230">Try it</text><text x="24" y="193" font-size="11" fill="#5b6474">/admin/translations</text></g>
+      <path d="M190 63 C 220 63, 220 120, 246 120" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar2)"/>
+      <path d="M190 121 H 246" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar2)"/>
+      <path d="M190 179 C 220 179, 220 122, 246 122" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar2)"/>
+      <g id="s-srv"><title>The SlideWorks server</title><rect x="250" y="20" width="360" height="250" rx="12" fill="#f6f8ff" stroke="#c7d3fb"/><text x="266" y="44" font-size="11" font-weight="700" fill="#1e3a8a" letter-spacing="1">SLIDEWORKS SERVER</text>
+        <rect x="266" y="58" width="328" height="42" rx="8" fill="#fff" stroke="#2f5bea"/><text x="280" y="84" font-size="13" font-weight="600" fill="#1b2230">ITranslator.TranslateAsync</text>
+        <rect x="266" y="112" width="158" height="58" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="280" y="135" font-size="12.5" font-weight="600" fill="#1b2230">Resolver</text><text x="280" y="153" font-size="11" fill="#5b6474">override → default</text>
+        <rect x="436" y="112" width="158" height="58" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="450" y="135" font-size="12.5" font-weight="600" fill="#1b2230">Adapters</text><text x="450" y="153" font-size="11" fill="#5b6474">HyMt2 · TranslateGemma</text>
+        <rect x="266" y="182" width="158" height="72" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="280" y="204" font-size="12.5" font-weight="600" fill="#1b2230">Postgres</text><text x="280" y="222" font-size="11" fill="#5b6474">default model</text><text x="280" y="238" font-size="11" fill="#5b6474">pair overrides</text>
+        <rect x="436" y="182" width="158" height="72" rx="8" fill="#fff" stroke="#d3d8e0"/><text x="450" y="204" font-size="12.5" font-weight="600" fill="#1b2230">Health poller</text><text x="450" y="222" font-size="11" fill="#5b6474">GET /health, every 30 s</text><text x="450" y="238" font-size="11" fill="#5b6474">→ admin page</text>
+      </g>
+      <g id="s-cfg"><title>Server-level config</title><rect x="250" y="286" width="360" height="44" rx="9" fill="#fff" stroke="#d3d8e0" stroke-dasharray="4 4"/><text x="266" y="306" font-size="12.5" font-weight="600" fill="#1b2230">appsettings / env (host compose)</text><text x="266" y="322" font-size="11" fill="#5b6474">Translation:Models: which models exist (D4)</text></g>
+      <path d="M430 286 V 274" stroke="#8a93a3" stroke-width="1.5" marker-end="url(#ar2)"/>
+      <path d="M610 120 C 640 120, 640 74, 666 74" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar2)"/>
+      <path d="M610 150 C 640 150, 640 186, 666 186" stroke="#8a93a3" stroke-width="1.5" fill="none" marker-end="url(#ar2)"/>
+      <text x="686" y="142" font-size="10.5" fill="#8a93a3">OpenAI-compatible /v1/chat/completions</text>
+      <g id="s-net"><title>Internal network only</title><rect x="670" y="20" width="320" height="250" rx="12" fill="#fafbfc" stroke="#d3d8e0" stroke-dasharray="5 4"/><text x="686" y="44" font-size="11" font-weight="700" fill="#5b6474" letter-spacing="1">INTERNAL NETWORK · CPU ONLY</text>
+        <rect x="686" y="54" width="288" height="72" rx="8" fill="#fff" stroke="#2f5bea"/><text x="700" y="76" font-size="12.5" font-weight="600" fill="#1b2230">llm-hymt2 · llama-server</text><text x="700" y="94" font-size="11" fill="#5b6474">Hy-MT2 1.8B Q4 · ~1.1 GB RAM</text><text x="700" y="110" font-size="11" fill="#5b6474">-np = Parallel</text>
+        <rect x="686" y="150" width="288" height="72" rx="8" fill="#fff" stroke="#7a5af8"/><text x="700" y="172" font-size="12.5" font-weight="600" fill="#1b2230">llm-translategemma · llama-server</text><text x="700" y="190" font-size="11" fill="#5b6474">TranslateGemma 4B Q4 · ~2.5 GB RAM</text><text x="700" y="206" font-size="11" fill="#5b6474">-np = Parallel</text>
+        <text x="686" y="250" font-size="11" fill="#5b6474">GGUF files in the llm-models volume (read-only)</text>
+      </g>
+      <g id="s-met"><title>Metrics and logs</title><rect x="670" y="286" width="320" height="44" rx="9" fill="#fff" stroke="#d3d8e0"/><text x="686" y="306" font-size="12.5" font-weight="600" fill="#1b2230">VictoriaMetrics + Seq</text><text x="686" y="322" font-size="11" fill="#5b6474">one record per call, to compare models</text></g>
+      <path d="M610 240 C 640 240, 640 306, 666 306" stroke="#8a93a3" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#ar2)"/>
+    </svg>
+  </div>
+
+  <div class="cols c2" style="margin-top:14px">
+    <div class="card codecard">
+      <h3>Server config <span class="pill grey">appsettings.json shape</span></h3>
+      <p><code>Parallel</code> must match the container's <code>-np</code>. Both numbers come from <code>llama-bench</code> on the prod host before deploy.</p>
+<pre class="code">{
+  <span class="k">"Translation"</span>: {
+    <span class="k">"DefaultModel"</span>: <span class="s">"hy-mt2-1.8b"</span>,   <span class="c">// seeds the DB once</span>
+    <span class="k">"Models"</span>: [
+      { <span class="k">"Id"</span>: <span class="s">"hy-mt2-1.8b"</span>,
+        <span class="k">"DisplayName"</span>: <span class="s">"Hy-MT2 1.8B"</span>,
+        <span class="k">"Endpoint"</span>: <span class="s">"http://llm-hymt2:8080"</span>,
+        <span class="k">"Adapter"</span>: <span class="s">"HyMt2"</span>,
+        <span class="k">"Languages"</span>: [<span class="s">"en"</span>, <span class="s">"th"</span>, <span class="s">"ja"</span>, <span class="c">/* … */</span> <span class="s">"yue"</span>],
+        <span class="k">"TimeoutMs"</span>: 4000, <span class="k">"Parallel"</span>: 2 },
+      { <span class="k">"Id"</span>: <span class="s">"translategemma-4b"</span>,
+        <span class="k">"DisplayName"</span>: <span class="s">"TranslateGemma 4B"</span>,
+        <span class="k">"Endpoint"</span>: <span class="s">"http://llm-translategemma:8080"</span>,
+        <span class="k">"Adapter"</span>: <span class="s">"TranslateGemma"</span>,
+        <span class="k">"Languages"</span>: [<span class="s">"en"</span>, <span class="s">"th"</span>, <span class="s">"ja"</span>, <span class="c">/* … */</span>],
+        <span class="k">"TimeoutMs"</span>: 6000, <span class="k">"Parallel"</span>: 1 }
+    ]
+  }
+}</pre>
+    </div>
+    <div class="card codecard">
+      <h3>Host compose file <span class="pill grey">sketch, pin the image in the PR</span></h3>
+      <p>Lives in the host's compose file, outside this repo. No ports published; only the SlideWorks container can reach them.</p>
+<pre class="code"><span class="k">llm-hymt2</span>:
+  image: ghcr.io/ggml-org/llama.cpp:server   <span class="c"># pin a tag</span>
+  command: &gt;
+    -m /models/Hy-MT2-1.8B-Q4_K_M.gguf
+    --host 0.0.0.0 --port 8080 -c 4096 -np 2
+  volumes: [<span class="s">"llm-models:/models:ro"</span>]
+  networks: [slideworks-internal]
+  healthcheck: { test: [<span class="s">"CMD"</span>, <span class="s">"curl"</span>, <span class="s">"-f"</span>, <span class="s">"localhost:8080/health"</span>] }
+
+<span class="k">llm-translategemma</span>:
+  image: ghcr.io/ggml-org/llama.cpp:server
+  command: &gt;
+    -m /models/translategemma-4b-Q4_K_M.gguf
+    --host 0.0.0.0 --port 8080 -c 4096 -np 1
+  volumes: [<span class="s">"llm-models:/models:ro"</span>]
+  networks: [slideworks-internal]</pre>
+    </div>
+    <div class="card codecard">
+      <h3>HyMt2 adapter <span class="pill acc">glossary + context</span></h3>
+      <p>The prompt shape from the Hunyuan-MT model card (terminology and context instructions). Check the exact wording against the Hy-MT2 card while building. Codes map: <code>zh-Hans</code> → Chinese, <code>zh-Hant</code> → Traditional Chinese, <code>yue</code> → Cantonese.</p>
+<pre class="code"><span class="c">// context: the slide's lines and the last 2–3 sentences</span>
+Next we look at the release train. The train leaves every Tuesday.
+
+Using the information above, and translating
+<span class="s">release train</span> as <span class="s">ขบวนรีลีส</span> (SW-883 glossary),
+translate the following segment into Thai,
+without additional explanation.
+
+So what happens if you miss it?</pre>
+    </div>
+    <div class="card codecard">
+      <h3>TranslateGemma adapter <span class="pill vio">text + codes only</span></h3>
+      <p>Its chat template takes the text with source and target language codes and nothing else, so the glossary and context are dropped (D5). Try it and the admin table say so with a "no glossary" tag.</p>
+<pre class="code">messages: [{
+  role: <span class="s">"user"</span>,
+  content: [{
+    type: <span class="s">"text"</span>,
+    source_lang_code: <span class="s">"en"</span>,
+    target_lang_code: <span class="s">"th"</span>,
+    text: <span class="s">"So what happens if you miss it?"</span>
+  }]
+}]
+<span class="c">// glossary, slide lines, previous sentences: not sent</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- 06 -->
+<section class="block" id="contracts">
+  <div class="sec-head"><span class="n">06</span><h2>Contracts the page needs (proposed)</h2></div>
+  <p class="sec-sub">Same pattern as /api/admin/users: one GET returns the whole view, and every change answers with the refreshed view. Overrides are soft-deleted (<code>RemovedAt</code>, a partial unique index on the live pair), not hard-deleted.</p>
+  <div class="card" style="padding:6px 8px;overflow-x:auto">
+    <table class="ex">
+      <thead><tr><th>What</th><th>Shape</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><b>GET</b> <code>/api/admin/translations</code></td><td class="m">TranslationAdminView { models[], defaultModelId, pairs[] }</td><td>models: id, displayName, adapter, languages, glossary, health, p50Ms / p95Ms / calls over the last hour, slots busy. pairs: a, b, modelId, modelConfigured, changedLabel, changedBy.</td></tr>
+        <tr><td><b>PUT</b> <code>…/default</code></td><td class="m">{ modelId } → view</td><td>400 if the model isn't configured.</td></tr>
+        <tr><td><b>PUT</b> <code>…/pairs/{a}/{b}</code></td><td class="m">{ modelId } → view</td><td>Creates or changes the row. a and b are sorted on the server, so en/th and th/en are one row. 400 if the model doesn't cover both, or a = b.</td></tr>
+        <tr><td><b>DELETE</b> <code>…/pairs/{a}/{b}</code></td><td class="m">→ view</td><td>Sets <code>RemovedAt</code>. The pair falls back to the default.</td></tr>
+        <tr><td><b>POST</b> <code>…/try</code></td><td class="m">{ text, from, to, modelId? } → { text, modelId, via, ms, tokensIn, tokensOut, glossarySent, outcome }</td><td>No modelId = resolve as live. Recorded in metrics with <code>source=try</code> so it can be left out of comparisons.</td></tr>
+        <tr><td><b>Tables</b></td><td class="m">TranslationSettings (DefaultModelId) · TranslationPairOverrides (LangA, LangB, ModelId, ChangedAt, ChangedBy, RemovedAt)</td><td>EF migration. The default is seeded from <code>Translation:DefaultModel</code> the first time.</td></tr>
+        <tr><td><b>Metrics</b></td><td class="m">slideworks_translation_requests_total{model,pair,outcome,source} · slideworks_translation_seconds (histogram) · tokens_in/out</td><td>Plus one Seq event per call. The admin page's hour figures come from the same counters.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 07 -->
+<section class="block" id="questions">
+  <div class="sec-head"><span class="n">07</span><h2>Questions, answered</h2></div>
+  <p class="sec-sub">Joel answered all seven on 28 Nov, each as recommended. They are D7–D13 on SW-943, and the mockup above already shows them.</p>
+  <div class="qs" id="qs"></div>
+  <div class="copyall">
+    <button type="button" class="btn" onclick="copyAll(this)">Copy all answers</button>
+    <span id="copyStatus" role="status" aria-live="polite"></span>
+  </div>
+</section>
+
+</main>
+
+<script>
+/* ===================== data ===================== */
+const LANGS = [
+  ['en','English','English'],['es','Spanish','Español'],['fr','French','Français'],['de','German','Deutsch'],
+  ['it','Italian','Italiano'],['pt','Portuguese','Português'],['nl','Dutch','Nederlands'],['id','Indonesian','Bahasa Indonesia'],
+  ['ms','Malay','Bahasa Melayu'],['vi','Vietnamese','Tiếng Việt'],['th','Thai','ไทย'],['ja','Japanese','日本語'],
+  ['ko','Korean','한국어'],['zh-Hans','Chinese (Simplified)','简体中文'],['zh-Hant','Chinese (Traditional)','繁體中文'],
+  ['yue','Cantonese','粵語']
+];
+const L = Object.fromEntries(LANGS.map(([c, e, n]) => [c, { code: c, en: e, nat: n }]));
+const SHORT = { en:'EN', es:'ES', fr:'FR', de:'DE', it:'IT', pt:'PT', nl:'NL', id:'ID', ms:'MS', vi:'VI', th:'TH', ja:'JA', ko:'KO', 'zh-Hans':'SC', 'zh-Hant':'TC', yue:'YUE' };
+const ALL = LANGS.map(l => l[0]);
+const NO_YUE = ALL.filter(c => c !== 'yue');
+
+const MODELS = [
+  { id:'hy-mt2-1.8b', name:'Hy-MT2 1.8B', vendor:'Tencent · Apache 2.0', adapter:'HyMt2', endpoint:'http://llm-hymt2:8080', langs: ALL, glossary:true, parallel:2, timeout:4000, ram:'~1.1 GB', p50:740, p95:1310, calls:412, busy:1, color:'var(--accent)', cls:1 },
+  { id:'translategemma-4b', name:'TranslateGemma 4B', vendor:'Google · Gemma terms', adapter:'TranslateGemma', endpoint:'http://llm-translategemma:8080', langs: NO_YUE, glossary:false, parallel:1, timeout:6000, ram:'~2.5 GB', p50:1620, p95:2840, calls:96, busy:0, color:'var(--violet)', cls:2 }
+];
+const M = id => MODELS.find(m => m.id === id);
+
+function freshState() {
+  return {
+    tab: 'models',
+    def: 'hy-mt2-1.8b',
+    pairs: [
+      { a:'th', b:'en', model:'translategemma-4b', when:'2 h ago by Joel' },
+      { a:'ja', b:'en', model:'translategemma-4b', when:'yesterday by Joel' },
+      { a:'yue', b:'en', model:'hy-mt2-1.8b', when:'yesterday by Joel' },
+    ],
+    down: false, gone: false,
+    add: { a:'ko', b:'en', model:'hy-mt2-1.8b', err:'' },
+    flashKey: null,
+    tryFrom:'en', tryTo:'th', tryText: SAMPLES[0].text, tryWho:'auto', results: [], history: [],
+  };
+}
+
+/* canned translations: [hy, gemma] per target */
+const SAMPLES = [
+  { label:'Release train', from:'en', text:"Next, we'll look at how the team ships smaller changes.",
+    out: {
+      th:['ต่อไป เราจะมาดูว่าทีมส่งการเปลี่ยนแปลงชิ้นเล็กลงได้อย่างไร','ถัดไป เราจะดูว่าทีมงานส่งมอบการเปลี่ยนแปลงที่เล็กลงอย่างไร'],
+      ja:['次に、チームがより小さな変更をどのように出荷しているかを見ていきます。','次に、チームが小さな変更をどう届けているかを見てみましょう。'],
+      'zh-Hans':['接下来，我们来看看团队如何交付更小的改动。','接下来，我们将看看团队如何发布较小的变更。'],
+      'zh-Hant':['接下來，我們來看看團隊如何交付更小的改動。','接下來，我們將看看團隊如何發布較小的變更。'],
+      yue:['跟住落嚟，我哋睇吓個團隊點樣交付細啲嘅改動。', null],
+      es:['A continuación, veremos cómo el equipo entrega cambios más pequeños.','Ahora veremos cómo el equipo publica cambios más pequeños.'],
+    } },
+  { label:'Audience question (Thai)', from:'th', text:'คำถามจากผู้ฟังจะขึ้นบนจอหลังจากผู้พูดอนุมัติ',
+    out: { en:['Questions from the audience appear on screen after the speaker approves them.','Audience questions show on the screen once the speaker approves them.'] } },
+  { label:'Short line', from:'en', text:'So what happens if you miss it?',
+    out: { th:['แล้วถ้าพลาดขบวนรีลีสไปจะเกิดอะไรขึ้น','แล้วจะเกิดอะไรขึ้นถ้าคุณพลาดมัน'], ja:['では、乗り遅れたらどうなるのでしょうか？','では、それを逃したらどうなりますか？'], yue:['咁如果你錯過咗會點？', null] } },
+];
+
+let S = freshState();
+
+/* ===================== helpers ===================== */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const key = (a, b) => [a, b].sort().join('|');
+const supports = (m, a, b) => !!m && m.langs.includes(a) && m.langs.includes(b);
+const langOpt = (c, sel) => `<option value="${c}" ${c === sel ? 'selected' : ''}>${esc(L[c].en)}${L[c].nat !== L[c].en ? ' ' + esc(L[c].nat) : ''}${c === 'yue' ? ' (D10)' : ''}</option>`;
+const isUp = m => !(S.down && m.id === 'translategemma-4b');
+function pairsLive() {
+  if (S.empty) return [];
+  const ps = S.pairs.slice();
+  if (S.gone) ps.splice(0, 0, { a:'vi', b:'en', model:'typhoon-translate-4b', when:'5 Nov by Joel', ghost:true });
+  return ps;
+}
+function resolve(a, b) {
+  const row = pairsLive().find(p => key(p.a, p.b) === key(a, b));
+  let m = row ? M(row.model) : null;
+  const d = M(S.def);
+  if (m && supports(m, a, b)) {
+    if (isUp(m) || m.id === d.id || !isUp(d) || !supports(d, a, b)) return { m, via: 'override' };
+    return { m: d, via: 'default, the override\u2019s model is down (D9)' };
+  }
+  if (supports(d, a, b)) return { m: d, via: row ? 'default, the row’s model is not configured' : 'default' };
+  return { m: null, via: 'none' };
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ===================== render ===================== */
+function render() {
+  const el = document.getElementById('appMain');
+  el.innerHTML = `
+    <div class="subnav"><span class="lbl">Admin</span><span class="tab">People<span class="cnt">1 waiting</span></span><span class="tab on">Translations</span></div>
+    <div class="ptitle"><h3>Translations</h3><span class="sub">Which model translates which languages. Changes apply to the next sentence.</span></div>
+    <div class="utabs" role="tablist">
+      <button role="tab" data-tab="models" class="${S.tab === 'models' ? 'on' : ''}">Models and pairs</button>
+      <button role="tab" data-tab="try" class="${S.tab === 'try' ? 'on' : ''}">Try it</button>
+      <button role="tab" data-tab="speech" class="later ${S.tab === 'speech' ? 'on' : ''}">Speech to text<small>SW-884</small></button>
+    </div>
+    ${S.tab === 'models' ? renderModels() : S.tab === 'try' ? renderTry() : renderSpeech()}`;
+}
+
+function modelCard(m) {
+  const up = isUp(m);
+  const isDef = m.id === S.def;
+  const nPairs = pairsLive().filter(p => p.model === m.id).length;
+  return `<div class="model ${up ? '' : 'down'}" style="--mc:${m.color}">
+    <div class="mh"><b>${esc(m.name)}</b>${isDef ? '<span class="pill acc">Default</span>' : ''}<span class="id">${m.id}</span>
+      <span class="st">${up ? '<span class="pill ok"><span class="dot"></span>Reachable</span>' : '<span class="pill bad"><span class="dot"></span>Unreachable for 4 min</span>'}</span></div>
+    <div class="mstats">
+      <div class="mstat"><div class="l">p50 · 1 h</div><div class="v">${up ? (m.p50 / 1000).toFixed(2) : '–'}<small> s</small></div></div>
+      <div class="mstat"><div class="l">p95 · 1 h</div><div class="v">${up ? (m.p95 / 1000).toFixed(2) : '–'}<small> s</small></div></div>
+      <div class="mstat"><div class="l">Calls · 1 h</div><div class="v">${up ? m.calls : 31}</div></div>
+      <div class="mstat"><div class="l">Slots busy</div><div class="v">${up ? m.busy : 0}<small> of ${m.parallel}</small></div></div>
+    </div>
+    <dl class="mfacts">
+      <dt>Languages</dt><dd>${m.langs.length === ALL.length ? 'All 15 + Cantonese' : 'All 15, no Cantonese'}</dd>
+      <dt>Glossary</dt><dd>${m.glossary ? 'Glossary and context sent' : 'Text only: no glossary or context (D5)'}</dd>
+      <dt>Used by</dt><dd>${isDef ? 'Default, plus ' : ''}${nPairs} pair override${nPairs === 1 ? '' : 's'}</dd>
+      <dt>Runs at</dt><dd><code>${m.endpoint}</code> · ${m.ram} · timeout ${m.timeout.toLocaleString()} ms</dd>
+      <dt>Licence</dt><dd>${m.vendor}</dd>
+    </dl>
+    ${up ? '' : isDef ? '<p class="note bad">It is the default: pairs without a working override are not translated until it is back.</p>' : '<p class="note bad">Its pairs go to the default until it is back (D9). A single slow answer is "not translated", not retried.</p>'}
+  </div>`;
+}
+
+function renderModels() {
+  const d = M(S.def);
+  const missing = ALL.filter(c => !d.langs.includes(c));
+  const ps = S.empty ? [] : pairsLive();
+  const rows = ps.map(p => {
+    const m = M(p.model);
+    const k = key(p.a, p.b);
+    const opts = MODELS.map(mm => `<option value="${mm.id}" ${mm.id === p.model ? 'selected' : ''} ${supports(mm, p.a, p.b) ? '' : 'disabled'}>${esc(mm.name)}${supports(mm, p.a, p.b) ? '' : ': no ' + (supports(mm, p.a, p.a) ? L[p.b].en : L[p.a].en)}${mm.id === S.def ? ' (default)' : ''}</option>`).join('');
+    const ghostOpt = m ? '' : `<option selected disabled>${esc(p.model)} (not configured)</option>`;
+    let warn = '';
+    if (!m) warn = `<span class="rowwarn">This model is no longer in the server config. ${esc(d.name)} (the default) is used until you change or remove this row.</span>`;
+    else if (!isUp(m)) warn = m.id === S.def || !isUp(d) ? `<span class="rowbad">${esc(m.name)} is unreachable: this pair isn't being translated right now.</span>` : `<span class="rowwarn">${esc(m.name)} is down: ${esc(d.name)} (the default) translates this pair until it is back (D9).</span>`;
+    else if (p.model === S.def) warn = `<span class="note">Same as the default today. Kept on ${esc(m.name)} if the default changes.</span>`;
+    return `<tr data-k="${k}" class="${S.flashKey === k ? 'flash' : ''}">
+      <td><div class="pair">${esc(L[p.a].en)} <span class="nat">${L[p.a].nat !== L[p.a].en ? esc(L[p.a].nat) : ''}</span><span class="ar">↔</span>${esc(L[p.b].en)}</div></td>
+      <td><select class="sel" data-act="pairModel" data-k="${k}" aria-label="Model for ${esc(L[p.a].en)} and ${esc(L[p.b].en)}">${ghostOpt}${opts}</select>${warn}</td>
+      <td>${m ? (m.glossary ? '<span class="pill ok">sent</span>' : '<span class="pill grey">no glossary</span>') : '–'}</td>
+      <td class="when">${esc(p.when)}</td>
+      <td style="text-align:right"><button class="btn sm" data-act="remove" data-k="${k}">Remove</button></td>
+    </tr>`;
+  }).join('');
+
+  const A = S.add;
+  const addModelOpts = MODELS.map(mm => {
+    const ok = supports(mm, A.a, A.b);
+    const miss = !mm.langs.includes(A.a) ? A.a : !mm.langs.includes(A.b) ? A.b : null;
+    return `<option value="${mm.id}" ${mm.id === A.model ? 'selected' : ''} ${ok ? '' : 'disabled'}>${esc(mm.name)}${ok ? '' : ': no ' + L[miss].en}</option>`;
+  }).join('');
+
+  return `
+  <div class="panel">
+    <div class="ph"><h4>Models</h4><span class="help">Set on the server. Adding or removing one is a deploy, not a setting here.</span></div>
+    <div class="pb">
+      <div class="models">${MODELS.map(modelCard).join('')}</div>
+      <div class="fromcfg">From <code>Translation:Models</code> · health checked every 30 s · figures cover the last hour</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><h4>Default model</h4><span class="help">Translates every pair that has no row below.</span></div>
+    <div class="pb" style="display:grid;gap:8px">
+      <div class="defrow">
+        <select class="sel" data-act="default" aria-label="Default model">${MODELS.map(m => `<option value="${m.id}" ${m.id === S.def ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select>
+        <span class="saved" id="defSaved">Saved</span>
+      </div>
+      ${missing.length ? `<p class="note warn">${esc(d.name)} has no ${missing.map(c => L[c].en).join(', ')}. ${missing.map(c => L[c].en).join(', ')} pairs without a row below won't be translated.</p>` : `<p class="note">${esc(d.name)} covers every language in the catalogue.</p>`}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><h4>Language pair overrides</h4><span class="help">One row covers both directions. Only models that know both languages can be picked.</span></div>
+    <div class="pb">
+      <div class="tabwrap">
+        <table class="ledger">
+          <thead><tr><th>Pair</th><th>Model</th><th>Glossary</th><th>Changed</th><th><span style="position:absolute;left:-9999px">Remove</span></th></tr></thead>
+          <tbody>${rows || `<tr><td colspan="5" class="empty">No overrides. ${esc(d.name)} translates every pair.</td></tr>`}</tbody>
+        </table>
+        <div class="addrow">
+          <select class="sel" data-act="addA" aria-label="First language">${ALL.map(c => langOpt(c, A.a)).join('')}</select><span class="arw">↔</span>
+          <select class="sel" data-act="addB" aria-label="Second language">${ALL.map(c => langOpt(c, A.b)).join('')}</select><span class="arw">→</span>
+          <select class="sel" data-act="addModel" aria-label="Model">${addModelOpts}</select>
+          <button class="btn pri sm" data-act="add">Add pair</button>
+          ${A.err ? `<div class="adderr">${esc(A.err)}</div>` : ''}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><h4>Every pair at a glance</h4><span class="help">Who translates each pair today, after overrides and the default (D13).</span></div>
+    <div class="pb">${renderMap()}</div>
+  </div>`;
+}
+
+function renderMap() {
+  const head = ALL.map(c => `<th title="${esc(L[c].en)}">${SHORT[c]}</th>`).join('');
+  const body = ALL.map((r, i) => `<tr><th class="rh">${esc(L[r].en)}</th>${ALL.map((c, j) => {
+    if (j <= i) return '<td class="self"></td>';
+    const row = (S.empty ? [] : pairsLive()).find(p => key(p.a, p.b) === key(r, c));
+    const res = resolve(r, c);
+    const t = `${L[r].en} ↔ ${L[c].en}: `;
+    if (!res.m) return `<td class="na" title="${esc(t)}not translated">×</td>`;
+    if (!isUp(res.m)) return `<td class="na" title="${esc(t + res.m.name)} is unreachable">!</td>`;
+    if (row && res.via === 'override' && !S.empty) return `<td class="o${res.m.cls}" title="${esc(t + res.m.name)} (override)">${res.m.cls === 1 ? 'H' : 'G'}</td>`;
+    return `<td class="d${res.m.cls} ${row ? 'fb' : ''}" title="${esc(t + res.m.name)} (${esc(res.via)})"></td>`;
+  }).join('')}</tr>`).join('');
+  return `<div class="mapwrap"><table class="pmap"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table></div>
+    <div class="legend">
+      <span><i style="background:#dfe7fc"></i>Hy-MT2, default</span><span><i style="background:var(--accent)"></i>Hy-MT2, override</span>
+      <span><i style="background:#e8e1fd"></i>TranslateGemma, default</span><span><i style="background:var(--violet)"></i>TranslateGemma, override</span>
+      <span><i style="background:repeating-linear-gradient(45deg,var(--bad-soft) 0 4px,#fff 4px 7px)"></i>Not translated or model down</span>
+      <span><i style="background:#fff;outline:2px solid var(--warn);outline-offset:-2px"></i>Row's model missing or down, default used</span>
+    </div>`;
+}
+
+function renderTry() {
+  const auto = resolve(S.tryFrom, S.tryTo);
+  const whoOpts = [
+    ['auto', `As live: ${auto.m ? auto.m.name + (isUp(auto.m) ? '' : ' (down)') : 'no model'}`, !auto.m],
+    ...MODELS.map(m => [m.id, m.name, !supports(m, S.tryFrom, S.tryTo)]),
+    ['both', 'Both, side by side (D11)', false],
+  ];
+  const res = S.results.map(r => {
+    const m = M(r.model);
+    if (r.state === 'wait') return `<div class="res wait" style="--mc:${m.color}"><div class="rh"><b>${esc(m.name)}</b></div><div class="txt">Translating</div></div>`;
+    if (r.state === 'err') return `<div class="res err" style="--mc:${m.color}"><div class="rh"><b>${esc(m.name)}</b><span class="pill bad">${esc(r.tag)}</span></div><div class="txt">${esc(r.msg)}</div></div>`;
+    return `<div class="res" style="--mc:${m.color}"><div class="rh"><b>${esc(m.name)}</b>${r.via ? `<span class="pill grey">${esc(r.via)}</span>` : ''}</div>
+      <div class="txt">${esc(r.text)}</div>
+      <div class="rm"><span><b>${r.ms.toLocaleString()} ms</b></span><span>tokens ${r.tin} → ${r.tout}</span><span>${m.glossary ? 'glossary + context sent' : 'text only, no glossary'}</span><span>${m.id}</span></div></div>`;
+  }).join('') || `<div class="placeholder">Pick a pair, type or pick a sample, then Translate. The result shows the model, the time and what was sent.</div>`;
+  const hist = S.history.length ? `<div class="tabwrap"><table class="ledger hist"><thead><tr><th>Pair</th><th>Model</th><th>Time</th><th>Text</th></tr></thead><tbody>${S.history.slice(0, 6).map(h => `<tr><td class="when">${h.pair}</td><td>${esc(h.model)}</td><td class="when">${h.ms}</td><td>${esc(h.text)}</td></tr>`).join('')}</tbody></table></div>` : '';
+  return `<div class="panel"><div class="pb try">
+    <div class="tin">
+      <div class="langs">
+        <select class="sel" data-act="tryFrom" aria-label="From">${ALL.map(c => langOpt(c, S.tryFrom)).join('')}</select>
+        <button class="swap" data-act="swap" aria-label="Swap languages">⇄</button>
+        <select class="sel" data-act="tryTo" aria-label="To">${ALL.map(c => langOpt(c, S.tryTo)).join('')}</select>
+      </div>
+      <textarea class="field" data-act="tryText" aria-label="Text to translate">${esc(S.tryText)}</textarea>
+      <div class="samples">Samples: ${SAMPLES.map((s, i) => `<button data-act="sample" data-i="${i}">${esc(s.label)}</button>`).join('')}</div>
+      <div class="seg" role="radiogroup" aria-label="Model">${whoOpts.map(([v, lab, dis]) => `<label><input type="radio" name="who" value="${v}" ${S.tryWho === v ? 'checked' : ''} ${dis ? 'disabled' : ''} data-act="who">${esc(lab)}</label>`).join('')}</div>
+      <div><button class="btn pri" data-act="translate" ${S.tryFrom === S.tryTo || !S.tryText.trim() ? 'disabled' : ''}>Translate</button></div>
+      <p class="note">Try it calls the real engine and is counted in metrics as <code>source=try</code>. No slide glossary is sent from here.</p>
+    </div>
+    <div class="tout">${res}${hist ? '<div class="ph" style="padding:6px 0 0"><h4>Earlier tries</h4><span class="help">this visit only</span></div>' + hist : ''}</div>
+  </div></div>`;
+}
+
+function renderSpeech() {
+  return `<div class="placeholder"><b>Speech to text</b><br>SW-884 (D19) adds this tab: the speech model manifest phones download from, one active model per spoken language, and latency by model pair.<br><span class="note">Shown so the tab row is right from day one. SW-943 ships the first two tabs.</span></div>`;
+}
+
+/* ===================== actions ===================== */
+function flashSaved() { const s = document.getElementById('defSaved'); if (s) { s.classList.add('show'); setTimeout(() => s.classList.remove('show'), 1600); } }
+
+document.getElementById('appMain').addEventListener('click', e => {
+  const t = e.target.closest('[data-act],[data-tab]');
+  if (!t) return;
+  if (t.dataset.tab) { S.tab = t.dataset.tab; render(); return; }
+  const act = t.dataset.act;
+  if (act === 'remove') {
+    const k = t.dataset.k;
+    if (S.gone && k === key('vi', 'en')) S.gone = false, document.getElementById('simGone').checked = false;
+    S.pairs = S.pairs.filter(p => key(p.a, p.b) !== k);
+    render(); toast('Removed. That pair now uses the default.');
+  }
+  if (act === 'add') {
+    const A = S.add;
+    if (A.a === A.b) { A.err = 'Pick two different languages.'; render(); return; }
+    const ex = pairsLive().find(p => key(p.a, p.b) === key(A.a, A.b));
+    if (ex && !S.empty) { A.err = `${L[ex.a].en} ↔ ${L[ex.b].en} already has a row. Change its model in the table.`; render(); return; }
+    if (!supports(M(A.model), A.a, A.b)) { A.err = 'That model doesn’t cover both languages.'; render(); return; }
+    if (S.empty) { S.pairs = []; S.empty = false; document.getElementById('simEmpty').checked = false; }
+    S.pairs.push({ a: A.a, b: A.b, model: A.model, when: 'just now by you' });
+    S.flashKey = key(A.a, A.b); A.err = '';
+    render(); toast('Saved. The next sentence in that pair uses it.');
+  }
+  if (act === 'swap') { [S.tryFrom, S.tryTo] = [S.tryTo, S.tryFrom]; fixWho(); render(); }
+  if (act === 'sample') { const s = SAMPLES[+t.dataset.i]; S.tryText = s.text; S.tryFrom = s.from; if (S.tryTo === s.from) S.tryTo = s.from === 'en' ? 'th' : 'en'; fixWho(); render(); }
+  if (act === 'translate') runTry();
+});
+
+document.getElementById('appMain').addEventListener('change', e => {
+  const t = e.target; const act = t.dataset.act;
+  if (act === 'default') { S.def = t.value; render(); flashSaved(); toast('Default saved. Applies to the next sentence.'); }
+  if (act === 'pairModel') { const p = S.pairs.find(p => key(p.a, p.b) === t.dataset.k) || (S.gone && t.dataset.k === key('vi', 'en') ? (S.gone = false, document.getElementById('simGone').checked = false, S.pairs.push({ a:'vi', b:'en', model:t.value, when:'' }), S.pairs[S.pairs.length - 1]) : null); if (p) { p.model = t.value; p.when = 'just now by you'; S.flashKey = t.dataset.k; render(); toast('Saved.'); } }
+  if (act === 'addA' || act === 'addB') { S.add[act === 'addA' ? 'a' : 'b'] = t.value; S.add.err = ''; const ok = MODELS.find(m => supports(m, S.add.a, S.add.b)); if (!supports(M(S.add.model), S.add.a, S.add.b) && ok) S.add.model = ok.id; render(); }
+  if (act === 'addModel') { S.add.model = t.value; }
+  if (act === 'tryFrom' || act === 'tryTo') { S[act] = t.value; fixWho(); render(); }
+  if (act === 'who') { S.tryWho = t.value; }
+});
+document.getElementById('appMain').addEventListener('input', e => {
+  if (e.target.dataset.act === 'tryText') { S.tryText = e.target.value; const b = document.querySelector('[data-act=translate]'); if (b) b.disabled = S.tryFrom === S.tryTo || !S.tryText.trim(); }
+});
+
+function fixWho() { if (S.tryWho !== 'auto' && S.tryWho !== 'both' && !supports(M(S.tryWho), S.tryFrom, S.tryTo)) S.tryWho = 'auto'; }
+
+function runTry() {
+  let ids;
+  if (S.tryWho === 'both') ids = MODELS.map(m => m.id);
+  else if (S.tryWho === 'auto') { const r = resolve(S.tryFrom, S.tryTo); ids = r.m ? [r.m.id] : []; }
+  else ids = [S.tryWho];
+  const auto = resolve(S.tryFrom, S.tryTo);
+  S.results = ids.map(id => ({ model: id, state: 'wait' }));
+  render();
+  const sample = SAMPLES.find(s => s.text === S.tryText.trim() && s.from === S.tryFrom);
+  ids.forEach((id, i) => {
+    const m = M(id);
+    const ms = Math.round((m.cls === 1 ? 620 : 1450) + Math.random() * (m.cls === 1 ? 500 : 1100));
+    setTimeout(() => {
+      const r = S.results[i];
+      if (!r) return;
+      if (!supports(m, S.tryFrom, S.tryTo)) Object.assign(r, { state: 'err', tag: 'not supported', msg: `${m.name} has no ${!m.langs.includes(S.tryFrom) ? L[S.tryFrom].en : L[S.tryTo].en}. Live sentences never go to it for this pair.` });
+      else if (!isUp(m)) Object.assign(r, { state: 'err', tag: 'unreachable', msg: `Couldn't reach ${m.endpoint}. Health check failing for 4 min.` });
+      else {
+        const canned = sample && sample.out[S.tryTo] && sample.out[S.tryTo][m.cls - 1];
+        const text = canned || `[${L[S.tryTo].en}, ${m.name}] ${S.tryText.trim()}`;
+        const tin = Math.max(6, Math.round(S.tryText.length / 3.6)) + (m.glossary ? 42 : 0);
+        Object.assign(r, { state: 'ok', text, ms, tin, tout: Math.max(6, Math.round(text.length / 2.4)), via: S.tryWho === 'auto' || (S.tryWho === 'both' && auto.m && auto.m.id === id) ? (auto.via === 'override' ? 'live uses this: pair override' : 'live uses this: default') : '' });
+        S.history.unshift({ pair: `${S.tryFrom} → ${S.tryTo}`, model: m.name, ms: ms.toLocaleString() + ' ms', text });
+      }
+      if (S.tab === 'try') render();
+    }, Math.min(ms / 1.6, 1800));
+  });
+}
+
+/* sim switches */
+document.getElementById('simDown').addEventListener('change', e => { S.down = e.target.checked; render(); });
+document.getElementById('simGone').addEventListener('change', e => { S.gone = e.target.checked; S.tab = 'models'; render(); });
+document.getElementById('simEmpty').addEventListener('change', e => { S.empty = e.target.checked; S.tab = 'models'; render(); });
+document.getElementById('simReset').addEventListener('click', () => { S = freshState(); ['simDown', 'simGone', 'simEmpty'].forEach(id => document.getElementById(id).checked = false); render(); });
+
+render();
+
+/* ===================== questions ===================== */
+const QS = [
+  { id:'Q1', t:'How does an admin get to this page?', p:'Today the top bar’s Admin link goes straight to /admin/users. A second admin page needs a way between them.',
+    o:[['Admin sub-nav: People · Translations', 'Admin keeps its badge and opens People; a small tab row at the top of every admin page (as in the mockup). Room for more admin pages later.', 1],
+       ['Admin becomes a menu', 'Admin opens a drop-down with People and Translations.'],
+       ['A Translations link in the top bar', 'Next to Admin, admins only.']] },
+  { id:'Q2', t:'Does each change save at once?', p:'People already acts on each click. Translation settings are small and each change is one row.',
+    o:[['Each change saves at once', 'Change a select or click Add / Remove and it’s saved, with a "Saved" note and a toast. The next sentence uses it.', 1],
+       ['Edit, then Save all', 'Changes stay local until a Save button; a Discard button undoes them.']] },
+  { id:'Q3', t:'A model is down or times out during a talk. What then?', p:'The spec covers a model that doesn’t support the pair (fall back to the default) but not one that is unreachable or slow. Retrying on another model after a timeout doubles the wait for that line.',
+    o:[['Down: go to the default. Timed out: not translated', 'If the health check says the model is down, its pairs go to the default (when that is up and supports them). A single timeout gives "not translated" for that sentence, so subtitles never wait twice.', 1],
+       ['Always retry on the default', 'Down or timed out, try the default once before giving up.'],
+       ['Never fall back', 'The pair’s model or nothing. Simple, and a down model is obvious.']] },
+  { id:'Q4', t:'Cantonese isn’t in the language catalogue. Add it?', p:'The 15 catalogue languages in languages.json have no Cantonese; zh-Hant is written Traditional Chinese. Your example override (Cantonese ↔ English) needs a code. Adding it also makes Cantonese a slide translation language (SW-883), using the existing traditional-chinese script and Noto Sans TC.',
+    o:[['Add yue (Cantonese, 粵語) to the catalogue in SW-943', 'One entry in languages.json and the adapter mapping. Hy-MT2 supports it; TranslateGemma doesn’t list it, so only Hy-MT2 can be picked for its pairs.', 1],
+       ['A separate small item first', 'Same change, its own Bug/Story, so SW-943 stays catalogue-only.'],
+       ['Not now', 'Pairs only from the 15 catalogue languages. Drop Cantonese from the mockup.']] },
+  { id:'Q5', t:'Try it: one model at a time, or both side by side?', p:'The spec says pick one model. Side by side makes comparing on the same sentence one click, which is the point of playing with them.',
+    o:[['Add "Both, side by side"', 'As live (the resolved model), each model on its own, or both. Both runs the two calls at the same time.', 1],
+       ['One model at a time', 'As the spec says. Compare by switching and translating again.']] },
+  { id:'Q6', t:'A deploy removes a model that a pair override still uses. What happens to the row?', p:'Models are added and removed only in config, but the overrides live in the database.',
+    o:[['Keep the row, flag it, use the default', 'The row shows "no longer in the server config" until the admin changes or removes it. Put the model back and the row works again.', 1],
+       ['Remove those rows at start-up', 'Soft-delete rows whose model is gone, and log it.']] },
+  { id:'Q7', t:'Keep the "every pair at a glance" grid?', p:'A 16 × 16 map showing which model translates each pair after overrides and the default. Not in the spec; it answers "what will Korean ↔ Thai use?" without reading the rules.',
+    o:[['Keep it', 'Below the overrides table, as in the mockup. It also shows the gaps when the default lacks a language.', 1],
+       ['Leave it out', 'The overrides table and the default are enough.']] },
+];
+
+document.getElementById('qs').innerHTML = QS.map(q => `
+  <form class="card q" data-lavish-question="${q.id}" onsubmit="queueQ(event, '${q.id}')">
+    <div class="qh"><span class="qn">${q.id}</span><h3>${esc(q.t)}</h3><span class="pill ok">→ D${+q.id.slice(1) + 6}, as recommended</span></div>
+    <p>${esc(q.p)}</p>
+    <div class="opts">${q.o.map(([lab, desc, rec], i) => `<label class="opt"><input type="radio" name="${q.id}" value="${esc(lab)}" ${rec ? 'checked' : ''}><span><b>${esc(lab)}</b>${rec ? '<span class="rec">recommended</span>' : ''}</span><small>${esc(desc)}</small></label>`).join('')}</div>
+    <div class="qf"><input type="text" name="${q.id}-note" placeholder="Note (optional)"><button class="btn pri sm" type="submit">Queue answer</button><span class="qst"></span></div>
+  </form>`).join('');
+
+function queueQ(ev, id) {
+  ev.preventDefault();
+  const f = ev.currentTarget; const fd = new FormData(f);
+  const q = QS.find(x => x.id === id);
+  const ans = fd.get(id); const note = (fd.get(id + '-note') || '').trim();
+  const rec = q.o.find(o => o[2])[0];
+  const msg = `SW-943 ${id} (${q.t}): ${ans}${ans === rec ? ' (recommended)' : ' (against the recommendation)'}${note ? '. Note: ' + note : ''}`;
+  if (window.lavish && window.lavish.queuePrompt) {
+    window.lavish.queuePrompt(msg, { tag: 'choice', text: `${id}: ${ans}`, element: f, queueKey: id, data: { question: id, answer: ans, note } });
+    f.querySelector('.qst').textContent = 'Queued. Press Send to Agent when done.';
+  } else {
+    f.querySelector('.qst').textContent = 'Selected. Use Copy all answers below.';
+  }
+}
+
+async function copyAll(btn) {
+  const out = QS.map(q => {
+    const f = document.querySelector(`[data-lavish-question="${q.id}"]`);
+    const fd = new FormData(f); const note = (fd.get(q.id + '-note') || '').trim();
+    return `${q.id}: ${fd.get(q.id)}${note ? ' | note: ' + note : ''}`;
+  }).join('\n');
+  const st = document.getElementById('copyStatus');
+  try { await navigator.clipboard.writeText(out); st.textContent = 'Answers copied.'; }
+  catch { st.textContent = 'Clipboard unavailable:'; const ta = document.createElement('textarea'); ta.value = out; ta.rows = 8; ta.style.width = '100%'; btn.parentElement.append(ta); ta.select(); }
+}
+</script>
+</body>
+</html>
