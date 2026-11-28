@@ -27,6 +27,8 @@ public static class ScreenShapes
         NullablePaths =
         [
             "author", "parts[].caption", "parts[].mark", "slides[].part", "slides[].headline", "slides[].notes", "activity[].tool",
+            // SW-886 K10: the deck page's own findings never name a language.
+            "findings[].language",
             "look.template.titleArt", "look.logo", "look.chromeOverrides.tracker", "look.chromeOverrides.footer", "look.chromeOverrides.progress",
             .. LookNullablePaths,
         ],
@@ -127,7 +129,8 @@ public static class ScreenShapes
     };
 
     // The live view (live.json, J2): GET, POST and DELETE-less reads of /api/decks/{id}/live. sessionId is null when live is false.
-    public static readonly JsonShapeOptions Live = new() { NullablePaths = ["sessionId"] };
+    // readingIn is null while translations are off or the deck is not live (SW-886 K11).
+    public static readonly JsonShapeOptions Live = new() { NullablePaths = ["sessionId", "readingIn"] };
 
     // The audience events (audience-events.json, J4): one sample of each, as properties named by the event type. The state
     // sample is a live one, so a lobby or ended state is checked with current and activity nullable.
@@ -140,6 +143,8 @@ public static class ScreenShapes
             "questionControl.control.here", "questionControl.control.onScreen", "questionControl.control.questions[].name",
             // SW-883 K5: null while translations are off.
             "audienceState.language",
+            // SW-886 K11: null when translations were turned off.
+            "readingIn.counts",
         ],
         OpaquePaths = ["audienceState.current.slots"],
     };
@@ -227,7 +232,8 @@ public static class ScreenShapes
     public static readonly JsonShapeOptions QaControl = new() { NullablePaths = ["round", "here", "onScreen", "questions[].name"] };
 
     // deck-checks.json (SW-3 K2): the error is null in the sample, so error strings are asserted directly, not through JsonShape.
-    public static readonly JsonShapeOptions DeckChecks = new() { NullablePaths = ["error"] };
+    // A finding's language is null while translations are off (SW-886 K10).
+    public static readonly JsonShapeOptions DeckChecks = new() { NullablePaths = ["error", "findings[].language"] };
 
     // get_questions (questions-report.json, Q10).
     public static readonly JsonShapeOptions QuestionsReport = new() { NullablePaths = ["sessions[].questions[].name"] };
@@ -274,7 +280,8 @@ public static class ScreenShapes
     // built-in deck as the server sends it, so their looks hold a built-in's nulls.
     public static JsonShapeOptions SelfCheckOf(string file) => file switch
     {
-        "deck-play.json" or "deck-page.json" or "presenter.json" => BuiltInLookFile("", "parts[].caption", "parts[].mark"),
+        "deck-play.json" or "presenter.json" => BuiltInLookFile("", "parts[].caption", "parts[].mark"),
+        "deck-page.json" => BuiltInLookFile("", "parts[].caption", "parts[].mark", "findings[].language"),
         "card.json" => BuiltInLookFile(),
         "deck-print.json" => DeckPrint,
         "deck-checks.json" => DeckChecks,
