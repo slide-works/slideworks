@@ -14,7 +14,9 @@ public sealed class GetDeckTool
     public Task<CallToolResult> GetDeck(
         DeckReader reader,
         [Description("The deck's id, as create_deck returned it.")] string deck,
-        [Description("\"full\" (the default) includes every slide's slots. \"summary\" returns number, layout, part and headline.")] string? detail = null)
+        [Description("\"full\" (the default) includes every slide's slots. \"summary\" returns number, layout, part and headline.")] string? detail = null,
+        // TODO: read the deck with this language's translations merged in.
+        [Description("A language code to read the slides in, when the deck has translations. Accepted and ignored for now.")] string? language = null)
         => McpToolErrors.Run(() => reader.GetForEditorAsync(deck, detail switch
         {
             null or "" or "full" => false,
