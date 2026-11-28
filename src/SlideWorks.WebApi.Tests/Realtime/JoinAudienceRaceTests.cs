@@ -78,7 +78,9 @@ public class JoinAudienceRaceTests : ApiTestFixture
         return (deck, relay);
     }
 
-    private static AudienceState StateAt(string deck, long seq) => new(deck, seq, AudiencePhase.Live, null, 0, null, null, null);
+    // Routed to the primary's slide-state group, where JoinAudience puts a guest (SW-883 D11; the deck has no settings, so en).
+    private static AudienceState StateAt(string deck, long seq)
+        => new AudienceState(deck, seq, AudiencePhase.Live, null, 0, null, null, null) { Group = AudienceSlideGroups.Name(deck, "en") };
 
     // The fake sessions, plus a hook that runs once on the first ForDeckAsync (JoinAudience's existence check).
     private sealed class HookedSessions(FakeAudienceSessions inner) : IAudienceSessions

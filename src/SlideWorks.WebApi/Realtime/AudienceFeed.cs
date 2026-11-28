@@ -323,7 +323,8 @@ public sealed class AudienceFeed : IDisposable
             AudiencePhase.Live,
             current,
             live.Revision,
-            await ActivityAsync(services, deckId, settings.Enabled ? language : null),
+            // Null for the primary (and with translations off), so the activity skips its translation reads; once per language.
+            await ActivityAsync(services, deckId, settings.Enabled && language != settings.Primary ? language : null),
             live.Room,
             // D24: FallbackLines already leaves out emphasis entries; taken as it is.
             settings.Enabled ? new AudienceLanguage(language, fallbackLines) : null);

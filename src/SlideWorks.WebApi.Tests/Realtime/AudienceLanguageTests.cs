@@ -107,6 +107,27 @@ public class AudienceLanguageTests : ApiTestFixture
         refused.Message.ShouldContain(DeckHub.NOT_JOINED, Case.Sensitive);
     }
 
+    // LeaveAudience takes the connection out of its language's slide-state group too. The guest then joins another deck, and
+    // the first state it gets must be that deck's move (slide 2), not the left deck's (slide 1) published before it.
+    [Test]
+    public async Task LeaveAudience_WhenReadingInThai_ShouldStopTheStates()
+    {
+        var (left, leftCode) = await GoLiveAsync(await TranslatedDeckAsync());
+        var (other, otherCode) = await GoLiveAsync(await TranslatedDeckAsync());
+        await using var guest = await GuestClient.ConnectAsync(Factory);
+        await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", leftCode);
+        await guest.Connection.InvokeAsync<JsonElement>("SetLanguage", leftCode, "th");
+
+        await guest.Connection.InvokeAsync("LeaveAudience", leftCode);
+        await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", otherCode);
+        await MoveAsync(left, slide: 1, step: 0);
+        await MoveAsync(other, slide: 2);
+        var first = await NextStateAsync(guest);
+
+        first.GetProperty("current").GetProperty("index").GetInt32().ShouldBe(2);
+        first.GetProperty("language").GetProperty("code").GetString().ShouldBe("en");
+    }
+
     [Test]
     public async Task Move_WhenTwoLanguagesInUse_ShouldSendEachGroupItsOwnSlots()
     {

@@ -214,6 +214,9 @@ public sealed class DeckHub(
     // resolves; only the group removal needs a known code.
     public async Task LeaveAudience(string code)
     {
+        // The slide-state group it is in (SW-883 D11), read from the roster before the leave forgets it.
+        var onDeck = await roster.DeckOfAsync(Context.ConnectionId);
+        var placed = onDeck is null ? null : (await roster.SeatsAsync(onDeck)).FirstOrDefault(seat => seat.ConnectionId == Context.ConnectionId)?.Placed;
         // Off the roster first: a code that no longer resolves (its deck was deleted) must not leave the connection counted.
         await LeaveRosterAsync();
         var found = await sessions.FindAsync(code);
@@ -222,6 +225,18 @@ public sealed class DeckHub(
             return;
         }
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, AudienceGroupName(found.DeckId));
+        // Out of every slide-state group of the deck: the roster knows the language only for the deck this connection joined
+        // last, and a connection that joined another deck since is still in this one's group.
+        var settings = await translations.ForDeckAsync(found.DeckId);
+        var languages = settings.Languages.Append(settings.Primary);
+        if (onDeck == found.DeckId && placed is not null)
+        {
+            languages = languages.Append(placed);
+        }
+        foreach (var language in languages.Distinct(StringComparer.Ordinal))
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, AudienceSlideGroups.Name(found.DeckId, language));
+        }
     }
 
     // Only the deck's owner, signed in as a person, may watch the joined count: anyone else gets the deck-not-found
