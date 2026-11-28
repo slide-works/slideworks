@@ -21,6 +21,7 @@ const open: LiveView = {
   live: true,
   joinedCount: 7,
   joinBar: false,
+  readingIn: null,
 };
 
 function playWithJoinSlide(isOwner: boolean): DeckPlayView {

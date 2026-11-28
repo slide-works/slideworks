@@ -28,6 +28,7 @@ public class LiveCommands(
     IDeckEvents events,
     IAudienceRelay relay,
     IAudienceRoster roster,
+    IReadingIn readingIn,
     IAudienceSessions sessions,
     IPresentations presentations,
     IJoinUrls joinUrls,
@@ -147,6 +148,7 @@ public class LiveCommands(
             joinUrls.HostLabel(),
             live,
             live ? await roster.JoinedAsync(sessionId!.Value.ToString()) : 0,
-            ChromeOverridesView.From(deck.ChromeJson).JoinBar);
+            ChromeOverridesView.From(deck.ChromeJson).JoinBar,
+            live ? await readingIn.CurrentAsync(deck.Id) : null);
     }
 }

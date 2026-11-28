@@ -38,6 +38,7 @@ async function stubLive(page: Page, live = true, status = 200) {
         live: state.live,
         joinedCount: 0,
         joinBar: false,
+        readingIn: null,
       },
     }),
   );

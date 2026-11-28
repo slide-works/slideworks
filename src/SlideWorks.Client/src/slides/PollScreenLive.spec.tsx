@@ -68,6 +68,7 @@ function liveRoute(page: Page) {
         live,
         joinedCount: live ? 41 : 0,
         joinBar: false,
+        readingIn: null,
       },
     });
   });
@@ -268,6 +269,7 @@ test('the audience window of the deck owner shows the live poll on the presenter
         live: true,
         joinedCount: 41,
         joinBar: false,
+        readingIn: null,
       },
     },
   });

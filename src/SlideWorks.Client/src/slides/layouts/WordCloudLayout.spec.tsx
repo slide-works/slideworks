@@ -78,6 +78,7 @@ async function stubLive(page: Page, view: OpenResponseControlView, { canPresent 
         live: true,
         joinedCount: 3,
         joinBar: false,
+        readingIn: null,
       },
     });
     liveAnswers += 1;

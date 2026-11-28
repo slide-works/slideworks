@@ -37,6 +37,10 @@ public interface IAudienceRoster
     // the deck's open one.
     Task<int> JoinedAsync(string sessionId);
 
+    // Guests connected now on the deck's open session, counted per language of the slide-state group their connection is
+    // placed in (SW-886 K11). Unordered; empty when the deck has no open session.
+    Task<IReadOnlyList<ReadingInCount>> ReadingAsync(string deckId);
+
     // Go live opened a session (D22): the guests already connected are counted, recorded as joined and published as the
     // joined count.
     Task OpenedAsync(string deckId, string sessionId);

@@ -151,6 +151,9 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         }
     }
 
+    // TODO: count the distinct guests of the open session per placed language.
+    public Task<IReadOnlyList<ReadingInCount>> ReadingAsync(string deckId) => Task.FromResult<IReadOnlyList<ReadingInCount>>([]);
+
     public async Task OpenedAsync(string deckId, string sessionId)
     {
         Counted counted;

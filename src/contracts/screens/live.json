@@ -5,6 +5,12 @@
   "joinUrl": "https://slideworks.live/482913",
   "hostLabel": "slideworks.live",
   "live": true,
-  "joinedCount": 37,
-  "joinBar": false
+  "joinedCount": 47,
+  "joinBar": false,
+  "readingIn": [
+    { "code": "en", "count": 31 },
+    { "code": "th", "count": 9 },
+    { "code": "ja", "count": 5 },
+    { "code": "es", "count": 2 }
+  ]
 }

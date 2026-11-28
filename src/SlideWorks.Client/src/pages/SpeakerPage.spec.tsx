@@ -446,6 +446,7 @@ const liveView: LiveView = {
   live: true,
   joinedCount: 7,
   joinBar: false,
+  readingIn: null,
 };
 
 // The owner's phone while the deck is live for an audience: GET /live answers, and the presenter view carries the

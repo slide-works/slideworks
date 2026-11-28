@@ -28,6 +28,7 @@ const idle: LiveView = {
   live: false,
   joinedCount: 0,
   joinBar: false,
+  readingIn: null,
 };
 const open: LiveView = { ...idle, sessionId: 'session-1', live: true, joinedCount: 7 };
 

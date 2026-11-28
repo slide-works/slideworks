@@ -2,7 +2,12 @@
 // fresh copy, so a test may change its own. guestStates.test.ts checks the exact key sets and the literal values.
 import audienceEventsJson from '@contracts/screens/audience-events.json' with { type: 'json' };
 import guestJson from '@contracts/screens/guest.json' with { type: 'json' };
-import type { AudienceEnded, AudienceState, JoinedCount } from '../../guest/audienceEvents';
+import type {
+  AudienceEnded,
+  AudienceState,
+  JoinedCount,
+  ReadingIn,
+} from '../../guest/audienceEvents';
 import type { GuestTranslations, GuestView } from '../../guest/guestView';
 import type { Widen } from './widen';
 
@@ -19,6 +24,7 @@ const EVENTS = audienceEventsJson satisfies {
   audienceState: JsonState;
   audienceEnded: Widen<AudienceEnded>;
   joinedCount: Widen<JoinedCount>;
+  readingIn: Widen<ReadingIn>;
 };
 
 // GET /api/join/{code} in each phase: live (on slide 3 of the sample deck), lobby and ended. The live sample's state
@@ -56,4 +62,10 @@ export function audienceEnded(): AudienceEnded {
 export function joinedCount(count?: number): JoinedCount {
   const event = structuredClone(EVENTS.joinedCount) as JoinedCount;
   return count === undefined ? event : { ...event, count };
+}
+
+// en 31, th 9, ja 5 and es 2 (SW-886 K11). Pass counts to replace them, or null for translations turned off.
+export function readingIn(counts?: ReadingIn['counts']): ReadingIn {
+  const event = structuredClone(EVENTS.readingIn) as ReadingIn;
+  return counts === undefined ? event : { ...event, counts };
 }

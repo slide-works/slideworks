@@ -46,6 +46,15 @@
     "type": "joinedCount",
     "count": 37
   },
+  "readingIn": {
+    "type": "readingIn",
+    "counts": [
+      { "code": "en", "count": 31 },
+      { "code": "th", "count": 9 },
+      { "code": "ja", "count": 5 },
+      { "code": "es", "count": 2 }
+    ]
+  },
   "pollTally": {
     "type": "pollTally",
     "round": "0b7c6a52-1f0e-4f43-9d3a-5a1c2e8b7d10",

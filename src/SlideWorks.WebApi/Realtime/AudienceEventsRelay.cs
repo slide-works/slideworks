@@ -9,7 +9,7 @@ using SlideWorks.WebApi.Features.Qa.Contracts;
 namespace SlideWorks.WebApi.Realtime;
 
 // Subscribes to the audience bus for every deck and forwards each event over the hub (J4, V5): audienceState and
-// audienceEnded to audience:{deckId} (guests), joinedCount to audience-watch:{deckId} (the owner). A poll's events are
+// audienceEnded to audience:{deckId} (guests), joinedCount and readingIn to audience-watch:{deckId} (the owner). A poll's events are
 // routed so nothing a guest may not see reaches a guest: pollControl, which carries counts and the correct answer, goes to
 // audience-watch:{deckId} only; pollTally goes by its Target, Audience to audience:{deckId} and Results to
 // poll-results:{roundId}, which only DeckHub.WatchPoll joins. SW-9's events (Q5, Q7) likewise: questionTally, which holds
@@ -55,6 +55,8 @@ public sealed class AudienceEventsRelay(IAudienceEvents events, IHubContext<Deck
     private Task ForwardAsync(AudienceEvent audienceEvent) => audienceEvent switch
     {
         JoinedCount count => SendCountAsync(count),
+        // Its pump already sends at most one a second per deck, so the relay doesn't hold it back.
+        ReadingIn reading => SendAsync(DeckHub.AudienceWatchGroupName(reading.DeckId), reading),
         // A state goes only to the slide-state group of the language it was composed in (SW-883 D11); one with no group is
         // never sent anywhere, rather than to every guest.
         AudienceState state => SendAsync(state.Group ?? throw new InvalidOperationException("An audienceState has no slide-state group"), state),

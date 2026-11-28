@@ -12,6 +12,7 @@ const KEYS: { [K in keyof LiveView]-?: true } = {
   live: true,
   joinedCount: true,
   joinBar: true,
+  readingIn: true,
 };
 
 describe('LiveView', () => {
