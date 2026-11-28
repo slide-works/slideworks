@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { PALETTES, TEMPLATES, lookViewOf } from '../test-support/fixtures/lookViewOf';
 import { lookStyle } from './lookStyle';
 
+const NOTO = "'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC'";
+
 const styleOf = (template: string, palette: string) =>
   lookStyle(lookViewOf(template, palette)) as Record<string, string | number>;
 
@@ -20,9 +22,9 @@ describe('lookStyle', () => {
     (name, template) => {
       const style = styleOf(name, 'cobalt');
       expect(style['--sw-font-head']).toBe(
-        `'${template.type.head}', '${template.type.body}', system-ui, sans-serif`,
+        `'${template.type.head}', '${template.type.body}', ${NOTO}, system-ui, sans-serif`,
       );
-      expect(style['--sw-font-body']).toBe(`'${template.type.body}', system-ui, sans-serif`);
+      expect(style['--sw-font-body']).toBe(`'${template.type.body}', ${NOTO}, system-ui, sans-serif`);
       expect(style['--sw-head-weight']).toBe(template.type.headWeight);
       expect(style['--sw-head-tracking']).toBe(template.type.headTracking);
       expect(style['--sw-radius-sm']).toBe(`${template.shape.radius.sm}px`);
@@ -32,6 +34,16 @@ describe('lookStyle', () => {
       expect(style['--sw-lift']).toBe(template.shape.shadow);
     },
   );
+
+  it('lookStyle_WhenTemplateFonts_ShouldAppendNotoFallbacks', () => {
+    const style = styleOf('talk', 'cobalt');
+    expect(style['--sw-font-head']).toMatch(
+      /^'[^']+', '[^']+', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC', system-ui, sans-serif$/,
+    );
+    expect(style['--sw-font-body']).toMatch(
+      /^'[^']+', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC', system-ui, sans-serif$/,
+    );
+  });
 
   it.each(PALETTES.map((palette) => [palette.name, palette] as const))(
     'sets accent-2 and leaves the mono token alone for %s',
