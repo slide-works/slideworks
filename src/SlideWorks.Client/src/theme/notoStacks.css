@@ -1,0 +1,17 @@
+/* The Noto fallbacks, in script order. Han characters are shared by Japanese, Korean and both Chinese scripts, so the
+   face that comes first decides the glyph forms: the stack puts the face of the text's own language first. An element
+   with lang="zh-Hans" or lang="zh-Hant" (the guest phone sets it on the slide canvas) takes Noto Sans SC or TC ahead of
+   JP. A look's own stack (look/lookStyle.ts) reads --sw-noto-stack, so it follows too. The default stack and the font
+   tokens are declared once in tokens.css, and again here on each element that sets a stack, because var() resolves
+   where it is declared. */
+:lang(zh-Hans) {
+  --sw-noto-stack: 'Noto Sans Thai', 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans TC';
+}
+:lang(zh-Hant) {
+  --sw-noto-stack: 'Noto Sans Thai', 'Noto Sans TC', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC';
+}
+:lang(zh-Hans),
+:lang(zh-Hant) {
+  --sw-font-head: 'Plus Jakarta Sans', 'Inter', var(--sw-noto-stack), system-ui, sans-serif;
+  --sw-font-body: 'Inter', var(--sw-noto-stack), system-ui, sans-serif;
+}
