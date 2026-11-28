@@ -24,7 +24,9 @@ describe('lookStyle', () => {
       expect(style['--sw-font-head']).toBe(
         `'${template.type.head}', '${template.type.body}', ${NOTO}, system-ui, sans-serif`,
       );
-      expect(style['--sw-font-body']).toBe(`'${template.type.body}', ${NOTO}, system-ui, sans-serif`);
+      expect(style['--sw-font-body']).toBe(
+        `'${template.type.body}', ${NOTO}, system-ui, sans-serif`,
+      );
       expect(style['--sw-head-weight']).toBe(template.type.headWeight);
       expect(style['--sw-head-tracking']).toBe(template.type.headTracking);
       expect(style['--sw-radius-sm']).toBe(`${template.shape.radius.sm}px`);

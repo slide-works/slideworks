@@ -25,8 +25,12 @@
 
 :root {
   /* Fonts */
-  --sw-font-head: 'Plus Jakarta Sans', 'Inter', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC', system-ui, sans-serif;
-  --sw-font-body: 'Inter', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC', system-ui, sans-serif;
+  --sw-font-head:
+    'Plus Jakarta Sans', 'Inter', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC',
+    'Noto Sans TC', system-ui, sans-serif;
+  --sw-font-body:
+    'Inter', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC',
+    system-ui, sans-serif;
   --sw-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* The slide canvas: every slide is drawn at this size and scaled to fit. */
