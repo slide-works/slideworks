@@ -154,6 +154,8 @@ Every setting is an environment variable. [`docs/self-hosting.md`](docs/self-hos
 |---|---|
 | `SLIDEWORKS_PUBLIC_URL` | Required outside Development. The URL people and agents reach SlideWorks at. It is the only source of the app's scheme and host; `X-Forwarded-*` is never trusted, and `Host` only chooses between this and the join URL. Development uses `http://localhost:3000` |
 | `SLIDEWORKS_JOIN_URL` | Optional. A short domain for the join links an audience scans, such as `https://slideworks.live`: an absolute `http` or `https` origin with no path, or the server refuses to start. Unset, join links are `<public URL>/j/<code>` |
+| `SLIDEWORKS_IDENTITY_PROXY` | Optional. `true` when an identity-aware proxy is in front: the server then answers 400 `identity_proxy` instead of minting phone-app sign-in codes. Default off |
+| `SLIDEWORKS_APPLE_APP_ID`, `SLIDEWORKS_ANDROID_CERT_SHA256` | Optional. The iOS app id (`<Team ID>.<bundle id>`) and the Android Play app-signing SHA-256 fingerprints (comma-separated). Each turns on one `/.well-known` app-link file on the public and join hosts; unset, it answers 404 and join links open the browser. See [`docs/self-hosting.md`](docs/self-hosting.md#phone-app-links) |
 | `SLIDEWORKS_GOOGLE_CLIENT_ID`, `SLIDEWORKS_GOOGLE_CLIENT_SECRET` | Sign in with Google, on only when both are set. Redirect URI `<public URL>/signin-google` |
 | `SLIDEWORKS_ADMIN_EMAIL` | The first admin's Google email, honoured only while no admin exists. New people wait on `/pending` until an admin approves them on `/admin/users` |
 | `SLIDEWORKS_DB_PATH` | SQLite file, default `/data/slide-works.db`. The cookie keys live in `slide-works-keys/` next to it |

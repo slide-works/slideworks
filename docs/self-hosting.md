@@ -32,6 +32,9 @@ Every setting is an environment variable with the `SLIDEWORKS_` prefix, except `
 | `SLIDEWORKS_SEQ_URL` | No | Also send logs to this Seq server. Without it, logs go to the console only (`docker logs`). |
 | `SLIDEWORKS_SEQ_API_KEY` | No | The Seq API key, when your Seq server needs one. |
 | `SLIDEWORKS_TRUSTED_PROXIES` | Behind a proxy | The proxy addresses whose `X-Forwarded-For` header SlideWorks trusts for the client IP, as a comma-separated list of CIDRs such as `172.18.0.0/16, fd00::/8`. A single address, such as `10.0.0.5`, means just that address. Unset by default, which trusts no proxy. The server refuses to start if an entry isn't a CIDR or an address. See [Behind a TLS proxy](#behind-a-tls-proxy). |
+| `SLIDEWORKS_IDENTITY_PROXY` | No | Set `true` when an identity-aware proxy sits in front of SlideWorks and blocks calls that carry no proxy login, as the phone app's calls do. The server then answers `POST /api/auth/device-sessions/codes` with 400 `identity_proxy` and a message, and the app's confirm page and the app show that message instead of signing in. SlideWorks can't detect such a proxy, so this is an explicit setting. Default unset (off). See [Identity-aware proxies](#identity-aware-proxies). |
+| `SLIDEWORKS_APPLE_APP_ID` | No | The iOS app id, `<Team ID>.<bundle id>`, such as `ABCDE12345.app.slideworks.mobile`. When set, `/.well-known/apple-app-site-association` serves it, claiming `/j/*` on the public host, and `/j/*` plus six-character paths on the join host, so a join link opens the app. Unset, that file answers 404 and join links open the browser. See [Phone app links](#phone-app-links). |
+| `SLIDEWORKS_ANDROID_CERT_SHA256` | No | A comma-separated list of colon-hex SHA-256 fingerprints of the Android app's **Play app-signing** certificate (not the upload key). When set, `/.well-known/assetlinks.json` serves them for package `app.slideworks.mobile`. Unset, that file answers 404. See [Phone app links](#phone-app-links). |
 | `RenderTokens__Key` | Yes, outside Development | Signs the short-lived tokens the share-card browser and agents' slide previews use. A random secret of at least 32 characters, such as `openssl rand -base64 32`. The server refuses to start without it outside Development. It's the one setting without the `SLIDEWORKS_` prefix; `docker-compose.yml` fills it from `SLIDEWORKS_RENDER_TOKEN_KEY`. Changing it only expires preview links already handed out. |
 | `SLIDEWORKS_RENDER_URL` | No | The origin the share-card browser inside the container opens. Unset means the app's own loopback address. Set it only when the app can't reach itself that way. |
 | `SLIDEWORKS_RENDER_TIMEOUT` | No | How long one share-card render may take, as a TimeSpan. Default `00:00:20`. |
@@ -205,8 +208,7 @@ Caddy keeps `Host` by default. With nginx, use `proxy_set_header Host $host;`.
 ### What the join domain serves
 
 The join domain serves only what a guest needs: the code page (`/join`), the guest page (`/j/<code>` and `/<six digits>`),
-the guest API (`/api/join/*` and `/api/images/*`), the realtime hub (`/hubs/deck`), the app's assets, `/favicon.svg` and
-`/health`. Its `/` redirects to `/join`. Every other path redirects (302) to the same path on the public URL, so the app, the
+the guest API (`/api/join/*` and `/api/images/*`), the realtime hub (`/hubs/deck`), the app's assets, `/favicon.svg`, `/health` and the two phone app-link files under `/.well-known` (see [Phone app links](#phone-app-links)). Its `/` redirects to `/join`. Every other path redirects (302) to the same path on the public URL, so the app, the
 API and the agent endpoints are never reachable under the join domain. The public URL serves the guest pages as well.
 
 ### Guests need cookies
@@ -232,6 +234,23 @@ Guests follow the presenter over the `/hubs/deck` hub. It uses WebSockets, and f
 long polling when a network blocks them. Your proxy must pass WebSocket upgrades. For the fallbacks it must also not
 buffer responses on `/hubs/deck` and must allow long-lived requests: with nginx, `proxy_buffering off;` and a
 `proxy_read_timeout` of at least 100 seconds.
+
+### Phone app links
+
+The SlideWorks phone app claims join links for the hosted instance only. A self-hosted instance that runs no build of the app can leave `SLIDEWORKS_APPLE_APP_ID` and `SLIDEWORKS_ANDROID_CERT_SHA256` unset, and its join links open the browser as before. Otherwise the server answers two anonymous files, each a plain 200 `application/json` with no redirect, on the public host and on the join host:
+
+- `/.well-known/apple-app-site-association`, from `SLIDEWORKS_APPLE_APP_ID`.
+- `/.well-known/assetlinks.json`, from `SLIDEWORKS_ANDROID_CERT_SHA256`.
+
+Each is a 404 while its setting is empty. The join domain serves only these two paths under `/.well-known`; the OAuth metadata stays on the public URL. Your proxy must forward `/.well-known/*` on the join domain as well as the public one, with no redirect, caching rewrite or authentication in front of them: Apple and Google fetch these files directly.
+
+### Identity-aware proxies
+
+If an identity-aware proxy (one that requires its own login on every request) sits in front of SlideWorks, the phone app's bearer calls never reach the server. Set `SLIDEWORKS_IDENTITY_PROXY=true`: the server then refuses to hand out app sign-in codes (400 `identity_proxy`), and the confirm page and the app tell the person the app can't sign in to this server. Exempt `/api`, `/hubs` and the `.well-known` files from the proxy if you want the app to work instead.
+
+### Reverse-proxy access logs
+
+SlideWorks logs no request query strings, but a reverse proxy usually does. On `/hubs`, the phone app sends its device secret as the `access_token` query value, and a guest's id as `guest`, because a WebSocket can't carry a header. Both are credentials, so strip their values from your proxy's access logs for `/hubs`, or drop the query string from those log lines. For nginx, log `$uri` rather than `$request_uri` for `/hubs`; for Caddy, remove the `access_token` and `guest` query keys with a `query` filter in the log encoder.
 
 ## 4. Sign in
 
@@ -302,3 +321,11 @@ Open the link the agent returns, or find the deck in the library. The deck page 
 ## Development
 
 See the README's "Run locally". In Development, `appsettings.Development.json` sets `SLIDEWORKS_PUBLIC_URL=http://localhost:3000`, the Vite dev server's origin, and points the database and images at local relative paths. Vite proxies `/api`, `/hubs`, `/mcp`, the OAuth endpoints, `/.well-known`, `/signin/*` and `/signin-google` to Kestrel on :5510. Always open http://localhost:3000, and connect a local agent to `http://localhost:3000/mcp`.
+
+To develop the phone app against a local server, a phone on your network must reach Kestrel, so bind every interface and set the public URL to the address the phone uses:
+
+```bash
+ASPNETCORE_URLS=http://0.0.0.0:5510 SLIDEWORKS_PUBLIC_URL=http://192.168.1.20:5510 dotnet run --project src/SlideWorks.WebApi
+```
+
+Type exactly that address into the app's Sign in screen: the confirm page's origin is `SLIDEWORKS_PUBLIC_URL`, and the app accepts a sign-in only from the address it was given. An Android emulator reaches the host at `http://10.0.2.2:5510` and an iOS simulator at `http://localhost:5510`; use those as the public URL for the same reason. Add that address's `/signin-google` to the Google client's redirect URIs.

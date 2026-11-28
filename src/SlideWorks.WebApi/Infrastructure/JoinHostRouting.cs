@@ -15,7 +15,12 @@ public class JoinHostRouting
     [
         new("/j"), new("/api/join"), new("/api/images"), new("/hubs/deck"), new("/assets"),
     ];
-    private static readonly PathString[] SERVED_EXACT = [JOIN, new("/favicon.svg"), new("/health")];
+    // Under /.well-known only the two app-link files are served here; the OAuth metadata stays on the public host.
+    private static readonly PathString[] SERVED_EXACT =
+    [
+        JOIN, new("/favicon.svg"), new("/health"),
+        new("/.well-known/apple-app-site-association"), new("/.well-known/assetlinks.json"),
+    ];
 
     private readonly RequestDelegate _next;
     private readonly string? _publicBase;

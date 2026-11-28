@@ -160,6 +160,19 @@ public class AnonymousRoutesTests : ApiTestFixture
         (await response.Content.ReadAsStringAsync()).ShouldContain("SlideWorks");
     }
 
+    // K8: the app-link files answer anonymous callers with sign-in required elsewhere; with neither setting set they are 404
+    // from the route itself, never the sign-in gate.
+    [TestCase("/.well-known/apple-app-site-association")]
+    [TestCase("/.well-known/assetlinks.json")]
+    public async Task GetAppLinkFile_WhenAnonymousAndSignInRequiredElsewhere_ShouldBeAnsweredByTheRoute(string path)
+    {
+        using var anonymous = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await anonymous.GetAsync(path);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
     // V5: a guest's poll routes are anonymous, so a phone with no sign-in reaches them with sign-in required elsewhere. With
     // no sw_guest cookie they answer 400 no_guest themselves, never the sign-in gate.
     [Test]
