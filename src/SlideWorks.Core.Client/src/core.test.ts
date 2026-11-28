@@ -13,7 +13,12 @@ describe('core', () => {
     // Linted as a file under src/, where the core's own code lives.
     const [result] = await eslint.lintText(code, { filePath: `${coreDir}src/violations.ts` });
     const banned = result.messages
-      .filter((m) => m.ruleId === 'no-restricted-globals' || m.ruleId === 'no-restricted-imports')
+      .filter(
+        (m) =>
+          m.ruleId === 'no-restricted-globals' ||
+          m.ruleId === 'no-restricted-properties' ||
+          m.ruleId === 'no-restricted-imports',
+      )
       .map((m) => `${m.ruleId}:${m.line}`);
 
     expect(banned).toEqual([
@@ -26,6 +31,16 @@ describe('core', () => {
       'no-restricted-globals:10',
       'no-restricted-globals:11',
       'no-restricted-globals:12',
+      'no-restricted-properties:13',
+      'no-restricted-properties:14',
+      'no-restricted-properties:15',
+      'no-restricted-properties:16',
+      'no-restricted-properties:17',
+      'no-restricted-properties:18',
+      'no-restricted-properties:19',
+      'no-restricted-properties:20',
+      'no-restricted-properties:21',
+      'no-restricted-properties:22',
     ]);
   });
 

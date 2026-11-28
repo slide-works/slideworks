@@ -29,6 +29,17 @@ export default tseslint.config(
           message: `${name} is banned in @slideworks/core: ask the host through platform().`,
         })),
       ],
+      // globalThis.window and self.localStorage reach the same hosts without naming a global.
+      'no-restricted-properties': [
+        'error',
+        ...['globalThis', 'self'].flatMap((object) =>
+          bannedGlobals.map((property) => ({
+            object,
+            property,
+            message: `${object}.${property} is banned in @slideworks/core: ask the host through platform().`,
+          })),
+        ),
+      ],
       'no-restricted-imports': [
         'error',
         {
