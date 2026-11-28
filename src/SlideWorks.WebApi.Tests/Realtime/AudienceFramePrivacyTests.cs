@@ -32,7 +32,7 @@ public class AudienceFramePrivacyTests : ApiTestFixture
     public async Task Frames_WhenGuestFollowsALiveDeck_ShouldHaveExactlyTheContractKeys()
     {
         var deck = await SharingApi.CreateDeckAsync(Client, "Private title");
-        var state = new AudienceState(deck, 43, AudiencePhase.Live, SlideOf(), 7, null, RoomOf());
+        var state = new AudienceState(deck, 43, AudiencePhase.Live, SlideOf(), 7, null, RoomOf(), null);
         Factory.Services.GetRequiredService<FakeAudienceSessions>().Set("123456", deck, "s1", AudiencePhase.Live);
         Factory.Services.GetRequiredService<FakeAudienceRelay>().Set(state);
         await using var guest = await GuestClient.ConnectAsync(Factory);
@@ -41,7 +41,8 @@ public class AudienceFramePrivacyTests : ApiTestFixture
         var bus = Factory.Services.GetRequiredService<IAudienceEvents>();
 
         var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", "123456");
-        await bus.PublishAsync(state);
+        // To the primary's slide-state group, where JoinAudience put the guest (SW-883 D11).
+        await bus.PublishAsync(state with { Group = AudienceSlideGroups.Name(deck, "en") });
         await bus.PublishAsync(new AudienceEnded(deck));
         var count = await owner.NextAudienceAsync();
         var pushedState = await guest.NextAudienceAsync();
@@ -68,14 +69,15 @@ public class AudienceFramePrivacyTests : ApiTestFixture
     {
         var deck = await SharingApi.CreateDeckAsync(Client, "Private title");
         var activity = new PollActivity(Guid.NewGuid().ToString(), 2, PollPhase.Closed, "Which?", ["One", "Two"], PollPick.UpTo, 2, PollResults.AfterClose, true, 1);
-        var state = new AudienceState(deck, 44, AudiencePhase.Live, SlideOf(), 7, JsonSerializer.SerializeToElement(activity, JsonSerializerOptions.Web), null);
+        var state = new AudienceState(deck, 44, AudiencePhase.Live, SlideOf(), 7, JsonSerializer.SerializeToElement(activity, JsonSerializerOptions.Web), null, null);
         Factory.Services.GetRequiredService<FakeAudienceSessions>().Set("123457", deck, "s2", AudiencePhase.Live);
         Factory.Services.GetRequiredService<FakeAudienceRelay>().Set(state);
         await using var guest = await GuestClient.ConnectAsync(Factory);
         var bus = Factory.Services.GetRequiredService<IAudienceEvents>();
 
         var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", "123457");
-        await bus.PublishAsync(state);
+        // To the primary's slide-state group, where JoinAudience put the guest (SW-883 D11).
+        await bus.PublishAsync(state with { Group = AudienceSlideGroups.Name(deck, "en") });
         var pushed = await guest.NextAudienceAsync();
 
         foreach (var frame in new[] { joined, pushed })

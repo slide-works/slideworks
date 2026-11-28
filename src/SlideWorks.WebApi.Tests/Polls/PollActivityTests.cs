@@ -135,8 +135,8 @@ public class PollActivityTests : PollTestFixture
 
         await using var scope = Factory.Services.CreateAsyncScope();
         var activities = scope.ServiceProvider.GetRequiredService<IAudienceActivity>();
-        var byDeck = await activities.ForDeckAsync(poll.DeckId);
-        var byCode = await activities.ForCodeAsync(poll.Code);
+        var byDeck = await activities.ForDeckAsync(poll.DeckId, null);
+        var byCode = await activities.ForCodeAsync(poll.Code, null);
 
         byDeck.ShouldNotBeNull();
         JsonSerializer.Serialize(byCode, JsonSerializerOptions.Web).ShouldBe(JsonSerializer.Serialize(byDeck, JsonSerializerOptions.Web));
@@ -150,8 +150,8 @@ public class PollActivityTests : PollTestFixture
 
         await using var scope = Factory.Services.CreateAsyncScope();
         var activities = scope.ServiceProvider.GetRequiredService<IAudienceActivity>();
-        var byDeck = await activities.ForDeckAsync(poll.DeckId);
-        var byCode = await activities.ForCodeAsync(poll.Code);
+        var byDeck = await activities.ForDeckAsync(poll.DeckId, null);
+        var byCode = await activities.ForCodeAsync(poll.Code, null);
 
         ended.IsSuccessStatusCode.ShouldBeTrue();
         byDeck.ShouldBeNull();

@@ -2,6 +2,7 @@ using Agoda.IoC.Core;
 using Microsoft.EntityFrameworkCore;
 using SlideWorks.Core.Look;
 using SlideWorks.Core.Qa;
+using SlideWorks.Core.Translations;
 using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Decks.Mcp;
 using SlideWorks.WebApi.Features.Decks.Views;
@@ -11,6 +12,7 @@ using SlideWorks.WebApi.Features.Qa.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Slides;
 using SlideWorks.WebApi.Features.Templates;
+using SlideWorks.WebApi.Features.Translations;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 
@@ -27,7 +29,9 @@ public class DeckReader(
     JoinViews joinViews,
     IDeckLooks looks,
     ITemplates templates,
-    QaRows qa)
+    QaRows qa,
+    IDeckTranslations translations,
+    TranslationsSummary translationsSummary)
 {
     public const string NOT_FOUND = "Deck not found";
 
@@ -48,22 +52,47 @@ public class DeckReader(
         return new DeckForRender(await PlayAsync(deck, isOwner: false), deck.Subtitle, deck.Revision, deck.Sharing);
     }
 
-    // The owner or a person with write (C5), or an agent acting for either: the slides carry notes and revisions.
-    public async Task<object> GetForEditorAsync(string deckId, bool summary = false)
+    // The owner or a person with write (C5), or an agent acting for either: the slides carry notes and revisions. While
+    // translations are on, the deck carries its translations summary (SW-883 K4). With a language of the deck's list, each slide
+    // also lists its lines with their state in it; the primary language reads as no language. Any other language is refused.
+    public async Task<object> GetForEditorAsync(string deckId, bool summary = false, string? language = null)
     {
         if (!await access.CanEditAsync(deckId, actor))
         {
             throw new NotFoundException(NOT_FOUND);
         }
         var deck = await LoadDeckAsync(deckId);
+        var translationSettings = await translations.ForDeckAsync(deckId);
+        var translated = TranslatedLanguage(translationSettings, language);
         var slides = await LiveSlidesAsync(deckId);
         var template = await templates.ForDeckAsync(deck, CancellationToken.None);
         var url = urls.Deck(deck.Id, deck.Slug);
         var settings = await qa.SettingsAsync(deckId);
         var reactions = await ReactionsAsync(slides);
+        var translationsView = translationSettings.Enabled ? await translationsSummary.ForDeckAsync(deckId) : null;
+        IReadOnlyList<LineView>? LinesOf(Slide slide) =>
+            translated is null ? null : TranslationMerge.For(slide, template, translationSettings, translated).Lines;
         return summary
-            ? GetDeckSummary.From(deck, slides, template, url, settings, reactions)
-            : GetDeckResult.From(deck, slides, template, url, settings, reactions);
+            ? GetDeckSummary.From(deck, slides, template, url, settings, reactions, translationsView, LinesOf)
+            : GetDeckResult.From(deck, slides, template, url, settings, reactions, translationsView, LinesOf);
+    }
+
+    // The language whose lines get_deck lists: null for no language or the primary, else one of the deck's languages while
+    // translations are on. Anything else is refused, naming the languages the deck has.
+    private static string? TranslatedLanguage(TranslationSettings settings, string? language)
+    {
+        if (language is null || string.Equals(language, settings.Primary, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var offered = settings.Enabled ? settings.Languages : [];
+        if (!offered.Contains(language, StringComparer.Ordinal))
+        {
+            throw new BadRequestException($"{language} is not one of this deck's languages ({string.Join(", ", offered.Prepend(settings.Primary))})");
+        }
+
+        return language;
     }
 
     // Each session's reaction totals per slide of this deck, newest session first. The totals are rows of the Q&A feature,

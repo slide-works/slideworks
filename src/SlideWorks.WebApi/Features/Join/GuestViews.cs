@@ -6,6 +6,7 @@ using SlideWorks.WebApi.Data;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Templates;
+using SlideWorks.WebApi.Features.Translations;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Infrastructure.RateLimits;
@@ -26,12 +27,13 @@ public class GuestViews(
     IAudienceRelay relay,
     IJoinLookupLimiter limiter,
     IPublicUrls publicUrls,
-    IDeckLooks looks)
+    IDeckLooks looks,
+    GuestTranslationsBuilder translations)
 {
     public const string NO_SESSION = "no_session";
     public const string TOO_MANY_ATTEMPTS = "too_many_attempts";
 
-    public async Task<GuestView> GetAsync(string code, IPAddress? caller)
+    public async Task<GuestView> GetAsync(string code, string? language, IPAddress? caller)
     {
         // The limit comes first, as on the hub (D20): a caller over it is refused for every code, a real one included, so
         // 429 says nothing about whether the code exists. Only a miss counts toward it.
@@ -52,13 +54,14 @@ public class GuestViews(
         var presenter = await db.Users.AsNoTracking().Where(u => u.Id == deck.OwnerId).Select(u => u.Name).SingleAsync();
         // The relay answers null only for a deck with no session, and the sessions just found one: that is a fault, not a
         // lobby to make up.
-        var state = await relay.CurrentAsync(found.DeckId)
+        var state = await relay.CurrentAsync(found.DeckId, language)
             ?? throw new InvalidOperationException($"The relay has no state for deck {found.DeckId}, which has a session.");
         return new GuestView(
             deck.Title,
             presenter,
             await looks.ForAsync(deck, CancellationToken.None),
             deck.Sharing == DeckSharing.Link ? publicUrls.Deck(deck.Id, deck.Slug) : null,
-            state);
+            state,
+            await translations.ForDeckAsync(found.DeckId));
     }
 }

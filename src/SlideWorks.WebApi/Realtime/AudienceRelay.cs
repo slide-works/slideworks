@@ -7,7 +7,7 @@ namespace SlideWorks.WebApi.Realtime;
 [RegisterSingleton(For = typeof(IAudienceRelay))]
 public sealed class AudienceRelay(AudienceFeed feed) : IAudienceRelay
 {
-    public Task<AudienceState?> CurrentAsync(string deckId) => feed.CurrentAsync(deckId);
+    public Task<AudienceState?> CurrentAsync(string deckId, string? language) => feed.CurrentAsync(deckId, language);
 
     public Task StartedAsync(string deckId) => feed.StartedAsync(deckId);
 

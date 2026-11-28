@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using SlideWorks.WebApi.Features.Join;
 using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Sharing;
+using SlideWorks.WebApi.Features.Translations;
 using SlideWorks.WebApi.Infrastructure.RateLimits;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Realtime.Presenting;
@@ -41,7 +42,8 @@ public sealed class DeckHub(
     IAudienceRoster roster,
     IJoinLookupLimiter limiter,
     IAudienceEvents audienceEvents,
-    IPollAnswers pollAnswers) : Hub
+    IPollAnswers pollAnswers,
+    IDeckTranslations translations) : Hub
 {
     // The caller is the hub connection's own principal, not the request's: under long polling a hub call runs after the
     // request that opened it has finished, so IHttpContextAccessor is empty by then.
@@ -72,6 +74,9 @@ public sealed class DeckHub(
     // WatchPoll's refusal (V5): this guest has no answer in an open round whose results show after answering, or the code
     // finds no such round. One refusal for both, so a caller learns nothing about a code it guessed.
     public const string NOT_ANSWERED = "not_answered";
+
+    // SetLanguage's refusal (SW-883 K5): this connection hasn't joined the code's audience with JoinAudience.
+    public const string NOT_JOINED = "not_joined";
 
     public static string GroupName(string deckId) => $"deck:{deckId}";
 
@@ -148,18 +153,26 @@ public sealed class DeckHub(
         limiter.Hit(caller);
         // Everything that can refuse comes before anything changes: a refused call leaves no group, roster or count behind.
         _ = await sessions.ForDeckAsync(found.DeckId) ?? throw new HubException(NO_SESSION);
+        // In the primary language (SW-883 K5, D11): the guest's states come through the primary's slide-state group until
+        // SetLanguage moves it.
+        var primary = (await translations.ForDeckAsync(found.DeckId)).Primary;
+        var slideGroup = AudienceSlideGroups.Name(found.DeckId, primary);
         await Groups.AddToGroupAsync(Context.ConnectionId, AudienceGroupName(found.DeckId));
-        // Read again now the guest is in the group: a state published between the first read and the join would otherwise
+        await Groups.AddToGroupAsync(Context.ConnectionId, slideGroup);
+        // Read again now the guest is in the groups: a state published between the first read and the join would otherwise
         // be missed by this guest. A state that arrives after this read reaches it through the group.
-        var state = await relay.CurrentAsync(found.DeckId);
+        var state = await relay.CurrentAsync(found.DeckId, null);
         if (state == null)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, AudienceGroupName(found.DeckId));
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, slideGroup);
             throw new HubException(NO_SESSION);
         }
         // Every phase goes on the roster (D22): a lobby guest is counted when the session opens. Only a live session's count
         // is told to the owner.
         var count = await roster.JoinAsync(found.DeckId, found.SessionId, guestId, Context.ConnectionId);
+        // Recorded on the roster, and out of the group of the language it read in before when this connection joins again.
+        await AudienceSlideGroups.PlaceAsync(roster, Groups, found.DeckId, Context.ConnectionId, primary);
         if (found.Phase == AudiencePhase.Live)
         {
             await audienceEvents.PublishAsync(new JoinedCount(found.DeckId, count));
@@ -167,10 +180,43 @@ public sealed class DeckHub(
         return state;
     }
 
+    // The guest picked a language to read the slides in (SW-883 K5). The same checks as JoinAudience, in the same order,
+    // then not_joined when this connection isn't on the code's deck's roster. Then the pick is kept, the connection moves to
+    // its effective language's slide-state group (D11), and the state composed in the language is returned; a language the
+    // deck doesn't offer gives the primary state, with no error.
+    public async Task<AudienceState> SetLanguage(string code, string language)
+    {
+        _ = GuestCookie.IdOf(Context.GetHttpContext()) ?? throw new HubException(NO_GUEST);
+        var caller = CallerKey.For(Context.GetHttpContext()?.Connection.RemoteIpAddress);
+        if (!limiter.Allow(caller))
+        {
+            throw new HubException(TOO_MANY_ATTEMPTS);
+        }
+        var found = await sessions.FindAsync(code);
+        if (found == null)
+        {
+            limiter.Miss(caller);
+            throw new HubException(NO_SESSION);
+        }
+        limiter.Hit(caller);
+        _ = await sessions.ForDeckAsync(found.DeckId) ?? throw new HubException(NO_SESSION);
+        if (await roster.DeckOfAsync(Context.ConnectionId) != found.DeckId)
+        {
+            throw new HubException(NOT_JOINED);
+        }
+        await roster.ChooseAsync(Context.ConnectionId, language);
+        var effective = AudienceSlideGroups.Effective(await translations.ForDeckAsync(found.DeckId), language);
+        await AudienceSlideGroups.PlaceAsync(roster, Groups, found.DeckId, Context.ConnectionId, effective);
+        return await relay.CurrentAsync(found.DeckId, language) ?? throw new HubException(NO_SESSION);
+    }
+
     // Stops the code's events and takes the connection off the roster. The roster leave happens even when the code no longer
     // resolves; only the group removal needs a known code.
     public async Task LeaveAudience(string code)
     {
+        // The slide-state group it is in (SW-883 D11), read from the roster before the leave forgets it.
+        var onDeck = await roster.DeckOfAsync(Context.ConnectionId);
+        var placed = onDeck is null ? null : (await roster.SeatsAsync(onDeck)).FirstOrDefault(seat => seat.ConnectionId == Context.ConnectionId)?.Placed;
         // Off the roster first: a code that no longer resolves (its deck was deleted) must not leave the connection counted.
         await LeaveRosterAsync();
         var found = await sessions.FindAsync(code);
@@ -179,6 +225,18 @@ public sealed class DeckHub(
             return;
         }
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, AudienceGroupName(found.DeckId));
+        // Out of every slide-state group of the deck: the roster knows the language only for the deck this connection joined
+        // last, and a connection that joined another deck since is still in this one's group.
+        var settings = await translations.ForDeckAsync(found.DeckId);
+        var languages = settings.Languages.Append(settings.Primary);
+        if (onDeck == found.DeckId && placed is not null)
+        {
+            languages = languages.Append(placed);
+        }
+        foreach (var language in languages.Distinct(StringComparer.Ordinal))
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, AudienceSlideGroups.Name(found.DeckId, language));
+        }
     }
 
     // Only the deck's owner, signed in as a person, may watch the joined count: anyone else gets the deck-not-found

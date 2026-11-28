@@ -19,7 +19,8 @@ public class JoinPollController(GuestPolls polls) : ApiControllerBase
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status429TooManyRequests)]
-    public Task<GuestPollView> Get(string code) => polls.ViewAsync(code, GuestCookie.From(Request), HttpContext.Connection.RemoteIpAddress);
+    public Task<GuestPollView> Get(string code, [FromQuery] string? language)
+        => polls.ViewAsync(code, language, GuestCookie.From(Request), HttpContext.Connection.RemoteIpAddress);
 
     [HttpPut("answer")]
     [ProducesResponseType<MyAnswer>(StatusCodes.Status200OK)]
@@ -28,6 +29,6 @@ public class JoinPollController(GuestPolls polls) : ApiControllerBase
     [ProducesResponseType<StaleAnswer>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status413PayloadTooLarge)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status429TooManyRequests)]
-    public async Task<IActionResult> Answer(string code)
-        => AnswerResults.ToActionResult(await polls.SubmitAsync(code, GuestCookie.From(Request), Request.Body, HttpContext.Connection.RemoteIpAddress));
+    public async Task<IActionResult> Answer(string code, [FromQuery] string? language)
+        => AnswerResults.ToActionResult(await polls.SubmitAsync(code, language, GuestCookie.From(Request), Request.Body, HttpContext.Connection.RemoteIpAddress));
 }

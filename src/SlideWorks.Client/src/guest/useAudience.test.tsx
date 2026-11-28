@@ -45,9 +45,10 @@ const seen = { current: null as unknown as Audience };
 const latest = new Proxy({} as Audience, { get: (_t, key) => seen.current[key as keyof Audience] });
 const initial = guestView('live');
 const random = { current: () => 0 };
+const start = { current: null as string | null };
 
 function Probe({ report }: { report: (audience: Audience) => void }) {
-  const audience = useAudience('482913', initial, () => random.current());
+  const audience = useAudience('482913', initial, () => random.current(), start.current);
   useEffect(() => report(audience));
   return null;
 }
@@ -67,6 +68,7 @@ beforeEach(async () => {
   vi.useRealTimers();
   fake.connection.state = 'Connected';
   random.current = () => 0;
+  start.current = null;
   fake.connection.invoke.mockResolvedValue(audienceState({ seq: 50 }));
   fake.get.mockResolvedValue(initial);
   root = createRoot(document.createElement('div'));
@@ -494,5 +496,134 @@ describe('useAudience', () => {
     await act(async () => root.render(createElement(Other)));
     await flush();
     expect(fake.connection.invoke).toHaveBeenCalledExactlyOnceWith('JoinAudience', '111111');
+  });
+});
+
+// SW-883 K5: the phone's language. The first join is JoinAudience, then SetLanguage when the phone wants another language
+// than the primary (en in the sample), and both again after a reconnect. Every re-read carries ?language=.
+describe('useAudience language', () => {
+  const thai = audienceState({ seq: 51, language: { code: 'th', fallbackLines: 2 } });
+  const english = audienceState({ seq: 50, language: { code: 'en', fallbackLines: 0 } });
+  const mountIn = async (language: string | null) => {
+    await act(async () => root.unmount());
+    start.current = language;
+    fake.connection.invoke.mockReset();
+    fake.connection.invoke.mockImplementation(async (method: string) =>
+      method === 'SetLanguage' ? thai : english,
+    );
+    root = createRoot(document.createElement('div'));
+    await act(async () => root.render(createElement(Probe, { report })));
+    await flush();
+  };
+
+  it('calls SetLanguage after JoinAudience and lands on its answer', async () => {
+    await mountIn('th');
+
+    expect(fake.connection.invoke.mock.calls).toEqual([
+      ['JoinAudience', '482913'],
+      ['SetLanguage', '482913', 'th'],
+    ]);
+    expect(latest.state.language?.code).toBe('th');
+    expect(latest.status).toBe('live');
+  });
+
+  it('holds the first render until SetLanguage answers', async () => {
+    let answer: (state: AudienceState) => void = () => undefined;
+    await act(async () => root.unmount());
+    start.current = 'th';
+    fake.connection.invoke.mockReset();
+    fake.connection.invoke.mockImplementation((method: string) =>
+      method === 'SetLanguage' ? new Promise<AudienceState>((done) => (answer = done)) : english,
+    );
+    root = createRoot(document.createElement('div'));
+    await act(async () => root.render(createElement(Probe, { report })));
+    await flush();
+    expect(latest.status).toBe('connecting');
+
+    await act(async () => answer(thai));
+    expect(latest.status).toBe('live');
+    expect(latest.state.language?.code).toBe('th');
+  });
+
+  it('does not call SetLanguage for the primary language', async () => {
+    await mountIn('en');
+
+    expect(fake.connection.invoke).toHaveBeenCalledExactlyOnceWith('JoinAudience', '482913');
+  });
+
+  it('calls both again after a reconnect', async () => {
+    await mountIn('th');
+    fake.connection.invoke.mockClear();
+
+    await act(async () => fake.handlers.reconnected());
+    await flush();
+
+    expect(fake.connection.invoke.mock.calls).toEqual([
+      ['JoinAudience', '482913'],
+      ['SetLanguage', '482913', 'th'],
+    ]);
+  });
+
+  it('throws a SetLanguage refusal on join for the error boundary, like a JoinAudience refusal', async () => {
+    await act(async () => root.unmount());
+    start.current = 'th';
+    fake.connection.invoke.mockReset();
+    fake.connection.invoke.mockImplementation(async (method: string) => {
+      if (method === 'SetLanguage') throw hubRefusal('not_joined');
+      return english;
+    });
+    const errors: unknown[] = [];
+    class Catch extends Component<{ children: ReactNode }, { failed: boolean }> {
+      state = { failed: false };
+      static getDerivedStateFromError() {
+        return { failed: true };
+      }
+      componentDidCatch(error: unknown) {
+        errors.push(error);
+      }
+      render() {
+        return this.state.failed ? null : this.props.children;
+      }
+    }
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    root = createRoot(document.createElement('div'));
+    await act(async () =>
+      root.render(createElement(Catch, null, createElement(Probe, { report }))),
+    );
+    await flush();
+    quiet.mockRestore();
+
+    expect(errors).toHaveLength(1);
+    expect(String(errors[0])).toContain('not_joined');
+    expect(fake.connection.invoke).toHaveBeenCalledTimes(2);
+  });
+
+  it('setLanguage invokes SetLanguage, lands on the answer and carries the language on re-reads', async () => {
+    await mountIn(null);
+    fake.connection.invoke.mockResolvedValue(thai);
+    fake.get.mockClear();
+
+    await act(async () => latest.setLanguage('th'));
+    expect(fake.connection.invoke).toHaveBeenLastCalledWith('SetLanguage', '482913', 'th');
+    expect(latest.state.language?.code).toBe('th');
+
+    await push(audienceState({ seq: 52, revision: 9 }));
+    expect(fake.get).toHaveBeenLastCalledWith('/api/join/482913?language=th');
+  });
+
+  it('setLanguage rejects when the hub refuses and keeps the state', async () => {
+    await mountIn(null);
+    fake.connection.invoke.mockRejectedValue(hubRefusal('not_joined'));
+
+    await expect(act(async () => latest.setLanguage('th'))).rejects.toThrow('not_joined');
+    expect(latest.state.language?.code).toBe('en');
+  });
+
+  it('re-reads without a language query while the phone has none', async () => {
+    await mountIn(null);
+    fake.get.mockClear();
+
+    await push(audienceState({ seq: 52, revision: 9 }));
+    expect(fake.get).toHaveBeenLastCalledWith('/api/join/482913');
   });
 });

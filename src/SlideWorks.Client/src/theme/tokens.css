@@ -1,7 +1,10 @@
 /* SlideWorks default theme tokens (D4), frozen for SW-1. A neutral port of a
    hand-built HTML deck: light content slides with cards, dark title, divider and
    close slides, a cobalt accent, Plus Jakarta Sans headings and Inter body text.
-   Fonts are self-hosted through @fontsource, with no font CDN call (D17). */
+   Fonts are self-hosted through @fontsource, with no font CDN call (D17).
+   Thai, Japanese, Korean and Chinese text falls back to the Noto faces, weights 400 and 700 only. Those faces are
+   generated (notoFaces.css, see notoFaces.test.ts) to claim only their own scripts, so Latin, digits, punctuation
+   and symbols the template font lacks still fall to system-ui. */
 
 @import '@fontsource/inter/400.css';
 @import '@fontsource/inter/400-italic.css';
@@ -11,11 +14,16 @@
 @import '@fontsource/plus-jakarta-sans/600.css';
 @import '@fontsource/plus-jakarta-sans/700.css';
 @import '@fontsource/plus-jakarta-sans/800.css';
+@import './notoFaces.css';
 
 :root {
   /* Fonts */
-  --sw-font-head: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-  --sw-font-body: 'Inter', system-ui, sans-serif;
+  --sw-font-head:
+    'Plus Jakarta Sans', 'Inter', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC',
+    'Noto Sans TC', system-ui, sans-serif;
+  --sw-font-body:
+    'Inter', 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC',
+    system-ui, sans-serif;
   --sw-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* The slide canvas: every slide is drawn at this size and scaled to fit. */

@@ -10,6 +10,7 @@ using SlideWorks.WebApi.Features.Polls;
 using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Templates;
+using SlideWorks.WebApi.Features.Translations;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Infrastructure.Identity;
 using SlideWorks.WebApi.Realtime;
@@ -32,6 +33,7 @@ public class SlideEdits(
     ITemplates templates,
     PollRows pollRows,
     PollEdits pollEdits,
+    IDeckTranslations translations,
     TimeProvider clock)
 {
     public const string UPDATE_TOOL = "update_slide";
@@ -72,6 +74,8 @@ public class SlideEdits(
 
             slide.Layout = layout;
             slide.SlotsJson = SlideJson.ForStorage(slots);
+            // The stored lines follow their text to the new slots (D13); while translations are off they are left as they are.
+            var translationWarnings = StaleWarnings.Rekey(slide, definition, SlideJson.Slots(slide), await translations.ForDeckAsync(deck.Id), request.Slide);
             slide.Steps = SlideSteps.Count(definition, slots);
             slide.Surface = SlideChecks.SurfaceToStore(template, layout, surface);
             if (request.Notes is { } notes)
@@ -88,7 +92,7 @@ public class SlideEdits(
             {
                 await pollRows.EnsureAsync(slide.Id, deck.Id);
             }
-            var warnings = LayoutWarnings.For(template, request.Slide, layout);
+            var warnings = LayoutWarnings.For(template, request.Slide, layout).Concat(translationWarnings).ToList();
             var updated = new UpdateSlideResult(request.Slide, slide.Steps, slide.Revision, urls.Deck(deck.Id, deck.Slug, request.Slide), warnings);
             return (updated, $"updated slide {request.Slide} ({layout}){deepDive}");
         });

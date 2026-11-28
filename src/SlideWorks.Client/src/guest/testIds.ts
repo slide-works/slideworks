@@ -26,6 +26,22 @@ export const GUEST_TEST_IDS = {
   privacyOpen: 'guest-privacy-open',
   privacySheet: 'guest-privacy-sheet',
   privacyClose: 'guest-privacy-close',
+  // SW-883: the language chip, the sheet it opens and each language in it, the one-time "Showing the slides in" banner
+  // and its Change button, the "lines on this slide are in English" note and the failed-switch message.
+  languageChip: 'language-chip',
+  languageSheet: 'language-sheet',
+  languageOption: 'language-option',
+  languageBanner: 'language-banner',
+  languageBannerChange: 'language-banner-change',
+  fallbackNote: 'fallback-note',
+  languageError: 'language-error',
+  // SW-883 landscape: the tap overlay, its Full screen button (Android) and that button's error, and the one-time
+  // portrait hint with its close button.
+  landscapeOverlay: 'landscape-overlay',
+  landscapeFullscreen: 'landscape-fullscreen',
+  landscapeFullscreenError: 'landscape-fullscreen-error',
+  portraitHint: 'portrait-hint',
+  portraitHintClose: 'portrait-hint-close',
 } as const;
 
 export const JOIN_CODE_TEST_IDS = {

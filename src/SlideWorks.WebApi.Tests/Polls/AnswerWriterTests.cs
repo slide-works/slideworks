@@ -217,7 +217,7 @@ public class AnswerWriterTests : PollTestFixture
     private async Task<AnswerResult> SubmitAsync(string code, string guestId, AnswerRequest request)
     {
         await using var scope = Factory.Services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IPollAnswers>().SubmitAsync(code, guestId, request);
+        return await scope.ServiceProvider.GetRequiredService<IPollAnswers>().SubmitAsync(code, guestId, request, null);
     }
 
     // Closes the poll's open round through the real IPolls.CloseAsync, which counts the rows into Final in one write

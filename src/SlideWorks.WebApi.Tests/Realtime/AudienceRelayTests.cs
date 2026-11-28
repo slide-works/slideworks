@@ -387,7 +387,7 @@ public class AudienceRelayTests : ApiTestFixture
         var room = (await Client.GetFromJsonAsync<JsonElement>($"/api/join/{code}")).GetProperty("state").GetProperty("room");
         Factory.Services.GetRequiredService<QaRevisions>().Bump(room.GetProperty("round").GetString()!);
         Presentations.AfterNextGet(id => Factory.Services.GetRequiredService<IAudienceEvents>()
-            .PublishAsync(new AudienceState(id, long.MaxValue / 2, AudiencePhase.Live, null, NEWER_REVISION, null, null)));
+            .PublishAsync(new AudienceState(id, long.MaxValue / 2, AudiencePhase.Live, null, NEWER_REVISION, null, null, null) { Group = AudienceSlideGroups.Name(id, "en") }));
 
         var joined = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
         var pushed = await guest.NextAudienceAsync();

@@ -16,14 +16,14 @@ public class JoinWordsController(WordSubmissions words, OpenAnswers answers) : A
     [SetsGuestCookie]
     [ProducesResponseType<GuestResponseView>(StatusCodes.Status200OK)]
     [ProducesResponseType<ErrorResponse>(StatusCodes.Status404NotFound)]
-    public async Task<GuestResponseView> Get(string code, int slide, CancellationToken cancellationToken)
+    public async Task<GuestResponseView> Get(string code, int slide, [FromQuery] string? language, CancellationToken cancellationToken)
     {
         var guestId = GuestCookie.From(Request);
         if (await answers.IsOpenTextAsync(code, slide, cancellationToken))
         {
-            return await answers.ViewAsync(code, slide, guestId, cancellationToken);
+            return await answers.ViewAsync(code, slide, guestId, language, cancellationToken);
         }
-        return await words.ViewAsync(code, slide, guestId, cancellationToken);
+        return await words.ViewAsync(code, slide, guestId, language, cancellationToken);
     }
 
     [HttpPut("words")]

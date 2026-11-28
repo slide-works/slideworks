@@ -57,8 +57,8 @@ export interface StubDeckHubOptions {
   // Play the presentation calls (contract P2) too. Without it, JoinPresentation, UpdatePresentation and SetTimer are
   // answered as a method the hub doesn't have.
   presentation?: StubPresentationOptions;
-  // Play the audience calls (contract J4) too. Without it, JoinAudience, LeaveAudience and WatchAudience are answered as
-  // a method the hub doesn't have.
+  // Play the audience calls (contract J4) too. Without it, JoinAudience, LeaveAudience, WatchAudience and SetLanguage
+  // are answered as a method the hub doesn't have.
   audience?: StubAudienceOptions;
   // The transports negotiate offers. All three when left out, as the real hub does, so a client that can use any of them
   // gets WebSockets. Give one to force a fallback.
@@ -108,7 +108,9 @@ type Sink = { send(text: string): void };
 // with "not_answered" unless the guest has an answer in an open afterAnswer round (setPollWatchable, or stubPollApi's
 // hub option keeps it in step), and a watch lasts only as long as the connection that made it. pushPollTally sends an
 // audience tally to the connection, and a results tally only to a connection that watched. pushActivity moves the poll
-// on screen. pushQuestionTally sends a questionTally and pushRoom changes the room on the state (SW-9). With the
+// on screen. pushQuestionTally sends a questionTally and pushRoom changes the room on the state (SW-9). It records each
+// SetLanguage (SW-883 K5) and answers it with the state setLanguageReply scripted, else the current audience state; fail
+// makes it throw (such as "not_joined") and holdLanguage leaves it unanswered until releaseLanguage. With the
 // transports option
 // it offers only those transports, and plays WebSockets, Server-Sent Events (a small local server the page's event
 // stream is sent to) and long polling.
@@ -139,6 +141,10 @@ export async function stubDeckHub(
   let socket: Sink | undefined;
   const audienceJoins: string[] = [];
   const audienceLeaves: string[] = [];
+  const languageSets: { code: string; language: string }[] = [];
+  let languageReply: AudienceState | undefined;
+  let holdingLanguage = false;
+  const heldLanguages: (() => void)[] = [];
   const watches: string[] = [];
   const pollWatches: string[] = [];
   // Whether WatchPoll would be allowed now, and the connection (by its negotiate count) that last watched, if any.
@@ -254,6 +260,17 @@ export async function stubDeckHub(
     LeaveAudience: audienceMethod({
       record: ([code]) => audienceLeaves.push(code as string),
       answer: (_, reply) => reply.result(),
+    }),
+    SetLanguage: audienceMethod({
+      record: ([code, language]) =>
+        languageSets.push({ code: code as string, language: language as string }),
+      answer: (_, reply) => {
+        // The reply is the state as it is when the call arrives, even if it is held.
+        const state = structuredClone(languageReply ?? audienceState);
+        const complete = () => reply.result(state);
+        if (holdingLanguage) heldLanguages.push(complete);
+        else complete();
+      },
     }),
     WatchAudience: audienceMethod({
       record: ([deckId]) => watches.push(deckId as string),
@@ -445,6 +462,8 @@ export async function stubDeckHub(
     audienceLeaves,
     // Each WatchAudience's deck id, in order.
     watches,
+    // Each SetLanguage's code and language, in order, failed and held ones included.
+    languageSets,
     // Each WatchPoll's code, in order, refused and failed ones included.
     pollWatches,
     // The transport of each connection the page made, in order.
@@ -540,6 +559,20 @@ export async function stubDeckHub(
     // Changes the state later JoinAudience calls answer with, sending nothing: the state a reconnecting guest lands on.
     setAudienceState(state: AudienceState) {
       audienceState = structuredClone(state);
+    },
+    // The state every later SetLanguage answers with, as the server's state composed in the language; undefined goes
+    // back to answering with the current audience state. It sends nothing and doesn't change what JoinAudience answers.
+    setLanguageReply(state: AudienceState | undefined) {
+      languageReply = state && structuredClone(state);
+    },
+    // Leaves each later SetLanguage unanswered until releaseLanguage(), as a slow hub would.
+    holdLanguage() {
+      holdingLanguage = true;
+    },
+    // Answers every SetLanguage held so far, each with the state it would have had when it arrived, and stops holding.
+    releaseLanguage() {
+      holdingLanguage = false;
+      for (const complete of heldLanguages.splice(0)) complete();
     },
     // Refuses every later JoinAudience with message (on), or answers them again (off).
     refuseAudience(message: StubAudienceOptions['refuse']) {

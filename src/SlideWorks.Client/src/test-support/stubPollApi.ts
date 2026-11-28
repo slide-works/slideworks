@@ -102,12 +102,14 @@ export async function stubPollApi(
     else await answer();
   };
 
-  const path = `**/api/join/${encodeURIComponent(code)}/poll`;
+  // The phone adds ?language= to its reads and sends once the deck has translations (SW-883 K5).
+  const path = new RegExp(`/api/join/${encodeURIComponent(code)}/poll(\\?.*)?$`);
+  const answerPath = new RegExp(`/api/join/${encodeURIComponent(code)}/poll/answer(\\?.*)?$`);
   await page.route(path, async (route) => {
     gets += 1;
     await fulfil(route, getQueue.shift(), answerGet);
   });
-  await page.route(`${path}/answer`, async (route) => {
+  await page.route(answerPath, async (route) => {
     const request = route.request().postDataJSON() as AnswerRequest;
     answers.push(request);
     await fulfil(route, answerQueue.shift(), () => answerPut(request));

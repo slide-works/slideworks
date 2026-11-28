@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { JoinView } from '../api/types';
 import { CANVAS_HEIGHT, CANVAS_WIDTH, useCanvasScale } from '../player/useCanvasScale';
@@ -12,6 +12,15 @@ import type { SlideDeck } from '../slides/slots';
 import { ActivitySlot } from './ActivitySlot';
 import type { AudienceCurrent, AudienceState } from './audienceEvents';
 import type { GuestView } from './guestView';
+import { GuestFollowingHeader } from './GuestFollowingHeader';
+import { LandscapeLayer } from './landscape/LandscapeLayer';
+import { FallbackNote } from './language/FallbackNote';
+import { LanguageBanner } from './language/LanguageBanner';
+import { LanguageChip } from './language/LanguageChip';
+import { LanguageSheet } from './language/LanguageSheet';
+import type { GuestLanguageControl } from './language/useGuestLanguage';
+import { useLandscape } from './language/useLandscape';
+import { PortraitHint } from './landscape/PortraitHint';
 import { GUEST_TEST_IDS } from './testIds';
 import type { AudienceStatus } from './useAudience';
 
@@ -108,48 +117,64 @@ export function GuestFollowing({
   view,
   state,
   status,
+  language = null,
 }: {
   view: GuestView;
   state: AudienceState;
   status: AudienceStatus;
+  // The language choice, or null (the default) while the deck's translations are off.
+  language?: GuestLanguageControl | null;
 }) {
   const { code = '' } = useParams();
   const current = state.current;
   const reconnecting = status === 'reconnecting';
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const landscape = useLandscape();
+  const languages = language?.translations.languages ?? [];
+  const picked = languages.find((entry) => entry.code === language?.current);
+  const primary = languages.find((entry) => entry.code === language?.translations.primary);
+  // One chip at a time: the header's in portrait, the landscape overlay's when the phone is sideways. Rendering both
+  // would give the page two language chips.
+  const chip =
+    language && picked ? (
+      <LanguageChip
+        short={picked.short}
+        label={`Read the slides in ${picked.englishName}`}
+        onOpen={() => setSheetOpen(true)}
+      />
+    ) : null;
   return (
     <main
       data-testid={GUEST_TEST_IDS.following}
       className="flex min-h-0 w-full max-w-full flex-1 flex-col gap-3 overflow-x-hidden px-4 pt-4 pb-3 [@media(orientation:landscape)_and_(max-height:500px)]:items-center [@media(orientation:landscape)_and_(max-height:500px)]:justify-center [@media(orientation:landscape)_and_(max-height:500px)]:overflow-hidden [@media(orientation:landscape)_and_(max-height:500px)]:h-dvh [@media(orientation:landscape)_and_(max-height:500px)]:p-0 [@media(orientation:landscape)_and_(max-height:500px)]:[container-type:size]"
     >
-      <header className="flex items-center gap-3 [@media(orientation:landscape)_and_(max-height:500px)]:hidden">
-        <div className="min-w-0 flex-1">
-          <h1
-            data-testid={GUEST_TEST_IDS.deckTitle}
-            className="truncate font-head text-[13px] leading-tight font-bold"
-          >
-            {view.deckTitle}
-          </h1>
-          <p
-            data-testid={GUEST_TEST_IDS.presenter}
-            className="truncate text-[11px] text-(--sw-night-muted)"
-          >
-            {view.presenterName}
-          </p>
-        </div>
-        <span
-          data-testid={GUEST_TEST_IDS.chip}
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${reconnecting ? 'bg-[rgb(234_88_12/.2)] text-[#fdba74]' : 'bg-[rgb(22_163_74/.18)] text-[#86efac]'}`}
-        >
-          <span
-            aria-hidden
-            className={`size-1.5 rounded-full ${reconnecting ? 'bg-[#fb923c]' : 'bg-[#4ade80]'}`}
-          />
-          {reconnecting ? 'Offline' : 'Live'}
-        </span>
-      </header>
+      <GuestFollowingHeader
+        view={view}
+        reconnecting={reconnecting}
+        languageChip={landscape ? null : chip}
+      />
+      {language && picked && language.banner && picked.code !== language.translations.primary && (
+        <LanguageBanner
+          name={picked.name}
+          onChange={() => {
+            language.dismissBanner();
+            setSheetOpen(true);
+          }}
+        />
+      )}
       <GuestQa code={code} state={state} status={status} presenter={view.presenterName}>
+        <PortraitHint />
         {current ? (
-          <MirroredSlide view={view} current={current} room={state.room} dimmed={reconnecting} />
+          <>
+            <MirroredSlide view={view} current={current} room={state.room} dimmed={reconnecting} />
+            <LandscapeLayer
+              index={current.index}
+              count={current.count}
+              connected={!reconnecting}
+              progress={current.index / current.count}
+              languageChip={landscape ? chip : null}
+            />
+          </>
         ) : (
           <div
             data-testid={GUEST_TEST_IDS.waitingForPresenter}
@@ -173,6 +198,9 @@ export function GuestFollowing({
             </div>
           </div>
         )}
+        {language && primary && (
+          <FallbackNote lines={language.fallbackLines} primary={primary.englishName} />
+        )}
         <div className="flex min-h-0 flex-1 flex-col [@media(orientation:landscape)_and_(max-height:500px)]:hidden">
           {current?.layout === 'word-cloud' ? (
             <WordCard key={current.index} code={code} slide={current.index} status={status} />
@@ -188,6 +216,14 @@ export function GuestFollowing({
           )}
         </div>
       </GuestQa>
+      {language && sheetOpen && (
+        <LanguageSheet
+          translations={language.translations}
+          current={language.current}
+          onPick={language.pick}
+          onClose={() => setSheetOpen(false)}
+        />
+      )}
     </main>
   );
 }

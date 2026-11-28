@@ -1,5 +1,5 @@
 import { HubConnectionState, type HubConnection } from '@microsoft/signalr';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, api } from '../api/client';
 import type { OpenTextEvent, WordCloudEvent } from '../openResponses/types';
 import type { PollTally } from '../polls/types';
@@ -7,6 +7,7 @@ import type { QuestionTally } from '../qa/types';
 import { createAudienceConnection } from '../realtime/audienceConnection';
 import { AUDIENCE_EVENT_METHOD, isAudienceEvent, type AudienceState } from './audienceEvents';
 import { NO_SESSION, TOO_MANY_ATTEMPTS, type GuestView } from './guestView';
+import { languageQuery } from './language/GuestLanguageContext';
 
 // needs_cookies: the hub refused with no_guest, so the browser isn't keeping the guest cookie.
 export type AudienceStatus = 'connecting' | 'live' | 'reconnecting' | 'offline' | 'needs_cookies';
@@ -60,6 +61,9 @@ export type Audience = {
   polls: AudiencePolls;
   questions: AudienceQuestions;
   openResponses: AudienceOpenResponses;
+  // Moves this phone's slide state to a language (SetLanguage, SW-883 K5) and lands on the state it answers with. It
+  // rejects when the hub refuses or the connection is away; the language the phone is in is then unchanged.
+  setLanguage(language: string): Promise<void>;
 };
 
 // Calls each listener with value, on a copy of the set, so a listener that unsubscribes while being called doesn't skip
@@ -99,13 +103,16 @@ const hubRefusal = (error: unknown, message: string) =>
 // failed view re-read doesn't take the phone offline for a blip or a rate limit, and stops for good once the talk has ended
 // or the deck has gone (no_session: offline). A state with the same seq as the held one is applied only when its phase
 // differs (lobby to live), and audienceEnded is applied whatever the seq. Re-reads and rejoins wait a random extra
-// so a room of phones doesn't hit the server together. polls hands each pollTally to its subscribers and invokes
+// so a room of phones doesn't hit the server together. startLanguage is the language the phone wants from the first
+// join: after JoinAudience it calls SetLanguage when that isn't the primary, again after every reconnect, and the first
+// state is held back until SetLanguage answers. A refused SetLanguage lands on the join's own (primary) state. polls hands each pollTally to its subscribers and invokes
 // WatchPoll on the same connection (SW-6). questions hands each questionTally to its subscribers (SW-9); the room comes
 // with each state.
 export function useAudience(
   code: string,
   initial: GuestView,
   random: Random = Math.random,
+  startLanguage: string | null = null,
 ): Audience {
   const [view, setView] = useState(initial);
   const [state, setState] = useState(initial.state);
@@ -115,6 +122,16 @@ export function useAudience(
     randomRef.current = random;
   });
   const [failure, setFailure] = useState<unknown>(null);
+  // The language the phone wants now, which every re-read and every rejoin carries.
+  const languageRef = useRef(startLanguage);
+  const primaryRef = useRef(initial.translations?.primary ?? null);
+  const setLanguageRef = useRef<(language: string) => Promise<void>>(() =>
+    Promise.reject(new Error('The audience connection is closed.')),
+  );
+  useEffect(() => {
+    primaryRef.current = view.translations?.primary ?? null;
+  });
+  const setLanguage = useCallback((language: string) => setLanguageRef.current(language), []);
   // The poll channel reads the connection and code of the running effect; listeners outlive a reconnect.
   const tallyListeners = useRef(new Set<(tally: PollTally) => void>());
   const live = useRef<{ connection: HubConnection; code: string } | null>(null);
@@ -203,28 +220,32 @@ export function useAudience(
       clearTimeout(retryTimer);
       retryTimer = later(
         () =>
-          void api.get<GuestView>(`/api/join/${encodeURIComponent(code)}`).then(
-            (next) => {
-              if (!active) return;
-              if (reading === revision) reading = null;
-              // Two reads can finish out of order: never go back to an older view.
-              if (next.state.revision < viewRevision) return;
-              viewRevision = next.state.revision;
-              setView(next);
-            },
-            (error: unknown) => {
-              // A newer revision's read has taken over from this one: it does the retrying.
-              if (!active || reading !== revision) return;
-              reading = null;
-              // The deck is gone (deleted mid-talk): there is nothing to read again, so the phone goes offline.
-              if (error instanceof ApiError && error.message === NO_SESSION) offline();
-              // The hub decides whether the phone is offline, so any other failure is only tried again: soon after a
-              // blip, later after a rate limit.
-              else if (error instanceof ApiError && error.message === TOO_MANY_ATTEMPTS)
-                again(THROTTLED_RETRY_MS, SLOW_JITTER_MS);
-              else again(REREAD_RETRY_MS, JITTER_MS);
-            },
-          ),
+          void api
+            .get<GuestView>(
+              `/api/join/${encodeURIComponent(code)}${languageQuery(languageRef.current)}`,
+            )
+            .then(
+              (next) => {
+                if (!active) return;
+                if (reading === revision) reading = null;
+                // Two reads can finish out of order: never go back to an older view.
+                if (next.state.revision < viewRevision) return;
+                viewRevision = next.state.revision;
+                setView(next);
+              },
+              (error: unknown) => {
+                // A newer revision's read has taken over from this one: it does the retrying.
+                if (!active || reading !== revision) return;
+                reading = null;
+                // The deck is gone (deleted mid-talk): there is nothing to read again, so the phone goes offline.
+                if (error instanceof ApiError && error.message === NO_SESSION) offline();
+                // The hub decides whether the phone is offline, so any other failure is only tried again: soon after a
+                // blip, later after a rate limit.
+                else if (error instanceof ApiError && error.message === TOO_MANY_ATTEMPTS)
+                  again(THROTTLED_RETRY_MS, SLOW_JITTER_MS);
+                else again(REREAD_RETRY_MS, JITTER_MS);
+              },
+            ),
         0,
         JITTER_MS,
       );
@@ -259,11 +280,37 @@ export function useAudience(
       reread(next.revision);
     };
 
+    // The answer to SetLanguage: the same move's state in another language, so an equal seq is applied.
+    const adopt = (next: AudienceState) => {
+      if (!active || next.seq < lastSeq) return;
+      lastSeq = next.seq;
+      lastPhase = next.phase;
+      setState(next);
+      reread(next.revision);
+    };
+    setLanguageRef.current = async (language) => {
+      if (!active || connection.state !== HubConnectionState.Connected)
+        throw new Error('The audience connection is closed.');
+      const next = await connection.invoke<AudienceState>('SetLanguage', code, language);
+      languageRef.current = language;
+      adopt(next);
+    };
+
+    // JoinAudience, then SetLanguage when the phone wants a language other than the primary. The first render waits for
+    // the second answer.
+    const joinInLanguage = async (): Promise<void> => {
+      const joined = await connection.invoke<AudienceState>('JoinAudience', code);
+      const wanted = languageRef.current;
+      if (!wanted || wanted === primaryRef.current) return land(joined);
+      // A refusal here goes through the join's own error path, like JoinAudience's: the pick is never dropped.
+      land(await connection.invoke<AudienceState>('SetLanguage', code, wanted));
+    };
+
     const join = (): void => {
       // Only a connected connection can join. If it dropped again meanwhile, onreconnected or onclose takes it from there.
       if (!active || connection.state !== HubConnectionState.Connected) return;
       pushedSinceJoin = false;
-      void connection.invoke<AudienceState>('JoinAudience', code).then(land, (error: unknown) => {
+      void joinInLanguage().then(undefined, (error: unknown) => {
         if (!active) return;
         // The connection's own failure, not the server's answer: left to the reconnect and close handlers.
         if (!isHubException(error)) return;
@@ -321,5 +368,5 @@ export function useAudience(
   }, [code, initial]);
 
   if (failure) throw failure;
-  return { view, state, status, polls, questions, openResponses };
+  return { view, state, status, polls, questions, openResponses, setLanguage };
 }

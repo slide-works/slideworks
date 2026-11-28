@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using static Microsoft.Playwright.Assertions;
 
 namespace SlideWorks.AcceptanceTests.Pages;
@@ -72,6 +73,40 @@ public sealed class GuestPage(IPage page)
 
     // Shown in place of the slide while the session is live and the presenter has not published a position.
     public ILocator WaitingForPresenter => page.GetByTestId("guest-waiting-for-presenter");
+
+    // SW-883: the language chip in the header (and the landscape overlay), the sheet it opens, and every language in it.
+    public ILocator LanguageChip => page.GetByTestId("language-chip");
+
+    public ILocator LanguageSheet => page.GetByTestId("language-sheet");
+
+    public ILocator LanguageOptions => page.GetByTestId("language-option");
+
+    // The sheet's row for one language, by the name it shows first (its own name, such as "ไทย").
+    public ILocator LanguageOption(string name) =>
+        LanguageOptions.Filter(new LocatorFilterOptions { HasTextRegex = new Regex($"^{Regex.Escape(name)}") });
+
+    // The one-time "Showing the slides in ..." banner and its Change button.
+    public ILocator LanguageBanner => page.GetByTestId("language-banner");
+
+    public ILocator LanguageBannerChange => page.GetByTestId("language-banner-change");
+
+    // "n lines on this slide are in English", under the slide.
+    public ILocator FallbackNote => page.GetByTestId("fallback-note");
+
+    // "Couldn't switch language. Try again."
+    public ILocator LanguageError => page.GetByTestId("language-error");
+
+    // Landscape: the overlay a tap on the slide shows, its Full screen button (Android) and that button's error.
+    public ILocator LandscapeOverlay => page.GetByTestId("landscape-overlay");
+
+    public ILocator LandscapeFullscreen => page.GetByTestId("landscape-fullscreen");
+
+    public ILocator LandscapeFullscreenError => page.GetByTestId("landscape-fullscreen-error");
+
+    // The one-time "Turn sideways" hint in portrait, and its close button.
+    public ILocator PortraitHint => page.GetByTestId("portrait-hint");
+
+    public ILocator PortraitHintClose => page.GetByTestId("portrait-hint-close");
 
     // Opens a link as typed or scanned, in full (the join host's address is another origin from the app's).
     public async Task GotoUrlAsync(string url) => await page.GotoAsync(url);

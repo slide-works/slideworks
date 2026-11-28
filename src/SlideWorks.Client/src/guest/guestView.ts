@@ -10,6 +10,24 @@ export type GuestView = {
   // The player's URL when the deck is shared by link, otherwise null.
   deckUrl: string | null;
   state: AudienceState;
+  // The languages the guest can read the slides in (SW-883 K5), null while the deck's translations are off.
+  translations: GuestTranslations | null;
+};
+
+// One language a guest can pick (SW-883 K5): its name in its own script, its English name, the short label for the
+// chip, and how much of the deck is translated into it, as a whole percentage (the primary is 100).
+export type GuestLanguage = {
+  code: string;
+  name: string;
+  englishName: string;
+  short: string;
+  complete: number;
+};
+
+// The deck's languages: the primary first, then the deck's list in order.
+export type GuestTranslations = {
+  primary: string;
+  languages: GuestLanguage[];
 };
 
 // What the phone does with the call: the 404 body {"error":"no_session"} is the same whatever the reason.

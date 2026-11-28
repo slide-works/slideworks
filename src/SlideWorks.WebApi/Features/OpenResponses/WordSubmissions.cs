@@ -7,6 +7,7 @@ using SlideWorks.WebApi.Features.Join;
 using SlideWorks.WebApi.Features.OpenResponses.Contracts;
 using SlideWorks.WebApi.Features.OpenResponses.Data;
 using SlideWorks.WebApi.Features.Slides;
+using SlideWorks.WebApi.Features.Translations;
 using SlideWorks.WebApi.Infrastructure;
 using SlideWorks.WebApi.Realtime;
 
@@ -16,16 +17,16 @@ namespace SlideWorks.WebApi.Features.OpenResponses;
 // session is 404 no_session. A submit is refused before any write, in order: no session, guest off the roster, the
 // rate limit, a stale or non-open round, then OpenTextRules (which refuses a profane word last).
 [RegisterPerRequest]
-public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenResponseLimiter limiter, IWordCloudPublisher publisher)
+public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenResponseLimiter limiter, IWordCloudPublisher publisher, GuestSlideLanguage languages)
 {
     public const string NO_GUEST = "no_guest";
 
     private const string WORD_CLOUD = "word-cloud";
 
-    public async Task<GuestResponseView> ViewAsync(string code, int slide, string? guestId, CancellationToken cancellationToken)
+    public async Task<GuestResponseView> ViewAsync(string code, int slide, string? guestId, string? language, CancellationToken cancellationToken)
     {
         var live = await LiveAsync(code);
-        return await ReadAsync(live, slide, guestId, cancellationToken);
+        return await ReadAsync(live, slide, guestId, language, cancellationToken);
     }
 
     public async Task<StoredWords> SubmitAsync(string code, int slide, string guestId, WordsRequest request, CancellationToken cancellationToken)
@@ -38,7 +39,7 @@ public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenRe
 
         limiter.Take(guestId, code, slide);
 
-        var view = await ReadAsync(live, slide, guestId, cancellationToken);
+        var view = await ReadAsync(live, slide, guestId, null, cancellationToken);
         OpenRoundChecks.RequireCurrent(view, request.Round, request.Revision);
         OpenRoundChecks.RequireValid(OpenTextRules.Check(request.Words));
 
@@ -62,18 +63,17 @@ public class WordSubmissions(AppDbContext db, IAudienceSessions sessions, OpenRe
         return new Live(found.DeckId, Guid.Parse(id));
     }
 
-    private async Task<GuestResponseView> ReadAsync(Live live, int slide, string? guestId, CancellationToken cancellationToken)
+    private async Task<GuestResponseView> ReadAsync(Live live, int slide, string? guestId, string? language, CancellationToken cancellationToken)
     {
         var row = await db.Slides.AsNoTracking()
             .Where(s => s.DeckId == live.DeckId && s.DeletedAt == null && s.Position == slide - 1)
-            .Select(s => new { s.Id, s.Layout, s.SlotsJson })
             .SingleOrDefaultAsync(cancellationToken) ?? throw new NotFoundException(GuestViews.NO_SESSION);
         if (row.Layout != WORD_CLOUD)
         {
             throw new NotFoundException(GuestViews.NO_SESSION);
         }
 
-        var question = QuestionOf(row.SlotsJson);
+        var question = QuestionOf((await languages.MergeAsync(row, language)).Slots.GetRawText());
         var responseId = await db.OpenResponses.AsNoTracking()
             .Where(r => r.SlideId == row.Id && r.Kind == OpenResponseKind.WordCloud)
             .Select(r => (Guid?)r.Id)

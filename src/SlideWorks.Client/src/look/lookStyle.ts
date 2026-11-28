@@ -7,6 +7,11 @@ type CustomProperties = Record<`--sw-${string}`, string | number>;
 // A family goes inside quotes in a font stack: a quote or backslash would end the string early.
 const quoted = (family: string) => `'${family.replace(/['"\\]/g, '')}'`;
 
+// The Noto faces tokens.css imports, after the template's fonts and before system-ui, so Thai, Japanese,
+// Korean and Chinese text is drawn in them and Latin text is untouched (SW-883).
+const NOTO_FALLBACKS =
+  "'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Sans TC'";
+
 // The look as CSS custom properties for a slide's root element (SW-2 L10):
 // every palette token as --sw-<key> (accent-2 among them), the template's type and shape, and the
 // tokens tokens.css derives with var() at :root. A var() resolves where it is
@@ -31,8 +36,8 @@ export function lookStyle(look: LookView): CSSProperties {
     fill(`--sw-${extra.name}-ink`, extra.ink);
   }
   Object.assign(style, {
-    '--sw-font-head': `'${type.head}', '${type.body}', system-ui, sans-serif`,
-    '--sw-font-body': `'${type.body}', system-ui, sans-serif`,
+    '--sw-font-head': `'${type.head}', '${type.body}', ${NOTO_FALLBACKS}, system-ui, sans-serif`,
+    '--sw-font-body': `'${type.body}', ${NOTO_FALLBACKS}, system-ui, sans-serif`,
     '--sw-head-weight': type.headWeight,
     '--sw-head-tracking': type.headTracking,
     '--sw-radius-sm': `${shape.radius.sm}px`,

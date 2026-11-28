@@ -361,8 +361,12 @@ public class AudienceHubContractTests : ApiTestFixture
         return message;
     }
 
+    // Routed to the primary's slide-state group, where JoinAudience puts a guest (SW-883 D11; these decks have no settings, so en).
     private static AudienceState State(string deck, long seq, AudiencePhase phase)
-        => new(deck, seq, phase, phase == AudiencePhase.Live ? new AudienceSlide(1, 2, "title", JsonDocument.Parse("""{"title":"Hi"}""").RootElement.Clone(), 0, 0, false) : null, 0, null, null);
+        => new AudienceState(deck, seq, phase, phase == AudiencePhase.Live ? new AudienceSlide(1, 2, "title", JsonDocument.Parse("""{"title":"Hi"}""").RootElement.Clone(), 0, 0, false) : null, 0, null, null, null)
+        {
+            Group = AudienceSlideGroups.Name(deck, "en"),
+        };
 
     // A deck Sam owns, and a fresh code that finds it in the given phase (live by default) with the relay answering a state.
     private async Task<(string Deck, string Code)> LiveDeckAsync(AudiencePhase phase = AudiencePhase.Live)
@@ -452,11 +456,20 @@ public class AudienceHubContractTests : ApiTestFixture
             lock (_gate)
             {
                 _leaves.Add(connectionId);
+                Placed.Remove(connectionId);
                 if (!Decks.Remove(connectionId, out var deck))
                 {
                     return Task.FromResult<RosterLeave?>(null);
                 }
                 return Task.FromResult<RosterLeave?>(new RosterLeave(deck, "live-session", Counts.GetValueOrDefault(deck)));
+            }
+        }
+
+        public Task<string?> DeckOfAsync(string connectionId)
+        {
+            lock (_gate)
+            {
+                return Task.FromResult(Decks.GetValueOrDefault(connectionId));
             }
         }
 
@@ -466,6 +479,32 @@ public class AudienceHubContractTests : ApiTestFixture
             lock (_gate)
             {
                 Counts[deck] = count;
+            }
+        }
+
+        private Dictionary<string, string> Placed { get; } = [];
+
+        public Task ChooseAsync(string connectionId, string language) => Task.CompletedTask;
+
+        public Task<AudienceSeat?> PlaceAsync(string connectionId, string language)
+        {
+            lock (_gate)
+            {
+                if (!Decks.ContainsKey(connectionId))
+                {
+                    return Task.FromResult<AudienceSeat?>(null);
+                }
+                var before = new AudienceSeat(connectionId, null, Placed.GetValueOrDefault(connectionId));
+                Placed[connectionId] = language;
+                return Task.FromResult<AudienceSeat?>(before);
+            }
+        }
+
+        public Task<IReadOnlyList<AudienceSeat>> SeatsAsync(string deckId)
+        {
+            lock (_gate)
+            {
+                return Task.FromResult<IReadOnlyList<AudienceSeat>>([.. Decks.Where(d => d.Value == deckId).Select(d => new AudienceSeat(d.Key, null, Placed.GetValueOrDefault(d.Key)))]);
             }
         }
 

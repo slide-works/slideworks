@@ -76,6 +76,14 @@ public static class McpWireCases
         ["update_qa"] = Plain(c => Json(new { deck = c.Deck, questions = "closed", show_on = "qaSlide", review = true })),
         ["get_questions"] = Plain(c => Json(new { deck = c.Deck, state = "open" })),
 
+        // Translations
+        ["set_translations"] = Plain(c => Json(new { deck = c.Deck, enabled = true, primary = "en", languages = new[] { "es", "th" } })),
+        ["translate_slides"] = Plain(async c =>
+        {
+            await c.TranslationsOnAsync("th");
+            return $$$"""{"deck":"{{{c.Deck}}}","language":"th","slides":[{"slide":1,"revision":{{{await c.RevisionOfSlideAsync(1)}}},"lines":{"/quote":"Ship it","/attribution":null}}]}""";
+        }),
+
         // Images
         ["upload_image"] = Plain(c => Json(new { deck = c.Deck, name = "map.png", contentType = "image/png" })),
         ["upload_images"] = Plain(c => Json(new { deck = c.Deck, files = new[] { new { name = "a.png", contentType = "image/png" }, new { name = "b.webp", contentType = "image/webp" } } })),

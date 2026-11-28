@@ -83,6 +83,87 @@ public class AudienceLoadTests : ApiTestFixture
         loaded.ShouldAllBe(move => move.Took < MOVE_BOUND, $"every move should be acknowledged within {MOVE_BOUND.TotalMilliseconds} ms{Environment.NewLine}{numbers}");
     }
 
+    // SW-883's stand-in for the 1,000-guest mixed-language run (cut to v2, D22): GUESTS guests join at once, every other one
+    // picks Thai, and the presenter walks the deck. Every guest must reach the last slide, and read it in its own language.
+    [Test]
+    public async Task Join_WhenTwoHundredGuestsInTwoLanguages_ShouldReachAll()
+    {
+        string deck;
+        await using (var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam))
+        {
+            deck = await DeckSeed.CreateDeckAsync(agent, "Two-language load check");
+            for (var n = 1; n <= SLIDES; n++)
+            {
+                await DeckSeed.AddQuoteAsync(agent, deck, $"Quote number {n}.");
+            }
+        }
+        var seed = new TranslationRowSeed(Factory.Services);
+        await seed.SettingsAsync(deck, true, "en", "th");
+        for (var n = 1; n <= SLIDES; n++)
+        {
+            await seed.LinesAsync(deck, n, new Dictionary<string, IReadOnlyDictionary<string, (string Text, string From)>>
+            {
+                ["th"] = new Dictionary<string, (string Text, string From)> { ["/quote"] = ($"คำพูดที่ {n}", $"Quote number {n}.") },
+            });
+        }
+        var live = await Client.PostAsync($"/api/decks/{deck}/live", null);
+        live.EnsureSuccessStatusCode();
+        var code = (await live.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString().ShouldNotBeNull();
+        await using var presenter = await PresentationStates.ConnectAsync(Factory, TestUser.Sam);
+        await presenter.JoinAsync(deck, "k-load-languages");
+        var guests = new ConcurrentBag<GuestClient>();
+        try
+        {
+            var joins = await Task.WhenAll(Enumerable.Range(0, GUESTS).Select(n => Task.Run(() => JoinInAsync(code, n % 2 == 0 ? "th" : null, guests))));
+            var followers = joins.Select(joined => Task.Run(() => FollowInLanguageAsync(joined.Guest, joined.Seq, joined.Slide))).ToList();
+            await WalkAsync(presenter, deck, _ => { });
+            var ends = await Task.WhenAll(followers);
+
+            ends.Length.ShouldBe(GUESTS);
+            ends.ShouldAllBe(end => end.Slide == SLIDES);
+            ends.Count(end => end.Quote == $"คำพูดที่ {SLIDES}" && end.Language == "th").ShouldBe(GUESTS / 2);
+            ends.Count(end => end.Quote == $"Quote number {SLIDES}." && end.Language == "en").ShouldBe(GUESTS / 2);
+        }
+        finally
+        {
+            foreach (var guest in guests)
+            {
+                await guest.DisposeAsync();
+            }
+        }
+    }
+
+    // One guest of the two-language run: connects, joins, and picks the language when one is given. Returns the guest and
+    // the seq and slide of the last state it was answered.
+    private async Task<(GuestClient Guest, long Seq, int Slide)> JoinInAsync(string code, string? language, ConcurrentBag<GuestClient> guests)
+    {
+        var guest = await GuestClient.ConnectAsync(Factory);
+        guests.Add(guest);
+        var state = await guest.Connection.InvokeAsync<JsonElement>("JoinAudience", code);
+        if (language != null)
+        {
+            state = await guest.Connection.InvokeAsync<JsonElement>("SetLanguage", code, language);
+        }
+        return (guest, state.GetProperty("seq").GetInt64(), state.GetProperty("current").GetProperty("index").GetInt32());
+    }
+
+    // Reads states until the last slide, and returns the slide, its quote and the state's language code.
+    private static async Task<(int Slide, string? Quote, string? Language)> FollowInLanguageAsync(GuestClient guest, long seq, int slide)
+    {
+        JsonElement? last = null;
+        while (slide != SLIDES || last is null)
+        {
+            var next = await guest.NextAudienceAsync();
+            if (next.GetProperty("type").GetString() != "audienceState" || next.GetProperty("seq").GetInt64() <= seq)
+            {
+                continue;
+            }
+            (seq, slide, last) = (next.GetProperty("seq").GetInt64(), next.GetProperty("current").GetProperty("index").GetInt32(), next);
+        }
+        var current = last.Value;
+        return (slide, current.GetProperty("current").GetProperty("slots").GetProperty("quote").GetString(), current.GetProperty("language").GetProperty("code").GetString());
+    }
+
     // Moves slide 1 to SLIDES, one slide at a time with MOVE_EVERY_MS between moves and none before the first. beforeMove runs
     // as each move is asked. Returns when each move was asked and answered, on clock, and how long it took.
     private static async Task<IReadOnlyList<(TimeSpan Asked, TimeSpan Answered, TimeSpan Took)>> WalkAsync(

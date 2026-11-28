@@ -15,6 +15,7 @@ public class AudienceRecordShapeTests
     {
         var example = Example().GetProperty("audienceState");
         var current = example.GetProperty("current");
+        var language = example.GetProperty("language");
         AudienceEvent state = new AudienceState(
             "7Kq2xYp9LmQa",
             example.GetProperty("seq").GetInt64(),
@@ -30,7 +31,8 @@ public class AudienceRecordShapeTests
                 current.GetProperty("surface").GetString()!),
             example.GetProperty("revision").GetInt64(),
             null,
-            example.GetProperty("room").Clone());
+            example.GetProperty("room").Clone(),
+            new AudienceLanguage(language.GetProperty("code").GetString()!, language.GetProperty("fallbackLines").GetInt32()));
 
         var json = Serialise(state);
 
@@ -41,7 +43,7 @@ public class AudienceRecordShapeTests
     [Test]
     public void AudienceState_WhenNotLive_ShouldSendNoSlideAndNeverTheDeckId()
     {
-        var json = Serialise(new AudienceState("7Kq2xYp9LmQa", 0, AudiencePhase.Lobby, null, 7, null, null));
+        var json = Serialise(new AudienceState("7Kq2xYp9LmQa", 0, AudiencePhase.Lobby, null, 7, null, null, null));
 
         JsonShape.AssertMatches(json, Example().GetProperty("audienceState"), "audience-events.json audienceState", ScreenShapes.AudienceState);
         json.GetRawText().ShouldContain("\"phase\":\"lobby\"", Case.Sensitive);

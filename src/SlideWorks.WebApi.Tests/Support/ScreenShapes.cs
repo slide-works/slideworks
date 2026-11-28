@@ -106,6 +106,8 @@ public static class ScreenShapes
         [
             "deckUrl", "state.current", "state.activity", "state.room", "state.room.round", "look.logo", "look.template.titleArt",
             .. LookNullablePaths,
+            // SW-883 K5: null while translations are off.
+            "state.language", "translations",
         ],
         OpaquePaths = ["state.current.slots"],
     };
@@ -118,6 +120,8 @@ public static class ScreenShapes
             "live.state.activity", "lobby.deckUrl", "lobby.state.current", "lobby.state.activity", "lobby.state.room",
             "ended.state.current", "ended.state.activity", "ended.state.room",
             .. BuiltInLookNullablePathsUnder("live."), .. BuiltInLookNullablePathsUnder("lobby."), .. BuiltInLookNullablePathsUnder("ended."),
+            // SW-883 K5: the lobby and ended samples show translations off.
+            "lobby.state.language", "lobby.translations", "ended.state.language", "ended.translations",
         ],
         OpaquePaths = ["live.state.current.slots"],
     };
@@ -134,6 +138,8 @@ public static class ScreenShapes
             "audienceState.activity", "audienceState.room", "audienceState.room.round", "pollTally.counts", "pollControl.control.round",
             "pollControl.control.settings.max", "pollControl.control.settings.correct", "questionControl.control.round",
             "questionControl.control.here", "questionControl.control.onScreen", "questionControl.control.questions[].name",
+            // SW-883 K5: null while translations are off.
+            "audienceState.language",
         ],
         OpaquePaths = ["audienceState.current.slots"],
     };
@@ -142,7 +148,7 @@ public static class ScreenShapes
     // null outside live (SW-9 Q3); its round is null with questions off.
     public static readonly JsonShapeOptions AudienceState = new()
     {
-        NullablePaths = ["current", "activity", "room", "room.round"],
+        NullablePaths = ["current", "activity", "room", "room.round", "language"],
         OpaquePaths = ["current.slots"],
     };
 

@@ -9,6 +9,7 @@ import { GuestNeedsCookies } from './GuestNeedsCookies';
 import { GuestOffline } from './GuestOffline';
 import { GuestShell } from './GuestShell';
 import type { GuestView } from './guestView';
+import type { GuestLanguageControl } from './language/useGuestLanguage';
 import type { Retry } from './useRetry';
 import { ReconnectingBanner } from './ReconnectingBanner';
 
@@ -23,11 +24,14 @@ export function GuestScreens({
   state,
   status,
   onRetry,
+  language = null,
 }: {
   view: GuestView;
   state: AudienceState;
   status: AudienceStatus;
   onRetry: Retry;
+  // The language choice, or null (the default) while the deck's translations are off.
+  language?: GuestLanguageControl | null;
 }) {
   const [joinedDone, setJoinedDone] = useState(false);
   const live = state.phase === 'live';
@@ -43,11 +47,16 @@ export function GuestScreens({
   const needsCookies = !ended && status === 'needs_cookies';
   const following = !offline && !needsCookies && live && joinedDone;
 
+  // The first render of the slide waits for the hub's answer to the join (JoinAudience, then SetLanguage), so a slow
+  // SetLanguage never shows the primary slide first. The latch keeps later reconnects from going back to "You're in".
+  const [joinAnswered, setJoinAnswered] = useState(false);
+  if (status === 'live' && !joinAnswered) setJoinAnswered(true);
+
   useEffect(() => {
-    if (!live) return;
+    if (!live || !joinAnswered) return;
     const timer = setTimeout(() => setJoinedDone(true), JOINED_MS);
     return () => clearTimeout(timer);
-  }, [live]);
+  }, [live, joinAnswered]);
 
   let screen;
   if (ended) screen = <GuestEnded view={view} />;
@@ -55,7 +64,7 @@ export function GuestScreens({
   else if (offline) screen = <GuestOffline onRetry={onRetry} />;
   else if (state.phase === 'lobby') screen = <GuestLobby view={view} />;
   else if (!joinedDone) screen = <GuestJoined view={view} />;
-  else screen = <GuestFollowing view={view} state={state} status={status} />;
+  else screen = <GuestFollowing view={view} state={state} status={status} language={language} />;
 
   return (
     <GuestShell fill={following}>

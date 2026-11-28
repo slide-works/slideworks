@@ -52,9 +52,18 @@ public sealed class GuestClient : IAsyncDisposable
     // GET /api/join/{code}/poll: the poll on screen, this guest's answer and the tally it may see (V5).
     public Task<HttpResponseMessage> GetPollAsync(string code) => _http.GetAsync($"/api/join/{code}/poll");
 
+    // The same read in a language (SW-883 K5): ?language=, which an unknown language or translations off turn into the primary.
+    public Task<HttpResponseMessage> GetPollAsync(string code, string language) => _http.GetAsync($"/api/join/{code}/poll?language={language}");
+
+    // GET /api/join/{code}/slides/{slide}/response in a language: a word-cloud or open-text slide's prompt.
+    public Task<HttpResponseMessage> GetResponseAsync(string code, int slide, string language) => _http.GetAsync($"/api/join/{code}/slides/{slide}/response?language={language}");
+
     // PUT /api/join/{code}/poll/answer with this body, usually an AnswerRequest; any other object goes as it serialises,
     // for a test of a malformed body (V5).
     public Task<HttpResponseMessage> AnswerAsync(string code, object body) => _http.PutAsJsonAsync($"/api/join/{code}/poll/answer", body);
+
+    // The answer with ?language=, so a 409's current view comes in that language.
+    public Task<HttpResponseMessage> AnswerAsync(string code, object body, string language) => _http.PutAsJsonAsync($"/api/join/{code}/poll/answer?language={language}", body);
 
     // DeckHub.WatchPoll(code): joins poll-results:{roundId} when the server allows it, else throws HubException (V5).
     public Task WatchPollAsync(string code) => Connection.InvokeAsync("WatchPoll", code);

@@ -1,12 +1,13 @@
 import { ApiError, api } from '../../api/client';
+import { languageQuery } from '../../guest/language/GuestLanguageContext';
 import type { AnswerRequest, GuestPollView, MyAnswer, StaleAnswer } from '../types';
 
 const pollPath = (code: string) => `/api/join/${encodeURIComponent(code)}/poll`;
 
-// GET /api/join/{code}/poll (V5): the activity, this guest's answer and the tally it may see. Throws ApiError: 400
+// GET /api/join/{code}/poll (V5), in the language when it has one (?language=, SW-883 K5): the activity, this guest's answer and the tally it may see. Throws ApiError: 400
 // no_guest, 404 no_session.
-export function getGuestPoll(code: string): Promise<GuestPollView> {
-  return api.get<GuestPollView>(pollPath(code));
+export function getGuestPoll(code: string, language?: string | null): Promise<GuestPollView> {
+  return api.get<GuestPollView>(`${pollPath(code)}${languageQuery(language)}`);
 }
 
 // What a PUT came back with when the server answered with an answer: 200 accepted it, 409 refused it as stale and says
@@ -18,8 +19,12 @@ export type AnswerOutcome =
 // which api/client.ts would drop. Any other refusal throws ApiError with the body's error: a 400 names the rule
 // ("picks: at most 2") or no_guest, 404 is no_session, 429 is too_many_answers. A call that never reached the server
 // rejects with fetch's own TypeError.
-export async function putPollAnswer(code: string, body: AnswerRequest): Promise<AnswerOutcome> {
-  const response = await fetch(`${pollPath(code)}/answer`, {
+export async function putPollAnswer(
+  code: string,
+  body: AnswerRequest,
+  language?: string | null,
+): Promise<AnswerOutcome> {
+  const response = await fetch(`${pollPath(code)}/answer${languageQuery(language)}`, {
     method: 'PUT',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },

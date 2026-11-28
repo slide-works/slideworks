@@ -55,7 +55,10 @@ public sealed class AudienceEventsRelay(IAudienceEvents events, IHubContext<Deck
     private Task ForwardAsync(AudienceEvent audienceEvent) => audienceEvent switch
     {
         JoinedCount count => SendCountAsync(count),
-        AudienceState or AudienceEnded => SendAsync(DeckHub.AudienceGroupName(audienceEvent.DeckId), audienceEvent),
+        // A state goes only to the slide-state group of the language it was composed in (SW-883 D11); one with no group is
+        // never sent anywhere, rather than to every guest.
+        AudienceState state => SendAsync(state.Group ?? throw new InvalidOperationException("An audienceState has no slide-state group"), state),
+        AudienceEnded => SendAsync(DeckHub.AudienceGroupName(audienceEvent.DeckId), audienceEvent),
         PollControl control => SendAsync(DeckHub.AudienceWatchGroupName(control.DeckId), control),
         PollTally tally => SendAsync(TallyGroup(tally), tally),
         QuestionTally tally => SendAsync(DeckHub.AudienceGroupName(tally.DeckId), tally),

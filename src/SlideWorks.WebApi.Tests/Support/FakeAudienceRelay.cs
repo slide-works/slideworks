@@ -4,8 +4,9 @@ using SlideWorks.WebApi.Realtime;
 namespace SlideWorks.WebApi.Tests.Support;
 
 // IAudienceRelay for tests that need a position without a presentation: each test sets the state a deck answers with. It
-// records the decks Go live started, End ended and a refresh asked for, in order. Add it with FakeAudienceRelay.AddTo. A deck with no state set
-// answers null, as the real relay does for a deck with no session.
+// records the decks Go live started, End ended and a refresh asked for, in order, and the language each read asked for. Add
+// it with FakeAudienceRelay.AddTo. A deck with no state set answers null, as the real relay does for a deck with no session.
+// Like the stand-in relay, it answers the same state whatever the language.
 public sealed class FakeAudienceRelay : IAudienceRelay
 {
     private readonly Lock _gate = new();
@@ -13,6 +14,7 @@ public sealed class FakeAudienceRelay : IAudienceRelay
     private readonly List<string> _started = [];
     private readonly List<string> _ended = [];
     private readonly List<string> _refreshed = [];
+    private readonly List<(string DeckId, string? Language)> _reads = [];
 
     public IReadOnlyList<string> Started
     {
@@ -56,6 +58,15 @@ public sealed class FakeAudienceRelay : IAudienceRelay
         }
     }
 
+    // The language each CurrentAsync for this deck asked for, in order (null when none was given).
+    public IReadOnlyList<string?> LanguagesReadFor(string deckId)
+    {
+        lock (_gate)
+        {
+            return [.. _reads.Where(r => r.DeckId == deckId).Select(r => r.Language)];
+        }
+    }
+
     public static void AddTo(IServiceCollection services)
         => services.AddSingleton<FakeAudienceRelay>().AddSingleton<IAudienceRelay>(provider => provider.GetRequiredService<FakeAudienceRelay>());
 
@@ -67,10 +78,11 @@ public sealed class FakeAudienceRelay : IAudienceRelay
         }
     }
 
-    public Task<AudienceState?> CurrentAsync(string deckId)
+    public Task<AudienceState?> CurrentAsync(string deckId, string? language)
     {
         lock (_gate)
         {
+            _reads.Add((deckId, language));
             return Task.FromResult(_states.GetValueOrDefault(deckId));
         }
     }

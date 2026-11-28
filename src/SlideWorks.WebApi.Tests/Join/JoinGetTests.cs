@@ -74,6 +74,26 @@ public class JoinGetTests : JoinFixture
         body.GetProperty("look").GetProperty("joinBar").GetBoolean().ShouldBeFalse();
     }
 
+    // SW-883 K5: ?language= is bound and handed to the relay; the stand-in answers the primary state, translations off.
+    [Test]
+    public async Task JoinGet_WhenLanguageGiven_ShouldMatchGuestShape()
+    {
+        await using var agent = await McpTestClient.ConnectAsAsync(Factory, TestUser.Sam);
+        var deck = await DeckSeed.CreateDeckAsync(agent);
+        Open(CODE, deck);
+        using var anonymous = ClientFor(TestUser.Anonymous);
+
+        using var response = await anonymous.GetAsync($"/api/join/{CODE}?language=th");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+        using var sample = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(JsonShape.ScreensDirectory(), "guest.json")));
+        JsonShape.AssertMatches(body, sample.RootElement.GetProperty("live"), "guest.json", ScreenShapes.Guest);
+        body.GetProperty("translations").ValueKind.ShouldBe(JsonValueKind.Null);
+        body.GetProperty("state").GetProperty("language").ValueKind.ShouldBe(JsonValueKind.Null);
+        Relay.LanguagesReadFor(deck).ShouldBe(["th"]);
+    }
+
     [Test]
     public async Task Get_WhenLobby_ShouldHaveNoCurrentSlide()
     {
@@ -105,7 +125,7 @@ public class JoinGetTests : JoinFixture
         var deck = await DeckSeed.CreateDeckAsync(agent);
         Sessions.Set(CODE, deck, null, phase);
         // The relay is a fake here, so it is given the state the real one gives outside live: no slide, no room, no activity.
-        Relay.Set(new AudienceState(deck, 1, phase, null, 0, null, null));
+        Relay.Set(new AudienceState(deck, 1, phase, null, 0, null, null, null));
         using var anonymous = ClientFor(TestUser.Anonymous);
 
         using var response = await anonymous.GetAsync($"/api/join/{CODE}");

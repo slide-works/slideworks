@@ -24,7 +24,25 @@ describe('getGuestPoll', () => {
   });
 });
 
+describe('getGuestPoll language', () => {
+  it('adds ?language= when the phone has a language', async () => {
+    const fetchMock = stubFetch(200, guestPoll('hidden'));
+
+    await getGuestPoll('482913', 'th');
+
+    expect(String(fetchMock.mock.calls[0][0])).toBe('/api/join/482913/poll?language=th');
+  });
+});
+
 describe('putPollAnswer', () => {
+  it('adds ?language= to the answer when the phone has a language', async () => {
+    const fetchMock = stubFetch(200, answerAccepted());
+
+    await putPollAnswer('482913', answerRequest(), 'ja');
+
+    expect(String(fetchMock.mock.calls[0][0])).toBe('/api/join/482913/poll/answer?language=ja');
+  });
+
   it('puts the request as JSON and returns the accepted answer', async () => {
     const fetchMock = stubFetch(200, answerAccepted());
 

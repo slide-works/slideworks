@@ -18,7 +18,7 @@ public class AudienceDiscriminatorTests : ApiTestFixture
     [Test]
     public void AudienceState_WhenDeclaredAsItsOwnType_ShouldCarryTheDiscriminatorThroughTheHubOptions()
     {
-        var state = new AudienceState("7Kq2xYp9LmQa", 3, AudiencePhase.Lobby, null, 1, null, null);
+        var state = new AudienceState("7Kq2xYp9LmQa", 3, AudiencePhase.Lobby, null, 1, null, null, null);
 
         var json = JsonSerializer.Serialize(state, HubJson);
 
@@ -28,7 +28,7 @@ public class AudienceDiscriminatorTests : ApiTestFixture
     [Test]
     public void AudienceState_WhenDeclaredAsObject_ShouldCarryTheDiscriminatorThroughTheHubOptions()
     {
-        var json = JsonSerializer.Serialize<object>(new AudienceState("7Kq2xYp9LmQa", 3, AudiencePhase.Lobby, null, 1, null, null), HubJson);
+        var json = JsonSerializer.Serialize<object>(new AudienceState("7Kq2xYp9LmQa", 3, AudiencePhase.Lobby, null, 1, null, null, null), HubJson);
 
         json.ShouldContain("\"type\":\"audienceState\"");
     }
@@ -68,6 +68,6 @@ public class AudienceDiscriminatorTests : ApiTestFixture
     [Test]
     public void AudienceState_ShouldNeverWriteTheDeckId()
     {
-        JsonSerializer.Serialize(new AudienceState("7Kq2xYp9LmQa", 3, AudiencePhase.Lobby, null, 1, null, null), HubJson).ShouldNotContain("7Kq2xYp9LmQa");
+        JsonSerializer.Serialize(new AudienceState("7Kq2xYp9LmQa", 3, AudiencePhase.Lobby, null, 1, null, null, null), HubJson).ShouldNotContain("7Kq2xYp9LmQa");
     }
 }

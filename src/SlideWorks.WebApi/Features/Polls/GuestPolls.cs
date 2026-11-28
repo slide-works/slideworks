@@ -19,10 +19,10 @@ public class GuestPolls(IPollAnswers answers, IJoinLookupLimiter limiter)
 {
     public const string NO_GUEST = "no_guest";
 
-    public async Task<GuestPollView> ViewAsync(string code, string? guestId, IPAddress? caller)
+    public async Task<GuestPollView> ViewAsync(string code, string? language, string? guestId, IPAddress? caller)
     {
         var key = Allowed(caller);
-        var view = await answers.ViewAsync(code, Require(guestId));
+        var view = await answers.ViewAsync(code, Require(guestId), language);
         if (view is null)
         {
             limiter.RecordMiss(key);
@@ -31,11 +31,11 @@ public class GuestPolls(IPollAnswers answers, IJoinLookupLimiter limiter)
         return view;
     }
 
-    public async Task<AnswerResult> SubmitAsync(string code, string? guestId, Stream body, IPAddress? caller)
+    public async Task<AnswerResult> SubmitAsync(string code, string? language, string? guestId, Stream body, IPAddress? caller)
     {
         var key = Allowed(caller);
         var guest = Require(guestId);
-        var result = await answers.SubmitAsync(code, guest, await AnswerBody.ReadAsync(body));
+        var result = await answers.SubmitAsync(code, guest, await AnswerBody.ReadAsync(body), language);
         if (result is AnswerResult.NoSession)
         {
             limiter.RecordMiss(key);

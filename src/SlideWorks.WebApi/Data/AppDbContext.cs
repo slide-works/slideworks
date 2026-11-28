@@ -13,6 +13,7 @@ using SlideWorks.WebApi.Features.OAuth;
 using SlideWorks.WebApi.Features.OpenResponses.Data;
 using SlideWorks.WebApi.Features.Polls.Data;
 using SlideWorks.WebApi.Features.Qa.Data;
+using SlideWorks.WebApi.Features.Translations.Data;
 using SlideWorks.WebApi.Features.Sharing;
 using SlideWorks.WebApi.Features.Sharing.Email;
 using SlideWorks.WebApi.Features.Sharing.Limits;
@@ -64,6 +65,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Question> Questions => Set<Question>();
 
     public DbSet<QaSettingsRow> QaSettingsRows => Set<QaSettingsRow>();
+
+    public DbSet<DeckTranslationSettingsRow> DeckTranslationSettings => Set<DeckTranslationSettingsRow>();
 
     public DbSet<QaSlideSwitchRow> QaSlideSwitchRows => Set<QaSlideSwitchRow>();
 
@@ -276,6 +279,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 table.HasCheckConstraint("CK_QaSettingsRows_Questions", OneOf<QaQuestions>("Questions"));
                 table.HasCheckConstraint("CK_QaSettingsRows_ShowOn", OneOf<QaShowOn>("ShowOn"));
             });
+        });
+
+        modelBuilder.Entity<DeckTranslationSettingsRow>(settings =>
+        {
+            settings.HasKey(s => s.DeckId);
+            settings.HasOne<Deck>().WithOne().HasForeignKey<DeckTranslationSettingsRow>(s => s.DeckId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<QaSlideSwitchRow>(slideSwitch =>

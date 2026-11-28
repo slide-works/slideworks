@@ -36,11 +36,15 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         var seeded = false;
         lock (_gate)
         {
+            // A connection that joins the same deck again keeps the slide-state group it is in, so the next placement can take
+            // it out of that group; its pick is dropped, because JoinAudience reads in the primary language (SW-883 D11).
+            string? placed = null;
             if (_connections.TryGetValue(connectionId, out var existing))
             {
+                placed = existing.DeckId == deckId ? existing.Placed : null;
                 RemoveLocked(connectionId, existing);
             }
-            _connections[connectionId] = new Connection(deckId, guestId);
+            _connections[connectionId] = new Connection(deckId, guestId, null, placed);
             var audience = AudienceOf(deckId);
             audience.Add(guestId, connectionId);
             // Only OpenedAsync and ClosedAsync decide the deck's session. A join may seed it when the roster has none (the first
@@ -86,6 +90,49 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         // A lobby or ended connection leaves quietly: there is no count for the owner to hear. A live one leaves the joined
         // count as it was (SW-628).
         return sessionId == null ? null : new RosterLeave(connection.DeckId, sessionId, joined);
+    }
+
+    public Task<string?> DeckOfAsync(string connectionId)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_connections.TryGetValue(connectionId, out var connection) ? connection.DeckId : null);
+        }
+    }
+
+    public Task ChooseAsync(string connectionId, string language)
+    {
+        lock (_gate)
+        {
+            if (_connections.TryGetValue(connectionId, out var connection))
+            {
+                _connections[connectionId] = connection with { Chosen = language };
+            }
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task<AudienceSeat?> PlaceAsync(string connectionId, string language)
+    {
+        lock (_gate)
+        {
+            if (!_connections.TryGetValue(connectionId, out var connection))
+            {
+                return Task.FromResult<AudienceSeat?>(null);
+            }
+            _connections[connectionId] = connection with { Placed = language };
+            return Task.FromResult<AudienceSeat?>(new AudienceSeat(connectionId, connection.Chosen, connection.Placed));
+        }
+    }
+
+    public Task<IReadOnlyList<AudienceSeat>> SeatsAsync(string deckId)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult<IReadOnlyList<AudienceSeat>>([.. _connections
+                .Where(entry => entry.Value.DeckId == deckId)
+                .Select(entry => new AudienceSeat(entry.Key, entry.Value.Chosen, entry.Value.Placed))]);
+        }
     }
 
     public Task<int> CountAsync(string sessionId)
@@ -378,7 +425,9 @@ public sealed class AudienceRoster(IServiceScopeFactory scopes, IAudienceEvents 
         public Exception? Error;
     }
 
-    private sealed record Connection(string DeckId, string GuestId);
+    // Chosen is the language the guest picked on this connection (null until SetLanguage), Placed the slide-state group's
+    // language it is in (null until it is placed).
+    private sealed record Connection(string DeckId, string GuestId, string? Chosen, string? Placed);
 
     // Count is the guests connected now, Joined every guest counted in the open session.
     private sealed record Counted(string DeckId, string? SessionId, int Count, int Joined, bool WritePeak, List<string> NewGuests);

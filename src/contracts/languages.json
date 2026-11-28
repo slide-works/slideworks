@@ -1,0 +1,28 @@
+{
+  "scripts": {
+    "latin":               { "font": null,             "fitEm": null },
+    "thai":                { "font": "Noto Sans Thai", "fitEm": 0.62 },
+    "japanese":            { "font": "Noto Sans JP",   "fitEm": 1.0 },
+    "korean":              { "font": "Noto Sans KR",   "fitEm": 0.95 },
+    "simplified-chinese":  { "font": "Noto Sans SC",   "fitEm": 1.0 },
+    "traditional-chinese": { "font": "Noto Sans TC",   "fitEm": 1.0 }
+  },
+  "languages": [
+    { "code": "en", "name": "English", "englishName": "English", "short": "EN", "script": "latin" },
+    { "code": "es", "name": "Español", "englishName": "Spanish", "short": "ES", "script": "latin" },
+    { "code": "fr", "name": "Français", "englishName": "French", "short": "FR", "script": "latin" },
+    { "code": "de", "name": "Deutsch", "englishName": "German", "short": "DE", "script": "latin" },
+    { "code": "it", "name": "Italiano", "englishName": "Italian", "short": "IT", "script": "latin" },
+    { "code": "pt", "name": "Português", "englishName": "Portuguese", "short": "PT", "script": "latin" },
+    { "code": "nl", "name": "Nederlands", "englishName": "Dutch", "short": "NL", "script": "latin" },
+    { "code": "id", "name": "Bahasa Indonesia", "englishName": "Indonesian", "short": "ID", "script": "latin" },
+    { "code": "ms", "name": "Bahasa Melayu", "englishName": "Malay", "short": "MS", "script": "latin" },
+    { "code": "vi", "name": "Tiếng Việt", "englishName": "Vietnamese", "short": "VI", "script": "latin" },
+    { "code": "th", "name": "ไทย", "englishName": "Thai", "short": "ไทย", "script": "thai" },
+    { "code": "ja", "name": "日本語", "englishName": "Japanese", "short": "日本語", "script": "japanese" },
+    { "code": "ko", "name": "한국어", "englishName": "Korean", "short": "한국어", "script": "korean" },
+    { "code": "zh-Hans", "name": "简体中文", "englishName": "Chinese (Simplified)", "short": "简体中文", "script": "simplified-chinese" },
+    { "code": "zh-Hant", "name": "繁體中文", "englishName": "Chinese (Traditional)", "short": "繁體中文", "script": "traditional-chinese" }
+  ],
+  "rightToLeft": ["ar", "he", "fa", "ur"]
+}

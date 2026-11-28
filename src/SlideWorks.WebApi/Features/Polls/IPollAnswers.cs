@@ -7,11 +7,11 @@ namespace SlideWorks.WebApi.Features.Polls;
 public interface IPollAnswers
 {
     // Validates and queues the answer for the batching writer, and returns once its group has committed (D16).
-    Task<AnswerResult> SubmitAsync(string code, string guestId, AnswerRequest request);
+    Task<AnswerResult> SubmitAsync(string code, string guestId, AnswerRequest request, string? language);
 
     // What the phone shows: the activity (from IAudienceActivity.ForCodeAsync), this guest's own answer and the tally as
     // PollVisibility lets this guest see it. Null for an unknown code.
-    Task<GuestPollView?> ViewAsync(string code, string guestId);
+    Task<GuestPollView?> ViewAsync(string code, string guestId, string? language);
 
     // This guest's own answer in the round, or null when it has none.
     Task<MyAnswer?> MineAsync(string roundId, string guestId);

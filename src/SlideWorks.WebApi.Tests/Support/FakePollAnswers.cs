@@ -69,7 +69,7 @@ public sealed class FakePollAnswers : IPollAnswers
         }
     }
 
-    public Task<AnswerResult> SubmitAsync(string code, string guestId, AnswerRequest request)
+    public Task<AnswerResult> SubmitAsync(string code, string guestId, AnswerRequest request, string? language)
     {
         lock (_gate)
         {
@@ -78,7 +78,7 @@ public sealed class FakePollAnswers : IPollAnswers
         }
     }
 
-    public Task<GuestPollView?> ViewAsync(string code, string guestId)
+    public Task<GuestPollView?> ViewAsync(string code, string guestId, string? language)
     {
         lock (_gate)
         {

@@ -45,10 +45,14 @@ export async function stubOpenResponses(
     return route.fulfill({ status: 200, json: store(body as never) });
   };
 
-  await page.route(`${base}/response`, async (route) => {
-    gets += 1;
-    await route.fulfill({ status: 200, json: current });
-  });
+  // The phone adds ?language= to this read once the deck has translations (SW-883 K5).
+  await page.route(
+    new RegExp(`/api/join/${encodeURIComponent(code)}/slides/${slide}/response(\\?.*)?$`),
+    async (route) => {
+      gets += 1;
+      await route.fulfill({ status: 200, json: current });
+    },
+  );
   await page.route(`${base}/words`, (route) =>
     put(route, (body: WordsRequest) => {
       if (current.kind === 'word-cloud') current = { ...current, mineWords: body.words };

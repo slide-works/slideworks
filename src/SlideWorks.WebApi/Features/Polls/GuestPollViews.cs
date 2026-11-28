@@ -41,13 +41,13 @@ public class GuestPollViews(AppDbContext db, IAudienceSessions sessions, IAudien
 
     // The view for a seated guest. Every read is untracked, so a view built after a refused answer sees the rows as they are
     // now, not as this request first read them.
-    public async Task<GuestPollView> ViewAsync(GuestSeat seat, string code, string guestId)
+    public async Task<GuestPollView> ViewAsync(GuestSeat seat, string code, string guestId, string? language)
     {
         if (seat.SessionId is not { } sessionId)
         {
             return _nothing;
         }
-        var activity = await activities.ForCodeAsync(code);
+        var activity = await activities.ForCodeAsync(code, language);
         if (activity?.Round is null || !Guid.TryParse(activity.Round, out var roundId))
         {
             return activity is null ? _nothing : new GuestPollView(activity, null, null, false);
