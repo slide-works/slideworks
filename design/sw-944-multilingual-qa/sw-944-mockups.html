@@ -1,0 +1,1478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-944 mockups: multilingual typed Q&amp;A</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+/* =====================================================================
+   Review-page chrome: same light ledger as the SW-1 / SW-2 mockups
+   ===================================================================== */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --line: #e2e5ea; --line-2: #d3d8e0;
+  --text: #1b2230; --muted: #5b6474; --faint: #8a93a3;
+  --accent: #2f5bea; --accent-soft: #e6ecfd; --accent-dark: #1e3a8a;
+  --ok: #18794e; --ok-soft: #e3f4ea; --warn: #b4580b; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --later: #7a5af8; --later-soft: #efeafe;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ui: "Inter", system-ui, sans-serif;
+  --head: "Plus Jakarta Sans", "Inter", sans-serif;
+  --raise: 0 1px 2px rgb(16 24 40 / .06), 0 6px 18px -8px rgb(16 24 40 / .16);
+
+  /* SlideWorks app tokens (src/SlideWorks.Client/src/theme/tokens.css) used by the phone page */
+  --sw-night: #0b1020; --sw-night-2: #cbd5e1; --sw-night-muted: #8c97ad; --sw-night-line: #334155;
+  --sw-accent: #2f5bea; --sw-accent-light: #e4eafd; --sw-accent-glow: #a5b8ff; --sw-accent-dark: #1e3a8a;
+  --sw-paper: #f7f8fa; --sw-card: #fff; --sw-ink: #111827; --sw-muted: #5b6474; --sw-grid: #e3e6ec;
+  --sw-good: #16a34a; --sw-warn: #ea580c; --sw-bad: #dc2626; --sw-stamp: #fcd34d;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 400 14px/1.5 var(--ui); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 32px 16px 80px; }
+h1, h2, h3 { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--accent); }
+
+.page-head { display: grid; gap: 10px; margin-bottom: 22px; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.page-head h1 { font: 700 28px/1.2 var(--ui); letter-spacing: -.01em; }
+.page-head p { margin: 0; color: var(--muted); max-width: 860px; font-size: 15px; }
+
+.toc { position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0; margin-bottom: 10px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.toc a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 13px; padding: 5px 10px; border-radius: 6px; }
+.toc a:hover { background: var(--surface); color: var(--text); }
+
+section.block { margin: 46px 0 0; scroll-margin-top: 60px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sec-head .n { font: 500 12px/1 var(--mono); color: var(--faint); }
+.sec-head h2 { font: 650 19px/1.3 var(--ui); font-weight: 650; }
+.sec-sub { margin: 0 0 16px; color: var(--muted); max-width: 900px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 500 12px/18px var(--ui); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.acc { background: var(--accent-soft); color: var(--accent-dark); }
+.pill.grey { background: var(--surface-2); color: var(--muted); }
+.pill.later { background: var(--later-soft); color: var(--later); }
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.grid2 > * { min-width: 0; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line-2); background: #fff; color: var(--text); font: 500 13px/1.2 var(--ui); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* scope */
+.scope { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .scope { grid-template-columns: minmax(0, 1fr); } }
+.scope .card { padding: 16px 18px; }
+.scope h3 { font: 600 13px/1.3 var(--ui); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.scope ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.scope li { position: relative; padding-left: 22px; }
+.scope li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+.scope .later-list li::before { background: var(--later); opacity: .55; }
+.scope .k { font: 500 12px/1.5 var(--mono); color: var(--later); }
+
+/* journey strip */
+.journey { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .journey { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .journey { grid-template-columns: minmax(0, 1fr); } }
+.step-cap { margin-top: 12px; display: grid; gap: 3px; text-align: center; }
+.step-cap .t { font: 500 12px/1 var(--mono); color: var(--accent-dark); }
+.step-cap b { font-weight: 600; }
+.step-cap span { color: var(--muted); font-size: 12.5px; }
+.budget { margin-top: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 12px 16px; }
+.budget .bar { flex: 1 1 260px; display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.budget .bar i { display: block; height: 100%; }
+
+/* =====================================================================
+   Phone frame + the guest page (mobile web, SlideWorks tokens)
+   ===================================================================== */
+.phone { width: 292px; max-width: 100%; margin: 0 auto; border-radius: 40px; padding: 10px; background: #11151d; box-shadow: var(--raise), inset 0 0 0 2px #2a303b; }
+.ps { position: relative; border-radius: 31px; overflow: hidden; height: 600px; display: flex; flex-direction: column; color: #fff; font-family: var(--ui);
+  background: radial-gradient(420px 320px at 100% 105%, rgb(47 91 234 / .38), transparent 62%), radial-gradient(300px 260px at -10% -8%, rgb(47 91 234 / .12), transparent 60%), var(--sw-night); }
+.ps.light { background: var(--sw-paper); color: var(--sw-ink); }
+.sbar { flex: none; height: 38px; padding: 12px 22px 0; display: flex; justify-content: space-between; font: 600 12.5px/1 var(--ui); }
+.sbar .ic { display: flex; gap: 5px; align-items: center; }
+.sbar .ic i { display: block; width: 15px; height: 9px; border-radius: 2px; border: 1.5px solid currentColor; opacity: .9; }
+.sbar .ic b { display: block; width: 4px; height: 9px; background: currentColor; border-radius: 1px; opacity: .9; }
+.island { position: absolute; top: 10px; left: 50%; translate: -50% 0; width: 84px; height: 22px; border-radius: 12px; background: #000; z-index: 5; }
+.pbody { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 16px 10px; gap: 12px; position: relative; }
+.urlbar { flex: none; margin: 0 14px 12px; padding: 8px 12px; border-radius: 13px; background: rgb(255 255 255 / .1); display: flex; gap: 6px; align-items: center; justify-content: center; font: 500 12px/1 var(--ui); color: rgb(255 255 255 / .82); }
+.ps.light .urlbar { background: #e7e9ee; color: #3b4352; }
+.urlbar svg { width: 10px; height: 10px; }
+
+.g-top { display: flex; align-items: center; gap: 8px; }
+.g-mark { width: 22px; height: 22px; border-radius: 6px; background: var(--sw-accent); display: grid; place-items: center; font: 800 11px/1 var(--head); color: #fff; flex: none; }
+.g-deck { min-width: 0; flex: 1; }
+.g-deck b { display: block; font: 700 13px/1.2 var(--head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-deck span { display: block; font-size: 11px; color: var(--sw-night-muted); }
+.live { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font: 600 10.5px/1 var(--ui); background: rgb(22 163 74 / .18); color: #86efac; white-space: nowrap; }
+.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 0 rgb(74 222 128 / .7); animation: pulse 1.8s infinite; }
+.live.amber { background: rgb(234 88 12 / .2); color: #fdba74; }
+.live.amber::before { background: #fb923c; animation: none; }
+.live.grey { background: rgb(255 255 255 / .1); color: var(--sw-night-2); }
+.live.grey::before { background: var(--sw-night-muted); animation: none; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgb(74 222 128 / .6); } 70% { box-shadow: 0 0 0 6px rgb(74 222 128 / 0); } 100% { box-shadow: 0 0 0 0 rgb(74 222 128 / 0); } }
+
+.mirror { border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgb(0 0 0 / .35); outline: 1px solid rgb(255 255 255 / .08); }
+.slidemeta { display: flex; justify-content: space-between; align-items: center; font: 500 11px/1 var(--ui); color: var(--sw-night-muted); margin-top: -4px; }
+.slidemeta .prog { flex: 1; height: 3px; margin: 0 10px; border-radius: 3px; background: rgb(255 255 255 / .12); overflow: hidden; }
+.slidemeta .prog i { display: block; height: 100%; background: var(--sw-accent-glow); }
+
+.wait { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 10px; padding: 0 8px; border-radius: 14px; border: 1px dashed rgb(255 255 255 / .16); }
+.wait .dots { display: flex; gap: 6px; }
+.wait .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--sw-accent-glow); opacity: .3; animation: blink 1.4s infinite; }
+.wait .dots i:nth-child(2) { animation-delay: .2s; } .wait .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 40% { opacity: 1; } }
+.wait b { font: 700 15px/1.3 var(--head); }
+.wait p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--sw-night-2); }
+
+.g-foot { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--sw-night-muted); }
+.g-foot a { color: var(--sw-accent-glow); text-decoration: none; font-weight: 500; }
+
+.big-h { font: 800 24px/1.15 var(--head); letter-spacing: -.01em; }
+.lede { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--sw-night-2); }
+.pbtn { display: flex; align-items: center; justify-content: center; min-height: 50px; border-radius: 14px; background: var(--sw-accent); color: #fff; font: 700 16px/1 var(--ui); border: 0; width: 100%; }
+.pbtn.ghost { background: rgb(255 255 255 / .1); }
+.tick { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: rgb(22 163 74 / .2); color: #4ade80; }
+.tick svg { width: 32px; height: 32px; }
+
+.codebox { display: grid; grid-template-columns: repeat(3, 1fr) 10px repeat(3, 1fr); gap: 6px; }
+.codebox span { height: 48px; border-radius: 10px; display: grid; place-items: center; background: rgb(255 255 255 / .08); border: 1.5px solid rgb(255 255 255 / .14); font: 700 22px/1 var(--head); }
+.codebox span.cur { border-color: var(--sw-accent-glow); box-shadow: 0 0 0 3px rgb(165 184 255 / .25); }
+.codebox span.bad { border-color: #f87171; }
+.codebox em { display: block; }
+.err { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgb(220 38 38 / .16); color: #fecaca; font-size: 12.5px; line-height: 1.4; }
+.keypad { margin: auto -16px -10px; padding: 8px 6px 10px; background: #1d2230; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.keypad span { height: 40px; border-radius: 7px; background: #3a4152; display: grid; place-items: center; font: 500 19px/1 var(--ui); }
+.keypad span.blank { background: transparent; }
+
+.banner { position: absolute; left: 12px; right: 12px; top: 4px; z-index: 4; padding: 9px 12px; border-radius: 12px; font-size: 12px; line-height: 1.35; display: flex; gap: 8px; align-items: center; }
+.banner.amber { background: #7c2d12; color: #ffedd5; }
+.banner .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgb(255 237 213 / .35); border-top-color: #ffedd5; animation: spin 0.9s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sheet-dim { position: absolute; inset: 0; background: rgb(0 0 0 / .55); z-index: 6; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 7; background: #161c2c; border-radius: 20px 20px 0 0; padding: 10px 18px 22px; display: grid; gap: 10px; }
+.sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .25); margin: 0 auto 4px; }
+.sheet h4 { margin: 0; font: 700 16px/1.25 var(--head); }
+.sheet ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+.sheet li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; font-size: 12.5px; line-height: 1.4; color: var(--sw-night-2); }
+.sheet li svg { width: 16px; height: 16px; color: var(--sw-accent-glow); margin-top: 1px; }
+
+.activity { flex: 1; border-radius: 14px; background: #fff; color: var(--sw-ink); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.activity .tag { align-self: flex-start; font: 600 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--later); background: var(--later-soft); padding: 4px 7px; border-radius: 5px; }
+.activity b { font: 700 16px/1.3 var(--head); }
+.activity .opt { padding: 12px; border-radius: 10px; border: 1.5px solid var(--sw-grid); font-size: 13.5px; font-weight: 500; }
+.activity .note { margin-top: auto; font-size: 11px; color: var(--sw-muted); }
+
+/* camera */
+.cam { position: absolute; inset: 0; background: linear-gradient(160deg, #2b2f38, #14161b 60%, #0c0d10); }
+.cam .screen { position: absolute; left: 34px; right: 22px; top: 150px; height: 170px; transform: perspective(500px) rotateY(-12deg) rotateX(4deg); border-radius: 4px; background: var(--sw-night); box-shadow: 0 0 60px rgb(165 184 255 / .25); display: flex; gap: 10px; align-items: center; padding: 14px; filter: blur(.3px); }
+.cam .screen .q { width: 104px; height: 104px; background: #fff; border-radius: 4px; padding: 5px; flex: none; }
+.cam .screen .txt { display: grid; gap: 6px; }
+.cam .screen .txt i { display: block; height: 7px; border-radius: 4px; background: rgb(255 255 255 / .7); }
+.cam .reticle { position: absolute; left: 44px; top: 158px; width: 128px; height: 128px; border: 2.5px solid #facc15; border-radius: 14px; transform: perspective(500px) rotateY(-12deg); }
+.cam .chip { position: absolute; left: 50%; top: 340px; translate: -50% 0; display: flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 999px; background: #facc15; color: #1a1a1a; font: 600 12.5px/1 var(--ui); white-space: nowrap; box-shadow: 0 6px 20px rgb(0 0 0 / .4); }
+.cam .shutter { position: absolute; left: 50%; bottom: 38px; translate: -50% 0; width: 62px; height: 62px; border-radius: 50%; border: 4px solid #fff; }
+.cam .shutter::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: #fff; }
+.cam .mode { position: absolute; left: 0; right: 0; bottom: 112px; text-align: center; font: 600 11px/1 var(--ui); letter-spacing: .1em; color: #facc15; }
+
+/* landscape phone */
+.phone.land { width: 600px; border-radius: 34px; }
+.phone.land .ps { height: 268px; border-radius: 26px; flex-direction: row; align-items: center; justify-content: center; background: #000; }
+.phone.land .ps .mirror { width: 470px; border-radius: 6px; box-shadow: none; outline: none; }
+.phone.land .lside { position: absolute; right: 14px; top: 50%; translate: 0 -50%; display: grid; gap: 10px; justify-items: center; }
+
+/* gallery of phone states */
+.states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 18px; }
+@media (max-width: 1100px) { .states { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .states { grid-template-columns: minmax(0, 1fr); } }
+.states .wide { grid-column: span 2; }
+@media (max-width: 1100px) { .states .wide { grid-column: 1 / -1; } }
+@media (max-width: 680px) { .phone.land { width: 100%; } .phone.land .ps .mirror { width: 78%; } }
+.st-cap { margin-top: 10px; display: grid; gap: 3px; }
+.st-cap b { font-weight: 600; }
+.st-cap span { color: var(--muted); font-size: 12.5px; }
+.st-cap code { color: var(--accent-dark); }
+
+/* =====================================================================
+   Slides (drawn at 960x540, half the 1920x1080 canvas, scaled to fit)
+   ===================================================================== */
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sw-paper); }
+.frame > .sl { position: absolute; left: 0; top: 0; transform: scale(var(--s, .3)); transform-origin: 0 0; }
+.sl { width: 960px; height: 540px; padding: 75px 60px 60px; display: flex; flex-direction: column; background: var(--sw-paper); color: var(--sw-ink); font-family: var(--ui); position: relative; overflow: hidden; }
+.sl::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--sw-accent); }
+.sl.dark { color: #fff; background: radial-gradient(550px 350px at 88% 112%, rgb(47 91 234 / .45), transparent 62%), radial-gradient(450px 300px at -5% -10%, rgb(125 150 255 / .12), transparent 60%), var(--sw-night); }
+.sl .kick { font: 600 13px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--sw-accent); margin-bottom: 14px; }
+.sl.dark .kick { color: var(--sw-accent-glow); }
+.sl h2 { font: 800 46px/1.08 var(--head); letter-spacing: -.02em; margin: 0; }
+.sl h3 { font: 700 30px/1.15 var(--head); margin: 0 0 22px; letter-spacing: -.01em; }
+.sl .sub { margin-top: 18px; font-size: 19px; color: var(--sw-night-2); }
+.sl .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; }
+.sl .cards div { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 2px rgb(15 23 42 / .06), 0 14px 36px rgb(15 23 42 / .09); }
+.sl .cards b { display: block; font: 700 19px/1.2 var(--head); margin-bottom: 8px; }
+.sl .cards span { font-size: 14px; color: var(--sw-muted); line-height: 1.45; }
+.sl .cards .num { font: 800 36px/1 var(--head); color: var(--sw-accent); margin-bottom: 10px; }
+.sl .statement { flex: 1; display: flex; align-items: center; font: 800 54px/1.1 var(--head); letter-spacing: -.02em; max-width: 760px; }
+.sl .statement em { font-style: normal; color: var(--sw-accent); }
+.sl .sprog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--sw-accent); }
+.sl .foot { position: absolute; left: 60px; right: 60px; bottom: 16px; display: flex; justify-content: space-between; font-size: 11px; color: var(--sw-muted); }
+.sl.dark .foot { color: var(--sw-night-muted); }
+/* QR join slide */
+.sl.join { flex-direction: row; align-items: center; gap: 54px; padding: 60px 70px; }
+.sl.join .qrcard { width: 390px; height: 390px; flex: none; background: #fff; border-radius: 18px; padding: 14px; box-shadow: 0 20px 60px rgb(0 0 0 / .45); }
+.sl.join .qrcard svg { width: 100%; height: 100%; display: block; }
+.sl.join .jtext { display: grid; gap: 14px; }
+.sl.join .jurl { font: 600 26px/1.2 var(--mono); color: var(--sw-night-2); }
+.sl.join .jcode { font: 800 88px/1 var(--head); letter-spacing: .04em; }
+.sl.join .jcount { display: inline-flex; align-items: center; gap: 10px; font: 600 22px/1 var(--ui); color: #86efac; }
+.sl.join .jcount i { width: 10px; height: 10px; border-radius: 50%; background: #4ade80; }
+/* poll placeholder slide (SW-6) */
+.sl .pollopts { display: grid; gap: 12px; max-width: 640px; }
+.sl .pollopts div { display: flex; justify-content: space-between; padding: 14px 18px; border-radius: 10px; background: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .06); font-size: 17px; font-weight: 500; }
+.sl .pollopts div span { color: var(--sw-muted); font-size: 14px; }
+/* join bar on every slide */
+.sl .joinbar { position: absolute; right: 18px; bottom: 14px; display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 7px; border-radius: 10px; background: var(--sw-night); color: #fff; font: 600 12px/1.2 var(--ui); z-index: 3; box-shadow: 0 6px 16px rgb(15 23 42 / .25); }
+.sl.dark .joinbar { background: rgb(255 255 255 / .1); }
+.sl .joinbar .mq { width: 44px; height: 44px; background: #fff; border-radius: 5px; padding: 3px; }
+.sl .joinbar .mq svg { width: 100%; height: 100%; display: block; }
+.sl .joinbar small { display: block; font: 500 10px/1.2 var(--mono); color: var(--sw-night-2); }
+.sl .joinbar b { font: 800 17px/1 var(--head); letter-spacing: .03em; }
+
+/* =====================================================================
+   Live demo: presenter laptop + guest phone
+   ===================================================================== */
+.demo { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; }
+@media (max-width: 980px) { .demo { grid-template-columns: minmax(0, 1fr); } }
+.laptop { background: #1a1f2b; border-radius: 14px 14px 4px 4px; padding: 10px 10px 0; box-shadow: var(--raise); }
+.laptop .scr { border-radius: 6px; overflow: hidden; background: #000; }
+@media (max-width: 680px) { .laptop .base { margin: 0 -10px !important; } }
+.laptop .base { height: 14px; margin: 0 -26px; background: linear-gradient(#c9ced8, #a9b0bd); border-radius: 0 0 14px 14px; }
+.ptool { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #0f1420; color: #cbd5e1; font: 500 12px/1 var(--ui); }
+.ptool .tb { border: 0; background: rgb(255 255 255 / .08); color: #fff; padding: 6px 9px; border-radius: 6px; font: 600 12px/1 var(--ui); cursor: pointer; }
+.ptool .tb:disabled { opacity: .35; cursor: default; }
+.ptool .count { font-family: var(--mono); color: #94a3b8; }
+.ptool .sp { flex: 1; }
+.ptool .golive { background: var(--sw-accent); }
+.ptool .livechip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 6px; background: rgb(22 163 74 / .18); color: #86efac; font: 600 12px/1 var(--ui); }
+.ptool .livechip b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.ptool .livechip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.ptool .endb { background: rgb(220 38 38 / .25); color: #fecaca; }
+.dctl { margin-top: 14px; padding: 12px 14px; display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center; }
+.dctl label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
+.dctl .lbl { font: 600 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+.demo-notes { margin: 12px 0 0; padding: 0 0 0 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+.fade { animation: fadein .35s ease; }
+@keyframes fadein { from { opacity: .2; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* big-screen section */
+.screens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 860px) { .screens { grid-template-columns: minmax(0, 1fr); } }
+.screens .card { padding: 10px; }
+.screens .frame { border-radius: 6px; border: 1px solid var(--line); }
+.screens .cap { padding: 10px 4px 4px; display: grid; gap: 4px; }
+.screens .cap b { font-weight: 600; }
+.screens .cap span { color: var(--muted); font-size: 12.5px; }
+.rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; }
+.rules li { position: relative; padding-left: 22px; font-size: 13px; }
+.rules li::before { content: "✓"; position: absolute; left: 2px; top: 0; color: var(--ok); font-weight: 700; }
+
+/* url anatomy */
+.anat { padding: 18px; overflow: hidden; }
+.anat-row { display: flex; flex-wrap: wrap; gap: 0; padding: 14px 18px 4px; background: #f6f8ff; border: 1px solid #c7d3fb; border-radius: 12px; }
+.anat-row .seg { display: grid; gap: 8px; min-width: 0; }
+.anat-row .u { font: 400 clamp(17px, 3.2vw, 30px)/1.2 var(--mono); color: var(--text); padding-bottom: 8px; border-bottom: 2px solid var(--line-2); overflow-wrap: anywhere; }
+.anat-row .seg.acc .u { color: var(--accent); border-color: var(--accent); }
+.anat-row .seg.dk .u { color: var(--accent-dark); border-color: var(--accent-dark); }
+.anat-row .seg.dk b { font-weight: 600; }
+.anat-row .l { font-size: 12.5px; color: var(--muted); padding: 0 8px 10px 0; min-height: 28px; }
+.anat-row .seg.acc .l { color: var(--accent); } .anat-row .seg.dk .l { color: var(--accent-dark); }
+.anat-foot { display: flex; gap: 8px 28px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: var(--muted); }
+.anat-foot b { color: var(--text); font-weight: 600; }
+.diagram { padding: 18px; overflow: hidden; }
+.diagram svg { width: 100%; height: auto; display: block; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { text-align: left; font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 10px; border-bottom: 1px solid var(--line); }
+.tbl td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl td:first-child { font-family: var(--mono); font-size: 12.5px; color: var(--accent-dark); white-space: nowrap; }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl-wrap { overflow-x: auto; }
+
+/* questions */
+.qs { display: grid; gap: 14px; }
+.q { padding: 16px 18px; }
+.q h3 { font: 600 15px/1.35 var(--ui); margin-bottom: 4px; }
+.q .why { color: var(--muted); margin: 0 0 10px; }
+.q .choices { display: grid; gap: 6px; }
+.q label.choice { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.q label.choice:has(input:checked) { border-color: var(--accent); background: #f6f8ff; }
+.q label.choice input { margin: 3px 0 0; accent-color: var(--accent); }
+.q label.choice b { font-weight: 600; }
+.q label.choice span:not(.rec) { display: block; color: var(--muted); font-size: 12.5px; }
+.q .rec { display: inline-block; font: 600 10.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.q textarea { width: 100%; margin-top: 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; font: 400 13px/1.4 var(--ui); resize: vertical; }
+.q .qfoot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.q .state { font-size: 12.5px; color: var(--faint); }
+.q .state.queued { color: var(--ok); font-weight: 600; }
+.copyall { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.copyall textarea { width: 100%; }
+
+/* =====================================================================
+   SW-6 additions: poll slide, phone poll card, presenter poll panel
+   ===================================================================== */
+:root { --pw-bg: #0a0e16; --pw-panel: #111827; --pw-line: #1f2937; --pw-text: #e2e8f0; --pw-muted: #94a3b8; --pw-faint: #64748b; --pw-acc: #8ea5ff; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 980px) { .grid3 { grid-template-columns: minmax(0, 1fr); } }
+.grid3 > * { min-width: 0; }
+
+/* ---------- big-screen poll slide ---------- */
+.sl.pollsl { padding: 62px 60px 70px; }
+.pollsl .pjoin { position: absolute; right: 40px; top: 24px; padding: 8px 14px; border-radius: 999px; background: var(--sw-night); color: #fff; font: 500 14px/1 var(--ui); }
+.pollsl .pjoin b { font-weight: 700; }
+.pollsl h3 { margin-bottom: 24px; max-width: 700px; }
+.prows { flex: 1; min-height: 0; display: grid; gap: var(--pg, 16px); align-content: center; }
+.prows.n5 { --pg: 12px; --ph: 38px; --pf: 18px; } .prows.n7 { --pg: 8px; --ph: 28px; --pf: 16px; }
+.prow { display: grid; grid-template-columns: 260px minmax(0, 1fr) 76px; align-items: center; gap: 18px; transition: opacity .4s; }
+.plab { font: 600 var(--pf, 20px)/1.2 var(--ui); display: flex; align-items: center; gap: 10px; }
+.ptrack { height: var(--ph, 46px); border-radius: 8px; background: #e7eaf0; overflow: hidden; position: relative; }
+.ptrack i { display: block; height: 100%; background: var(--sw-accent); border-radius: 8px; transition: width .6s cubic-bezier(.2, .8, .2, 1), background .4s; }
+.ptrack.hid { background: repeating-linear-gradient(-45deg, #eef0f4 0 10px, #e4e7ed 10px 20px); }
+.ppct { font: 800 24px/1 var(--head); text-align: right; font-variant-numeric: tabular-nums; }
+.prow.ok .ptrack i { background: var(--sw-good); }
+.prow.dim { opacity: .42; }
+.okmark { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--sw-good); color: #fff; display: grid; place-items: center; font: 700 14px/1 var(--ui); font-style: normal; }
+.pfoot { position: absolute; left: 60px; right: 60px; bottom: 26px; display: flex; align-items: center; gap: 18px; font-size: 15px; color: var(--sw-muted); }
+.pst { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.pst::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.pst.open { color: var(--sw-good); } .pst.closed { color: var(--sw-ink); } .pst.grey { color: var(--sw-muted); }
+.pn b { font: 800 22px/1 var(--head); color: var(--sw-ink); }
+.pfoot .right { margin-left: auto; font-size: 13.5px; }
+.pfoot .lockc { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--sw-night); color: #fff; font: 600 13px/1 var(--ui); }
+
+/* ---------- phone: poll card ---------- */
+.pc { gap: 9px; overflow: hidden; }
+.pc .tag.acc { color: var(--sw-accent-dark); background: var(--sw-accent-light); }
+.pc > b { font-size: 15.5px; }
+.popts { display: grid; gap: 6px; min-height: 0; overflow-y: auto; flex: 0 1 auto; }
+.popt .tg { display: flex; gap: 4px; margin-top: 4px; }
+.popt { all: unset; box-sizing: border-box; position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--sw-grid); background: #fff; font: 500 13.5px/1.25 var(--ui); color: var(--sw-ink); cursor: pointer; }
+.popt:focus-visible { outline: 2px solid var(--sw-accent); outline-offset: 2px; }
+.popt .mk { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid #c3c9d4; position: relative; z-index: 1; box-sizing: border-box; }
+.popt[role="checkbox"] .mk { border-radius: 5px; }
+.popt.on { border-color: var(--sw-accent); background: #f3f6ff; }
+.popt.on .mk { border-color: var(--sw-accent); background: var(--sw-accent); box-shadow: inset 0 0 0 3px #fff; }
+.popt[role="checkbox"].on .mk { box-shadow: none; background: var(--sw-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat; }
+.popt:disabled { opacity: .42; cursor: default; }
+.popt.ro { cursor: default; }
+.popt .t { flex: 1; min-width: 0; position: relative; z-index: 1; }
+.popt .pf { position: absolute; left: 0; top: 0; bottom: 0; background: rgb(47 91 234 / .09); transition: width .6s cubic-bezier(.2, .8, .2, 1); z-index: 0; }
+.popt.on .pf { background: rgb(47 91 234 / .17); }
+.popt .pp { position: relative; z-index: 1; font: 700 12.5px/1 var(--ui); color: var(--sw-muted); font-variant-numeric: tabular-nums; }
+.popt em { flex: none; font-style: normal; position: relative; z-index: 1; font: 700 9.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; padding: 3px 5px; border-radius: 4px; }
+.popt em.you { background: var(--sw-accent-light); color: var(--sw-accent-dark); }
+.popt em.cor { background: #dcfce7; color: #166534; }
+.popt.good { border-color: var(--sw-good); }
+.popt.good .pf { background: rgb(22 163 74 / .16); }
+.pc-foot { margin-top: auto; display: grid; gap: 8px; flex: none; }
+.pc-hint { font-size: 12px; white-space: nowrap; color: var(--sw-muted); display: flex; justify-content: space-between; gap: 8px; }
+.sbtn { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; padding: 0 12px; border-radius: 12px; background: var(--sw-accent); color: #fff; font: 700 15px/1 var(--ui); cursor: pointer; text-align: center; }
+.sbtn:focus-visible { outline: 2px solid var(--sw-accent-dark); outline-offset: 2px; }
+.sbtn:disabled { background: #c9d1e4; cursor: default; }
+.sbtn.ghost { background: var(--sw-paper); color: var(--sw-ink); border: 1.5px solid var(--sw-grid); min-height: 40px; font-size: 13.5px; }
+.sbtn.sm { min-height: 34px; font-size: 12.5px; border-radius: 9px; }
+.btnrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pc .sent { display: flex; gap: 7px; align-items: center; font: 600 13px/1.3 var(--ui); color: var(--sw-good); }
+.pc .sent.wait { color: var(--sw-warn); }
+.pc .priv { font-size: 11px; color: var(--sw-muted); display: flex; gap: 6px; align-items: flex-start; line-height: 1.35; }
+.pc .priv svg { flex: none; width: 12px; height: 12px; margin-top: 1px; }
+.pc .res-note { font-size: 12px; line-height: 1.4; color: var(--sw-muted); padding: 8px 10px; background: var(--sw-paper); border-radius: 8px; }
+.pc .verdict { padding: 9px 11px; border-radius: 10px; font: 600 13px/1.35 var(--ui); }
+.verdict.good { background: #dcfce7; color: #166534; }
+.verdict.miss { background: #fef3c7; color: #92400e; }
+.pc .conf { display: grid; gap: 8px; padding: 10px; border-radius: 10px; background: #fef3c7; color: #78350f; font-size: 12px; line-height: 1.4; }
+.pc .conf b { font: 700 12.5px/1.3 var(--ui); }
+.pc .roundtag { margin-left: auto; font: 600 10px/1 var(--ui); color: var(--sw-muted); }
+.pc .taghead { display: flex; align-items: center; gap: 8px; }
+.sheet input.nick { all: unset; box-sizing: border-box; width: 100%; min-height: 46px; padding: 0 14px; border-radius: 12px; background: rgb(255 255 255 / .08); border: 1.5px solid var(--sw-accent-glow); color: #fff; font: 600 15px/1 var(--ui); }
+.sheet .warnline { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgb(165 184 255 / .12); color: #dbe3ff; font-size: 12px; line-height: 1.4; }
+
+/* ---------- presenter window (SW-4 look) ---------- */
+.browser { border-radius: 10px; overflow: hidden; border: 1px solid var(--line-2); box-shadow: var(--raise); background: var(--pw-bg); }
+.browser-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #e9ecf1; border-bottom: 1px solid var(--line); }
+.browser-bar .dots { display: flex; gap: 5px; } .browser-bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: #c9ced8; }
+.browser-bar .url { flex: 1; min-width: 0; text-align: center; font: 500 12px/1 var(--ui); color: var(--muted); background: #fff; border-radius: 6px; padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browser-bar .url b { color: var(--text); font-weight: 600; }
+.pw { background: var(--pw-bg); color: var(--pw-text); font: 400 13px/1.4 var(--ui); position: relative; outline: none; }
+.pw:focus-visible { box-shadow: inset 0 0 0 2px var(--pw-acc); }
+.pw-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--pw-line); }
+.pw-top .deck { font-weight: 600; white-space: nowrap; }
+.pw-top .sp { flex: 1; }
+.pw-top .timer { font: 500 20px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.lchip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border-radius: 6px; background: rgb(22 163 74 / .16); color: #86efac; font: 600 12px/1 var(--ui); white-space: nowrap; }
+.lchip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.lchip b { font-family: var(--mono); color: #fff; font-weight: 500; }
+.pw-main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; padding: 16px; }
+@media (max-width: 900px) { .pw-main { grid-template-columns: minmax(0, 1fr); } }
+.pw-main > * { min-width: 0; }
+.pw-lab { display: flex; align-items: center; gap: 8px; margin: 0 0 7px; font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--pw-muted); }
+.pw-lab .sp { flex: 1; }
+.pw-lab .val { font: 500 12px/1 var(--mono); letter-spacing: 0; text-transform: none; color: var(--pw-text); }
+.pw .frame { border-radius: 4px; box-shadow: 0 8px 30px rgb(0 0 0 / .5); outline: 2px solid rgb(142 165 255 / .5); outline-offset: 3px; }
+.pw .frame.next { outline: none; opacity: .9; }
+.pw-ctl { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.pw-ctl .count { font: 500 13px/1 var(--mono); min-width: 54px; text-align: center; }
+.pw-ctl .bar { flex: 1; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .1); overflow: hidden; position: relative; }
+.pw-ctl .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: #6d8bff; transition: width .3s; }
+.ibtn { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 7px; background: rgb(255 255 255 / .07); color: var(--pw-text); }
+.ibtn:hover { background: rgb(255 255 255 / .14); }
+.ibtn:focus-visible { outline: 2px solid var(--pw-acc); }
+.ibtn:disabled { opacity: .35; cursor: default; }
+.ibtn svg { width: 14px; height: 14px; }
+.notes { background: var(--pw-panel); border: 1px solid var(--pw-line); border-radius: 8px; padding: 12px 14px; font-size: 14px; line-height: 1.5; color: #f1f5f9; }
+.pw-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 16px 14px; border-top: 1px solid var(--pw-line); color: var(--pw-faint); font-size: 12px; }
+.kk { font: 500 10.5px/1 var(--mono); color: var(--pw-faint); padding: 2px 5px; border: 1px solid #334155; border-radius: 4px; }
+
+/* poll panel in the presenter window */
+.ppanel { background: var(--pw-panel); border: 1px solid var(--pw-line); border-radius: 10px; padding: 14px; display: grid; gap: 12px; }
+.pp-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pp-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; font: 700 11px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; }
+.pp-state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pp-state.draft { background: rgb(255 255 255 / .08); color: var(--pw-muted); }
+.pp-state.open { background: rgb(22 163 74 / .18); color: #86efac; }
+.pp-state.closed { background: rgb(142 165 255 / .16); color: #c7d2fe; }
+.pp-round { font: 500 12px/1 var(--mono); color: var(--pw-muted); }
+.pp-cfg { margin-left: auto; font-size: 11.5px; color: var(--pw-muted); text-align: right; }
+.pp-n { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pp-n b { font: 700 26px/1 var(--mono); color: #fff; font-variant-numeric: tabular-nums; }
+.pp-n .rate { margin-left: auto; font: 600 12px/1 var(--ui); padding: 4px 8px; border-radius: 6px; background: rgb(142 165 255 / .14); color: #c7d2fe; }
+.pp-bars { display: grid; gap: 6px; }
+.pp-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 30px; gap: 8px; align-items: center; font-size: 12px; }
+.pp-row span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #cbd5e1; }
+.pp-row .tr { height: 8px; border-radius: 4px; background: rgb(255 255 255 / .08); overflow: hidden; }
+.pp-row .tr i { display: block; height: 100%; background: #6d8bff; transition: width .5s; }
+.pp-row.ok .tr i { background: #4ade80; }
+.pp-row .c { font: 500 12px/1 var(--mono); text-align: right; color: #fff; }
+.pp-room { font-size: 11.5px; color: var(--pw-muted); display: flex; gap: 6px; align-items: center; }
+.pp-room b { color: #fff; font-weight: 600; }
+.pp-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.tbtn { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px; border-radius: 7px; background: rgb(255 255 255 / .07); color: var(--pw-text); font: 600 12.5px/1 var(--ui); white-space: nowrap; }
+.tbtn:hover { background: rgb(255 255 255 / .13); }
+.tbtn:focus-visible { outline: 2px solid var(--pw-acc); }
+.tbtn:disabled { opacity: .35; cursor: default; }
+.tbtn.go { background: #2f5bea; color: #fff; }
+.tbtn.stop { background: rgb(220 38 38 / .22); color: #fecaca; }
+.pp-hist { font-size: 11.5px; color: var(--pw-faint); }
+
+/* audience window + demo layout */
+.demo6 { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start; margin-top: 18px; }
+@media (max-width: 980px) { .demo6 { grid-template-columns: minmax(0, 1fr); } }
+.demo6 > * { min-width: 0; }
+.cap-under { margin-top: 8px; color: var(--muted); font-size: 12.5px; }
+.cap-under b { color: var(--text); font-weight: 600; }
+
+/* phone remote (presenter's phone) */
+.rem { padding: 6px 14px 10px; display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
+.rem .rlab { font: 600 10.5px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--pw-muted); display: flex; justify-content: space-between; }
+.rem .strip { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 10px; display: grid; gap: 9px; }
+.rem .strip .row { display: flex; align-items: center; gap: 8px; }
+.rem .strip .row b { font: 700 18px/1 var(--mono); }
+.rem .strip .btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.rem .strip .btns span { display: grid; place-items: center; min-height: 40px; border-radius: 9px; background: rgb(255 255 255 / .08); font: 600 12px/1.15 var(--ui); text-align: center; padding: 0 4px; }
+.rem .strip .btns span.stop { background: rgb(220 38 38 / .25); color: #fecaca; }
+.rem .bignext { margin-top: auto; display: grid; place-items: center; min-height: 64px; border-radius: 16px; background: #2f5bea; font: 700 18px/1 var(--ui); }
+
+/* model section */
+.method { padding: 16px 18px; display: grid; gap: 10px; align-content: start; }
+.method h3 { font: 600 14px/1.3 var(--ui); display: flex; gap: 8px; align-items: center; }
+.method code.k { color: var(--accent-dark); }
+.method p { margin: 0; color: var(--muted); font-size: 13px; }
+.mini { display: grid; gap: 5px; }
+.mini span { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 12.5px; background: #fff; }
+.mini span i { width: 13px; height: 13px; border: 2px solid #c3c9d4; border-radius: 50%; flex: none; box-sizing: border-box; }
+.mini.box span i { border-radius: 4px; }
+.mini span.on { border-color: var(--accent); background: #f6f8ff; }
+.mini span.on i { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 2px #fff; }
+.mini.box span.on i { box-shadow: none; }
+.mini span.off { opacity: .45; }
+
+.mcp { background: #0f1420; color: #cbd5e1; border-radius: 10px; padding: 16px 18px; font: 400 12.5px/1.6 var(--mono); overflow-x: auto; white-space: pre; }
+.mcp .u { color: #fbbf24; } .mcp .c { color: #8ea5ff; } .mcp .r { color: #86efac; } .mcp .m { color: #64748b; }
+.vis-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 860px) { .vis-grid { grid-template-columns: minmax(0, 1fr); } }
+.vis-grid .card { padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.vis-grid .card b { font-weight: 600; }
+.vis-grid .card .who { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 4px 8px; font-size: 12.5px; margin-top: 4px; }
+.vis-grid .card .who span:nth-child(odd) { color: var(--faint); }
+
+/* =====================================================================
+   SW-9 additions: Questions tab, ask sheet, reactions, Q&A slide,
+   spotlight, presenter Questions panel
+   ===================================================================== */
+
+/* ---------- phone: tab bar + reactions ---------- */
+.ps .pbody { gap: 10px; }
+.tabs { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: rgb(255 255 255 / .09); }
+.tabs button { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border-radius: 10px; font: 600 13px/1 var(--ui); color: var(--sw-night-2); cursor: pointer; }
+.tabs button:focus-visible { outline: 2px solid var(--sw-accent-glow); outline-offset: 1px; }
+.tabs button.on { background: #fff; color: var(--sw-ink); }
+.tabs .bdg { font: 700 10.5px/1 var(--ui); padding: 3px 6px; border-radius: 999px; background: var(--sw-accent); color: #fff; font-variant-numeric: tabular-nums; }
+.tabs .bdg.dot { padding: 0; width: 8px; height: 8px; background: #4ade80; }
+.rx { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.rx button { all: unset; box-sizing: border-box; display: grid; place-items: center; min-height: 44px; border-radius: 12px; background: rgb(255 255 255 / .09); font-size: 20px; line-height: 1; cursor: pointer; position: relative; transition: transform .12s, background .2s; }
+.rx button:focus-visible { outline: 2px solid var(--sw-accent-glow); outline-offset: 1px; }
+.rx button:active { transform: scale(.9); }
+.rx button.hit { background: rgb(165 184 255 / .3); }
+.rx button.hit::after { content: attr(data-e); position: absolute; left: 50%; bottom: 60%; translate: -50% 0; font-size: 18px; animation: rxpop .7s ease-out forwards; pointer-events: none; }
+.rx button:disabled { opacity: .4; cursor: default; }
+@keyframes rxpop { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-34px) scale(1.5); } }
+.rx-note { flex: none; text-align: center; font-size: 11px; color: var(--sw-night-muted); margin-top: -4px; }
+.wait.sm { gap: 7px; }
+.wait.sm b { font-size: 14px; }
+.wait.sm p { font-size: 12px; }
+
+/* ---------- phone: question list ---------- */
+.activity.qa { padding: 12px 12px 10px; gap: 8px; min-height: 0; overflow: hidden; }
+.qh { flex: none; display: flex; align-items: center; gap: 8px; }
+.qh strong { font: 700 15px/1.2 var(--head); }
+.qh .cnt { font: 600 12px/1 var(--ui); color: var(--sw-muted); white-space: nowrap; }
+.seg { margin-left: auto; display: inline-flex; padding: 2px; border-radius: 8px; background: var(--sw-paper); border: 1px solid var(--sw-grid); }
+.seg button { all: unset; box-sizing: border-box; padding: 6px 9px; border-radius: 6px; font: 600 11.5px/1 var(--ui); color: var(--sw-muted); cursor: pointer; }
+.seg button.on { background: #fff; color: var(--sw-ink); box-shadow: 0 1px 2px rgb(15 23 42 / .12); }
+.qlist { flex: 1; min-height: 0; overflow-y: auto; display: grid; align-content: start; margin: 0 -4px; padding: 0 4px; }
+.qi { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 0; border-top: 1px solid var(--sw-grid); }
+.qi:first-child { border-top: 0; }
+.up { all: unset; box-sizing: border-box; width: 44px; min-height: 44px; display: grid; place-items: center; align-content: center; gap: 2px; border-radius: 10px; border: 1.5px solid var(--sw-grid); background: #fff; color: var(--sw-muted); cursor: pointer; }
+.up:focus-visible { outline: 2px solid var(--sw-accent); outline-offset: 2px; }
+.up i { font: 400 9px/1 var(--ui); font-style: normal; }
+.up span { font: 700 13.5px/1 var(--ui); color: var(--sw-ink); font-variant-numeric: tabular-nums; }
+.up.on { border-color: var(--sw-accent); background: var(--sw-accent-light); color: var(--sw-accent); }
+.up.on span { color: var(--sw-accent-dark); }
+.up.ro { cursor: default; border-style: dashed; }
+.up.done { border-color: transparent; background: #dcfce7; color: #166534; }
+.up.done span { color: #166534; font-size: 15px; }
+.up.held { border-style: dashed; color: var(--sw-warn); }
+.qtx { font: 500 13px/1.32 var(--ui); color: var(--sw-ink); overflow-wrap: anywhere; }
+.qm { margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; font-size: 11px; color: var(--sw-muted); }
+.qm em { font-style: normal; font: 700 9.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; padding: 3px 5px; border-radius: 4px; }
+.qm em.you { background: var(--sw-accent-light); color: var(--sw-accent-dark); }
+.qm em.live { background: #dcfce7; color: #166534; }
+.qm em.hold { background: #fef3c7; color: #92400e; }
+.qm em.off { background: #f1f2f5; color: var(--sw-muted); }
+.qi.dim .qtx { color: var(--sw-muted); }
+.qsec { padding: 10px 0 2px; font: 600 10.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--sw-muted); border-top: 1px solid var(--sw-grid); }
+.qnone { flex: 1; display: grid; place-items: center; align-content: center; gap: 6px; text-align: center; padding: 0 10px; }
+.qnone strong { font: 700 15px/1.3 var(--head); }
+.qnone span { font-size: 12.5px; line-height: 1.45; color: var(--sw-muted); }
+.qa .sbtn { flex: none; }
+.qa .res-note { flex: none; font-size: 12px; line-height: 1.4; color: var(--sw-muted); padding: 8px 10px; background: var(--sw-paper); border-radius: 8px; }
+.qa .res-note.amber { background: #fef3c7; color: #78350f; }
+.pollban { flex: none; display: flex; align-items: center; gap: 8px; padding: 9px 10px 9px 12px; border-radius: 12px; background: var(--sw-accent); color: #fff; font: 600 12.5px/1.3 var(--ui); }
+.pollban span { flex: 1; min-width: 0; }
+.pollban u { text-decoration: none; flex: none; padding: 7px 10px; border-radius: 8px; background: #fff; color: var(--sw-accent-dark); font: 700 12px/1 var(--ui); }
+
+/* ---------- phone: ask sheet ---------- */
+.sheet .qta { all: unset; box-sizing: border-box; display: block; width: 100%; min-height: 96px; padding: 12px 14px; border-radius: 12px; background: rgb(255 255 255 / .08); border: 1.5px solid var(--sw-accent-glow); color: #fff; font: 500 14.5px/1.4 var(--ui); white-space: pre-wrap; overflow-wrap: anywhere; }
+.sheet .qta::placeholder { color: var(--sw-night-muted); }
+.sheet .cnt-row { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--sw-night-muted); margin-top: -4px; }
+.sheet .who-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgb(255 255 255 / .06); font-size: 13px; color: #fff; cursor: pointer; }
+.sheet .who-row small { display: block; font-size: 11.5px; color: var(--sw-night-muted); margin-top: 2px; }
+.sheet .who-row > span:first-child { flex: 1; min-width: 0; }
+.sw { flex: none; width: 38px; height: 22px; border-radius: 999px; background: rgb(255 255 255 / .2); position: relative; transition: background .2s; }
+.sw::after { content: ""; position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.sw.on { background: var(--sw-accent); }
+.sw.on::after { transform: translateX(16px); }
+.sheet .pbtn { cursor: pointer; font-family: var(--ui); }
+.sheet .pbtn:disabled { opacity: .45; cursor: default; }
+.sheet .fine { font-size: 11.5px; line-height: 1.4; color: var(--sw-night-muted); text-align: center; }
+.sheet .x { all: unset; position: absolute; right: 14px; top: 14px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: rgb(255 255 255 / .1); color: #fff; font-size: 14px; cursor: pointer; }
+
+/* ---------- big screen: Q&A slide ---------- */
+.sl.qasl { padding: 62px 60px 70px; }
+.qasl h3 { margin-bottom: 18px; }
+.qrows { flex: 1; min-height: 0; display: grid; gap: 9px; align-content: center; }
+.qrow { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; align-items: center; background: #fff; border-radius: 12px; padding: 8px 18px 8px 8px; box-shadow: 0 1px 2px rgb(15 23 42 / .06), 0 8px 24px rgb(15 23 42 / .06); transition: opacity .3s; }
+.qv { display: grid; place-items: center; height: 38px; border-radius: 9px; background: var(--sw-accent-light); color: var(--sw-accent-dark); font: 800 20px/1 var(--head); font-variant-numeric: tabular-nums; }
+.qt { font: 600 18px/1.25 var(--ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qrow.first .qv { background: var(--sw-accent); color: #fff; }
+.qempty { flex: 1; display: grid; place-items: center; align-content: center; gap: 10px; text-align: center; border: 2px dashed var(--sw-grid); border-radius: 16px; }
+.qempty b { font: 800 30px/1.2 var(--head); }
+.qempty span { font-size: 17px; color: var(--sw-muted); max-width: 520px; }
+.qbig { flex: 1; display: grid; align-content: center; gap: 16px; padding: 0 20px; }
+.qbl { display: flex; gap: 12px; align-items: center; font: 600 15px/1 var(--ui); color: var(--sw-muted); }
+.qbl em { font-style: normal; padding: 7px 11px; border-radius: 999px; background: var(--sw-accent); color: #fff; font: 800 15px/1 var(--head); }
+.qbt { font: 800 40px/1.15 var(--head); letter-spacing: -.015em; max-width: 800px; }
+.qasl .pfoot .right { display: inline-flex; gap: 8px; align-items: center; }
+
+/* ---------- big screen: spotlight over any slide ---------- */
+.spot-dim { position: absolute; inset: 0; background: linear-gradient(to top, rgb(11 16 32 / .5), rgb(11 16 32 / .12) 55%, transparent); z-index: 3; }
+.spot { position: absolute; left: 60px; right: 60px; bottom: 38px; z-index: 4; padding: 20px 26px 22px; border-radius: 16px; background: var(--sw-night); color: #fff; box-shadow: 0 24px 60px rgb(11 16 32 / .45); display: grid; gap: 10px; animation: spotin .35s ease; }
+@keyframes spotin { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.spl { display: flex; align-items: center; gap: 12px; font: 600 12px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--sw-accent-glow); }
+.spl em { font-style: normal; letter-spacing: 0; text-transform: none; padding: 5px 9px; border-radius: 999px; background: rgb(165 184 255 / .2); color: #fff; font: 700 13px/1 var(--ui); }
+.spl span.by { margin-left: auto; letter-spacing: 0; text-transform: none; font: 500 13px/1 var(--ui); color: var(--sw-night-2); }
+.spt { font: 800 28px/1.2 var(--head); letter-spacing: -.01em; }
+
+/* ---------- big screen: floating reactions ---------- */
+.rxf { position: absolute; right: 22px; bottom: 44px; width: 150px; height: 400px; pointer-events: none; z-index: 5; }
+.rxf span { position: absolute; bottom: 0; font-size: 38px; line-height: 1; filter: drop-shadow(0 4px 8px rgb(15 23 42 / .2)); }
+.rxf.still span { opacity: var(--o, 1); }
+.rxf .more { position: absolute; right: 58px; bottom: 4px; left: auto; font: 700 14px/1 var(--ui); padding: 6px 10px; border-radius: 999px; background: var(--sw-night); color: #fff; filter: none; }
+.rxwrap { position: relative; }
+.rxlive { position: absolute; right: 2.5%; bottom: 8%; width: 16%; height: 74%; pointer-events: none; z-index: 5; overflow: visible; }
+.rxlive span { position: absolute; bottom: 0; font-size: clamp(16px, 2.6vw, 30px); line-height: 1; animation: floatup 2.6s ease-out forwards; filter: drop-shadow(0 3px 6px rgb(0 0 0 / .25)); }
+@keyframes floatup { 0% { opacity: 0; transform: translateY(0) scale(.6); } 12% { opacity: 1; transform: translateY(-12%) scale(1.1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-900%) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .rxlive span { animation-duration: .01s; } .spot { animation: none; } }
+
+/* ---------- presenter: Questions panel ---------- */
+.qp { gap: 10px; }
+.qp-tabs { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.qp-tabs button { all: unset; cursor: pointer; padding: 6px 9px; border-radius: 999px; font: 600 11.5px/1 var(--ui); color: var(--pw-muted); background: rgb(255 255 255 / .05); white-space: nowrap; }
+.qp-tabs button.on { background: rgb(142 165 255 / .2); color: #fff; }
+.qp-tabs button.alert { color: #fde68a; }
+.qp-tabs button:focus-visible { outline: 2px solid var(--pw-acc); }
+.qp-tabs .sortb { margin-left: auto; background: none; color: var(--pw-faint); }
+.qp-list { display: grid; gap: 6px; align-content: start; max-height: 322px; overflow-y: auto; }
+.qp-i { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; padding: 9px 10px; border-radius: 9px; background: rgb(255 255 255 / .04); border: 1px solid transparent; }
+.qp-i.on { border-color: #4ade80; background: rgb(22 163 74 / .1); }
+.qp-v { display: grid; place-items: center; align-content: center; gap: 2px; height: 36px; border-radius: 7px; background: rgb(142 165 255 / .14); color: #c7d2fe; font: 500 13px/1 var(--mono); }
+.qp-v i { font-style: normal; font-size: 8px; line-height: 1; color: var(--pw-faint); }
+.qp-t { font-size: 12.5px; line-height: 1.35; color: #f1f5f9; overflow-wrap: anywhere; }
+.qp-m { margin-top: 3px; font-size: 11px; color: var(--pw-faint); }
+.qp-m b { font-weight: 600; color: #86efac; }
+.qp-a { margin-top: 7px; display: flex; gap: 5px; flex-wrap: wrap; }
+.qp-a .tbtn { padding: 6px 9px; font-size: 11.5px; border-radius: 6px; }
+.qp-none { color: var(--pw-muted); font-size: 12.5px; line-height: 1.5; padding: 6px 2px; }
+.qp-set { display: flex; gap: 6px 14px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--pw-line); font-size: 11.5px; color: var(--pw-muted); align-items: center; }
+.qp-set b { font-weight: 600; color: var(--pw-text); }
+.qp-set .rxc { margin-left: auto; font: 500 12px/1 var(--mono); color: var(--pw-text); white-space: nowrap; }
+
+/* phone remote: questions strip */
+.rem .strip .qtop { font-size: 12.5px; line-height: 1.35; color: #e2e8f0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rem .strip .btns span.go { background: #2f5bea; }
+
+/* model section */
+.maprow { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr); gap: 6px 10px; align-items: center; font-size: 13px; }
+.maprow > span:nth-child(3n+2) { color: var(--faint); text-align: center; }
+.maprow code { color: var(--accent-dark); }
+.setgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 980px) { .setgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .setgrid { grid-template-columns: minmax(0, 1fr); } }
+.setgrid .card { padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.setgrid b { font-weight: 600; }
+.setgrid code.k { color: var(--accent-dark); }
+.setgrid span { color: var(--muted); font-size: 13px; }
+.setgrid .def { font: 500 12px/1.4 var(--mono); color: var(--ok); }
+
+.sheet .pollban { font-size: 12px; }
+
+/* ---------------------------------------------------------------------
+   SW-944 additions: multilingual typed questions
+   --------------------------------------------------------------------- */
+:root { --tr: #7a5af8; --tr-soft: #f1edff; --tr-line: #d9cffd; --tr-dark: #4c2fc4; }
+:where(.qtx, .qp-t, .otx, .sentas, .spt, td) { font-family: var(--ui); }
+
+/* demo grid: two guest phones, then Sam's window */
+.demo944 { display: grid; grid-template-columns: 292px 292px minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 16px; }
+.demo944 > * { min-width: 0; }
+@media (max-width: 1180px) { .demo944 { grid-template-columns: 292px 292px; } .demo944 .samcol { grid-column: 1 / -1; } }
+@media (max-width: 680px) { .demo944 { grid-template-columns: minmax(0, 1fr); } }
+.devlbl { font: 600 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); text-align: center; margin: 0 0 10px; }
+.devlbl b { color: var(--text); letter-spacing: .04em; text-transform: none; font-size: 12px; }
+.samcol .browser { margin: 0; }
+.sam-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 14px; padding: 14px; }
+@media (max-width: 900px) { .sam-main { grid-template-columns: minmax(0, 1fr); } }
+.sam-main > * { min-width: 0; }
+.pw-top .slang { font: 600 11px/1 var(--ui); color: var(--pw-muted); display: inline-flex; gap: 6px; align-items: center; }
+.pw-top .slang b { color: #fff; background: rgb(142 165 255 / .18); padding: 4px 7px; border-radius: 999px; }
+
+/* language tags */
+.ltag { display: inline-flex; align-items: center; font: 600 9.5px/1 var(--ui); padding: 3px 5px; border-radius: 4px; background: var(--tr-soft); color: var(--tr-dark); letter-spacing: .02em; white-space: nowrap; }
+.qm em.trn { background: var(--tr-soft); color: var(--tr-dark); }
+.qm em.nt { background: #fef3c7; color: #92400e; }
+.qm .origb { all: unset; cursor: pointer; font: 600 11px/1 var(--ui); color: var(--sw-accent); padding: 4px 2px; }
+.qm .origb:focus-visible { outline: 2px solid var(--sw-accent); border-radius: 3px; }
+.otx { margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: #f6f7f9; border: 1px solid var(--sw-grid); font-size: 12px; line-height: 1.35; color: var(--sw-ink); display: grid; gap: 4px; }
+.otx small { font: 600 9.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--sw-muted); }
+
+/* the asker's own card: what Sam gets */
+.sentas { margin-top: 6px; padding: 7px 9px; border-radius: 7px; background: var(--tr-soft); border: 1px solid var(--tr-line); font-size: 12px; line-height: 1.35; color: #241a52; display: grid; gap: 3px; }
+.sentas small { font: 700 9.5px/1.2 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--tr-dark); display: flex; gap: 6px; align-items: center; }
+.sentas.pend { background: #f6f7f9; border-color: var(--sw-grid); color: var(--sw-muted); grid-auto-flow: column; justify-content: start; align-items: center; gap: 7px; font-size: 11.5px; }
+.sentas.nt { background: #fffbeb; border-color: #fde68a; color: #78350f; }
+.sentas.nt small { color: #92400e; }
+.sentas .fine2 { font-size: 10.5px; color: var(--sw-muted); }
+.tspin { width: 11px; height: 11px; border-radius: 50%; border: 2px solid #d4d8e0; border-top-color: var(--tr); animation: tsp 0.8s linear infinite; flex: none; }
+@keyframes tsp { to { transform: rotate(360deg); } }
+.still .tspin { animation: none; }
+
+/* ask sheet note */
+.trnote { display: flex; gap: 7px; align-items: flex-start; margin: 0 0 10px; padding: 8px 10px; border-radius: 8px; background: rgb(122 90 248 / .14); color: #ddd6fe; font-size: 11.5px; line-height: 1.4; }
+.trnote b { color: #fff; font-weight: 600; }
+.trnote .gl { flex: none; width: 14px; height: 14px; margin-top: 1px; color: #c4b5fd; }
+
+/* presenter panel additions */
+.qp-m .from { display: inline-block; font: 600 9.5px/1 var(--ui); padding: 3px 5px; border-radius: 4px; background: rgb(167 139 250 / .2); color: #ddd6fe; margin-left: 4px; vertical-align: 1px; }
+.qp-m .ntm { display: inline-block; font: 700 9.5px/1 var(--ui); letter-spacing: .05em; text-transform: uppercase; padding: 3px 5px; border-radius: 4px; background: rgb(251 191 36 / .18); color: #fde68a; margin-left: 4px; vertical-align: 1px; }
+.qp-i.ntq { border-color: rgb(251 191 36 / .35); }
+.qp-held { font-size: 11px; color: var(--pw-faint); padding: 6px 2px 0; display: flex; gap: 7px; align-items: center; }
+.qp-held .tspin { border-color: #334155; border-top-color: #a78bfa; }
+
+/* server store log */
+.storecard { margin-top: 14px; padding: 0; overflow: hidden; }
+.storecard .lh { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); font: 600 12.5px/1.3 var(--ui); background: var(--surface-2); flex-wrap: wrap; }
+.storecard .lh span.sub { font-weight: 400; color: var(--muted); }
+.storecard .tblwrap { max-height: 268px; overflow: auto; }
+.storecard .tbl td, .storecard .tbl th { padding: 7px 10px; }
+.storecard .tbl td:first-child { white-space: nowrap; }
+.storecard .tbl td.t { min-width: 220px; }
+.storecard .tbl tr.newrow td { animation: flash 1.4s ease-out; }
+@keyframes flash { from { background: #efeafe; } to { background: transparent; } }
+.kind { font: 600 10.5px/1 var(--ui); padding: 3px 6px; border-radius: 4px; white-space: nowrap; }
+.kind.o { background: var(--surface-2); color: var(--text); }
+.kind.t { background: var(--tr-soft); color: var(--tr-dark); }
+.kind.f { background: #fef3c7; color: #92400e; }
+.kind.w { background: #e6ecfd; color: #1e3a8a; }
+.mono-s { font: 500 11.5px/1.3 var(--mono); color: var(--muted); white-space: nowrap; }
+
+/* demo controls */
+.ctl944 { margin-top: 14px; padding: 12px 14px; display: grid; gap: 10px; }
+.ctl944 .r { display: flex; gap: 6px 8px; align-items: center; flex-wrap: wrap; }
+.ctl944 .lbl { width: 128px; flex: none; font: 600 11px/1.2 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+@media (max-width: 680px) { .ctl944 .lbl { width: 100%; } }
+.seg2 { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.seg2 button { font: 500 12.5px/1 var(--ui); padding: 7px 10px; border-radius: 7px; border: 1px solid var(--line-2); background: #fff; color: var(--text); cursor: pointer; }
+.seg2 button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); font-weight: 600; }
+.seg2 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ctl944 .presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.ctl944 .presets button { font: 500 12.5px/1.25 var(--ui); padding: 7px 10px; border-radius: 7px; border: 1px dashed var(--line-2); background: #fff; color: var(--text); cursor: pointer; text-align: left; max-width: 100%; }
+.ctl944 .presets button:hover { border-color: var(--accent); }
+
+/* speaker section */
+.spk { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 980px) { .spk { grid-template-columns: minmax(0, 1fr); } }
+.spk > * { min-width: 0; }
+.spk .pwbox { padding: 14px; }
+.spk .cap { margin-top: 10px; display: grid; gap: 3px; }
+.spk .cap b { font-weight: 600; }
+.spk .cap span { color: var(--muted); font-size: 12.5px; }
+.spk-r { display: grid; gap: 20px; }
+.qstrip { background: #0f1420; border: 1px solid #1f2937; border-radius: 12px; padding: 10px 12px; color: #e2e8f0; display: grid; gap: 8px; max-width: 360px; }
+.qstrip .row { display: flex; gap: 8px; align-items: baseline; color: #94a3b8; font-size: 12px; }
+.qstrip .row b { font: 600 18px/1 var(--ui); color: #fff; }
+.qstrip .qt { font-size: 14px; line-height: 1.35; color: #f1f5f9; }
+.qstrip .btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.qstrip .btns span { text-align: center; padding: 10px 6px; border-radius: 8px; background: #1f2937; font: 600 12px/1 var(--ui); }
+.qstrip .btns span.go { background: #3b5bdb; }
+
+/* flow diagram */
+.flowcard { padding: 18px; overflow: hidden; }
+.flowcard svg { display: block; width: 100%; height: auto; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+/* decided strip */
+.decided { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+@media (max-width: 900px) { .decided { grid-template-columns: minmax(0, 1fr); } }
+.decided .card { padding: 12px 14px; display: grid; gap: 4px; }
+.decided .k { font: 600 11px/1 var(--mono); color: var(--ok); }
+.decided b { font-weight: 600; }
+.decided span { color: var(--muted); font-size: 12.5px; }
+.flag { padding: 12px 16px; margin: 0 0 14px; border: 1px solid #f3d3ac; background: var(--warn-soft); border-radius: 10px; }
+.flag b { color: var(--warn); }
+
+/* from SW-884's base.css: the language chip in the guest header, and fonts that cover Thai, Japanese and Chinese */
+:root { --ui: "Inter", "Noto Sans Thai", "Noto Sans JP", "Noto Sans TC", system-ui, sans-serif; --head: "Plus Jakarta Sans", "Noto Sans Thai", "Noto Sans JP", "Noto Sans TC", "Inter", sans-serif; }
+.lang { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 3px 8px 3px 7px; border-radius: 999px; font: 600 11px/1 var(--ui); background: rgb(255 255 255 / .1); color: #fff; white-space: nowrap; cursor: pointer; outline: 1px solid rgb(165 184 255 / .35); }
+.lang:focus-visible { outline: 2px solid var(--sw-accent-glow); }
+.lang svg { width: 13px; height: 13px; color: var(--sw-accent-glow); flex: none; }
+.lang .car { font-size: 8px; opacity: .7; }
+.g-top .g-deck { min-width: 0; }
+
+/* round 2 · D5: language tile in the presenter panel; D7: withdraw on the asker's card */
+.ltile { display: inline-flex; align-items: center; gap: 3px; margin-left: 5px; padding: 2px 5px 2px 4px; border-radius: 4px; border: 1px solid rgb(167 139 250 / .5); background: rgb(167 139 250 / .14); color: #ddd6fe; font: 700 9.5px/1 var(--mono); letter-spacing: .04em; vertical-align: 1px; }
+.ltile svg { width: 10px; height: 10px; color: #c4b5fd; }
+.wdrow { display: flex; gap: 6px; align-items: center; margin-top: 3px; padding-top: 5px; border-top: 1px dashed currentColor; border-color: rgb(76 47 196 / .2); font-size: 11px; color: var(--sw-muted); }
+.sentas.nt .wdrow { border-color: rgb(146 64 14 / .25); }
+.wdb { all: unset; cursor: pointer; font: 600 11px/1 var(--ui); color: var(--sw-accent); padding: 3px 0; }
+.wdb:focus-visible { outline: 2px solid var(--sw-accent); border-radius: 3px; }
+
+.sec-head { flex-wrap: wrap; }
+.sec-head .pill { white-space: normal; max-width: 100%; }
+
+</style>
+</head>
+<body>
+<main>
+
+<header class="page-head">
+  <div class="eyebrow">SlideWorks · SW-944 · design mockups · 28 Nov 2026 · round 2: D4–D8 answered</div>
+  <h1>Live speech V3: guests ask in their own language</h1>
+  <p>A guest types a question in any catalogue language and taps Send. The server keeps what they wrote and translates it with the SW-943 engine. The guest's card then shows the sentence Sam will read. Sam, the presenter window and the big screen only ever show Sam's language. Other guests read each question in their own language, with <b>Show original</b> (D1). The phone, the Questions panel and the big screen are SW-9's as built; only the language parts are new. Nothing here talks into a phone: questions are typed.</p>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#scope">01 Scope</a><a href="#demo">02 Live demo</a><a href="#phone">03 Guest phone</a><a href="#speaker">04 Speaker side</a><a href="#flow">05 How a question flows</a><a href="#contracts">06 Contracts</a><a href="#questions">07 Questions</a>
+</nav>
+
+<!-- ============================== 01 SCOPE ============================== -->
+<section class="block" id="scope">
+  <div class="sec-head"><span class="n">01</span><h2>What V3 ships</h2><span class="pill grey">Translations epic SW-942 · blocked by SW-943 · after SW-885</span></div>
+  <div class="scope">
+    <div class="card">
+      <h3><span class="pill acc"><span class="dot"></span>In SW-944</span></h3>
+      <ul>
+        <li>The ask path takes the guest's language (SW-883's <code>AudienceState.Language</code>) along with the text</li>
+        <li>After a question is accepted, it is translated into <b>Sam's language</b>: the talk's subtitle language, else the deck's primary language (D2)</li>
+        <li><b>Both texts are stored</b>: the original and its language, and every translation with the model that made it</li>
+        <li>The asker's own card shows <b>"Sent to Sam as …"</b> under what they wrote, once the translation is back</li>
+        <li>Sam's views (presenter window, phone remote, big screen, reports, <code>get_questions</code>) show Sam's language only</li>
+        <li>Other guests read each question in <b>their</b> language, with <b>Show original</b> per question. One translation per active guest language, the same fan-out as subtitles (D1)</li>
+        <li>No translation when the question is already in the reader's language. When a translation fails, the reader gets the original with a <b>Not translated</b> marker</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="pill later"><span class="dot"></span>Not in SW-944</span></h3>
+      <ul class="later-list">
+        <li><span class="k">never</span> spoken questions. Talking into a phone in a meeting room looks like taking a call</li>
+        <li><span class="k">D3</span> editing a question after seeing its translation</li>
+        <li><span class="k">SW-943</span> the engine, model choice per language pair, the admin page</li>
+        <li><span class="k">later</span> translating names. A name is shown as typed, in every language</li>
+        <li><span class="k">later</span> "report a bad translation" from the phone</li>
+        <li><span class="k">unchanged</span> <code>AskLimiter</code> rate limits, review-first, hide, answered, show on screen</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 02 DEMO ============================== -->
+<section class="block" id="demo">
+  <div class="sec-head"><span class="n">02</span><h2>Live demo: Noor asks in Thai, Kenji reads in Japanese, Sam sees English</h2><span class="pill ok">ask on Noor's phone, switch languages, make a translation fail</span></div>
+  <p class="sec-sub">Noor's phone is open on Questions with the ask sheet up. Tap <b>Send</b>: her card shows "Translating for Sam…" and then the English Sam got. The question reaches Kenji and Sam only when their translation is ready (D4). Kenji taps <b>Show original</b> to see Noor's Thai. Every row the server stores lands in the table underneath. Other people in the room keep asking, in four languages.</p>
+  <div class="demo944">
+    <div><div class="devlbl">Guest · <b>Noor</b> · asks</div><div class="phone"><div class="ps" id="gA"></div></div></div>
+    <div><div class="devlbl">Guest · <b>Kenji</b> · browses</div><div class="phone"><div class="ps" id="gB"></div></div></div>
+    <div class="samcol">
+      <div class="devlbl">Presenter window · <b>Sam</b></div>
+      <div class="browser">
+        <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">slideworks.example/d/7Kq2/<b>present</b></span></div>
+        <div class="pw">
+          <div class="pw-top"><span class="deck">Shipping smaller changes</span><span class="lchip">Live <b>482 913</b> · 41 joined</span><span class="sp"></span><span class="slang">Questions in <b id="sLangChip">English</b></span></div>
+          <div class="sam-main">
+            <div>
+              <div class="pw-lab">On the big screen now</div>
+              <div class="frame" id="sSlide"></div>
+              <div class="pw-lab" style="margin-top:14px">Notes</div>
+              <div class="notes">Three numbers, one sentence each. Take one question here if the panel shows a clear leader.</div>
+            </div>
+            <div><div class="pw-lab">Questions</div><div class="ppanel qp" id="sPanel"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card ctl944">
+        <div class="r"><span class="lbl">Noor reads</span><span class="seg2" data-who="a"></span></div>
+        <div class="r"><span class="lbl">Kenji reads</span><span class="seg2" data-who="b"></span></div>
+        <div class="r"><span class="lbl">Sam's language</span><span class="seg2" data-who="s"></span></div>
+        <div class="r"><span class="lbl">Noor's next ask</span><span class="presets" id="presets"></span></div>
+        <div class="r"><span class="lbl">Engine</span><label style="display:inline-flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="cFail"> The next question's translations fail</label><span class="sp" style="flex:1"></span><button class="btn" id="cRoom">❚❚ Pause the room</button><button class="btn ghost" id="cReset">Reset</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="card storecard">
+    <div class="lh">Stored on the server <span class="sub">the newest question first · the original and every translation, with the model that made it</span></div>
+    <div class="tblwrap"><table class="tbl"><thead><tr><th>#</th><th>Kind</th><th>Lang</th><th>Text</th><th>Model</th><th>Took</th></tr></thead><tbody id="store"></tbody></table></div>
+  </div>
+  <ul class="demo-notes">
+    <li>Sam's language follows the talk's subtitles (D2). Switching it translates the open questions into the new language in the background (D8).</li>
+    <li>A question typed in the reader's own language is never translated, and never gets a "Show original".</li>
+    <li>Typed text that isn't one of the sample questions gets a pretend translation marked "demo", because this page has no engine behind it.</li>
+    <li>Names are never translated. Kenji sees "Priya" whatever language he reads.</li>
+  </ul>
+</section>
+
+<!-- ============================== 03 PHONE ============================== -->
+<section class="block" id="phone">
+  <div class="sec-head"><span class="n">03</span><h2>The guest's phone, state by state</h2><span class="pill acc">mobile web · SW-9's Questions tab as built</span></div>
+  <p class="sec-sub">The guest's language is the one they picked with the language chip (SW-883). The ask sheet doesn't add a language picker; it says, in one line, what will happen. The language stored is the one the engine detects; the chip is only a hint (D6). Upvotes, Top and New, "You", and waiting for approval all work as they do today.</p>
+  <div class="states">
+    <div><div class="phone"><div class="ps" data-pstate="ask"></div></div>
+      <div class="st-cap"><b>Ask, reading Thai</b><span>One new line in the sheet: Sam reads questions in English, and yours is translated after you send it. Nothing else changes: 200 characters, the name switch, no editing after sending (D3).</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="pending"></div></div>
+      <div class="st-cap"><b>Just sent: translating</b><span>The card appears at once with what Noor wrote and a "Translating for Sam…" line. Usually about a second. Her upvote counts already.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="sent"></div></div>
+      <div class="st-cap"><b>Sent to Sam as…</b><span>The translation sits under the original in a violet box, so Noor can check how it reads. If it reads wrong, <b>Withdraw</b> takes it down everywhere and she can ask again (D7).</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="same"></div></div>
+      <div class="st-cap"><b>Already in Sam's language</b><span>Priya reads English and Sam's language is English: nothing is translated for Sam, and her card looks exactly like SW-9's.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="failed"></div></div>
+      <div class="st-cap"><b>The translation failed</b><span>The engine timed out or no model covers the pair. Noor is told Sam sees it as she wrote it, and can withdraw it. Sam sees the Thai with a Not translated marker.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="other"></div></div>
+      <div class="st-cap"><b>Another guest, reading Japanese</b><span>Every question in Japanese. A translated question says "Translated" and has Show original; Kenji has opened one. Questions already in Japanese have neither.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="catchup"></div></div>
+      <div class="st-cap"><b>Switched language mid-session</b><span>Kenji switches to 繁中. Questions with no Traditional Chinese yet show their original with "Translating…" for a moment, then change in place. Their order doesn't move.</span></div></div>
+    <div><div class="phone"><div class="ps" data-pstate="review"></div></div>
+      <div class="st-cap"><b>Review first, translated</b><span>With review-first on, the translation still comes back to the asker straight away. Sam's To review tab gets it in English.</span></div></div>
+  </div>
+</section>
+
+<!-- ============================== 04 SPEAKER ============================== -->
+<section class="block" id="speaker">
+  <div class="sec-head"><span class="n">04</span><h2>Speaker side: one language only</h2><span class="pill acc">presenter window · phone remote · big screen</span></div>
+  <p class="sec-sub">Sam reads, moderates and shows every question in Sam's language. Hide, Answered, Show on screen and review-first act on the question, not on one of its texts, so they work the same whatever language it was asked in. The one addition is a small language tile on each translated question in the presenter panel (D5), and the amber marker when it couldn't be translated.</p>
+  <div class="spk">
+    <div class="card pwbox" style="background:var(--pw-bg);border-color:#1f2937">
+      <div class="ppanel qp" id="spkPanel"></div>
+      <div class="cap" style="color:#e2e8f0"><b>Presenter window, Questions panel</b><span style="color:#94a3b8">English only. The <b>🌐 TH</b> tile says a question was asked in Thai without showing the Thai. Questions asked in English have none. The amber one couldn't be translated, so Sam sees the original and can still hide it, answer it or put it up.</span></div>
+    </div>
+    <div class="spk-r">
+      <div>
+        <div class="qstrip"><div class="row"><b>14</b><span>votes · 6 open · 1 to review</span></div><div class="qt">How do you split a database migration into small changes?</div><div class="btns"><span class="go">Show</span><span>Answered</span><span>All 6</span></div></div>
+        <div class="cap"><b>Phone remote strip (SW-4)</b><span>The top question in Sam's language. No language tag here: it's a glance while presenting.</span></div>
+      </div>
+      <div>
+        <div class="card" style="padding:10px"><div class="frame" data-mount="spot"></div></div>
+        <div class="cap"><b>The big screen</b><span>Only Sam's language, even though the question was asked in Thai (the spec). Guests who read another language follow it on their phones, where the same question is in their language.</span></div>
+      </div>
+      <div>
+        <div class="card" style="padding:12px 14px"><table class="tbl"><thead><tr><th>Where</th><th>What Sam's language changes</th></tr></thead><tbody>
+          <tr><td>QuestionsReport</td><td>Sam's-language text, plus the original and its language in a second column</td></tr>
+          <tr><td>get_questions (MCP)</td><td><code>text</code> in Sam's language, plus <code>original</code> and <code>language</code>, so an agent can tell</td></tr>
+          <tr><td>Review first</td><td>A question enters To review only once Sam's translation is back or has failed</td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 05 FLOW ============================== -->
+<section class="block" id="flow">
+  <div class="sec-head"><span class="n">05</span><h2>How a question gets from Noor to Sam and Kenji</h2></div>
+  <p class="sec-sub">The ask itself doesn't change: <code>AskLimiter</code> and the 201 come first, with the original text stored. Translation runs after, off the request, one call per language that someone in the room is reading. Each result is stored and then pushed to whoever reads that language.</p>
+  <div class="card flowcard">
+    <svg viewBox="0 0 1180 450" role="img" aria-label="Noor's phone posts the question with her language. The server checks AskLimiter, stores the original and returns 201. A translation job then translates into Sam's language and each active guest language through the SW-943 engine. Each translation is stored and pushed: Sam's to the presenter window and screen, the Japanese one to Kenji, and the asker's card gets Sam's translation.">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#5b6474"/></marker>
+        <marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#7a5af8"/></marker>
+      </defs>
+      <g font-family="Inter, sans-serif">
+        <rect x="16" y="150" width="168" height="96" rx="12" fill="#0b1020"/>
+        <text x="100" y="182" text-anchor="middle" font-size="15" font-weight="600" fill="#fff">Noor's phone</text>
+        <text x="100" y="204" text-anchor="middle" font-size="12.5" fill="#a5b8ff">POST …/questions</text>
+        <text x="100" y="224" text-anchor="middle" font-size="12.5" fill="#94a3b8">{ text, name, language: th }</text>
+
+        <rect x="240" y="120" width="250" height="156" rx="12" fill="#fff" stroke="#d3d8e0"/>
+        <text x="365" y="148" text-anchor="middle" font-size="15" font-weight="600" fill="#1b2230">Ask (unchanged)</text>
+        <text x="260" y="176" font-size="12.5" fill="#1b2230">1  AskLimiter, QuestionText rules</text>
+        <text x="260" y="198" font-size="12.5" fill="#1b2230">2  store Question + original text</text>
+        <text x="279" y="216" font-size="12" fill="#5b6474">language = th</text>
+        <text x="260" y="240" font-size="12.5" fill="#1b2230">3  201 to Noor, card shows</text>
+        <text x="279" y="258" font-size="12" fill="#5b6474">"Translating for Sam…"</text>
+
+        <rect x="548" y="96" width="260" height="204" rx="12" fill="#f1edff" stroke="#d9cffd"/>
+        <text x="678" y="124" text-anchor="middle" font-size="15" font-weight="600" fill="#4c2fc4">Translate (after the 201)</text>
+        <text x="566" y="152" font-size="12.5" fill="#1b2230">targets = Sam's language</text>
+        <text x="566" y="172" font-size="12.5" fill="#1b2230">  ∪ languages guests read now</text>
+        <text x="566" y="192" font-size="12.5" fill="#1b2230">  − the question's own language</text>
+        <text x="566" y="220" font-size="12.5" fill="#1b2230">ITranslator (SW-943), one call</text>
+        <text x="566" y="240" font-size="12.5" fill="#1b2230">per target, in parallel</text>
+        <text x="566" y="268" font-size="12" fill="#5b6474">store each: text, model, ms, or failed</text>
+        <text x="566" y="286" font-size="12" fill="#5b6474">en · ja here; th is the original</text>
+
+        <rect x="870" y="40" width="292" height="92" rx="12" fill="#0b1020"/>
+        <text x="886" y="68" font-size="14.5" font-weight="600" fill="#fff">Sam: panel, remote, big screen</text>
+        <text x="886" y="92" font-size="12.5" fill="#cbd5e1">gets the question when en is stored</text>
+        <text x="886" y="112" font-size="12.5" fill="#cbd5e1">or failed (then: original + marker)</text>
+
+        <rect x="870" y="160" width="292" height="80" rx="12" fill="#fff" stroke="#d3d8e0"/>
+        <text x="886" y="188" font-size="14.5" font-weight="600" fill="#1b2230">Kenji, and every ja reader</text>
+        <text x="886" y="212" font-size="12.5" fill="#5b6474">gets it when ja is stored, with</text>
+        <text x="886" y="230" font-size="12.5" fill="#5b6474">"Show original" → the Thai</text>
+
+        <rect x="870" y="268" width="292" height="80" rx="12" fill="#fff" stroke="#d3d8e0"/>
+        <text x="886" y="296" font-size="14.5" font-weight="600" fill="#1b2230">Noor's own card</text>
+        <text x="886" y="320" font-size="12.5" fill="#5b6474">"Sent to Sam as" ← the en text</text>
+        <text x="886" y="338" font-size="12.5" fill="#5b6474">(or "Sam sees it as you wrote it")</text>
+
+        <path d="M184 198 H232" stroke="#5b6474" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+        <path d="M490 198 H540" stroke="#7a5af8" stroke-width="2" fill="none" marker-end="url(#av)"/>
+        <path d="M808 150 C840 150 840 86 862 86" stroke="#7a5af8" stroke-width="2" fill="none" marker-end="url(#av)"/>
+        <path d="M808 200 H862" stroke="#7a5af8" stroke-width="2" fill="none" marker-end="url(#av)"/>
+        <path d="M808 250 C840 250 840 308 862 308" stroke="#7a5af8" stroke-width="2" fill="none" marker-end="url(#av)"/>
+
+        <text x="16" y="392" font-size="12.5" fill="#5b6474">A question in Sam's language skips the "Sam" target; one in Kenji's skips his. With nobody reading another language, there are no calls at all.</text>
+        <text x="16" y="414" font-size="12.5" fill="#5b6474">A guest who switches to a language with no translation yet triggers the missing ones for the open questions, the same as subtitles.</text>
+        <text x="16" y="440" font-size="12.5" font-weight="600" fill="#b4580b">Hold window (D4): a reader gets the question when their translation is stored, or after 5 s with the original and "Not translated".</text>
+      </g>
+    </svg>
+  </div>
+  <h4 class="sub" style="margin:22px 0 10px;font:600 14px/1.3 var(--ui)">What is stored</h4>
+  <div class="card" style="padding:4px 6px"><div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>Table</th><th>Change</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>PollOption (question text)</td><td>Unchanged: still holds the text the guest typed</td><td>The original is the record. Everything that reads it today keeps working</td></tr>
+      <tr><td>Question</td><td>+ <code>Language</code> (catalogue code, not null; existing rows backfilled with the deck's primary language)</td><td>The question's own language, so no reader of that language gets a translation</td></tr>
+      <tr><td>QuestionTranslation <span class="pill acc" style="margin-left:4px">new</span></td><td><code>RoundId, Position, Language, Text?, ModelId?, Ms?, Outcome (ok | failed), CreatedAt</code>; unique on (RoundId, Position, Language)</td><td>One row per language a question was translated into. A failed row has no text and stops retries for that language</td></tr>
+    </tbody>
+  </table></div></div>
+</section>
+
+<!-- ============================== 06 CONTRACTS ============================== -->
+<section class="block" id="contracts">
+  <div class="sec-head"><span class="n">06</span><h2>Contracts (proposed)</h2></div>
+  <p class="sec-sub">Each view is for one reader, so the server picks the text. The client never chooses between languages; it only shows an original when the guest asks for it.</p>
+  <div class="card" style="padding:4px 6px"><div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>Contract</th><th>Today</th><th>SW-944</th></tr></thead>
+    <tbody>
+      <tr><td>AskRequest</td><td><code>(Text, Name)</code></td><td><code>(Text, Name, Language)</code>. Language is the guest's chip language, checked against the catalogue; missing means the deck's primary language</td></tr>
+      <tr><td>GuestQuestion</td><td><code>(Number, Text, Name, Age, State, Votes, OnScreen, Yours)</code></td><td>Text is in the viewer's language. + <code>Translation: none | translated | failed | pending</code>, + <code>Original?: { Text, Language }</code> when Text isn't the original. For the asker's own question: + <code>SentAs?: { Text, Language } </code> (Sam's text) and <code>SentAsState</code></td></tr>
+      <tr><td>QaQuestion (presenter)</td><td><code>(Number, Text, Name, Age, State, Hidden, OnScreen, Votes)</code></td><td>Text is in Sam's language. + <code>FromLanguage?</code> (null when it was asked in Sam's language), + <code>NotTranslated</code></td></tr>
+      <tr><td>Hub pushes</td><td><code>questions</code> to the room, <code>qa-control</code> to presenters</td><td>Room pushes go per language group, so a guest only gets their language. A stored translation pushes to its group and, for Sam's language, to presenters and the asker</td></tr>
+      <tr><td>QuestionsReportQuestion, get_questions</td><td><code>Text</code></td><td><code>Text</code> in Sam's language + <code>Original, Language</code></td></tr>
+      <tr><td>Withdraw (D7)</td><td>none</td><td><code>DELETE /api/join/{code}/questions/{n}</code>, asker only: sets <code>WithdrawnAt</code> (soft), drops it from every view, keeps it in the report as withdrawn</td></tr>
+    </tbody>
+  </table></div></div>
+</section>
+
+<!-- ============================== 07 QUESTIONS ============================== -->
+<section class="block" id="questions" data-lavish-question-group>
+  <div class="sec-head"><span class="n">07</span><h2>Questions before planning</h2></div>
+  <div class="decided">
+    <div class="card"><span class="k">D1 · confirmed</span><b>Other guests read their own language</b><span>With Show original, translated once per active guest language.</span></div>
+    <div class="card"><span class="k">D2 · confirmed</span><b>Sam's language = the subtitle language</b><span>Else the deck's primary language.</span></div>
+    <div class="card"><span class="k">D3 · confirmed</span><b>No editing in V3</b><span>"They can delete and ask again, as today."</span></div>
+  </div>
+  <div class="card" style="padding:12px 16px;margin:0 0 14px;border-color:#b7e1c6;background:var(--ok-soft)"><b style="font-weight:600;color:var(--ok)">Answered 28 Nov, recorded as D4–D8 on SW-944.</b> All five went as recommended. Q2 has one change: the language is a <b>tile</b> (a globe and a short code such as <b>TH</b>), not a "from ไทย" string. Q4 adds Withdraw to SW-944, because guests couldn't delete a question before. The mockups above now work this way.</div>
+  <div class="qs">
+
+    <form class="card q" data-lavish-question="hold">
+      <h3>Q1 → D4 · When does a new question reach someone who reads another language?</h3>
+      <p class="why">A translation takes about a second, sometimes more. Until it's back, Sam and Kenji have only the Thai.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Hold it for each reader until their translation is stored, up to 5 s; after that, show the original with Not translated (and swap in the translation if it arrives later)" checked><div><b>Hold it until their translation is ready, at most 5 seconds</b><span class="rec">recommended</span><span>As mocked. Sam never sees a question in a language they can't read unless translation really failed. A one-second delay in a live Q&amp;A is invisible.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Show it at once in the original with Translating…, and swap the text in place when the translation arrives"><div><b>At once, in the original, then swap</b><span>Nothing waits. But Sam's panel fills with Thai for a second and the text changes under the reader's thumb.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Hold it until the translation is stored, with no time limit; a failed translation is never shown to readers of other languages"><div><b>Hold until translated, however long it takes</b><span>Cleanest for readers, but a failure means Sam never sees the question at all.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="from-tag">
+      <h3>Q2 → D5 · Does Sam see which language a question was asked in?</h3>
+      <p class="why">The spec says Sam sees questions only in Sam's language. A tag isn't the question's text, but it is more than nothing.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="A small 'from ไทย' tag in the presenter panel only; not on the phone remote strip or the big screen; never the original text" checked><div><b>A small "from ไทย" tag in the presenter panel</b><span class="rec">recommended</span><span>As mocked. It tells Sam a translation is in between, which helps when a question reads oddly, and that the room is mixed. The remote strip and the screen stay clean.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="No language tag anywhere on Sam's side; only the Not translated marker"><div><b>Nothing: Sam's side looks exactly as today</b><span>The spec read literally. Sam can't tell a clumsy translation from a clumsy question.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="The tag, and tapping it shows the original text in the presenter panel"><div><b>The tag, and a tap shows the original</b><span>Useful to a bilingual presenter. Goes against "only in their own language".</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="source-language">
+      <h3>Q3 → D6 · Which language is a question in?</h3>
+      <p class="why">The guest's chip says Thai, but people often type in English anyway, or the other way round. Translating "th → en" on English text wastes a call and can mangle it.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="The chip language is a hint; SW-943's engine reports the language it detected, and that is what is stored as the question's language. No picker in the ask sheet" checked><div><b>The chip is a hint; store what the engine detects</b><span class="rec">recommended</span><span>Nothing for the guest to set. An English question from a guest reading Thai reaches an English-speaking Sam untranslated. Needs SW-943's <code>ITranslator</code> to return the detected source language.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Trust the chip language; no detection"><div><b>Trust the chip</b><span>Simplest, and no SW-943 change. Wrong whenever someone types in a language other than the one they read in.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="A 'Writing in' picker in the ask sheet, defaulting to the chip language"><div><b>A "Writing in" picker in the ask sheet</b><span>Exact, but one more thing to look at on a sheet that is meant to be one box and a button.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="withdraw">
+      <h3>Q4 → D7 · D3 said "delete and ask again, as today". Guests can't delete today. What now?</h3>
+      <p class="why">The point of showing the translation is that Noor can see it reads wrong. Without a way out, all she can do is ask a second question and leave the bad one up.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Add Withdraw on the asker's own question, in SW-944: a soft delete (WithdrawnAt), gone from every view at once, upvotes dropped, kept in the report as withdrawn; not allowed once Answered or on screen" checked><div><b>Add "Withdraw" on your own question, in SW-944</b><span class="rec">recommended</span><span>A soft delete: gone from every phone and from Sam's panel at once, kept in the report as withdrawn. Not once Sam has answered it or put it on screen.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="No withdraw: the guest asks again and Sam hides the bad one"><div><b>No withdraw. Ask again; Sam can hide the bad one</b><span>Nothing to build. Leaves a mistranslated question up for the room to upvote.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="File Withdraw as its own Feature under SW-9, not in SW-944"><div><b>File withdraw separately, under SW-9</b><span>It isn't really about languages. SW-944 ships without it.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+    <form class="card q" data-lavish-question="speaker-switch">
+      <h3>Q5 → D8 · What happens to the questions already asked when Sam's language changes?</h3>
+      <p class="why">D2 ties Sam's language to the subtitle language. Turning subtitles on, or changing their language, partway through moves it.</p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="a" value="Translate the open and waiting questions into the new language in the background; until each is back, Sam sees its original with Translating…; answered and hidden ones translate only when opened" checked><div><b>Translate the backlog in the background</b><span class="rec">recommended</span><span>Sam's panel is all in the new language within a few seconds. Answered and hidden questions wait until someone opens their tab. The same rule as a guest switching language.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Only questions asked after the change are translated into the new language; older ones keep the old language"><div><b>Only new questions use the new language</b><span>No burst of calls, but Sam's panel ends up in two languages.</span></div></label>
+        <label class="choice"><input type="radio" name="a" value="Fix Sam's language for the Q&A round when it opens; later subtitle changes don't move it"><div><b>Fix it when the round opens</b><span>Predictable, but turning subtitles on later never helps Q&amp;A.</span></div></label>
+      </div>
+      <textarea name="note" placeholder="Note (optional)"></textarea>
+      <div class="qfoot"><button class="btn primary" type="submit">Queue answer</button><span class="state">Not queued</span></div>
+    </form>
+
+  </div>
+  <div class="copyall"><button class="btn" type="button" id="copyAll">Copy all answers</button><span id="copyStatus" role="status" aria-live="polite"></span></div>
+</section>
+
+</main>
+
+<script>
+(() => {
+  const STILL = /[?&]still\b/.test(location.search);
+  if (STILL) document.documentElement.classList.add('still');
+  const N = 6, CODE = '482 913';
+  const DECK = { title: 'Shipping smaller changes', who: 'Sam Rivera' };
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const lock = '<svg viewBox="0 0 10 12" fill="currentColor"><path d="M2 5V3.5a3 3 0 0 1 6 0V5h.5A1.5 1.5 0 0 1 10 6.5v4A1.5 1.5 0 0 1 8.5 12h-7A1.5 1.5 0 0 1 0 10.5v-4A1.5 1.5 0 0 1 1.5 5zm1.3 0h3.4V3.5a1.7 1.7 0 0 0-3.4 0z"/></svg>';
+  const globe = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.3"/><path d="M1.8 8h12.4M8 1.7c1.8 1.9 2.6 4 2.6 6.3S9.8 12.4 8 14.3C6.2 12.4 5.4 10.3 5.4 8S6.2 3.6 8 1.7z"/></svg>';
+
+  // ---------- languages and sample questions ----------
+  const LG = {
+    en: { chip: 'EN', name: 'English', en: 'English' },
+    th: { chip: 'ไทย', name: 'ไทย', en: 'Thai' },
+    ja: { chip: '日本語', name: '日本語', en: 'Japanese' },
+    zh: { chip: '繁中', name: '繁體中文', en: 'Chinese' }
+  };
+  const LANGS = ['th', 'ja', 'en', 'zh'];
+  const MODEL = (a, b) => (a === 'ja' || b === 'ja' || a === 'zh' || b === 'zh') ? 'hy-mt2-1.8b' : 'translategemma-4b';
+  const T = {
+    q1: { th: 'จะแบ่งการย้ายฐานข้อมูลออกเป็นการเปลี่ยนแปลงเล็กๆ ได้อย่างไร?', en: 'How do you split a database migration into small changes?', ja: 'データベース移行を小さな変更に分けるにはどうすればいいですか?', zh: '要怎麼把資料庫遷移拆成小的變更?' },
+    q2: { en: 'What do you do when a small change still needs a big review?', th: 'ถ้าการเปลี่ยนแปลงเล็กๆ ยังต้องรีวิวใหญ่ จะทำอย่างไร?', ja: '小さな変更でも大きなレビューが必要なときはどうしますか?', zh: '小變更還是需要大型審查時,該怎麼辦?' },
+    q3: { ja: 'リリーストレインがあってもトランクベース開発はうまくいきますか?', en: 'Does trunk-based development work with a release train?', th: 'การพัฒนาแบบ trunk-based ใช้กับ release train ได้ไหม?', zh: '有發佈列車的話,主幹開發還行得通嗎?' },
+    q4: { zh: '多小才算太小?', en: 'How small is too small?', th: 'เล็กแค่ไหนถึงจะเรียกว่าเล็กเกินไป?', ja: 'どこまで小さいと小さすぎますか?' },
+    q5: { en: 'Do feature flags count as shipping?', th: 'feature flag นับว่าเป็นการ ship หรือเปล่า?', ja: 'フィーチャーフラグはリリースに数えますか?', zh: '功能旗標算是出貨嗎?' },
+    q6: { th: 'แล้วใครรีวิวคนที่รีวิว?', en: 'Who reviews the reviewers?', ja: 'レビュアーは誰がレビューするのですか?', zh: '那誰來審查審查者?' },
+    m1: { th: 'จะทำให้ทีมเริ่มทำแบบนี้ได้อย่างไร?', en: 'How do you get a team to start doing this?', ja: 'チームにこれを始めてもらうにはどうすればいいですか?', zh: '要怎麼讓團隊開始這樣做?' },
+    m2: { th: 'ถ้ามีแค่ทีมเดียวที่ทำ จะยังได้ผลไหม?', en: 'Does it still work if only one team does it?', ja: '1チームだけでやっても効果はありますか?', zh: '如果只有一個團隊這樣做,還有效嗎?' },
+    m3: { th: 'ใช้เวลานานแค่ไหนกว่าจะเห็นผล?', en: 'How long before you see a difference?', ja: '効果が出るまでどのくらいかかりますか?', zh: '要多久才會看到差別?' },
+    p1: { ja: '毎日マージするとレビューが追いつかなくなりませんか?', en: "If we merge every day, won't reviews fall behind?", th: 'ถ้า merge ทุกวัน การรีวิวจะตามไม่ทันหรือเปล่า?', zh: '每天合併的話,審查不會跟不上嗎?' },
+    p2: { zh: '這對手機應用的發佈也適用嗎?', en: 'Does this work for mobile app releases?', th: 'ใช้กับการปล่อยแอปมือถือได้ไหม?', ja: 'モバイルアプリのリリースにも使えますか?' },
+    p3: { en: 'What goes wrong first when a team tries this?', th: 'เวลาทีมลองทำแบบนี้ อะไรมักพังก่อน?', ja: 'チームがこれを試すと、最初に何がうまくいかなくなりますか?', zh: '團隊嘗試這樣做時,最先出問題的是什麼?' },
+    p4: { th: 'ขอสไลด์หลังจบได้ไหม?', en: 'Can we get the slides afterwards?', ja: '後でスライドをもらえますか?', zh: '之後可以拿到投影片嗎?' }
+  };
+  // x: { id, src, all (every language), tx (stored so far), v, by, age, st, mine, voted, fail, at }
+  const mk = (id, key, src, v, by, age, more) => Object.assign({ id, key, src, all: T[key], tx: Object.assign({}, T[key]), v, by, age, st: 'open' }, more || {});
+  const BASE = () => [mk(1, 'q1', 'th', 14, '', '6 min'), mk(2, 'q2', 'en', 9, 'Priya', '5 min'), mk(3, 'q3', 'ja', 7, '', '4 min'), mk(4, 'q4', 'zh', 5, '', '3 min'), mk(5, 'q5', 'en', 3, 'Dana', '2 min'), mk(6, 'q6', 'th', 2, '', '1 min')];
+  const POOL = [['p1', 'ja', ''], ['p2', 'zh', ''], ['p3', 'en', 'Lee'], ['p4', 'th', '']];
+  const byTop = (a, b) => b.v - a.v || a.id - b.id;
+  const byNew = (a, b) => b.id - a.id;
+  const who = (x) => x.by ? esc(x.by) : 'Anonymous';
+
+  // what reader in language L sees for x: { text, kind: orig | tr | nt | pending }
+  function view(x, L) {
+    if (x.src === L) return { text: x.tx[x.src], kind: 'orig' };
+    if (x.tx[L] != null) return { text: x.tx[L], kind: 'tr' };
+    if (x.fail && x.fail[L]) return { text: x.tx[x.src], kind: 'nt' };
+    return { text: x.tx[x.src], kind: 'pending' };
+  }
+
+  // ---------- slides (960 x 540) ----------
+  function spot(text, x) {
+    return '<div class="spot-dim"></div><div class="spot"><div class="spl"><span>Question from the room</span><em>▲ ' + x.v + '</em><span class="by">' + who(x) + '</span></div><div class="spt">' + esc(text) + '</div></div>';
+  }
+  function contentSlide(extra) {
+    const prog = '<div class="sprog" style="width:' + (3 / N * 100) + '%"></div>';
+    const foot = '<div class="foot"><span>' + DECK.title + '</span><span>3 / ' + N + '</span></div>';
+    return '<div class="sl"><div class="kick">Why small batches</div><h3>Smaller changes ship faster and break less</h3><div class="cards"><div><div class="num">4×</div><b>Faster review</b><span>Under 200 lines gets a first review within the hour.</span></div><div><div class="num">−60%</div><b>Fewer rollbacks</b><span>When something breaks, there is less to look through.</span></div><div><div class="num">1</div><b>One idea per change</b><span>Easy to name, easy to revert, easy to explain.</span></div></div>' + foot + prog + (extra || '') + '</div>';
+  }
+  const ro = new ResizeObserver(entries => { for (const e of entries) e.target.style.setProperty('--s', e.contentRect.width / 960); });
+  function setFrame(frame, html) { frame.innerHTML = html; if (!frame._obs) { ro.observe(frame); frame._obs = true; } }
+  const B0 = BASE();
+  const MOUNT = { c2: () => contentSlide(), spot: () => contentSlide(spot(T.q1.en, B0[0])) };
+  function hydrate(root) { root.querySelectorAll('[data-mount]').forEach(f => { setFrame(f, MOUNT[f.dataset.mount]()); f.removeAttribute('data-mount'); }); }
+
+  // ---------- guest phone ----------
+  const sbar = '<div class="island"></div><div class="sbar"><span>9:41</span><span class="ic"><b></b><i></i></span></div>';
+  const urlbar = '<div class="urlbar">' + lock + '<span>slideworks.live/482913</span></div>';
+  const chip = (L) => '<button type="button" class="lang" data-chip aria-label="Language: ' + LG[L].en + '. Change">' + globe + '<span>' + LG[L].chip + '</span><span class="car">▼</span></button>';
+  const top = (L) => '<div class="g-top"><div class="g-mark">S</div><div class="g-deck"><b>' + DECK.title + '</b><span>' + DECK.who + '</span></div>' + chip(L) + '<span class="live">Live</span></div>';
+  const tabs = (n) => '<div class="tabs" role="tablist"><button type="button" role="tab" aria-selected="false" data-tab="slide">Slide</button><button type="button" role="tab" aria-selected="true" data-tab="q" class="on">Questions' + (n ? '<span class="bdg">' + n + '</span>' : '') + '</button></div>';
+  function shell(inner, o) { return sbar + '<div class="pbody">' + top(o.L) + inner + tabs(o.n) + '</div>' + (o.sheet || urlbar); }
+
+  // o: L (reader), S (Sam's language), open (Set of ids with original shown)
+  function ownBox(x, o) {
+    if (x.src === o.S) return '';
+    const wd = x.st === 'answered' || o.spot === x.id ? '' : '<span class="wdrow">Reads wrong? <button type="button" class="wdb" data-wd="' + x.id + '">Withdraw</button></span>';
+    if (x.tx[o.S] != null) return '<div class="sentas"><small>Sent to Sam as <span class="ltag">' + LG[o.S].chip + '</span></small>' + esc(x.tx[o.S]) + (x.demo ? '<span class="fine2">demo: no engine behind this page</span>' : '') + wd + '</div>';
+    if (x.fail && x.fail[o.S]) return '<div class="sentas nt"><small>Not translated</small>Sam sees it as you wrote it.' + wd + '</div>';
+    return '<div class="sentas pend"><span class="tspin"></span>Translating for Sam…</div>';
+  }
+  function qRow(x, o) {
+    let up;
+    if (x.st === 'review') up = '<span class="up ro held" aria-hidden="true"><span>…</span></span>';
+    else if (x.st === 'answered') up = '<span class="up ro done" aria-hidden="true"><span>✓</span></span>';
+    else up = '<button type="button" class="up' + (x.voted ? ' on' : '') + '" data-up="' + x.id + '" aria-pressed="' + !!x.voted + '" aria-label="Upvote. ' + x.v + ' votes"><i>▲</i><span>' + x.v + '</span></button>';
+    const vw = x.mine ? { text: x.tx[x.src], kind: 'orig' } : view(x, o.L);
+    let m = (x.mine ? '<em class="you">You</em>' : '') + '<span>' + who(x) + ' · ' + x.age + '</span>';
+    if (x.st === 'review') m += '<em class="hold">Waiting for Sam</em>';
+    if (o.spot === x.id && x.st === 'open') m += '<em class="live">On screen now</em>';
+    if (vw.kind === 'tr') m += '<em class="trn">Translated</em><button type="button" class="origb" data-orig="' + x.id + '" aria-expanded="' + !!(o.open && o.open.has(x.id)) + '">' + (o.open && o.open.has(x.id) ? 'Hide original' : 'Show original') + '</button>';
+    if (vw.kind === 'nt') m += '<em class="nt">Not translated</em>';
+    if (vw.kind === 'pending') m += '<em class="off"><span class="tspin" style="display:inline-block;width:8px;height:8px;border-width:1.5px;vertical-align:-1px;margin-right:4px"></span>Translating…</em>';
+    const orig = vw.kind === 'tr' && o.open && o.open.has(x.id) ? '<div class="otx"><small>Original · ' + LG[x.src].name + '</small>' + esc(x.tx[x.src]) + '</div>' : '';
+    return '<div class="qi' + (x.st === 'answered' ? ' dim' : '') + '">' + up + '<div><div class="qtx">' + esc(vw.text) + '</div><div class="qm">' + m + '</div>' + orig + (x.mine ? ownBox(x, o) : '') + '</div></div>';
+  }
+  // which questions this reader may see (Q1: held until their translation is stored or failed; mine always)
+  const visibleTo = (x, L) => x.st !== 'withdrawn' && (x.mine || (x.st !== 'review' && x.st !== 'hidden' && (view(x, L).kind !== 'pending' || !x.fresh)));
+  function qCard(qs, o) {
+    const sort = o.sort || 'top';
+    const mineHeld = qs.filter(x => x.mine && x.st === 'review');
+    const open = qs.filter(x => x.st === 'open').sort(sort === 'top' ? byTop : byNew);
+    const done = qs.filter(x => x.st === 'answered').sort(byTop);
+    const head = '<div class="qh"><strong>Questions</strong><span class="cnt">' + open.length + ' open</span><span class="seg" role="group" aria-label="Sort"><button type="button" data-sort="top" class="' + (sort === 'top' ? 'on' : '') + '">Top</button><button type="button" data-sort="new" class="' + (sort === 'new' ? 'on' : '') + '">New</button></span></div>';
+    const body = '<div class="qlist">' + mineHeld.map(x => qRow(x, o)).join('') + open.map(x => qRow(x, o)).join('') + (done.length ? '<div class="qsec">Answered · ' + done.length + '</div>' + done.map(x => qRow(x, o)).join('') : '') + '</div>';
+    return '<div class="activity qa">' + head + body + '<button type="button" class="sbtn" data-act="ask">Ask a question</button></div>';
+  }
+  function askSheet(o) {
+    const text = o.text || '';
+    const note = o.L === o.S
+      ? '<div class="trnote">' + globe.replace('<svg', '<svg class="gl"') + '<span>Sam reads questions in <b>' + LG[o.S].en + '</b>, the same as you.</span></div>'
+      : '<div class="trnote">' + globe.replace('<svg', '<svg class="gl"') + '<span>Sam reads questions in <b>' + LG[o.S].en + '</b>. Write in any language: after you send, you\'ll see how it reads for Sam.</span></div>';
+    return '<div class="sheet-dim"></div><div class="sheet"><div class="grab"></div><h4>Ask a question</h4><button type="button" class="x" data-act="cancel" aria-label="Close">✕</button>' + note +
+      '<textarea class="qta" data-f="text" maxlength="200" rows="3" placeholder="What would you like Sam to answer?" aria-label="Your question">' + esc(text) + '</textarea>' +
+      '<div class="cnt-row"><span>One question at a time works best</span><span data-len>' + text.length + ' / 200</span></div>' +
+      '<div class="who-row" role="switch" tabindex="0" aria-checked="false"><span>Show my name<small>Off: nobody sees who asked, not even Sam.</small></span><i class="sw"></i></div>' +
+      '<button type="button" class="pbtn" data-act="send"' + (text.trim() ? '' : ' disabled') + '>Send anonymously</button>' +
+      '<div class="fine">You can\'t edit a question after sending it.</div></div>';
+  }
+
+  // ---------- presenter panel ----------
+  // D5: the language a question was asked in, as a tile (globe + code), never the original text
+  const tile = (l) => '<span class="ltile" title="Asked in ' + LG[l].en + '" aria-label="Asked in ' + LG[l].en + '">' + globe + l.toUpperCase() + '</span>';
+  function qPanel(qs, o) {
+    const S = o.S;
+    const seen = qs.filter(x => x.st !== 'hidden' && x.st !== 'withdrawn' && (view(x, S).kind !== 'pending' || !x.fresh));
+    const held = qs.filter(x => x.fresh && view(x, S).kind === 'pending').length;
+    const cnt = (st) => seen.filter(x => x.st === st).length;
+    const tab = (k, label, n, alert) => '<button type="button" class="' + (o.tab === k ? 'on' : '') + (alert && n ? ' alert' : '') + '">' + label + ' ' + n + '</button>';
+    const tabsH = '<div class="qp-tabs">' + tab('open', 'Open', cnt('open')) + (o.review ? tab('review', 'To review', cnt('review'), true) : '') + tab('answered', 'Answered', cnt('answered')) + tab('hidden', 'Hidden', qs.filter(x => x.st === 'hidden').length) + '<button type="button" class="sortb">Top ▾</button></div>';
+    const list = seen.filter(x => x.st === (o.tab || 'open')).sort(byTop);
+    const b = (d, label, id, cls) => '<button type="button" class="tbtn' + (cls ? ' ' + cls : '') + '" data-do="' + d + '" data-id="' + id + '">' + label + '</button>';
+    const rows = list.map(x => {
+      const vw = view(x, S), on = o.spot === x.id;
+      const tag = (vw.kind === 'tr' || vw.kind === 'nt' ? tile(x.src) : '') + (vw.kind === 'nt' ? '<span class="ntm">Not translated</span>' : '');
+      const acts = x.st === 'review' ? b('approve', 'Approve', x.id, 'go') + b('hide', 'Hide', x.id) : (on ? b('clear', 'Take off screen', x.id) : b('show', 'Show on screen', x.id, 'go')) + b('answered', 'Answered', x.id) + b('hide', 'Hide', x.id);
+      return '<div class="qp-i' + (on ? ' on' : '') + (vw.kind === 'nt' ? ' ntq' : '') + '"><div class="qp-v"><i>▲</i>' + x.v + '</div><div><div class="qp-t">' + esc(vw.text) + '</div><div class="qp-m">' + who(x) + ' · ' + x.age + tag + (on ? ' · <b>On screen now</b>' : '') + '</div><div class="qp-a">' + acts + '</div></div></div>';
+    }).join('');
+    return tabsH + '<div class="qp-list">' + (rows || '<div class="qp-none">No open questions.</div>') + '</div>' +
+      (held ? '<div class="qp-held"><span class="tspin"></span>' + held + ' new question' + (held === 1 ? '' : 's') + ' translating…</div>' : '') +
+      '<div class="qp-set"><span>Questions <b>open</b></span><span>Review <b>' + (o.review ? 'first' : 'off') + '</b></span><span>Questions in <b>' + LG[S].en + '</b></span></div>';
+  }
+
+  // ---------- static states (section 03 + 04) ----------
+  const noorQ = (more) => mk(20, 'm1', 'th', 1, '', 'now', Object.assign({ mine: true, voted: true }, more || {}));
+  const without = (x, langs) => { langs.forEach(l => { if (l !== x.src) delete x.tx[l]; }); return x; };
+  const PHONE = {
+    ask: () => shell(qCard(BASE(), { L: 'th', S: 'en' }), { L: 'th', n: 6, sheet: askSheet({ L: 'th', S: 'en', text: T.m1.th }) }),
+    pending: () => shell(qCard([without(noorQ(), ['en', 'ja', 'zh'])].concat(BASE()), { L: 'th', S: 'en', sort: 'new' }), { L: 'th', n: 7 }),
+    sent: () => shell(qCard([noorQ()].concat(BASE()), { L: 'th', S: 'en', sort: 'new' }), { L: 'th', n: 7 }),
+    same: () => shell(qCard([mk(20, 'm2', 'en', 1, 'Priya', 'now', { mine: true, voted: true })].concat(BASE()), { L: 'en', S: 'en', sort: 'new' }), { L: 'en', n: 7 }),
+    failed: () => { const x = without(noorQ(), ['en', 'ja', 'zh']); x.fail = { en: true, ja: true, zh: true }; return shell(qCard([x].concat(BASE()), { L: 'th', S: 'en', sort: 'new' }), { L: 'th', n: 7 }); },
+    other: () => { const qs = [mk(20, 'm1', 'th', 3, '', '1 min')].concat(BASE()); qs[0].v = 16; return shell(qCard(qs, { L: 'ja', S: 'en', open: new Set([20]) }), { L: 'ja', n: 7 }); },
+    catchup: () => { const qs = BASE(); [qs[0], qs[2], qs[4]].forEach(x => delete x.tx.zh); return shell(qCard(qs, { L: 'zh', S: 'en' }), { L: 'zh', n: 6 }); },
+    review: () => shell(qCard([noorQ({ st: 'review' })].concat(BASE()), { L: 'th', S: 'en' }), { L: 'th', n: 6 })
+  };
+  document.querySelectorAll('[data-pstate]').forEach(el => { el.innerHTML = PHONE[el.dataset.pstate](); hydrate(el); });
+  (() => {
+    const b = BASE();
+    const nt = mk(8, 'p4', 'th', 11, '', '1 min'); without(nt, ['en']); nt.fail = { en: true };
+    document.getElementById('spkPanel').innerHTML = qPanel([b[0], nt, b[2]], { S: 'en', spot: 1, tab: 'open' });
+  })();
+  hydrate(document);
+
+  // ---------- live demo ----------
+  const $ = (id) => document.getElementById(id);
+  const gA = $('gA'), gB = $('gB'), sPanel = $('sPanel'), sSlide = $('sSlide'), store = $('store');
+  const fresh = () => ({ qs: BASE(), next: 21, A: { L: 'th', sheet: true, text: T.m1.th, sort: 'new', open: new Set() }, B: { L: 'ja', sort: 'top', open: new Set(), votes: new Set() }, S: 'en', spot: null, pool: POOL.slice(), presetKey: 'm1', rows: [], paused: false });
+  let D = fresh(); let timer = null; const pend = [];
+  const find = (id) => D.qs.find(x => x.id === id);
+
+  function logRow(r) { D.rows.unshift(r); if (D.rows.length > 40) D.rows.length = 40; paintStore(r); }
+  function paintStore(nr) {
+    store.innerHTML = D.rows.map(r => '<tr' + (r === nr ? ' class="newrow"' : '') + '><td>' + r.n + '</td><td><span class="kind ' + r.k + '">' + { o: 'Original', t: 'Translation', f: 'Failed', w: 'Withdrawn' }[r.k] + '</span></td><td><span class="ltag">' + LG[r.l].chip + '</span></td><td class="t">' + (r.t ? esc(r.t) : '<span style="color:var(--faint)">no text: readers get the original</span>') + '</td><td><span class="mono-s">' + (r.m || '—') + '</span></td><td><span class="mono-s">' + (r.ms ? r.ms + ' ms' : '—') + '</span></td></tr>').join('');
+  }
+  function seedStore() {
+    D.rows = [];
+    const x = D.qs[0];
+    [['zh', 1210], ['ja', 980], ['en', 760]].forEach(([l, ms]) => D.rows.push({ n: x.id, k: 't', l, t: x.all[l], m: MODEL(x.src, l), ms }));
+    D.rows.push({ n: x.id, k: 'o', l: x.src, t: x.all[x.src] });
+    paintStore();
+  }
+
+  function keepScroll(root, sel, fn) { const a = root.querySelector(sel), y = a ? a.scrollTop : 0; fn(); const b = root.querySelector(sel); if (b) b.scrollTop = y; }
+  const nOpen = (L) => D.qs.filter(x => x.st === 'open' && visibleTo(x, L)).length;
+  function paintA() { keepScroll(gA, '.qlist', () => { gA.innerHTML = shell(qCard(D.qs.filter(x => visibleTo(x, D.A.L)), { L: D.A.L, S: D.S, sort: D.A.sort, open: D.A.open, spot: D.spot }), { L: D.A.L, n: nOpen(D.A.L), sheet: D.A.sheet ? askSheet({ L: D.A.L, S: D.S, text: D.A.text }) : '' }); }); }
+  // Kenji sees Noor's question as anyone else's, with his own upvotes
+  const asKenji = () => D.qs.map(x => Object.assign({}, x, { mine: false, voted: D.B.votes.has(x.id) })).filter(x => visibleTo(x, D.B.L));
+  function paintB() { keepScroll(gB, '.qlist', () => { gB.innerHTML = shell(qCard(asKenji(), { L: D.B.L, S: D.S, sort: D.B.sort, open: D.B.open, spot: D.spot }), { L: D.B.L, n: nOpen(D.B.L) }); }); }
+  function paintS() {
+    keepScroll(sPanel, '.qp-list', () => { sPanel.innerHTML = qPanel(D.qs, { S: D.S, spot: D.spot, tab: 'open' }); });
+    const x = D.spot != null ? find(D.spot) : null;
+    setFrame(sSlide, contentSlide(x && x.st === 'open' ? spot(view(x, D.S).text, x) : ''));
+    $('sLangChip').textContent = LG[D.S].en;
+  }
+  function paintCtl() {
+    document.querySelectorAll('.seg2[data-who]').forEach(s => {
+      const w = s.dataset.who, cur = w === 'a' ? D.A.L : w === 'b' ? D.B.L : D.S;
+      const opts = w === 's' ? ['en', 'th', 'ja'] : LANGS;
+      s.innerHTML = opts.map(l => '<button type="button" data-l="' + l + '" class="' + (l === cur ? 'on' : '') + '">' + LG[l].name + '</button>').join('');
+    });
+    const keys = ['m1', 'm2', 'm3'];
+    $('presets').innerHTML = keys.map(k => '<button type="button" data-k="' + k + '">' + esc(T[k][D.A.L]) + '</button>').join('') + '<button type="button" data-k="en">' + esc(T.m2.en) + ' <span style="color:var(--faint)">(English, from a Thai reader)</span></button>';
+  }
+  function paint() { paintA(); paintB(); paintS(); }
+
+  // the languages someone is reading right now
+  // the room has readers in all four languages, so every question fans out to all of them (D1)
+  const active = () => LANGS;
+  // translate x into every language it lacks, as the server would; failNow = engine fails for this question
+  function translate(x, failNow) {
+    const targets = active().filter(l => l !== x.src && x.tx[l] == null && !(x.fail && x.fail[l]));
+    let left = targets.length;
+    if (!left) { x.fresh = false; return; }
+    targets.forEach((l, i) => {
+      const prio = l === D.S ? 0 : (l === D.A.L || l === D.B.L ? 1 : 2);
+      const ms = STILL ? 0 : Math.round(650 + prio * 380 + Math.random() * 520 + i * 60);
+      const t = setTimeout(() => {
+        if (failNow) { x.fail = x.fail || {}; x.fail[l] = true; logRow({ n: x.id, k: 'f', l, m: MODEL(x.src, l), ms: 5000 }); }
+        else { x.tx[l] = x.all[l]; logRow({ n: x.id, k: 't', l, t: x.all[l], m: MODEL(x.src, l), ms }); }
+        if (--left === 0) x.fresh = false;
+        paint();
+      }, failNow ? (STILL ? 0 : 1800 + i * 80) : ms);
+      pend.push(t);
+    });
+    // Q1 hold window: after 5 s a reader gets the original anyway
+    pend.push(setTimeout(() => { x.fresh = false; paint(); }, 5000));
+  }
+  function ask(key, src, by, mine, text) {
+    const id = D.next++;
+    let all;
+    if (key) all = T[key];
+    else { all = {}; LANGS.forEach(l => { all[l] = l === src ? text : '(' + LG[l].en + ') ' + text; }); }
+    const x = { id, key, src, all, tx: { [src]: all[src] }, v: 1, by, age: 'now', st: 'open', fresh: true, mine, voted: mine, demo: !key };
+    D.qs.push(x);
+    logRow({ n: id, k: 'o', l: src, t: all[src] });
+    const failNow = mine && $('cFail').checked;
+    if (failNow) $('cFail').checked = false;
+    translate(x, failNow);
+    paint();
+  }
+  function sendA() {
+    const text = D.A.text.trim().replace(/\s+/g, ' '); if (!text) return;
+    // a sample question keeps its real translations; free text gets a pretend one
+    const keyLang = (() => { for (const k of ['m1', 'm2', 'm3']) for (const l of LANGS) if (T[k][l] === text) return [k, l]; return null; })();
+    if (keyLang) ask(keyLang[0], keyLang[1], '', true);
+    else ask(null, D.A.L, '', true, text);
+    D.A.text = ''; D.A.sheet = false; D.A.sort = 'new';
+    paint();
+  }
+  function tick() {
+    clearTimeout(timer);
+    if (!D.paused) {
+      const r = Math.random(), open = D.qs.filter(x => x.st === 'open' && !x.fresh);
+      if (r < .62 && open.length) { const x = open[Math.floor(Math.pow(Math.random(), 1.7) * open.length)]; if (x.v < 38) { x.v++; paint(); } }
+      else if (r < .8 && D.pool.length) { const p = D.pool.shift(); ask(p[0], p[1], p[2], false); }
+    }
+    timer = setTimeout(tick, 2200 + Math.random() * 1800);
+  }
+  // a reader switching to a language triggers the missing translations (D1's fan-out)
+  function switched() { D.qs.forEach(x => { if (LANGS.some(l => x.tx[l] == null && l !== x.src && !(x.fail && x.fail[l]))) translate(x, false); }); }
+
+  function onPhone(root, which) {
+    root.addEventListener('click', e => {
+      const t = e.target, R = D[which];
+      const wdb = t.closest('[data-wd]');
+      if (wdb && which === 'A') { const x = find(+wdb.dataset.wd); if (x) { x.st = 'withdrawn'; if (D.spot === x.id) D.spot = null; logRow({ n: x.id, k: 'w', l: x.src, t: x.tx[x.src] }); paint(); } return; }
+      const up = t.closest('[data-up]'), og = t.closest('[data-orig]'), act = t.closest('[data-act]'), sort = t.closest('[data-sort]'), ch = t.closest('[data-chip]');
+      if (up) {
+        const x = find(+up.dataset.up); if (!x) return;
+        if (which === 'B') { const on = !R.votes.has(x.id); on ? R.votes.add(x.id) : R.votes.delete(x.id); x.v += on ? 1 : -1; }
+        else { x.voted = !x.voted; x.v += x.voted ? 1 : -1; }
+        paint();
+      }
+      else if (og) { const id = +og.dataset.orig; R.open.has(id) ? R.open.delete(id) : R.open.add(id); paint(); }
+      else if (sort) { R.sort = sort.dataset.sort; paint(); }
+      else if (ch) { const i = LANGS.indexOf(R.L); R.L = LANGS[(i + 1) % LANGS.length]; if (which === 'A' && D.A.sheet) D.A.text = T[D.presetKey][R.L]; switched(); paintCtl(); paint(); }
+      else if (act && which === 'A') {
+        const a = act.dataset.act;
+        if (a === 'ask') { D.A.sheet = true; paintA(); }
+        if (a === 'cancel') { D.A.sheet = false; paintA(); }
+        if (a === 'send') sendA();
+      }
+    });
+  }
+  onPhone(gA, 'A'); onPhone(gB, 'B');
+  gA.addEventListener('input', e => {
+    if (e.target.dataset.f !== 'text') return;
+    D.A.text = e.target.value;
+    const l = gA.querySelector('[data-len]'); if (l) l.textContent = D.A.text.length + ' / 200';
+    const btn = gA.querySelector('[data-act="send"]'); if (btn) btn.disabled = !D.A.text.trim();
+  });
+  gA.addEventListener('keydown', e => { if (e.target.dataset.f === 'text' && e.key === 'Enter') { e.preventDefault(); sendA(); } });
+  sPanel.addEventListener('click', e => {
+    const b = e.target.closest('[data-do]'); if (!b) return;
+    const x = find(+b.dataset.id); if (!x) return;
+    const d = b.dataset.do;
+    if (d === 'show') D.spot = x.id;
+    if (d === 'clear') D.spot = null;
+    if (d === 'answered') { x.st = 'answered'; if (D.spot === x.id) D.spot = null; }
+    if (d === 'hide') { x.st = 'hidden'; if (D.spot === x.id) D.spot = null; }
+    if (d === 'approve') x.st = 'open';
+    paint();
+  });
+  document.querySelector('.ctl944').addEventListener('click', e => {
+    const lb = e.target.closest('.seg2 button'), pk = e.target.closest('#presets button');
+    if (lb) {
+      const w = lb.parentElement.dataset.who, l = lb.dataset.l;
+      if (w === 'a') { D.A.L = l; if (D.A.sheet) D.A.text = T[D.presetKey][l]; }
+      if (w === 'b') D.B.L = l;
+      if (w === 's') D.S = l;
+      switched(); paintCtl(); paint();
+    }
+    if (pk) {
+      const k = pk.dataset.k;
+      if (k === 'en') { D.A.text = T.m2.en; } else { D.presetKey = k; D.A.text = T[k][D.A.L]; }
+      D.A.sheet = true; paintA();
+    }
+  });
+  $('cRoom').onclick = () => { D.paused = !D.paused; $('cRoom').textContent = D.paused ? '▶ Resume the room' : '❚❚ Pause the room'; };
+  $('cReset').onclick = () => { pend.forEach(clearTimeout); pend.length = 0; D = fresh(); $('cRoom').textContent = '❚❚ Pause the room'; seedStore(); paintCtl(); paint(); };
+  seedStore(); paintCtl(); paint();
+  if (!STILL) timer = setTimeout(tick, 2500);
+
+  // ---------- questions: local state until "Queue answer" ----------
+  document.querySelectorAll('form.q').forEach(form => {
+    const state = form.querySelector('.state');
+    form.addEventListener('change', () => { if (state.classList.contains('queued')) { state.textContent = 'Changed since queued. Queue again to replace.'; state.classList.remove('queued'); } });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const key = form.dataset.lavishQuestion;
+      const title = form.querySelector('h3').textContent.trim();
+      const fd = new FormData(form);
+      const note = (fd.get('note') || '').toString().trim();
+      const answer = (fd.get('a') || '').toString();
+      const data = { question: key, answer }; if (note) data.note = note;
+      const prompt = 'SW-944 mockups, ' + title + ' → ' + answer + (note ? '. Note: ' + note : '') + '. Record this as a decision on SW-944 and update the mockups if it changes them.';
+      if (window.lavish && window.lavish.queuePrompt) {
+        window.lavish.queuePrompt(prompt, { tag: 'choice', text: title + ': ' + answer, element: form, queueKey: key, data });
+        state.textContent = 'Queued. Press Send to agent in the Lavish bar.';
+      } else {
+        state.textContent = 'Lavish is not running. Use "Copy all answers" below.';
+      }
+      state.classList.add('queued');
+    });
+  });
+  document.getElementById('copyAll').addEventListener('click', async () => {
+    const out = [...document.querySelectorAll('form.q')].map(f => {
+      const fd = new FormData(f); const note = (fd.get('note') || '').toString().trim();
+      return f.querySelector('h3').textContent.trim() + ': ' + fd.get('a') + (note ? ' (note: ' + note + ')' : '');
+    }).join('\n');
+    const st = document.getElementById('copyStatus');
+    try { await navigator.clipboard.writeText(out); st.textContent = 'Answers copied.'; }
+    catch { const t = document.createElement('textarea'); t.value = out; t.rows = 10; t.readOnly = true; document.querySelector('.copyall').appendChild(t); t.select(); st.textContent = 'Clipboard blocked. Copy the answers below.'; }
+  });
+})();
+</script>
+</body>
+</html>
