@@ -1,4 +1,6 @@
+import contextlib
 import http.server
+import io
 import json
 import os
 import stat
@@ -35,7 +37,8 @@ class FileServer(http.server.ThreadingHTTPServer):
                     return
                 body = f"bytes of {self.path}".encode()
                 self.send_response(200)
-                self.send_header("Content-Length", str(len(body)))
+                # /truncated/ promises more than it sends, then hangs up
+                self.send_header("Content-Length", str(len(body) + (100 if "/truncated/" in self.path else 0)))
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -51,7 +54,9 @@ class FileServer(http.server.ThreadingHTTPServer):
 
 class SaveBuildsTests(unittest.TestCase):
     def setUp(self):
-        self.directory = Path(tempfile.mkdtemp())
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.directory = Path(temporary.name)
         self.server = FileServer()
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
         self.addCleanup(self.cleanup)
@@ -61,9 +66,6 @@ class SaveBuildsTests(unittest.TestCase):
     def cleanup(self):
         self.server.shutdown()
         self.server.server_close()
-        for path in sorted(self.directory.rglob("*"), reverse=True):
-            path.unlink() if path.is_file() else path.rmdir()
-        self.directory.rmdir()
 
     def fake_eas(self, views):
         """A stand-in `eas` that logs its arguments and answers build:view from a view fixture per build id."""
@@ -122,9 +124,23 @@ class SaveBuildsTests(unittest.TestCase):
         self.assertIn("b-ios", failures[0])
         self.assertEqual(["slideworks-android-1.4.57-23.aab"], [path.name for path in self.out.iterdir()])
 
+    def test_failed_download_leaves_no_file(self):
+        target = self.out / "slideworks-android-1.4.57-23.aab"
+        self.out.mkdir()
+        with self.assertRaisesRegex(OSError, 'ended after'):
+            save_builds.download(f"{self.server.base}/truncated/android.aab", target)
+        self.assertEqual([], list(self.out.iterdir()))
+
+    def test_successful_download_leaves_only_the_final_name(self):
+        target = self.out / "slideworks-android-1.4.57-23.aab"
+        self.out.mkdir()
+        save_builds.download(f"{self.server.base}/files/android.aab", target)
+        self.assertEqual(["slideworks-android-1.4.57-23.aab"], [path.name for path in self.out.iterdir()])
+
     def test_cli_exits_one_on_partial_failure(self):
         eas = self.fake_eas({"b-android": "build_view_android.json", "b-ios": "build_view_errored.json"})
-        status = save_builds.main(["--builds", str(FIXTURES / "builds.json"), "--out", str(self.out), "--eas", eas])
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            status = save_builds.main(["--builds", str(FIXTURES / "builds.json"), "--out", str(self.out), "--eas", eas])
         self.assertEqual(1, status)
         self.assertTrue((self.out / "slideworks-android-1.4.57-23.aab").exists())
 

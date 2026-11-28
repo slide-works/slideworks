@@ -37,9 +37,20 @@ def look_up(eas, build_id):
 
 def download(url, target):
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=300) as response, open(target, "wb") as handle:
-        while chunk := response.read(1 << 20):
-            handle.write(chunk)
+    partial = target.with_name(target.name + ".part")  # a failed download never leaves a file under its final name
+    try:
+        with urllib.request.urlopen(request, timeout=300) as response, open(partial, "wb") as handle:
+            written = 0
+            while chunk := response.read(1 << 20):
+                handle.write(chunk)
+                written += len(chunk)
+        expected = response.headers.get("Content-Length")
+        if expected is not None and written != int(expected):  # a dropped connection reads as a clean end
+            raise OSError(f"download of {url} ended after {written} of {expected} bytes")
+        partial.replace(target)
+    except BaseException:
+        partial.unlink(missing_ok=True)
+        raise
 
 
 def file_name(build):
