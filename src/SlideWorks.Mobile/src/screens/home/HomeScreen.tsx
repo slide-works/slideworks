@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { links } from '../../links';
 import { useSession } from '../../platform/appRuntime';
@@ -18,7 +18,7 @@ export function HomeScreen() {
   const [code, setCode] = useState('');
   const [invalid, setInvalid] = useState(false);
 
-  const input = useRef<TextInput>(null);
+  const input = useRef<ComponentRef<typeof TextInput>>(null);
 
   const join = () => {
     const entered = code.trim();
