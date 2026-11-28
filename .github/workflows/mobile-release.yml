@@ -134,6 +134,11 @@ jobs:
             fi
           done
       - uses: actions/checkout@v4
+      # The same version the build job wrote, so deliver names the Prepare for Submission version after it.
+      - name: Work out the version
+        env:
+          APP_VERSION_PATCH: ${{ github.run_number }}
+        run: echo "APP_VERSION=$(python3 store/app_version.py --print)" >> "$GITHUB_ENV"
       - run: store/push_listing.sh ios push
 
   listing-android:
