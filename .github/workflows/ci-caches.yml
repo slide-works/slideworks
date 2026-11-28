@@ -1,0 +1,22 @@
+name: CI caches
+
+# Saves the Android build's Gradle and ccache caches. A cache saved on a pull request is visible to that pull request
+# alone, so they are saved only from main (and from a manual run, to warm a branch); every pull request build then
+# restores main's.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-caches-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  android-caches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/mobile-android-build
+        with:
+          save-caches: 'true'

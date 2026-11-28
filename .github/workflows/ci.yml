@@ -291,3 +291,38 @@ jobs:
           filter=""
           for class in $classes; do filter="${filter}FullyQualifiedName~SlideWorks.WebApi.Tests.${class}.|"; done
           dotnet test src/SlideWorks.WebApi.Tests --configuration Release --filter "${filter%|}"
+
+  # The app's checks (K13 mobile filter): format, lint, types, Vitest and Jest, then the Android bundle export.
+  mobile-checks:
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: src/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: src/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile --filter slide-works-mobile...
+      - run: pnpm --dir SlideWorks.Mobile run check
+      # Its own step because the export is memory-heavy. It proves every import resolves with no device and no Android
+      # SDK. The output folder (dist) is gitignored.
+      - run: pnpm --dir SlideWorks.Mobile run export:android
+
+  # Proves the native side compiles and links (K13 native filter). Not a required check. Restores the caches saved from
+  # main by ci-caches.yml and never saves.
+  mobile-android-build:
+    needs: changes
+    if: needs.changes.outputs.native == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/mobile-android-build
