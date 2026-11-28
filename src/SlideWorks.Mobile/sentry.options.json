@@ -1,0 +1,21 @@
+{
+  "dsn": "",
+  "sendDefaultPii": false,
+  "tracesSampleRate": 0,
+  "enableAutoSessionTracking": false,
+  "attachScreenshot": false,
+  "attachViewHierarchy": false,
+  "maxBreadcrumbs": 0,
+  "enableAppLifecycleBreadcrumbs": false,
+  "enableActivityLifecycleBreadcrumbs": false,
+  "enableAppComponentBreadcrumbs": false,
+  "enableSystemEventBreadcrumbs": false,
+  "enableNetworkEventBreadcrumbs": false,
+  "enableCaptureFailedRequests": false,
+  "enableAutoPerformanceTracing": false,
+  "enableUserInteractionTracing": false,
+  "enableNativeFramesTracking": false,
+  "enableStallTracking": false,
+  "enableAppHangTracking": false,
+  "enableWatchdogTerminationTracking": false
+}

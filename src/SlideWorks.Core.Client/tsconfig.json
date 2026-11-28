@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    // DOM for the types of fetch, Response and AbortController only. The browser globals themselves (window,
+    // document, localStorage, sessionStorage, navigator) are banned by eslint.config.js: hosts provide them through
+    // the platform seam.
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    // Node for the tests (they read fixtures from disk); the core's own code uses no Node API.
+    "types": ["node"],
+    "skipLibCheck": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src", "vitest.config.ts"]
+}

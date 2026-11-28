@@ -6,7 +6,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 usage="usage: tools/agent/preflight
 Prints one line per check: ok|warn|fail <check> <detail>. Exit 4 when any check failed.
-Checks: dotnet 10 SDK; node; pnpm at package.json's packageManager version; free disk on /
+Checks: dotnet 10 SDK; node; pnpm at src/package.json's packageManager version; free disk on /
 (warn < 20 GB, fail < 5 GB); available memory (warn < 2 GB); the test lock (holder pids, found in
 /proc/*/fd; a leftover MSBuild node holding it fails); leftover MSBuild nodes (warn); Playwright
 Chromium launches (PLAYWRIGHT_LD_LIBRARY_PATH applied); the cross-family reviewer: runs
@@ -74,7 +74,8 @@ if command -v node >/dev/null 2>&1; then
 else
   report fail node "node not found on PATH"
 fi
-want="$(sed -n 's/.*"packageManager": *"pnpm@\([^"]*\)".*/\1/p' "$client/package.json")"
+# The pin lives in the pnpm workspace root's package.json (src/package.json).
+want="$(sed -n 's/.*"packageManager": *"pnpm@\([^"]*\)".*/\1/p' "$root/src/package.json")"
 if command -v pnpm >/dev/null 2>&1; then
   have="$(cd "$client" && pnpm --version 2>>"$AGENT_LOG" | tail -1)" || have="unknown (pnpm --version failed, see the log)"
   if [[ "$have" == "$want" ]]; then

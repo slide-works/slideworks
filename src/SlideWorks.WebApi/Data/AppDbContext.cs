@@ -7,6 +7,7 @@ using SlideWorks.Core.Qa;
 using SlideWorks.WebApi.Features.Accounts;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
+using SlideWorks.WebApi.Features.DeviceSessions.Data;
 using SlideWorks.WebApi.Features.Images;
 using SlideWorks.WebApi.Features.Live;
 using SlideWorks.WebApi.Features.OAuth;
@@ -86,6 +87,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<OpenResponse> OpenResponses => Set<OpenResponse>();
     public DbSet<OpenRound> OpenRounds => Set<OpenRound>();
     public DbSet<OpenEntry> OpenEntries => Set<OpenEntry>();
+
+    public DbSet<DeviceSession> DeviceSessions => Set<DeviceSession>();
+
+    public DbSet<DeviceSignInCode> DeviceSignInCodes => Set<DeviceSignInCode>();
 
     // SQLite can't compare or ORDER BY a DateTimeOffset stored as TEXT, so every one is stored as a sortable integer.
     // Expiry checks and newest-first lists then run in SQL.
@@ -180,6 +185,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             token.HasIndex(t => t.TokenHash).IsUnique();
             token.HasIndex(t => t.FamilyId);
         });
+
+        modelBuilder.ApplyConfiguration(new DeviceSessionConfiguration());
+        modelBuilder.ApplyConfiguration(new DeviceSignInCodeConfiguration());
     }
 
     // SW-6's poll tables (V1, V2), made general by SW-9 (Q2): a poll is a slide's poll or the deck's one Q&A poll, and a

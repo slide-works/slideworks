@@ -13,8 +13,15 @@ namespace SlideWorks.WebApi.Tests.Support;
 // issues and accepts), connected over the chosen transport. Pass noCookie for a guest the server has never
 // seen. Tests of anything a guest does over the hub use this, never their own connection. Its HTTP requests carry the
 // same cookie (or none) and the public Origin, as the guest's browser on the join page would.
+//
+// With SLIDEWORKS_TEST_GUEST_MODE=header (CI's guest-header-mode job) the same guest is the app instead (K7): the id rides
+// in the X-SlideWorks-Guest header on HTTP and in the guest query on the hub, and no cookie is sent. noCookie then means
+// no guest credential at all, neither cookie nor header nor query. Cookie mode is the default.
 public sealed class GuestClient : IAsyncDisposable
 {
+    // Read once, so every guest in a run is the same kind of client.
+    private static readonly bool HEADER_MODE = string.Equals(Environment.GetEnvironmentVariable("SLIDEWORKS_TEST_GUEST_MODE"), "header", StringComparison.Ordinal);
+
     private readonly HubReceiver _receiver;
     private readonly HttpClient _http;
 
@@ -36,13 +43,24 @@ public sealed class GuestClient : IAsyncDisposable
         bool noCookie = false)
     {
         var id = guestId ?? GuestCookie.NewId();
-        var cookie = noCookie ? null : $"{GuestCookie.NAME}={id}";
-        var receiver = await HubReceiver.StartAsync(factory, TestUser.Anonymous, transport, cookie);
+        var credential = noCookie ? null : id;
+        var cookie = HEADER_MODE || credential is null ? null : $"{GuestCookie.NAME}={credential}";
+        var receiver = await HubReceiver.StartAsync(factory, new HubReceiverOptions
+        {
+            User = TestUser.Anonymous,
+            Transport = transport,
+            Cookie = cookie,
+            Guest = HEADER_MODE ? credential : null,
+        });
         var http = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });
         http.DefaultRequestHeaders.Add("Origin", TestAppFactory.PUBLIC_URL);
         if (cookie != null)
         {
             http.DefaultRequestHeaders.Add("Cookie", cookie);
+        }
+        if (HEADER_MODE && credential != null)
+        {
+            http.DefaultRequestHeaders.Add(GuestCookie.HEADER, credential);
         }
         return new GuestClient(receiver, http, id);
     }

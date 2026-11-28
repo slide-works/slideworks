@@ -1,0 +1,35 @@
+/* Brand tokens, copied from src/SlideWorks.Client/src/theme/tokens.css (the default theme). Re-copy if they change. */
+@font-face { font-family: 'Inter'; font-weight: 400; src: url('../../../src/SlideWorks.Client/node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 500; src: url('../../../src/SlideWorks.Client/node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 600; src: url('../../../src/SlideWorks.Client/node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 700; src: url('../../../src/SlideWorks.Client/node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-weight: 700; src: url('../../../src/SlideWorks.Client/node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-700-normal.woff2'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-weight: 800; src: url('../../../src/SlideWorks.Client/node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff2'); }
+
+:root {
+  --sw-font-head: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --sw-font-body: 'Inter', system-ui, sans-serif;
+  --sw-paper: #f7f8fa;
+  --sw-card: #ffffff;
+  --sw-ink: #111827;
+  --sw-muted: #5b6474;
+  --sw-grid: #e3e6ec;
+  --sw-chip: #eef1f6;
+  --sw-accent: #2f5bea;
+  --sw-accent-dark: #1e3a8a;
+  --sw-accent-light: #e4eafd;
+  --sw-accent-glow: #a5b8ff;
+  --sw-good: #15803d;
+  --sw-good-soft: #dcfce7;
+  --sw-stamp: #fcd34d;
+  --sw-night: #0b1020;
+  --sw-night-2: #cbd5e1;
+  --sw-night-muted: #8c97ad;
+  --sw-night-line: #334155;
+  --sw-night-surface:
+    radial-gradient(1100px 700px at 88% 112%, color-mix(in srgb, #2f5bea 45%, transparent), transparent 62%),
+    radial-gradient(900px 600px at -5% -10%, color-mix(in srgb, #2f5bea 12%, transparent), transparent 60%),
+    #0b1020;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { background: #888; font-family: var(--sw-font-body); -webkit-font-smoothing: antialiased; }

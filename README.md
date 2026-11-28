@@ -8,7 +8,7 @@ Designs are in [`design/`](design/). The plan lives in the ShipLean project **SW
 
 ## Stack
 
-ASP.NET Core (.NET 10), React SPA (Vite + TypeScript + Tailwind in `src/SlideWorks.Client`). One container, published to GHCR on every push to `main`.
+ASP.NET Core (.NET 10), React SPA (Vite + TypeScript + Tailwind in `src/SlideWorks.Client`). The JavaScript packages share one pnpm workspace rooted at `src/` (`src/pnpm-workspace.yaml`, one lockfile `src/pnpm-lock.yaml`): the SPA and `@slideworks/core` (`src/SlideWorks.Core.Client`, the API layer shared with the phone app). One container, published to GHCR on every push to `main`.
 
 Data lives in SQLite through EF Core; migrations are committed and applied on startup.
 
@@ -18,7 +18,8 @@ Two processes side by side; the Vite dev server proxies `/api`, the `/hubs` WebS
 
 ```bash
 dotnet run --project src/SlideWorks.WebApi   # Kestrel on :5510, settings from appsettings.Development.json
-cd src/SlideWorks.Client && pnpm install && pnpm run dev   # Vite with HMR on :3000, proxies to :5510
+(cd src && pnpm install --frozen-lockfile)                      # once, and after the lockfile changes: the whole workspace
+cd src/SlideWorks.Client && pnpm run dev      # Vite with HMR on :3000, proxies to :5510
 ```
 
 Open http://localhost:3000, not :5510. `appsettings.Development.json` sets `SLIDEWORKS_PUBLIC_URL=http://localhost:3000`, so the server treats the Vite origin as its own: links, the sign-in callback and the OAuth metadata name it, and the cross-site write guard accepts writes from it and refuses them from anywhere else. It also points the database and images at local relative paths (`slide-works-dev.db`, `slide-works-dev-data/`).
@@ -37,6 +38,7 @@ Tests:
 ```bash
 dotnet test src/SlideWorks.slnx                 # the full suite, for people (build the client first, see below); agents run filtered tests with tools/agent, and CI runs everything
 cd src/SlideWorks.Client && pnpm test           # frontend unit tests (also: lint, format:check, build)
+pnpm --dir src/SlideWorks.Core.Client run check # @slideworks/core: format, lint, types and tests
 ```
 
 `pnpm run build` compiles the SPA straight into `src/SlideWorks.WebApi/wwwroot` (gitignored), which the API serves in production — same wiring as the Docker image.
@@ -46,7 +48,7 @@ cd src/SlideWorks.Client && pnpm test           # frontend unit tests (also: lin
 `src/SlideWorks.AcceptanceTests` starts the real app on a Kestrel port (production `Program.cs`, temp database) and drives the SPA bundle in a browser. Build the client first, and install the browser once:
 
 ```bash
-cd src/SlideWorks.Client && pnpm install && pnpm run build   # emits the bundle into src/SlideWorks.WebApi/wwwroot
+(cd src && pnpm install --frozen-lockfile) && pnpm --dir src/SlideWorks.Client run build   # emits the bundle into src/SlideWorks.WebApi/wwwroot
 dotnet build src/SlideWorks.AcceptanceTests
 pwsh src/SlideWorks.AcceptanceTests/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
 dotnet test src/SlideWorks.AcceptanceTests
@@ -152,6 +154,8 @@ Every setting is an environment variable. [`docs/self-hosting.md`](docs/self-hos
 |---|---|
 | `SLIDEWORKS_PUBLIC_URL` | Required outside Development. The URL people and agents reach SlideWorks at. It is the only source of the app's scheme and host; `X-Forwarded-*` is never trusted, and `Host` only chooses between this and the join URL. Development uses `http://localhost:3000` |
 | `SLIDEWORKS_JOIN_URL` | Optional. A short domain for the join links an audience scans, such as `https://slideworks.live`: an absolute `http` or `https` origin with no path, or the server refuses to start. Unset, join links are `<public URL>/j/<code>` |
+| `SLIDEWORKS_IDENTITY_PROXY` | Optional. `true` when an identity-aware proxy is in front: the server then answers 400 `identity_proxy` instead of minting phone-app sign-in codes. Default off |
+| `SLIDEWORKS_APPLE_APP_ID`, `SLIDEWORKS_ANDROID_CERT_SHA256` | Optional. The iOS app id (`<Team ID>.<bundle id>`) and the Android Play app-signing SHA-256 fingerprints (comma-separated). Each turns on one `/.well-known` app-link file on the public and join hosts; unset, it answers 404 and join links open the browser. See [`docs/self-hosting.md`](docs/self-hosting.md#phone-app-links) |
 | `SLIDEWORKS_GOOGLE_CLIENT_ID`, `SLIDEWORKS_GOOGLE_CLIENT_SECRET` | Sign in with Google, on only when both are set. Redirect URI `<public URL>/signin-google` |
 | `SLIDEWORKS_ADMIN_EMAIL` | The first admin's Google email, honoured only while no admin exists. New people wait on `/pending` until an admin approves them on `/admin/users` |
 | `SLIDEWORKS_DB_PATH` | SQLite file, default `/data/slide-works.db`. The cookie keys live in `slide-works-keys/` next to it |
@@ -186,11 +190,11 @@ Screenshot assertions (`toHaveScreenshot()`) will likely fail on your machine ev
 
 ```bash
 cd src
-docker run --rm -v "$PWD":/work -w /work/SlideWorks.Client mcr.microsoft.com/playwright:v1.62.0-resolute \
-  bash -c "corepack enable && pnpm install --frozen-lockfile && pnpm exec playwright test -c playwright-ct.config.ts --update-snapshots=all"
+docker run --rm -v "$PWD":/work -w /work mcr.microsoft.com/playwright:v1.62.0-resolute \
+  bash -c "corepack enable && pnpm install --frozen-lockfile --filter slide-works-client... && pnpm --dir SlideWorks.Client exec playwright test -c playwright-ct.config.ts --update-snapshots=all"
 ```
 
-It mounts all of `src/`, not just the client, because the component tests import `@contracts` from `src/contracts`. The container runs as root, so the files it writes in `node_modules` and the snapshot folders end up owned by root.
+It mounts all of `src/`, not just the client, because the pnpm workspace is rooted there and the component tests import `@contracts` from `src/contracts`. The container runs as root, so the files it writes in `node_modules` and the snapshot folders end up owned by root.
 
 ## Deploy
 

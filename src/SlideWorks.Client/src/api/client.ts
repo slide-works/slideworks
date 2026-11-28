@@ -1,44 +1,18 @@
-// Single fetch wrapper for all API calls. The session is the browser's cookie, sent on same-origin requests only, and
-// the browser adds Origin and Sec-Fetch-Site itself, which the server's cross-site write guard checks. It parses the
-// API's { error } body on failure (and keeps a refusal's message, path and errors on the ApiError), and a 401 from any call mid-session (an expired cookie) goes to the registered
+// The SPA's API client is the core's (@slideworks/core/client, contract K2), running on the web platform. The session is
+// the browser's cookie, sent on same-origin requests only, and the browser adds Origin and Sec-Fetch-Site itself, which
+// the server's cross-site write guard checks. A 401 from any call mid-session (an expired cookie) goes to the registered
 // handler, which by default sends the person to sign in and back. A 403 { error: 'pending_approval' } goes to its own
 // handler, which by default sends the person to /pending.
+import { configurePlatform } from '@slideworks/core/platform';
+import { webPlatform } from '../platform/webPlatform';
 
-// One entry of a refusal body's `errors`: the field it is about, its code and its text.
-export type ApiFieldError = { path: string; code: string; message: string };
-
-// What a failure body carried beyond the text ApiError.message holds. `code` is the body's `error`
-// as sent: a code on the routes that refuse with { error, message, path?, errors? }, the sentence
-// itself on the routes that answer { error: "<sentence>" }. `detail` is the body's `message`.
-export type ApiFailureBody = {
-  code?: string;
-  detail?: string;
-  path?: string;
-  errors?: ApiFieldError[];
-};
-
-export class ApiError extends Error {
-  public readonly code?: string;
-  public readonly detail?: string;
-  public readonly path?: string;
-  public readonly errors?: ApiFieldError[];
-
-  constructor(
-    message: string,
-    public readonly status: number,
-    body: ApiFailureBody = {},
-  ) {
-    super(message);
-    if (body.code !== undefined) this.code = body.code;
-    if (body.detail !== undefined) this.detail = body.detail;
-    if (body.path !== undefined) this.path = body.path;
-    if (body.errors !== undefined) this.errors = body.errors;
-  }
-}
-
-// GET /api/me is how the app learns whether anyone is signed in. Its 401 is an answer for the caller (the auth gate in
-// App.tsx), not a session that expired, so it never reaches the handler.
-const SESSION_CHECK_PATH = '/api/me';
+export {
+  ApiError,
+  api,
+  type ApiFailureBody,
+  type ApiFieldError,
+  type RequestOptions,
+} from '@slideworks/core/client';
 
 type SignInLocation = Pick<Location, 'pathname' | 'search' | 'hash' | 'assign'>;
 
@@ -59,7 +33,6 @@ export function setOnUnauthorized(handler: () => void): void {
 }
 
 const PENDING_PATH = '/pending';
-const PENDING_APPROVAL_ERROR = 'pending_approval';
 
 // Sends a person whose account isn't approved yet to /pending. Already there, it stays put.
 export function redirectToPending(location: Pick<Location, 'pathname' | 'assign'>): void {
@@ -73,61 +46,11 @@ export function setOnPendingApproval(handler: () => void): void {
   onPendingApproval = handler;
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const response = await fetch(path, {
-    method,
-    credentials: 'same-origin',
-    headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  if (response.status === 401) {
-    if (path !== SESSION_CHECK_PATH) onUnauthorized();
-    throw await failure(response);
-  }
-  if (!response.ok) {
-    const error = await failure(response);
-    if (
-      response.status === 403 &&
-      error.message === PENDING_APPROVAL_ERROR &&
-      path !== SESSION_CHECK_PATH
-    ) {
-      onPendingApproval();
-    }
-    throw error;
-  }
-  return response.status === 204 ? (undefined as T) : response.json();
-}
-
-// A failed response as an ApiError. Its message is the body's `error`, or a generic sentence when
-// the body has none or is not JSON; the body's other members ride along for callers that show them.
-async function failure(response: Response): Promise<ApiError> {
-  const generic = `Request failed (${response.status})`;
-  let parsed: unknown;
-  try {
-    parsed = await response.json();
-  } catch {
-    return new ApiError(generic, response.status);
-  }
-  if (typeof parsed !== 'object' || parsed === null) return new ApiError(generic, response.status);
-
-  const { error, message, path, errors } = parsed as Record<string, unknown>;
-  const body: ApiFailureBody = {};
-  if (typeof error === 'string') body.code = error;
-  if (typeof message === 'string') body.detail = message;
-  if (typeof path === 'string') body.path = path;
-  if (Array.isArray(errors)) body.errors = errors.filter(isFieldError);
-  return new ApiError(body.code ?? generic, response.status, body);
-}
-
-function isFieldError(value: unknown): value is ApiFieldError {
-  if (typeof value !== 'object' || value === null) return false;
-  const { path, code, message } = value as Record<string, unknown>;
-  return typeof path === 'string' && typeof code === 'string' && typeof message === 'string';
-}
-
-export const api = {
-  get: <T>(path: string) => request<T>('GET', path),
-  post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
-  put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),
-  del: <T>(path: string) => request<T>('DELETE', path),
-};
+// Configured on first import, not in main.tsx, so Vitest and the component tests, which never run main.tsx, get the
+// web behaviour too.
+configurePlatform(
+  webPlatform({
+    onUnauthorized: () => onUnauthorized(),
+    onPendingApproval: () => onPendingApproval(),
+  }),
+);

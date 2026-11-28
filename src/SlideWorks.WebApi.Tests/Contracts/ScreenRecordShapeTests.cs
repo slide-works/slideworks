@@ -14,6 +14,7 @@ using SlideWorks.WebApi.Features.Accounts.Profile.Views;
 using SlideWorks.WebApi.Features.Activity;
 using SlideWorks.WebApi.Features.Decks;
 using SlideWorks.WebApi.Features.Decks.Views;
+using SlideWorks.WebApi.Features.DeviceSessions.Views;
 using SlideWorks.WebApi.Features.Join.Views;
 using SlideWorks.WebApi.Features.Look;
 using SlideWorks.WebApi.Features.Look.Views;
@@ -273,6 +274,43 @@ public class ScreenRecordShapeTests : ApiTestFixture
         JsonShape.AssertMatches(json, "admin-users.json", ScreenShapes.AdminUsers);
         SameJson(json, example).ShouldBeTrue(Differs(json, example));
         users.Select(row => row.Access).ShouldBe(["pending", "approved", "approved", "rejected"]);
+    }
+
+    [Test]
+    public void DeviceSessionsSample_WhenRoundTripped_ShouldMatchRecord()
+    {
+        var example = Example("device-sessions.json");
+        var view = example.Deserialize<DeviceSessionsView>(AppJsonOptions()).ShouldNotBeNull();
+        var json = Serialise(view);
+
+        JsonShape.AssertMatches(json, "device-sessions.json", ScreenShapes.DeviceSessions);
+        SameJson(json, example).ShouldBeTrue(Differs(json, example));
+        view.Devices.Select(row => row.Current).ShouldBe([true, false]);
+    }
+
+    [Test]
+    public void DeviceSessionCodeSample_WhenRoundTripped_ShouldMatchRecord()
+    {
+        var example = Example("device-session-code.json");
+        var view = example.Deserialize<DeviceSignInCodeView>(AppJsonOptions()).ShouldNotBeNull();
+        var json = Serialise(view);
+
+        JsonShape.AssertMatches(json, "device-session-code.json", ScreenShapes.DeviceSessionCode);
+        SameJson(json, example).ShouldBeTrue(Differs(json, example));
+        view.OpenAppUrl.ShouldMatch("^slideworks://signed-in\\?code=[A-Za-z0-9_-]{43}&state=[A-Za-z0-9_-]{16,128}&iss=https%3A%2F%2F[^&]+$");
+    }
+
+    [Test]
+    public void DeviceSessionExchangeSample_WhenRoundTripped_ShouldMatchRecord()
+    {
+        var example = Example("device-session-exchange.json");
+        var view = example.Deserialize<DeviceSessionExchangeView>(AppJsonOptions()).ShouldNotBeNull();
+        var json = Serialise(view);
+
+        JsonShape.AssertMatches(json, "device-session-exchange.json", ScreenShapes.DeviceSessionExchange);
+        SameJson(json, example).ShouldBeTrue(Differs(json, example));
+        view.Secret.ShouldMatch("^swd_[A-Za-z0-9_-]{43}$");
+        SameJson(json.GetProperty("me"), Example("me.json")).ShouldBeTrue(Differs(json.GetProperty("me"), Example("me.json")));
     }
 
     private static DeckPageSlide Slide(string layout, string slots, int position = 0) => DeckPageSlide.From(

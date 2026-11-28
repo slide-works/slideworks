@@ -1,0 +1,2 @@
+{ "id": "b-ios", "platform": "IOS", "status": "FINISHED", "appVersion": "1.4.57", "appBuildVersion": "8",
+  "artifacts": { "buildUrl": "__BASE__/files/ios.ipa" } }

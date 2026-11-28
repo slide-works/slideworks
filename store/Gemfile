@@ -1,0 +1,6 @@
+source "https://rubygems.org"
+
+# 2.242.0 maps the 6.9" and 6.3" iPhone sizes (1320x2868, 1206x2622) in deliver; 2.228.0 does not. No Gemfile.lock:
+# bundler is not on the host that wrote this; generate one in a ruby container.
+# The only fastlane in the repo; store/push_listing.sh is the only caller.
+gem "fastlane", "~> 2.242"

@@ -1,0 +1,133 @@
+name: Mobile Android build
+description: >-
+  Generates the native Android project with `expo prebuild` and compiles it with Gradle `assembleDebug` for
+  arm64-v8a and x86_64, to prove the native side compiles and links. The Gradle and ccache caches are always
+  restored; they are saved only when `save-caches` is true (the ci-caches workflow, on main).
+
+inputs:
+  save-caches:
+    description: Save the Gradle and ccache caches after the build. Only the ci-caches workflow sets this.
+    required: false
+    default: 'false'
+  ndk-version:
+    description: >-
+      NDK to build with, passed to Gradle as -PndkVersion. Empty means the newest 27.x the runner has installed
+      (React Native pins an older one, and installing that costs about 4 minutes); with none installed Gradle
+      installs the pinned one.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+      with:
+        package_json_file: src/package.json
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
+        cache-dependency-path: src/pnpm-lock.yaml
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 17
+    - name: Install dependencies
+      shell: bash
+      working-directory: src
+      run: pnpm install --frozen-lockfile --filter slide-works-mobile...
+
+    - name: Install ccache
+      shell: bash
+      run: sudo apt-get install -y --no-install-recommends ccache
+
+    - name: Locate the NDK
+      id: ndk
+      shell: bash
+      env:
+        REQUESTED: ${{ inputs.ndk-version }}
+      run: |
+        version="$REQUESTED"
+        if [ -z "$version" ]; then
+          version=$(ls "$ANDROID_HOME/ndk" 2>/dev/null | grep -E '^27\.' | sort -V | tail -1 || true)
+        fi
+        echo "Installed NDKs: $(ls "$ANDROID_HOME/ndk" 2>/dev/null | tr '\n' ' ')"
+        echo "Building with NDK: ${version:-the one React Native pins}"
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+
+    # Exact keys never repeat (the run id is in them), so each save adds an entry; a restore takes the newest one that
+    # matches the prefix. The lockfile and app.json change which dependencies and native modules are compiled.
+    - id: gradle-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: mobile-android-gradle-${{ hashFiles('src/pnpm-lock.yaml', 'src/SlideWorks.Mobile/app.json') }}-${{ github.run_id }}
+        restore-keys: |
+          mobile-android-gradle-${{ hashFiles('src/pnpm-lock.yaml', 'src/SlideWorks.Mobile/app.json') }}-
+          mobile-android-gradle-
+    - id: ccache-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.ccache
+        key: mobile-android-ccache-${{ hashFiles('src/pnpm-lock.yaml', 'src/SlideWorks.Mobile/app.json') }}-${{ github.run_id }}
+        restore-keys: |
+          mobile-android-ccache-${{ hashFiles('src/pnpm-lock.yaml', 'src/SlideWorks.Mobile/app.json') }}-
+          mobile-android-ccache-
+    - name: Cache restore result
+      shell: bash
+      env:
+        GRADLE_HIT: ${{ steps.gradle-cache.outputs.cache-matched-key }}
+        CCACHE_HIT: ${{ steps.ccache-cache.outputs.cache-matched-key }}
+      run: |
+        echo "Gradle cache restored from: ${GRADLE_HIT:-nothing (cold)}"
+        echo "ccache restored from: ${CCACHE_HIT:-nothing (cold)}"
+        {
+          echo "### Android build caches"
+          echo "- Gradle: ${GRADLE_HIT:-miss}"
+          echo "- ccache: ${CCACHE_HIT:-miss}"
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Generate the Android project
+      shell: bash
+      working-directory: src/SlideWorks.Mobile
+      env:
+        # A debug build never uploads source maps, and there is no token here.
+        SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+      run: pnpm exec expo prebuild --platform android --clean --no-install
+
+    - name: Build (assembleDebug)
+      shell: bash
+      working-directory: src/SlideWorks.Mobile/android
+      env:
+        SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+        CMAKE_C_COMPILER_LAUNCHER: ccache
+        CMAKE_CXX_COMPILER_LAUNCHER: ccache
+        CCACHE_MAXSIZE: 1G
+        CCACHE_COMPRESS: '1'
+        # Absolute paths differ between the runner's checkouts only by the workspace root; make them relative.
+        CCACHE_BASEDIR: ${{ github.workspace }}
+        NDK_VERSION: ${{ steps.ndk.outputs.version }}
+      run: |
+        export CCACHE_DIR="$HOME/.ccache"
+        ccache --zero-stats
+        args=(assembleDebug -PreactNativeArchitectures=arm64-v8a,x86_64 --console=plain)
+        if [ -n "$NDK_VERSION" ]; then args+=("-PndkVersion=$NDK_VERSION"); fi
+        ./gradlew "${args[@]}"
+        ccache --show-stats
+
+    - name: Save the Gradle cache
+      if: inputs.save-caches == 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: mobile-android-gradle-${{ hashFiles('src/pnpm-lock.yaml', 'src/SlideWorks.Mobile/app.json') }}-${{ github.run_id }}
+    - name: Save the ccache cache
+      if: inputs.save-caches == 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.ccache
+        key: mobile-android-ccache-${{ hashFiles('src/pnpm-lock.yaml', 'src/SlideWorks.Mobile/app.json') }}-${{ github.run_id }}

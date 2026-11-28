@@ -1,0 +1,7 @@
+SlideWorks is the phone companion to SlideWorks web decks.
+
+Test without an account: on the first screen, enter the six-digit code of a live talk (the demo talk's code is in the App Review notes field in App Store Connect) and tap Join a talk. The app shows the talk's title and the slide number the speaker is on. No account is needed to join.
+
+Sign in (optional): tap Sign in, keep the prefilled server, and tap Sign in with Google. Sign-in happens in the system browser, through the server's web sign-in. The demo account's login is in the App Review contact and sign-in fields set in App Store Connect, because this repository is public.
+
+The app uses no camera, microphone or location. It uses the network only. Crash reports are sent only in builds that have a crash-reporting DSN configured, and carry no personal data.

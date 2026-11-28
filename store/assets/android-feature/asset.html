@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SlideWorks Play feature graphic</title>
+    <link rel="stylesheet" href="../_shared/common.css" />
+    <link rel="stylesheet" href="../_shared/screens.css" />
+    <style>
+      .feature { position: relative; width: 1024px; height: 500px; overflow: hidden; background: var(--sw-night-surface); color: #fff; }
+      .text { position: absolute; left: 72px; top: 128px; width: 520px; }
+      .text svg { display: block; width: 84px; height: 84px; border-radius: 20px; }
+      .text h1 { font-family: var(--sw-font-head); font-weight: 800; font-size: 64px; line-height: 1.05; margin-top: 26px; }
+      .text p { color: var(--sw-night-2); font-size: 27px; line-height: 1.3; margin-top: 16px; }
+      .phone-box { position: absolute; left: 676px; top: 60px; width: 260px; }
+    </style>
+  </head>
+  <body data-frame="android">
+    <script src="../_shared/mark.js"></script>
+    <script src="../_shared/screens.js"></script>
+    <script>
+      document.body.innerHTML = `<section class="feature" data-shot="1-feature"><div class="text">${SW.mark('light', 84)}<h1>SlideWorks</h1><p>Join a talk with a code and follow its slide live.</p></div>${SW.phone('join', false)}</section>`;
+    </script>
+  </body>
+</html>

@@ -6,8 +6,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 usage="usage: tools/agent/bootstrap [--client-bundle]
 Run inside a worktree. Loads the host env, prints the scratch dir, runs
-'pnpm install --frozen-lockfile' in src/SlideWorks.Client when node_modules is missing
-or older than pnpm-lock.yaml, runs 'dotnet tool restore', then builds the solution.
+'pnpm install --frozen-lockfile' in src/ (the pnpm workspace: the SPA, @slideworks/core and every
+other package in src/pnpm-workspace.yaml) when src/node_modules is missing or older than
+src/pnpm-lock.yaml, runs 'dotnet tool restore', then builds the solution.
 --client-bundle also runs 'pnpm run build' (the acceptance tests serve that bundle).
 Steps time out after AGENT_INSTALL_TIMEOUT (600 s). Exit 4: a missing tool or a failed
 install or download; 3: a failed build; 124: a timeout. Safe to run twice: the second run skips the install."
@@ -31,6 +32,8 @@ agent_require git flock timeout pnpm
 agent_env
 root="$(agent_root)"
 client="$root/src/SlideWorks.Client"
+# The pnpm workspace root: one install and one lockfile for every package in src/pnpm-workspace.yaml.
+workspace="$root/src"
 scratch="$(agent_scratch)"
 echo "scratch: $scratch"
 
@@ -54,9 +57,9 @@ step() {
 }
 
 installed=skipped
-if [[ ! -d "$client/node_modules" || "$client/node_modules" -ot "$client/pnpm-lock.yaml" ]]; then
-  step pnpm-install 4 in_dir "$client" pnpm install --frozen-lockfile
-  touch "$client/node_modules"
+if [[ ! -d "$workspace/node_modules" || "$workspace/node_modules" -ot "$workspace/pnpm-lock.yaml" ]]; then
+  step pnpm-install 4 in_dir "$workspace" pnpm install --frozen-lockfile
+  touch "$workspace/node_modules"
   installed=ran
 fi
 echo "pnpm install: $installed"

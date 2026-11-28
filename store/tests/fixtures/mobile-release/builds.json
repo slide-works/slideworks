@@ -1,0 +1,4 @@
+[
+  { "id": "b-android", "platform": "ANDROID", "status": "IN_QUEUE" },
+  { "id": "b-ios", "platform": "IOS", "status": "IN_QUEUE" }
+]

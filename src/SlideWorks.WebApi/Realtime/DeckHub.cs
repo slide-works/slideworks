@@ -33,6 +33,9 @@ namespace SlideWorks.WebApi.Realtime;
 // Polls (SW-6, V5): a guest who has answered a poll whose results show after answering calls WatchPoll(code) to join
 // poll-results:{roundId}, the group that gets the round's tally with counts. IPollAnswers decides; the hub only checks the
 // cookie and joins. Group membership ends with the connection, so a reconnected phone calls it again.
+//
+// Device sessions (K5): a phone connects with its swd_ secret (a bearer header, or the access_token query a WebSocket
+// sends), and its connection is registered in DeviceConnections for as long as it is open, so ending the session drops it.
 [AllowAnonymous]
 public sealed class DeckHub(
     IDeckAccess access,
@@ -43,7 +46,8 @@ public sealed class DeckHub(
     IJoinLookupLimiter limiter,
     IAudienceEvents audienceEvents,
     IPollAnswers pollAnswers,
-    IDeckTranslations translations) : Hub
+    IDeckTranslations translations,
+    DeviceConnections deviceConnections) : Hub
 {
     // The caller is the hub connection's own principal, not the request's: under long polling a hub call runs after the
     // request that opened it has finished, so IHttpContextAccessor is empty by then.
@@ -269,8 +273,21 @@ public sealed class DeckHub(
         }
     }
 
+    public override async Task OnConnectedAsync()
+    {
+        if (DeviceSessionOf(Context.User) is { } sessionId)
+        {
+            deviceConnections.Add(sessionId, Context);
+        }
+        await base.OnConnectedAsync();
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        if (DeviceSessionOf(Context.User) is { } sessionId)
+        {
+            deviceConnections.Remove(sessionId, Context.ConnectionId);
+        }
         try
         {
             await presentations.LeaveAllAsync(Context.ConnectionId);
@@ -281,4 +298,7 @@ public sealed class DeckHub(
         }
         await base.OnDisconnectedAsync(exception);
     }
+
+    private static Guid? DeviceSessionOf(ClaimsPrincipal? user)
+        => Guid.TryParse(user?.FindFirstValue(SlideWorksClaims.DEVICE_SESSION_ID), out var id) ? id : null;
 }

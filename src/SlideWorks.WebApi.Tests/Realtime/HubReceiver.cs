@@ -21,13 +21,21 @@ public sealed class HubReceiver : IAsyncDisposable
 
     private readonly Channel<JsonElement> _audienceEvents = Channel.CreateUnbounded<JsonElement>();
 
-    private HubReceiver(WebApplicationFactory<ApiMarker> factory, TestUser user, HttpTransportType transport, string? cookie)
+    private HubReceiver(WebApplicationFactory<ApiMarker> factory, HubReceiverOptions receiverOptions)
     {
         var server = factory.Server;
+        var user = receiverOptions.User;
+        var cookie = receiverOptions.Cookie;
+        var bearer = receiverOptions.Bearer is { } secret ? $"Bearer {secret}" : null;
+        Url = UrlOf(server.BaseAddress, receiverOptions);
         Connection = new HubConnectionBuilder()
-            .WithUrl(new Uri(server.BaseAddress, DeckHub.PATH), options =>
+            .WithUrl(Url, options =>
             {
-                options.Transports = transport;
+                options.Transports = receiverOptions.Transport;
+                if (bearer != null)
+                {
+                    options.Headers["Authorization"] = bearer;
+                }
                 if (cookie != null)
                 {
                     options.Headers["Cookie"] = cookie;
@@ -40,9 +48,19 @@ public sealed class HubReceiver : IAsyncDisposable
                 options.WebSocketFactory = async (context, cancellationToken) =>
                 {
                     var client = server.CreateWebSocketClient();
-                    if (cookie != null)
+                    if (cookie != null || bearer != null)
                     {
-                        client.ConfigureRequest = request => request.Headers["Cookie"] = cookie;
+                        client.ConfigureRequest = request =>
+                        {
+                            if (cookie != null)
+                            {
+                                request.Headers["Cookie"] = cookie;
+                            }
+                            if (bearer != null)
+                            {
+                                request.Headers["Authorization"] = bearer;
+                            }
+                        };
                     }
                     if (!user.IsAnonymous)
                     {
@@ -63,14 +81,21 @@ public sealed class HubReceiver : IAsyncDisposable
 
     public HubConnection Connection { get; }
 
+    // The hub URL the connection starts on, with the access_token and guest queries when the options name them.
+    public Uri Url { get; }
+
     // cookie is a raw Cookie header value, as a guest's browser sends it (GuestClient mints it).
     public static async Task<HubReceiver> StartAsync(
         WebApplicationFactory<ApiMarker> factory,
         TestUser user,
         HttpTransportType transport = HttpTransportType.WebSockets,
         string? cookie = null)
+        => await StartAsync(factory, new HubReceiverOptions { User = user, Transport = transport, Cookie = cookie });
+
+    // A connection with a device secret (header or access_token query) or a guest query, as the app connects (K5, K7).
+    public static async Task<HubReceiver> StartAsync(WebApplicationFactory<ApiMarker> factory, HubReceiverOptions options)
     {
-        var receiver = new HubReceiver(factory, user, transport, cookie);
+        var receiver = new HubReceiver(factory, options);
         try
         {
             await receiver.Connection.StartAsync();
@@ -126,4 +151,19 @@ public sealed class HubReceiver : IAsyncDisposable
     }
 
     public ValueTask DisposeAsync() => Connection.DisposeAsync();
+
+    private static Uri UrlOf(Uri baseAddress, HubReceiverOptions options)
+    {
+        var query = new List<string>();
+        if (options.AccessToken is { } accessToken)
+        {
+            query.Add("access_token=" + Uri.EscapeDataString(accessToken));
+        }
+        if (options.Guest is { } guest)
+        {
+            query.Add("guest=" + Uri.EscapeDataString(guest));
+        }
+        var url = new Uri(baseAddress, DeckHub.PATH);
+        return query.Count == 0 ? url : new UriBuilder(url) { Query = string.Join('&', query) }.Uri;
+    }
 }

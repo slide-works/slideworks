@@ -10,9 +10,13 @@ namespace SlideWorks.WebApi.Features.Accounts;
 [RegisterPerRequest]
 public class MeViews(IUserAccounts accounts, ICurrentActor actor, IAvatars avatars)
 {
-    public async Task<MeView> GetAsync()
+    public Task<MeView> GetAsync() => ForAsync(actor.PresenterId!.Value);
+
+    // The same view for a person named by id, for a caller who isn't signed in as them yet (a phone's device-session
+    // exchange, K4).
+    public async Task<MeView> ForAsync(Guid userId)
     {
-        var user = await accounts.FindAsync(actor.PresenterId!.Value)
+        var user = await accounts.FindAsync(userId)
             ?? throw new NotFoundException("The signed-in person no longer exists.");
         return MeView.From(
             user,

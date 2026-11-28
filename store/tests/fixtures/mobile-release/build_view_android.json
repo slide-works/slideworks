@@ -1,0 +1,2 @@
+{ "id": "b-android", "platform": "ANDROID", "status": "FINISHED", "appVersion": "1.4.57", "appBuildVersion": "23",
+  "artifacts": { "buildUrl": "__BASE__/files/android.aab" } }

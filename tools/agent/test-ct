@@ -30,7 +30,7 @@ for arg in "$@"; do
 done
 agent_require pnpm flock timeout
 agent_env
-[[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run pnpm install --frozen-lockfile there" missing=node_modules
+[[ -d "$client/node_modules" ]] || agent_die 4 "src/SlideWorks.Client/node_modules is missing: run tools/agent/bootstrap (pnpm install --frozen-lockfile in src/)" missing=node_modules
 echo "specs: ${files[*]}"
 
 # Playwright CT never type-checks, so a type error would only show up in CI.

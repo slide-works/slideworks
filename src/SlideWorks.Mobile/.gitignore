@@ -1,0 +1,13 @@
+# Made by `expo prebuild` (development builds): never committed.
+/android
+/ios
+# Expo's caches, generated types and `expo export` output.
+.expo/
+/dist
+expo-env.d.ts
+node_modules/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision

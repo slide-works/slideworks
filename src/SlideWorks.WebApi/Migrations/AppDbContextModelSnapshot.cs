@@ -203,6 +203,90 @@ namespace SlideWorks.WebApi.Migrations
                     b.ToTable("Decks");
                 });
 
+            modelBuilder.Entity("SlideWorks.WebApi.Features.DeviceSessions.Data.DeviceSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DeviceName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EndReason")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("EndedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ExpiresAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("LastUsedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SecretHash")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SecretHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("DeviceSessions", t =>
+                        {
+                            t.HasCheckConstraint("CK_DeviceSessions_DeviceName_Length", "length(\"DeviceName\") <= 80");
+
+                            t.HasCheckConstraint("CK_DeviceSessions_EndReason", "\"EndReason\" IS NULL OR \"EndReason\" IN ('AppSignOut', 'WebSignOut', 'Expired', 'AccessChanged')");
+                        });
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.DeviceSessions.Data.DeviceSignInCode", b =>
+                {
+                    b.Property<string>("CodeHash")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("AccessStamp")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Challenge")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DeviceName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("UsedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("CodeHash");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("DeviceSignInCodes", t =>
+                        {
+                            t.HasCheckConstraint("CK_DeviceSignInCodes_DeviceName_Length", "length(\"DeviceName\") <= 80");
+                        });
+                });
+
             modelBuilder.Entity("SlideWorks.WebApi.Features.Images.DeckImage", b =>
                 {
                     b.Property<string>("Id")
@@ -1230,6 +1314,24 @@ namespace SlideWorks.WebApi.Migrations
                     b.HasOne("SlideWorks.WebApi.Features.Accounts.User", null)
                         .WithMany()
                         .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.DeviceSessions.Data.DeviceSession", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Accounts.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SlideWorks.WebApi.Features.DeviceSessions.Data.DeviceSignInCode", b =>
+                {
+                    b.HasOne("SlideWorks.WebApi.Features.Accounts.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

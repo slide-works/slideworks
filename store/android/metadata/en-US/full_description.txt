@@ -1,0 +1,15 @@
+SlideWorks is the phone companion to SlideWorks decks, the web slide decks that agents build and anyone presents from a URL.
+
+Join a talk
+Type the six-digit code from the screen, or scan the talk's QR code with your phone's camera. With the app installed, the link opens right here. You do not need an account. The app shows the talk's title and the slide number the speaker is on, live.
+
+Sign in to see your decks
+Sign in with Google through your browser and the app lists your talks. Open one to see its current slide number change as soon as someone moves the slide on the web. You can use the hosted SlideWorks server or type the address of your own.
+
+You stay in control
+Sign out from the app, or revoke the phone from the Signed-in devices list on the SlideWorks web profile page. The app asks for no camera, microphone or location permission, and sends crash reports only, with no tracking.
+
+Good to know
+This first version is intentionally small. Presenting, live polls and audience questions happen in the browser for now; the app will grow into them.
+
+SlideWorks is open source. Self-hosted servers work too.

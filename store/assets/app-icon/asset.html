@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SlideWorks app icons</title>
+    <link rel="stylesheet" href="../_shared/common.css" />
+    <style>
+      /* A checkerboard shows which icons are transparent; the export is the element, so it stays transparent. */
+      html, body { background: transparent; }
+      section { margin: 0 0 40px; background: transparent; }
+      section svg { display: block; }
+    </style>
+  </head>
+  <body>
+    <script src="../_shared/mark.js"></script>
+    <script>
+      // [file name, mark variant, size, files in src/SlideWorks.Mobile/assets that copy it]
+      const ICONS = [
+        ['1-ios-light', 'light', 1024, 'icon.png ios/icon-light.png'],
+        ['2-ios-dark', 'dark', 1024, 'ios/icon-dark.png'],
+        ['3-ios-tinted', 'tinted', 1024, 'ios/icon-tinted.png'],
+        ['4-android-foreground', 'foreground', 1024, 'android/adaptive-foreground.png'],
+        ['5-android-background', 'background', 1024, 'android/adaptive-background.png'],
+        ['6-android-monochrome', 'monochrome', 1024, 'android/adaptive-monochrome.png'],
+        ['7-splash-light', 'splash-light', 512, 'splash/splash-light.png'],
+        ['8-splash-dark', 'splash-dark', 512, 'splash/splash-dark.png'],
+      ];
+      document.body.innerHTML = ICONS.map(([id, variant, size, copy]) =>
+        `<section data-shot="${id}" data-copy="${copy}" style="width:${size}px;height:${size}px">${SW.mark(variant, size)}</section>`).join('');
+    </script>
+  </body>
+</html>

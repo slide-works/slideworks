@@ -1,9 +1,11 @@
 import { Navigate, Outlet, useRoutes, type RouteObject } from 'react-router-dom';
 import { App } from './App';
+import { DeviceSignInGate } from './DeviceSignInGate';
 import { GuestRoute } from './guest/GuestRoute';
 import { JoinCodePage } from './guest/JoinCodePage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { CardPage } from './pages/CardPage';
+import { DeviceSignInPage } from './pages/DeviceSignInPage';
 import { ConsentPage } from './pages/ConsentPage';
 import { DeckPage } from './pages/DeckPage';
 import { DecksPage } from './pages/DecksPage';
@@ -45,6 +47,12 @@ const routes: RouteObject[] = [
   { path: '/card/:id', element: <CardPage /> },
   // A template's page, where its share link leads: open without a sign-in, as the player is.
   { path: '/t/:id', element: <TemplatePublicPage /> },
+  // The confirm page the SlideWorks app opens to sign in (K6): for any signed-in person, pending included, so it has its
+  // own gate rather than SignedInGate, and no Shell.
+  {
+    path: '/app/sign-in',
+    element: <DeviceSignInGate>{(me) => <DeviceSignInPage me={me} />}</DeviceSignInGate>,
+  },
   {
     element: <SignedInGate>{(me) => <Outlet context={me} />}</SignedInGate>,
     children: [

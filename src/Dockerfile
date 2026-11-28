@@ -2,15 +2,20 @@
 
 # Stage 1: build the SPA straight into the API project's wwwroot.
 FROM node:22-alpine AS frontend
-# pnpm at the version package.json's packageManager pins, through Node's own corepack.
+# pnpm at the version the workspace root's package.json (packageManager) pins, through Node's own corepack.
 RUN corepack enable
-WORKDIR /source/SlideWorks.Client
-COPY SlideWorks.Client/package.json SlideWorks.Client/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-COPY SlideWorks.Client/ ./
+WORKDIR /source
+# The pnpm workspace root (one lockfile for every package in src/), the SPA's manifest and the whole of
+# @slideworks/core (it ships its .ts sources, no build step). The install takes only the SPA and the workspace
+# packages it depends on, so another package in the workspace (the app) needs nothing copied here.
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY SlideWorks.Client/package.json SlideWorks.Client/
+COPY SlideWorks.Core.Client/ SlideWorks.Core.Client/
+RUN pnpm install --frozen-lockfile --filter slide-works-client...
+COPY SlideWorks.Client/ SlideWorks.Client/
 # The shared contracts (screen JSON, sample deck) the client imports as @contracts/*.
-COPY contracts/ ../contracts/
-RUN pnpm run build
+COPY contracts/ contracts/
+RUN pnpm --dir SlideWorks.Client run build
 
 # Stage 2: publish the API with the SPA already inside wwwroot, so the
 # published output is the complete app — no copy step in the runtime stage.

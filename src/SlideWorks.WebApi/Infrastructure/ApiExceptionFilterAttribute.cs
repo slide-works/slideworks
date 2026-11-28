@@ -17,6 +17,7 @@ public sealed class ApiExceptionFilterAttribute : ExceptionFilterAttribute
             BadRequestException e => new BadRequestObjectResult(new ErrorResponse(e.Message)),
             ConflictException e => new ConflictObjectResult(new ErrorResponse(e.Message)),
             TooManyRequestsException e => new ObjectResult(new ErrorResponse(e.Message)) { StatusCode = StatusCodes.Status429TooManyRequests },
+            RefusalException e => new ObjectResult(new RefusalResponse(e.Code, e.Message)) { StatusCode = e.Status },
             PayloadTooLargeException e => new ObjectResult(new ErrorResponse(e.Message)) { StatusCode = StatusCodes.Status413PayloadTooLarge },
             _ => null,
         };
