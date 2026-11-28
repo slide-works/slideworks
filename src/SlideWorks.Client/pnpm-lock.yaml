@@ -169,6 +169,21 @@ importers:
       '@fontsource/inter':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/noto-sans-jp':
+        specifier: 5.3.1
+        version: 5.3.1
+      '@fontsource/noto-sans-kr':
+        specifier: 5.3.1
+        version: 5.3.1
+      '@fontsource/noto-sans-sc':
+        specifier: 5.3.1
+        version: 5.3.1
+      '@fontsource/noto-sans-tc':
+        specifier: 5.3.1
+        version: 5.3.1
+      '@fontsource/noto-sans-thai':
+        specifier: 5.3.0
+        version: 5.3.0
       '@fontsource/plus-jakarta-sans':
         specifier: ^5.3.0
         version: 5.3.0
@@ -422,6 +437,21 @@ packages:
 
   '@fontsource/inter@5.3.0':
     resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
+
+  '@fontsource/noto-sans-jp@5.3.1':
+    resolution: {integrity: sha512-9NNBB/M9PextLYVXGSfIaLZsPnrt5UDw8g2B6T0M775H2yb/oekApSjuS1XKOP7FPcMMEnTavR5rJGDM66qKtA==}
+
+  '@fontsource/noto-sans-kr@5.3.1':
+    resolution: {integrity: sha512-aKnPug5P6zBHaiLbGEVNyBQesyOeEUYl6C3Xedb00xO3iAHJZPQs2JOsPNVqHanKSVe1fTVmTPuYIao4noImXw==}
+
+  '@fontsource/noto-sans-sc@5.3.1':
+    resolution: {integrity: sha512-YxZ/VWAWo9FWzH08Q6fGTzIW6vYNP2TMhUFCnfhlimbhdXnWrxJLrzX3KWt2FKnV0s8XiM5vjpGHQiyFRlTj0w==}
+
+  '@fontsource/noto-sans-tc@5.3.1':
+    resolution: {integrity: sha512-kiOTKRnkEV4dsMqfmIuH3TnkYp5Rqq2f4LgAArx0Y5eVzCebU2TgWup5TWCWWSk28nBf4mgunLTyQP+xQ74gcQ==}
+
+  '@fontsource/noto-sans-thai@5.3.0':
+    resolution: {integrity: sha512-ngqUyvDukkZUHypQbUJvUdAeYa2aYZsyeDTsdqMudf7GK2F2TK19OZ5kbo+37qsBtkNpmAMhEObQnWnzPqzKUw==}
 
   '@fontsource/plus-jakarta-sans@5.3.0':
     resolution: {integrity: sha512-9WRw3G74Ve4cyPApAZSXLPY5DiLOZXDn7Q7dIBjFBpA0Pj56ljDItEdy2UUajjJxRuTg2HkMLO5C3K2nAQORWg==}
@@ -2010,6 +2040,16 @@ snapshots:
   '@exodus/bytes@1.16.0': {}
 
   '@fontsource/inter@5.3.0': {}
+
+  '@fontsource/noto-sans-jp@5.3.1': {}
+
+  '@fontsource/noto-sans-kr@5.3.1': {}
+
+  '@fontsource/noto-sans-sc@5.3.1': {}
+
+  '@fontsource/noto-sans-tc@5.3.1': {}
+
+  '@fontsource/noto-sans-thai@5.3.0': {}
 
   '@fontsource/plus-jakarta-sans@5.3.0': {}
 
