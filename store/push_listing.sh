@@ -94,7 +94,8 @@ if [[ "$platform" == ios ]]; then
         --metadata_path "$work/staged/ios/metadata" --screenshots_path "$work/staged/ios/screenshots" \
         --app_rating_config_path "$work/staged/ios/age_rating.json" \
         --skip_binary_upload true --automatic_release false --submit_for_review false \
-        --overwrite_screenshots true --force true
+        --overwrite_screenshots true --force true \
+        --precheck_include_in_app_purchases false
       ;;
     verify)
       bundle exec fastlane deliver download_metadata --api_key_path "$work/asc_key.json" \
@@ -104,6 +105,7 @@ if [[ "$platform" == ios ]]; then
       bundle exec fastlane deliver --api_key_path "$work/asc_key.json" --app_identifier "$app_identifier" \
         --skip_metadata true --skip_screenshots true --skip_binary_upload true \
         --build_number latest --submit_for_review true --automatic_release false --force true \
+        --precheck_include_in_app_purchases false \
         --submission_information '{"export_compliance_uses_encryption": false, "add_id_info_uses_idfa": false}'
       ;;
   esac

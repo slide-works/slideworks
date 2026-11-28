@@ -68,6 +68,8 @@ class PushListingTests(unittest.TestCase):
         self.assertIn("--submit_for_review false", " ".join(ios["args"]))
         self.assertIn("--automatic_release false", " ".join(ios["args"]))
         self.assertNotIn("true", ios["args"][ios["args"].index("--submit_for_review") + 1])
+        # precheck cannot check in-app purchases with an API key and would fail the run after the upload.
+        self.assertEqual("false", ios["args"][ios["args"].index("--precheck_include_in_app_purchases") + 1])
         self.assertEqual({"--metadata_path": True, "--screenshots_path": True}, ios["dirs"])
         self.assertEqual("KEYID", ios["api_key"]["key_id"])
         self.assertEqual(["supply"], android["args"][2:3])
@@ -129,6 +131,7 @@ class PushListingTests(unittest.TestCase):
         self.assertEqual("false", args[args.index("--automatic_release") + 1])
         self.assertEqual("true", args[args.index("--skip_metadata") + 1])
         self.assertEqual("true", args[args.index("--skip_screenshots") + 1])
+        self.assertEqual("false", args[args.index("--precheck_include_in_app_purchases") + 1])
 
     def test_missing_secret_names_it(self):
         cases = (("ios", "push", "ASC_API_KEY_ID"), ("ios", "submit", "ASC_API_KEY_P8"),
